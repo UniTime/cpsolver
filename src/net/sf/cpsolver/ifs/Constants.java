@@ -6,7 +6,7 @@ package net.sf.cpsolver.ifs;
  * Build number and release date are to be set by apache ant.
  * 
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -26,7 +26,7 @@ package net.sf.cpsolver.ifs;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 public class Constants {
-	private static final String VERSION = "1.0";
+	private static final String VERSION = "1.1";
     private static final int BLD_NUMBER = -1;
     private static final String REL_DATE = "Unknown";
     

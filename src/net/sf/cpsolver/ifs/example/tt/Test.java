@@ -13,7 +13,7 @@ import net.sf.cpsolver.ifs.util.*;
  * Test
  *
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -99,7 +99,7 @@ public class Test {
                     best.restoreBest();
                     int val = 0;
                     for (Enumeration iv = best.getModel().assignedVariables().elements(); iv.hasMoreElements();)
-                        val += ((Variable)iv.nextElement()).getAssignment().toInt();
+                        val += (int)((Variable)iv.nextElement()).getAssignment().toDouble();
                     if (saveSol) m.saveAsXML(properties, true, best,
                             new File(properties.getProperty("General.Output")+File.separator+"SimpleTT("+
                             (nrResources<0?properties.getPropertyInt("Generator.NrRooms",20):nrResources)+","+
@@ -189,7 +189,7 @@ public class Test {
             best.restoreBest();
             int val = 0;
             for (Enumeration iv = best.getModel().assignedVariables().elements(); iv.hasMoreElements();)
-                val += ((Variable)iv.nextElement()).getAssignment().toInt();
+                val += (int)((Variable)iv.nextElement()).getAssignment().toDouble();
             if (saveSol) m.saveAsXML(properties, false, best, new File(properties.getProperty("General.Output")+File.separator+"solution_"+test+".xml"));
             sLogger.debug("Last solution:"+best.getInfo());
             logStat.println(

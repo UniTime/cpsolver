@@ -8,7 +8,7 @@ import net.sf.cpsolver.ifs.model.*;
  * @see Solver
  *
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -41,4 +41,11 @@ public interface SolverListener {
      * @param value selected variable
      */
     public boolean valueSelected(long iteration, Variable variable, Value value);
+    
+    /** A neighbour was selected
+     * @param iteration current iteration
+     * @param neighbour neighbour
+     */
+    public boolean neighbourSelected(long iteration, Neighbour neighbour);
+    
 }

@@ -33,7 +33,7 @@ import net.sf.cpsolver.ifs.util.*;
  * @see net.sf.cpsolver.ifs.solver.Solver
  *
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -55,16 +55,19 @@ import net.sf.cpsolver.ifs.util.*;
 
 public class Model {
     private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(Model.class);
-    private static java.text.DecimalFormat sTimeFormat = new java.text.DecimalFormat("0.00",new java.text.DecimalFormatSymbols(Locale.US));
+    protected static java.text.DecimalFormat sTimeFormat = new java.text.DecimalFormat("0.00",new java.text.DecimalFormatSymbols(Locale.US));
+    protected static java.text.DecimalFormat sDoubleFormat = new java.text.DecimalFormat("0.00",new java.text.DecimalFormatSymbols(Locale.US));
+    protected static java.text.DecimalFormat sPercentageFormat = new java.text.DecimalFormat("0.00",new java.text.DecimalFormatSymbols(Locale.US));
     
     private Vector iVariables = new FastVector();
     private Vector iConstraints = new FastVector();
     private Vector iUnassignedVariables = new FastVector();
     private Vector iAssignedVariables = new FastVector();
+    private Vector iInfoProviders = new FastVector();
+    private Vector iVariablesWithInitialValueCache = null;
     
     private Vector iPerturbVariables = null;
     private Vector iConflictVariables = null;
-    private Vector iVariablesWithoutInitialValue = null;
     
     private int iBestUnassignedVariables = -1;
     private int iBestPerturbations = 0;
@@ -81,20 +84,26 @@ public class Model {
     public void addVariable(Variable variable) {
         variable.setModel(this);
         iVariables.addElement(variable);
+        if (variable instanceof InfoProvider)
+        	iInfoProviders.addElement(variable);
         if (variable.getAssignment()==null) iUnassignedVariables.addElement(variable);
         else iAssignedVariables.addElement(variable);
         if (variable.getAssignment()!=null) variable.assign(0L,variable.getAssignment());
         for (Enumeration e=iModelListeners.elements();e.hasMoreElements();)
             ((ModelListener)e.nextElement()).variableAdded(variable);
+        invalidateVariablesWithInitialValueCache();
     }
     /** Removes a variable from the model */
     public void removeVariable(Variable variable) {
         variable.setModel(null);
         iVariables.removeElement(variable);
+        if (variable instanceof InfoProvider)
+        	iInfoProviders.removeElement(variable);
         if (iUnassignedVariables.contains(variable)) iUnassignedVariables.removeElement(variable);
         if (iAssignedVariables.contains(variable)) iAssignedVariables.removeElement(variable);
         for (Enumeration e=iModelListeners.elements();e.hasMoreElements();)
             ((ModelListener)e.nextElement()).variableRemoved(variable);
+        invalidateVariablesWithInitialValueCache();
     }
     
     /** The list of constraints in the model */
@@ -105,6 +114,8 @@ public class Model {
     public void addConstraint(Constraint constraint) {
         constraint.setModel(this);
         iConstraints.addElement(constraint);
+        if (constraint instanceof InfoProvider)
+        	iInfoProviders.addElement(constraint);
         for (Enumeration e=iModelListeners.elements();e.hasMoreElements();)
             ((ModelListener)e.nextElement()).constraintAdded(constraint);
     }
@@ -112,6 +123,8 @@ public class Model {
     public void removeConstraint(Constraint constraint) {
         constraint.setModel(null);
         iConstraints.removeElement(constraint);
+        if (constraint instanceof InfoProvider)
+        	iInfoProviders.removeElement(constraint);
         for (Enumeration e=iModelListeners.elements();e.hasMoreElements();)
             ((ModelListener)e.nextElement()).constraintRemoved(constraint);
     }
@@ -125,25 +138,47 @@ public class Model {
     public Vector perturbVariables() {
         if (iPerturbVariables!=null) return iPerturbVariables;
         Vector perturbances = new FastVector();
-        for (Enumeration e=variables().elements();e.hasMoreElements();) {
+        for (Enumeration e=variablesWithInitialValue().elements();e.hasMoreElements();) {
             Variable variable = (Variable)e.nextElement();
-            if (variable.getInitialAssignment()!=null) {
-                if (variable.getAssignment()!=null) {
-                    if (!variable.getInitialAssignment().equals(variable.getAssignment())) perturbances.addElement(variable);
-                } else {
-                    boolean hasPerturbance = false;
-                    for (Enumeration x=variable.hardConstraints().elements();!hasPerturbance && x.hasMoreElements();) {
-                        Constraint constraint = (Constraint)x.nextElement();
-                        if (constraint.variables().contains(variable) && constraint.inConflict(variable.getInitialAssignment()))
-                            hasPerturbance=true;
-                    }
-                    if (hasPerturbance) perturbances.addElement(variable);
+            if (variable.getAssignment()!=null) {
+            	if (!variable.getInitialAssignment().equals(variable.getAssignment())) perturbances.addElement(variable);
+            } else {
+            	boolean hasPerturbance = false;
+                for (Enumeration x=variable.hardConstraints().elements();!hasPerturbance && x.hasMoreElements();) {
+                	Constraint constraint = (Constraint)x.nextElement();
+                	if (constraint.variables().contains(variable) && constraint.inConflict(variable.getInitialAssignment()))
+                		hasPerturbance=true;
                 }
+                if (hasPerturbance) perturbances.addElement(variable);
             }
         }
         iPerturbVariables = perturbances;
         return perturbances;
     }
+    
+    /** The list of perturbation variables in the model, i.e., the variables which has an initial value but which are not 
+     * assigned with this value. Only variables from the given set are considered.
+     */
+    public Vector perturbVariables(Vector variables) {
+        Vector perturbances = new FastVector();
+        for (Enumeration e=variables.elements();e.hasMoreElements();) {
+        	Variable variable = (Variable)e.nextElement();
+        	if (variable.getInitialAssignment()==null) continue;
+            if (variable.getAssignment()!=null) {
+                if (!variable.getInitialAssignment().equals(variable.getAssignment())) perturbances.addElement(variable);
+            } else {
+                boolean hasPerturbance = false;
+                for (Enumeration x=variable.hardConstraints().elements();!hasPerturbance && x.hasMoreElements();) {
+                    Constraint constraint = (Constraint)x.nextElement();
+                    if (constraint.variables().contains(variable) && constraint.inConflict(variable.getInitialAssignment()))
+                        hasPerturbance=true;
+                }
+                if (hasPerturbance) perturbances.addElement(variable);
+            }
+        }
+        return perturbances;
+    }
+    
     
     /** Returns the set of confliction variables with this value, if it is assigned to its variable */
     public Set conflictValues(Value value) {
@@ -154,15 +189,20 @@ public class Model {
     }
     
     /** The list of variales without initial value */
-    public Vector variablesWithoutInitialValue() {
-        if (iVariablesWithoutInitialValue!=null) return iVariablesWithoutInitialValue;
-        Vector variables = new FastVector();
+    public Vector variablesWithInitialValue() {
+    	if (iVariablesWithInitialValueCache!=null)
+    		return iVariablesWithInitialValueCache;
+    	iVariablesWithInitialValueCache = new FastVector();
         for (Enumeration e=variables().elements();e.hasMoreElements();) {
             Variable variable = (Variable)e.nextElement();
-            if (variable.getInitialAssignment()==null) variables.addElement(variable);
+            if (variable.getInitialAssignment()!=null) iVariablesWithInitialValueCache.addElement(variable);
         }
-        iVariablesWithoutInitialValue=variables;
-        return variables;
+        return iVariablesWithInitialValueCache;
+    }
+    
+    /** Invalidates cache containing all variables that possess an initial value */
+    protected void invalidateVariablesWithInitialValueCache() {
+    	iVariablesWithInitialValueCache = null;
     }
     
     /** Called before a value is assigned to its variable */
@@ -209,24 +249,69 @@ public class Model {
         ",\n    constraints="+ToolBox.col2string(constraints(),2)+
         ",\n    #unassigned="+unassignedVariables().size()+
         ",\n    unassigned="+ToolBox.col2string(unassignedVariables(),2)+
-        ",\n    #perturbations="+perturbVariables().size()+"+"+variablesWithoutInitialValue().size()+
+        ",\n    #perturbations="+perturbVariables().size()+"+"+(variables().size()-variablesWithInitialValue().size())+
         ",\n    perturbations="+ToolBox.col2string(perturbVariables(),2)+
         ",\n    info="+getInfo()+
-        (variablesWithoutInitialValue().size()<variables().size()?",\n    withoutInitial="+ToolBox.col2string(variablesWithoutInitialValue(),2):"")+
         "\n  }";
     }
+    
+    protected String getPerc(double value, double min, double max) {
+	    if (max==min) return sPercentageFormat.format(100.0);
+    	return sPercentageFormat.format(100.0 - 100.0*(value-min)/(max-min));
+    }
+
+    protected String getPercRev(double value, double min, double max) {
+    	if (max==min) return sPercentageFormat.format(0.0);
+    	return sPercentageFormat.format(100.0*(value-min)/(max-min));
+    }
+    
     
     /** Returns information about the current solution. Information from all model listeners and constraints is also included.
      */
     public java.util.Hashtable getInfo() {
         java.util.Hashtable ret = new java.util.Hashtable();
-        ret.put("Unassigned variables", unassignedVariables().size()+" / "+variables().size());
-        ret.put("Perturbation variables (with + without initial value)", perturbVariables().size()+" + "+variablesWithoutInitialValue().size());
-        ret.put("Total value", new Integer(getTotalValue()));
-        for (Enumeration e=iModelListeners.elements();e.hasMoreElements();)
-            ((ModelListener)e.nextElement()).getInfo(ret);
-        for (Enumeration e=iConstraints.elements();e.hasMoreElements();)
-            ((Constraint)e.nextElement()).getInfo(ret);
+        ret.put("Assigned variables", getPercRev(assignedVariables().size(),0,variables().size())+"% ("+assignedVariables().size()+"/"+variables().size()+")");
+        int nrVarsWithInitialValue = variablesWithInitialValue().size(); 
+        if (nrVarsWithInitialValue>0) {
+        	ret.put("Perturbation variables", getPercRev(perturbVariables().size(),0,nrVarsWithInitialValue)+"% ("+perturbVariables().size()+" + "+(variables().size()-nrVarsWithInitialValue)+")");
+        }
+        ret.put("Overall solution value", sDoubleFormat.format(getTotalValue()));
+        for (Enumeration e=iInfoProviders.elements();e.hasMoreElements();)
+            ((InfoProvider)e.nextElement()).getInfo(ret);
+        return ret;
+    }
+    
+    /** Returns information about the current solution. Information from all model listeners and constraints is also included.
+     * Only variables from the given set are considered.
+     */
+    public java.util.Hashtable getInfo(Vector variables) {
+        java.util.Hashtable ret = new java.util.Hashtable();
+        int assigned = 0, perturb = 0, nrVarsWithInitialValue = 0;
+        for (Enumeration e=variables.elements();e.hasMoreElements();) {
+        	Variable variable = (Variable)e.nextElement();
+        	if (variable.getAssignment()!=null) assigned++;
+        	if (variable.getInitialAssignment()!=null) {
+        		nrVarsWithInitialValue++;
+                if (variable.getAssignment()!=null) {
+                    if (!variable.getInitialAssignment().equals(variable.getAssignment())) perturb++;
+                } else {
+                    boolean hasPerturbance = false;
+                    for (Enumeration x=variable.hardConstraints().elements();!hasPerturbance && x.hasMoreElements();) {
+                        Constraint constraint = (Constraint)x.nextElement();
+                        if (constraint.variables().contains(variable) && constraint.inConflict(variable.getInitialAssignment()))
+                            hasPerturbance=true;
+                    }
+                    if (hasPerturbance) perturb++;
+                }
+        	}
+        }
+        ret.put("Assigned variables", getPercRev(assigned,0,variables.size())+"% ("+assigned+"/"+variables.size()+")");
+        if (nrVarsWithInitialValue>0) {
+        	ret.put("Perturbation variables", getPercRev(perturb,0,nrVarsWithInitialValue)+"% ("+perturb+" + "+(variables.size()-nrVarsWithInitialValue)+")");
+        }
+        ret.put("Overall solution value", sDoubleFormat.format(getTotalValue(variables)));
+        for (Enumeration e=iInfoProviders.elements();e.hasMoreElements();)
+            ((InfoProvider)e.nextElement()).getInfo(ret, variables);
         return ret;
     }
     
@@ -247,12 +332,13 @@ public class Model {
     public void restoreBest() {
         for (Enumeration e=variables().elements();e.hasMoreElements();) {
             Variable variable = (Variable)e.nextElement();
-            variable.unassign(0);
+            if (variable.getAssignment()!=null && !variable.getAssignment().equals(variable.getBestAssignment()))
+            	variable.unassign(0);
         }
         HashSet problems = new HashSet();
         for (Enumeration e=ToolBox.sortEnumeration(variables().elements(), new BestAssignmentComparator());e.hasMoreElements();) {
             Variable variable = (Variable)e.nextElement();
-            if (variable.getBestAssignment()!=null) {
+            if (variable.getBestAssignment()!=null && variable.getAssignment()==null) {
                 Set confs = conflictValues(variable.getBestAssignment());
                 if (!confs.isEmpty()) {
                     sLogger.error("restore best problem: assignment "+variable.getName()+" = "+variable.getBestAssignment().getName());
@@ -261,7 +347,7 @@ public class Model {
                         Set x = new HashSet();
                         c.computeConflicts(variable.getBestAssignment(),x);
                         if (!x.isEmpty()) {
-                            sLogger.error("  constraint "+c.getName()+" causes the following conflicts "+x);
+                            sLogger.error("  constraint "+c.getClass().getName()+" "+c.getName()+" causes the following conflicts "+x);
                         }
                     }
                     problems.add(variable.getBestAssignment());
@@ -275,13 +361,15 @@ public class Model {
             Variable variable = value.variable();            
             Set confs = conflictValues(value);
             if (!confs.isEmpty()) {
-                sLogger.error("restore best problem (again, att="+attempt+"): assignment "+variable.getName()+" = "+variable.getBestAssignment().getName());
+                sLogger.error("restore best problem (again, att="+attempt+"): assignment "+variable.getName()+" = "+value.getName());
                 for (Enumeration en=variable.hardConstraints().elements();en.hasMoreElements();) {
                     Constraint c=(Constraint)en.nextElement();
                     Set x = new HashSet();
                     c.computeConflicts(value,x);
-                    if (!x.isEmpty()) sLogger.error("  constraint "+c.getName()+" causes the following conflicts "+x);
+                    if (!x.isEmpty()) sLogger.error("  constraint "+c.getClass().getName()+" "+c.getName()+" causes the following conflicts "+x);
                 }
+                for (Iterator i=confs.iterator();i.hasNext();)
+                	((Value)i.next()).variable().unassign(0);
                 problems.addAll(confs);
             }
             variable.assign(0,value);
@@ -299,11 +387,24 @@ public class Model {
         return ret;
     }
     
-    /** Value of the current solution. It is the sum of all assigned values, i.e., {@link Value#toInt()}.*/
-    public int getTotalValue() {
+    /** Value of the current solution. It is the sum of all assigned values, i.e., {@link Value#toDouble()}.*/
+    public double getTotalValue() {
         int valCurrent = 0;
         for (Enumeration e=assignedVariables().elements();e.hasMoreElements();)
-            valCurrent += ((Variable)e.nextElement()).getAssignment().toInt();
+            valCurrent += ((Variable)e.nextElement()).getAssignment().toDouble();
+        return valCurrent;
+    }
+    
+    /** Value of the current solution. It is the sum of all assigned values, i.e., {@link Value#toDouble()}.
+     * Only variables from the given set are considered.
+     **/
+    public double getTotalValue(Vector variables) {
+        int valCurrent = 0;
+        for (Enumeration e=variables.elements();e.hasMoreElements();) {
+        	Variable variable = (Variable)e.nextElement();
+        	if (variable.getAssignment()!=null)
+        		valCurrent += variable.getAssignment().toDouble();
+        }
         return valCurrent;
     }
     
@@ -311,6 +412,8 @@ public class Model {
     /** Adds a model listener */
     public void addModelListener(ModelListener listener) {
         iModelListeners.addElement(listener);
+        if (listener instanceof InfoProvider)
+        	iInfoProviders.addElement(listener);
         for (Enumeration e=iConstraints.elements();e.hasMoreElements();)
             listener.constraintAdded((Constraint)e.nextElement());
         for (Enumeration e=iVariables.elements();e.hasMoreElements();)
@@ -318,6 +421,8 @@ public class Model {
     }
     /** Removes a model listener */
     public void removeModelListener(ModelListener listener) {
+        if (listener instanceof InfoProvider)
+        	iInfoProviders.removeElement(listener);
         for (Enumeration e=iVariables.elements();e.hasMoreElements();)
             listener.variableRemoved((Variable)e.nextElement());
         for (Enumeration e=iConstraints.elements();e.hasMoreElements();)
@@ -379,4 +484,7 @@ public class Model {
             return (int)(v1.getBestAssignmentIteration()-v2.getBestAssignmentIteration());
         }
     }
+
+    /** Registered info providers (see {@link InfoProvider}) */
+    protected Vector getInfoProviders() { return iInfoProviders; }
 }

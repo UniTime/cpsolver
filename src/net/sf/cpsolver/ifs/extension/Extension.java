@@ -15,7 +15,7 @@ import net.sf.cpsolver.ifs.util.*;
  * For instance, {@link MacPropagation} is using these extra objects to memorize explanations.
  *
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -103,10 +103,6 @@ public class Extension implements ModelListener {
     }
     /** Called when a variable is removed from the model */
     public void variableRemoved(Variable variable) {
-    }
-    
-    /** Put some information from the extension to the solution info table*/
-    public void getInfo(java.util.Hashtable anInfo) {
     }
     
     /** Initialization -- called before the solver is started */

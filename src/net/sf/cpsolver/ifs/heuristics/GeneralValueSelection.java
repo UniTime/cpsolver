@@ -35,14 +35,14 @@ import net.sf.cpsolver.ifs.util.*;
  * <tr><td>Value.WeightPotentialConflicts</td><td>{@link Double}</td><td>When {@link ConflictStatistics} is used: weighted number of potentially conflicting variables</td></tr>
  * <tr><td>Value.WeightConflicts</td><td>{@link Double}</td><td>Number of conflicting variables {@link Model#conflictValues(Value)}.</td></tr>
  * <tr><td>Value.WeightNrAssignments</td><td>{@link Double}</td><td>Number of previous assignments of the value</td></tr>
- * <tr><td>Value.WeightValue</td><td>{@link Double}</td><td>Value {@link Value#toInt()}</td></tr>
+ * <tr><td>Value.WeightValue</td><td>{@link Double}</td><td>Value {@link Value#toDouble()}</td></tr>
  * </table>
  *
  * @see VariableSelection
  * @see Solver
  *
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -190,7 +190,7 @@ public class GeneralValueSelection implements ValueSelection {
                     + (iWeightWeightedCoflicts * weightedConflicts)
                     + (iWeightCoflicts * conf.size())
                     + (iWeightNrAssignments * value.countAssignments())
-                    + (iWeightValue * value.toInt());
+                    + (iWeightValue * value.toDouble());
             
             if (bestValues == null || bestWeightedSum > weightedSum) {
                 bestWeightedSum = weightedSum;

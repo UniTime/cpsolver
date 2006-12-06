@@ -6,7 +6,7 @@ import java.util.*;
  * Simple test of IFS CBS algorithm on random binary CSP problem CSP(25,12,198/300,36/144).
  *
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -70,7 +70,7 @@ public class SimpleTest {
         for (Enumeration e=solution.getModel().variables().elements();e.hasMoreElements();) {
             CSPVariable v=(CSPVariable)e.nextElement();
             if (v.getAssignment()!=null)
-                System.out.println("Var"+(idx++)+"="+v.getAssignment().toInt());
+                System.out.println("Var"+(idx++)+"="+v.getAssignment().toDouble());
         }
     }
 }

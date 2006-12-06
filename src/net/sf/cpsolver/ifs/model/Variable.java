@@ -17,7 +17,7 @@ import net.sf.cpsolver.ifs.util.*;
  * @see net.sf.cpsolver.ifs.solver.Solver
  *
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -90,6 +90,10 @@ public class Variable implements Comparable {
     protected void setValues(Vector values) {
         iValues = values;
     }
+    /** True, if the variable's domain is not empty */
+    public boolean hasValues() {
+    	return !values().isEmpty();
+    }
     
     /** Returns current assignment */
     public Value getAssignment() { return iValue; }
@@ -101,6 +105,8 @@ public class Variable implements Comparable {
     public void setInitialAssignment(Value initialValue) { 
         iInitialValue = initialValue; 
         if (iInitialValue!=null && iInitialValue.variable()==null) iInitialValue.setVariable(this);
+        if (iModel!=null)
+        	iModel.invalidateVariablesWithInitialValueCache();
     }
     /** Returns true if the variable has an initial assignment */
     public boolean hasInitialAssignment() { return iInitialValue!=null; }
@@ -112,7 +118,8 @@ public class Variable implements Comparable {
      * @param value the value to be assigned
      */
     public void assign(long iteration, Value value) {
-        getModel().beforeAssigned(iteration,value);
+    	if (getModel()!=null)
+    		getModel().beforeAssigned(iteration,value);
         iLastAssignmentIteration = iteration;
         if (iValue!=null) unassign(iteration);
         if (iRecentlyRemovedValue!=null && iRecentlyRemovedValue.equals(value)) {
@@ -130,7 +137,8 @@ public class Variable implements Comparable {
         if (iVariableListeners!=null) 
             for (Enumeration e=iVariableListeners.elements(); e.hasMoreElements();)
                 ((VariableListener)e.nextElement()).variableAssigned(iteration, value);
-        getModel().afterAssigned(iteration,value);
+    	if (getModel()!=null)
+    		getModel().afterAssigned(iteration,value);
     }
     
     /** Unassign value from this variable.
@@ -138,7 +146,8 @@ public class Variable implements Comparable {
      */
     public void unassign(long iteration) {
         if (iValue==null) return;
-        getModel().beforeUnassigned(iteration,iValue);
+    	if (getModel()!=null)
+    		getModel().beforeUnassigned(iteration,iValue);
         iLastUnassignmentIteration = iteration;
         Value oldValue = iValue;
         iValue = null;
@@ -150,7 +159,8 @@ public class Variable implements Comparable {
         if (iVariableListeners!=null)
             for (Enumeration e=iVariableListeners.elements(); e.hasMoreElements();) 
                 ((VariableListener)e.nextElement()).variableUnassigned(iteration, oldValue);
-        getModel().afterUnassigned(iteration,oldValue);
+    	if (getModel()!=null)
+    		getModel().afterUnassigned(iteration,oldValue);
     }
     /** Return how many times was this variable assigned in the past. */
     public long countAssignments() { return iAssignmentCounter; }
@@ -231,11 +241,13 @@ public class Variable implements Comparable {
         if (iVariableListeners==null) iVariableListeners=new FastVector();
         iVariableListeners.addElement(listener); 
     }
-    /** Removess variable listener */
+    /** Removes variable listener */
     public void removeVariableListener(VariableListener listener) { 
         if (iVariableListeners==null) iVariableListeners=new FastVector();
         iVariableListeners.removeElement(listener); 
     }
+    /** Return variable listeners */
+    public Vector getVariableListeners() { return iVariableListeners; }
     
     /** Extra information to which can be used by an extension (see {@link net.sf.cpsolver.ifs.extension.Extension}). */
     public void setExtra(Object object) { iExtra = object; }
@@ -247,7 +259,10 @@ public class Variable implements Comparable {
         if (iValue!=null && iValue.equals(value)) unassign(iteration);
         if (iValues==null) return;
         iValues.remove(value);
-        if (iInitialValue!=null && iInitialValue.equals(value)) iInitialValue=null;
+        if (iInitialValue!=null && iInitialValue.equals(value)) {
+        	iInitialValue=null;
+        	if (iModel!=null) iModel.invalidateVariablesWithInitialValueCache();
+        }
         if (iVariableListeners!=null)
             for (Enumeration e=iVariableListeners.elements(); e.hasMoreElements();)
                 ((VariableListener)e.nextElement()).valueRemoved(iteration, value);
@@ -284,6 +299,8 @@ public class Variable implements Comparable {
         if (iValues==null) return;
         if (getAssignment()!=null && getAssignment().equals(iInitialValue)) unassign(0);
         iValues.remove(iInitialValue);
+        if (iModel!=null)
+        	iModel.invalidateVariablesWithInitialValueCache();
         iInitialValue=null;
     }
 }
