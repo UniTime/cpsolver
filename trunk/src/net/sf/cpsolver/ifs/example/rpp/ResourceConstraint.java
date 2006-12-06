@@ -9,7 +9,7 @@ import net.sf.cpsolver.ifs.util.*;
  * Resource constraint (rectangular area where the rectangles are to be placed). It prohibits overlapping of the placed rectangles.
  * 
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>

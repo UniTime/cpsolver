@@ -7,7 +7,7 @@ import net.sf.cpsolver.ifs.model.*;
  * Location encodes a slot and a selection of resources.
  * 
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -74,7 +74,7 @@ public class Location extends Value {
     /** Number of slots (over all resources) which are discouraged */
     public int getNrOfDiscouragedSlots() { return iNrOfDiscouragedSlots; }
     /** Int value (for optimization) -- getNrOfDiscouragedSlots() is returned */
-    public int toInt() { return iNrOfDiscouragedSlots; }
+    public double toDouble() { return iNrOfDiscouragedSlots; }
     /** Computes number of discouraged slots (over all resources and the activity) */
     public int computeNrOfDiscouragedSlots() {
         Activity a = (Activity)variable();

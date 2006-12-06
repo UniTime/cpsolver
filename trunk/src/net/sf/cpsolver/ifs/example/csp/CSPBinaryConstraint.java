@@ -10,7 +10,7 @@ import net.sf.cpsolver.ifs.model.*;
  * This class only implements the generation of a binary CSP constraint and the consistency check.
  * 
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -66,8 +66,8 @@ public class CSPBinaryConstraint extends BinaryConstraint {
             for (Enumeration i2=second().values().elements();
             i2.hasMoreElements();) {
                 CSPValue v2 = (CSPValue)i2.nextElement();
-                iIsConsistent[v1.toInt()][v2.toInt()] = false;
-                allPairs[idx++] = new int[] {v1.toInt(), v2.toInt()};
+                iIsConsistent[(int)v1.toDouble()][(int)v2.toDouble()] = false;
+                allPairs[idx++] = new int[] {(int)v1.toDouble(), (int)v2.toDouble()};
             }
         }
         
@@ -83,9 +83,9 @@ public class CSPBinaryConstraint extends BinaryConstraint {
     public boolean isConsistent(Value value1, Value value2) {
         if (value1==null || value2==null) return true;
         if (isFirst(value1.variable())) {
-            return iIsConsistent[value1.toInt()][value2.toInt()];
+            return iIsConsistent[(int)value1.toDouble()][(int)value2.toDouble()];
         } else {
-            return iIsConsistent[value2.toInt()][value1.toInt()];
+            return iIsConsistent[(int)value2.toDouble()][(int)value1.toDouble()];
         }
     }
 

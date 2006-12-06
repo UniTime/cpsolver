@@ -7,13 +7,13 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  * <br><br>
  * The solution is better than the best ever found solution when it has more variables assigned. In the case, when both
  * solutions have the same number of assigned variables, the better solution is the one with smaller total value, i.e.,
- * the sum of {@link net.sf.cpsolver.ifs.model.Value#toInt()} over all assigned variables.
+ * the sum of {@link net.sf.cpsolver.ifs.model.Value#toDouble()} over all assigned variables.
  *
  * @see Solution
  * @see net.sf.cpsolver.ifs.solver.Solver
  *
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>

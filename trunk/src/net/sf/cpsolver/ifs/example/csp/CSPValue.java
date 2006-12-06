@@ -6,7 +6,7 @@ import net.sf.cpsolver.ifs.model.*;
  * CSP value.
  * 
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -35,5 +35,5 @@ public class CSPValue extends Value {
         super(variable, value);
     }
     
-    public String getName() { return String.valueOf(toInt()); }
+    public String getName() { return String.valueOf(toDouble()); }
 }

@@ -6,7 +6,7 @@ package net.sf.cpsolver.ifs.model;
  * @see Model
  *
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -69,11 +69,6 @@ public interface ModelListener {
      * @param value value to be unassigned
      */
     public void afterUnassigned(long iteration, Value value);
-    
-    /** Query for info about the model. A listener can also add some its info.
-     * @param anInfo resultant table with informations (key, value).
-     */
-    public void getInfo(java.util.Hashtable anInfo);
 
     /** Notification that the model was initialized by the solver. 
      * @param solver IFS solver

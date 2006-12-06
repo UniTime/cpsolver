@@ -32,7 +32,7 @@ import net.sf.cpsolver.ifs.util.*;
  * @see Variable
  *
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -71,9 +71,19 @@ public class DefaultPerturbationsCounter implements PerturbationsCounter {
         }
     }
     
-    public double getPerturbationPenalty(Solution solution) {
+    public double getPerturbationPenalty(Model model) {
         double penalty = 0.0;
-        for (Enumeration e=solution.getModel().perturbVariables().elements();e.hasMoreElements();) {
+        for (Enumeration e=model.perturbVariables().elements();e.hasMoreElements();) {
+            Variable variable = (Variable)e.nextElement();
+            if (variable.getAssignment()!=null && variable.getInitialAssignment()!=null && !variable.getAssignment().equals(variable.getInitialAssignment()))
+                penalty += getPenaltyD(variable.getAssignment(),variable.getInitialAssignment());
+        }
+        return penalty;
+    }
+    
+    public double getPerturbationPenalty(Model model, Vector variables) {
+        double penalty = 0.0;
+        for (Enumeration e=model.perturbVariables(variables).elements();e.hasMoreElements();) {
             Variable variable = (Variable)e.nextElement();
             if (variable.getAssignment()!=null && variable.getInitialAssignment()!=null && !variable.getAssignment().equals(variable.getInitialAssignment()))
                 penalty += getPenaltyD(variable.getAssignment(),variable.getInitialAssignment());
@@ -126,7 +136,7 @@ public class DefaultPerturbationsCounter implements PerturbationsCounter {
         return getPenalty(selectedValue, initialValue);
     }
     
-    public double getPerturbationPenalty(Solution solution, Value selectedValue, Collection conflicts)  {
+    public double getPerturbationPenalty(Model model, Value selectedValue, Collection conflicts)  {
         double penalty = 0;
         Set violations = (getViolatedInitials()==null?null:getViolatedInitials().getViolatedInitials(selectedValue));
         if (violations!=null)
@@ -152,8 +162,13 @@ public class DefaultPerturbationsCounter implements PerturbationsCounter {
         return penalty;
     }
     
-    public void getInfo(Dictionary info, Solution solution) {
-        info.put("Perturbations: Total penalty", sDoubleFormat.format(getPerturbationPenalty(solution)));
+    public void getInfo(Dictionary info, Model model) {
+    	if (model.variablesWithInitialValue().size()>0)
+    		info.put("Perturbations: Total penalty", sDoubleFormat.format(getPerturbationPenalty(model)));
     }
     
+    public void getInfo(Dictionary info, Model model, Vector variables) {
+    	if (model.variablesWithInitialValue().size()>0)
+    		info.put("Perturbations: Total penalty", sDoubleFormat.format(getPerturbationPenalty(model, variables)));
+    }
 }

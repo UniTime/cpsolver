@@ -44,7 +44,7 @@ import net.sf.cpsolver.ifs.util.*;
  * </table>
  *
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -66,6 +66,7 @@ import net.sf.cpsolver.ifs.util.*;
 public class MacPropagation extends Extension {
     private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(MacPropagation.class);
     private boolean iJustForwardCheck = false;
+    private Progress iProgress;
     
     /** List of constraints on which arc-consistency is to be maintained */
     protected Vector iConstraints = null;
@@ -75,6 +76,7 @@ public class MacPropagation extends Extension {
     /** Constructor */
     public MacPropagation(Solver solver, DataProperties properties) {
         super(solver, properties);
+        iProgress = Progress.getInstance(getModel());
         iJustForwardCheck = properties.getPropertyBoolean("MacPropagation.JustForwardCheck", false);
     }
     
@@ -150,8 +152,8 @@ public class MacPropagation extends Extension {
     /** Initialization. Enforce arc-consistency over the current (initial) solution. AC3 algorithm is used. */
     public boolean init(Solver solver) {
         boolean isOk = true;
-        Progress.getInstance().save();
-        Progress.getInstance().setPhase("Initializing propagation:", 3 * getModel().variables().size());
+        iProgress.save();
+        iProgress.setPhase("Initializing propagation:", 3 * getModel().variables().size());
         for (Enumeration i1 = getModel().variables().elements(); i1.hasMoreElements(); ) {
             Variable aVariable = (Variable)i1.nextElement();
             supportValues(aVariable).clear();
@@ -169,7 +171,7 @@ public class MacPropagation extends Extension {
                 else {
                 }
             }
-            Progress.getInstance().incProgress();
+            iProgress.incProgress();
         }
         net.sf.cpsolver.ifs.util.Queue queue = new net.sf.cpsolver.ifs.util.Queue(getModel().variables().size() + 1);
         for (Enumeration i1 = getModel().variables().elements(); i1.hasMoreElements(); ) {
@@ -178,7 +180,7 @@ public class MacPropagation extends Extension {
                 Constraint constraint = (Constraint)i2.nextElement();
                 propagate(constraint, aVariable, queue);
             }
-            Progress.getInstance().incProgress();
+            iProgress.incProgress();
         }
         if (!iJustForwardCheck)
             propagate(queue);
@@ -198,9 +200,9 @@ public class MacPropagation extends Extension {
                 sLogger.error(aVariable.getName() + " has empty domain!");
                 isOk = false;
             }
-            Progress.getInstance().incProgress();
+            iProgress.incProgress();
         }
-        Progress.getInstance().restore();
+        iProgress.restore();
         return isOk;
     }
     

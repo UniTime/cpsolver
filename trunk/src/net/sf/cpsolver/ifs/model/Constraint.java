@@ -58,7 +58,7 @@ import net.sf.cpsolver.ifs.util.*;
  * @see net.sf.cpsolver.ifs.solver.Solver
  *
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -118,6 +118,9 @@ public abstract class Constraint {
     }
     /** Remove a variable from this constraint */
     public void removeVariable(Variable variable) {
+    	if (variable.getAssignment()!=null) {
+    		this.unassigned(0,variable.getAssignment());
+    	}
         variable.removeContstraint(this);
         iVariables.removeElement(variable);
         if (iAssignedVariables.contains(variable)) iAssignedVariables.removeElement(variable);
@@ -197,6 +200,4 @@ public abstract class Constraint {
     /** Returns true if the constraint is hard. Only hard constraints are allowed to
      * unassign a variable when there is a conflict with a value that is being assigned */
     public boolean isHard() { return true; }
-    /** Adds some information into the table with information about the solution */
-    public void getInfo(Dictionary info) {};
 }
