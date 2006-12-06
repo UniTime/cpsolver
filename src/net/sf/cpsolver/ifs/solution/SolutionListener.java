@@ -6,7 +6,7 @@ package net.sf.cpsolver.ifs.solution;
  * @see Solution
  *
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -37,6 +37,13 @@ public interface SolutionListener {
      * @param info produced info table
      */
     public void getInfo(Solution solution, java.util.Dictionary info);
+    /** Called by the solution when it is asked to produce info table, see {@link Solution#getInfo()}.
+     * A listener can also add some its info into this table.
+     * @param solution source solution
+     * @param info produced info table
+     * @param variables only variables from this set are included
+     */
+    public void getInfo(Solution solution, java.util.Dictionary info, java.util.Vector variables);
     
     /** Called by the solution when method {@link Solution#clearBest()} is called.
      * @param solution source solution

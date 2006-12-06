@@ -5,7 +5,7 @@ import java.util.*;
 /** Data properties.
  *
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -68,6 +68,11 @@ public class DataProperties extends Properties {
      * @param value value
      */
     public Object setProperty(String key, String value) {
+    	if (value==null) {
+    		Object ret = getProperty(key);
+    		remove(key);
+    		return ret;
+    	}
         Object ret = super.setProperty(key, value);
         if ("General.SaveDefaultProperties".equals(key))
             iSaveDefaults = getPropertyBoolean("General.SaveDefaultProperties", false);
@@ -104,6 +109,36 @@ public class DataProperties extends Properties {
         }
     }
     
+    /** Returns int property
+     * @param key key
+     * @param defaultValue default value to be returned when such property is not present
+     */
+    public Integer getPropertyInteger(String key, Integer defaultValue) {
+        try {
+            if (containsPropery(key)) return Integer.valueOf(getProperty(key));
+            if (iSaveDefaults && defaultValue!=null) setProperty(key, String.valueOf(defaultValue));
+            return defaultValue;
+        } catch (NumberFormatException nfe) {
+            if (iSaveDefaults && defaultValue!=null) setProperty(key, String.valueOf(defaultValue));
+            return defaultValue;
+        }
+    }
+    
+    /** Returns long property
+     * @param key key
+     * @param defaultValue default value to be returned when such property is not present
+     */
+    public Long getPropertyLong(String key, Long defaultValue) {
+        try {
+            if (containsPropery(key)) return Long.valueOf(getProperty(key));
+            if (iSaveDefaults && defaultValue!=null) setProperty(key, String.valueOf(defaultValue));
+            return defaultValue;
+        } catch (NumberFormatException nfe) {
+            if (iSaveDefaults && defaultValue!=null) setProperty(key, String.valueOf(defaultValue));
+            return defaultValue;
+        }
+    }
+
     /** Returns true if there is such property
      * @param key key
      */
@@ -117,7 +152,7 @@ public class DataProperties extends Properties {
      */
     public boolean getPropertyBoolean(String key, boolean defaultValue) {
         try {
-            if (containsPropery(key)) return getProperty(key).equalsIgnoreCase("true");
+            if (containsPropery(key)) return (getProperty(key).equalsIgnoreCase("on") || getProperty(key).equalsIgnoreCase("true"));
             if (iSaveDefaults) setProperty(key, (defaultValue?"true":"false"));
             return defaultValue;
         } catch (Exception nfe) {
@@ -156,6 +191,98 @@ public class DataProperties extends Properties {
         }
     }
 
+    /** Returns boolean property
+     * @param key key
+     * @param defaultValue default value to be returned when such property is not present
+     */
+    public Boolean getPropertyBoolean(String key, Boolean defaultValue) {
+        try {
+            if (containsPropery(key)) return new Boolean(getProperty(key).equalsIgnoreCase("on") || getProperty(key).equalsIgnoreCase("true"));
+            if (iSaveDefaults && defaultValue!=null) setProperty(key, (defaultValue.booleanValue()?"true":"false"));
+            return defaultValue;
+        } catch (Exception nfe) {
+            if (iSaveDefaults && defaultValue!=null) setProperty(key, (defaultValue.booleanValue()?"true":"false"));
+            return defaultValue;
+        }
+    }
+
+    /** Returns double property
+     * @param key key
+     * @param defaultValue default value to be returned when such property is not present
+     */
+    public Double getPropertyDouble(String key, Double defaultValue) {
+        try {
+            if (containsPropery(key)) return Double.valueOf(getProperty(key));
+            if (iSaveDefaults && defaultValue!=null) setProperty(key, String.valueOf(defaultValue));
+            return defaultValue;
+        } catch (NumberFormatException nfe) {
+            if (iSaveDefaults && defaultValue!=null) setProperty(key, String.valueOf(defaultValue));
+            return defaultValue;
+        }
+    }
+
+    /** Returns float property
+     * @param key key
+     * @param defaultValue default value to be returned when such property is not present
+     */
+    public Float getPropertyFloat(String key, Float defaultValue) {
+        try {
+            if (containsPropery(key)) return Float.valueOf(getProperty(key));
+            if (iSaveDefaults && defaultValue!=null) setProperty(key, String.valueOf(defaultValue));
+            return defaultValue;
+        } catch (NumberFormatException nfe) {
+            if (iSaveDefaults && defaultValue!=null) setProperty(key, String.valueOf(defaultValue));
+            return defaultValue;
+        }
+    }
+    
+    public void setProperty(String key, Object[] value) {
+    	StringBuffer sb = new StringBuffer();
+    	for (int i=0;i<value.length;i++) {
+    		if (i>0) sb.append(",");
+    		sb.append(value[i]==null?"null":value[i].toString());
+    	}
+    	setProperty(key, sb.toString());
+    }
+    
+    public Long[] getPropertyLongArry(String key, Long[] defaultValue) {
+        try {
+            if (containsPropery(key)) {
+            	StringTokenizer stk = new StringTokenizer(getProperty(key),",");
+            	Long ret[] = new Long[stk.countTokens()];
+            	for (int i=0; stk.hasMoreTokens(); i++) {
+            		String t = stk.nextToken();
+            		ret[i] = ("null".equals(t)?null:Long.valueOf(t));
+            	}
+            	return ret;
+            }
+            if (iSaveDefaults && defaultValue!=null) setProperty(key, defaultValue);
+            return defaultValue;
+        } catch (NumberFormatException nfe) {
+            if (iSaveDefaults && defaultValue!=null) setProperty(key, defaultValue);
+            return defaultValue;
+        }
+    }
+
+    public Integer[] getPropertyIntegerArry(String key, Integer[] defaultValue) {
+        try {
+            if (containsPropery(key)) {
+            	StringTokenizer stk = new StringTokenizer(getProperty(key),",");
+            	Integer ret[] = new Integer[stk.countTokens()];
+            	for (int i=0; stk.hasMoreTokens(); i++) {
+            		String t = stk.nextToken();
+            		ret[i] = ("null".equals(t)?null:Integer.valueOf(t));
+            	}
+            	return ret;
+            }
+            if (iSaveDefaults && defaultValue!=null) setProperty(key, defaultValue);
+            return defaultValue;
+        } catch (NumberFormatException nfe) {
+            if (iSaveDefaults && defaultValue!=null) setProperty(key, defaultValue);
+            return defaultValue;
+        }
+    }
+
     /** Returns properties as dictionary.
      */
     public Dictionary toDict() {
@@ -181,14 +308,19 @@ public class DataProperties extends Properties {
             else
                 done=idx;
         }
+        setProperty(key,value);
+    }
+    
+    public void expand() {
+        for (Enumeration e=keys();e.hasMoreElements();) {
+            expand((String)e.nextElement());
+        }
     }
     
     /** Loads properties from an input stream*/
     public void load(java.io.InputStream inputStream) throws java.io.IOException {
         super.load(inputStream);
-        for (Enumeration e=keys();e.hasMoreElements();) {
-            expand((String)e.nextElement());
-        }
+        expand();
         iSaveDefaults = getPropertyBoolean("General.SaveDefaultProperties", false);
     }
 }

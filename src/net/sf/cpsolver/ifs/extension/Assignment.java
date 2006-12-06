@@ -1,5 +1,6 @@
 package net.sf.cpsolver.ifs.extension;
 
+import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Value;
 
 /**
@@ -8,7 +9,7 @@ import net.sf.cpsolver.ifs.model.Value;
  * Counter also supports ageing: the counter is multiplied by aging factor for each iteration.
  *
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -33,6 +34,7 @@ public class Assignment {
     private double iCounter = 1.0;
     private long iLastRevision;
     private double iAgeing = 1.0;
+    private Constraint iConstraint = null;
     
     /** Constructor
      * @param iteration current iteration
@@ -74,6 +76,15 @@ public class Assignment {
         if (iAgeing == 1.0)
             return iCounter;
         return iCounter * Math.pow(iAgeing, iteration - iLastRevision);
+    }
+    
+    /** Returns constraint */
+    public Constraint getConstraint() {
+        return iConstraint;
+    }
+    /** Sets constraint */
+    public void setConstraint(Constraint constraint) {
+        iConstraint = constraint;
     }
     
     /** Revise counter. If ageing is used, counter is adopted to the current iteration: it is multiplited by ageing factor powered by the number of iterations since last revision.

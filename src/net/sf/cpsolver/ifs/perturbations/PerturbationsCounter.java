@@ -24,7 +24,7 @@ import net.sf.cpsolver.ifs.solver.Solver;
  * @see Variable
  *
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -49,23 +49,35 @@ public interface PerturbationsCounter {
     
     /** Returns perturbation penalty, i.e., the distance between current solution and the solution of the initial 
      * problem (see {@link Variable#getInitialAssignment()}).
-     * @param solution current solution
+     * @param model current model
      */
-    public double getPerturbationPenalty(Solution solution);
+    public double getPerturbationPenalty(Model model);
+
+    /** Returns perturbation penalty, i.e., the distance between current solution and the solution of the initial (only include variables from the given set) 
+     * problem (see {@link Variable#getInitialAssignment()}).
+     * @param model current model
+     */
+    public double getPerturbationPenalty(Model model, Vector variables);
     
     /** Returns perturbation penalty of the solution which become from the current solution when given conflicting 
      * values are unassigned and the selected value is assigned. Since this penalty is used for comparison of 
      * different candidate values in the value selection criterion, it is fully acceptable to just return a difference
      * between current and the altered solution (which might be easied for computation that the whole perturbation penalty).
-     * @param solution current solution
+     * @param model current model
      * @param selectedValue value to be selected in the next iteration
      * @param conflicts conflicting values to be unassigned in the next iteration
      */
-    public double getPerturbationPenalty(Solution solution, Value selectedValue, Collection conflicts);
+    public double getPerturbationPenalty(Model model, Value selectedValue, Collection conflicts);
     
     /** Some (perturbation) information about the solution might be returned here.
      * @param info resultant info table
-     * @param solution current solution
+     * @param model current model
      */
-    public void getInfo(Dictionary info, Solution solution);
+    public void getInfo(Dictionary info, Model model);
+
+    /** Some (perturbation) information about the solution might be returned here (only include variables from the given set).
+     * @param info resultant info table
+     * @param model current model
+     */
+    public void getInfo(Dictionary info, Model model, Vector variables);
 }

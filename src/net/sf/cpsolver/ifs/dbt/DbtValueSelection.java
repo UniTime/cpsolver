@@ -32,7 +32,7 @@ import net.sf.cpsolver.ifs.util.*;
  * <br>
  *
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -124,7 +124,7 @@ public class DbtValueSelection implements ValueSelection {
                     iProp.setNoGood(value, noGood);
                     sLogger.debug(value+" become nogood ("+noGood+")");
                 } else {
-                    if (!solution.isBestComplete() || solution.getBestValue()> solution.getModel().getTotalValue()+value.toInt()) {
+                    if (!solution.isBestComplete() || solution.getBestValue()> solution.getModel().getTotalValue()+value.toDouble()) {
                         values.add(value);
                     }
                 }
@@ -135,7 +135,7 @@ public class DbtValueSelection implements ValueSelection {
                 Value value = (Value) i1.nextElement();
                 
                 if (solution.getModel().conflictValues(value).isEmpty()) {
-                    if (solution.isBestComplete() && solution.getBestValue()>solution.getModel().getTotalValue()+value.toInt()) {
+                    if (solution.isBestComplete() && solution.getBestValue()>solution.getModel().getTotalValue()+value.toDouble()) {
                         values.add(value);
                     }
                 }
@@ -216,7 +216,7 @@ public class DbtValueSelection implements ValueSelection {
             double weightedSum = 
                   (iWeightDeltaInitialAssignment * deltaInitialAssignments)
                 + (iWeightNrAssignments * value.countAssignments())
-                + (iWeightValue * value.toInt());
+                + (iWeightValue * value.toDouble());
             
             if (bestValues==null || bestWeightedSum>weightedSum) {
                 bestWeightedSum = weightedSum;

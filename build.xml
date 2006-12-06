@@ -1,6 +1,6 @@
-<project name="ifs" default="build" basedir=".">
+<project name="ifs" default="dist" basedir=".">
 <!--
-	IFS 1.0 (Iterative Forward Search)
+	IFS 1.1 (Iterative Forward Search)
 	Copyright (C) 2006 Tomas Muller
 	muller@ktiml.mff.cuni.cz
 	Lazenska 391, 76314 Zlin, Czech Republic
@@ -47,6 +47,7 @@
         <echo message="Build date: ${build.date}"/>
         <propertyfile file="build.date" comment="Build info">
             <entry  key="build.date" value="${build.date}"/>
+        	<entry  key="build.number" value="${build.number}"/>
         </propertyfile>
         <copy todir="${build.dir}" overwrite="Yes" preservelastmodified="Yes">
             <fileset dir="${src.dir}" includes="**/*.java"/>
@@ -62,7 +63,7 @@
         <replace file="${build.dir}/net/sf/cpsolver/ifs/Constants.java" propertyFile="build.date">
             <replacefilter token="@build.date@" property="build.date"/>
         </replace>
-        <replace file="${build.dir}/net/sf/cpsolver/ifs/Constants.java" propertyFile="build.number">
+        <replace file="${build.dir}/net/sf/cpsolver/ifs/Constants.java" propertyFile="build.date">
             <replacefilter token="@build.number@" property="build.number"/>
         </replace>
         <path id="build.classpath">
@@ -73,27 +74,31 @@
     </target>
     
     <target name="compile-java" depends="prepare">
-        <javac debug="true" destdir="${build.dir}">
+        <javac debug="true" destdir="${build.dir}" source="1.4" target="1.4">
             <src path="${build.dir}"/>
             <classpath refid="build.classpath"/>
         </javac>
     </target>
     
     <target name="compile-java-rel" depends="init">
-        <javac debug="false" optimize="true" destdir="${build.dir}">
+        <javac debug="false" optimize="true" destdir="${build.dir}" source="1.4" target="1.4">
             <src path="${build.dir}"/>
             <classpath refid="build.classpath"/>
         </javac>
     </target>
 
     <target name="compile-jar">
-        <jar destfile="${dist-lib.dir}/ifs-1.0.jar">
+        <jar destfile="${dist-lib.dir}/ifs-1.1.jar">
             <fileset dir="${build.dir}">
                 <include name="**/*.class"/>
             </fileset>
         	<fileset dir="${base.dir}/..">
         		<include name="lgpl.txt"/>
         	</fileset>
+        	<manifest>
+        		<attribute name="Class-Path" value="log4j-1.2.8.jar dom4j-1.6.1.jar" /> 
+        		<attribute name="Ifs-Version" value="1.1_bld${build.number}"/>
+        	</manifest>
         </jar>
     </target>
 
@@ -118,7 +123,7 @@
     	<javadoc destdir="${dist.dir}/doc" author="true" version="true" use="true" windowtitle="Iterative Forward Search API Documentation" source="1.4" linksource="true" breakiterator="true">
     		<doctitle><![CDATA[
     		<table border='0' style='font-size: 11pt;font-weight: normal;'><tr><td align='left'>
-    		IFS 1.0 (Iterative Forward Search)<br>
+    		IFS 1.1 (Iterative Forward Search)<br>
     		Copyright (C) 2006 Tomas Muller<br>
     		<a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
     		Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -149,9 +154,6 @@
  	   		</fileset>
  	   	</classpath>
     	</javadoc>
-    	<copy todir="${dist.dir}/doc" overwrite="Yes" preservelastmodified="Yes">
-    		<fileset dir="doc"/>
-    	</copy>
     	<replace dir="${dist.dir}/doc">
     		<include name="**/*.html"/>
     		<replacetoken>Tomas Muller</replacetoken>
@@ -169,6 +171,20 @@
 				<include name="**/*.cc"/>
 			</fileset>
 		</copy>
+        <replace file="${build.dir}/net/sf/cpsolver/ifs/Constants.java">
+            <replacetoken>int BLD_NUMBER = -1</replacetoken>
+            <replacevalue>int BLD_NUMBER = @build.number@</replacevalue>
+        </replace>
+        <replace file="${build.dir}/net/sf/cpsolver/ifs/Constants.java">
+            <replacetoken>String REL_DATE = "Unknown"</replacetoken>
+            <replacevalue>String REL_DATE = "@build.date@"</replacevalue>
+        </replace>
+        <replace file="${build.dir}/net/sf/cpsolver/ifs/Constants.java" propertyFile="build.date">
+            <replacefilter token="@build.date@" property="build.date"/>
+        </replace>
+        <replace file="${build.dir}/net/sf/cpsolver/ifs/Constants.java" propertyFile="build.date">
+            <replacefilter token="@build.number@" property="build.number"/>
+        </replace>
 	</target>
 	
 	<target name="jprof">
@@ -186,7 +202,7 @@
 		</delete>
 	</target>
 	
-	<target name="dist" depends="build,src,doc,jprof">
+	<target name="dist" depends="clean,prepare,compile-java-rel,compile-jar,copy-libs,src,doc,jprof,done">
         <delete dir="${dist.dir}/lib" failonerror="false"/>
         <mkdir dir="${dist.dir}/lib"/>
 		<copy todir="${dist.dir}/lib" overwrite="Yes" preservelastmodified="Yes">
@@ -200,7 +216,7 @@
 				<include name="**/*.dll"/>
 			</fileset>
 		</copy>
-		<zip destfile="${dist.dir}/ifs-1.0_bld${build.number}.zip">
+		<zip destfile="${dist.dir}/ifs-1.1_bld${build.number}.zip">
 			<fileset dir="${dist.dir}">
 				<include name="bin/**/*"/>
 				<include name="doc/**/*"/>

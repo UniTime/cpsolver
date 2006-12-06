@@ -25,7 +25,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  * @see net.sf.cpsolver.ifs.perturbations.PerturbationsCounter
  *
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -73,7 +73,7 @@ public class MPPTerminationCondition implements TerminationCondition {
                 return false;
         }
         if (iMinPertPenalty>=0.0 && currentSolution.getModel().unassignedVariables().isEmpty() && 
-            currentSolution.getPerturbationsCounter().getPerturbationPenalty(currentSolution)<=iMinPertPenalty) {
+            currentSolution.getPerturbationsCounter().getPerturbationPenalty(currentSolution.getModel())<=iMinPertPenalty) {
                 sLogger.info("A complete solution with allowed perturbation penalty found.");
                 return false;
         }

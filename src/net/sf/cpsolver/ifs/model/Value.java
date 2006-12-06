@@ -16,7 +16,7 @@ import net.sf.cpsolver.ifs.util.*;
  * @see net.sf.cpsolver.ifs.solver.Solver
  *
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -47,7 +47,7 @@ public class Value implements Comparable {
     private long iLastUnassignmentIteration = -1;
     
     /** Integer value */
-    protected int iValue = 0;
+    protected double iValue = 0;
     /** Extra information which can be used by an IFS extension (see {@link net.sf.cpsolver.ifs.extension.Extension})*/
     private Object iExtra = null;
     
@@ -63,7 +63,7 @@ public class Value implements Comparable {
      * @param variable variable which the value belongs to
      * @param value integer value
      */
-    public Value(Variable variable, int value) {
+    public Value(Variable variable, double value) {
         iId = sIdGenerator.newId();
         iVariable = variable;
         iValue = value;
@@ -102,24 +102,24 @@ public class Value implements Comparable {
     /** Values description -- for printing purposes*/
     public String getDescription() { return null; }
     
-    /** Integer representaion. This allows us to have generic optimization criteria. The task
+    /** Dobouble representaion. This allows us to have generic optimization criteria. The task
      * is than to minimize total value of assigned variables of a solution.
      */
-    public int toInt() { return iValue; }
+    public double toDouble() { return iValue; }
     
     public String toString() { return getName(); }
     
     public int hashCode() { return (int)iId; }
     
-    /** Comparison of two values which is based only on the value (not appropriate variable etc.). toInt() is compared by default. */
+    /** Comparison of two values which is based only on the value (not appropriate variable etc.). toDouble() is compared by default. */
     public boolean valueEquals(Value value) {
         if (value==null) return false;
-        return toInt()==value.toInt();
+        return toDouble()==value.toDouble();
     }
     
     public int compareTo(Object o) {
         if (o==null || !(o instanceof Value)) return -1;
-        return toInt() - ((Value)o).toInt();
+        return Double.compare(toDouble(),((Value)o).toDouble());
     }
     
     /** By default, comparison is made on unique ids */
@@ -133,6 +133,17 @@ public class Value implements Comparable {
     public Object getExtra() { return iExtra; }
     /** Extra information to which can be used by an extension (see {@link net.sf.cpsolver.ifs.extension.Extension}). */
     public void setExtra(Object object) { iExtra = object; }
+
+    /** True, if the value is consistent with the given value */
+    public boolean isConsistent(Value value) {
+        for (Enumeration e1=variable().constraints().elements();e1.hasMoreElements();) {
+        	Constraint constraint = (Constraint)e1.nextElement();
+        	if (!constraint.variables().contains(value.variable())) continue;
+        	if (!constraint.isConsistent(this, value))
+        		return false;
+        }
+        return true;
+    }
 
     /** Returns a set of conflicting values with this value. When empty, the value is consistent with the existing assignment. */
     public java.util.Set conflicts() {

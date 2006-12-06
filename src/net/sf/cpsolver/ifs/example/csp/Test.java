@@ -146,7 +146,7 @@ import net.sf.cpsolver.ifs.util.*;
  * @see net.sf.cpsolver.ifs.solution.GeneralSolutionComparator
  *
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -252,7 +252,7 @@ public class Test {
                         best.restoreBest();
                         int val = 0;
                         for (Enumeration iv = best.getModel().assignedVariables().elements(); iv.hasMoreElements();)
-                            val += ((Variable)iv.nextElement()).getAssignment().toInt();
+                            val += (int)((Variable)iv.nextElement()).getAssignment().toDouble();
                         int totalVal = val + (best.getModel().unassignedVariables().size()*nrValues);
                         sLogger.debug("Last solution:"+best.getInfo());
                         logStat.println(test+";"+nrVariables+";"+nrValues+";"+sDoubleFormat.format(density)+";"+sDoubleFormat.format(tightness)+";"+ sDoubleFormat.format(best.getTime())+";"+best.getIteration()+";"+sDoubleFormat.format(((double)best.getIteration())/best.getTime())+";"+best.getModel().unassignedHardConstraints().size()+";"+best.getModel().assignedVariables().size()+";"+sDoubleFormat.format(100.0 * best.getModel().assignedVariables().size() / best.getModel().variables().size())+ (mpp?";"+(best.getModel().perturbVariables().size()+best.getModel().unassignedVariables().size())+";"+sDoubleFormat.format(100.0 * (best.getModel().perturbVariables().size()+best.getModel().unassignedVariables().size()) / best.getModel().variables().size()):"")+";"+val+";"+totalVal);

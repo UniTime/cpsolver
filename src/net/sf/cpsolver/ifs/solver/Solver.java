@@ -103,7 +103,7 @@ import net.sf.cpsolver.ifs.util.*;
  * @see Extension
  *
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -124,6 +124,7 @@ import net.sf.cpsolver.ifs.util.*;
 **/
 
 public class Solver {
+	public static int THREAD_PRIORITY = 3;
     /** log */
     protected static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(Solver.class);
     /** current solution */
@@ -131,11 +132,7 @@ public class Solver {
     /** last solution (after IFS Solver finishes) */
     protected Solution iLastSolution = null;
     
-    /** solver status: done */
-    protected boolean iDone = false;
-    /** solver status: running */
-    protected boolean iRunning = false;
-    /** solver status: stopped */
+    /** solver is stopped */
     protected boolean iStop = false;
     
     /** solver thread */
@@ -146,27 +143,28 @@ public class Solver {
     private TerminationCondition iTerminationCondition = null;
     private SolutionComparator iSolutionComparator = null;
     private PerturbationsCounter iPerturbationsCounter = null;
-    private ValueSelection iValueSelection = null;
-    private VariableSelection iVariableSelection = null;
+    private NeighbourSelection iNeighbourSelection = null;
     private Vector iExtensions = new FastVector(5);
     private Vector iSolverListeners = new FastVector(5);
     private int iSaveBestUnassigned = 0;
+    
+    private Progress iProgress;
     
     /** Constructor.
      * @param properties input configuration
      */
     public Solver(DataProperties properties) {
         iProperties = properties;
-        
-        long seed = properties.getPropertyLong( "General.Seed", System.currentTimeMillis());
-        ToolBox.setSeed(seed);
-        
-        iSaveBestUnassigned = properties.getPropertyInt( "General.SaveBestUnassigned", 0);
-        
-        clearBest();
-        if (iProperties.getPropertyBoolean("Solver.AutoConfigure",true)) {
-            autoConfigure();
-        }
+    }
+    
+    /** Dispose solver */
+    public void dispose() {
+    	iExtensions.clear();
+    	iSolverListeners.clear();
+    	iTerminationCondition = null;
+    	iSolutionComparator = null;
+    	iPerturbationsCounter = null;
+    	iNeighbourSelection = null;
     }
     
     private boolean iValueExtraUsed = false;
@@ -176,10 +174,8 @@ public class Solver {
     public void setTerminalCondition(TerminationCondition terminationCondition) {iTerminationCondition = terminationCondition; }
     /** Sets solution comparator */
     public void setSolutionComparator(SolutionComparator solutionComparator) {iSolutionComparator = solutionComparator; }
-    /** Sets value selection criterion */
-    public void setValueSelection(ValueSelection valueSelection) { iValueSelection = valueSelection; }
-    /** Sets variable selection criterion */
-    public void setVariableSelection(VariableSelection variableSelection) { iVariableSelection = variableSelection; }
+    /** Sets neighbour selection criterion */
+    public void setNeighbourSelection(NeighbourSelection neighbourSelection) { iNeighbourSelection = neighbourSelection; }
     /** Sets perturbation counter (minimal perturbation problem) */
     public void setPerturbationsCounter(PerturbationsCounter perturbationsCounter) { iPerturbationsCounter = perturbationsCounter; }
     /** Add an IFS extension */
@@ -201,10 +197,8 @@ public class Solver {
     public TerminationCondition getTerminationCondition() { return iTerminationCondition; }
     /** Returns solution comparator */
     public SolutionComparator getSolutionComparator() { return iSolutionComparator; }
-    /** Returns values selection criterion */
-    public ValueSelection getValueSelection() { return iValueSelection; }
-    /** Returns variable selection criterion */
-    public VariableSelection getVariableSelection() { return iVariableSelection; }
+    /** Returns neighbour selection criterion */
+    public NeighbourSelection getNeighbourSelection() { return iNeighbourSelection; }
     /** Returns perturbation counter (minimal perturbation problem) */
     public PerturbationsCounter getPerturbationsCounter() { return iPerturbationsCounter; }
     /** Returns list of all used extensions */
@@ -217,6 +211,10 @@ public class Solver {
     /** Removes a solver listener */
     public void removeSolverListener(SolverListener listener) {
         iSolverListeners.removeElement(listener);
+    }
+    /** Registered solver listeners */
+    public Vector getSolverListeners() {
+        return iSolverListeners;
     }
     
     /** Returns configuration */
@@ -239,17 +237,11 @@ public class Solver {
             Constructor solutionComparatorConstructor = solutionComparatorClass.getConstructor(new Class[]{DataProperties.class});
             setSolutionComparator((SolutionComparator)solutionComparatorConstructor.newInstance(new Object[] {getProperties()}));
             
-            String valueSelectionClassName = getProperties().getProperty("Value.Class","net.sf.cpsolver.ifs.heuristics.GeneralValueSelection");
-            sLogger.info("Using "+valueSelectionClassName);
-            Class valueSelectionClass = Class.forName(valueSelectionClassName);
-            Constructor valueSelectionConstructor = valueSelectionClass.getConstructor(new Class[]{DataProperties.class});
-            setValueSelection((ValueSelection)valueSelectionConstructor.newInstance(new Object[] {getProperties()}));
-            
-            String variableSelectionClassName = getProperties().getProperty("Variable.Class","net.sf.cpsolver.ifs.heuristics.GeneralVariableSelection");
-            sLogger.info("Using "+variableSelectionClassName);
-            Class variableSelectionClass = Class.forName(variableSelectionClassName);
-            Constructor variableSelectionConstructor = variableSelectionClass.getConstructor(new Class[]{DataProperties.class});
-            setVariableSelection((VariableSelection)variableSelectionConstructor.newInstance(new Object[] {getProperties()}));
+            String neighbourSelectionClassName = getProperties().getProperty("Neighbour.Class","net.sf.cpsolver.ifs.heuristics.StandardNeighbourSelection");
+            sLogger.info("Using "+neighbourSelectionClassName);
+            Class neighbourSelectionClass = Class.forName(neighbourSelectionClassName);
+            Constructor neighbourSelectionConstructor = neighbourSelectionClass.getConstructor(new Class[]{DataProperties.class});
+            setNeighbourSelection((NeighbourSelection)neighbourSelectionConstructor.newInstance(new Object[] {getProperties()}));
             
             String perturbationCounterClassName = getProperties().getProperty("PerturbationCounter.Class","net.sf.cpsolver.ifs.perturbations.DefaultPerturbationsCounter");
             sLogger.info("Using "+perturbationCounterClassName);
@@ -257,6 +249,11 @@ public class Solver {
             Constructor perturbationCounterConstructor = perturbationCounterClass.getConstructor(new Class[]{DataProperties.class});
             setPerturbationsCounter((PerturbationsCounter)perturbationCounterConstructor.newInstance(new Object[] {getProperties()}));
             
+            for (Enumeration i=iExtensions.elements(); i.hasMoreElements(); ) {
+                Extension extension = (Extension)i.nextElement();
+                extension.unregister(iCurrentSolution.getModel());
+            }
+            iExtensions.clear();
             String extensionClassNames = getProperties().getProperty("Extensions.Classes",null);
             if (extensionClassNames!=null) {
                 StringTokenizer extensionClassNameTokenizer = new StringTokenizer(extensionClassNames,";");
@@ -281,16 +278,19 @@ public class Solver {
     /** Sets initial solution */
     public void setInitalSolution(Solution solution) {
         iCurrentSolution = solution;
+        iLastSolution = null;
     }
     
     /** Sets initial solution */
     public void setInitalSolution(Model model) {
         iCurrentSolution = new Solution(model, 0, 0);
+        iLastSolution = null;
     }
     
     /** Starts solver */
     public void start() {
         iSolverThread = new SolverThread();
+        iSolverThread.setPriority(THREAD_PRIORITY);
         iSolverThread.start();
     }
     
@@ -301,28 +301,23 @@ public class Solver {
     
     /** Initialization */
     public void init() {
-        iStop = false;
-        iDone = false;
-        iRunning = false;
     }
     
     /** Last solution (when solver finishes) */
     public Solution lastSolution() { return (iLastSolution==null?iCurrentSolution:iLastSolution); }
     /** Current solution (during the search) */
     public Solution currentSolution() { return iCurrentSolution; }
-    /** Solver status: solver is done */
-    public boolean isDone() { return iDone; }
-    /** Solver status: solver is running */
-    public boolean isRunning() { return iRunning; }
-    /** Stops the running solver */
-    public void stopSolver() { iStop = true; };
-    /** Solver status: solver is stopped */
-    public boolean isStopped() { return iStop; }
     
     public void initSolver() {
-        // Status
-        iStop = false; iDone = false; iRunning = false;
-        Progress.getInstance().setPhase("Initializing solver");
+        long seed = getProperties().getPropertyLong( "General.Seed", System.currentTimeMillis());
+        ToolBox.setSeed(seed);
+        
+        iSaveBestUnassigned = getProperties().getPropertyInt( "General.SaveBestUnassigned", 0);
+        
+        clearBest();
+        if (iProperties.getPropertyBoolean("Solver.AutoConfigure",true)) {
+            autoConfigure();
+        }
         
         // register extensions
         for (Enumeration i=iExtensions.elements(); i.hasMoreElements(); ) {
@@ -333,45 +328,76 @@ public class Solver {
         //register solution
         iCurrentSolution.init(Solver.this);
         
-        //register and intialize value selection
-        getValueSelection().init(Solver.this);
-        
-        //register and intialize value selection
-        getVariableSelection().init(Solver.this);
+        //register and intialize neighbour selection
+        getNeighbourSelection().init(Solver.this);
         
         //register and intialize perturbations counter
         if (getPerturbationsCounter()!=null) getPerturbationsCounter().init(Solver.this);
         
         //save initial configuration
         if (iProperties.getPropertyBoolean("General.SaveConfiguration",false)) {
+        	FileOutputStream f = null;
             try {
-                FileOutputStream f = new FileOutputStream(iProperties.getProperty("General.Output")+File.separator+iProperties.getProperty("General.ProblemName","net.sf.cpsolver.ifs")+".properties");
+                f = new FileOutputStream(iProperties.getProperty("General.Output")+File.separator+iProperties.getProperty("General.ProblemName","ifs")+".properties");
                 iProperties.store(f, iProperties.getProperty("General.ProblemNameLong","Iterative Forward Search")+"  -- configuration file");
-                f.flush();f.close();
+                f.flush();f.close(); f = null;
             } catch (Exception e) {
                 sLogger.error("Unable to store configuration file :-(", e);
+            } finally {
+            	try {
+            		if (f!=null) f.close();
+            	} catch (IOException e) {}
             }
         }
     }
     
+    /** Stop running solver */
+    public void stopSolver() {
+    	if (getSolverThread()!=null) {
+    		iStop = true;
+    		try {
+    			getSolverThread().join();
+    		} catch (InterruptedException ex) {}
+    	}
+    }
+    /** True, if the solver is running */
+    public boolean isRunning() {
+    	return (getSolverThread()!=null);
+    }
+    /** Called when the solver is stopped */
+    protected void onStop() {}
+    /** Called when the solver is started */
+    protected void onStart() {}
+    /** Called when the solver is finished */
+    protected void onFinish() {}
+    /** Called when the solver fails */
+    protected void onFailure() {}
+    
+    /** Called in each iteration, after a neighbour is assigned */
+    protected void onAssigned(double startTime) {}
+    
     /** Solver thread */
     protected class SolverThread extends Thread {
+    	
         /** Solving rutine */
         public void run() {
             try {
+            	iStop = false;
                 // Sets thread name
                 setName("Solver");
                 
                 // Initialization
-                Progress.getInstance().setStatus("Solving");
+                iProgress = Progress.getInstance(iCurrentSolution.getModel());
+                iProgress.setStatus("Solving problem ...");
+                iProgress.setPhase("Initializing solver");
                 initSolver();
-                iRunning = true;
+                onStart();
 
                 double startTime = JProf.currentTimeSec();
                 if (iCurrentSolution.getBestInfo()==null) {
-                    Progress.getInstance().setPhase("Searching for initial solution ...",iCurrentSolution.getModel().variables().size());
+                    iProgress.setPhase("Searching for initial solution ...",iCurrentSolution.getModel().variables().size());
                 } else {
-                    Progress.getInstance().setPhase("Improving found solution ...");
+                    iProgress.setPhase("Improving found solution ...");
                 }
                 long prog = 9999;
                 sLogger.info("Initial solution:"+ToolBox.dict2string(iCurrentSolution.getInfo(),1));
@@ -383,71 +409,80 @@ public class Solver {
                     }
                 }
                 
+                if (iCurrentSolution.getModel().variables().isEmpty()) {
+                	iProgress.fatal("Nothing to solve.");
+                	iStop=true;
+                }
+                
                 // Iterations: until solver can continue
                 while (!iStop && getTerminationCondition().canContinue(iCurrentSolution)) {
-                    // Variable selection
-                    Variable variable = getVariableSelection().selectVariable(iCurrentSolution);
+                	// Neighbour selection
+                	Neighbour neighbour = getNeighbourSelection().selectNeighbour(iCurrentSolution);
                     for (Enumeration i=iSolverListeners.elements();i.hasMoreElements();)
-                        if (!((SolverListener)i.nextElement()).variableSelected(iCurrentSolution.getIteration(), variable)) continue;
-                    if (variable == null) {
-                        sLogger.warn("No variable selected.");
+                        if (!((SolverListener)i.nextElement()).neighbourSelected(iCurrentSolution.getIteration(), neighbour)) {
+                        	neighbour=null; continue;
+                        }
+                    if (neighbour==null) {
+                    	iProgress.warn("No neighbour selected.");
+                    	continue;
                     }
-                    if (variable != null && variable.values().isEmpty()) {
-                        sLogger.error("Variable "+variable.getName()+" has no values.");
-                        continue;
-                    }
-                    
-                    // Value selection
-                    Value value = getValueSelection().selectValue(iCurrentSolution, variable);
-                    for (Enumeration i=iSolverListeners.elements();i.hasMoreElements();)
-                        if (!((SolverListener)i.nextElement()).valueSelected(iCurrentSolution.getIteration(), variable, value)) continue;
-                    if (variable == null) {
-                        sLogger.warn("No value selected for variable "+variable+".");
-                    }
-                    
+                	
                     // Assign selected value to the selected variable
                     synchronized (iCurrentSolution) {
-                        if (value!=null) variable.assign(iCurrentSolution.getIteration(), value); else variable.unassign(iCurrentSolution.getIteration());
+                    	neighbour.assign(iCurrentSolution.getIteration());
                         iCurrentSolution.update(JProf.currentTimeSec()-startTime);
                     }
                     
+                    onAssigned(startTime);
+                    
                     // Check if the solution is the best ever found one
                     if ((iSaveBestUnassigned<0 || iSaveBestUnassigned>=iCurrentSolution.getModel().unassignedVariables().size()) && (iCurrentSolution.getBestInfo()==null || getSolutionComparator().isBetterThanBestSolution(iCurrentSolution))) {
-                        if (iCurrentSolution.getModel().unassignedVariables().isEmpty())
-                            sLogger.info("Complete solution "+ToolBox.dict2string(iCurrentSolution.getInfo(),1)+" was found.");
+                        if (iCurrentSolution.getModel().unassignedVariables().isEmpty()) {
+                        	iProgress.debug("Complete solution of value "+iCurrentSolution.getModel().getTotalValue()+" was found.");
+                        } 
                         synchronized (iCurrentSolution) {
                             iCurrentSolution.saveBest();
                         }
-                    }
+                    } 
                     
                     // Increment progress bar
                     if (iCurrentSolution.getBestInfo()!=null && iCurrentSolution.getModel().getBestUnassignedVariables()==0) {
                         prog++;
                         if (prog == 10000) {
-                            Progress.getInstance().setPhase("Improving found solution ...");
+                            iProgress.setPhase("Improving found solution ...");
                             prog=0;
                         } else {
-                            Progress.getInstance().setProgress(prog/100);
+                            iProgress.setProgress(prog/100);
                         }
-                    } else if ((iCurrentSolution.getBestInfo()==null || iCurrentSolution.getModel().getBestUnassignedVariables()>0) && (iCurrentSolution.getModel().variables().size()-iCurrentSolution.getModel().unassignedVariables().size())>Progress.getInstance().getProgress()) {
-                        Progress.getInstance().setProgress(iCurrentSolution.getModel().variables().size()-iCurrentSolution.getModel().unassignedVariables().size());
+                    } else if ((iCurrentSolution.getBestInfo()==null || iCurrentSolution.getModel().getBestUnassignedVariables()>0) && (iCurrentSolution.getModel().variables().size()-iCurrentSolution.getModel().unassignedVariables().size())>iProgress.getProgress()) {
+                        iProgress.setProgress(iCurrentSolution.getModel().variables().size()-iCurrentSolution.getModel().unassignedVariables().size());
                     }
                     
                 }
                 
                 // Finalization
                 iLastSolution = iCurrentSolution;
-                if (!iStop) {
-                    Progress.getInstance().setPhase("Done",1); Progress.getInstance().incProgress();
+
+
+                iProgress.setPhase("Done",1); iProgress.incProgress();
+                
+                iSolverThread=null;
+                if (iStop) {
+                	sLogger.debug("Solver stopped.");
+                	iProgress.setStatus("Solver stopped.");
+                	onStop();
+                } else {
+                	sLogger.debug("Solver done.");
+                	iProgress.setStatus("Solver done.");
+                	onFinish();
                 }
-                
-                //Update status
-                iDone = true; iRunning = false; iSolverThread=null;
-                
-                sLogger.debug("Solver stoped.");
             } catch (Exception ex) {
                 sLogger.error(ex.getMessage(),ex);
+                iProgress.fatal("Solver failed, reason:"+ex.getMessage(),ex);
+                iProgress.setStatus("Solver failed.");
+                onFailure();
             }
+            iSolverThread=null;
         }
     }
     

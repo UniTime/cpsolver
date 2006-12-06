@@ -11,7 +11,7 @@ import net.sf.cpsolver.ifs.util.*;
  * Go back to the best known solution when no better solution is found within the given amount of iterations.
  *
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -74,7 +74,7 @@ public class SearchIntensification extends Extension implements SolutionListener
     }
     
     public void afterAssigned(long iteration, Value value) {
-        if (iIterationLimit>0) {
+        if (iIterationLimit>0 && iteration>0) {
             Solution solution = getSolver().currentSolution();
             if (solution.getBestIteration()<0 || !solution.isBestComplete()) return;
             long bestIt = Math.max(solution.getBestIteration(), iLastReturn);
@@ -102,10 +102,12 @@ public class SearchIntensification extends Extension implements SolutionListener
     }
     public void solutionUpdated(Solution solution) {
     }
-    public void getInfo(Solution solution, Dictionary info) {
-    }
     public void bestCleared(Solution solution) {
     }
     public void bestRestored(Solution solution) {
+    }
+    public void getInfo(Solution solution, Dictionary info) {
+    }
+    public void getInfo(Solution solution, Dictionary info, Vector variables) {
     }
 }

@@ -16,7 +16,7 @@ import net.sf.cpsolver.ifs.util.*;
  * @see net.sf.cpsolver.ifs.solver.Solver
  *
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -49,7 +49,7 @@ public class Solution {
     private long iBestIteration = -1;
     private double iBestTime = -1;
     private double iBestPerturbationsPenaly = -1.0;
-    private int iBestValue = 0;
+    private double iBestValue = 0;
     private int iBestPertirbations = -1;
     
     private Vector iSolutionListeners = new FastVector();
@@ -106,12 +106,27 @@ public class Solution {
      */
     public Hashtable getInfo() {
         Hashtable ret=getModel().getInfo();
-        if (getPerturbationsCounter()!=null) getPerturbationsCounter().getInfo(ret,this);
+        if (getPerturbationsCounter()!=null) getPerturbationsCounter().getInfo(ret,getModel());
         ret.put("Time",sTimeFormat.format(getTime())+" sec");
         ret.put("Iteration",String.valueOf(getIteration()));
         if (getTime()>0) ret.put("Speed",sTimeFormat.format((getIteration())/(double)getTime())+" it/s");
         for (Enumeration i=iSolutionListeners.elements();i.hasMoreElements();)
             ((SolutionListener)i.nextElement()).getInfo(this, ret);
+        return ret;
+    }
+    
+    /** Solution information. It consits from info from the model which is associated with the solution, 
+     * time, iteration, speed and infos from all solution listeners. Only variables from the given set
+     * are included.
+     */
+    public Hashtable getInfo(Vector variables) {
+        Hashtable ret=getModel().getInfo(variables);
+        if (getPerturbationsCounter()!=null) getPerturbationsCounter().getInfo(ret,getModel(),variables);
+        ret.put("Time",sTimeFormat.format(getTime())+" sec");
+        ret.put("Iteration",String.valueOf(getIteration()));
+        if (getTime()>0) ret.put("Speed",sTimeFormat.format((getIteration())/(double)getTime())+" it/s");
+        for (Enumeration i=iSolutionListeners.elements();i.hasMoreElements();)
+            ((SolutionListener)i.nextElement()).getInfo(this, ret, variables);
         return ret;
     }
     
@@ -125,8 +140,8 @@ public class Solution {
     public int getBestPertirbations() { return iBestPertirbations; }
     /** Returns true, if all variables of the best ever solution found are assigned */
     public boolean isBestComplete() { return iBestComplete; }
-    /** Total value of the best ever found solution -- sum of all assigned values (see {@link Value#toInt()}).*/
-    public int getBestValue() { return iBestValue; }
+    /** Total value of the best ever found solution -- sum of all assigned values (see {@link Value#toDouble()}).*/
+    public double getBestValue() { return iBestValue; }
     /** Perturbation penalty of the best ever found solution (see {@link PerturbationsCounter}) */
     public double getBestPerturbationsPenalty() { return iBestPerturbationsPenaly; }
     
@@ -155,7 +170,7 @@ public class Solution {
         iBestPertirbations = getModel().perturbVariables().size();
         iBestComplete = getModel().unassignedVariables().isEmpty();
         iBestValue = getModel().getTotalValue();
-        iBestPerturbationsPenaly = iPerturbationsCounter.getPerturbationPenalty(this);
+        iBestPerturbationsPenaly = (iPerturbationsCounter==null?0.0:iPerturbationsCounter.getPerturbationPenalty(getModel()));
         for (Enumeration i=iSolutionListeners.elements();i.hasMoreElements();)
             ((SolutionListener)i.nextElement()).bestSaved(this);
     }

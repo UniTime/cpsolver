@@ -1,10 +1,3 @@
- /*******************************************************************************
- * Filename : ToolBox.java
- * Created  : 13-Sep-2003
- *
- * History 
- */
-
 package net.sf.cpsolver.ifs.util;
 
 import java.io.*;
@@ -14,7 +7,7 @@ import org.apache.log4j.*;
 /** Several auxiliary static methods.  
  *
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -192,6 +185,8 @@ public class ToolBox {
         props.setProperty("log4j.appender.A1", "org.apache.log4j.ConsoleAppender");
         props.setProperty("log4j.appender.A1.layout", "org.apache.log4j.PatternLayout");
         props.setProperty("log4j.appender.A1.layout.ConversionPattern","%-5p %c{2}: %m%n");
+        props.setProperty("log4j.logger.net","INFO");
+        props.setProperty("log4j.logger.org","INFO");
         PropertyConfigurator.configure(props);
     }
     
@@ -199,8 +194,12 @@ public class ToolBox {
      * @param logDir output folder
      * @param properties some other log4j properties
      */
-    public static void configureLogging(String logDir, Properties properties) {
-        configureLogging(logDir, properties, false);
+    public static String configureLogging(String logDir, Properties properties) {
+        return configureLogging(logDir, properties, false);
+    }
+    
+    public static String configureLogging(String logDir, Properties properties, boolean timeInFileName) {
+    	return configureLogging(logDir, properties, timeInFileName, true);
     }
     
     /** Configurates log4j loging 
@@ -208,22 +207,25 @@ public class ToolBox {
      * @param properties some other log4j properties
      * @param timeInFileName if true log file is named debug_yyyy-MM-dd_(HH.mm.ss).log, it is named debug.log otherwise
      */
-    public static void configureLogging(String logDir, Properties properties, boolean timeInFileName) {
+    public static String configureLogging(String logDir, Properties properties, boolean timeInFileName, boolean includeSystemOuts) {
         String time = new java.text.SimpleDateFormat( "yyyy-MM-dd_(HH.mm.ss)",java.util.Locale.US).format(new Date());
         (new File(logDir)).mkdirs();
         String fileName = logDir+File.separator+(timeInFileName?"debug_"+time:"debug")+".log";
         Properties props = (properties!=null?properties:new Properties());
         if (!props.containsKey("log4j.rootLogger")) {
             props.setProperty("log4j.rootLogger", "debug, LogFile");
-            props.setProperty("log4j.appender.LogFile","org.apache.log4j.RollingFileAppender");
-            props.setProperty("log4j.appender.LogFile.MaxFileSize", "5MB");
+            if (timeInFileName)
+            	props.setProperty("log4j.appender.LogFile","org.apache.log4j.FileAppender");
+            else
+            	props.setProperty("log4j.appender.LogFile","org.apache.log4j.DailyRollingFileAppender");
+            props.setProperty("log4j.appender.LogFile.DatePattern","'.'yyyy-MM-dd");
             props.setProperty("log4j.appender.LogFile.File",fileName);
-            props.setProperty("log4j.appender.LogFile.MaxBackupIndex","5");
             props.setProperty("log4j.appender.LogFile.layout","org.apache.log4j.PatternLayout");
             props.setProperty("log4j.appender.LogFile.layout.ConversionPattern","%d{dd-MMM-yy HH:mm:ss.SSS} [%t] %-5p %c{2}> %m%n");
         }
         PropertyConfigurator.configure(props);
         Logger log = Logger.getRootLogger();
+        log.info("-----------------------------------------------------------------------");
         log.info("IFS debug file");
         log.info("");
         log.info("Created: "+new Date());
@@ -237,6 +239,11 @@ public class ToolBox {
         log.info("Working dir: "+System.getProperty("user.dir"));
         log.info("Classpath:   "+System.getProperty("java.class.path"));
         log.info("");
+        if (includeSystemOuts) {
+        	System.setErr(new PrintStream(new LogOutputStream(System.err, Logger.getLogger("STDERR"),Level.ERROR)));
+        	System.setOut(new PrintStream(new LogOutputStream(System.out, Logger.getLogger("STDOUT"),Level.DEBUG)));
+        }
+        return fileName;
     }
     
     /** Loads data properties. If there is INCLUDE property available, it is interpreted as semi-colon separated list of 
@@ -244,13 +251,14 @@ public class ToolBox {
      *
      */
     public static DataProperties loadProperties(File propertyFile) {
+    	FileInputStream is = null;
         try {
             DataProperties ret = new DataProperties();
-            FileInputStream is = new FileInputStream(propertyFile);
+            is = new FileInputStream(propertyFile);
             ret.load(is);
-            is.close();
+            is.close(); is=null;
             if (ret.getProperty("INCLUDE")!=null) {
-                is=null;
+
                 StringTokenizer stk = new StringTokenizer(ret.getProperty("INCLUDE"),";");
                 while (stk.hasMoreTokens()) {
                     String aFile = stk.nextToken();
@@ -261,7 +269,7 @@ public class ToolBox {
                         is = new FileInputStream(propertyFile.getParent()+File.separator+aFile);
                     if (is==null) System.err.println("Unable to find include file '"+aFile+"'.");
                     ret.load(is);
-                    is.close();
+                    is.close(); is=null;
                 }
                 ret.remove("INCLUDE");
             }
@@ -270,6 +278,35 @@ public class ToolBox {
             System.err.println("Unable to load property file "+propertyFile);
             e.printStackTrace();
             return new DataProperties();
+        } finally {
+        	try {
+        		if (is!=null) is.close();
+        	} catch (IOException e) {}
         }
+    }
+
+    public static boolean equals(Object o1, Object o2) {
+    	return (o1==null?o2==null:o1.equals(o2));
+    }
+
+    public static class LogOutputStream extends OutputStream {
+    	private Logger iLogger = null;
+    	private Level iLevel = null;
+    	private OutputStream iOldOutputStream;
+    	private ByteArrayOutputStream iOut = new ByteArrayOutputStream();
+    	public LogOutputStream(OutputStream oldOutputStream, Logger logger, Level level) {
+    		iLogger = logger;
+    		iLevel = level;
+    		iOldOutputStream = oldOutputStream;
+    	}
+    	public void write(int b) throws IOException {
+    		iOldOutputStream.write(b);
+    		if (b=='\r') return;
+    		if (b=='\n') {
+    			iOut.flush();
+    			iLogger.log(iLevel, new String(iOut.toByteArray()));
+    			iOut.reset();
+    		} else iOut.write(b);
+    	}
     }
 }

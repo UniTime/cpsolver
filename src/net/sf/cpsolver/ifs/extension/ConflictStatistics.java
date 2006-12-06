@@ -1,7 +1,6 @@
 package net.sf.cpsolver.ifs.extension;
 
 
-import java.io.*;
 import java.util.*;
 
 import net.sf.cpsolver.ifs.heuristics.*;
@@ -80,30 +79,6 @@ import net.sf.cpsolver.ifs.util.*;
  * <tr><td>ConflictStatistics.Ageing</td><td>{@link Double}</td><td>Ageing of the conflict-based statistics. Every memorized conflict is aged (multiplited) by this factor for every iteration which passed from the time it was memorized. For instance, if there was a conflict 10 iterations ago, its value is ageing^10 (default is 1.0 -- no ageing).</td></tr>
  * <tr><td>ConflictStatistics.AgeingHalfTime</td><td>{@link Integer}</td><td>Another way how to express ageing: number of iterations to decrease a conflict to 1/2 (default is 0 -- no ageing)</td></tr>
  * </table>
- * <br>
- * Conflict-based statistics also allows printing to HTML files during the search, after each given number of iterations.
- * Example of such file:<br>
- * <iframe src="cbs-ex.html" width="98%" height="300" scrolling="auto" frameborder="1">
- * [Your user agent does not support frames or is currently configured  not to display frames. However, you may visit <A href="cbs-ex.html">the related document.</A>]
- * </iframe>
- * <br><br>
- * Conflict-based statistics allows two modes of printing: <ul>
- * <li>variable based: tree selected variable &#8594; selected value &#8594; constraint &#8594; conflicting assignment is printed
- * <li>constraint based: tree constraint &#8594; selected variable &#8594; selected value &#8594; conflicting assignment is printed
- * </ul>
- * Where constraint is the constraint involved in the unassignment of the conflicting assignmend when selected value is assigned to the selected variable.
- * HTML files are written in the output directory, named stat1.html, stat2.html, ...
- * <br><br>
- * Printing parameters:
- * <table border='1'><tr><th>Parameter</th><th>Type</th><th>Comment</th></tr>
- * <tr><td>ConflictStatistics.Print</td><td>{@link Boolean}</td><td>If true, conflict-based statistics is being printed to an HTML file during the search.</td></tr>
- * <tr><td>ConflictStatistics.PrintInterval</td><td>{@link Integer}</td><td>Interval (expressed in the number of iterations) for printing CBS</td></tr>
- * <tr><td>ConflictStatistics.Type</td><td>{@link Integer}</td><td>0 for variable based, 1 from constraint based</td></tr>
- * <tr><td>ConflictStatistics.MaxLines</td><td>{@link Integer}</td><td>Maximal number of lines in the first level of CBS</td></tr>
- * <tr><td>ConflictStatistics.MaxBranchingLev1</td><td>{@link Integer}</td><td>Maximal number of lines in the second level of CBS</td></tr>
- * <tr><td>ConflictStatistics.MaxBranchingLev2</td><td>{@link Integer}</td><td>Maximal number of lines in the third level of CBS</td></tr>
- * <tr><td>ConflictStatistics.ImageBase</td><td>{@link String}</td><td>Directory with images collapse.gif, expand.gif and end.gif relative to output directory</td></tr>
- * </table>
  *
  * @see Solver
  * @see Model
@@ -111,7 +86,7 @@ import net.sf.cpsolver.ifs.util.*;
  * @see VariableSelection
  *
  * @version
- * IFS 1.0 (Iterative Forward Search)<br>
+ * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
  * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -130,20 +105,17 @@ import net.sf.cpsolver.ifs.util.*;
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
-public class ConflictStatistics extends Extension implements ConstraintListener, SolutionListener {
+public class ConflictStatistics extends Extension implements ConstraintListener, InfoProvider {
     private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(ConflictStatistics.class);
     private static final String PARAM_AGEING = "ConflictStatistics.Ageing";
     private static final String PARAM_HALF_AGE = "ConflictStatistics.AgeingHalfTime";
     private static final String PARAM_PRINT = "ConflictStatistics.Print";
-    private static final String PARAM_PRINTINTERVAL = "ConflictStatistics.PrintInterval";
     
     private static final int TYPE_VARIABLE_BASED = 0;
     private static final int TYPE_CONSTRAINT_BASED = 1;
     
     private double iAgeing = 1.0;
-    private long iPrintInterval = -1;
     private boolean iPrint = false;
-    private int iPrintCounter = 0;
     
     private Hashtable iAssignments = new Hashtable();
     private Hashtable iUnassignedVariables = new Hashtable();
@@ -155,35 +127,29 @@ public class ConflictStatistics extends Extension implements ConstraintListener,
         int halfAge = properties.getPropertyInt(PARAM_HALF_AGE, 0);
         if (halfAge > 0) iAgeing = Math.exp(Math.log(0.5) / ((double)halfAge));
         iPrint = properties.getPropertyBoolean(PARAM_PRINT, iPrint);
-        iPrintInterval = properties.getPropertyLong(PARAM_PRINTINTERVAL, iPrintInterval);
     }
     
     public void register(Model model) {
         super.register(model);
-        if (iPrint) {
-            getSolver().currentSolution().addSolutionListener(this);
-        }
     }
     
     public void unregister(Model model) {
         super.unregister(model);
-        if (iPrint) {
-            getSolver().currentSolution().removeSolutionListener(this);
-        }
     }
     
-    private void variableUnassigned( long iteration, Value unassignedValue, AssignmentSet noGoods) {
+    private void variableUnassigned( long iteration, Value unassignedValue, Assignment noGood) {
+    	if (iteration<=0) return;
         Assignment unass = new Assignment(iteration, unassignedValue, iAgeing);
         Vector noGoodsForUnassignment = (Vector)iNoGoods.get(unass);
         if (noGoodsForUnassignment != null) {
-            if (noGoodsForUnassignment.contains(noGoods)) {
-                ((AssignmentSet)noGoodsForUnassignment.elementAt(noGoodsForUnassignment.indexOf(noGoods))).incCounter();
+            if (noGoodsForUnassignment.contains(noGood)) {
+                ((Assignment)noGoodsForUnassignment.elementAt(noGoodsForUnassignment.indexOf(noGood))).incCounter(iteration);
             } else {
-                noGoodsForUnassignment.addElement(noGoods);
+                noGoodsForUnassignment.addElement(noGood);
             }
         } else {
             noGoodsForUnassignment = new FastVector();
-            noGoodsForUnassignment.addElement(noGoods);
+            noGoodsForUnassignment.addElement(noGood);
             iNoGoods.put(unass, noGoodsForUnassignment);
         }
     }
@@ -193,7 +159,12 @@ public class ConflictStatistics extends Extension implements ConstraintListener,
         iAssignments.clear();
     }
     
+    public Hashtable getNoGoods() {
+    	return iNoGoods;
+    }
+    
     private void variableUnassigned(long iteration, Value unassignedValue, Value assignedValue) {
+    	if (iteration<=0) return;
         Assignment ass = new Assignment(iteration, assignedValue, iAgeing);
         Assignment unass = new Assignment(iteration, unassignedValue, iAgeing);
         if (iAssignments.containsKey(unass)) {
@@ -270,321 +241,6 @@ public class ConflictStatistics extends Extension implements ConstraintListener,
         return count;
     }
     
-    private void menu_item(PrintWriter out, String imgBase, String id, String name, String title, String page, boolean isCollapsed) {
-        out.println("<div style=\"margin-left:5px;\">");
-        out.println("<A style=\"border:0;background:0\" id=\"__idMenu"+id+"\" href=\"javascript:toggle('"+id+"')\" name=\""+name+"\" title=\"Expand "+name+"\">");
-        out.println("<img id=\"__idMenuImg"+id+"\" border=\"0\" src=\""+(imgBase == null ? "img/" : imgBase)+(isCollapsed ? "expand" : "collapse")+".gif\" align=\"absmiddle\"></A>");
-        out.println("&nbsp;<A target=\"__idContentFrame\" "+(page == null ? "" : "href=\""+page+"\" ")+"title=\""+(title == null ? "" : title)+"\" >"+ name+(title == null?"":" <font color='gray'>[" + title + "]</font>")+"</A><br>");
-        out.println("</div>");
-        out.println("<div ID=\"__idMenuDiv"+id+"\" style=\"display:"+(isCollapsed ? "none" : "block")+";position:relative;margin-left:18px;\">");
-    }
-    
-    private void leaf_item(PrintWriter out, String imgBase, String name, String title,String page) {
-        out.println("<div style=\"margin-left:5px;\">");
-        out.println("<img border=\"0\" src=\""+(imgBase == null ? "img/" : imgBase)+"end.gif\" align=\"absmiddle\">");
-        out.println("&nbsp;<A target=\"__idContentFrame\" "+(page == null ? "" : "href=\"" + page + "\" ")+"title=\""+(title == null ? "" : title)+"\" >"+name+(title == null ? "" : " <font color='gray'>[" + title + "]</font>")+"</A><br>");
-        out.println("</div>");
-    }
-    
-    private void end_item(PrintWriter out) {
-        out.println("</div>");
-    }
-    
-    private void unassignedVariableMenuItem(PrintWriter out, String imgBase, String menuId, long counter, Variable variable) {
-        menu_item(out, imgBase, menuId, counter + "x " + variable.getName(), variable.getDescription(), null, true);
-    }
-    
-    private void unassignmentMenuItem(PrintWriter out, String imgBase, String menuId, double counter, Assignment unassignment) {
-        menu_item(out, imgBase, menuId, Math.round(counter) + "x " + unassignment.getValue().getName(), unassignment.getValue().getDescription(), null, true);
-    }
-    
-    private void constraintMenuItem(PrintWriter out, String imgBase, String menuId, long counter, Constraint constraint) {
-        String name = (constraint == null ? null : constraint.getClass().getName().substring( constraint.getClass().getName().lastIndexOf('.') + 1) + (constraint.getName() == null ? "" : " " + constraint.getName()));
-        menu_item(out, imgBase, menuId, counter + "x " + name, (constraint == null ? null : constraint.getDescription()), null, true);
-    }
-    
-    private void assignmentsMenuItem(PrintWriter out, String imgBase, String menuId, AssignmentSet set) {
-        StringBuffer names = new StringBuffer();
-        for (Enumeration e = set.getSet().elements(); e.hasMoreElements();) {
-            Assignment a = (Assignment)e.nextElement();
-            names.append(names.length() == 0 ? "" : ", ").append(a.getValue().variable().getName());
-        }
-        menu_item(out, imgBase, menuId, set.getCounter() + "x [" + names + "]", null, null, true);
-    }
-    
-    private void assignmentLeafItem(PrintWriter out, String imgBase, Assignment assignment) {
-        leaf_item(out, imgBase, assignment.getValue().variable().getName()+" := "+assignment.getValue().getName(), null, null);
-    }
-    
-    private void assignmentLeafItem(PrintWriter out, String imgBase, long counter,Assignment assignment) {
-        leaf_item(out, imgBase, counter+"x "+assignment.getValue().variable().getName()+" := "+assignment.getValue().getName(), null, null);
-    }
-    
-    /** Print conflict-based statistics in HTML format */
-    public void printHtml(long iteration, PrintWriter out, long maxVariables, long unassignmentLimit, long assignmentLimit, int type) {
-        printHtml(iteration, out, true, maxVariables, unassignmentLimit, assignmentLimit, null, type);
-    }
-    
-    /** Print conflict-based statistics in HTML format */
-    public void printHtml(long iteration, PrintWriter out, DataProperties params) {
-        printHtml(iteration,out,
-        params.getPropertyBoolean("ConflictStatistics.PringHeader", false),
-        params.getPropertyInt("ConflictStatistics.MaxLines", 25),
-        params.getPropertyInt("ConflictStatistics.MaxBranchingLev1", 100),
-        params.getPropertyInt("ConflictStatistics.MaxBranchingLev2", 10),
-        params.getProperty("ConflictStatistics.ImageBase", null),
-        params.getPropertyInt("ConflictStatistics.Type",TYPE_VARIABLE_BASED));
-    }
-    
-    /** Print conflict-based statistics in HTML format */
-    public void printHtml(long iteration, PrintWriter out, boolean printHeader, long maxVariables, long unassignmentLimit, long assignmentLimit, String imgBase, int type) {
-        if (printHeader) {
-            out.println("<html><head>");
-            out.println("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />");
-            out.println();
-            out.println("<style type=\"text/css\">");
-            out.println("<!--");
-            out.println("A:link     { color: blue; text-decoration: none; border:0; background:0; }");
-            out.println("A:visited  { color: blue; text-decoration: none; border:0; background:0; }");
-            out.println("A:active   { color: blue; text-decoration: none; border:0; background:0; }");
-            out.println("A:hover    { color: blue; text-decoration: none; border:0; background:0; }");
-            out.println(".TextBody  { background-color: white; color:black; font-size: 12px; }");
-            out.println(".WelcomeHead { color: black; margin-top: 0px; margin-left: 0px; font-weight: bold; text-align: right; font-size: 30px; font-family: Comic Sans MS}");
-            out.println("-->");
-            out.println("</style>");
-            out.println();
-            out.println("<script language=\"javascript\" type=\"text/javascript\">");
-            out.println("function toggle(item) {");
-            out.println("	obj=document.getElementById(\"__idMenuDiv\"+item);");
-            out.println("	visible=(obj.style.display!=\"none\");");
-            out.println("	img=document.getElementById(\"__idMenuImg\" + item);");
-            out.println("	menu=document.getElementById(\"__idMenu\" + item);");
-            out.println("	if (visible) {obj.style.display=\"none\";img.src=\""+(imgBase == null ? "img/" : imgBase)+"expand.gif\";menu.title='Expand '+menu.name;}");
-            out.println("	else {obj.style.display=\"block\";img.src=\""+(imgBase == null ? "img/" : imgBase)+"collapse.gif\";menu.title='Collapse '+menu.name;}");
-            out.println("}");
-            out.println("</script>");
-            out.println();
-            out.println("</head>");
-            out.println("<body class=\"TextBody\">");
-            out.println("<br><table border='0' width='100%'>");
-            out.println("<tr><td width=12>&nbsp;</td><td bgcolor='#BBCDE4' align='right'>");
-            out.println("<div class=WelcomeHead>Conflict Statistics&nbsp;</div></td></tr></table><br>");
-            out.println("<ul>");
-        }
-        if (type == TYPE_VARIABLE_BASED) {
-            Hashtable variables = new Hashtable();
-            Hashtable variable2Assignments = new Hashtable();
-            for (Enumeration e1 = iNoGoods.keys(); e1.hasMoreElements();) {
-                Assignment ass = (Assignment)e1.nextElement();
-                long cnt = 0;
-                for (Enumeration e2 = ((Vector)iNoGoods.get(ass)).elements();e2.hasMoreElements();)
-                    cnt += ((AssignmentSet)e2.nextElement()).getCounter();
-                ass.setCounter(cnt);
-                cnt += (variables.containsKey(ass.getValue().variable())?((Long)variables.get(ass.getValue().variable())).longValue():0L);
-                variables.put(ass.getValue().variable(), new Long(cnt));
-                Vector assignments = (Vector)variable2Assignments.get(ass.getValue().variable());
-                if (assignments == null) {
-                    assignments = new FastVector();
-                    variable2Assignments.put(ass.getValue().variable(),assignments);
-                }
-                assignments.addElement(ass);
-            }
-            int varCounter = 0;
-            for (Enumeration e1 = ToolBox.sortEnumeration(variables.keys(),new VariableComparator(variables));e1.hasMoreElements();) {
-                Variable variable = (Variable)e1.nextElement();
-                varCounter++;
-                if (varCounter > maxVariables)
-                    break;
-                long varCnt = ((Long)variables.get(variable)).longValue();
-                unassignedVariableMenuItem(out,imgBase,String.valueOf(variable.getId()),varCnt,variable);
-                for (Enumeration e2 = ToolBox.sortEnumeration(((Vector)variable2Assignments.get(variable)).elements(),Assignment.getComparator(iteration));e2.hasMoreElements();) {
-                    Assignment ass = (Assignment)e2.nextElement();
-                    if (!ass.getValue().variable().equals(variable))
-                        continue;
-                    double cntUnas = 0.0;
-                    for (Enumeration e3 = ((Vector)iNoGoods.get(ass)).elements();e3.hasMoreElements();)
-                        cntUnas += ((AssignmentSet)e3.nextElement()).getCounter();
-                    if (Math.round(cntUnas) < unassignmentLimit) continue;
-                    unassignmentMenuItem(out,imgBase,ass.getValue().variable().getId()+"."+ass.getValue().getId(),cntUnas,ass);
-                    int id = 0;
-                    Hashtable constr2counter = new Hashtable();
-                    Hashtable constr2assignments = new Hashtable();
-                    for (Enumeration e3 = ((Vector)iNoGoods.get(ass)).elements();e3.hasMoreElements();) {
-                        AssignmentSet x = (AssignmentSet)e3.nextElement();
-                        if (x.getConstraint() == null) continue;
-                        Long cnter = (Long)constr2counter.get(x.getConstraint());
-                        if (cnter == null)
-                            constr2counter.put(x.getConstraint(), new Long(x.getCounter()));
-                        else
-                            constr2counter.put(x.getConstraint(), new Long(x.getCounter() + cnter.longValue()));
-                        Vector aaa = (Vector)constr2assignments.get(x.getConstraint());
-                        if (aaa == null) {
-                            aaa = new FastVector();
-                            constr2assignments.put(x.getConstraint(), aaa);
-                        }
-                        aaa.addElement(x);
-                    }
-                    for (Enumeration e3 = ToolBox.sortEnumeration(constr2counter.keys(),new ConstraintComparator(constr2counter));e3.hasMoreElements();) {
-                        Constraint constraint = (Constraint)e3.nextElement();
-                        Long cnter = (Long)constr2counter.get(constraint);
-                        constraintMenuItem(out,imgBase,ass.getValue().variable().getId()+"."+ass.getValue().getId()+"."+constraint.getId(),cnter.longValue(),constraint);
-                        if (cnter.longValue() >= assignmentLimit) {
-                            for (Enumeration e4 = ((Vector)constr2assignments.get(constraint)).elements();e4.hasMoreElements();) {
-                                AssignmentSet x = (AssignmentSet)e4.nextElement();
-                                boolean printAssignmentsMenuItem = (x.getSet().size() > 2);
-                                if (printAssignmentsMenuItem)
-                                    assignmentsMenuItem(out,imgBase,ass.getValue().variable().getId()+"."+ass.getValue().getId()+"."+constraint.getId()+"."+(++id),x);
-                                //menu_item(out, imgBase, ass.getValue().variable().getId()+"."+ass.getValue().getId()+"."+(++id), x.getCounter()+"x "+(x.getName()==null?null:x.getName()), x.getDescription(), null, true);
-                                for (Enumeration e5 = ToolBox.sortEnumeration(x.getSet().elements(),Assignment.getComparator(iteration));e5.hasMoreElements();) {
-                                    Assignment a = (Assignment)e5.nextElement();
-                                    if (!ass.equals(a)) {
-                                        if (printAssignmentsMenuItem)
-                                            assignmentLeafItem(out, imgBase, a);
-                                        else
-                                            assignmentLeafItem(out, imgBase, x.getCounter(), a);
-                                    }
-                                }
-                                if (printAssignmentsMenuItem)
-                                    end_item(out);
-                            }
-                        }
-                        end_item(out);
-                    }
-                    end_item(out);
-                }
-                end_item(out);
-            }
-        }
-        else
-            if (type == TYPE_CONSTRAINT_BASED) {
-                Hashtable constraint2assignments = new Hashtable();
-                Hashtable constraint2counter = new Hashtable();
-                for (Enumeration e1 = iNoGoods.keys(); e1.hasMoreElements();) {
-                    Assignment ass = (Assignment)e1.nextElement();
-                    for (Enumeration e2 = ((Vector)iNoGoods.get(ass)).elements();e2.hasMoreElements();) {
-                        AssignmentSet set = (AssignmentSet)e2.nextElement();
-                        if (set.getConstraint() == null) continue;
-                        Hashtable assignments = (Hashtable)constraint2assignments.get(set.getConstraint());
-                        if (assignments == null) {
-                            assignments = new Hashtable();
-                            constraint2assignments.put(set.getConstraint(),assignments);
-                        }
-                        Vector unassignments = (Vector)assignments.get(ass);
-                        if (unassignments == null) {
-                            unassignments = new FastVector();
-                            assignments.put(ass, unassignments);
-                        }
-                        unassignments.addElement(set);
-                        Long cnt = (Long)constraint2counter.get(set.getConstraint());
-                        constraint2counter.put(set.getConstraint(),new Long(set.getCounter()+(cnt == null ? 0 : cnt.longValue())));
-                    }
-                }
-                int constrCounter = 0;
-                for (Enumeration e1 = ToolBox.sortEnumeration(constraint2counter.keys(), new ConstraintComparator(constraint2counter)); e1.hasMoreElements();) {
-                    Constraint constraint = (Constraint)e1.nextElement();
-                    constrCounter++;
-                    if (constrCounter > maxVariables)
-                        break;
-                    Long constrCnt = (Long)constraint2counter.get(constraint);
-                    Hashtable constrAssignments = (Hashtable)constraint2assignments.get(constraint);
-                    constraintMenuItem(out, imgBase, String.valueOf(constraint.getId()), constrCnt.longValue(), constraint);
-                    
-                    Hashtable variables = new Hashtable();
-                    Hashtable variable2Assignments = new Hashtable();
-                    for (Enumeration e2 = constrAssignments.keys(); e2.hasMoreElements(); ) {
-                        Assignment ass = (Assignment)e2.nextElement();
-                        long cnt = 0;
-                        for (Enumeration e3 = ((Vector)constrAssignments.get(ass)).elements(); e3.hasMoreElements();)
-                            cnt += ((AssignmentSet)e3.nextElement()).getCounter();
-                        ass.setCounter(cnt);
-                        cnt += (variables.containsKey(ass.getValue().variable()) ? ((Long)variables.get(ass.getValue().variable())).longValue() : 0L);
-                        variables.put(ass.getValue().variable(), new Long(cnt));
-                        Vector assignments = (Vector)variable2Assignments.get(ass.getValue().variable());
-                        if (assignments == null) {
-                            assignments = new FastVector();
-                            variable2Assignments.put(ass.getValue().variable(),assignments);
-                        }
-                        assignments.addElement(ass);
-                    }
-                    
-                    for (Enumeration e2 = ToolBox.sortEnumeration(variables.keys(),new VariableComparator(variables));e2.hasMoreElements();) {
-                        Variable variable = (Variable)e2.nextElement();
-                        long varCnt = ((Long)variables.get(variable)).longValue();
-                        if (varCnt < unassignmentLimit)
-                            continue;
-                        unassignedVariableMenuItem(out,imgBase,constraint.getId() + "." + variable.getId(),varCnt,variable);
-                        
-                        for (Enumeration e3 = ToolBox.sortEnumeration(((Vector)variable2Assignments.get(variable)).elements(),Assignment.getComparator(iteration));e3.hasMoreElements();) {
-                            Assignment ass = (Assignment)e3.nextElement();
-                            if (!ass.getValue().variable().equals(variable))
-                                continue;
-                            double cntUnas = 0.0;
-                            for (Enumeration e4 = ((Vector)iNoGoods.get(ass)).elements();e4.hasMoreElements();)
-                                cntUnas += ((AssignmentSet)e4.nextElement()).getCounter();
-                            if (Math.round(cntUnas) < assignmentLimit)
-                                continue;
-                            unassignmentMenuItem(out, imgBase, constraint.getId()+"."+ass.getValue().variable().getId()+"."+ass.getValue().getId(),cntUnas,ass);
-                            
-                            int id = 0;
-                            for (Enumeration e4 = ((Vector)constrAssignments.get(ass)).elements();e4.hasMoreElements();) {
-                                AssignmentSet x = (AssignmentSet)e4.nextElement();
-                                boolean printAssignmentsMenuItem = (x.getSet().size() > 2);
-                                if (printAssignmentsMenuItem)
-                                    assignmentsMenuItem(out, imgBase, constraint.getId()+"."+ass.getValue().variable().getId()+"."+ass.getValue().getId()+"."+(++id), x);
-                                for (Enumeration e5 = ToolBox.sortEnumeration(x.getSet().elements(), Assignment.getComparator(iteration)); e5.hasMoreElements();) {
-                                    Assignment a = (Assignment)e5.nextElement();
-                                    if (!ass.equals(a)) {
-                                        if (printAssignmentsMenuItem)
-                                            assignmentLeafItem(out, imgBase, a);
-                                        else
-                                            assignmentLeafItem(out, imgBase, x.getCounter(),a);
-                                    }
-                                }
-                                if (printAssignmentsMenuItem)
-                                    end_item(out);
-                            }
-                            
-                            end_item(out);
-                        }
-                        end_item(out);
-                    }
-                    end_item(out);
-                }
-                
-            }
-        if (printHeader) {
-            out.println("</ul>");
-            out.println("</body></html>");
-        }
-    }
-    
-    /** Print conflict-based statistics */
-    public void print(PrintWriter out, long iteration) {
-        out.print("Statistics{");
-        for (Enumeration e1 =ToolBox.sortEnumeration(iNoGoods.keys(),Assignment.getComparator(iteration));e1.hasMoreElements();) {
-            Assignment ass = (Assignment)e1.nextElement();
-            double cnt = 0.0;
-            for (Enumeration e2 = ((Vector)iNoGoods.get(ass)).elements();e2.hasMoreElements();)
-                cnt += ((AssignmentSet)e2.nextElement()).getCounter();
-            if (cnt < 100) continue;
-            out.print("\n      "+cnt+"x "+ass.getValue().variable().getName()+" != "+ass.getValue().getName()+" <= {");
-            for (Enumeration e2 = ((Vector)iNoGoods.get(ass)).elements();e2.hasMoreElements();) {
-                AssignmentSet x = (AssignmentSet)e2.nextElement();
-                if (x.getCounter() >= 10) {
-                    out.print("\n        "+x.getCounter()+"x "+(x.getName() == null ? null : x.getName())+ "{");
-                    for (Enumeration e3 = ToolBox.sortEnumeration(x.getSet().elements(),Assignment.getComparator(iteration));e3.hasMoreElements();) {
-                        Assignment a = (Assignment)e3.nextElement();
-                        out.print(a.getValue().variable().getName()+" := "+a.getValue().getName()+(e3.hasMoreElements() ? "," : ""));
-                    }
-                    out.print(e2.hasMoreElements() ? "}," : "}");
-                }
-            }
-            out.print("\n      }");
-        }
-        out.print("\n    }");
-        out.flush();
-    }
-    
     public String toString() {
         StringBuffer sb = new StringBuffer("Statistics{");
         for (Enumeration e1 = ToolBox.sortEnumeration(iUnassignedVariables.keys(), Assignment.getComparator(0));e1.hasMoreElements();) {
@@ -602,12 +258,15 @@ public class ConflictStatistics extends Extension implements ConstraintListener,
         return sb.toString();
     }
     
-    public void getInfo(Hashtable info) {
+    public void getInfo(Dictionary info) {
         //info.put("Statistics: IsGood.Time",sTimeFormat.format(((double)iIsGoodTime)/60000.0)+" min");
         //info.put("Statistics: NoGood.Time",sTimeFormat.format(((double)iNoGoodTime)/60000.0)+" min");
         /*info.put("Statistics: VariableAssigned.Time",sTimeFormat.format(((double)iVariableAssignedTime)/60000.0)+" min");
          *info.put("Statistics: VariableUnassigned.Time",sTimeFormat.format(((double)iVariableUnassignedTime)/60000.0)+" min");
          *info.put("Statistics: Bad assignments:", String.valueOf(iBadAssignments.size()));*/
+    }
+    
+    public void getInfo(Dictionary info, Vector variables) {
     }
     
     private class VariableComparator implements java.util.Comparator {
@@ -644,15 +303,18 @@ public class ConflictStatistics extends Extension implements ConstraintListener,
     
     /** Increments appropriate counters when there is a value unassigned */
     public void constraintAfterAssigned(long iteration, Constraint constraint, Value assigned, Set unassigned) {
+    	if (iteration<=0) return;
         if (unassigned == null || unassigned.isEmpty())
             return;
         if (iPrint) {
-            AssignmentSet noGoods = AssignmentSet.createAssignmentSet(iteration,unassigned, iAgeing);
-            noGoods.addAssignment(iteration, assigned, iAgeing);
-            noGoods.setConstraint(constraint);
+            //AssignmentSet noGoods = AssignmentSet.createAssignmentSet(iteration,unassigned, iAgeing);
+            //noGoods.addAssignment(iteration, assigned, iAgeing);
+            //noGoods.setConstraint(constraint);
+        	Assignment noGood = new Assignment(iteration,assigned, iAgeing);
+        	noGood.setConstraint(constraint);
             for (Iterator i = unassigned.iterator(); i.hasNext();) {
                 Value unassignedValue = (Value)i.next();
-                variableUnassigned(iteration, unassignedValue, noGoods);
+                variableUnassigned(iteration, unassignedValue, noGood);
                 variableUnassigned(iteration, unassignedValue, assigned);
             }
         } else {
@@ -668,40 +330,5 @@ public class ConflictStatistics extends Extension implements ConstraintListener,
     }
     public void constraintRemoved(Constraint constraint) {
         constraint.removeConstraintListener(this);
-    }
-    
-    /* Solution listener -- prints conflict-based statistics in HTML format.*/
-    public void solutionUpdated(Solution solution) {
-        if (iPrint && iPrintInterval>0 && (solution.getIteration()%iPrintInterval) == 0) {
-            try {
-                int maxLines = getProperties().getPropertyInt("ConflictStatistics.MaxLines", 25);
-                int maxBr1 = getProperties().getPropertyInt("ConflictStatistics.MaxBranchingLev1", 100);
-                int maxBr2 = getProperties().getPropertyInt("ConflictStatistics.MaxBranchingLev2", 10);
-                String imgBase = getProperties().getProperty("ConflictStatistics.ImageBase", null);
-                if (TYPE_VARIABLE_BASED == getProperties().getPropertyInt("ConflictStatistics.Type",TYPE_VARIABLE_BASED)) {
-                    PrintWriter pw = new PrintWriter(new FileWriter(getProperties().getProperty("General.Output", ".")+File.separator+"stat"+(++iPrintCounter)+".html"));
-                    printHtml(solution.getIteration(),pw,true,maxLines,maxBr1,maxBr2,imgBase,TYPE_VARIABLE_BASED);
-                    pw.flush();
-                    pw.close();
-                } else {
-                    PrintWriter pw = new PrintWriter(new FileWriter(getProperties().getProperty("General.Output", ".")+File.separator+"stat"+(++iPrintCounter)+".html"));
-                    printHtml(solution.getIteration(),pw,true,maxLines,maxBr1,maxBr2,imgBase,TYPE_CONSTRAINT_BASED);
-                    pw.flush();
-                    pw.close();
-                }
-            }
-            catch (Exception io) {
-                io.printStackTrace();
-                sLogger.error(io);
-            }
-        }
-    }
-    public void getInfo(Solution solution, Dictionary info) {
-    }
-    public void bestCleared(Solution solution) {
-    }
-    public void bestSaved(Solution solution) {
-    }
-    public void bestRestored(Solution solution) {
     }
 }
