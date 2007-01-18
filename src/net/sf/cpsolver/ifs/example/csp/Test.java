@@ -194,7 +194,6 @@ public class Test {
         long seed = properties.getPropertyLong( "CSP.Seed", System.currentTimeMillis());
         int nrTests = properties.getPropertyInt("CPS.NrTests",10);
         boolean mpp = properties.getPropertyBoolean("General.MPP", false);
-        boolean forceSolutionExistance = properties.getPropertyBoolean( "CSP.ForceSolutionExistance", false);
         PrintWriter logStat = new PrintWriter(new FileWriter(properties.getProperty("General.Output")+File.separator+"rcsp_"+nrVariablesMin+"_"+nrValues+".csv"));
         PrintWriter logAvgStat = new PrintWriter(new FileWriter(properties.getProperty("General.Output")+File.separator+"avg_stat.csv"));
         PrintWriter log = new PrintWriter(new FileWriter(properties.getProperty("General.Output")+File.separator+"info.txt"));

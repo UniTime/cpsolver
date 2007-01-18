@@ -25,7 +25,8 @@ import java.util.*;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 public class DataProperties extends Properties {
-    private boolean iSaveDefaults = false;
+	private boolean iSaveDefaults = false;
+	private static final long serialVersionUID = 1L;
     
     /** Constructor */
     public DataProperties() {

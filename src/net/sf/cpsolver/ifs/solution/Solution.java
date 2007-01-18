@@ -37,7 +37,6 @@ import net.sf.cpsolver.ifs.util.*;
  */
 
 public class Solution {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(Solution.class);
     private static java.text.DecimalFormat sTimeFormat = new java.text.DecimalFormat("0.00",new java.text.DecimalFormatSymbols(Locale.US));
     
     private Model iModel;

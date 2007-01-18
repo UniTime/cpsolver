@@ -36,7 +36,6 @@ import net.sf.cpsolver.ifs.util.*;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 public class Value implements Comparable {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(Value.class);
     private static IdGenerator sIdGenerator = new IdGenerator();
     
     private long iId;

@@ -63,7 +63,6 @@ import net.sf.cpsolver.ifs.util.*;
  **/
 
 public class GeneralValueSelection implements ValueSelection {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(GeneralValueSelection.class);
     private double iRandomWalkProb = 0.0;
     private double iInitialSelectionProb = 0.0;
     private double iGoodSelectionProb = 0.0;

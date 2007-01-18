@@ -37,10 +37,9 @@ import net.sf.cpsolver.ifs.util.*;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 public class Variable implements Comparable {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(Variable.class);
     private static IdGenerator iIdGenerator = new IdGenerator();
 
-    private long iId = -1;
+    protected long iId = -1;
     private Model iModel = null;
 
     private Value iInitialValue = null; // initial value

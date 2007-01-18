@@ -66,7 +66,6 @@ public class GeneralVariableSelection implements VariableSelection {
     private double iUnassignWhenNotGoodRandWalk = 0.02;
     private boolean iRandomSelection = true;
     
-    private boolean iMPP = false;
     private MacPropagation iProp = null;
     
     /** Constructor
