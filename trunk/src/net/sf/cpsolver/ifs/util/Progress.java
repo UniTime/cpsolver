@@ -323,9 +323,6 @@ public class Progress {
     	private String iMessage;
     	private Date iDate = null;
     	private String[] iStakTrace = null;
-    	private Message(int level, String message) {
-    		this(level,message,null);
-    	}
     	private Message(int level, String message, Throwable e) {
     		iLevel = level; iMessage = message; iDate = new Date();
     		if (e!=null) {

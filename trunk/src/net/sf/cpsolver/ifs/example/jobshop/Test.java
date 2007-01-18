@@ -39,7 +39,6 @@ import net.sf.cpsolver.ifs.util.*;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 public class Test {
-    private static java.text.DecimalFormat sDoubleFormat = new java.text.DecimalFormat("0.00",new java.text.DecimalFormatSymbols(Locale.US));
     private static java.text.SimpleDateFormat sDateFormat = new java.text.SimpleDateFormat("dd-MMM-yy_HHmmss",java.util.Locale.US);
     private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(Test.class);
 

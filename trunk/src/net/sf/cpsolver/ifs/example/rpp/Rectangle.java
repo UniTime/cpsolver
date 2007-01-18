@@ -31,7 +31,6 @@ import net.sf.cpsolver.ifs.util.*;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 public class Rectangle extends Variable {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(Rectangle.class);
     private String iName;
     private int iMinX, iMaxX, iMinY, iMaxY;
     private int iHeight, iWidth;

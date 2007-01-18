@@ -29,7 +29,6 @@ import net.sf.cpsolver.ifs.model.Value;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 public class Assignment {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(Assignment.class);
     private Value iValue;
     private double iCounter = 1.0;
     private long iLastRevision;

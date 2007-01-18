@@ -27,7 +27,6 @@ import org.apache.log4j.*;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 public class ToolBox {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(ToolBox.class);
     private static long sSeed = System.currentTimeMillis();
     private static Random sRandom = new Random(sSeed);
     

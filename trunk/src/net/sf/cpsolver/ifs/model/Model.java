@@ -67,7 +67,6 @@ public class Model {
     private Vector iVariablesWithInitialValueCache = null;
     
     private Vector iPerturbVariables = null;
-    private Vector iConflictVariables = null;
     
     private int iBestUnassignedVariables = -1;
     private int iBestPerturbations = 0;
@@ -222,7 +221,6 @@ public class Model {
         iUnassignedVariables.removeElement(value.variable());
         iAssignedVariables.addElement(value.variable());
         iPerturbVariables = null;
-        iConflictVariables = null;
         for (Enumeration e=iModelListeners.elements();e.hasMoreElements();)
             ((ModelListener)e.nextElement()).afterAssigned(iteration, value);
     }
@@ -232,7 +230,6 @@ public class Model {
         iUnassignedVariables.addElement(value.variable());
         iAssignedVariables.removeElement(value.variable());
         iPerturbVariables = null;
-        iConflictVariables = null;
         for (Enumeration e=iModelListeners.elements();e.hasMoreElements();)
             ((ModelListener)e.nextElement()).afterUnassigned(iteration, value);
     }

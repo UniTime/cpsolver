@@ -30,7 +30,6 @@ import net.sf.cpsolver.ifs.model.*;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 public class CSPBinaryConstraint extends BinaryConstraint {
-    private int iId = 0;
     private boolean iIsConsistent[][] = null;
     private int iNrCompatiblePairs;
     

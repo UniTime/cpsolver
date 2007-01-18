@@ -33,7 +33,6 @@ import net.sf.cpsolver.ifs.model.VariableListener;
  */
 
 public class MultiVariable extends Variable implements VariableListener {
-	private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(MultiVariable.class);
 	private Vector iVariables;
 	public static boolean sCacheValues = false;
 	
