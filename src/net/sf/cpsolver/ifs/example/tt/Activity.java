@@ -30,7 +30,6 @@ import net.sf.cpsolver.ifs.util.*;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 public class Activity extends Variable {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(Activity.class);
     private int iLength = 1;
     private String iActivityId = null;
     private String iName = null;

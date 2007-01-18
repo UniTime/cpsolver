@@ -106,13 +106,9 @@ import net.sf.cpsolver.ifs.util.*;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 public class ConflictStatistics extends Extension implements ConstraintListener, InfoProvider {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(ConflictStatistics.class);
     private static final String PARAM_AGEING = "ConflictStatistics.Ageing";
     private static final String PARAM_HALF_AGE = "ConflictStatistics.AgeingHalfTime";
     private static final String PARAM_PRINT = "ConflictStatistics.Print";
-    
-    private static final int TYPE_VARIABLE_BASED = 0;
-    private static final int TYPE_CONSTRAINT_BASED = 1;
     
     private double iAgeing = 1.0;
     private boolean iPrint = false;
@@ -268,36 +264,7 @@ public class ConflictStatistics extends Extension implements ConstraintListener,
     
     public void getInfo(Dictionary info, Vector variables) {
     }
-    
-    private class VariableComparator implements java.util.Comparator {
-        Hashtable iVars = null;
-        public VariableComparator(Hashtable vars) {
-            iVars = vars;
-        }
-        public int compare(Object o1, Object o2) {
-            long c1 = ((Long)iVars.get(o1)).longValue();
-            long c2 = ((Long)iVars.get(o2)).longValue();
-            if (c1 != c2)
-                return (c1 < c2 ? 1 : -1);
-                return ((Variable)o1).getName().compareTo(((Variable)o2).getName());
-        }
-    }
-    
-    private class ConstraintComparator implements java.util.Comparator {
-        Hashtable iConstrs = null;
-        public ConstraintComparator(Hashtable constrs) {
-            iConstrs = constrs;
-        }
-        public int compare(Object o1, Object o2) {
-            long c1 = ((Long)iConstrs.get(o1)).longValue();
-            long c2 = ((Long)iConstrs.get(o2)).longValue();
-            if (c1 != c2)
-                return (c1 < c2 ? 1 : -1);
-                return ((Constraint)o1).getName().compareTo(
-                ((Constraint)o2).getName());
-        }
-    }
-    
+
     public void constraintBeforeAssigned( long iteration, Constraint constraint, Value assigned, Set unassigned) {
     }
     

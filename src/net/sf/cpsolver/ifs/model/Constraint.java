@@ -79,10 +79,9 @@ import net.sf.cpsolver.ifs.util.*;
  */
 
 public abstract class Constraint {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(Constraint.class);
     private static IdGenerator iIdGenerator = new IdGenerator();
     
-    private long iId = -1;
+    protected long iId = -1;
     
     private Vector iVariables = new FastVector();
     private Vector iAssignedVariables = new FastVector();

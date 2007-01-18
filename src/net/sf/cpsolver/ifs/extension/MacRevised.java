@@ -147,7 +147,6 @@ public class MacRevised extends Extension {
     }
     
     public void propagate(Constraint constraint, Value noGoodValue, Vector queue) {
-        HashSet explanation = new HashSet();
         for (Enumeration e1 = constraint.variables().elements();e1.hasMoreElements();) {
             Variable aVariable = (Variable)e1.nextElement();
             if (aVariable.equals(noGoodValue.variable())) continue;

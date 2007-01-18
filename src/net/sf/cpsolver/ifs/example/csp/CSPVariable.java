@@ -29,7 +29,6 @@ import java.util.*;
  */
 public class CSPVariable extends net.sf.cpsolver.ifs.model.Variable {
     private int iKernelId=-1;
-    private int iId = 0;
     
     /**
      * Constructor
