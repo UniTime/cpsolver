@@ -77,6 +77,7 @@ public class StructuredCSPModel extends Model {
         }
         idx = 0;
         for (Enumeration i1=constraints.elements();i1.hasMoreElements();) {
+            CSPBinaryConstraint c = (CSPBinaryConstraint) i1.nextElement();
             swap(allPairs, idx, idx+(int)(rnd.nextDouble()*(numberOfAllPairs-idx)));
                 idx++;
         }
@@ -103,6 +104,7 @@ public class StructuredCSPModel extends Model {
         }
         idx = 0;
         for (Enumeration i1=constraints.elements();i1.hasMoreElements();) {
+            CSPBinaryConstraint c = (CSPBinaryConstraint) i1.nextElement();
             swap(allPairs, idx, idx+(int)(rnd.nextDouble()*(numberOfAllPairs-idx)));
                 idx++;
         }
