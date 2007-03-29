@@ -185,6 +185,7 @@ public class ToolBox {
         props.setProperty("log4j.appender.A1.layout", "org.apache.log4j.PatternLayout");
         props.setProperty("log4j.appender.A1.layout.ConversionPattern","%-5p %c{2}: %m%n");
         props.setProperty("log4j.logger.net","INFO");
+        props.setProperty("log4j.logger.net.sf.cpsolver","DEBUG");
         props.setProperty("log4j.logger.org","INFO");
         PropertyConfigurator.configure(props);
     }

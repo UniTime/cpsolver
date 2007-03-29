@@ -1,6 +1,7 @@
 <project name="ifs" default="dist" basedir=".">
 <!--
 	IFS 1.1 (Iterative Forward Search)
+	CourseTT 1.1 (University Course Timetabling)
 	Copyright (C) 2006 Tomas Muller
 	muller@ktiml.mff.cuni.cz
 	Lazenska 391, 76314 Zlin, Czech Republic
@@ -90,7 +91,7 @@
     <target name="compile-jar">
         <jar destfile="${dist-lib.dir}/ifs-1.1.jar">
             <fileset dir="${build.dir}">
-                <include name="**/*.class"/>
+                <include name="net/sf/cpsolver/ifs/**/*.class"/>
             </fileset>
         	<fileset dir="${base.dir}/..">
         		<include name="lgpl.txt"/>
@@ -98,6 +99,19 @@
         	<manifest>
         		<attribute name="Class-Path" value="log4j-1.2.8.jar dom4j-1.6.1.jar" /> 
         		<attribute name="Ifs-Version" value="1.1_bld${build.number}"/>
+        	</manifest>
+        </jar>
+        <jar destfile="${dist-lib.dir}/coursett-1.1.jar">
+            <fileset dir="${build.dir}">
+                <include name="net/sf/cpsolver/coursett/**/*.class"/>
+            </fileset>
+        	<fileset dir="${base.dir}/..">
+        		<include name="lgpl.txt"/>
+        	</fileset>
+        	<manifest>
+        		<attribute name="Class-Path" value="log4j-1.2.8.jar dom4j-1.6.1.jar ifs-1.1.jar" /> 
+        		<attribute name="CourseTT-Version" value="1.1_bld${build.number}"/>
+        		<attribute name="Main-Class" value="net.sf.cpsolver.coursett.Test"/>
         	</manifest>
         </jar>
     </target>
@@ -124,6 +138,7 @@
     		<doctitle><![CDATA[
     		<table border='0' style='font-size: 11pt;font-weight: normal;'><tr><td align='left'>
     		IFS 1.1 (Iterative Forward Search)<br>
+    		CourseTT 1.1 (University Course Timetabling)<br>
     		Copyright (C) 2006 Tomas Muller<br>
     		<a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
     		Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -145,6 +160,7 @@
    			]]></doctitle>
  	   	<group title="Iterative Forward Search" packages="net.sf.cpsolver.ifs*"/>
  	   	<group title="Iterative Forward Search Examples" packages="net.sf.cpsolver.ifs.example*"/>
+   	   	<group title="University Course Timetabling" packages="net.sf.cpsolver.coursett*"/>
  	   	<link href="http://java.sun.com/j2se/1.5.0/docs/api/"/>
  	   	<link href="http://logging.apache.org/log4j/docs/api/"/>
  	   	<fileset dir="src"/>
@@ -216,7 +232,7 @@
 				<include name="**/*.dll"/>
 			</fileset>
 		</copy>
-		<zip destfile="${dist.dir}/ifs-1.1_bld${build.number}.zip">
+		<zip destfile="${dist.dir}/cpsolver-1.1_bld${build.number}.zip">
 			<fileset dir="${dist.dir}">
 				<include name="bin/**/*"/>
 				<include name="doc/**/*"/>

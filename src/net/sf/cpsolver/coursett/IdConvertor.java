@@ -1,0 +1,133 @@
+package net.sf.cpsolver.coursett;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.Map;
+
+import org.dom4j.Document;
+import org.dom4j.DocumentHelper;
+import org.dom4j.Element;
+import org.dom4j.io.OutputFormat;
+import org.dom4j.io.SAXReader;
+import org.dom4j.io.XMLWriter;
+
+/**
+ * Conversion of ids to sequential numbers. 
+ * This class is used by {@link TimetableXMLSaver} to anonymise benchmark data sets.
+ * Conversion file can be provided by IdConvertor.File system property (e.g. -DIdConvertor.File=.\idconf.xml).
+ * <br><br>
+ * 
+ * @version
+ * CourseTT 1.1 (University Course Timetabling)<br>
+ * Copyright (C) 2006 Tomas Muller<br>
+ * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
+ * Lazenska 391, 76314 Zlin, Czech Republic<br>
+ * <br>
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * <br><br>
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * <br><br>
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
+public class IdConvertor {
+	private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(IdConvertor.class);
+	public static IdConvertor sInstance = null;
+	public Hashtable iConversion = new Hashtable();
+
+    /** Constructor -- use {@link IdConvertor#getInstance} to get an instance of this class. */
+	protected IdConvertor() {
+		load();
+	}
+	
+    /** Get an instance of IdConvertor class. */
+	public static IdConvertor getInstance() {
+		if (sInstance==null)
+			sInstance = new IdConvertor();
+		return sInstance;
+	}
+	
+    /** Convert id of given type. */
+	public String convert(String type, String id) {
+		synchronized (iConversion) {
+			Hashtable conversion = (Hashtable)iConversion.get(type);
+			if (conversion==null) {
+				conversion = new Hashtable();
+				iConversion.put(type, conversion);
+			}
+			String newId = (String)conversion.get(id);
+			if (newId==null) {
+				newId = String.valueOf(conversion.size()+1);
+	            conversion.put(id, newId);
+			}
+			return newId;
+		}
+	}
+	
+    /** Save id conversion file. Name of the file needs to be provided by system property IdConvertor.File */
+	public void save() {
+		String file = (String)System.getProperty("IdConvertor.File");
+		if (file==null) return;
+		(new File(file)).getParentFile().mkdirs();
+		Document document = DocumentHelper.createDocument();
+		Element root = document.addElement("id-convertor");
+		synchronized (iConversion) {
+			for (Iterator i=iConversion.entrySet().iterator();i.hasNext();) {
+				Map.Entry entry = (Map.Entry)i.next();
+				String type = (String)entry.getKey();
+				Hashtable conversion = (Hashtable)entry.getValue();
+				Element convEl = root.addElement(type);
+				for (Iterator j=conversion.entrySet().iterator();j.hasNext();) {
+					Map.Entry idConv = (Map.Entry)j.next();
+					convEl.addElement("conv").addAttribute("old",(String)idConv.getKey()).addAttribute("new",(String)idConv.getValue());
+				}
+			}
+		}
+        FileOutputStream fos = null;
+        try {
+        	fos = new FileOutputStream(file);
+        	(new XMLWriter(fos,OutputFormat.createPrettyPrint())).write(document);
+        	fos.flush();fos.close();fos=null;
+        } catch (Exception e) {
+        	sLogger.error("Unable to save id conversions, reason: "+e.getMessage(),e);
+        } finally {
+    		try {
+    			if (fos!=null) fos.close();
+    		} catch (IOException e) {}
+        }
+	}
+	
+    /** Load id conversion file. Name of the file needs to be provided by system property IdConvertor.File */
+	public void load() {
+		try {
+			String file = (String)System.getProperty("IdConvertor.File");
+			if (file==null || !(new File(file)).getParentFile().exists()) return;
+			Document document = (new SAXReader()).read(file);
+			Element root = document.getRootElement();
+			synchronized (iConversion) {
+				iConversion.clear();
+				for (Iterator i=root.elementIterator();i.hasNext();) {
+					Element convEl = (Element)i.next();
+					Hashtable conversion = new Hashtable();
+					iConversion.put(convEl.getName(),conversion);
+					for (Iterator j=convEl.elementIterator("conv");j.hasNext();) {
+						Element e = (Element)j.next();
+						conversion.put(e.attributeValue("old"),e.attributeValue("new"));
+					}
+				}
+			}
+		} catch (Exception e) {
+        	sLogger.error("Unable to load id conversions, reason: "+e.getMessage(),e);
+        }
+	}
+}
