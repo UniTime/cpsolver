@@ -156,7 +156,7 @@ public class FinalSectioning implements Runnable {
 			Student student = (Student)i1.next();
 	        for (Enumeration i2=lecture.sameStudentsLectures().elements();i2.hasMoreElements();) {
 	            Lecture sameLecture = (Lecture)i2.nextElement();
-	            double studentWeight = student.getOfferingWeight(sameLecture.getConfiguration().getOfferingId());
+	            double studentWeight = student.getOfferingWeight(sameLecture.getConfiguration());
 	            if (!student.canEnroll(sameLecture)) continue;
 	            if (sameLecture.equals(lecture) || sameLecture.getAssignment()==null) continue;
 	            if (sameLecture.nrWeightedStudents()+studentWeight<=sEps+sameLecture.classLimit()) {
@@ -188,7 +188,7 @@ public class FinalSectioning implements Runnable {
 	public Move findMove(Lecture lecture, Student student) {
         double bestDelta=0;
         Vector bestMoves=null;
-        double studentWeight = student.getOfferingWeight(lecture.getConfiguration().getOfferingId());
+        double studentWeight = student.getOfferingWeight(lecture.getConfiguration());
         for (Enumeration i1=lecture.sameStudentsLectures().elements();i1.hasMoreElements();) {
             Lecture sameLecture = (Lecture)i1.nextElement();
             if (!student.canEnroll(sameLecture)) continue;
@@ -212,7 +212,7 @@ public class FinalSectioning implements Runnable {
             }
             for (Iterator i2=sameLecture.students().iterator();i2.hasNext();) {
                 Student anotherStudent = (Student)i2.next();
-                double anotherStudentWeight = anotherStudent.getOfferingWeight(lecture.getConfiguration().getOfferingId());
+                double anotherStudentWeight = anotherStudent.getOfferingWeight(lecture.getConfiguration());
                 if (!anotherStudent.canEnroll(lecture)) continue;
                 if (anotherStudentWeight!=studentWeight) {
                 	if (sameLecture.nrWeightedStudents()-anotherStudentWeight+studentWeight>sEps+sameLecture.classLimit()) continue;
@@ -306,8 +306,8 @@ public class FinalSectioning implements Runnable {
 					Lecture firstChildLecture = firstLecture.getChild(firstStudent, subpartId);
 					Lecture secondChildLecture = secondLecture.getChild(secondStudent, subpartId);
                     if (firstChildLecture==null || secondChildLecture==null) return null;
-					double firstStudentWeight = firstStudent.getOfferingWeight(firstChildLecture.getConfiguration().getOfferingId());
-					double secondStudentWeight = secondStudent.getOfferingWeight(secondChildLecture.getConfiguration().getOfferingId());
+					double firstStudentWeight = firstStudent.getOfferingWeight(firstChildLecture.getConfiguration());
+					double secondStudentWeight = secondStudent.getOfferingWeight(secondChildLecture.getConfiguration());
 					if (firstStudentWeight!=secondStudentWeight) {
 						if (firstChildLecture.nrWeightedStudents()-firstStudentWeight+secondStudentWeight>sEps+firstChildLecture.classLimit()) return null;
 						if (secondChildLecture.nrWeightedStudents()-secondStudentWeight+firstStudentWeight>sEps+secondChildLecture.classLimit()) return null;
@@ -323,7 +323,7 @@ public class FinalSectioning implements Runnable {
 				for (Enumeration e1=firstLecture.getChildrenSubpartIds();e1.hasMoreElements();) {
 					Long subpartId = (Long)e1.nextElement();
 					Lecture firstChildLecture = firstLecture.getChild(firstStudent, subpartId);
-					double firstStudentWeight = firstStudent.getOfferingWeight(firstChildLecture.getConfiguration().getOfferingId());
+					double firstStudentWeight = firstStudent.getOfferingWeight(firstChildLecture.getConfiguration());
 					if (firstChildLecture==null || firstChildLecture.getAssignment()==null) return null;
 					Vector secondChildLectures = secondLecture.getChildren(subpartId);
 					if (secondChildLectures==null || secondChildLectures.isEmpty()) return null;
@@ -588,7 +588,7 @@ public class FinalSectioning implements Runnable {
 	
 	public int test(Student student, Lecture lecture) {
 		if (lecture.getAssignment()==null) return -1;
-		double studentWeight = student.getOfferingWeight(lecture.getConfiguration().getOfferingId());
+		double studentWeight = student.getOfferingWeight(lecture.getConfiguration());
 		if (lecture.nrWeightedStudents()+studentWeight>sEps+lecture.classLimit()) return -1;
 		if (!student.canEnroll(lecture)) return -1;
 		
