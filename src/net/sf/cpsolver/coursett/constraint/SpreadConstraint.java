@@ -164,7 +164,7 @@ public class SpreadConstraint extends Constraint implements WeakeningConstraint 
             Lecture lect = (Lecture)e.nextElement();
             if (lect.isCommitted()) continue;
             Placement plac = (Placement)lect.getAssignment();
-            if (plac==null || plac.equals(placement) || conflicts.contains(plac)) continue;
+            if (plac==null || plac.equals(placement) || placement.variable().equals(plac.variable()) || conflicts.contains(plac)) continue;
             int imp = getPenaltyIfUnassigned(plac,nrCourses);
             if (imp==0) continue;
             if (adept==null || imp>improvement) {
@@ -173,7 +173,7 @@ public class SpreadConstraint extends Constraint implements WeakeningConstraint 
         }
         if (adept!=null) return adept;
         
-        // no uncommitted placement found -- take commiteed one
+        // no uncommitted placement found -- take committed one
         for (Enumeration e=variables().elements();e.hasMoreElements();) {
             Lecture lect = (Lecture)e.nextElement();
             if (!lect.isCommitted()) continue;
@@ -203,6 +203,7 @@ public class SpreadConstraint extends Constraint implements WeakeningConstraint 
                 		Placement p = (Placement)e.nextElement();
                 		if (conflicts.contains(p)) continue;
                 		if (p.equals(placement)) continue;
+                        if (p.variable().equals(placement.variable())) continue;
                 		adepts[((Lecture)p.variable()).isCommitted()?1:0].add(p);
                 	}
                 }
