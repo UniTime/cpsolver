@@ -171,7 +171,7 @@ public class Lecture extends Variable implements ConstantVariable {
     	double w = 0.0;
     	for (Iterator i=iStudents.iterator();i.hasNext();) {
     		Student s = (Student)i.next();
-    		w+=s.getOfferingWeight(getConfiguration().getOfferingId());
+    		w+=s.getOfferingWeight(getConfiguration());
     	}
     	return w;
     }

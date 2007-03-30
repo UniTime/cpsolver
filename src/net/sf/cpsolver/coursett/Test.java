@@ -449,8 +449,10 @@ public class Test implements SolutionListener {
         HashSet subparts = new HashSet();
         for (Enumeration e1=model.variables().elements();e1.hasMoreElements();) {
             Lecture lect = (Lecture)e1.nextElement();
-            offerings.add(lect.getConfiguration().getOfferingId());
-            configs.add(lect.getConfiguration().getConfigId());
+            if (lect.getConfiguration()!=null) {
+                offerings.add(lect.getConfiguration().getOfferingId());
+                configs.add(lect.getConfiguration().getConfigId());
+            }
             subparts.add(lect.getSchedulingSubpartId());
             nrStudentEnrls += (lect.students()==null?0:lect.students().size());
             students.addAll(lect.students());

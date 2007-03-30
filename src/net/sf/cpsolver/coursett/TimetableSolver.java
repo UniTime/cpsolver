@@ -50,13 +50,13 @@ public class TimetableSolver extends Solver {
         // Check if the solution is the best ever found one
         if (iCurrentSolution.getModel().unassignedVariables().isEmpty() && getSolutionComparator().isBetterThanBestSolution(iCurrentSolution)) {
             fixCompleteSolution(startTime);
-        } else {
+        } /* else {
             // If the solver is not able to improve solution in the last 5000 iterations, take the best one and try to fix it
             if (iCurrentSolution.getBestInfo()!=null && iCurrentSolution.getModel().getBestUnassignedVariables()>0 && iCurrentSolution.getIteration()==iCurrentSolution.getBestIteration()+5000) {
                 iCurrentSolution.restoreBest();
                 fixCompleteSolution(startTime);
             }
-        }
+        } */
     }
     
     /** Try to improve existing solution by backtracking search of very limited depth. 
