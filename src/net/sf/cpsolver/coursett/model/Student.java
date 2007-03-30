@@ -59,6 +59,11 @@ public class Student implements Comparable {
     public boolean hasOffering(Long offeringId) {
     	return iOfferings.containsKey(offeringId);
     }
+    public double getOfferingWeight(Configuration configuration) {
+        if (configuration==null) return 1.0;
+        return getOfferingWeight(configuration.getOfferingId());
+    }
+    
     public double getOfferingWeight(Long offeringId) {
     	Double weight = (Double)iOfferings.get(offeringId);
     	return (weight==null?0.0:weight.doubleValue());
@@ -195,12 +200,12 @@ public class Student implements Comparable {
     
     public int countConflictPlacements(Placement placement) {
     	Set conflicts = conflictPlacements(placement);
-    	double w = getOfferingWeight(((Lecture)placement.variable()).getConfiguration().getOfferingId());
+    	double w = getOfferingWeight(((Lecture)placement.variable()).getConfiguration());
     	return (int)Math.round(conflicts==null?0:avg(w,1.0)*conflicts.size());
     }
     
     public double getJenrlWeight(Lecture l1, Lecture l2) {
-    	return avg(getOfferingWeight(l1.getConfiguration().getOfferingId()),getOfferingWeight(l2.getConfiguration().getOfferingId()));
+    	return avg(getOfferingWeight(l1.getConfiguration()),getOfferingWeight(l2.getConfiguration()));
     }
     
     public double avg(double w1, double w2) {
