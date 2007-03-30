@@ -461,7 +461,7 @@ public class TimetableXMLSaver extends TimetableSaver {
                 if (weight.doubleValue()!=1.0)
                     offEl.addAttribute("weight", sStudentWeightFormat.format(weight));
             }
-            if (iExportStudentSectioning || getModel().unassignedVariables().isEmpty()) {
+            if (iExportStudentSectioning || getModel().unassignedVariables().isEmpty() || student.getOfferingsMap().isEmpty()) {
             	Vector lectures = (Vector)students.get(student);
             	Collections.sort(lectures);
             	for (Enumeration e2=lectures.elements();e2.hasMoreElements();) {
