@@ -150,6 +150,7 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
                 if (placement.isHard()) continue;
                 Set conflicts = iSolution.getModel().conflictValues(placement);
                 if (conflicts!=null && (nrUnassigned+conflicts.size()>depth)) continue;
+                if (conflicts!=null && conflicts.contains(placement)) continue;
                 if (containsCommited(conflicts)) continue;
                 boolean containException = false;
                 if (conflicts!=null) {
@@ -166,7 +167,8 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
                         c.variable().unassign(0);
                     }
                 }
-                lecture.assign(0, placement);
+                if (cur!=null) cur.variable().unassign(0);
+                Vector un = new Vector(lecture.getModel().unassignedVariables());
                 for (Iterator i=conflicts.iterator();!containException && i.hasNext();) {
                     Placement c = (Placement)i.next();
                     conflictsToResolve.put(c.variable(),c);
