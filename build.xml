@@ -114,6 +114,34 @@
         		<attribute name="Main-Class" value="net.sf.cpsolver.coursett.Test"/>
         	</manifest>
         </jar>
+        <jar destfile="${dist-lib.dir}/studentsct-1.1.jar">
+            <fileset dir="${build.dir}">
+                <include name="net/sf/cpsolver/studentsct/**/*.class"/>
+            </fileset>
+        	<fileset dir="${base.dir}/..">
+        		<include name="lgpl.txt"/>
+        	</fileset>
+        	<manifest>
+        		<attribute name="Class-Path" value="log4j-1.2.8.jar dom4j-1.6.1.jar ifs-1.1.jar coursett-1.1.jar" /> 
+        		<attribute name="StudentSct-Version" value="1.1_bld${build.number}"/>
+        		<attribute name="Main-Class" value="net.sf.cpsolver.coursett.Test"/>
+        	</manifest>
+        </jar>
+        <jar destfile="${dist-lib.dir}/cpsolver-all-1.1.jar">
+            <fileset dir="${build.dir}">
+                <include name="net/sf/cpsolver/**/*.class"/>
+            </fileset>
+        	<fileset dir="${base.dir}/..">
+        		<include name="lgpl.txt"/>
+        	</fileset>
+        	<manifest>
+        		<attribute name="Class-Path" value="log4j-1.2.8.jar dom4j-1.6.1.jar" /> 
+        		<attribute name="Ifs-Version" value="1.1_bld${build.number}"/>
+        		<attribute name="CourseTT-Version" value="1.1_bld${build.number}"/>
+        		<attribute name="StudentSct-Version" value="1.1_bld${build.number}"/>
+        		<attribute name="Main-Class" value="net.sf.cpsolver.coursett.Test"/>
+        	</manifest>
+        </jar>
     </target>
 
     <target name="copy-libs" depends="init">
@@ -161,6 +189,7 @@
  	   	<group title="Iterative Forward Search" packages="net.sf.cpsolver.ifs*"/>
  	   	<group title="Iterative Forward Search Examples" packages="net.sf.cpsolver.ifs.example*"/>
    	   	<group title="University Course Timetabling" packages="net.sf.cpsolver.coursett*"/>
+       	<group title="Student Sectioning" packages="net.sf.cpsolver.studentsct*"/>
  	   	<link href="http://java.sun.com/j2se/1.5.0/docs/api/"/>
  	   	<link href="http://logging.apache.org/log4j/docs/api/"/>
  	   	<fileset dir="src"/>
