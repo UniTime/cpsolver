@@ -118,7 +118,9 @@ public class Value implements Comparable {
     
     public int compareTo(Object o) {
         if (o==null || !(o instanceof Value)) return -1;
-        return Double.compare(toDouble(),((Value)o).toDouble());
+        int cmp = Double.compare(toDouble(),((Value)o).toDouble());
+        if (cmp!=0) return cmp;
+        return Double.compare(getId(),((Value)o).getId());
     }
     
     /** By default, comparison is made on unique ids */
