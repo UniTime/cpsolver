@@ -8,6 +8,7 @@ import java.util.Set;
 
 import net.sf.cpsolver.ifs.constant.ConstantVariable;
 import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.model.GlobalConstraint;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
@@ -96,6 +97,8 @@ public class MultiModel extends Model {
         	for (Enumeration c=var.hardConstraints().elements(); c.hasMoreElements();)
                 ((Constraint)c.nextElement()).computeConflicts(mValue.values()[idx], conflictValues);
         }
+        for (Enumeration c=globalConstraints().elements(); c.hasMoreElements();)
+            ((GlobalConstraint)c.nextElement()).computeConflicts(mValue.values()[idx], conflictValues);
         HashSet conflictMultiValues = new HashSet();
         for (Iterator i=conflictValues.iterator();i.hasNext();) {
         	Value confValue = (Value)i.next();
@@ -125,6 +128,19 @@ public class MultiModel extends Model {
                     }
                     conflictConstraints.put(constraint,mConflicts);
                 }
+            }
+        }
+        for (Enumeration c=globalConstraints().elements(); c.hasMoreElements();) {
+            GlobalConstraint constraint = (GlobalConstraint)c.nextElement();
+            HashSet conflicts = new HashSet();
+            constraint.computeConflicts(mValue.values()[idx], conflicts);
+            if (conflicts!=null && !conflicts.isEmpty()) {
+                HashSet mConflicts = new HashSet();
+                for (Iterator i=conflicts.iterator();i.hasNext();) {
+                    Value confValue = (Value)i.next();
+                    mConflicts.add(confValue.getExtra());
+                }
+                conflictConstraints.put(constraint,mConflicts);
             }
         }
         return conflictConstraints;
