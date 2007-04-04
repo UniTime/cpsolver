@@ -61,6 +61,7 @@ public class Model {
     
     private Vector iVariables = new FastVector();
     private Vector iConstraints = new FastVector();
+    private Vector iGlobalConstraints = new FastVector();
     private Vector iUnassignedVariables = new FastVector();
     private Vector iAssignedVariables = new FastVector();
     private Vector iInfoProviders = new FastVector();
@@ -127,6 +128,30 @@ public class Model {
         for (Enumeration e=iModelListeners.elements();e.hasMoreElements();)
             ((ModelListener)e.nextElement()).constraintRemoved(constraint);
     }
+
+    /** The list of global constraints in the model */
+    public Vector globalConstraints() { return iGlobalConstraints; }
+    /** The number of global constraints in the model */
+    public int countGlobalConstraints() { return iGlobalConstraints.size(); }
+    /** Adds a global constraint to the model */
+    public void addGlobalConstraint(GlobalConstraint constraint) {
+        constraint.setModel(this);
+        iConstraints.addElement(constraint);
+        if (constraint instanceof InfoProvider)
+            iInfoProviders.addElement(constraint);
+        for (Enumeration e=iModelListeners.elements();e.hasMoreElements();)
+            ((ModelListener)e.nextElement()).constraintAdded(constraint);
+    }
+    /** Removes a global constraint from the model */
+    public void removeGlobalConstraint(GlobalConstraint constraint) {
+        constraint.setModel(null);
+        iConstraints.removeElement(constraint);
+        if (constraint instanceof InfoProvider)
+            iInfoProviders.removeElement(constraint);
+        for (Enumeration e=iModelListeners.elements();e.hasMoreElements();)
+            ((ModelListener)e.nextElement()).constraintRemoved(constraint);
+    }
+
     /** The list of unassigned variables in the model */
     public Vector unassignedVariables() { return iUnassignedVariables; }
     /** The list of assigned variables in the model */
@@ -145,8 +170,13 @@ public class Model {
             	boolean hasPerturbance = false;
                 for (Enumeration x=variable.hardConstraints().elements();!hasPerturbance && x.hasMoreElements();) {
                 	Constraint constraint = (Constraint)x.nextElement();
-                	if (constraint.variables().contains(variable) && constraint.inConflict(variable.getInitialAssignment()))
+                	if (constraint.inConflict(variable.getInitialAssignment()))
                 		hasPerturbance=true;
+                }
+                for (Enumeration x=globalConstraints().elements();!hasPerturbance && x.hasMoreElements();) {
+                    GlobalConstraint constraint = (GlobalConstraint)x.nextElement();
+                    if (constraint.inConflict(variable.getInitialAssignment()))
+                        hasPerturbance=true;
                 }
                 if (hasPerturbance) perturbances.addElement(variable);
             }
@@ -169,7 +199,12 @@ public class Model {
                 boolean hasPerturbance = false;
                 for (Enumeration x=variable.hardConstraints().elements();!hasPerturbance && x.hasMoreElements();) {
                     Constraint constraint = (Constraint)x.nextElement();
-                    if (constraint.variables().contains(variable) && constraint.inConflict(variable.getInitialAssignment()))
+                    if (constraint.inConflict(variable.getInitialAssignment()))
+                        hasPerturbance=true;
+                }
+                for (Enumeration x=globalConstraints().elements();!hasPerturbance && x.hasMoreElements();) {
+                    GlobalConstraint constraint = (GlobalConstraint)x.nextElement();
+                    if (constraint.inConflict(variable.getInitialAssignment()))
                         hasPerturbance=true;
                 }
                 if (hasPerturbance) perturbances.addElement(variable);
@@ -184,6 +219,8 @@ public class Model {
         HashSet conflictValues = new HashSet();
         for (Enumeration c=value.variable().hardConstraints().elements(); c.hasMoreElements();)
             ((Constraint)c.nextElement()).computeConflicts(value, conflictValues);
+        for (Enumeration c=globalConstraints().elements(); c.hasMoreElements();)
+            ((GlobalConstraint)c.nextElement()).computeConflicts(value, conflictValues);
         return conflictValues;
     }
     
@@ -295,7 +332,12 @@ public class Model {
                     boolean hasPerturbance = false;
                     for (Enumeration x=variable.hardConstraints().elements();!hasPerturbance && x.hasMoreElements();) {
                         Constraint constraint = (Constraint)x.nextElement();
-                        if (constraint.variables().contains(variable) && constraint.inConflict(variable.getInitialAssignment()))
+                        if (constraint.inConflict(variable.getInitialAssignment()))
+                            hasPerturbance=true;
+                    }
+                    for (Enumeration x=globalConstraints().elements();!hasPerturbance && x.hasMoreElements();) {
+                        GlobalConstraint constraint = (GlobalConstraint)x.nextElement();
+                        if (constraint.inConflict(variable.getInitialAssignment()))
                             hasPerturbance=true;
                     }
                     if (hasPerturbance) perturb++;
@@ -347,6 +389,14 @@ public class Model {
                             sLogger.error("  constraint "+c.getClass().getName()+" "+c.getName()+" causes the following conflicts "+x);
                         }
                     }
+                    for (Enumeration en=globalConstraints().elements();en.hasMoreElements();) {
+                        GlobalConstraint c=(GlobalConstraint)en.nextElement();
+                        Set x = new HashSet();
+                        c.computeConflicts(variable.getBestAssignment(),x);
+                        if (!x.isEmpty()) {
+                            sLogger.error("  global constraint "+c.getClass().getName()+" "+c.getName()+" causes the following conflicts "+x);
+                        }
+                    }
                     problems.add(variable.getBestAssignment());
                 } else variable.assign(0,variable.getBestAssignment());
             }
@@ -361,6 +411,12 @@ public class Model {
                 sLogger.error("restore best problem (again, att="+attempt+"): assignment "+variable.getName()+" = "+value.getName());
                 for (Enumeration en=variable.hardConstraints().elements();en.hasMoreElements();) {
                     Constraint c=(Constraint)en.nextElement();
+                    Set x = new HashSet();
+                    c.computeConflicts(value,x);
+                    if (!x.isEmpty()) sLogger.error("  constraint "+c.getClass().getName()+" "+c.getName()+" causes the following conflicts "+x);
+                }
+                for (Enumeration en=globalConstraints().elements();en.hasMoreElements();) {
+                    GlobalConstraint c=(GlobalConstraint)en.nextElement();
                     Set x = new HashSet();
                     c.computeConflicts(value,x);
                     if (!x.isEmpty()) sLogger.error("  constraint "+c.getClass().getName()+" "+c.getName()+" causes the following conflicts "+x);
@@ -386,7 +442,7 @@ public class Model {
     
     /** Value of the current solution. It is the sum of all assigned values, i.e., {@link Value#toDouble()}.*/
     public double getTotalValue() {
-        int valCurrent = 0;
+        double valCurrent = 0;
         for (Enumeration e=assignedVariables().elements();e.hasMoreElements();)
             valCurrent += ((Variable)e.nextElement()).getAssignment().toDouble();
         return valCurrent;
@@ -396,7 +452,7 @@ public class Model {
      * Only variables from the given set are considered.
      **/
     public double getTotalValue(Vector variables) {
-        int valCurrent = 0;
+        double valCurrent = 0;
         for (Enumeration e=variables.elements();e.hasMoreElements();) {
         	Variable variable = (Variable)e.nextElement();
         	if (variable.getAssignment()!=null)
@@ -457,6 +513,14 @@ public class Model {
                 conflictConstraints.put(constraint,conflicts);
             }
         }
+        for (Enumeration c=globalConstraints().elements(); c.hasMoreElements();) {
+            GlobalConstraint constraint = (GlobalConstraint)c.nextElement();
+            HashSet conflicts = new HashSet();
+            constraint.computeConflicts(value, conflicts);
+            if (conflicts!=null && !conflicts.isEmpty()) {
+                conflictConstraints.put(constraint,conflicts);
+            }
+        }
         return conflictConstraints;
     }
     /** The list of hard constraints which contain at least one variable that is not assigned. */
@@ -471,6 +535,8 @@ public class Model {
             if (!assigned)
                 ret.addElement(constraint);
         }
+        if (!unassignedVariables().isEmpty())
+            ret.addAll(globalConstraints());
         return ret;
     }
     
