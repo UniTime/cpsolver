@@ -102,9 +102,9 @@ public abstract class Constraint {
     /** The list of variables of this constraint that are assigned */
     public Vector assignedVariables() { return iAssignedVariables; }
     /** The number of variables of this constraint */
-    public int countVariables() { return iVariables.size(); }
+    public int countVariables() { return variables().size(); }
     /** The number of variables of this constraint that are assigned */
-    public int countAssignedVariables() { return iAssignedVariables.size(); }
+    public int countAssignedVariables() { return assignedVariables().size(); }
     
     /** Add a variable to this constraint */
     public void addVariable(Variable variable) {
@@ -187,6 +187,10 @@ public abstract class Constraint {
     public void removeConstraintListener(ConstraintListener listener) {
         if (iConstraintListeners==null) iConstraintListeners=new FastVector();
         iConstraintListeners.removeElement(listener);
+    }
+    /** Returns the list of registered constraint listeners */
+    public Vector constraintListeners() {
+        return iConstraintListeners;
     }
     
     /** Unique id */
