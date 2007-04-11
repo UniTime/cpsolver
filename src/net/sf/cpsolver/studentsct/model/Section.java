@@ -102,7 +102,7 @@ public class Section implements Assignment {
     }
     
     public String toString() {
-        return getName()+
+        return getSubpart().getName()+
             (getTime()==null?"":" "+getTime().getLongName())+
             (getNrRooms()==0?"":" "+getPlacement().getRoomName(","))+
             (getChoice().getInstructorNames()==null?"":" "+getChoice().getInstructorNames());
