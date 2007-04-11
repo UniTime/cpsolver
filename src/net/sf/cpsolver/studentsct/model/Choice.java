@@ -36,7 +36,7 @@ public class Choice {
             timeId = choiceId.substring(0, choiceId.indexOf('|'));
             iInstructorIds = choiceId.substring(choiceId.indexOf('|')+1);
         }
-        if (timeId!=null) {
+        if (timeId!=null && timeId.length()>0) {
             StringTokenizer s = new StringTokenizer(timeId,":");
             int dayCode = Integer.parseInt(s.nextToken());
             int startSlot = Integer.parseInt(s.nextToken());
