@@ -24,12 +24,21 @@ public class Student extends MultiVariable {
     public int nrRequests() {
         int ret = 0;
         for (Enumeration e=iRequests.elements();e.hasMoreElements();) {
-            Request request = (Request)e.nextElement();
-            if (request instanceof CourseRequest && !request.isAlternative()) ret++;
+            Request r  = (Request)e.nextElement();
+            if (!r.isAlternative()) ret++;
         }
         return ret;
     }
     
+    public int nrAlternativeRequests() {
+        int ret = 0;
+        for (Enumeration e=iRequests.elements();e.hasMoreElements();) {
+            Request r  = (Request)e.nextElement();
+            if (r.isAlternative()) ret++;
+        }
+        return ret;
+    }
+
     public boolean canAssign(Request request) {
         if (!request.isAlternative() || request.getAssignment()!=null) return true;
         int alt = 0;
