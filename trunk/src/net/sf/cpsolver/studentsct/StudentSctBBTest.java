@@ -12,6 +12,8 @@ import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.studentsct.constraint.SectionLimit;
 import net.sf.cpsolver.studentsct.constraint.StudentConflict;
+import net.sf.cpsolver.studentsct.model.Choice;
+import net.sf.cpsolver.studentsct.model.Course;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
@@ -22,6 +24,8 @@ public class StudentSctBBTest extends Model {
     private Student iStudent = null;
     private Solution iSolution = null;
     private long iT0, iT1;
+    private static long sTimeOut = 5000;
+    private boolean iTimeoutReached = false;
     
     public StudentSctBBTest(Student student) {
         iStudent = student;
@@ -42,6 +46,7 @@ public class StudentSctBBTest extends Model {
     public Solution getSolution() {
         if (iSolution==null) {
             iT0 = System.currentTimeMillis();
+            iTimeoutReached = false;
             iSolution = new Solution(this);
             backTrack(iSolution, 0);
             iSolution.restoreBest();
@@ -74,6 +79,9 @@ public class StudentSctBBTest extends Model {
     }
     
     public void backTrack(Solution solution, int idx) {
+        if ((System.currentTimeMillis()-iT0)>sTimeOut) {
+            iTimeoutReached=true; return;
+        }
         //sLog.debug("backTrack("+solution.getModel().assignedVariables().size()+"/"+solution.getModel().getTotalValue()+","+idx+")");
         if (solution.getBestInfo()!=null && getBound(solution,idx)>=solution.getBestValue()) return;
         if (idx==variables().size()) {
@@ -84,32 +92,85 @@ public class StudentSctBBTest extends Model {
         } else {
             Request request = (Request)variables().elementAt(idx);
             //sLog.debug("  -- request: "+request);
-            Collection values = (request instanceof CourseRequest ? (Collection)((CourseRequest)request).getAvaiableEnrollmentsSkipSameTime() : request.computeEnrollments());
-            //sLog.debug("  -- nrValues: "+values.size());
-            if (request.getStudent().canAssign(request)) {
-                for (Iterator i=values.iterator();i.hasNext();) {
-                    Enrollment enrollment = (Enrollment)i.next();
-                    //sLog.debug("    -- enrollment: "+enrollment);
-                    Set conflicts = conflictValues(enrollment);
-                    //sLog.debug("        -- conflicts: "+conflicts);
-                    if (!conflicts.isEmpty()) continue;
-                    request.assign(0, enrollment);
-                    backTrack(solution, idx+1);
-                    request.unassign(0);
-                }
+            if (!request.getStudent().canAssign(request)) {
+                backTrack(solution, idx+1);
+                return;
             }
-            backTrack(solution, idx+1);
+            Collection values = null;
+            if (request instanceof CourseRequest) {
+                CourseRequest courseRequest = (CourseRequest)request;
+                if (!courseRequest.getSelectedChoices().isEmpty()) {
+                    // selection among selected enrollments
+                    values = courseRequest.getSelectedEnrollments(true);
+                    if (values!=null && !values.isEmpty()) { 
+                        boolean hasNoConflictValue = false;
+                        for (Iterator i=values.iterator();i.hasNext();) {
+                            Enrollment enrollment = (Enrollment)i.next();
+                            Set conflicts = conflictValues(enrollment);
+                            if (!conflicts.isEmpty()) continue;
+                            hasNoConflictValue = true;
+                            request.assign(0, enrollment);
+                            backTrack(solution, idx+1);
+                            request.unassign(0);
+                        }
+                        if (hasNoConflictValue) return;
+                    }
+                }
+                values = courseRequest.getAvaiableEnrollmentsSkipSameTime();
+            } else {
+                values = request.computeEnrollments();
+            }
+            //sLog.debug("  -- nrValues: "+values.size());
+            for (Iterator i=values.iterator();i.hasNext();) {
+                Enrollment enrollment = (Enrollment)i.next();
+                //sLog.debug("    -- enrollment: "+enrollment);
+                Set conflicts = conflictValues(enrollment);
+                //sLog.debug("        -- conflicts: "+conflicts);
+                if (!conflicts.isEmpty()) continue;
+                request.assign(0, enrollment);
+                backTrack(solution, idx+1);
+                request.unassign(0);
+            }
+            if (request instanceof CourseRequest) backTrack(solution, idx+1);
         }
     }
     
     public Vector getMessages() {
         Vector ret = new Vector();
-        ret.add("INFO:Solution found in "+(iT1-iT0)+" ms.");
+        ret.add("INFO:<li>Solution found in "+(iT1-iT0)+" ms.");
+        if (iTimeoutReached)
+            ret.add("INFO:<li>"+(sTimeOut/1000)+" s time out reached, solution optimality can not be guaranteed.");
         for (Enumeration e=getStudent().getRequests().elements();e.hasMoreElements();) {
             Request request = (Request)e.nextElement();
-            if (request.isAlternative()) continue;
-            if (request.getAssignment()!=null) continue;
-            ret.add("ERROR:Unable to enroll to "+request+", "+(request instanceof CourseRequest?((CourseRequest)request).getCourses().size()==1?"course is":"courses are":"time is")+" not available.");
+            if (!request.isAlternative() && request.getAssignment()==null) {
+                ret.add("WARN:<li>Unable to enroll to "+request+", "+(request instanceof CourseRequest?((CourseRequest)request).getCourses().size()==1?"course is":"courses are":"time is")+" not available.");
+                Collection values = (request instanceof CourseRequest ? (Collection)((CourseRequest)request).getAvaiableEnrollmentsSkipSameTime() : request.computeEnrollments());
+                for (Iterator f=values.iterator();f.hasNext();) {
+                    Enrollment enrollment = (Enrollment)f.next();
+                    Set conf = conflictValues(enrollment);
+                    if (conf!=null && !conf.isEmpty()) {
+                        Enrollment conflict = (Enrollment)conf.iterator().next();
+                        ret.add("INFO:<ul>Assignment of "+enrollment.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"<br> conflicts with "+conflict.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"</ul>");
+                    }
+                }
+            }
+            if (request instanceof CourseRequest && request.getAssignment()!=null) {
+                CourseRequest courseRequest = (CourseRequest)request;
+                Enrollment enrollment = (Enrollment)request.getAssignment();
+                Vector selectedEnrollments = courseRequest.getSelectedEnrollments(false);
+                if (selectedEnrollments!=null && !selectedEnrollments.isEmpty() && !selectedEnrollments.contains(enrollment)) {
+                    Course course = ((Choice)courseRequest.getSelectedChoices().iterator().next()).getOffering().getCourse(getStudent());
+                    Enrollment selected = (Enrollment)selectedEnrollments.firstElement();
+                    Set conf = conflictValues(selected);
+                    if (conf!=null && !conf.isEmpty()) {
+                        ret.add("ERROR:<li>Unable to enroll selected enrollment for "+course.getName()+", seleted "+(courseRequest.getSelectedChoices().size()==1?"class is":"classes are")+" conflicting with other choices.");
+                        Enrollment conflict = (Enrollment)conf.iterator().next();
+                        ret.add("INFO:<ul>Assignment of "+selected.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"<br> conflicts with "+conflict.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"</ul>");
+                    } else {
+                        ret.add("ERROR:<li>Unable to enroll selected enrollment for "+course.getName()+".");
+                    }
+                }
+            }
         }
         return ret;
     }
