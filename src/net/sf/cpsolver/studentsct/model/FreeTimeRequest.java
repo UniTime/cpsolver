@@ -8,8 +8,8 @@ import java.util.Vector;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 
 public class FreeTimeRequest extends Request implements Assignment {
-    TimeLocation iTime = null;
-    HashSet iEnrollments = new HashSet();
+    private TimeLocation iTime = null;
+    private HashSet iEnrollments = new HashSet();
     
     public FreeTimeRequest(long id, int priority, boolean alternative, Student student, TimeLocation time) {
         super(id, priority, alternative, student);
@@ -64,7 +64,7 @@ public class FreeTimeRequest extends Request implements Assignment {
     }
     
     public String getName() {
-        return (isAlternative()?"A":"")+(1+getPriority())+". Free "+getTime().getLongName();
+        return (isAlternative()?"A":"")+(1+getPriority()+(isAlternative()?-getStudent().nrRequests():0))+". Free Time "+getTime().getLongName();
     }
 
     public String toString() {

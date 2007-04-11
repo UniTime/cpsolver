@@ -1,5 +1,6 @@
 package net.sf.cpsolver.studentsct.model;
 
+import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -11,7 +12,8 @@ public class Enrollment extends Value implements Comparable {
     private Set iAssignments = null;
     
     public static double sPriorityWeight = 0.90;
-    public static double sAlterativeWeight = 0.1;
+    public static double sAlterativeWeight = 1.0;
+    public static double sInitialWeight = 1.2;
     public static double sSelectedWeight = 1.1;
     public static double sWaitlistedWeight = 1.01;
     
@@ -36,7 +38,7 @@ public class Enrollment extends Value implements Comparable {
     }
     
     public Offering getOffering() {
-        return iConfig.getOffering();
+        return (iConfig==null?null:iConfig.getOffering());
     }
     
     public Config getConfig() {
@@ -79,6 +81,18 @@ public class Enrollment extends Value implements Comparable {
         return ((double)nrSelected)/getAssignments().size();
     }
     
+    public double percentInitial() {
+        if (getRequest().getInitialAssignment()==null) return 0.0;
+        Enrollment inital = (Enrollment)getRequest().getInitialAssignment();
+        int nrInitial = 0;
+        for (Iterator i=getAssignments().iterator();i.hasNext();) {
+            Section section = (Section)i.next();
+            if (inital.getAssignments().contains(section))
+                nrInitial++;
+        }
+        return ((double)nrInitial)/getAssignments().size();
+    }
+
     public boolean isWaitlisted() {
         if (!isCourseRequest()) return false;
         CourseRequest courseRequest = (CourseRequest)getRequest();
@@ -104,17 +118,38 @@ public class Enrollment extends Value implements Comparable {
             -iValue * 
             Math.pow(sPriorityWeight,getRequest().getPriority()) * 
             (getRequest().isAlternative()?sAlterativeWeight:1.0) *
+            Math.pow(sInitialWeight,percentInitial()) *
             Math.pow(sSelectedWeight,percentSelected()) * 
             Math.pow(sWaitlistedWeight,percentWaitlisted());
     }
     
     public String getName() {
-        String ret = (getConfig()==null?"":getConfig().getName());
-        for (Iterator i=getAssignments().iterator();i.hasNext();) {
-            Assignment assignment = (Assignment)i.next();
-            ret+="\n  "+assignment.toString()+(i.hasNext()?",":"");
+        if (getRequest() instanceof CourseRequest) {
+            Course course = null;
+            CourseRequest courseRequest = (CourseRequest)getRequest();
+            for (Enumeration e=courseRequest.getCourses().elements();e.hasMoreElements();) {
+                Course c = (Course)e.nextElement();
+                if (c.getOffering().getConfigs().contains(getConfig())) {
+                    course = c; break;
+                }
+            }
+            String ret = (course==null?getConfig()==null?"":getConfig().getName():course.getName());
+            for (Iterator i=getAssignments().iterator();i.hasNext();) {
+                Assignment assignment = (Assignment)i.next();
+                ret+="\n  "+assignment.toString()+(i.hasNext()?",":"");
+            }
+            return ret;
+        } else if (getRequest() instanceof FreeTimeRequest) {
+            return "Free Time "+((FreeTimeRequest)getRequest()).getTime().getLongName();
+        } else {
+            String ret = "";
+            for (Iterator i=getAssignments().iterator();i.hasNext();) {
+                Assignment assignment = (Assignment)i.next();
+                ret+=assignment.toString()+(i.hasNext()?",":"");
+                if (i.hasNext()) ret+="\n  ";
+            }
+            return ret;
         }
-        return ret;
     }
     
     public String toString() {
