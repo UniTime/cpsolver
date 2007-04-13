@@ -82,7 +82,7 @@ public class StudentSctBBTest extends Model {
         if ((System.currentTimeMillis()-iT0)>sTimeOut) {
             iTimeoutReached=true; return;
         }
-        //sLog.debug("backTrack("+solution.getModel().assignedVariables().size()+"/"+solution.getModel().getTotalValue()+","+idx+")");
+        sLog.debug("backTrack("+solution.getModel().assignedVariables().size()+"/"+solution.getModel().getTotalValue()+","+idx+")");
         if (solution.getBestInfo()!=null && getBound(solution,idx)>=solution.getBestValue()) return;
         if (idx==variables().size()) {
             if (solution.getModel().getTotalValue()<solution.getBestValue()) {
@@ -91,7 +91,7 @@ public class StudentSctBBTest extends Model {
             }
         } else {
             Request request = (Request)variables().elementAt(idx);
-            //sLog.debug("  -- request: "+request);
+            sLog.debug("  -- request: "+request);
             if (!request.getStudent().canAssign(request)) {
                 backTrack(solution, idx+1);
                 return;
@@ -100,7 +100,7 @@ public class StudentSctBBTest extends Model {
             if (request instanceof CourseRequest) {
                 CourseRequest courseRequest = (CourseRequest)request;
                 if (!courseRequest.getSelectedChoices().isEmpty()) {
-                    // selection among selected enrollments
+                    sLog.debug("    -- selection among selected enrollments");
                     values = courseRequest.getSelectedEnrollments(true);
                     if (values!=null && !values.isEmpty()) { 
                         boolean hasNoConflictValue = false;
@@ -108,6 +108,7 @@ public class StudentSctBBTest extends Model {
                             Enrollment enrollment = (Enrollment)i.next();
                             Set conflicts = conflictValues(enrollment);
                             if (!conflicts.isEmpty()) continue;
+                            sLog.debug("      -- nonconflicting enrollment found: "+enrollment);
                             hasNoConflictValue = true;
                             request.assign(0, enrollment);
                             backTrack(solution, idx+1);
@@ -120,18 +121,20 @@ public class StudentSctBBTest extends Model {
             } else {
                 values = request.computeEnrollments();
             }
-            //sLog.debug("  -- nrValues: "+values.size());
+            boolean hasNoConflictValue = false;
+            sLog.debug("  -- nrValues: "+values.size());
             for (Iterator i=values.iterator();i.hasNext();) {
                 Enrollment enrollment = (Enrollment)i.next();
-                //sLog.debug("    -- enrollment: "+enrollment);
+                sLog.debug("    -- enrollment: "+enrollment);
                 Set conflicts = conflictValues(enrollment);
-                //sLog.debug("        -- conflicts: "+conflicts);
+                sLog.debug("        -- conflicts: "+conflicts);
                 if (!conflicts.isEmpty()) continue;
+                hasNoConflictValue = true;
                 request.assign(0, enrollment);
                 backTrack(solution, idx+1);
                 request.unassign(0);
             }
-            if (request instanceof CourseRequest) backTrack(solution, idx+1);
+            if (!hasNoConflictValue || request instanceof CourseRequest) backTrack(solution, idx+1);
         }
     }
     
