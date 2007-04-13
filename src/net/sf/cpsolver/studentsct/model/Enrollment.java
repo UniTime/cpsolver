@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import net.sf.cpsolver.ifs.model.Value;
+import net.sf.cpsolver.ifs.util.ToolBox;
 
 public class Enrollment extends Value implements Comparable {
     private Request iRequest = null;
@@ -159,9 +160,9 @@ public class Enrollment extends Value implements Comparable {
     public boolean equals(Object o) {
         if (o==null || !(o instanceof Enrollment)) return false;
         Enrollment e = (Enrollment)o;
-        if (!getConfig().equals(e.getConfig())) return false;
-        if (!getRequest().equals(e.getRequest())) return false;
-        if (!getAssignments().equals(e.getAssignments())) return false;
+        if (!ToolBox.equals(getConfig(), e.getConfig())) return false;
+        if (!ToolBox.equals(getRequest(),e.getRequest())) return false;
+        if (!ToolBox.equals(getAssignments(),e.getAssignments())) return false;
         return true;
     }
 }
