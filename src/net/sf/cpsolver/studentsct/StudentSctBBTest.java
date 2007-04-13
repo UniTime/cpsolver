@@ -26,6 +26,7 @@ public class StudentSctBBTest extends Model {
     private long iT0, iT1;
     private static long sTimeOut = 5000;
     private boolean iTimeoutReached = false;
+    private static boolean sDebug = false;
     
     public StudentSctBBTest(Student student) {
         iStudent = student;
@@ -82,16 +83,16 @@ public class StudentSctBBTest extends Model {
         if ((System.currentTimeMillis()-iT0)>sTimeOut) {
             iTimeoutReached=true; return;
         }
-        sLog.debug("backTrack("+solution.getModel().assignedVariables().size()+"/"+solution.getModel().getTotalValue()+","+idx+")");
+        if (sDebug) sLog.debug("backTrack("+solution.getModel().assignedVariables().size()+"/"+solution.getModel().getTotalValue()+","+idx+")");
         if (solution.getBestInfo()!=null && getBound(solution,idx)>=solution.getBestValue()) return;
         if (idx==variables().size()) {
             if (solution.getModel().getTotalValue()<solution.getBestValue()) {
-                sLog.debug("  -- best solution found "+solution.getModel().getInfo());
+                if (sDebug) sLog.debug("  -- best solution found "+solution.getModel().getInfo());
                 solution.saveBest();
             }
         } else {
             Request request = (Request)variables().elementAt(idx);
-            sLog.debug("  -- request: "+request);
+            if (sDebug) sLog.debug("  -- request: "+request);
             if (!request.getStudent().canAssign(request)) {
                 backTrack(solution, idx+1);
                 return;
@@ -100,7 +101,7 @@ public class StudentSctBBTest extends Model {
             if (request instanceof CourseRequest) {
                 CourseRequest courseRequest = (CourseRequest)request;
                 if (!courseRequest.getSelectedChoices().isEmpty()) {
-                    sLog.debug("    -- selection among selected enrollments");
+                    if (sDebug) sLog.debug("    -- selection among selected enrollments");
                     values = courseRequest.getSelectedEnrollments(true);
                     if (values!=null && !values.isEmpty()) { 
                         boolean hasNoConflictValue = false;
@@ -108,7 +109,7 @@ public class StudentSctBBTest extends Model {
                             Enrollment enrollment = (Enrollment)i.next();
                             Set conflicts = conflictValues(enrollment);
                             if (!conflicts.isEmpty()) continue;
-                            sLog.debug("      -- nonconflicting enrollment found: "+enrollment);
+                            if (sDebug) sLog.debug("      -- nonconflicting enrollment found: "+enrollment);
                             hasNoConflictValue = true;
                             request.assign(0, enrollment);
                             backTrack(solution, idx+1);
@@ -122,12 +123,12 @@ public class StudentSctBBTest extends Model {
                 values = request.computeEnrollments();
             }
             boolean hasNoConflictValue = false;
-            sLog.debug("  -- nrValues: "+values.size());
+            if (sDebug) sLog.debug("  -- nrValues: "+values.size());
             for (Iterator i=values.iterator();i.hasNext();) {
                 Enrollment enrollment = (Enrollment)i.next();
-                sLog.debug("    -- enrollment: "+enrollment);
+                if (sDebug) sLog.debug("    -- enrollment: "+enrollment);
                 Set conflicts = conflictValues(enrollment);
-                sLog.debug("        -- conflicts: "+conflicts);
+                if (sDebug) sLog.debug("        -- conflicts: "+conflicts);
                 if (!conflicts.isEmpty()) continue;
                 hasNoConflictValue = true;
                 request.assign(0, enrollment);
