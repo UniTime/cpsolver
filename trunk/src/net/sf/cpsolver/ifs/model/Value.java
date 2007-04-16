@@ -139,9 +139,13 @@ public class Value implements Comparable {
     public boolean isConsistent(Value value) {
         for (Enumeration e1=variable().constraints().elements();e1.hasMoreElements();) {
         	Constraint constraint = (Constraint)e1.nextElement();
-        	if (!constraint.variables().contains(value.variable())) continue;
         	if (!constraint.isConsistent(this, value))
         		return false;
+        }
+        for (Enumeration e1=variable().getModel().globalConstraints().elements();e1.hasMoreElements();) {
+            Constraint constraint = (Constraint)e1.nextElement();
+            if (!constraint.isConsistent(this, value))
+                return false;
         }
         return true;
     }
