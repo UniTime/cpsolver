@@ -49,20 +49,20 @@ public class MultiVariable extends Variable implements VariableListener {
 	}
 	
 	/** Add "normal" variable */
-	public void addVariable(Variable variable) { iVariables.add(variable); setValues(null); }
+	public void addVariable(Variable variable) { variables().add(variable); setValues(null); }
 	/** Remove "normal" variable */
-	public void removeVariable(Variable variable) { iVariables.remove(variable); setValues(null); }
+	public void removeVariable(Variable variable) { variables().remove(variable); setValues(null); }
 	/** List of "normal" variables */
 	public Vector variables() { return iVariables; }
 	/** Number of "normal" variables */
-	public int size() { return iVariables.size(); }
+	public int size() { return variables().size(); }
 	
 	private void computeValues(Vector ret, Value[] values, int idx) {
 		if (idx==ret.size()) {
 			ret.addElement(new MultiValue(this, (Value[])values.clone()));
 			return;
 		}
-		Variable var = (Variable)iVariables.elementAt(idx);
+		Variable var = (Variable)variables().elementAt(idx);
 		for (Enumeration e=var.values().elements();e.hasMoreElements();) {
 			Value value = (Value)e.nextElement();
 			boolean inConflict = false;
