@@ -6,12 +6,12 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
 
-import org.apache.log4j.Logger;
-
 import net.sf.cpsolver.ifs.model.Model;
+import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.studentsct.constraint.SectionLimit;
 import net.sf.cpsolver.studentsct.constraint.StudentConflict;
+import net.sf.cpsolver.studentsct.heuristics.StudentEnrollmentsSelection;
 import net.sf.cpsolver.studentsct.model.Choice;
 import net.sf.cpsolver.studentsct.model.Course;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
@@ -20,13 +20,13 @@ import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Student;
 
 public class StudentSctBBTest extends Model {
-    private static Logger sLog = Logger.getLogger(StudentSctBBTest.class); 
+    //private static Logger sLog = Logger.getLogger(StudentSctBBTest.class); 
     private Student iStudent = null;
     private Solution iSolution = null;
-    private long iT0, iT1;
-    private static long sTimeOut = 5000;
+    private long iTime;
+    //private static long sTimeOut = 5000;
     private boolean iTimeoutReached = false;
-    private static boolean sDebug = false;
+    //private static boolean sDebug = false;
     
     public StudentSctBBTest(Student student) {
         iStudent = student;
@@ -46,16 +46,26 @@ public class StudentSctBBTest extends Model {
     
     public Solution getSolution() {
         if (iSolution==null) {
+            iSolution = new Solution(this);
+            StudentEnrollmentsSelection.Selection selection = new StudentEnrollmentsSelection.Selection(getStudent());
+            Value value = selection.select();
+            if (value!=null)
+                getStudent().assign(0, value);
+            iTime = selection.getTime();
+            iTimeoutReached = selection.isTimeoutReached();
+            /*
             iT0 = System.currentTimeMillis();
             iTimeoutReached = false;
             iSolution = new Solution(this);
             backTrack(iSolution, 0);
             iSolution.restoreBest();
             iT1 = System.currentTimeMillis();
+            */
         }
         return iSolution;
     }
     
+    /*
     public double getBound(Solution solution, int idx) {
         double bound = 0.0;
         int i=0, alt=0;
@@ -138,12 +148,13 @@ public class StudentSctBBTest extends Model {
             if (!hasNoConflictValue || request instanceof CourseRequest) backTrack(solution, idx+1);
         }
     }
+    */
     
     public Vector getMessages() {
         Vector ret = new Vector();
-        ret.add("INFO:<li>Solution found in "+(iT1-iT0)+" ms.");
+        ret.add("INFO:<li>Solution found in "+iTime+" ms.");
         if (iTimeoutReached)
-            ret.add("INFO:<li>"+(sTimeOut/1000)+" s time out reached, solution optimality can not be guaranteed.");
+            ret.add("INFO:<li>"+(StudentEnrollmentsSelection.sTimeOut/1000)+" s time out reached, solution optimality can not be guaranteed.");
         for (Enumeration e=getStudent().getRequests().elements();e.hasMoreElements();) {
             Request request = (Request)e.nextElement();
             if (!request.isAlternative() && request.getAssignment()==null) {
