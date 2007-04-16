@@ -18,6 +18,20 @@ public class StudentConflict extends Constraint {
             if (enrollment.isOverlapping((Enrollment)request.getAssignment()))
                 conflicts.add(request.getAssignment());
         }
+        if (!enrollment.getStudent().canAssign(enrollment.getRequest())) {
+            Enrollment lowestPriorityEnrollment = null;
+            int lowestPriority = -1;
+            for (Enumeration e=assignedVariables().elements();e.hasMoreElements();) {
+                Request request = (Request)e.nextElement();
+                if (request.equals(enrollment.getRequest())) continue;
+                if (lowestPriority<request.getPriority()) {
+                    lowestPriority = request.getPriority();
+                    lowestPriorityEnrollment = (Enrollment)request.getAssignment();
+                }
+            }
+            if (lowestPriorityEnrollment!=null)
+                conflicts.add(lowestPriorityEnrollment);
+        }
     }
     
     public boolean isConsistent(Value value1, Value value2) {
