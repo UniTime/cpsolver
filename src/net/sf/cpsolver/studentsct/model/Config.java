@@ -30,4 +30,8 @@ public class Config {
     public TreeSet getSubparts() {
         return iSubparts;
     }
+    
+    public String toString() {
+        return getName();
+    }
 }
