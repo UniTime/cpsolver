@@ -20,13 +20,10 @@ import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Student;
 
 public class StudentSctBBTest extends Model {
-    //private static Logger sLog = Logger.getLogger(StudentSctBBTest.class); 
     private Student iStudent = null;
     private Solution iSolution = null;
     private long iTime;
-    //private static long sTimeOut = 5000;
     private boolean iTimeoutReached = false;
-    //private static boolean sDebug = false;
     
     public StudentSctBBTest(Student student) {
         iStudent = student;
@@ -53,102 +50,9 @@ public class StudentSctBBTest extends Model {
                 getStudent().assign(0, value);
             iTime = selection.getTime();
             iTimeoutReached = selection.isTimeoutReached();
-            /*
-            iT0 = System.currentTimeMillis();
-            iTimeoutReached = false;
-            iSolution = new Solution(this);
-            backTrack(iSolution, 0);
-            iSolution.restoreBest();
-            iT1 = System.currentTimeMillis();
-            */
         }
         return iSolution;
     }
-    
-    /*
-    public double getBound(Solution solution, int idx) {
-        double bound = 0.0;
-        int i=0, alt=0;
-        for (Enumeration e=getStudent().getRequests().elements();e.hasMoreElements();i++) {
-            Request r  = (Request)e.nextElement();
-            if (i<idx) {
-                if (r.getAssignment()!=null) bound += r.getAssignment().toDouble();
-                if (r.isAlternative()) {
-                    if (r.getAssignment()!=null || (r instanceof CourseRequest && ((CourseRequest)r).isWaitlist())) alt--;
-                } else {
-                    if (r instanceof CourseRequest && !((CourseRequest)r).isWaitlist() && r.getAssignment()==null) alt++;
-                }
-            } else {
-                if (!r.isAlternative())
-                    bound += r.getBound();
-                else if (alt>0) {
-                    bound += r.getBound(); alt--;
-                }
-            }
-        }
-        return bound;
-    }
-    
-    public void backTrack(Solution solution, int idx) {
-        if ((System.currentTimeMillis()-iT0)>sTimeOut) {
-            iTimeoutReached=true; return;
-        }
-        if (sDebug) sLog.debug("backTrack("+solution.getModel().assignedVariables().size()+"/"+solution.getModel().getTotalValue()+","+idx+")");
-        if (solution.getBestInfo()!=null && getBound(solution,idx)>=solution.getBestValue()) return;
-        if (idx==variables().size()) {
-            if (solution.getModel().getTotalValue()<solution.getBestValue()) {
-                if (sDebug) sLog.debug("  -- best solution found "+solution.getModel().getInfo());
-                solution.saveBest();
-            }
-        } else {
-            Request request = (Request)variables().elementAt(idx);
-            if (sDebug) sLog.debug("  -- request: "+request);
-            if (!request.getStudent().canAssign(request)) {
-                backTrack(solution, idx+1);
-                return;
-            }
-            Collection values = null;
-            if (request instanceof CourseRequest) {
-                CourseRequest courseRequest = (CourseRequest)request;
-                if (!courseRequest.getSelectedChoices().isEmpty()) {
-                    if (sDebug) sLog.debug("    -- selection among selected enrollments");
-                    values = courseRequest.getSelectedEnrollments(true);
-                    if (values!=null && !values.isEmpty()) { 
-                        boolean hasNoConflictValue = false;
-                        for (Iterator i=values.iterator();i.hasNext();) {
-                            Enrollment enrollment = (Enrollment)i.next();
-                            Set conflicts = conflictValues(enrollment);
-                            if (!conflicts.isEmpty()) continue;
-                            if (sDebug) sLog.debug("      -- nonconflicting enrollment found: "+enrollment);
-                            hasNoConflictValue = true;
-                            request.assign(0, enrollment);
-                            backTrack(solution, idx+1);
-                            request.unassign(0);
-                        }
-                        if (hasNoConflictValue) return;
-                    }
-                }
-                values = courseRequest.getAvaiableEnrollmentsSkipSameTime();
-            } else {
-                values = request.computeEnrollments();
-            }
-            boolean hasNoConflictValue = false;
-            if (sDebug) sLog.debug("  -- nrValues: "+values.size());
-            for (Iterator i=values.iterator();i.hasNext();) {
-                Enrollment enrollment = (Enrollment)i.next();
-                if (sDebug) sLog.debug("    -- enrollment: "+enrollment);
-                Set conflicts = conflictValues(enrollment);
-                if (sDebug) sLog.debug("        -- conflicts: "+conflicts);
-                if (!conflicts.isEmpty()) continue;
-                hasNoConflictValue = true;
-                request.assign(0, enrollment);
-                backTrack(solution, idx+1);
-                request.unassign(0);
-            }
-            if (!hasNoConflictValue || request instanceof CourseRequest) backTrack(solution, idx+1);
-        }
-    }
-    */
     
     public Vector getMessages() {
         Vector ret = new Vector();
@@ -165,7 +69,10 @@ public class StudentSctBBTest extends Model {
                     Set conf = conflictValues(enrollment);
                     if (conf!=null && !conf.isEmpty()) {
                         Enrollment conflict = (Enrollment)conf.iterator().next();
-                        ret.add("INFO:<ul>Assignment of "+enrollment.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"<br> conflicts with "+conflict.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"</ul>");
+                        if (conflict.equals(enrollment))
+                            ret.add("INFO:<ul>Assignment of "+enrollment.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"<br> is not available.");
+                        else
+                            ret.add("INFO:<ul>Assignment of "+enrollment.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"<br> conflicts with "+conflict.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"</ul>");
                     }
                 }
             }
@@ -180,7 +87,10 @@ public class StudentSctBBTest extends Model {
                     if (conf!=null && !conf.isEmpty()) {
                         ret.add("ERROR:<li>Unable to enroll selected enrollment for "+course.getName()+", seleted "+(courseRequest.getSelectedChoices().size()==1?"class is":"classes are")+" conflicting with other choices.");
                         Enrollment conflict = (Enrollment)conf.iterator().next();
-                        ret.add("INFO:<ul>Assignment of "+selected.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"<br> conflicts with "+conflict.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"</ul>");
+                        if (conflict.equals(selected))
+                            ret.add("INFO:<ul>Assignment of "+selected.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"<br> is not available.");
+                        else
+                            ret.add("INFO:<ul>Assignment of "+selected.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"<br> conflicts with "+conflict.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"</ul>");
                     } else {
                         ret.add("ERROR:<li>Unable to enroll selected enrollment for "+course.getName()+".");
                     }
