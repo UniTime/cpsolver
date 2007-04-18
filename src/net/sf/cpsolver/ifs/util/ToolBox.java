@@ -216,9 +216,10 @@ public class ToolBox {
             props.setProperty("log4j.rootLogger", "debug, LogFile");
             if (timeInFileName)
             	props.setProperty("log4j.appender.LogFile","org.apache.log4j.FileAppender");
-            else
+            else {
             	props.setProperty("log4j.appender.LogFile","org.apache.log4j.DailyRollingFileAppender");
-            props.setProperty("log4j.appender.LogFile.DatePattern","'.'yyyy-MM-dd");
+            	props.setProperty("log4j.appender.LogFile.DatePattern","'.'yyyy-MM-dd");
+            }
             props.setProperty("log4j.appender.LogFile.File",fileName);
             props.setProperty("log4j.appender.LogFile.layout","org.apache.log4j.PatternLayout");
             props.setProperty("log4j.appender.LogFile.layout.ConversionPattern","%d{dd-MMM-yy HH:mm:ss.SSS} [%t] %-5p %c{2}> %m%n");
