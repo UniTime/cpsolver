@@ -27,7 +27,10 @@ public class SectionLimit extends GlobalConstraint {
                 }
             }
             if (hasConflict) continue;
-            conflicts.add(ToolBox.random(section.getEnrollments()));
+            if (section.getEnrollments().isEmpty())
+                conflicts.add(enrollment);
+            else
+                conflicts.add(ToolBox.random(section.getEnrollments()));
         }
     }
 }
