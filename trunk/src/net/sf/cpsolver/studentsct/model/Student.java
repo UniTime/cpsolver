@@ -40,18 +40,34 @@ public class Student extends MultiVariable {
     }
 
     public boolean canAssign(Request request) {
-        if (!request.isAlternative() || request.getAssignment()!=null) return true;
+        if (request.getAssignment()!=null) return true;
         int alt = 0;
+        boolean found = false;
         for (Enumeration e=iRequests.elements();e.hasMoreElements();) {
             Request r  = (Request)e.nextElement();
-            if (r.equals(request)) continue;
+            if (r.equals(request)) found = true;
+            boolean assigned = (r.getAssignment()!=null || r.equals(request));
+            boolean course = (r instanceof CourseRequest);
+            boolean waitlist = (course && ((CourseRequest)r).isWaitlist());
             if (r.isAlternative()) {
-                if (r.getAssignment()!=null || (r instanceof CourseRequest && ((CourseRequest)r).isWaitlist())) alt--;
+                if (assigned || (!found && waitlist)) alt--;
             } else {
-                if (r instanceof CourseRequest && !((CourseRequest)r).isWaitlist() && r.getAssignment()==null) alt++;
+                if (course && !waitlist && !assigned) alt++;
             }
         }
-        return (alt>0);
+        return (alt>=0);
+    }
+    
+    public boolean isComplete() {
+        int nrRequests = 0;
+        int nrAssignedRequests = 0;
+        for (Enumeration e=iRequests.elements();e.hasMoreElements();) {
+            Request r  = (Request)e.nextElement();
+            if (!(r instanceof CourseRequest)) continue; //ignore free times
+            if (!r.isAlternative()) nrRequests++;
+            if (r.getAssignment()!=null) nrAssignedRequests++;
+        }
+        return nrAssignedRequests==nrRequests;
     }
     
     public Vector variables() {
@@ -59,6 +75,6 @@ public class Student extends MultiVariable {
     }
     
     public String toString() {
-        return "Student "+getId();
+        return "S["+getId()+"]";
     }
 }
