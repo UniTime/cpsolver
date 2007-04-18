@@ -136,7 +136,7 @@ public class Model {
     /** Adds a global constraint to the model */
     public void addGlobalConstraint(GlobalConstraint constraint) {
         constraint.setModel(this);
-        iConstraints.addElement(constraint);
+        iGlobalConstraints.addElement(constraint);
         if (constraint instanceof InfoProvider)
             iInfoProviders.addElement(constraint);
         for (Enumeration e=iModelListeners.elements();e.hasMoreElements();)
@@ -145,7 +145,7 @@ public class Model {
     /** Removes a global constraint from the model */
     public void removeGlobalConstraint(GlobalConstraint constraint) {
         constraint.setModel(null);
-        iConstraints.removeElement(constraint);
+        iGlobalConstraints.removeElement(constraint);
         if (constraint instanceof InfoProvider)
             iInfoProviders.removeElement(constraint);
         for (Enumeration e=iModelListeners.elements();e.hasMoreElements();)
@@ -467,19 +467,11 @@ public class Model {
         iModelListeners.addElement(listener);
         if (listener instanceof InfoProvider)
         	iInfoProviders.addElement(listener);
-        for (Enumeration e=iConstraints.elements();e.hasMoreElements();)
-            listener.constraintAdded((Constraint)e.nextElement());
-        for (Enumeration e=iVariables.elements();e.hasMoreElements();)
-            listener.variableAdded((Variable)e.nextElement());
     }
     /** Removes a model listener */
     public void removeModelListener(ModelListener listener) {
         if (listener instanceof InfoProvider)
         	iInfoProviders.removeElement(listener);
-        for (Enumeration e=iVariables.elements();e.hasMoreElements();)
-            listener.variableRemoved((Variable)e.nextElement());
-        for (Enumeration e=iConstraints.elements();e.hasMoreElements();)
-            listener.constraintRemoved((Constraint)e.nextElement());
         iModelListeners.removeElement(listener);
     }
     
