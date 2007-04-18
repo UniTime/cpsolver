@@ -49,8 +49,8 @@ public class CourseRequest extends Request {
                 if (section.getParent()!=null && !sections.contains(section.getParent())) continue;
                 if (section.isOverlapping(sections)) continue;
                 if (avaiableOnly && section.getEnrollments().size()>=section.getLimit()) continue;
-                if (skipSameTime && section.getTime()!=null && !times.add(section.getTime()) && !isSelected(section) && !isWaitlisted(section)) continue;
                 if (selectedOnly && !isSelected(section)) continue;
+                if (skipSameTime && section.getTime()!=null && !times.add(section.getTime()) && !isSelected(section) && !isWaitlisted(section)) continue;
                 sections.add(section);
                 computeEnrollments(enrollments, value, config, sections, idx+1, avaiableOnly, skipSameTime, selectedOnly);
                 sections.remove(section);
@@ -86,21 +86,19 @@ public class CourseRequest extends Request {
         return enrollments;
     }
 
-    private TreeSet iAvaiableEnrollmentsSkipSameTime = null;
     public TreeSet getAvaiableEnrollmentsSkipSameTime() {
-        if (iAvaiableEnrollmentsSkipSameTime!=null) return iAvaiableEnrollmentsSkipSameTime;
-        iAvaiableEnrollmentsSkipSameTime = new TreeSet();
+        TreeSet avaiableEnrollmentsSkipSameTime = new TreeSet();
         if (getInitialAssignment()!=null)
-            iAvaiableEnrollmentsSkipSameTime.add(getInitialAssignment());
+            avaiableEnrollmentsSkipSameTime.add(getInitialAssignment());
         int idx = 0;
         for (Enumeration e=iCourses.elements();e.hasMoreElements();idx++) {
             Course course = (Course)e.nextElement();
             for (Enumeration f=course.getOffering().getConfigs().elements();f.hasMoreElements();) {
                 Config config = (Config)f.nextElement();
-                computeEnrollments(iAvaiableEnrollmentsSkipSameTime, Math.pow(sAltValue, idx), config, new HashSet(), 0, true, true, false);
+                computeEnrollments(avaiableEnrollmentsSkipSameTime, Math.pow(sAltValue, idx), config, new HashSet(), 0, true, true, false);
             }
         }
-        return iAvaiableEnrollmentsSkipSameTime;
+        return avaiableEnrollmentsSkipSameTime;
     }
     
     public Set getWaitlistedChoices() {
