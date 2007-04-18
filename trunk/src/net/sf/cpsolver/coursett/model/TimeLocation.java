@@ -205,6 +205,11 @@ public class TimeLocation {
     public void setTimePatternId(Long timePatternId) { iTimePatternId = timePatternId; }
     public BitSet getWeekCode() { return iWeekCode; }
     public String getDatePatternName() { return iDatePatternName; }
+    public void setDatePattern(Long datePatternId, String datePatternName, BitSet weekCode) {
+        iDatePatternId = datePatternId;
+        iDatePatternName = datePatternName;
+        iWeekCode = weekCode;
+    }
     
     public String toString() { return getName()+" ("+iNormalizedPreference+")"; }
     public int hashCode() {
