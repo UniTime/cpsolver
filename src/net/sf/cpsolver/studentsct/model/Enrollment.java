@@ -154,7 +154,15 @@ public class Enrollment extends Value implements Comparable {
     }
     
     public String toString() {
-        return getName()+",\n  value="+toDouble();
+        String ret = getStudent()+" "+toDouble()+"/"+getRequest();
+        if (getRequest() instanceof CourseRequest) {
+            ret+=" ";
+            for (Iterator i=getAssignments().iterator();i.hasNext();) {
+                Assignment assignment = (Assignment)i.next();
+                ret+=assignment+(i.hasNext()?", ":"");
+            }
+        }        
+        return ret;
     }
     
     public boolean equals(Object o) {
@@ -164,5 +172,32 @@ public class Enrollment extends Value implements Comparable {
         if (!ToolBox.equals(getRequest(),e.getRequest())) return false;
         if (!ToolBox.equals(getAssignments(),e.getAssignments())) return false;
         return true;
+    }
+    
+    public Enrollment bestSwap(Enrollment enrl, Set problematicStudents) {
+        Enrollment bestEnrollment = null;
+        for (Iterator i=getRequest().values().iterator();i.hasNext();) {
+            Enrollment enrollment = (Enrollment)i.next();
+            if (enrollment.equals(this)) continue;
+            if (!enrl.isConsistent(enrollment)) continue;
+            if (getStudent().getModel().conflictValues(enrollment).isEmpty()) {
+                if (bestEnrollment==null || bestEnrollment.toDouble()>enrollment.toDouble())
+                    bestEnrollment = enrollment;
+            }
+        }
+        if (bestEnrollment==null && problematicStudents!=null) {
+            for (Iterator i=getRequest().values().iterator();i.hasNext();) {
+                Enrollment enrollment = (Enrollment)i.next();
+                if (enrollment.equals(this)) continue;
+                if (!enrl.isConsistent(enrollment)) continue;
+                Set conflicts = getStudent().getModel().conflictValues(enrollment);
+                for (Iterator j=conflicts.iterator();j.hasNext();) {
+                    Enrollment conflict = (Enrollment)j.next();
+                    if (!enrl.getStudent().equals(conflict.getStudent()) && !getStudent().equals(conflict.getStudent()))
+                        problematicStudents.add(conflict.getStudent());
+                }
+            }
+        }
+        return bestEnrollment;
     }
 }
