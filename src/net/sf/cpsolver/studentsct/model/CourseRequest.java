@@ -158,10 +158,13 @@ public class CourseRequest extends Request {
     }
     
     public double getBound() {
-        return - Math.pow(Enrollment.sPriorityWeight,getPriority()) * 
+        return 
+            - Math.pow(Enrollment.sPriorityWeight,getPriority()) * 
             (isAlternative()?Enrollment.sAlterativeWeight:1.0) *
             Math.pow(Enrollment.sInitialWeight,(getInitialAssignment()==null?0:1)) *
             Math.pow(Enrollment.sSelectedWeight,(iSelectedChoices.isEmpty()?0:1)) * 
-            Math.pow(Enrollment.sWaitlistedWeight,(iWaitlistedChoices.isEmpty()?0:1));
+            Math.pow(Enrollment.sWaitlistedWeight,(iWaitlistedChoices.isEmpty()?0:1)) *
+            getWeight() * 
+            (getStudent().isDummy()?Student.sDummyStudentWeight:1.0);
     }
 }

@@ -11,13 +11,18 @@ import net.sf.cpsolver.studentsct.model.Request;
 public class StudentConflict extends Constraint {
     
     public void computeConflicts(Value value, Set conflicts) {
+        //get enrollment
         Enrollment enrollment = (Enrollment)value;
+
+        //for all assigned course requests -> if overlapping with this enrollment -> conflict 
         for (Enumeration e=assignedVariables().elements();e.hasMoreElements();) {
             Request request = (Request)e.nextElement();
             if (request.equals(enrollment.getRequest())) continue;
             if (enrollment.isOverlapping((Enrollment)request.getAssignment()))
                 conflicts.add(request.getAssignment());
         }
+        
+        //if this enrollment cannot be assigned (student already has a full schedule) -> unassignd a lowest priority request
         if (!enrollment.getStudent().canAssign(enrollment.getRequest())) {
             Enrollment lowestPriorityEnrollment = null;
             int lowestPriority = -1;
@@ -41,13 +46,22 @@ public class StudentConflict extends Constraint {
     }
     
     public boolean inConflict(Value value) {
+        //get enrollment
         Enrollment enrollment = (Enrollment)value;
+
+        //for all assigned course requests -> if overlapping with this enrollment -> conflict 
         for (Enumeration e=assignedVariables().elements();e.hasMoreElements();) {
             Request request = (Request)e.nextElement();
             if (request.equals(enrollment.getRequest())) continue;
             if (enrollment.isOverlapping((Enrollment)request.getAssignment()))
                 return true;
         }
+        
+        //if this enrollment cannot be assigned (student already has a full schedule) -> conflict
+        if (!enrollment.getStudent().canAssign(enrollment.getRequest()))
+            return true;
+        
+        //nothing above -> no conflict
         return false;
     }
     

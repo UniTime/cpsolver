@@ -7,12 +7,20 @@ import net.sf.cpsolver.ifs.multi.MultiVariable;
 
 public class Student extends MultiVariable {
     private long iId;
+    private boolean iDummy = false;
     private Vector iRequests = new Vector();
+
+    public static double sDummyStudentWeight = 0.5;
 
     public Student(long id) {
         iId = id;
     }
     
+    public Student(long id, boolean dummy) {
+        iId = id;
+        iDummy = dummy;
+    }
+
     public long getId() {
         return iId;
     }
@@ -75,6 +83,14 @@ public class Student extends MultiVariable {
     }
     
     public String toString() {
-        return "S["+getId()+"]";
+        return (isDummy()?"D":"")+"S["+getId()+"]";
+    }
+    
+    public boolean isDummy() {
+        return iDummy;
+    }
+    
+    public void setDummy(boolean dummy) {
+        iDummy = dummy;
     }
 }

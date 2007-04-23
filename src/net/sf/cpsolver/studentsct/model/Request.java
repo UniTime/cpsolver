@@ -10,7 +10,8 @@ public abstract class Request extends Variable implements Comparable {
     private long iId = -1;
     private int iPriority = 0;
     private boolean iAlternative = false;
-    private Student iStudent = null; 
+    private Student iStudent = null;
+    private double iWeight = 1.0;
     
     public static boolean sCacheValues = false;
 
@@ -77,4 +78,12 @@ public abstract class Request extends Variable implements Comparable {
     }
     
     public abstract double getBound();
+    
+    public double getWeight() {
+        return iWeight;
+    }
+    
+    public void setWeight(double weight) {
+        iWeight = weight;
+    }
 }

@@ -2,6 +2,7 @@ package net.sf.cpsolver.studentsct.constraint;
 
 import java.util.Iterator;
 import java.util.Set;
+import java.util.Vector;
 
 import net.sf.cpsolver.ifs.model.GlobalConstraint;
 import net.sf.cpsolver.ifs.model.Value;
@@ -12,25 +13,79 @@ import net.sf.cpsolver.studentsct.model.Section;
 public class SectionLimit extends GlobalConstraint {
 
     public void computeConflicts(Value value, Set conflicts) {
+        //get enrollment
         Enrollment enrollment = (Enrollment)value;
+        
+        //exclude free time requests
         if (!enrollment.isCourseRequest()) return;
-        Enrollment current = (Enrollment)enrollment.variable().getAssignment();
+        
+        //for each section
         for (Iterator i=enrollment.getAssignments().iterator();i.hasNext();) {
+            
             Section section = (Section)i.next();
-            if (section.getEnrollments().size()<section.getLimit()) continue;
-            if (current!=null && current.getAssignments().contains(section)) continue;
-            boolean hasConflict = false;
+            
+            //new enrollment weight
+            double enrlWeight = section.getEnrollmentWeight(enrollment.getRequest()) + enrollment.getRequest().getWeight();
+            
+            //below limit -> ok
+            if (Math.round(enrlWeight)<=section.getLimit()) continue;
+            
+            //exclude all conflicts
             for (Iterator j=conflicts.iterator();j.hasNext();) {
                 Enrollment conflict = (Enrollment)j.next();
-                if (conflict.getAssignments().contains(section)) {
-                    hasConflict = true; break;
-                }
+                if (conflict.getRequest().equals(enrollment.getRequest()))
+                    continue;
+                if (conflict.getAssignments().contains(section))
+                    enrlWeight -= conflict.getRequest().getWeight();
             }
-            if (hasConflict) continue;
-            if (section.getEnrollments().isEmpty())
-                conflicts.add(enrollment);
-            else
-                conflicts.add(ToolBox.random(section.getEnrollments()));
+            
+            //below limit -> ok
+            if (Math.round(enrlWeight)<=section.getLimit()) continue;
+
+            //above limit -> compute adepts (current assignments that are not yet conflicting)
+            Vector adepts = new Vector();
+            for (Iterator j=section.getEnrollments().iterator();j.hasNext();) {
+                Enrollment e = (Enrollment)j.next();
+                if (conflicts.contains(e) || e.getRequest().equals(enrollment.getRequest()))
+                    continue;
+                adepts.addElement(e);
+            }
+            
+            //while above limit -> pick an adept and make it conflicting
+            while (Math.round(enrlWeight)>section.getLimit()) {
+                //no adepts -> enrollment cannot be assigned
+                if (adepts.isEmpty()) {
+                    conflicts.add(enrollment); break;
+                }
+                //pick adept, decrease enrollment weight, make conflict
+                Enrollment conflict = (Enrollment)ToolBox.random(adepts);
+                adepts.remove(conflict);
+                enrlWeight -= conflict.getRequest().getWeight();
+                conflicts.add(conflict);
+            }
         }
     }
+    
+    public boolean inConflict(Value value) {
+        //get enrollment
+        Enrollment enrollment = (Enrollment)value;
+        
+        //exclude free time requests
+        if (!enrollment.isCourseRequest()) return false;
+        
+        //for each section
+        for (Iterator i=enrollment.getAssignments().iterator();i.hasNext();) {
+            
+            Section section = (Section)i.next();
+            
+            //new enrollment weight
+            double enrlWeight = section.getEnrollmentWeight(enrollment.getRequest()) + enrollment.getRequest().getWeight();
+            
+            //above limit -> conflict
+            if (Math.round(enrlWeight)>section.getLimit()) return true;
+        }
+        
+        //no conflicting section -> no conflict
+        return false;
+    }    
 }
