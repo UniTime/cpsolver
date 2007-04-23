@@ -30,6 +30,10 @@ public class Course {
         return iSubjectArea + " " + iCourseNumber;
     }
     
+    public String toString() {
+        return getName();
+    }
+    
     public Offering getOffering() {
         return iOffering;
     }
