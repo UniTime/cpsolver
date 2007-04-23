@@ -101,6 +101,17 @@ public class Section implements Assignment {
         return iEnrollments;
     }
     
+    public double getEnrollmentWeight(Request excludeRequest) {
+        double weight = 0.0;
+        for (Iterator i=iEnrollments.iterator();i.hasNext();) {
+            Enrollment enrollment = (Enrollment)i.next();
+            if (excludeRequest!=null && excludeRequest.equals(enrollment.getRequest()))
+                continue;
+            weight += enrollment.getRequest().getWeight();
+        }
+        return weight;
+    }
+    
     public String toString() {
         return getSubpart().getName()+
             (getTime()==null?"":" "+getTime().getLongName())+

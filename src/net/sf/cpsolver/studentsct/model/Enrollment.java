@@ -121,7 +121,9 @@ public class Enrollment extends Value implements Comparable {
             (getRequest().isAlternative()?sAlterativeWeight:1.0) *
             Math.pow(sInitialWeight,percentInitial()) *
             Math.pow(sSelectedWeight,percentSelected()) * 
-            Math.pow(sWaitlistedWeight,percentWaitlisted());
+            Math.pow(sWaitlistedWeight,percentWaitlisted()) *
+            getRequest().getWeight() * 
+            (getStudent().isDummy()?Student.sDummyStudentWeight:1.0);
     }
     
     public String getName() {
