@@ -1,5 +1,6 @@
 package net.sf.cpsolver.studentsct.model;
 
+import java.text.DecimalFormat;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Set;
@@ -7,10 +8,12 @@ import java.util.Set;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
-public class Enrollment extends Value implements Comparable {
+public class Enrollment extends Value {
+    private static DecimalFormat sDF = new DecimalFormat("0.000");
     private Request iRequest = null;
     private Config iConfig = null;
     private Set iAssignments = null;
+    private Double iPenalty = null;
     
     public static double sPriorityWeight = 0.90;
     public static double sAlterativeWeight = 1.0;
@@ -113,6 +116,18 @@ public class Enrollment extends Value implements Comparable {
         }
         return true;
     }
+    
+    public double getPenalty() {
+        if (!isCourseRequest()) return 0.0;
+        if (iPenalty!=null) return iPenalty.doubleValue();
+        double penalty = 0.0;
+        for (Iterator i=getAssignments().iterator();i.hasNext();) {
+            Section section = (Section)i.next();
+            penalty += section.getPenalty();
+        }
+        iPenalty = new Double(penalty);
+        return penalty;
+    }
 
     public double toDouble() {
         return 
@@ -123,7 +138,8 @@ public class Enrollment extends Value implements Comparable {
             Math.pow(sSelectedWeight,percentSelected()) * 
             Math.pow(sWaitlistedWeight,percentWaitlisted()) *
             getRequest().getWeight() * 
-            (getStudent().isDummy()?Student.sDummyStudentWeight:1.0);
+            (getStudent().isDummy()?Student.sDummyStudentWeight:1.0) *
+            (100.0/(100.0+getPenalty()));
     }
     
     public String getName() {
@@ -138,8 +154,8 @@ public class Enrollment extends Value implements Comparable {
             }
             String ret = (course==null?getConfig()==null?"":getConfig().getName():course.getName());
             for (Iterator i=getAssignments().iterator();i.hasNext();) {
-                Assignment assignment = (Assignment)i.next();
-                ret+="\n  "+assignment.toString()+(i.hasNext()?",":"");
+                Section assignment = (Section)i.next();
+                ret+="\n  "+assignment.getLongName()+(i.hasNext()?",":"");
             }
             return ret;
         } else if (getRequest() instanceof FreeTimeRequest) {
@@ -147,7 +163,7 @@ public class Enrollment extends Value implements Comparable {
         } else {
             String ret = "";
             for (Iterator i=getAssignments().iterator();i.hasNext();) {
-                Assignment assignment = (Assignment)i.next();
+                Assignment assignment = (Section)i.next();
                 ret+=assignment.toString()+(i.hasNext()?",":"");
                 if (i.hasNext()) ret+="\n  ";
             }
@@ -156,7 +172,7 @@ public class Enrollment extends Value implements Comparable {
     }
     
     public String toString() {
-        String ret = getStudent()+" "+toDouble()+"/"+getRequest();
+        String ret = getStudent()+" "+sDF.format(toDouble())+"/"+sDF.format(getPenalty())+"/"+getRequest();
         if (getRequest() instanceof CourseRequest) {
             ret+=" ";
             for (Iterator i=getAssignments().iterator();i.hasNext();) {
