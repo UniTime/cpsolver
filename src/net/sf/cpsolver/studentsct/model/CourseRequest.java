@@ -1,8 +1,10 @@
 package net.sf.cpsolver.studentsct.model;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.Vector;
@@ -32,19 +34,24 @@ public class CourseRequest extends Request {
             Course course = (Course)e.nextElement();
             for (Enumeration f=course.getOffering().getConfigs().elements();f.hasMoreElements();) {
                 Config config = (Config)f.nextElement();
-                computeEnrollments(ret, Math.pow(sAltValue, idx), config, new HashSet(), 0, false, false, false);
+                computeEnrollments(ret, Math.pow(sAltValue, idx), 0, config, new HashSet(), 0, false, false, false);
             }
         }
         return ret;
     }
     
-    private void computeEnrollments(Collection enrollments, double value, Config config, HashSet sections, int idx, boolean avaiableOnly, boolean skipSameTime, boolean selectedOnly) {
+    private void computeEnrollments(Collection enrollments, double value, double penalty, Config config, HashSet sections, int idx, boolean avaiableOnly, boolean skipSameTime, boolean selectedOnly) {
         if (config.getSubparts().size()==idx) {
             enrollments.add(new Enrollment(this, value, config, new HashSet(sections)));
         } else {
             Subpart subpart = (Subpart)config.getSubparts().toArray()[idx];
             HashSet times = (skipSameTime?new HashSet():null);
-            for (Enumeration e=subpart.getSections().elements();e.hasMoreElements();) {
+            Vector sectionsThisSubpart = subpart.getSections();
+            if (skipSameTime) {
+                sectionsThisSubpart = new Vector(subpart.getSections());
+                Collections.sort(sectionsThisSubpart);
+            }
+            for (Enumeration e=sectionsThisSubpart.elements();e.hasMoreElements();) {
                 Section section = (Section)e.nextElement();
                 if (section.getParent()!=null && !sections.contains(section.getParent())) continue;
                 if (section.isOverlapping(sections)) continue;
@@ -52,7 +59,7 @@ public class CourseRequest extends Request {
                 if (selectedOnly && !isSelected(section)) continue;
                 if (skipSameTime && section.getTime()!=null && !times.add(section.getTime()) && !isSelected(section) && !isWaitlisted(section)) continue;
                 sections.add(section);
-                computeEnrollments(enrollments, value, config, sections, idx+1, avaiableOnly, skipSameTime, selectedOnly);
+                computeEnrollments(enrollments, value, penalty+section.getPenalty(), config, sections, idx+1, avaiableOnly, skipSameTime, selectedOnly);
                 sections.remove(section);
             }
         }
@@ -65,7 +72,7 @@ public class CourseRequest extends Request {
             Course course = (Course)e.nextElement();
             for (Enumeration f=course.getOffering().getConfigs().elements();f.hasMoreElements();) {
                 Config config = (Config)f.nextElement();
-                computeEnrollments(ret, Math.pow(sAltValue, idx), config, new HashSet(), 0, true, false, false);
+                computeEnrollments(ret, Math.pow(sAltValue, idx), 0, config, new HashSet(), 0, true, false, false);
             }
         }
         return ret;
@@ -80,7 +87,7 @@ public class CourseRequest extends Request {
             if (!course.getOffering().equals(firstChoice.getOffering())) continue;
             for (Enumeration f=course.getOffering().getConfigs().elements();f.hasMoreElements();) {
                 Config config = (Config)f.nextElement();
-                computeEnrollments(enrollments, 1.0, config, new HashSet(), 0, availableOnly, false, true);
+                computeEnrollments(enrollments, 1.0, 0, config, new HashSet(), 0, availableOnly, false, true);
             }
         }
         return enrollments;
@@ -95,7 +102,7 @@ public class CourseRequest extends Request {
             Course course = (Course)e.nextElement();
             for (Enumeration f=course.getOffering().getConfigs().elements();f.hasMoreElements();) {
                 Config config = (Config)f.nextElement();
-                computeEnrollments(avaiableEnrollmentsSkipSameTime, Math.pow(sAltValue, idx), config, new HashSet(), 0, true, true, false);
+                computeEnrollments(avaiableEnrollmentsSkipSameTime, Math.pow(sAltValue, idx), 0, config, new HashSet(), 0, true, true, false);
             }
         }
         return avaiableEnrollmentsSkipSameTime;
@@ -157,6 +164,38 @@ public class CourseRequest extends Request {
         return null;
     }
     
+    public Subpart getSubpart(long subpartId) {
+        for (Enumeration e=getCourses().elements();e.hasMoreElements();) {
+            Course course = (Course)e.nextElement();
+            for (Enumeration f=course.getOffering().getConfigs().elements();f.hasMoreElements();) {
+                Config config = (Config)f.nextElement();
+                for (Iterator i=config.getSubparts().iterator();i.hasNext();) {
+                    Subpart subpart = (Subpart)i.next();
+                    if (subpart.getId()==subpartId)
+                        return subpart;
+                }
+            }
+        }
+        return null;
+    }
+
+    public Section getSection(long sectionId) {
+        for (Enumeration e=getCourses().elements();e.hasMoreElements();) {
+            Course course = (Course)e.nextElement();
+            for (Enumeration f=course.getOffering().getConfigs().elements();f.hasMoreElements();) {
+                Config config = (Config)f.nextElement();
+                for (Iterator i=config.getSubparts().iterator();i.hasNext();) {
+                    Subpart subpart = (Subpart)i.next();
+                    for (Enumeration g=subpart.getSections().elements();g.hasMoreElements();) {
+                        Section section = (Section)g.nextElement();
+                        if (section.getId()==sectionId) return section;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     public double getBound() {
         return 
             - Math.pow(Enrollment.sPriorityWeight,getPriority()) * 

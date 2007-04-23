@@ -1,5 +1,6 @@
 package net.sf.cpsolver.studentsct.model;
 
+import java.text.DecimalFormat;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -8,7 +9,8 @@ import java.util.Vector;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 
-public class Section implements Assignment {
+public class Section implements Assignment, Comparable {
+    private static DecimalFormat sDF = new DecimalFormat("0.000");
     private long iId = -1;
     private String iName = null;
     private Subpart iSubpart = null;
@@ -17,6 +19,7 @@ public class Section implements Assignment {
     private int iLimit = 0;
     private HashSet iEnrollments = new HashSet();
     private Choice iChoice = null;
+    private double iPenalty = 0.0;
     
     public Section(long id, int limit, String name, Subpart subpart, Placement placement, String instructorIds, String instructorNames) {
         iId = id;
@@ -112,14 +115,35 @@ public class Section implements Assignment {
         return weight;
     }
     
-    public String toString() {
+    public String getLongName() {
         return getSubpart().getName()+
-            (getTime()==null?"":" "+getTime().getLongName())+
-            (getNrRooms()==0?"":" "+getPlacement().getRoomName(","))+
-            (getChoice().getInstructorNames()==null?"":" "+getChoice().getInstructorNames());
+        (getTime()==null?"":" "+getTime().getLongName())+
+        (getNrRooms()==0?"":" "+getPlacement().getRoomName(","))+
+        (getChoice().getInstructorNames()==null?"":" "+getChoice().getInstructorNames());
+    }
+    
+    public String toString() {
+        return getLongName()+" (L:"+getLimit()+",P:"+sDF.format(getPenalty())+")";
     }
     
     public Choice getChoice() {
         return iChoice;
+    }
+    
+    public double getPenalty() {
+        return iPenalty;
+    }
+    public void setPenalty(double penalty) {
+        iPenalty = penalty;
+    }
+    
+    public int compareTo(Object o) {
+        if (o==null || !(o instanceof Section)) return -1;
+        Section s = (Section)o;
+        int cmp = Double.compare(getPenalty(),s.getPenalty());
+        if (cmp!=0) return cmp;
+        cmp = Double.compare(getLimit()-getEnrollmentWeight(null),s.getLimit()-s.getEnrollmentWeight(null));
+        if (cmp!=0) return cmp;
+        return Double.compare(getId(),s.getId());
     }
 }
