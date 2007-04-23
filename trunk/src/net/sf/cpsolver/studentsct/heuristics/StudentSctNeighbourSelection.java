@@ -135,7 +135,7 @@ public class StudentSctNeighbourSelection implements NeighbourSelection {
             for (int i=0;i<iSelection.getBestAssignment().length;i++) {
                 if (iSelection.getBestAssignment()[i]!=null) {
                     student = iSelection.getBestAssignment()[i].getRequest().getStudent();
-                    sb.append(" S["+student.getId()+"]");
+                    sb.append(" "+student);
                     sb.append(" ("+iSelection.getBestValue()+")");
                     break;
                 }
@@ -181,7 +181,7 @@ public class StudentSctNeighbourSelection implements NeighbourSelection {
         
         public String toString() {
             StringBuffer sb = new StringBuffer("N2{");
-            sb.append(" S["+iSelection.getBestEnrollment().getRequest().getStudent().getId()+"]");
+            sb.append(" "+iSelection.getBestEnrollment().getRequest().getStudent());
             sb.append(" ("+iSelection.getBestValue()+")");
             sb.append("\n "+iSelection.getBestEnrollment().getRequest().getName());
             sb.append(" "+iSelection.getBestEnrollment().getName());
@@ -206,7 +206,7 @@ public class StudentSctNeighbourSelection implements NeighbourSelection {
         
         public String toString() {
             StringBuffer sb = new StringBuffer("N3{");
-            sb.append(" S["+iStudent.getId()+"]");
+            sb.append(" "+iStudent);
             sb.append(" }");
             return sb.toString();
         }
