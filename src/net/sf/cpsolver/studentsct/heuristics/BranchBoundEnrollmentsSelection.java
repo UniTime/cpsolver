@@ -152,12 +152,15 @@ public class BranchBoundEnrollmentsSelection implements ValueSelection {
         }
         
         public void backTrack(int idx) {
+            if (sDebug) sLog.debug("backTrack("+nrAssigned()+"/"+getValue()+","+idx+")");
             if (sTimeOut>0 && (System.currentTimeMillis()-iT0)>sTimeOut) {
                 if (sDebug) sLog.debug("  -- timeout reached");
                 iTimeoutReached=true; return;
             }
-            if (sDebug) sLog.debug("backTrack("+nrAssigned()+"/"+getValue()+","+idx+")");
-            if (iBestAssignment!=null && getBound(idx)>=iBestValue) return;
+            if (iBestAssignment!=null && getBound(idx)>=iBestValue) {
+                if (sDebug) sLog.debug("  -- branch "+getBound(idx)+" > "+iBestValue);
+                return;
+            }
             if (idx==iAssignment.length) {
                 if (getValue()<iBestValue) {
                     if (sDebug) sLog.debug("  -- best solution found "+nrAssigned()+"/"+getValue());
@@ -199,7 +202,14 @@ public class BranchBoundEnrollmentsSelection implements ValueSelection {
                 } else {
                     values = request.computeEnrollments();
                 }
-                if (sDebug) sLog.debug("  -- nrValues: "+values.size());
+                if (sDebug) {
+                    sLog.debug("  -- nrValues: "+values.size());
+                    int vIdx=1;
+                    for (Iterator i=values.iterator();i.hasNext();vIdx++) {
+                        Enrollment enrollment = (Enrollment)i.next();
+                        if (sDebug) sLog.debug("    -- ["+vIdx+"]: "+enrollment);
+                    }
+                }
                 boolean hasNoConflictValue = false;
                 for (Iterator i=values.iterator();i.hasNext();) {
                     Enrollment enrollment = (Enrollment)i.next();
