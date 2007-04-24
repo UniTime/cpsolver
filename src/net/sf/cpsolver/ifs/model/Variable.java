@@ -131,6 +131,10 @@ public class Variable implements Comparable {
             Constraint constraint = (Constraint)e.nextElement();
             constraint.assigned(iteration, value);
         }
+        for (Enumeration e=getModel().globalConstraints().elements(); e.hasMoreElements();) {
+            Constraint constraint = (Constraint)e.nextElement();
+            constraint.assigned(iteration, value);
+        }
         iAssignmentCounter++;
         value.assigned(iteration);
         if (iVariableListeners!=null) 
@@ -151,6 +155,10 @@ public class Variable implements Comparable {
         Value oldValue = iValue;
         iValue = null;
         for (Enumeration e=iConstraints.elements(); e.hasMoreElements();) {
+            Constraint constraint = (Constraint)e.nextElement();
+            constraint.unassigned(iteration, oldValue);
+        }
+        for (Enumeration e=getModel().globalConstraints().elements(); e.hasMoreElements();) {
             Constraint constraint = (Constraint)e.nextElement();
             constraint.unassigned(iteration, oldValue);
         }
