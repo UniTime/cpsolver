@@ -78,6 +78,16 @@ public class Student extends MultiVariable {
         return nrAssignedRequests==nrRequests;
     }
     
+    public int nrAssignedRequests() {
+        int nrAssignedRequests = 0;
+        for (Enumeration e=iRequests.elements();e.hasMoreElements();) {
+            Request r  = (Request)e.nextElement();
+            if (!(r instanceof CourseRequest)) continue; //ignore free times
+            if (r.getAssignment()!=null) nrAssignedRequests++;
+        }
+        return nrAssignedRequests;
+    }
+    
     public Vector variables() {
         return getRequests();
     }
