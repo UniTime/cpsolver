@@ -56,13 +56,13 @@ public class StudentSctBBTest extends Model {
     
     public Vector getMessages() {
         Vector ret = new Vector();
-        ret.add("INFO:<li>Solution found in "+iTime+" ms.");
+        ret.add(new Message(Message.sMsgLevelInfo,null,"<li>Solution found in "+iTime+" ms."));
         if (iTimeoutReached)
-            ret.add("INFO:<li>"+(BranchBoundEnrollmentsSelection.sTimeOut/1000)+" s time out reached, solution optimality can not be guaranteed.");
+            ret.add(new Message(Message.sMsgLevelInfo,null,"<li>"+(BranchBoundEnrollmentsSelection.sTimeOut/1000)+" s time out reached, solution optimality can not be guaranteed."));
         for (Enumeration e=getStudent().getRequests().elements();e.hasMoreElements();) {
             Request request = (Request)e.nextElement();
             if (!request.isAlternative() && request.getAssignment()==null) {
-                ret.add("WARN:<li>Unable to enroll to "+request+", "+(request instanceof CourseRequest?((CourseRequest)request).getCourses().size()==1?"course is":"courses are":"time is")+" not available.");
+                ret.add(new Message(Message.sMsgLevelWarn,request,"<li>Unable to enroll to "+request+", "+(request instanceof CourseRequest?((CourseRequest)request).getCourses().size()==1?"course is":"courses are":"time is")+" not available."));
                 Collection values = (request instanceof CourseRequest ? (Collection)((CourseRequest)request).getAvaiableEnrollmentsSkipSameTime() : request.computeEnrollments());
                 for (Iterator f=values.iterator();f.hasNext();) {
                     Enrollment enrollment = (Enrollment)f.next();
@@ -70,9 +70,9 @@ public class StudentSctBBTest extends Model {
                     if (conf!=null && !conf.isEmpty()) {
                         Enrollment conflict = (Enrollment)conf.iterator().next();
                         if (conflict.equals(enrollment))
-                            ret.add("INFO:<ul>Assignment of "+enrollment.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"<br> is not available.");
+                            ret.add(new Message(Message.sMsgLevelInfo,request,"<ul>Assignment of "+enrollment.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"<br> is not available."));
                         else
-                            ret.add("INFO:<ul>Assignment of "+enrollment.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"<br> conflicts with "+conflict.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"</ul>");
+                            ret.add(new Message(Message.sMsgLevelInfo,request,"<ul>Assignment of "+enrollment.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"<br> conflicts with "+conflict.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"</ul>"));
                     }
                 }
             }
@@ -85,18 +85,48 @@ public class StudentSctBBTest extends Model {
                     Enrollment selected = (Enrollment)selectedEnrollments.firstElement();
                     Set conf = conflictValues(selected);
                     if (conf!=null && !conf.isEmpty()) {
-                        ret.add("ERROR:<li>Unable to enroll selected enrollment for "+course.getName()+", seleted "+(courseRequest.getSelectedChoices().size()==1?"class is":"classes are")+" conflicting with other choices.");
+                        ret.add(new Message(Message.sMsgLevelWarn,request,"<li>Unable to enroll selected enrollment for "+course.getName()+", seleted "+(courseRequest.getSelectedChoices().size()==1?"class is":"classes are")+" conflicting with other choices."));
                         Enrollment conflict = (Enrollment)conf.iterator().next();
                         if (conflict.equals(selected))
-                            ret.add("INFO:<ul>Assignment of "+selected.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"<br> is not available.");
+                            ret.add(new Message(Message.sMsgLevelInfo,request,"<ul>Assignment of "+selected.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"<br> is not available."));
                         else
-                            ret.add("INFO:<ul>Assignment of "+selected.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"<br> conflicts with "+conflict.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"</ul>");
+                            ret.add(new Message(Message.sMsgLevelInfo,request,"<ul>Assignment of "+selected.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"<br> conflicts with "+conflict.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")+"</ul>"));
                     } else {
-                        ret.add("ERROR:<li>Unable to enroll selected enrollment for "+course.getName()+".");
+                        ret.add(new Message(Message.sMsgLevelWarn,request,"<li>Unable to enroll selected enrollment for "+course.getName()+"."));
                     }
                 }
             }
         }
         return ret;
+    }
+    
+    public static class Message {
+        public static String[] sMsgLevels = { "INFO", "WARN", "ERROR" };
+        public static int sMsgLevelInfo = 0;
+        public static int sMsgLevelWarn = 0;
+        public static int sMsgLevelError = 0;
+        private int iLevel; 
+        private Request iRequest;
+        private String iMessage;
+        public Message(int level, Request request, String message) {
+            iLevel = level;
+            iRequest = request;
+            iMessage = message;
+        }
+        public int getLevel() {
+            return iLevel;
+        }
+        public String getLevelString() {
+            return sMsgLevels[iLevel];
+        }
+        public Request getRequest() {
+            return iRequest;
+        }
+        public String getMessage() {
+            return iMessage;
+        }
+        public String toString() {
+            return getLevelString()+":"+getMessage();
+        }
     }
 }
