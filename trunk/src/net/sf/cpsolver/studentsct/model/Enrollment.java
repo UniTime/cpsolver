@@ -172,7 +172,7 @@ public class Enrollment extends Value {
     }
     
     public String toString() {
-        String ret = getStudent()+" "+sDF.format(toDouble())+"/"+sDF.format(getPenalty())+"/"+getRequest();
+        String ret = getStudent()+" "+sDF.format(toDouble())+"/"+sDF.format(getRequest().getBound())+"/"+sDF.format(getPenalty())+" "+getRequest();
         if (getRequest() instanceof CourseRequest) {
             ret+=" ";
             for (Iterator i=getAssignments().iterator();i.hasNext();) {
@@ -204,6 +204,7 @@ public class Enrollment extends Value {
             }
         }
         if (bestEnrollment==null && problematicStudents!=null) {
+            boolean added = false;
             for (Iterator i=getRequest().values().iterator();i.hasNext();) {
                 Enrollment enrollment = (Enrollment)i.next();
                 if (enrollment.equals(this)) continue;
@@ -215,6 +216,8 @@ public class Enrollment extends Value {
                         problematicStudents.add(conflict.getStudent());
                 }
             }
+            if (!added && !enrl.getStudent().equals(getStudent()))
+                problematicStudents.add(getStudent());
         }
         return bestEnrollment;
     }
