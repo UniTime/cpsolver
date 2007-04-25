@@ -1,5 +1,6 @@
 package net.sf.cpsolver.studentsct.heuristics;
 
+import java.lang.reflect.Constructor;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -8,7 +9,9 @@ import java.util.Set;
 import java.util.Vector;
 
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
+import net.sf.cpsolver.ifs.heuristics.ValueSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
+import net.sf.cpsolver.ifs.model.SimpleNeighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
@@ -24,14 +27,25 @@ public class StudentSctNeighbourSelection implements NeighbourSelection {
     private int iPhase = 0;
     private Set iProblemStudents = new HashSet();
     private Student iStudent = null;
+    private ValueSelection iValueSelection = null;
+    private long iIteration = 0;
     
     public StudentSctNeighbourSelection(DataProperties properties) {
+        try {
+            String valueSelectionClassName = properties.getProperty("Value.Class","net.sf.cpsolver.ifs.heuristics.GeneralValueSelection");
+            Class valueSelectionClass = Class.forName(valueSelectionClassName);
+            Constructor valueSelectionConstructor = valueSelectionClass.getConstructor(new Class[]{DataProperties.class});
+            iValueSelection = (ValueSelection)valueSelectionConstructor.newInstance(new Object[] {properties});
+        } catch (Exception e) {
+            new RuntimeException(e.getMessage(),e);
+        }
     }
     
     public void init(Solver solver) {
         iStudents = new Vector(((StudentSectioningModel)solver.currentSolution().getModel()).getStudents());
         iStudentsEnumeration = iStudents.elements();
         iPhase = 1;
+        iValueSelection.init(solver);
     }
 
     public Neighbour selectNeighbour(Solution solution) {
@@ -52,6 +66,7 @@ public class StudentSctNeighbourSelection implements NeighbourSelection {
                 Collections.shuffle(iStudents);
                 iStudentsEnumeration = iStudents.elements();
                 iProblemStudents.clear();
+                iIteration = solution.getIteration();
             }
             
             //Phase 2: pick a student (one by one) with an incomplete schedule, try to find an improvement 
@@ -64,22 +79,63 @@ public class StudentSctNeighbourSelection implements NeighbourSelection {
                 iStudent = null;
                 while (iStudentsEnumeration.hasMoreElements()) {
                     Student student = (Student)iStudentsEnumeration.nextElement();
-                    if (student.isComplete()) continue;
+                    if (student.isComplete() || student.nrAssignedRequests()==0) continue;
+                    SwapStudentsEnrollmentSelection.Selection selection = new SwapStudentsEnrollmentSelection.Selection(student);
+                    if (selection.select()!=null) {
+                        iStudent = student;
+                        return new N2(selection);
+                    }
+                }
+                iPhase++;
+                Collections.shuffle(iStudents);
+                iStudentsEnumeration = iStudents.elements();
+                iIteration = solution.getIteration();
+            }
+            
+            
+            //Phase 3: use standard value selection for some time
+            if (iPhase==3) {
+                if (solution.getModel().unassignedVariables().isEmpty() || solution.getIteration()>=iIteration+10*solution.getModel().countVariables()) {
+                    iPhase++;
+                } else {
+                    Request request = (Request)ToolBox.random(solution.getModel().unassignedVariables());
+                    Enrollment enrollment = (request==null?null:(Enrollment)iValueSelection.selectValue(solution, request));
+                    if (enrollment!=null) {
+                        return new SimpleNeighbour(request, enrollment);
+                    } else
+                        iPhase++;
+                }
+            }
+            
+            
+            //Phase 4: pick a student (one by one) with an incomplete schedule, try to find an improvement, identify problematic students
+            if (iPhase==4) {
+                if (iStudent!=null && !iStudent.isComplete()) {
+                    SwapStudentsEnrollmentSelection.Selection selection = new SwapStudentsEnrollmentSelection.Selection(iStudent);
+                    if (selection.select()!=null)
+                        return new N2(selection);
+                    else 
+                        iProblemStudents.addAll(selection.getProblemStudents());
+                }
+                iStudent = null;
+                while (iStudentsEnumeration.hasMoreElements()) {
+                    Student student = (Student)iStudentsEnumeration.nextElement();
+                    if (student.isComplete() || student.nrAssignedRequests()==0) continue;
                     SwapStudentsEnrollmentSelection.Selection selection = new SwapStudentsEnrollmentSelection.Selection(student);
                     if (selection.select()!=null) {
                         iStudent = student;
                         return new N2(selection);
                     } else {
-                        if (selection.getProblemStudents()!=null)
-                            iProblemStudents.addAll(selection.getProblemStudents());
+                        iProblemStudents.addAll(selection.getProblemStudents());
                     }
                 }
                 iPhase++;
                 iStudentsEnumeration = new Vector(iProblemStudents).elements();
+                iIteration = solution.getIteration();
             }
             
-            //Phase 3: unassignment of all problematic students
-            if (iPhase==3) {
+            //Phase 5: unassignment of all problematic students
+            if (iPhase==5) {
                 while (iStudentsEnumeration.hasMoreElements()) {
                     Student student = (Student)iStudentsEnumeration.nextElement();
                     return new N3(student);
@@ -87,10 +143,11 @@ public class StudentSctNeighbourSelection implements NeighbourSelection {
                 iPhase++;
                 Collections.shuffle(iStudents);
                 iStudentsEnumeration = iStudents.elements();
+                iIteration = solution.getIteration();
             }
             
-            //Phase 4: resection incomplete students 
-            if (iPhase==4) {
+            //Phase 6: resection incomplete students 
+            if (iPhase==6) {
                 while (iStudentsEnumeration.hasMoreElements()) {
                     Student student = (Student)iStudentsEnumeration.nextElement();
                     if (iProblemStudents.contains(student) || student.isComplete()) continue;
@@ -101,10 +158,39 @@ public class StudentSctNeighbourSelection implements NeighbourSelection {
                 iPhase++;
                 Collections.shuffle(iStudents);
                 iStudentsEnumeration = iStudents.elements();
+                iIteration = solution.getIteration();
             }
             
-            //Phase 5: random unassignment of some students
-            if (iPhase==5) {
+            //Phase 7: use standard value selection for some time
+            if (iPhase==7) {
+                if (solution.getIteration()>=iIteration+10*solution.getModel().countVariables()) {
+                    iPhase++;
+                } else {
+                    RouletteWheelSelection roulette = new RouletteWheelSelection();
+                    for (Enumeration e=solution.getModel().variables().elements();e.hasMoreElements();) {
+                        Request request = (Request)e.nextElement();
+                        double points = 0;
+                        if (request.getAssignment()==null)
+                            points +=10;
+                        else {
+                            Enrollment enrollment = (Enrollment)request.getAssignment();
+                            if (enrollment.toDouble()>request.getBound())
+                                points +=1;
+                        }
+                        if (points>0)
+                            roulette.add(request, points);
+                    }
+                    Request request = (Request)roulette.select();
+                    Enrollment enrollment = (request==null?null:(Enrollment)iValueSelection.selectValue(solution, request));
+                    if (enrollment!=null) {
+                        return new SimpleNeighbour(request, enrollment);
+                    } else
+                        iPhase++;
+                }
+            }
+            
+            //Phase 8: random unassignment of some students
+            if (iPhase==8) {
                 if (Math.random()<0.5) {
                     Student student = (Student)ToolBox.random(iStudents);
                     return new N3(student);
@@ -211,5 +297,24 @@ public class StudentSctNeighbourSelection implements NeighbourSelection {
             return sb.toString();
         }
         
+    }
+    
+    public static class RouletteWheelSelection {
+        private Vector iAdepts = new Vector();
+        private Vector iPoints = new Vector();
+        private double iTotalPoints = 0;
+        public void add(Object adept, double points) {
+            iAdepts.add(adept); iPoints.add(new Double(points)); iTotalPoints+=points;
+        }
+        public Object select() {
+            if (iAdepts.isEmpty()) return null;
+            double rx = ToolBox.random()*iTotalPoints;
+            int idx = 0;
+            for (Enumeration e=iPoints.elements();e.hasMoreElements();idx++) {
+                rx -= ((Double)e.nextElement()).doubleValue();
+                if (rx<0) return iAdepts.elementAt(idx);
+            }
+            return iAdepts.lastElement();
+        }
     }
 }
