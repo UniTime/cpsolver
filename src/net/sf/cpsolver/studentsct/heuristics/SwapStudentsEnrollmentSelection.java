@@ -56,16 +56,10 @@ public class SwapStudentsEnrollmentSelection implements ValueSelection {
                     if (sDebug) sLog.debug("      -- enrollment "+enrollment);
                     Set conflicts = iStudent.getModel().conflictValues(enrollment);
                     double value = enrollment.toDouble();
-                    boolean sameStudentConflict = false;
                     boolean unresolvedConflict = false;
                     for (Iterator j=conflicts.iterator();j.hasNext();) {
                         Enrollment conflict = (Enrollment)j.next();
                         if (sDebug) sLog.debug("        -- conflict "+conflict);
-                        /*
-                        if (conflict.getStudent().equals(iStudent)) {
-                            if (sDebug) sLog.debug("          -- same student");
-                            sameStudentConflict = true; break;
-                        }*/
                         Enrollment other = conflict.bestSwap(enrollment, iProblemStudents);
                         if (other==null) {
                             if (sDebug) sLog.debug("          -- unable to resolve");
@@ -75,16 +69,19 @@ public class SwapStudentsEnrollmentSelection implements ValueSelection {
                         value -= conflict.toDouble();
                         value += other.toDouble();
                     }
-                    if (sameStudentConflict || unresolvedConflict) continue;
+                    if (unresolvedConflict) continue;
                     if (iBestEnrollment==null || iBestEnrollment.toDouble()>value) {
                         iBestEnrollment = enrollment; iBestValue = value;
                     };
                 }
             }
-            if (iProblemStudents.isEmpty()) iProblemStudents.add(iStudent);
             iT1 = System.currentTimeMillis();
             if (sDebug) sLog.debug("  -- done, best enrollment is "+iBestEnrollment);
-            if (iBestEnrollment==null) return null;
+            if (iBestEnrollment==null) {
+                if (iProblemStudents.isEmpty()) iProblemStudents.add(iStudent);
+                if (sDebug) sLog.debug("  -- problem students are: "+iProblemStudents);
+                return null;
+            }
             if (sDebug) sLog.debug("  -- value "+iBestValue);
             Enrollment[] assignment = new Enrollment[iStudent.getRequests().size()];
             int idx = 0;
