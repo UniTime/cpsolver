@@ -103,8 +103,8 @@ public class StudentSctBBTest extends Model {
     public static class Message {
         public static String[] sMsgLevels = { "INFO", "WARN", "ERROR" };
         public static int sMsgLevelInfo = 0;
-        public static int sMsgLevelWarn = 0;
-        public static int sMsgLevelError = 0;
+        public static int sMsgLevelWarn = 1;
+        public static int sMsgLevelError = 2;
         private int iLevel; 
         private Request iRequest;
         private String iMessage;
