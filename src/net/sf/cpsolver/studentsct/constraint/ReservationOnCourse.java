@@ -24,4 +24,8 @@ public abstract class ReservationOnCourse extends Reservation {
         
         return true;
     }
+    
+    public String toString() {
+        return "Reservation on "+iCourse.getName();
+    }
 }

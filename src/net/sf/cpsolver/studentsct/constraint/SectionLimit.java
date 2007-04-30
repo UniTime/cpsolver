@@ -88,4 +88,8 @@ public class SectionLimit extends GlobalConstraint {
         //no conflicting section -> no conflict
         return false;
     }    
+    
+    public String toString() {
+        return "SectioningLimit";
+    }
 }

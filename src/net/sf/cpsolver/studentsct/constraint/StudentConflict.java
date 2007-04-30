@@ -65,4 +65,7 @@ public class StudentConflict extends Constraint {
         return false;
     }
     
+    public String toString() {
+        return "StudentConflicts";
+    }
 }
