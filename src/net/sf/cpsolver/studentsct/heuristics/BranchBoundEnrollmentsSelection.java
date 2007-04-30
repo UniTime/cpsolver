@@ -115,6 +115,7 @@ public class BranchBoundEnrollmentsSelection implements ValueSelection {
         
         public Enrollment firstConflict(Enrollment enrollment) {
             Set conflicts = enrollment.variable().getModel().conflictValues(enrollment);
+            if (conflicts.contains(enrollment)) return enrollment;
             if (conflicts!=null && !conflicts.isEmpty()) {
                 for (Iterator i=conflicts.iterator();i.hasNext();) {
                     Enrollment conflict = (Enrollment)i.next();
