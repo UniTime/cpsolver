@@ -18,4 +18,8 @@ public abstract class ReservationOnSection extends Reservation {
     public boolean isApplicable(Enrollment enrollment) {
         return enrollment.getAssignments().contains(iSection);
     }
+    
+    public String toString() {
+        return "Reservation on "+iSection.getLongName();
+    }
 }
