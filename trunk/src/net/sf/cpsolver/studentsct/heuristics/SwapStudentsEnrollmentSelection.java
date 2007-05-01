@@ -13,14 +13,16 @@ import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.multi.MultiValue;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
+import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Student;
 
 public class SwapStudentsEnrollmentSelection implements ValueSelection {
     private static Logger sLog = Logger.getLogger(SwapStudentsEnrollmentSelection.class); 
-    public static long sTimeOut = 1000;
+    public static long sTimeOut = 5000;
     public static boolean sDebug = false;
+    public static int sMaxValues = 100;
 
     public void init(Solver solver) {}
     
@@ -60,7 +62,7 @@ public class SwapStudentsEnrollmentSelection implements ValueSelection {
                 if (!iStudent.canAssign(request)) continue;
                 if (sDebug) sLog.debug("  -- checking request "+request);
                 
-                for (Iterator i=request.values().iterator();i.hasNext();) {
+                for (Iterator i=ToolBox.subSet(request.values(),0,sMaxValues).iterator();i.hasNext();) {
                     if (sTimeOut>0 && (System.currentTimeMillis()-iT0)>sTimeOut) {
                         if (!iTimeoutReached) {
                             if (sDebug) sLog.debug("  -- timeout reached");
