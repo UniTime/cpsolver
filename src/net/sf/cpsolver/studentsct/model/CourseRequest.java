@@ -34,20 +34,37 @@ public class CourseRequest extends Request {
             Course course = (Course)e.nextElement();
             for (Enumeration f=course.getOffering().getConfigs().elements();f.hasMoreElements();) {
                 Config config = (Config)f.nextElement();
-                computeEnrollments(ret, Math.pow(sAltValue, idx), 0, config, new HashSet(), 0, false, false, false);
+                computeEnrollments(ret, Math.pow(sAltValue, idx), 0, config, new HashSet(), 0, false, false, false, false, -1);
             }
         }
         return ret;
     }
     
-    private void computeEnrollments(Collection enrollments, double value, double penalty, Config config, HashSet sections, int idx, boolean avaiableOnly, boolean skipSameTime, boolean selectedOnly) {
+    public Vector computeRandomEnrollments(int limitEachConfig) {
+        Vector ret = new Vector();
+        int idx = 0;
+        for (Enumeration e=iCourses.elements();e.hasMoreElements();idx++) {
+            Course course = (Course)e.nextElement();
+            for (Enumeration f=course.getOffering().getConfigs().elements();f.hasMoreElements();) {
+                Config config = (Config)f.nextElement();
+                computeEnrollments(ret, Math.pow(sAltValue, idx), 0, config, new HashSet(), 0, false, false, false, true, (limitEachConfig<=0?limitEachConfig:ret.size()+limitEachConfig));
+            }
+        }
+        return ret;
+    }
+
+    private void computeEnrollments(Collection enrollments, double value, double penalty, Config config, HashSet sections, int idx, boolean avaiableOnly, boolean skipSameTime, boolean selectedOnly, boolean random, int limit) {
+        if (limit>0 && enrollments.size()>=limit) return;
         if (config.getSubparts().size()==idx) {
             enrollments.add(new Enrollment(this, value, config, new HashSet(sections)));
         } else {
             Subpart subpart = (Subpart)config.getSubparts().toArray()[idx];
             HashSet times = (skipSameTime?new HashSet():null);
             Vector sectionsThisSubpart = subpart.getSections();
-            if (skipSameTime) {
+            if (random) {
+                sectionsThisSubpart = new Vector(subpart.getSections());
+                Collections.shuffle(sectionsThisSubpart);
+            } else if (skipSameTime) {
                 sectionsThisSubpart = new Vector(subpart.getSections());
                 Collections.sort(sectionsThisSubpart);
             }
@@ -59,7 +76,7 @@ public class CourseRequest extends Request {
                 if (selectedOnly && !isSelected(section)) continue;
                 if (skipSameTime && section.getTime()!=null && !times.add(section.getTime()) && !isSelected(section) && !isWaitlisted(section)) continue;
                 sections.add(section);
-                computeEnrollments(enrollments, value, penalty+section.getPenalty(), config, sections, idx+1, avaiableOnly, skipSameTime, selectedOnly);
+                computeEnrollments(enrollments, value, penalty+section.getPenalty(), config, sections, idx+1, avaiableOnly, skipSameTime, selectedOnly, random, limit);
                 sections.remove(section);
             }
         }
@@ -72,7 +89,7 @@ public class CourseRequest extends Request {
             Course course = (Course)e.nextElement();
             for (Enumeration f=course.getOffering().getConfigs().elements();f.hasMoreElements();) {
                 Config config = (Config)f.nextElement();
-                computeEnrollments(ret, Math.pow(sAltValue, idx), 0, config, new HashSet(), 0, true, false, false);
+                computeEnrollments(ret, Math.pow(sAltValue, idx), 0, config, new HashSet(), 0, true, false, false, false, -1);
             }
         }
         return ret;
@@ -87,7 +104,7 @@ public class CourseRequest extends Request {
             if (!course.getOffering().equals(firstChoice.getOffering())) continue;
             for (Enumeration f=course.getOffering().getConfigs().elements();f.hasMoreElements();) {
                 Config config = (Config)f.nextElement();
-                computeEnrollments(enrollments, 1.0, 0, config, new HashSet(), 0, availableOnly, false, true);
+                computeEnrollments(enrollments, 1.0, 0, config, new HashSet(), 0, availableOnly, false, true, false, -1);
             }
         }
         return enrollments;
@@ -102,7 +119,7 @@ public class CourseRequest extends Request {
             Course course = (Course)e.nextElement();
             for (Enumeration f=course.getOffering().getConfigs().elements();f.hasMoreElements();) {
                 Config config = (Config)f.nextElement();
-                computeEnrollments(avaiableEnrollmentsSkipSameTime, Math.pow(sAltValue, idx), 0, config, new HashSet(), 0, true, true, false);
+                computeEnrollments(avaiableEnrollmentsSkipSameTime, Math.pow(sAltValue, idx), 0, config, new HashSet(), 0, true, true, false, false, -1);
             }
         }
         return avaiableEnrollmentsSkipSameTime;
