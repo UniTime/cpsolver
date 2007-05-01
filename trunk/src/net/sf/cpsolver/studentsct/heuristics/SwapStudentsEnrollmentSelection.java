@@ -4,6 +4,7 @@ import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
@@ -13,7 +14,7 @@ import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.multi.MultiValue;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
-import net.sf.cpsolver.ifs.util.ToolBox;
+import net.sf.cpsolver.studentsct.model.CourseRequest;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Student;
@@ -61,8 +62,11 @@ public class SwapStudentsEnrollmentSelection implements ValueSelection {
                 if (request.getAssignment()!=null) continue;
                 if (!iStudent.canAssign(request)) continue;
                 if (sDebug) sLog.debug("  -- checking request "+request);
-                
-                for (Iterator i=ToolBox.subSet(request.values(),0,sMaxValues).iterator();i.hasNext();) {
+                Vector values = null;
+                if (sMaxValues>0 && request instanceof CourseRequest) {
+                    values = ((CourseRequest)request).computeRandomEnrollments(sMaxValues);
+                } else values = request.values();
+                for (Enumeration f=values.elements();f.hasMoreElements();) {
                     if (sTimeOut>0 && (System.currentTimeMillis()-iT0)>sTimeOut) {
                         if (!iTimeoutReached) {
                             if (sDebug) sLog.debug("  -- timeout reached");
@@ -70,7 +74,7 @@ public class SwapStudentsEnrollmentSelection implements ValueSelection {
                         }
                         break;
                     }
-                    Enrollment enrollment = (Enrollment)i.next();
+                    Enrollment enrollment = (Enrollment)f.nextElement();
                     if (sDebug) sLog.debug("      -- enrollment "+enrollment);
                     Set conflicts = iStudent.getModel().conflictValues(enrollment);
                     double value = enrollment.toDouble();
