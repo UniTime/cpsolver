@@ -19,7 +19,7 @@ import net.sf.cpsolver.studentsct.model.Student;
 
 public class SwapStudentsEnrollmentSelection implements ValueSelection {
     private static Logger sLog = Logger.getLogger(SwapStudentsEnrollmentSelection.class); 
-    public static long sTimeOut = 5000;
+    public static long sTimeOut = 1000;
     public static boolean sDebug = false;
 
     public void init(Solver solver) {}
@@ -32,6 +32,7 @@ public class SwapStudentsEnrollmentSelection implements ValueSelection {
     public static class Selection {
         private Student iStudent;
         private long iT0, iT1;
+        private boolean iTimeoutReached;
         private Enrollment iBestEnrollment;
         private double iBestValue;
         private HashSet iProblemStudents;
@@ -43,15 +44,30 @@ public class SwapStudentsEnrollmentSelection implements ValueSelection {
         public Value select() {
             if (sDebug) sLog.debug("select(S"+iStudent.getId()+")");
             iT0 = System.currentTimeMillis();
+            iTimeoutReached = false;
             iBestEnrollment = null;
             iProblemStudents = new HashSet();
             for (Enumeration e=iStudent.getRequests().elements();e.hasMoreElements();) {
+                if (sTimeOut>0 && (System.currentTimeMillis()-iT0)>sTimeOut) {
+                    if (!iTimeoutReached) {
+                        if (sDebug) sLog.debug("  -- timeout reached");
+                        iTimeoutReached=true; 
+                    }
+                    break;
+                }
                 Request request = (Request)e.nextElement();
                 if (request.getAssignment()!=null) continue;
                 if (!iStudent.canAssign(request)) continue;
                 if (sDebug) sLog.debug("  -- checking request "+request);
                 
                 for (Iterator i=request.values().iterator();i.hasNext();) {
+                    if (sTimeOut>0 && (System.currentTimeMillis()-iT0)>sTimeOut) {
+                        if (!iTimeoutReached) {
+                            if (sDebug) sLog.debug("  -- timeout reached");
+                            iTimeoutReached=true; 
+                        }
+                        break;
+                    }
                     Enrollment enrollment = (Enrollment)i.next();
                     if (sDebug) sLog.debug("      -- enrollment "+enrollment);
                     Set conflicts = iStudent.getModel().conflictValues(enrollment);
@@ -92,6 +108,10 @@ public class SwapStudentsEnrollmentSelection implements ValueSelection {
             return new MultiValue(iStudent, assignment);
         }
         
+        public boolean isTimeoutReached() {
+            return iTimeoutReached;
+        }
+
         public long getTime() {
             return iT1 - iT0;
         }
