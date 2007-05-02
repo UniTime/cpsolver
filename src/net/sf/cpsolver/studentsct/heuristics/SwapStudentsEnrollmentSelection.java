@@ -77,6 +77,7 @@ public class SwapStudentsEnrollmentSelection implements ValueSelection {
                     Enrollment enrollment = (Enrollment)f.nextElement();
                     if (sDebug) sLog.debug("      -- enrollment "+enrollment);
                     Set conflicts = iStudent.getModel().conflictValues(enrollment);
+                    if (conflicts.contains(enrollment)) continue;
                     double value = enrollment.toDouble();
                     boolean unresolvedConflict = false;
                     for (Iterator j=conflicts.iterator();j.hasNext();) {
