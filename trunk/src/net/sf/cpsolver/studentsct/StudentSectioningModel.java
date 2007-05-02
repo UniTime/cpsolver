@@ -74,7 +74,7 @@ public class StudentSectioningModel extends Model {
             } else valCurrent += variable.getAssignment().toDouble();
         }
 		*/
-        valCurrent += -1000 * nrComplete();
+        //valCurrent += -100.0 * nrComplete();
         return valCurrent;
     }
     
