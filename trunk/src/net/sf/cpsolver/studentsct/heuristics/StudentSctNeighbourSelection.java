@@ -98,12 +98,13 @@ public class StudentSctNeighbourSelection implements NeighbourSelection {
                 if (solution.getModel().unassignedVariables().isEmpty() || solution.getIteration()>=iIteration+10*solution.getModel().countVariables()) {
                     iPhase++;
                 } else {
-                    Request request = (Request)ToolBox.random(solution.getModel().unassignedVariables());
-                    Enrollment enrollment = (request==null?null:(Enrollment)iValueSelection.selectValue(solution, request));
-                    if (enrollment!=null) {
-                        return new SimpleNeighbour(request, enrollment);
-                    } else
-                        iPhase++;
+                    for (int i=0;i<10;i++) {
+                        Request request = (Request)ToolBox.random(solution.getModel().unassignedVariables());
+                        Enrollment enrollment = (request==null?null:(Enrollment)iValueSelection.selectValue(solution, request));
+                        if (enrollment!=null && !enrollment.variable().getModel().conflictValues(enrollment).contains(enrollment))
+                            return new SimpleNeighbour(request, enrollment);
+                    }
+                    iPhase++;
                 }
             }
             
@@ -180,12 +181,13 @@ public class StudentSctNeighbourSelection implements NeighbourSelection {
                         if (points>0)
                             roulette.add(request, points);
                     }
-                    Request request = (Request)roulette.select();
-                    Enrollment enrollment = (request==null?null:(Enrollment)iValueSelection.selectValue(solution, request));
-                    if (enrollment!=null) {
-                        return new SimpleNeighbour(request, enrollment);
-                    } else
-                        iPhase++;
+                    for (int i=0;i<10;i++) {
+                        Request request = (Request)roulette.select();
+                        Enrollment enrollment = (request==null?null:(Enrollment)iValueSelection.selectValue(solution, request));
+                        if (enrollment!=null && !enrollment.variable().getModel().conflictValues(enrollment).contains(enrollment))
+                            return new SimpleNeighbour(request, enrollment);
+                    }
+                    iPhase++;
                 }
             }
             
