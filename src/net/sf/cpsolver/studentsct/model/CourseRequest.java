@@ -72,7 +72,7 @@ public class CourseRequest extends Request {
                 Section section = (Section)e.nextElement();
                 if (section.getParent()!=null && !sections.contains(section.getParent())) continue;
                 if (section.isOverlapping(sections)) continue;
-                if (avaiableOnly && section.getEnrollments().size()>=section.getLimit()) continue;
+                if (avaiableOnly && section.getLimit()>=0 && section.getEnrollmentWeight(this)>=section.getLimit()) continue;
                 if (selectedOnly && !isSelected(section)) continue;
                 if (skipSameTime && section.getTime()!=null && !times.add(section.getTime()) && !isSelected(section) && !isWaitlisted(section)) continue;
                 sections.add(section);

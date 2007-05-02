@@ -123,7 +123,7 @@ public class Section implements Assignment, Comparable {
     }
     
     public String toString() {
-        return getLongName()+" (L:"+getLimit()+",P:"+sDF.format(getPenalty())+")";
+        return getLongName()+" (L:"+(getLimit()<0?"unlimited":""+getLimit())+(getPenalty()==0.0?"":",P:"+sDF.format(getPenalty()))+")";
     }
     
     public Choice getChoice() {
