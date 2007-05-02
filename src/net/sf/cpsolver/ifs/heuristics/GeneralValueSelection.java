@@ -156,6 +156,8 @@ public class GeneralValueSelection implements ValueSelection {
                 continue;
             
             Collection conf = solution.getModel().conflictValues(value);
+            if (conf.contains(value)) continue;
+            
             double weightedConflicts = (iStat == null || iWeightCoflicts == 0.0 ? 0.0 : iStat.countRemovals(solution.getIteration(), conf, value));
             double potentialConflicts = (iStat == null || iWeightPotentialConflicts == 0.0 ? 0.0 : iStat.countPotentialConflicts(solution.getIteration(), value, 3));
             
