@@ -24,6 +24,9 @@ public class SectionLimit extends GlobalConstraint {
             
             Section section = (Section)i.next();
             
+            //unlimited section
+            if (section.getLimit()<0) continue;
+            
             //new enrollment weight
             double enrlWeight = section.getEnrollmentWeight(enrollment.getRequest()) + enrollment.getRequest().getWeight();
             
@@ -78,6 +81,9 @@ public class SectionLimit extends GlobalConstraint {
             
             Section section = (Section)i.next();
             
+            //unlimited section
+            if (section.getLimit()<0) continue;
+
             //new enrollment weight
             double enrlWeight = section.getEnrollmentWeight(enrollment.getRequest()) + enrollment.getRequest().getWeight();
             
