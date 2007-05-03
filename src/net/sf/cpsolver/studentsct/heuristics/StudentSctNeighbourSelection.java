@@ -29,6 +29,7 @@ public class StudentSctNeighbourSelection implements NeighbourSelection {
     private Student iStudent = null;
     private ValueSelection iValueSelection = null;
     private long iIteration = 0;
+    private BacktrackNeighbourSelection iBacktrackNeighbourSelection = null;
     
     public StudentSctNeighbourSelection(DataProperties properties) {
         try {
@@ -36,6 +37,7 @@ public class StudentSctNeighbourSelection implements NeighbourSelection {
             Class valueSelectionClass = Class.forName(valueSelectionClassName);
             Constructor valueSelectionConstructor = valueSelectionClass.getConstructor(new Class[]{DataProperties.class});
             iValueSelection = (ValueSelection)valueSelectionConstructor.newInstance(new Object[] {properties});
+            iBacktrackNeighbourSelection = new BacktrackNeighbourSelection(properties);
         } catch (Exception e) {
             new RuntimeException(e.getMessage(),e);
         }
@@ -46,6 +48,7 @@ public class StudentSctNeighbourSelection implements NeighbourSelection {
         iStudentsEnumeration = iStudents.elements();
         iPhase = 1;
         iValueSelection.init(solver);
+        iBacktrackNeighbourSelection.init(solver);
     }
 
     public Neighbour selectNeighbour(Solution solution) {
@@ -97,6 +100,7 @@ public class StudentSctNeighbourSelection implements NeighbourSelection {
             if (iPhase==3) {
                 if (solution.getModel().unassignedVariables().isEmpty() || solution.getIteration()>=iIteration+10*solution.getModel().countVariables()) {
                     iPhase++;
+                    iIteration = solution.getIteration();
                 } else {
                     for (int i=0;i<10;i++) {
                         Request request = (Request)ToolBox.random(solution.getModel().unassignedVariables());
@@ -105,12 +109,23 @@ public class StudentSctNeighbourSelection implements NeighbourSelection {
                             return new SimpleNeighbour(request, enrollment);
                     }
                     iPhase++;
+                    iIteration = solution.getIteration();
+                }
+            }
+
+            //Phase 4: use backtrack neighbour selection
+            if (iPhase==4) {
+                if (solution.getModel().unassignedVariables().isEmpty() || solution.getIteration()>=iIteration+solution.getModel().countVariables()) {
+                    iPhase++;
+                } else {
+                    Neighbour n = iBacktrackNeighbourSelection.selectNeighbour(solution);
+                    if (n!=null) return n;
+                    iPhase++;
                 }
             }
             
-            
-            //Phase 4: pick a student (one by one) with an incomplete schedule, try to find an improvement, identify problematic students
-            if (iPhase==4) {
+            //Phase 5: pick a student (one by one) with an incomplete schedule, try to find an improvement, identify problematic students
+            if (iPhase==5) {
                 if (iStudent!=null && !iStudent.isComplete()) {
                     SwapStudentsEnrollmentSelection.Selection selection = new SwapStudentsEnrollmentSelection.Selection(iStudent);
                     if (selection.select()!=null)
@@ -131,14 +146,13 @@ public class StudentSctNeighbourSelection implements NeighbourSelection {
                     }
                 }
                 iPhase++;
-                iStudentsEnumeration = new Vector(iProblemStudents).elements();
-                iIteration = solution.getIteration();
             }
             
-            //Phase 5: unassignment of all problematic students
-            if (iPhase==5) {
-                while (iStudentsEnumeration.hasMoreElements()) {
-                    Student student = (Student)iStudentsEnumeration.nextElement();
+            //Phase 6: random unassignment of some problematic students
+            if (iPhase==6) {
+                if (!iProblemStudents.isEmpty() && Math.random()<0.9) {
+                    Student student = (Student)ToolBox.random(iProblemStudents);
+                    iProblemStudents.remove(student);
                     return new N3(student);
                 }
                 iPhase++;
@@ -147,11 +161,11 @@ public class StudentSctNeighbourSelection implements NeighbourSelection {
                 iIteration = solution.getIteration();
             }
             
-            //Phase 6: resection incomplete students 
-            if (iPhase==6) {
+            //Phase 7: resection incomplete students 
+            if (iPhase==7) {
                 while (iStudentsEnumeration.hasMoreElements()) {
                     Student student = (Student)iStudentsEnumeration.nextElement();
-                    if (iProblemStudents.contains(student) || student.isComplete()) continue;
+                    if (student.nrAssignedRequests()==0 || student.isComplete()) continue;
                     BranchBoundEnrollmentsSelection.Selection selection = new BranchBoundEnrollmentsSelection.Selection(student);
                     if (selection.select()!=null)
                         return new N1(selection);
@@ -162,8 +176,8 @@ public class StudentSctNeighbourSelection implements NeighbourSelection {
                 iIteration = solution.getIteration();
             }
             
-            //Phase 7: use standard value selection for some time
-            if (iPhase==7) {
+            //Phase 8: use standard value selection for some time
+            if (iPhase==8) {
                 if (solution.getIteration()>=iIteration+10*solution.getModel().countVariables()) {
                     iPhase++;
                 } else {
@@ -191,8 +205,8 @@ public class StudentSctNeighbourSelection implements NeighbourSelection {
                 }
             }
             
-            //Phase 8: random unassignment of some students
-            if (iPhase==8) {
+            //Phase 9: random unassignment of some students
+            if (iPhase==9) {
                 if (Math.random()<0.5) {
                     Student student = (Student)ToolBox.random(iStudents);
                     return new N3(student);
