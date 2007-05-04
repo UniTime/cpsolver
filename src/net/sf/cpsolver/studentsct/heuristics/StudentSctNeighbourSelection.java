@@ -1,6 +1,5 @@
 package net.sf.cpsolver.studentsct.heuristics;
 
-import java.lang.reflect.Constructor;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -8,8 +7,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
 
-import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
-import net.sf.cpsolver.ifs.heuristics.ValueSelection;
+import net.sf.cpsolver.ifs.heuristics.StandardNeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.model.SimpleNeighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
@@ -21,63 +19,74 @@ import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Student;
 
-public class StudentSctNeighbourSelection implements NeighbourSelection {
-    private Vector iStudents = null;
-    private Enumeration iStudentsEnumeration = null;
-    private int iPhase = 0;
-    private Set iProblemStudents = new HashSet();
-    private Student iStudent = null;
-    private ValueSelection iValueSelection = null;
-    private long iIteration = 0;
+public class StudentSctNeighbourSelection extends StandardNeighbourSelection {
+    private int iSelectionIdx = -1;
+    private Vector iSelections = new Vector();
     private BacktrackNeighbourSelection iBacktrackNeighbourSelection = null;
+    private HashSet iProblemStudents = new HashSet();
     
-    public StudentSctNeighbourSelection(DataProperties properties) {
-        try {
-            String valueSelectionClassName = properties.getProperty("Value.Class","net.sf.cpsolver.ifs.heuristics.GeneralValueSelection");
-            Class valueSelectionClass = Class.forName(valueSelectionClassName);
-            Constructor valueSelectionConstructor = valueSelectionClass.getConstructor(new Class[]{DataProperties.class});
-            iValueSelection = (ValueSelection)valueSelectionConstructor.newInstance(new Object[] {properties});
-            iBacktrackNeighbourSelection = new BacktrackNeighbourSelection(properties);
-        } catch (Exception e) {
-            new RuntimeException(e.getMessage(),e);
-        }
+    public StudentSctNeighbourSelection(DataProperties properties) throws Exception {
+        super(properties);
+        iBacktrackNeighbourSelection = new BacktrackNeighbourSelection(properties);
+    }
+    
+    public void registerSelection(Selection selection) {
+        iSelections.add(selection);
     }
     
     public void init(Solver solver) {
-        iStudents = new Vector(((StudentSectioningModel)solver.currentSolution().getModel()).getStudents());
-        iStudentsEnumeration = iStudents.elements();
-        iPhase = 1;
-        iValueSelection.init(solver);
+        super.init(solver);
         iBacktrackNeighbourSelection.init(solver);
+        setup();
     }
 
     public Neighbour selectNeighbour(Solution solution) {
+        if (iSelectionIdx==-1) {
+            iSelectionIdx = 0;
+            ((Selection)iSelections.elementAt(iSelectionIdx)).init(solution);
+        }
         while (true) {
-            //Phase 0: not initialized
-            if (iPhase==0)
-                throw new RuntimeException("Neighbour selection not initialized.");
-            
-            //Phase 1: section all students using incremental branch & bound (no unassignments)
-            if (iPhase==1) {
+            Selection selection = (Selection)iSelections.elementAt(iSelectionIdx);
+            Neighbour neighbour = selection.select(solution);
+            if (neighbour!=null) return neighbour;
+            iSelectionIdx = (1+iSelectionIdx) % iSelections.size();
+            sLogger.debug("Phase changed to "+(iSelectionIdx+1));
+            ((Selection)iSelections.elementAt(iSelectionIdx)).init(solution);
+        }
+    }
+    
+    public void setup() {
+        //Phase 1: section all students using incremental branch & bound (no unassignments)
+        registerSelection(new Selection() {
+            private Enumeration iStudentsEnumeration = null;
+            public void init(Solution solution) {
+                Vector students = new Vector(((StudentSectioningModel)solution.getModel()).getStudents());
+                Collections.shuffle(students);
+                iStudentsEnumeration = students.elements();
+            }
+            public Neighbour select(Solution solution) {
                 while (iStudentsEnumeration.hasMoreElements()) {
                     Student student = (Student)iStudentsEnumeration.nextElement();
                     BranchBoundEnrollmentsSelection.Selection selection = new BranchBoundEnrollmentsSelection.Selection(student);
-                    if (selection.select()!=null)
-                        return new N1(selection);
+                    if (selection.select()!=null) return new N1(selection);
                 }
-                iPhase++;
-                Collections.shuffle(iStudents);
-                iStudentsEnumeration = iStudents.elements();
-                iProblemStudents.clear();
-                iIteration = solution.getIteration();
+                return null;
             }
-            
-            //Phase 2: pick a student (one by one) with an incomplete schedule, try to find an improvement 
-            if (iPhase==2) {
+        });
+        
+        //Phase 2: pick a student (one by one) with an incomplete schedule, try to find an improvement
+        registerSelection(new Selection() {
+            private Student iStudent = null;
+            private Enumeration iStudentsEnumeration = null;
+            public void init(Solution solution) {
+                Vector students = new Vector(((StudentSectioningModel)solution.getModel()).getStudents());
+                Collections.shuffle(students);
+                iStudentsEnumeration = students.elements();
+            }
+            public Neighbour select(Solution solution) {
                 if (iStudent!=null && !iStudent.isComplete()) {
                     SwapStudentsEnrollmentSelection.Selection selection = new SwapStudentsEnrollmentSelection.Selection(iStudent);
-                    if (selection.select()!=null)
-                        return new N2(selection);
+                    if (selection.select()!=null) return new N2(selection);
                 }
                 iStudent = null;
                 while (iStudentsEnumeration.hasMoreElements()) {
@@ -89,48 +98,62 @@ public class StudentSctNeighbourSelection implements NeighbourSelection {
                         return new N2(selection);
                     }
                 }
-                iPhase++;
-                Collections.shuffle(iStudents);
-                iStudentsEnumeration = iStudents.elements();
+                return null;
+            }
+        });
+        
+        //Phase 3: use standard value selection for some time
+        registerSelection(new Selection() {
+            private long iIteration = 0;
+            public void init(Solution solution) {
                 iIteration = solution.getIteration();
             }
-            
-            
-            //Phase 3: use standard value selection for some time
-            if (iPhase==3) {
-                if (solution.getModel().unassignedVariables().isEmpty() || solution.getIteration()>=iIteration+10*solution.getModel().countVariables()) {
-                    iPhase++;
-                    iIteration = solution.getIteration();
-                } else {
-                    for (int i=0;i<10;i++) {
-                        Request request = (Request)ToolBox.random(solution.getModel().unassignedVariables());
-                        Enrollment enrollment = (request==null?null:(Enrollment)iValueSelection.selectValue(solution, request));
-                        if (enrollment!=null && !enrollment.variable().getModel().conflictValues(enrollment).contains(enrollment))
-                            return new SimpleNeighbour(request, enrollment);
-                    }
-                    iPhase++;
-                    iIteration = solution.getIteration();
+            public Neighbour select(Solution solution) {
+                if (solution.getModel().unassignedVariables().isEmpty() || solution.getIteration()>=iIteration+10*solution.getModel().countVariables()) return null;
+                for (int i=0;i<10;i++) {
+                    Request request = (Request)ToolBox.random(solution.getModel().unassignedVariables());
+                    Enrollment enrollment = (request==null?null:(Enrollment)getValueSelection().selectValue(solution, request));
+                    if (enrollment!=null && !enrollment.variable().getModel().conflictValues(enrollment).contains(enrollment))
+                        return new SimpleNeighbour(request, enrollment);
                 }
+                return null;
             }
+        });
 
-            //Phase 4: use backtrack neighbour selection
-            if (iPhase==4) {
-                if (solution.getModel().unassignedVariables().isEmpty() || solution.getIteration()>=iIteration+solution.getModel().countVariables()) {
-                    iPhase++;
-                } else {
-                    Neighbour n = iBacktrackNeighbourSelection.selectNeighbour(solution);
-                    if (n!=null) return n;
-                    iPhase++;
-                }
+        //Phase 4: use backtrack neighbour selection
+        registerSelection(new Selection() {
+            private Enumeration iRequestEnumeration = null;
+            public void init(Solution solution) {
+                Vector unassigned = new Vector(solution.getModel().unassignedVariables());
+                Collections.shuffle(unassigned);
+                iRequestEnumeration = unassigned.elements();
             }
-            
-            //Phase 5: pick a student (one by one) with an incomplete schedule, try to find an improvement, identify problematic students
-            if (iPhase==5) {
+            public Neighbour select(Solution solution) {
+                while (iRequestEnumeration.hasMoreElements()) {
+                    Request request = (Request)iRequestEnumeration.nextElement();
+                    Neighbour n = iBacktrackNeighbourSelection.selectNeighbour(solution, request);
+                    if (n!=null) return n;
+                }
+                return null;
+            }
+        });
+        
+        //Phase 5: pick a student (one by one) with an incomplete schedule, try to find an improvement, identify problematic students
+        registerSelection(new Selection() {
+            private Student iStudent = null;
+            private Enumeration iStudentsEnumeration = null;
+            public void init(Solution solution) {
+                Vector students = new Vector(((StudentSectioningModel)solution.getModel()).getStudents());
+                Collections.shuffle(students);
+                iStudentsEnumeration = students.elements();
+                iProblemStudents.clear();
+            }
+            public Neighbour select(Solution solution) {
                 if (iStudent!=null && !iStudent.isComplete()) {
                     SwapStudentsEnrollmentSelection.Selection selection = new SwapStudentsEnrollmentSelection.Selection(iStudent);
-                    if (selection.select()!=null)
+                    if (selection.select()!=null) 
                         return new N2(selection);
-                    else 
+                    else
                         iProblemStudents.addAll(selection.getProblemStudents());
                 }
                 iStudent = null;
@@ -141,28 +164,36 @@ public class StudentSctNeighbourSelection implements NeighbourSelection {
                     if (selection.select()!=null) {
                         iStudent = student;
                         return new N2(selection);
-                    } else {
+                    } else
                         iProblemStudents.addAll(selection.getProblemStudents());
-                    }
                 }
-                iPhase++;
+                return null;
             }
+        });
             
-            //Phase 6: random unassignment of some problematic students
-            if (iPhase==6) {
+        //Phase 6: random unassignment of some problematic students
+        registerSelection(new Selection() {
+            public void init(Solution solution) {
+            }
+            public Neighbour select(Solution solution) {
                 if (!iProblemStudents.isEmpty() && Math.random()<0.9) {
                     Student student = (Student)ToolBox.random(iProblemStudents);
                     iProblemStudents.remove(student);
                     return new N3(student);
                 }
-                iPhase++;
-                Collections.shuffle(iStudents);
-                iStudentsEnumeration = iStudents.elements();
-                iIteration = solution.getIteration();
+                return null;
             }
-            
-            //Phase 7: resection incomplete students 
-            if (iPhase==7) {
+        });
+        
+        //Phase 7: resection incomplete students 
+        registerSelection(new Selection() {
+            private Enumeration iStudentsEnumeration = null;
+            public void init(Solution solution) {
+                Vector students = new Vector(((StudentSectioningModel)solution.getModel()).getStudents());
+                Collections.shuffle(students);
+                iStudentsEnumeration = students.elements();
+            }
+            public Neighbour select(Solution solution) {
                 while (iStudentsEnumeration.hasMoreElements()) {
                     Student student = (Student)iStudentsEnumeration.nextElement();
                     if (student.nrAssignedRequests()==0 || student.isComplete()) continue;
@@ -170,53 +201,56 @@ public class StudentSctNeighbourSelection implements NeighbourSelection {
                     if (selection.select()!=null)
                         return new N1(selection);
                 }
-                iPhase++;
-                Collections.shuffle(iStudents);
-                iStudentsEnumeration = iStudents.elements();
+                return null;
+            }
+        });
+           
+        //Phase 8: use standard value selection for some time
+        registerSelection(new Selection() {
+            private long iIteration = 0;
+            public void init(Solution solution) {
                 iIteration = solution.getIteration();
             }
-            
-            //Phase 8: use standard value selection for some time
-            if (iPhase==8) {
-                if (solution.getIteration()>=iIteration+10*solution.getModel().countVariables()) {
-                    iPhase++;
-                } else {
-                    RouletteWheelSelection roulette = new RouletteWheelSelection();
-                    for (Enumeration e=solution.getModel().variables().elements();e.hasMoreElements();) {
-                        Request request = (Request)e.nextElement();
-                        double points = 0;
-                        if (request.getAssignment()==null)
-                            points +=10;
-                        else {
-                            Enrollment enrollment = (Enrollment)request.getAssignment();
-                            if (enrollment.toDouble()>request.getBound())
-                                points +=1;
-                        }
-                        if (points>0)
-                            roulette.add(request, points);
+            public Neighbour select(Solution solution) {
+                if (solution.getIteration()>=iIteration+10*solution.getModel().countVariables()) return null;
+                RouletteWheelSelection roulette = new RouletteWheelSelection();
+                for (Enumeration e=solution.getModel().variables().elements();e.hasMoreElements();) {
+                    Request request = (Request)e.nextElement();
+                    double points = 0;
+                    if (request.getAssignment()==null)
+                        points +=10;
+                    else {
+                        Enrollment enrollment = (Enrollment)request.getAssignment();
+                        if (enrollment.toDouble()>request.getBound())
+                            points +=1;
                     }
-                    for (int i=0;i<10;i++) {
-                        Request request = (Request)roulette.select();
-                        Enrollment enrollment = (request==null?null:(Enrollment)iValueSelection.selectValue(solution, request));
-                        if (enrollment!=null && !enrollment.variable().getModel().conflictValues(enrollment).contains(enrollment))
-                            return new SimpleNeighbour(request, enrollment);
-                    }
-                    iPhase++;
+                    if (points>0)
+                        roulette.add(request, points);
                 }
+                for (int i=0;i<10;i++) {
+                    Request request = (Request)roulette.select();
+                    Enrollment enrollment = (request==null?null:(Enrollment)getValueSelection().selectValue(solution, request));
+                    if (enrollment!=null && !enrollment.variable().getModel().conflictValues(enrollment).contains(enrollment))
+                        return new SimpleNeighbour(request, enrollment);
+                }
+                return null;
             }
-            
-            //Phase 9: random unassignment of some students
-            if (iPhase==9) {
+        });
+        
+        //Phase 9: random unassignment of some students
+        registerSelection(new Selection() {
+            private Vector iStudents = null;
+            public void init(Solution solution) {
+                iStudents = ((StudentSectioningModel)solution.getModel()).getStudents();
+            }
+            public Neighbour select(Solution solution) {
                 if (Math.random()<0.5) {
                     Student student = (Student)ToolBox.random(iStudents);
                     return new N3(student);
-                } else {
-                    iPhase++;
                 }
+                return null;
             }
-            
-            iPhase = 1;
-        }
+        });
     }
     
     public static class N1 extends Neighbour {
@@ -332,5 +366,10 @@ public class StudentSctNeighbourSelection implements NeighbourSelection {
             }
             return iAdepts.lastElement();
         }
+    }
+    
+    public static interface Selection {
+        public Neighbour select(Solution solution); 
+        public void init(Solution solutions);
     }
 }
