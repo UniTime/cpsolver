@@ -22,12 +22,12 @@ import net.sf.cpsolver.studentsct.model.Student;
 public class StudentSctNeighbourSelection extends StandardNeighbourSelection {
     private int iSelectionIdx = -1;
     private Vector iSelections = new Vector();
-    private BacktrackNeighbourSelection iBacktrackNeighbourSelection = null;
+    private RandomizedBacktrackNeighbourSelection iRBtNSel = null;
     private HashSet iProblemStudents = new HashSet();
     
     public StudentSctNeighbourSelection(DataProperties properties) throws Exception {
         super(properties);
-        iBacktrackNeighbourSelection = new BacktrackNeighbourSelection(properties);
+        iRBtNSel = new RandomizedBacktrackNeighbourSelection(properties);
     }
     
     public void registerSelection(Selection selection) {
@@ -36,7 +36,7 @@ public class StudentSctNeighbourSelection extends StandardNeighbourSelection {
     
     public void init(Solver solver) {
         super.init(solver);
-        iBacktrackNeighbourSelection.init(solver);
+        iRBtNSel.init(solver);
         setup();
     }
 
@@ -131,7 +131,7 @@ public class StudentSctNeighbourSelection extends StandardNeighbourSelection {
             public Neighbour select(Solution solution) {
                 while (iRequestEnumeration.hasMoreElements()) {
                     Request request = (Request)iRequestEnumeration.nextElement();
-                    Neighbour n = iBacktrackNeighbourSelection.selectNeighbour(solution, request);
+                    Neighbour n = iRBtNSel.selectNeighbour(solution, request);
                     if (n!=null) return n;
                 }
                 return null;
