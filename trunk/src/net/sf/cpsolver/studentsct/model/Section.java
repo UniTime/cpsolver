@@ -51,6 +51,7 @@ public class Section implements Assignment, Comparable {
     private HashSet iEnrollments = new HashSet();
     private Choice iChoice = null;
     private double iPenalty = 0.0;
+    private double iEnrollmentWeight = 0.0;
     
     /** Constructor
      * @param id section unique id
@@ -154,11 +155,13 @@ public class Section implements Assignment, Comparable {
     /** Called when an enrollment with this section is assigned to a request */
     public void assigned(Enrollment enrollment) {
         iEnrollments.add(enrollment);
+        iEnrollmentWeight += enrollment.getRequest().getWeight();
     }
     
     /** Called when an enrollment with this section is unassigned from a request */
     public void unassigned(Enrollment enrollment) {
         iEnrollments.remove(enrollment);
+        iEnrollmentWeight -= enrollment.getRequest().getWeight();
     }
     
     /** Set of assigned enrollments */
@@ -169,6 +172,11 @@ public class Section implements Assignment, Comparable {
     /** Enrollment weight -- weight of all requests which have an enrollment that contains this
      * section, excluding the given one. See {@link Request#getWeight()}.*/
     public double getEnrollmentWeight(Request excludeRequest) {
+        double weight = iEnrollmentWeight;
+        if (excludeRequest!=null && excludeRequest.getAssignment()!=null && iEnrollments.contains(excludeRequest.getAssignment()))
+            weight -= excludeRequest.getWeight();
+        return weight;
+        /*
         double weight = 0.0;
         for (Iterator i=iEnrollments.iterator();i.hasNext();) {
             Enrollment enrollment = (Enrollment)i.next();
@@ -177,6 +185,7 @@ public class Section implements Assignment, Comparable {
             weight += enrollment.getRequest().getWeight();
         }
         return weight;
+        */
     }
     
     /** Long name: subpart name + time long name + room names + instructor names */
