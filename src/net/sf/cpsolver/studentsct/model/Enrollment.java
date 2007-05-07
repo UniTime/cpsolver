@@ -14,7 +14,8 @@ public class Enrollment extends Value {
     private Config iConfig = null;
     private Set iAssignments = null;
     private Double iPenalty = null;
-    
+    private Double iCachedDoubleValue = null;
+
     public static double sPriorityWeight = 0.90;
     public static double sAlterativeWeight = 1.0;
     public static double sInitialWeight = 1.2;
@@ -130,16 +131,20 @@ public class Enrollment extends Value {
     }
 
     public double toDouble() {
-        return 
-            -iValue * 
-            Math.pow(sPriorityWeight,getRequest().getPriority()) * 
-            (getRequest().isAlternative()?sAlterativeWeight:1.0) *
-            Math.pow(sInitialWeight,percentInitial()) *
-            Math.pow(sSelectedWeight,percentSelected()) * 
-            Math.pow(sWaitlistedWeight,percentWaitlisted()) *
-            getRequest().getWeight() * 
-            (getStudent().isDummy()?Student.sDummyStudentWeight:1.0) *
-            (100.0/(100.0+getPenalty()));
+        if (iCachedDoubleValue==null) {
+            iCachedDoubleValue = new Double(
+                    -iValue * 
+                    Math.pow(sPriorityWeight,getRequest().getPriority()) * 
+                    (getRequest().isAlternative()?sAlterativeWeight:1.0) *
+                    Math.pow(sInitialWeight,percentInitial()) *
+                    Math.pow(sSelectedWeight,percentSelected()) * 
+                    Math.pow(sWaitlistedWeight,percentWaitlisted()) *
+                    getRequest().getWeight() * 
+                    (getStudent().isDummy()?Student.sDummyStudentWeight:1.0) *
+                    (100.0/(100.0+getPenalty()))
+            );
+        }
+        return iCachedDoubleValue.doubleValue();
     }
     
     public String getName() {
