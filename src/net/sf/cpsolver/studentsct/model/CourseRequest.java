@@ -14,6 +14,7 @@ public class CourseRequest extends Request {
     private Set iWaitlistedChoices = new HashSet();
     private Set iSelectedChoices = new HashSet();
     private boolean iWaitlist = false;
+    private Double iCachedBound = null;
     
     public static double sAltValue = 0.5;
     
@@ -212,15 +213,19 @@ public class CourseRequest extends Request {
         }
         return null;
     }
-
+    
     public double getBound() {
-        return 
-            - Math.pow(Enrollment.sPriorityWeight,getPriority()) * 
-            (isAlternative()?Enrollment.sAlterativeWeight:1.0) *
-            Math.pow(Enrollment.sInitialWeight,(getInitialAssignment()==null?0:1)) *
-            Math.pow(Enrollment.sSelectedWeight,(iSelectedChoices.isEmpty()?0:1)) * 
-            Math.pow(Enrollment.sWaitlistedWeight,(iWaitlistedChoices.isEmpty()?0:1)) *
-            getWeight() * 
-            (getStudent().isDummy()?Student.sDummyStudentWeight:1.0);
+        if (iCachedBound==null) {
+            iCachedBound = new Double(
+                    - Math.pow(Enrollment.sPriorityWeight,getPriority()) * 
+                    (isAlternative()?Enrollment.sAlterativeWeight:1.0) *
+                    Math.pow(Enrollment.sInitialWeight,(getInitialAssignment()==null?0:1)) *
+                    Math.pow(Enrollment.sSelectedWeight,(iSelectedChoices.isEmpty()?0:1)) * 
+                    Math.pow(Enrollment.sWaitlistedWeight,(iWaitlistedChoices.isEmpty()?0:1)) *
+                    getWeight() * 
+                    (getStudent().isDummy()?Student.sDummyStudentWeight:1.0)
+             );
+        }
+        return iCachedBound.doubleValue();
     }
 }
