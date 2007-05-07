@@ -20,8 +20,8 @@ import net.sf.cpsolver.ifs.util.DataProperties;
 
 public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
     private static Logger sLog = Logger.getLogger(BacktrackNeighbourSelection.class);
-	private int iBackTrackTimeout = 1000;
-	private int iBackTrackDepth = 4;
+	private int iTimeout = 1000;
+	private int iDepth = 4;
     public static boolean sDebug = false;
 	
 	private Solution iSolution = null;
@@ -33,8 +33,8 @@ public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
 	
 	public BacktrackNeighbourSelection(DataProperties properties) throws Exception {
 		super(properties);
-		iBackTrackTimeout = properties.getPropertyInt("Neighbour.BackTrackTimeout", iBackTrackTimeout);
-		iBackTrackDepth = properties.getPropertyInt("Neighbour.BackTrackDepth", iBackTrackDepth);
+		iTimeout = properties.getPropertyInt("Neighbour.BackTrackTimeout", iTimeout);
+		iDepth = properties.getPropertyInt("Neighbour.BackTrackDepth", iDepth);
 	}
 	
 	public BacktrackNeighbourSelection(Solver solver) throws Exception {
@@ -66,7 +66,7 @@ public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
             
             Vector variables2resolve = new Vector(1); 
             variables2resolve.add(variable);
-            backtrack(variables2resolve, 0, iBackTrackDepth);
+            backtrack(variables2resolve, 0, iDepth);
             
             if (sDebug) sLog.debug("-- after  BT ("+variable.getName()+"): nrAssigned="+iSolution.getModel().assignedVariables().size()+",  value="+iSolution.getModel().getTotalValue());
         }
@@ -89,9 +89,15 @@ public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
     	}
     	return false;
     }    
+    
+    protected Vector values(Variable variable) {
+        return variable.values();
+    }
 
     private void backtrack(Vector variables2resolve, int idx, int depth) {
         if (sDebug) sLog.debug("  -- bt["+depth+"]: "+idx+" of "+variables2resolve.size()+" "+variables2resolve);
+        if (!iTimeoutReached && iTimeout>0 && System.currentTimeMillis()-iT0>iTimeout)
+            iTimeoutReached = true;
         int nrUnassigned = variables2resolve.size()-idx;
         if (nrUnassigned==0) {
             if (sDebug) sLog.debug("    -- all assigned");
@@ -108,14 +114,13 @@ public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
             if (sDebug) sLog.debug("    -- depth reached");
             return;
         }
-        if (iBackTrackTimeout>0 && System.currentTimeMillis()-iT0>iBackTrackTimeout) {
+        if (iTimeoutReached) {
             if (sDebug) sLog.debug("    -- timeout reached");
-            iTimeoutReached = true;
             return;
         }
         Variable variable = (Variable)variables2resolve.elementAt(idx);
         if (sDebug) sLog.debug("    -- variable "+variable);
-        for (Enumeration e=variable.values().elements();e.hasMoreElements();) {
+        for (Enumeration e=values(variable).elements();!iTimeoutReached && e.hasMoreElements();) {
             Value value = (Value)e.nextElement();
             if (value.equals(variable.getAssignment())) continue;
             if (sDebug) sLog.debug("      -- value "+value);
@@ -157,11 +162,6 @@ public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
             for (Iterator i=conflicts.iterator();i.hasNext();) {
                 Value conflict = (Value)i.next();
                 conflict.variable().assign(0, conflict);
-            }
-            if (iBackTrackTimeout>0 && System.currentTimeMillis()-iT0>iBackTrackTimeout) {
-                if (sDebug) sLog.debug("    -- timeout reached");
-                iTimeoutReached = true;
-                return;
             }
         }
     }
