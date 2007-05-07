@@ -34,25 +34,16 @@ public class SectionLimit extends GlobalConstraint {
             //below limit -> ok
             if (enrlWeight-sDelta<=section.getLimit()) continue;
             
-            //exclude all conflicts
-            for (Iterator j=conflicts.iterator();j.hasNext();) {
-                Enrollment conflict = (Enrollment)j.next();
-                if (conflict.getRequest().equals(enrollment.getRequest()))
-                    continue;
-                if (conflict.getAssignments().contains(section))
-                    enrlWeight -= conflict.getRequest().getWeight();
-            }
-            
-            //below limit -> ok
-            if (enrlWeight-sDelta<=section.getLimit()) continue;
-
             //above limit -> compute adepts (current assignments that are not yet conflicting)
-            Vector adepts = new Vector();
+            //exclude all conflicts as well
+            Vector adepts = new Vector(section.getEnrollments().size());
             for (Iterator j=section.getEnrollments().iterator();j.hasNext();) {
                 Enrollment e = (Enrollment)j.next();
-                if (conflicts.contains(e) || e.getRequest().equals(enrollment.getRequest()))
-                    continue;
-                adepts.addElement(e);
+                if (e.getRequest().equals(enrollment.getRequest())) continue;
+                if (conflicts.contains(e))
+                    enrlWeight -= e.getRequest().getWeight();
+                else
+                    adepts.addElement(e);
             }
             
             //while above limit -> pick an adept and make it conflicting
