@@ -17,6 +17,7 @@ import net.sf.cpsolver.studentsct.model.Student;
 public class StudentSectioningModel extends Model {
     private Vector iStudents = new Vector();
     private HashSet iCompleteStudents = new HashSet();
+    private double iTotalValue = 0.0;
     
     public StudentSectioningModel() {
         super();
@@ -65,17 +66,8 @@ public class StudentSectioningModel extends Model {
     }
     
     public double getTotalValue() {
-        double valCurrent = super.getTotalValue();
-        /*
-        for (Enumeration e=assignedVariables().elements();e.hasMoreElements();) {
-            Variable variable = (Variable)e.nextElement();
-            if (variable.getAssignment()==null) {
-                throw new RuntimeException("Variable "+variable+" not assigned.");
-            } else valCurrent += variable.getAssignment().toDouble();
-        }
-		*/
-        //valCurrent += -100.0 * nrComplete();
-        return valCurrent;
+        return iTotalValue;
+        //return super.getTotalValue();
     }
     
     public void afterAssigned(long iteration, Value value) {
@@ -84,6 +76,7 @@ public class StudentSectioningModel extends Model {
         Student student = enrollment.getStudent();
         if (student.isComplete())
             iCompleteStudents.add(student);
+        iTotalValue += value.toDouble();
     }
     
     public void afterUnassigned(long iteration, Value value) {
@@ -92,5 +85,6 @@ public class StudentSectioningModel extends Model {
         Student student = enrollment.getStudent();
         if (iCompleteStudents.contains(student) && !student.isComplete())
             iCompleteStudents.remove(student);
+        iTotalValue -= value.toDouble();
     }
 }
