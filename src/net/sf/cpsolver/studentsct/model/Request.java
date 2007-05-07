@@ -42,7 +42,7 @@ public abstract class Request extends Variable implements Comparable {
     private Student iStudent = null;
     private double iWeight = 1.0;
     /** True means that method {@link Request#values()} will cache its results. */ 
-    public static boolean sCacheValues = true;
+    public static boolean sCacheValues = false;
 
     /** Constructor
      * @param id course/free time request unique id
