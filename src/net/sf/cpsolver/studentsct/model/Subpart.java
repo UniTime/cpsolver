@@ -103,6 +103,8 @@ public class Subpart implements Comparable {
         Subpart s = (Subpart)o;
         if (isParentOf(s)) return -1;
         if (s.isParentOf(this)) return 1;
+        int cmp = getInstructionalType().compareTo(s.getInstructionalType());
+        if (cmp!=0) return cmp;
         return Double.compare(getId(),s.getId());
     }
     
