@@ -43,12 +43,14 @@ public class Subpart implements Comparable {
      * @param itype instructional type
      * @param name subpart name
      * @param config instructional offering configuration to which this subpart belongs
+     * @param parent parent subpart, if parent-child relation is defined between subparts
      */
-    public Subpart(long id, String itype, String name, Config config) {
+    public Subpart(long id, String itype, String name, Config config, Subpart parent) {
         iId = id;
         iInstructionalType = itype;
         iName = name;
         iConfig = config;
+        iParent = parent;
         iConfig.getSubparts().add(this);
     }
     
@@ -80,11 +82,6 @@ public class Subpart implements Comparable {
     /** Parent subpart, if parent-child relation is defined between subparts */
     public Subpart getParent() {
         return iParent;
-    }
-    
-    /** Set parent subpart, if parent-child relation is defined between subparts */
-    public void setParent(Subpart parent) {
-        iParent = parent;
     }
     
     public String toString() {
