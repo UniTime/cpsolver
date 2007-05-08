@@ -51,7 +51,7 @@ public class Subpart implements Comparable {
         iName = name;
         iConfig = config;
         iParent = parent;
-        iConfig.getSubparts().add(this);
+        iConfig.getSubparts().addElement(this);
     }
     
     /** Subpart id  */

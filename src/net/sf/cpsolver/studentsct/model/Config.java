@@ -1,6 +1,6 @@
 package net.sf.cpsolver.studentsct.model;
 
-import java.util.TreeSet;
+import java.util.Vector;
 
 /**
  * Representation of a configuration of an offering. A configuration contains id, name, an offering and a list of subparts.
@@ -35,7 +35,7 @@ public class Config {
     private long iId = -1;
     private String iName = null;
     private Offering iOffering = null;
-    private TreeSet iSubparts = new TreeSet();
+    private Vector iSubparts = new Vector();
     
     /** Constructor
      * @param id instructional offering configuration unique id 
@@ -65,7 +65,7 @@ public class Config {
     }
     
     /** List of subparts */
-    public TreeSet getSubparts() {
+    public Vector getSubparts() {
         return iSubparts;
     }
     
