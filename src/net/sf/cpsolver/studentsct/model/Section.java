@@ -40,7 +40,7 @@ import net.sf.cpsolver.coursett.model.TimeLocation;
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
-public class Section implements Assignment {
+public class Section implements Assignment, Comparable {
     private static DecimalFormat sDF = new DecimalFormat("0.000");
     private long iId = -1;
     private String iName = null;
@@ -209,5 +209,16 @@ public class Section implements Assignment {
     /** Set penalty which is added to an enrollment that contains this section. */
     public void setPenalty(double penalty) {
         iPenalty = penalty;
+    }
+    
+    /** Compare two sections, prefer sections with lower penalty and more open space*/
+    public int compareTo(Object o) {
+        if (o==null || !(o instanceof Section)) return -1;
+        Section s = (Section)o;
+        int cmp = Double.compare(getPenalty(),s.getPenalty());
+        if (cmp!=0) return cmp;
+        cmp = Double.compare(getLimit()-getEnrollmentWeight(null),s.getLimit()-s.getEnrollmentWeight(null));
+        if (cmp!=0) return cmp;
+        return Double.compare(getId(),s.getId());
     }
 }
