@@ -11,8 +11,6 @@ import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Section;
 
 public class SectionLimit extends GlobalConstraint {
-    public static double sDelta = 0.5;
-    
     public void computeConflicts(Value value, Set conflicts) {
         //get enrollment
         Enrollment enrollment = (Enrollment)value;
@@ -29,10 +27,10 @@ public class SectionLimit extends GlobalConstraint {
             if (section.getLimit()<0) continue;
             
             //new enrollment weight
-            double enrlWeight = section.getEnrollmentWeight(enrollment.getRequest()) + enrollment.getRequest().getWeight();
+            double enrlWeight = section.getEnrollmentWeight(enrollment.getRequest()) + Math.min(1.0,enrollment.getRequest().getWeight()/2.0);
             
             //below limit -> ok
-            if (enrlWeight-sDelta<=section.getLimit()) continue;
+            if (enrlWeight<=section.getLimit()) continue;
             
             //above limit -> compute adepts (current assignments that are not yet conflicting)
             //exclude all conflicts as well
@@ -47,7 +45,7 @@ public class SectionLimit extends GlobalConstraint {
             }
             
             //while above limit -> pick an adept and make it conflicting
-            while (enrlWeight-sDelta>section.getLimit()) {
+            while (enrlWeight>section.getLimit()) {
                 //no adepts -> enrollment cannot be assigned
                 if (adepts.isEmpty()) {
                     conflicts.add(enrollment); break;
@@ -77,10 +75,10 @@ public class SectionLimit extends GlobalConstraint {
             if (section.getLimit()<0) continue;
 
             //new enrollment weight
-            double enrlWeight = section.getEnrollmentWeight(enrollment.getRequest()) + enrollment.getRequest().getWeight();
+            double enrlWeight = section.getEnrollmentWeight(enrollment.getRequest()) + Math.min(1.0,enrollment.getRequest().getWeight()/2.0);
             
             //above limit -> conflict
-            if (enrlWeight-sDelta>section.getLimit()) return true;
+            if (enrlWeight>section.getLimit()) return true;
         }
         
         //no conflicting section -> no conflict
