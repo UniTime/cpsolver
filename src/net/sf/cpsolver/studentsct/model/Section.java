@@ -61,14 +61,18 @@ public class Section implements Assignment, Comparable {
      * @param placement time/room placement
      * @param instructorIds instructor(s) id -- needed for {@link Section#getChoice()}
      * @param instructorNames instructor(s) name -- needed for {@link Section#getChoice()}
+     * @param parent parent section -- if there is a parent section defined, a student that is enrolled in this
+     * section has to be enrolled in the parent section as well. Also, the same relation needs to be defined between subpart of 
+     * this section and the subpart of the parent section
      */
-    public Section(long id, int limit, String name, Subpart subpart, Placement placement, String instructorIds, String instructorNames) {
+    public Section(long id, int limit, String name, Subpart subpart, Placement placement, String instructorIds, String instructorNames, Section parent) {
         iId = id;
         iLimit = limit;
         iName = name;
         iSubpart = subpart; 
         iSubpart.getSections().add(this);
         iPlacement = placement;
+        iParent = parent;
         iChoice = new Choice(getSubpart().getConfig().getOffering(),getSubpart().getInstructionalType(), getTime(), instructorIds, instructorNames);
     }
     
@@ -101,14 +105,6 @@ public class Section implements Assignment, Comparable {
         return iParent;
     }
     
-    /** Define parent section. If there is a parent section defined, a student that is enrolled in this
-     * section has to be enrolled in the parent section as well. Also, the same relation needs to be defined between subpart of 
-     * this section and the subpart of the parent section. 
-     */
-    public void setParent(Section parent) {
-        iParent = parent;
-    }
-
     /** Time/room placement of the section. This can be null, for arranged sections. */
     public Placement getPlacement() {
         return iPlacement;
