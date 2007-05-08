@@ -2,7 +2,6 @@ package net.sf.cpsolver.studentsct.model;
 
 import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Vector;
 
 /**
@@ -69,8 +68,8 @@ public class Offering {
     public Section getSection(long sectionId) {
         for (Enumeration e=getConfigs().elements();e.hasMoreElements();) {
             Config config = (Config)e.nextElement();
-            for (Iterator f=config.getSubparts().iterator();f.hasNext();) {
-                Subpart subpart = (Subpart)f.next();
+            for (Enumeration f=config.getSubparts().elements();f.hasMoreElements();) {
+                Subpart subpart = (Subpart)f.nextElement();
                 for (Enumeration g=subpart.getSections().elements();g.hasMoreElements();) {
                     Section section = (Section)g.nextElement();
                     if (section.getId()==sectionId)
@@ -104,8 +103,8 @@ public class Offering {
         HashSet instructionalTypes = new HashSet();
         for (Enumeration e=getConfigs().elements();e.hasMoreElements();) {
             Config config = (Config)e.nextElement();
-            for (Iterator f=config.getSubparts().iterator();f.hasNext();) {
-                Subpart subpart = (Subpart)f.next();
+            for (Enumeration f=config.getSubparts().elements();f.hasMoreElements();) {
+                Subpart subpart = (Subpart)f.nextElement();
                 instructionalTypes.add(subpart.getInstructionalType());
             }
         }
@@ -117,8 +116,8 @@ public class Offering {
         HashSet choices = new HashSet();
         for (Enumeration e=getConfigs().elements();e.hasMoreElements();) {
             Config config = (Config)e.nextElement();
-            for (Iterator f=config.getSubparts().iterator();f.hasNext();) {
-                Subpart subpart = (Subpart)f.next();
+            for (Enumeration f=config.getSubparts().elements();f.hasMoreElements();) {
+                Subpart subpart = (Subpart)f.nextElement();
                 if (!instructionalType.equals(subpart.getInstructionalType())) continue;
                 choices.addAll(subpart.getChoices());
             }
@@ -131,8 +130,8 @@ public class Offering {
         HashSet subparts = new HashSet();
         for (Enumeration e=getConfigs().elements();e.hasMoreElements();) {
             Config config = (Config)e.nextElement();
-            for (Iterator f=config.getSubparts().iterator();f.hasNext();) {
-                Subpart subpart = (Subpart)f.next();
+            for (Enumeration f=config.getSubparts().elements();f.hasMoreElements();) {
+                Subpart subpart = (Subpart)f.nextElement();
                 if (instructionalType.equals(subpart.getInstructionalType())) 
                     subparts.add(subpart);
             }

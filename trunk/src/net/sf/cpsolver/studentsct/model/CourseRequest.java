@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.Vector;
@@ -59,7 +58,7 @@ public class CourseRequest extends Request {
         if (config.getSubparts().size()==idx) {
             enrollments.add(new Enrollment(this, value, config, new HashSet(sections)));
         } else {
-            Subpart subpart = (Subpart)config.getSubparts().toArray()[idx];
+            Subpart subpart = (Subpart)config.getSubparts().elementAt(idx);
             HashSet times = (skipSameTime?new HashSet():null);
             Vector sectionsThisSubpart = subpart.getSections();
             if (random) {
@@ -187,8 +186,8 @@ public class CourseRequest extends Request {
             Course course = (Course)e.nextElement();
             for (Enumeration f=course.getOffering().getConfigs().elements();f.hasMoreElements();) {
                 Config config = (Config)f.nextElement();
-                for (Iterator i=config.getSubparts().iterator();i.hasNext();) {
-                    Subpart subpart = (Subpart)i.next();
+                for (Enumeration i=config.getSubparts().elements();i.hasMoreElements();) {
+                    Subpart subpart = (Subpart)i.nextElement();
                     if (subpart.getId()==subpartId)
                         return subpart;
                 }
@@ -202,8 +201,8 @@ public class CourseRequest extends Request {
             Course course = (Course)e.nextElement();
             for (Enumeration f=course.getOffering().getConfigs().elements();f.hasMoreElements();) {
                 Config config = (Config)f.nextElement();
-                for (Iterator i=config.getSubparts().iterator();i.hasNext();) {
-                    Subpart subpart = (Subpart)i.next();
+                for (Enumeration i=config.getSubparts().elements();i.hasMoreElements();) {
+                    Subpart subpart = (Subpart)i.nextElement();
                     for (Enumeration g=subpart.getSections().elements();g.hasMoreElements();) {
                         Section section = (Section)g.nextElement();
                         if (section.getId()==sectionId) return section;

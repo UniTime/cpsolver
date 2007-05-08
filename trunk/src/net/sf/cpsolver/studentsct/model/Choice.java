@@ -3,7 +3,6 @@ package net.sf.cpsolver.studentsct.model;
 import java.util.BitSet;
 import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.StringTokenizer;
 
 import net.sf.cpsolver.coursett.model.TimeLocation;
@@ -144,8 +143,8 @@ public class Choice {
         HashSet sections = new HashSet();
         for (Enumeration e=getOffering().getConfigs().elements();e.hasMoreElements();) {
             Config config = (Config)e.nextElement();
-            for (Iterator f=config.getSubparts().iterator();f.hasNext();) {
-                Subpart subpart = (Subpart)f.next();
+            for (Enumeration f=config.getSubparts().elements();f.hasMoreElements();) {
+                Subpart subpart = (Subpart)f.nextElement();
                 if (!subpart.getInstructionalType().equals(getInstructionalType())) continue;
                 for (Enumeration g=subpart.getSections().elements();g.hasMoreElements();) {
                     Section section = (Section)g.nextElement();
@@ -164,8 +163,8 @@ public class Choice {
         HashSet parentSections = new HashSet();
         for (Enumeration e=getOffering().getConfigs().elements();e.hasMoreElements();) {
             Config config = (Config)e.nextElement();
-            for (Iterator f=config.getSubparts().iterator();f.hasNext();) {
-                Subpart subpart = (Subpart)f.next();
+            for (Enumeration f=config.getSubparts().elements();f.hasMoreElements();) {
+                Subpart subpart = (Subpart)f.nextElement();
                 if (!subpart.getInstructionalType().equals(getInstructionalType())) continue;
                 if (subpart.getParent()==null) continue;
                 for (Enumeration g=subpart.getSections().elements();g.hasMoreElements();) {
