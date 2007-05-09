@@ -172,6 +172,8 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                             sectionEl.attributeValue("instructorNames"),
                             parentSection);
                         sectionTable.put(new Long(section.getId()), section);
+                        section.setSpaceHeld(Double.parseDouble(sectionEl.attributeValue("hold", "0.0")));
+                        section.setSpaceExpected(Double.parseDouble(sectionEl.attributeValue("expect", "0.0")));
                     }
                 }
             }
