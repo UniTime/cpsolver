@@ -91,15 +91,15 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             Element offeringEl = (Element)i.next();
             Offering offering = new Offering(
                     Long.parseLong(offeringEl.attributeValue("id")),
-                    offeringEl.attributeValue("name"));
+                    offeringEl.attributeValue("name","O"+offeringEl.attributeValue("id")));
             offeringTable.put(new Long(offering.getId()), offering);
             getModel().addOffering(offering);
             for (Iterator j=offeringEl.elementIterator("course");j.hasNext();) {
                 Element courseEl = (Element)j.next();
                 Course course = new Course(
                         Long.parseLong(courseEl.attributeValue("id")),
-                        courseEl.attributeValue("subjectArea"),
-                        courseEl.attributeValue("courseNbr"),
+                        courseEl.attributeValue("subjectArea",""),
+                        courseEl.attributeValue("courseNbr","C"+courseEl.attributeValue("id")),
                         offering);
                 courseTable.put(new Long(course.getId()), course);
             }
@@ -107,7 +107,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                 Element configEl = (Element)j.next();
                 Config config = new Config(
                         Long.parseLong(configEl.attributeValue("id")),
-                        configEl.attributeValue("name"),
+                        configEl.attributeValue("name","G"+configEl.attributeValue("id")),
                         offering);
                 for (Iterator k=configEl.elementIterator("subpart");k.hasNext();) {
                     Element subpartEl = (Element)k.next();
@@ -117,7 +117,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                     Subpart subpart = new Subpart(
                             Long.parseLong(subpartEl.attributeValue("id")),
                             subpartEl.attributeValue("itype"),
-                            subpartEl.attributeValue("name"),
+                            subpartEl.attributeValue("name","P"+subpartEl.attributeValue("id")),
                             config,
                             parentSubpart);
                     subpartTable.put(new Long(subpart.getId()),subpart);
@@ -135,9 +135,9 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                                 Integer.parseInt(timeEl.attributeValue("length")),
                                 0, 0, 
                                 timeEl.attributeValue("datePattern")==null?null:Long.valueOf(timeEl.attributeValue("datePattern")),
-                                timeEl.attributeValue("datePatternName"),
+                                timeEl.attributeValue("datePatternName",""),
                                 createBitSet(timeEl.attributeValue("dates")),
-                                timeEl.attributeValue("breakTime")==null?0:Integer.parseInt(timeEl.attributeValue("breakTime")));
+                                Integer.parseInt(timeEl.attributeValue("breakTime","0")));
                            if (timeEl.attributeValue("pattern")!=null)
                                 time.setTimePatternId(Long.valueOf(timeEl.attributeValue("pattern")));
                         }
@@ -152,7 +152,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                             }
                             RoomLocation room = new RoomLocation(
                                 Long.valueOf(roomEl.attributeValue("id")),
-                                roomEl.attributeValue("name"),
+                                roomEl.attributeValue("name","R"+roomEl.attributeValue("id")),
                                 roomEl.attributeValue("building")==null?null:Long.valueOf(roomEl.attributeValue("building")),
                                 0,
                                 Integer.parseInt(roomEl.attributeValue("capacity")),
@@ -165,7 +165,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                         Section section = new Section(
                             Long.parseLong(sectionEl.attributeValue("id")),
                             Integer.parseInt(sectionEl.attributeValue("limit")),
-                            sectionEl.attributeValue("name"),
+                            sectionEl.attributeValue("name","S"+sectionEl.attributeValue("id")),
                             subpart,
                             placement,
                             sectionEl.attributeValue("instructorIds"),
