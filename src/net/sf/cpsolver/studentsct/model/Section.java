@@ -52,6 +52,8 @@ public class Section implements Assignment, Comparable {
     private Choice iChoice = null;
     private double iPenalty = 0.0;
     private double iEnrollmentWeight = 0.0;
+    private double iSpaceExpected = 0.0;
+    private double iSpaceHeld = 0.0;
     
     /** Constructor
      * @param id section unique id
@@ -221,4 +223,56 @@ public class Section implements Assignment, Comparable {
         if (cmp!=0) return cmp;
         return Double.compare(getId(),s.getId());
     }
+    
+    /** 
+     * Return the amount of space of this section that is held for incoming students. 
+     * This attribute is computed during the batch sectioning (it is the overall weight of 
+     * dummy students enrolled in this section) and it is being updated with each incomming student during the 
+     * online sectioning.  
+     */ 
+    public double getSpaceHeld() {
+        return iSpaceHeld;
+    }
+    
+    /** 
+     * Set the amount of space of this section that is held for incoming students. 
+     * See {@link Section#getSpaceHeld()} for more info. 
+     */ 
+    public void setSpaceHeld(double spaceHeld) {
+        iSpaceHeld = spaceHeld;
+    }
+    
+    /** 
+     * Return the amount of space of this section that is expected to be taken by incoming students.
+     * This attribute is computed during the batch sectioning (for each dummy student that can attend 
+     * this section (without any conflict with other enrollments of that student), 1 / x where x is the 
+     * number of such sections of this subpart is added to this value). Also, this value is being updated with 
+     * each incomming student during the online sectioning.  
+     * @return
+     */
+    public double getSpaceExpected() {
+        return iSpaceExpected;
+    }
+
+    /** 
+     * Set the amount of space of this section that is expected to be taken by incoming students. 
+     * See {@link Section#getSpaceExpected()} for more info. 
+     */ 
+    public void setSpaceExpected(double spaceExpected) {
+        iSpaceExpected = spaceExpected;
+    }
+    
+    /**
+     * Online sectioning penalty. If the section available space is below or equal to the amount of space
+     * that is held for incoming students, it is expected space - held space (sections with more expected space
+     * than space held are discouraged). 
+     */
+    public double getOnlineSectioningPenalty() {
+        if (getLimit()<0 || getSpaceHeld()<(getLimit()-getEnrollmentWeight(null))) return 0.0; //not all space is held
+        
+        double penalty = getSpaceExpected() - getSpaceHeld();
+        
+        return penalty;
+    }
+    
 }
