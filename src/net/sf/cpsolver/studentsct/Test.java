@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -20,12 +21,19 @@ import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.solver.SolverListener;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.JProf;
 import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.constraint.SectionLimit;
+import net.sf.cpsolver.studentsct.heuristics.BranchBoundEnrollmentsSelection;
+import net.sf.cpsolver.studentsct.heuristics.StudentSctNeighbourSelection;
+import net.sf.cpsolver.studentsct.model.Config;
 import net.sf.cpsolver.studentsct.model.Course;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
+import net.sf.cpsolver.studentsct.model.Section;
+import net.sf.cpsolver.studentsct.model.Student;
+import net.sf.cpsolver.studentsct.model.Subpart;
 
 public class Test {
     private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(Test.class);
@@ -50,8 +58,127 @@ public class Test {
         } catch (IOException e) {
             sLog.error(e.getMessage(),e);
         }
+    }
+
+    public static Solution onlineSectioning(DataProperties cfg) {
+        StudentSectioningModel model = new StudentSectioningModel(cfg);
+        try {
+            new StudentSectioningXMLLoader(model).load();
+        } catch (Exception e) {
+            sLog.error("Unable to load model, reason: "+e.getMessage(), e);
+            return null;
+        }
         
+        boolean usePenalties = cfg.getPropertyBoolean("Sectioning.UseOnlinePenalties", true);
+        Solution solution = new Solution(model,0,0);
+        solution.addSolutionListener(new SolutionListener() {
+            public void solutionUpdated(Solution solution) {}
+            public void getInfo(Solution solution, java.util.Dictionary info) {}
+            public void getInfo(Solution solution, java.util.Dictionary info, java.util.Vector variables) {}
+            public void bestCleared(Solution solution) {}
+            public void bestSaved(Solution solution) {
+                StudentSectioningModel m = (StudentSectioningModel)solution.getModel();
+                sLog.debug("**BEST** V:"+m.assignedVariables().size()+"/"+m.variables().size()+" - S:"+m.nrComplete()+"/"+m.getStudents().size()+" - TV:"+sDF.format(m.getTotalValue()));
+            }
+            public void bestRestored(Solution solution) {}
+        });
+        double startTime = JProf.currentTimeSec();
         
+        Vector students = new Vector(model.getStudents());
+        Collections.shuffle(students);
+        for (Enumeration e=students.elements();e.hasMoreElements();) {
+            Student student = (Student)e.nextElement();
+            sLog.info("Sectioning student: "+student);
+            if (usePenalties) setPenalties(student);
+            BranchBoundEnrollmentsSelection.Selection selection = new BranchBoundEnrollmentsSelection.Selection(student);
+            Value value = selection.select();
+            if (value!=null) {
+                student.assign(0, value);
+                sLog.info("Solution: "+new StudentSctNeighbourSelection.N1(selection));
+                if (usePenalties) updateSpace(student);
+            } else {
+                sLog.warn("No solution found.");
+            }
+            solution.update(JProf.currentTimeSec()-startTime);
+            solution.saveBest();
+        }
+        
+        try {
+            Solver solver = new Solver(cfg);
+            solver.setInitalSolution(solution);
+            new StudentSectioningXMLSaver(solver).save(new File(new File(cfg.getProperty("General.Output",".")),"solution.xml"));
+        } catch (Exception e) {
+            sLog.error("Unable to save solution, reason: "+e.getMessage(),e);
+        }
+        
+        sLog.info("Best solution found after "+solution.getBestTime()+" seconds ("+solution.getBestIteration()+" iterations).");
+        sLog.info("Number of assigned variables is "+solution.getModel().assignedVariables().size());
+        sLog.info("Number of students with complete schedule is "+((StudentSectioningModel)solution.getModel()).nrComplete());
+        sLog.info("Total value of the solution is "+solution.getModel().getTotalValue());
+        sLog.info("Info: "+solution.getInfo());
+
+        return solution;
+    }
+    
+    private static void setPenalties(Student student) {
+        for (Enumeration e=student.getRequests().elements();e.hasMoreElements();) {
+            Request request = (Request)e.nextElement();
+            if (!(request instanceof CourseRequest)) continue;
+            CourseRequest courseRequest = (CourseRequest)request;
+            for (Enumeration f=courseRequest.getCourses().elements();f.hasMoreElements();) {
+                Course course = (Course)f.nextElement();
+                for (Enumeration g=course.getOffering().getConfigs().elements();g.hasMoreElements();) {
+                    Config config = (Config)g.nextElement();
+                    for (Enumeration h=config.getSubparts().elements();h.hasMoreElements();) {
+                        Subpart subpart = (Subpart)h.nextElement();
+                        for (Enumeration i=subpart.getSections().elements();i.hasMoreElements();) {
+                            Section section = (Section)i.nextElement();
+                            section.setPenalty(section.getOnlineSectioningPenalty());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private static void updateSpace(Student student) {
+        for (Enumeration e=student.getRequests().elements();e.hasMoreElements();) {
+            Request request = (Request)e.nextElement();
+            if (!(request instanceof CourseRequest)) continue;
+            CourseRequest courseRequest = (CourseRequest)request;
+            if (courseRequest.getAssignment()==null) return; //not enrolled --> no update
+            Enrollment enrollment = (Enrollment)courseRequest.getAssignment();
+            for (Iterator i=enrollment.getAssignments().iterator();i.hasNext();) {
+                Section section = (Section)i.next();
+                section.setSpaceHeld(section.getSpaceHeld()-courseRequest.getWeight());
+                sLog.debug("  -- space held for "+section+" decreased by 1 (to "+section.getSpaceHeld()+")");
+            }
+            Vector feasibleEnrollments = new Vector();
+            for (Enumeration g=courseRequest.values().elements();g.hasMoreElements();) {
+                Enrollment enrl = (Enrollment)g.nextElement();
+                boolean overlaps = false;
+                for (Enumeration h=courseRequest.getStudent().getRequests().elements();h.hasMoreElements();) {
+                    CourseRequest otherCourseRequest = (CourseRequest)h.nextElement();
+                    if (otherCourseRequest.equals(courseRequest)) continue;
+                    Enrollment otherErollment = (Enrollment)otherCourseRequest.getAssignment();
+                    if (otherErollment==null) continue;
+                    if (enrl.isOverlapping(otherErollment)) {
+                        overlaps = true; break;
+                    }
+                }
+                if (!overlaps)
+                    feasibleEnrollments.add(enrl);
+            }
+            double decrement = courseRequest.getWeight() / feasibleEnrollments.size();
+            for (Enumeration g=feasibleEnrollments.elements();g.hasMoreElements();) {
+                Enrollment feasibleEnrollment = (Enrollment)g.nextElement();
+                for (Iterator i=feasibleEnrollment.getAssignments().iterator();i.hasNext();) {
+                    Section section = (Section)i.next();
+                    section.setSpaceExpected(section.getSpaceExpected()-decrement);
+                    sLog.debug("  -- space expected for "+section+" decreased by "+decrement+" (to "+section.getSpaceExpected()+")");
+                }
+            }
+        }
     }
 
     public static Solution solveModel(StudentSectioningModel model, DataProperties cfg) {
@@ -112,6 +239,8 @@ public class Test {
         
         solution = solver.lastSolution();
         solution.restoreBest();
+        
+        ((StudentSectioningModel)solution.getModel()).computeOnlineSectioningInfos();
         
         try {
             new StudentSectioningXMLSaver(solver).save(new File(new File(cfg.getProperty("General.Output",".")),"solution.xml"));
@@ -263,7 +392,13 @@ public class Test {
                 cfg.setProperty("General.Output", System.getProperty("user.home", ".")+File.separator+"Sectioning-Test");
             }
             
-            batchSectioning(cfg);
+            if (args.length>=4 && "online".equals(args[3]))
+                onlineSectioning(cfg);
+            else if (args.length>=4 && "simple".equals(args[3])) {
+                cfg.setProperty("Sectioning.UseOnlinePenalties", "false");
+                onlineSectioning(cfg);
+            } else
+                batchSectioning(cfg);
         } catch (Exception e) {
             sLog.error(e.getMessage(),e);
             e.printStackTrace();
