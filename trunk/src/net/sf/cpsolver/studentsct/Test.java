@@ -91,10 +91,10 @@ public class Test {
             sLog.info("Sectioning student: "+student);
             if (usePenalties) setPenalties(student);
             BranchBoundEnrollmentsSelection.Selection selection = new BranchBoundEnrollmentsSelection.Selection(student);
-            Value value = selection.select();
-            if (value!=null) {
-                student.assign(0, value);
-                sLog.info("Solution: "+new StudentSctNeighbourSelection.N1(selection));
+            if (selection.select()!=null) {
+                StudentSctNeighbourSelection.N1 neighbour = new StudentSctNeighbourSelection.N1(selection);
+                neighbour.assign(solution.getIteration());
+                sLog.info("Solution: "+neighbour);
                 if (usePenalties) updateSpace(student);
             } else {
                 sLog.warn("No solution found.");
