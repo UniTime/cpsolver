@@ -8,20 +8,25 @@ import java.util.Vector;
 
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Value;
+import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.studentsct.constraint.SectionLimit;
 import net.sf.cpsolver.studentsct.constraint.StudentConflict;
 import net.sf.cpsolver.studentsct.model.Enrollment;
+import net.sf.cpsolver.studentsct.model.Offering;
 import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Student;
 
 public class StudentSectioningModel extends Model {
     private Vector iStudents = new Vector();
+    private Vector iOfferings = new Vector();
     private HashSet iCompleteStudents = new HashSet();
     private double iTotalValue = 0.0;
+    private DataProperties iProperties;
     
-    public StudentSectioningModel() {
+    public StudentSectioningModel(DataProperties properties) {
         super();
         addGlobalConstraint(new SectionLimit());
+        iProperties = properties;
     }
     
     public Vector getStudents() {
@@ -44,6 +49,14 @@ public class StudentSectioningModel extends Model {
         addConstraint(conflict);
         if (student.isComplete())
             iCompleteStudents.add(student);
+    }
+    
+    public Vector getOfferings() {
+        return iOfferings;
+    }
+    
+    public void addOffering(Offering offering) {
+        iOfferings.add(offering);
     }
     
     public int nrComplete() {
@@ -86,5 +99,9 @@ public class StudentSectioningModel extends Model {
         if (iCompleteStudents.contains(student) && !student.isComplete())
             iCompleteStudents.remove(student);
         iTotalValue -= value.toDouble();
+    }
+    
+    public DataProperties getProperties() {
+        return iProperties;
     }
 }
