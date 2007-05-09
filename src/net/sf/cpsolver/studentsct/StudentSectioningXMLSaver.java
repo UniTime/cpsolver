@@ -42,6 +42,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
     private boolean iSaveBest = false;
     private boolean iSaveInitial = false;
     private boolean iSaveCurrent = false;
+    private boolean iSaveOnlineSectioningInfo = false;
     
 
     public StudentSectioningXMLSaver(Solver solver) {
@@ -50,6 +51,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         iSaveBest = getModel().getProperties().getPropertyBoolean("Xml.SaveBest", true);
         iSaveInitial = getModel().getProperties().getPropertyBoolean("Xml.SaveInitial", true);
         iSaveCurrent = getModel().getProperties().getPropertyBoolean("Xml.SaveCurrent", false);
+        iSaveOnlineSectioningInfo = getModel().getProperties().getPropertyBoolean("Xml.SaveOnlineSectioningInfo", true);
     }
 
     private static String bitset2string(BitSet b) {
@@ -159,6 +161,12 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                                 if (rl.getIgnoreTooFar())
                                     roomLocationEl.addAttribute("ignoreTooFar", "true");
                             }
+                        }
+                        if (iSaveOnlineSectioningInfo) {
+                            if (section.getSpaceHeld()!=0.0)
+                                sectionEl.addAttribute("hold", sStudentWeightFormat.format(section.getSpaceHeld()));
+                            if (section.getSpaceExpected()!=0.0)
+                                sectionEl.addAttribute("expect", sStudentWeightFormat.format(section.getSpaceExpected()));
                         }
                     }
                 }
