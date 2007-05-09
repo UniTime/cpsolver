@@ -109,7 +109,7 @@ public class StudentSctNeighbourSelection extends StandardNeighbourSelection {
                 iIteration = solution.getIteration();
             }
             public Neighbour select(Solution solution) {
-                if (solution.getModel().unassignedVariables().isEmpty() || solution.getIteration()>=iIteration+10*solution.getModel().countVariables()) return null;
+                if (solution.getModel().unassignedVariables().isEmpty() || solution.getIteration()>=iIteration+solution.getModel().countVariables()) return null;
                 for (int i=0;i<10;i++) {
                     Request request = (Request)ToolBox.random(solution.getModel().unassignedVariables());
                     Enrollment enrollment = (request==null?null:(Enrollment)getValueSelection().selectValue(solution, request));
@@ -212,7 +212,7 @@ public class StudentSctNeighbourSelection extends StandardNeighbourSelection {
                 iIteration = solution.getIteration();
             }
             public Neighbour select(Solution solution) {
-                if (solution.getIteration()>=iIteration+10*solution.getModel().countVariables()) return null;
+                if (solution.getIteration()>=iIteration+10*solution.getModel().unassignedVariables().size()) return null;
                 RouletteWheelSelection roulette = new RouletteWheelSelection();
                 for (Enumeration e=solution.getModel().variables().elements();e.hasMoreElements();) {
                     Request request = (Request)e.nextElement();
