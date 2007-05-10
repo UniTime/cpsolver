@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
@@ -26,10 +27,12 @@ import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.constraint.SectionLimit;
 import net.sf.cpsolver.studentsct.heuristics.BranchBoundEnrollmentsSelection;
 import net.sf.cpsolver.studentsct.heuristics.StudentSctNeighbourSelection;
+import net.sf.cpsolver.studentsct.model.Assignment;
 import net.sf.cpsolver.studentsct.model.Config;
 import net.sf.cpsolver.studentsct.model.Course;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
 import net.sf.cpsolver.studentsct.model.Enrollment;
+import net.sf.cpsolver.studentsct.model.Offering;
 import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Section;
 import net.sf.cpsolver.studentsct.model.Student;
@@ -58,6 +61,23 @@ public class Test {
         } catch (IOException e) {
             sLog.error(e.getMessage(),e);
         }
+        
+        solution.saveBest();
+        
+        ((StudentSectioningModel)solution.getModel()).computeOnlineSectioningInfos();
+        
+        checkOverlaps((StudentSectioningModel)solution.getModel());
+        
+        checkSectionLimits((StudentSectioningModel)solution.getModel());
+        
+        try {
+            Solver solver = new Solver(cfg);
+            solver.setInitalSolution(solution);
+            new StudentSectioningXMLSaver(solver).save(new File(new File(cfg.getProperty("General.Output",".")),"solution.xml"));
+        } catch (Exception e) {
+            sLog.error("Unable to save solution, reason: "+e.getMessage(),e);
+        }
+        
     }
 
     public static Solution onlineSectioning(DataProperties cfg) {
@@ -103,6 +123,10 @@ public class Test {
             solution.saveBest();
         }
         
+        checkOverlaps((StudentSectioningModel)solution.getModel());
+        
+        checkSectionLimits((StudentSectioningModel)solution.getModel());
+
         try {
             Solver solver = new Solver(cfg);
             solver.setInitalSolution(solution);
@@ -115,6 +139,8 @@ public class Test {
         sLog.info("Number of assigned variables is "+solution.getModel().assignedVariables().size());
         sLog.info("Number of students with complete schedule is "+((StudentSectioningModel)solution.getModel()).nrComplete());
         sLog.info("Total value of the solution is "+solution.getModel().getTotalValue());
+        sLog.info("Average unassigned priority "+sDF.format(avgUnassignPriority((StudentSectioningModel)solution.getModel())));
+        sLog.info("Average number of requests "+sDF.format(avgNrRequests((StudentSectioningModel)solution.getModel())));
         sLog.info("Info: "+solution.getInfo());
 
         return solution;
@@ -240,18 +266,12 @@ public class Test {
         solution = solver.lastSolution();
         solution.restoreBest();
         
-        ((StudentSectioningModel)solution.getModel()).computeOnlineSectioningInfos();
-        
-        try {
-            new StudentSectioningXMLSaver(solver).save(new File(new File(cfg.getProperty("General.Output",".")),"solution.xml"));
-        } catch (Exception e) {
-            sLog.error("Unable to save solution, reason: "+e.getMessage(),e);
-        }
-        
         sLog.info("Best solution found after "+solution.getBestTime()+" seconds ("+solution.getBestIteration()+" iterations).");
         sLog.info("Number of assigned variables is "+solution.getModel().assignedVariables().size());
         sLog.info("Number of students with complete schedule is "+((StudentSectioningModel)solution.getModel()).nrComplete());
         sLog.info("Total value of the solution is "+solution.getModel().getTotalValue());
+        sLog.info("Average unassigned priority "+sDF.format(avgUnassignPriority((StudentSectioningModel)solution.getModel())));
+        sLog.info("Average number of requests "+sDF.format(avgNrRequests((StudentSectioningModel)solution.getModel())));
         sLog.info("Info: "+solution.getInfo());
 
         return solution;
@@ -358,6 +378,80 @@ public class Test {
         return csv;
     }
     
+    public static void checkOverlaps(StudentSectioningModel model) {
+        sLog.info("Checking for overlaps...");
+        for (Enumeration e=model.getStudents().elements();e.hasMoreElements();) {
+            Student student = (Student)e.nextElement();
+            Hashtable times = new Hashtable();
+            for (Enumeration f=student.getRequests().elements();f.hasMoreElements();) {
+                Request request = (Request)f.nextElement();
+                Enrollment enrollment = (Enrollment)request.getAssignment();
+                if (enrollment==null) continue;
+                for (Iterator g=enrollment.getAssignments().iterator();g.hasNext();) {
+                    Assignment assignment = (Assignment)g.next();
+                    if (assignment.getTime()==null) continue;
+                    for (Enumeration h=times.keys();h.hasMoreElements();) {
+                        TimeLocation time = (TimeLocation)h.nextElement();
+                        if (time.hasIntersection(assignment.getTime())) {
+                            sLog.error("Student "+student+" assignment "+assignment+" overlaps with "+times.get(time));
+                        }
+                    }
+                    times.put(assignment.getTime(),assignment);
+                }
+            }
+        }
+    }
+    
+    public static void checkSectionLimits(StudentSectioningModel model) {
+        sLog.info("Checking section limits...");
+        for (Enumeration e=model.getOfferings().elements();e.hasMoreElements();) {
+            Offering offering = (Offering)e.nextElement();
+            for (Enumeration f=offering.getConfigs().elements();f.hasMoreElements();) {
+                Config config = (Config)f.nextElement();
+                for (Enumeration g=config.getSubparts().elements();g.hasMoreElements();) {
+                    Subpart subpart = (Subpart)g.nextElement();
+                    for (Enumeration h=subpart.getSections().elements();h.hasMoreElements();) {
+                        Section section = (Section)h.nextElement();
+                        if (section.getLimit()<0) continue;
+                        double used = section.getEnrollmentWeight(null);
+                        double maxWeight = 0;
+                        for (Iterator i=section.getEnrollments().iterator();i.hasNext();) {
+                            Enrollment enrollment = (Enrollment)i.next();
+                            maxWeight = Math.max(maxWeight, enrollment.getRequest().getWeight());
+                        }
+                        if (used-maxWeight>section.getLimit()) {
+                            sLog.error("Section "+section.getName()+" exceeds its limit "+sDF.format(used)+">"+section.getLimit()+" for more than one student (W:"+maxWeight+")");
+                        } else if (Math.round(used)>section.getLimit()) {
+                            sLog.debug("Section "+section.getName()+" exceeds its limit "+sDF.format(used)+">"+section.getLimit()+" for less than one student (W:"+maxWeight+")");
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    public static double avgUnassignPriority(StudentSectioningModel model) {
+        double totalPriority = 0.0;  
+        for (Enumeration e=model.unassignedVariables().elements();e.hasMoreElements();) {
+            Request request = (Request)e.nextElement();
+            if (request.isAlternative()) continue;
+            totalPriority += request.getPriority();
+        }
+        return 1.0 + totalPriority / model.unassignedVariables().size();
+    }
+    
+    public static double avgNrRequests(StudentSectioningModel model) {
+        double totalRequests = 0.0;  
+        int totalStudents = 0;
+        for (Enumeration e=model.getStudents().elements();e.hasMoreElements();) {
+            Student student = (Student)e.nextElement();
+            if (student.nrRequests()==0) continue;
+            totalRequests += student.nrRequests();
+            totalStudents ++;
+        }
+        return totalRequests / totalStudents;
+    }
+
     public static void main(String[] args) {
         try {
             DataProperties cfg = new DataProperties();
