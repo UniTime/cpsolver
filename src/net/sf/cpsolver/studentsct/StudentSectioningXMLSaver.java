@@ -169,6 +169,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                                 if (tl.getDatePatternName()!=null && tl.getDatePatternName().length()>0)
                                     timeLocationEl.addAttribute("datePatternName", tl.getDatePatternName());
                                 timeLocationEl.addAttribute("dates", bitset2string(tl.getWeekCode()));
+                                if (iShowNames)
+                                    timeLocationEl.setText(tl.getLongName());
                             }
                             for (Enumeration i=section.getRooms().elements();i.hasMoreElements();) {
                                 RoomLocation rl = (RoomLocation)i.nextElement();
@@ -222,6 +224,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                         if (tl.getDatePatternId()!=null)
                             requestEl.addAttribute("datePattern", tl.getDatePatternId().toString());
                         requestEl.addAttribute("dates", bitset2string(tl.getWeekCode()));
+                        if (iShowNames)
+                            requestEl.setText(tl.getLongName());
                     }
                     if (iSaveInitial && request.getInitialAssignment()!=null) {
                         Element assignmentEl = requestEl.addElement("initial");
@@ -269,7 +273,9 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                         Enrollment enrollment = (Enrollment)request.getInitialAssignment();
                         for (Iterator i=enrollment.getAssignments().iterator();i.hasNext();) {
                             Section section = (Section)i.next();
-                            assignmentEl.addElement("section").addAttribute("id", getId("section", section.getId()));
+                            Element sectionEl = assignmentEl.addElement("section").addAttribute("id", getId("section", section.getId()));
+                            if (iShowNames)
+                                sectionEl.setText(section.getLongName());
                         }
                     }
                     if (iSaveCurrent && request.getAssignment()!=null) {
@@ -277,7 +283,9 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                         Enrollment enrollment = (Enrollment)request.getAssignment();
                         for (Iterator i=enrollment.getAssignments().iterator();i.hasNext();) {
                             Section section = (Section)i.next();
-                            assignmentEl.addElement("section").addAttribute("id", getId("section", section.getId()));
+                            Element sectionEl = assignmentEl.addElement("section").addAttribute("id", getId("section", section.getId()));
+                            if (iShowNames)
+                                sectionEl.setText(section.getLongName());
                         }
                     }
                     if (iSaveBest && request.getBestAssignment()!=null) {
@@ -285,7 +293,9 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                         Enrollment enrollment = (Enrollment)request.getBestAssignment();
                         for (Iterator i=enrollment.getAssignments().iterator();i.hasNext();) {
                             Section section = (Section)i.next();
-                            assignmentEl.addElement("section").addAttribute("id", getId("section", section.getId()));
+                            Element sectionEl = assignmentEl.addElement("section").addAttribute("id", getId("section", section.getId()));
+                            if (iShowNames)
+                                sectionEl.setText(section.getLongName());
                         }
                     }
                 }
