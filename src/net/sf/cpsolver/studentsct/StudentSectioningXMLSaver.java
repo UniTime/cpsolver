@@ -275,7 +275,10 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                             Section section = (Section)i.next();
                             Element sectionEl = assignmentEl.addElement("section").addAttribute("id", getId("section", section.getId()));
                             if (iShowNames)
-                                sectionEl.setText(section.getLongName());
+                                sectionEl.setText(section.getName()+" "+
+                                        (section.getTime()==null?" Arr Hrs":" "+section.getTime().getLongName())+
+                                        (section.getNrRooms()==0?"":" "+section.getPlacement().getRoomName(","))+
+                                        (section.getChoice().getInstructorNames()==null?"":" "+section.getChoice().getInstructorNames()));
                         }
                     }
                     if (iSaveCurrent && request.getAssignment()!=null) {
@@ -285,7 +288,10 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                             Section section = (Section)i.next();
                             Element sectionEl = assignmentEl.addElement("section").addAttribute("id", getId("section", section.getId()));
                             if (iShowNames)
-                                sectionEl.setText(section.getLongName());
+                                sectionEl.setText(section.getName()+" "+
+                                        (section.getTime()==null?" Arr Hrs":" "+section.getTime().getLongName())+
+                                        (section.getNrRooms()==0?"":" "+section.getPlacement().getRoomName(","))+
+                                        (section.getChoice().getInstructorNames()==null?"":" "+section.getChoice().getInstructorNames()));
                         }
                     }
                     if (iSaveBest && request.getBestAssignment()!=null) {
@@ -295,7 +301,10 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                             Section section = (Section)i.next();
                             Element sectionEl = assignmentEl.addElement("section").addAttribute("id", getId("section", section.getId()));
                             if (iShowNames)
-                                sectionEl.setText(section.getLongName());
+                                sectionEl.setText(section.getName()+" "+
+                                        (section.getTime()==null?" Arr Hrs":" "+section.getTime().getLongName())+
+                                        (section.getNrRooms()==0?"":" "+section.getPlacement().getRoomName(","))+
+                                        (section.getChoice().getInstructorNames()==null?"":" "+section.getChoice().getInstructorNames()));
                         }
                     }
                 }
