@@ -33,10 +33,16 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
     private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(StudentSectioningXMLLoader.class);
 
     private File iInputFile;
+    private boolean iLoadBest = false;
+    private boolean iLoadInitial = false;
+    private boolean iLoadCurrent = false;
     
     public StudentSectioningXMLLoader(StudentSectioningModel model) {
         super(model);
         iInputFile = new File(getModel().getProperties().getProperty("General.Input","."+File.separator+"solution.xml"));
+        iLoadBest = getModel().getProperties().getPropertyBoolean("Xml.LoadBest", true);
+        iLoadInitial = getModel().getProperties().getPropertyBoolean("Xml.LoadInitial", true);
+        iLoadCurrent = getModel().getProperties().getPropertyBoolean("Xml.LoadCurrent", true);
     }
     
     private Solver iSolver = null;
@@ -202,14 +208,16 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                     FreeTimeRequest request = new FreeTimeRequest(
                         Long.parseLong(requestEl.attributeValue("id")),
                         Integer.parseInt(requestEl.attributeValue("priority")),
-                        "true".equals(requestEl.attribute("alternative")),
+                        "true".equals(requestEl.attributeValue("alternative")),
                         student,
                         time);
-                    if (requestEl.element("best")!=null)
+                    if (requestEl.attributeValue("weight")!=null)
+                        request.setWeight(Double.parseDouble(requestEl.attributeValue("weight")));
+                    if (iLoadBest && requestEl.element("best")!=null)
                         bestEnrollments.add((Enrollment)request.computeEnrollments().firstElement());
-                    if (requestEl.element("initial")!=null)
+                    if (iLoadInitial && requestEl.element("initial")!=null)
                         request.setInitialAssignment((Enrollment)request.computeEnrollments().firstElement());
-                    if (requestEl.element("current")!=null)
+                    if (iLoadCurrent && requestEl.element("current")!=null)
                         currentEnrollments.add((Enrollment)request.computeEnrollments().firstElement());
                 } else if ("course".equals(requestEl.getName())) {
                     Vector courses = new Vector();
@@ -219,10 +227,12 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                     CourseRequest courseRequest = new CourseRequest(
                         Long.parseLong(requestEl.attributeValue("id")),
                         Integer.parseInt(requestEl.attributeValue("priority")),
-                        "true".equals(requestEl.attribute("alternative")),
+                        "true".equals(requestEl.attributeValue("alternative")),
                         student,
                         courses,
-                        "true".equals(requestEl.attribute("waitlist")));
+                        "true".equals(requestEl.attributeValue("waitlist")));
+                    if (requestEl.attributeValue("weight")!=null)
+                        courseRequest.setWeight(Double.parseDouble(requestEl.attributeValue("weight")));
                     for (Iterator k=requestEl.elementIterator("waitlisted");k.hasNext();) {
                         Element choiceEl = (Element)k.next();
                         courseRequest.getWaitlistedChoices().add(new Choice(
@@ -236,7 +246,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                             choiceEl.getText()));
                     }
                     Element initialEl = requestEl.element("initial");
-                    if (initialEl!=null) {
+                    if (iLoadInitial && initialEl!=null) {
                         HashSet sections = new HashSet();
                         Config config = null;
                         for (Iterator k=initialEl.elementIterator("section");k.hasNext();) {
@@ -249,7 +259,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                         courseRequest.setInitialAssignment(enrollment);
                     }
                     Element currentEl = requestEl.element("current");
-                    if (currentEl!=null) {
+                    if (iLoadCurrent && currentEl!=null) {
                         HashSet sections = new HashSet();
                         Config config = null;
                         for (Iterator k=currentEl.elementIterator("section");k.hasNext();) {
@@ -262,7 +272,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                         currentEnrollments.add(enrollment);
                     }
                     Element bestEl = requestEl.element("best");
-                    if (bestEl!=null) {
+                    if (iLoadBest && bestEl!=null) {
                         HashSet sections = new HashSet();
                         Config config = null;
                         for (Iterator k=bestEl.elementIterator("section");k.hasNext();) {
