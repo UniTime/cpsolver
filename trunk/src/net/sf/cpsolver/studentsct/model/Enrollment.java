@@ -177,7 +177,7 @@ public class Enrollment extends Value {
     }
     
     public String toString() {
-        String ret = getStudent()+" "+sDF.format(toDouble())+"/"+sDF.format(getRequest().getBound())+"/"+sDF.format(getPenalty())+" "+getRequest();
+        String ret = getStudent()+" "+sDF.format(toDouble())+"/"+sDF.format(getRequest().getBound())+(getPenalty()==0.0?"":"/"+sDF.format(getPenalty()))+" "+getRequest();
         if (getRequest() instanceof CourseRequest) {
             ret+=" ";
             for (Iterator i=getAssignments().iterator();i.hasNext();) {
