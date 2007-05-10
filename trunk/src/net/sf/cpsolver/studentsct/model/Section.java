@@ -248,7 +248,6 @@ public class Section implements Assignment, Comparable {
      * this section (without any conflict with other enrollments of that student), 1 / x where x is the 
      * number of such sections of this subpart is added to this value). Also, this value is being updated with 
      * each incomming student during the online sectioning.  
-     * @return
      */
     public double getSpaceExpected() {
         return iSpaceExpected;
