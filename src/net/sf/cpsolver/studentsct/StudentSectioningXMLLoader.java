@@ -214,11 +214,11 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                     if (requestEl.attributeValue("weight")!=null)
                         request.setWeight(Double.parseDouble(requestEl.attributeValue("weight")));
                     if (iLoadBest && requestEl.element("best")!=null)
-                        bestEnrollments.add((Enrollment)request.computeEnrollments().firstElement());
+                        bestEnrollments.add(request.createEnrollment());
                     if (iLoadInitial && requestEl.element("initial")!=null)
-                        request.setInitialAssignment((Enrollment)request.computeEnrollments().firstElement());
+                        request.setInitialAssignment(request.createEnrollment());
                     if (iLoadCurrent && requestEl.element("current")!=null)
-                        currentEnrollments.add((Enrollment)request.computeEnrollments().firstElement());
+                        currentEnrollments.add(request.createEnrollment());
                 } else if ("course".equals(requestEl.getName())) {
                     Vector courses = new Vector();
                     courses.add(courseTable.get(Long.valueOf(requestEl.attributeValue("course"))));
@@ -248,41 +248,35 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                     Element initialEl = requestEl.element("initial");
                     if (iLoadInitial && initialEl!=null) {
                         HashSet sections = new HashSet();
-                        Config config = null;
                         for (Iterator k=initialEl.elementIterator("section");k.hasNext();) {
                             Element sectionEl = (Element)k.next();
                             Section section = courseRequest.getSection(Long.parseLong(sectionEl.attributeValue("id")));
-                            if (config==null) config = section.getSubpart().getConfig();
                             sections.add(section);
                         }
-                        Enrollment enrollment = new Enrollment(courseRequest, 0, config, sections);
-                        courseRequest.setInitialAssignment(enrollment);
+                        if (!sections.isEmpty())
+                            courseRequest.setInitialAssignment(courseRequest.createEnrollment(sections));
                     }
                     Element currentEl = requestEl.element("current");
                     if (iLoadCurrent && currentEl!=null) {
                         HashSet sections = new HashSet();
-                        Config config = null;
                         for (Iterator k=currentEl.elementIterator("section");k.hasNext();) {
                             Element sectionEl = (Element)k.next();
                             Section section = courseRequest.getSection(Long.parseLong(sectionEl.attributeValue("id")));
-                            if (config==null) config = section.getSubpart().getConfig();
                             sections.add(section);
                         }
-                        Enrollment enrollment = new Enrollment(courseRequest, 0, config, sections);
-                        currentEnrollments.add(enrollment);
+                        if (!sections.isEmpty())
+                            currentEnrollments.add(courseRequest.createEnrollment(sections));
                     }
                     Element bestEl = requestEl.element("best");
                     if (iLoadBest && bestEl!=null) {
                         HashSet sections = new HashSet();
-                        Config config = null;
                         for (Iterator k=bestEl.elementIterator("section");k.hasNext();) {
                             Element sectionEl = (Element)k.next();
                             Section section = courseRequest.getSection(Long.parseLong(sectionEl.attributeValue("id")));
-                            if (config==null) config = section.getSubpart().getConfig();
                             sections.add(section);
                         }
-                        Enrollment enrollment = new Enrollment(courseRequest, 0, config, sections);
-                        bestEnrollments.add(enrollment);
+                        if (!sections.isEmpty())
+                            bestEnrollments.add(courseRequest.createEnrollment(sections));
                     }
                 }
             }
@@ -292,7 +286,12 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         if (!bestEnrollments.isEmpty()) {
             for (Enumeration e=bestEnrollments.elements();e.hasMoreElements();) {
                 Enrollment enrollment = (Enrollment)e.nextElement();
-                enrollment.variable().assign(0, enrollment);
+                Hashtable conflicts = getModel().conflictConstraints(enrollment);
+                if (conflicts.isEmpty())
+                    enrollment.variable().assign(0, enrollment);
+                else {
+                    sLogger.warn("Enrollment "+enrollment+" conflicts with "+conflicts);
+                }
             }
             getModel().saveBest();
         } 
