@@ -1,5 +1,6 @@
 package net.sf.cpsolver.studentsct.model;
 
+import java.text.DecimalFormat;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -9,6 +10,7 @@ import java.util.TreeSet;
 import java.util.Vector;
 
 public class CourseRequest extends Request {
+    private static DecimalFormat sDF = new DecimalFormat("0.000");
     private Vector iCourses = null;
     private Set iWaitlistedChoices = new HashSet();
     private Set iSelectedChoices = new HashSet();
@@ -25,6 +27,12 @@ public class CourseRequest extends Request {
 
     public Vector getCourses() {
         return iCourses;
+    }
+    
+    public Enrollment createEnrollment(Set sections) {
+        if (sections==null || sections.isEmpty()) return null;
+        Config config = ((Section)sections.iterator().next()).getSubpart().getConfig();
+        return new Enrollment(this, Math.pow(sAltValue, iCourses.indexOf(config.getOffering().getCourse(getStudent()))), config, sections);
     }
     
     public Vector computeEnrollments() {
@@ -159,7 +167,7 @@ public class CourseRequest extends Request {
     }
 
     public String toString() {
-        return getName();
+        return getName()+(getWeight()!=1.0?" (W:"+sDF.format(getWeight())+")":"");
     }
     
     public Course getCourse(long courseId) {
