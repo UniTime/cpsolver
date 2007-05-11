@@ -110,7 +110,7 @@ public class StudentSectioningModel extends Model {
         return iProperties;
     }
     
-    public void computeOnlineSectioningInfos() {
+    public void clearOnlineSectioningInfos() {
         for (Enumeration e=iOfferings.elements();e.hasMoreElements();) {
             Offering offering = (Offering)e.nextElement();
             for (Enumeration f=offering.getConfigs().elements();f.hasMoreElements();) {
@@ -125,6 +125,10 @@ public class StudentSectioningModel extends Model {
                 }
             }
         }
+    }
+    
+    public void computeOnlineSectioningInfos() {
+        clearOnlineSectioningInfos();
         for (Enumeration e=getStudents().elements();e.hasMoreElements();) {
             Student student = (Student)e.nextElement();
             if (!student.isDummy()) continue;
