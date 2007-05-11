@@ -5,12 +5,17 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+
+import org.dom4j.Document;
+import org.dom4j.Element;
+import org.dom4j.io.SAXReader;
 
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.ifs.model.Neighbour;
@@ -40,26 +45,39 @@ import net.sf.cpsolver.studentsct.model.Subpart;
 
 public class Test {
     private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(Test.class);
+    private static java.text.SimpleDateFormat sDateFormat = new java.text.SimpleDateFormat("yyMMdd_HHmmss",java.util.Locale.US);
     private static DecimalFormat sDF = new DecimalFormat("0.000");
-
-    public static void batchSectioning(DataProperties cfg) {
+    
+    public static StudentSectioningModel loadModel(DataProperties cfg) {
         StudentSectioningModel model = new StudentSectioningModel(cfg);
         try {
             new StudentSectioningXMLLoader(model).load();
+            if (cfg.getProperty("Test.LastLikeCourseDemands")!=null)
+                loadLastLikeCourseDemandsXml(model, new File(cfg.getProperty("Test.LastLikeCourseDemands")));
         } catch (Exception e) {
             sLog.error("Unable to load model, reason: "+e.getMessage(), e);
-            return;
+            return null;
         }
+        return model;
+    }
+
+    public static Solution batchSectioning(DataProperties cfg) {
+        StudentSectioningModel model = loadModel(cfg);
+        if (model==null) return null;
+        
+        model.clearOnlineSectioningInfos();
         
         Solution solution = solveModel(model, cfg);
         
-        try {
-            File outDir = new File(cfg.getProperty("General.Output","."));
-            outDir.mkdirs();
-            createCourseConflictTable((StudentSectioningModel)solution.getModel(), true, false).save(new File(outDir, "conflicts-lastlike.csv"));
-            createCourseConflictTable((StudentSectioningModel)solution.getModel(), false, true).save(new File(outDir, "conflicts-real.csv"));
-        } catch (IOException e) {
-            sLog.error(e.getMessage(),e);
+        if (solution.getModel().assignedVariables().size()>0) {
+            try {
+                File outDir = new File(cfg.getProperty("General.Output","."));
+                outDir.mkdirs();
+                createCourseConflictTable((StudentSectioningModel)solution.getModel(), true, false).save(new File(outDir, "conflicts-lastlike.csv"));
+                createCourseConflictTable((StudentSectioningModel)solution.getModel(), false, true).save(new File(outDir, "conflicts-real.csv"));
+            } catch (IOException e) {
+                sLog.error(e.getMessage(),e);
+            }
         }
         
         solution.saveBest();
@@ -78,16 +96,12 @@ public class Test {
             sLog.error("Unable to save solution, reason: "+e.getMessage(),e);
         }
         
+        return solution;
     }
 
     public static Solution onlineSectioning(DataProperties cfg) {
-        StudentSectioningModel model = new StudentSectioningModel(cfg);
-        try {
-            new StudentSectioningXMLLoader(model).load();
-        } catch (Exception e) {
-            sLog.error("Unable to load model, reason: "+e.getMessage(), e);
-            return null;
-        }
+        StudentSectioningModel model = loadModel(cfg);
+        if (model==null) return null;
         
         boolean usePenalties = cfg.getPropertyBoolean("Sectioning.UseOnlinePenalties", true);
         Solution solution = new Solution(model,0,0);
@@ -123,6 +137,17 @@ public class Test {
             solution.saveBest();
         }
         
+        try {
+            File outDir = new File(cfg.getProperty("General.Output","."));
+            outDir.mkdirs();
+            createCourseConflictTable((StudentSectioningModel)solution.getModel(), true, false).save(new File(outDir, "conflicts-lastlike.csv"));
+            createCourseConflictTable((StudentSectioningModel)solution.getModel(), false, true).save(new File(outDir, "conflicts-real.csv"));
+        } catch (IOException e) {
+            sLog.error(e.getMessage(),e);
+        }
+        
+        solution.saveBest();
+
         checkOverlaps((StudentSectioningModel)solution.getModel());
         
         checkSectionLimits((StudentSectioningModel)solution.getModel());
@@ -177,7 +202,7 @@ public class Test {
             for (Iterator i=enrollment.getAssignments().iterator();i.hasNext();) {
                 Section section = (Section)i.next();
                 section.setSpaceHeld(section.getSpaceHeld()-courseRequest.getWeight());
-                sLog.debug("  -- space held for "+section+" decreased by 1 (to "+section.getSpaceHeld()+")");
+                //sLog.debug("  -- space held for "+section+" decreased by 1 (to "+section.getSpaceHeld()+")");
             }
             Vector feasibleEnrollments = new Vector();
             for (Enumeration g=courseRequest.values().elements();g.hasMoreElements();) {
@@ -201,7 +226,7 @@ public class Test {
                 for (Iterator i=feasibleEnrollment.getAssignments().iterator();i.hasNext();) {
                     Section section = (Section)i.next();
                     section.setSpaceExpected(section.getSpaceExpected()-decrement);
-                    sLog.debug("  -- space expected for "+section+" decreased by "+decrement+" (to "+section.getSpaceExpected()+")");
+                    //sLog.debug("  -- space expected for "+section+" decreased by "+decrement+" (to "+section.getSpaceExpected()+")");
                 }
             }
         }
@@ -451,6 +476,92 @@ public class Test {
         }
         return totalRequests / totalStudents;
     }
+    
+    public static double getLastLikeStudentWeight(Course course, int lastLike) {
+        int projected = course.getProjected();
+        int limit = course.getLimit();
+        if (projected<=0) {
+            sLog.warn("  -- No projected demand for course "+course.getName()+", using course limit ("+limit+")");
+            projected = limit;
+        } else if (limit<projected) {
+            sLog.warn("  -- Projected number of students is over course limit for course "+course.getName()+" ("+Math.round(projected)+">"+limit+")");
+            projected = limit;
+        }
+        if (lastLike==0) {
+            sLog.warn("  -- No last like info for course "+course.getName());
+            return 1.0;
+        }
+        double weight = ((double)projected) / lastLike; 
+        sLog.debug("  -- last like student weight for "+course.getName()+" is "+weight+" (lastLike="+lastLike+", projected="+projected+")");
+        return weight;
+    }
+    
+    
+    public static void loadLastLikeCourseDemandsXml(StudentSectioningModel model, File xml) {
+        try {
+            Document document = (new SAXReader()).read(xml);
+            Element root = document.getRootElement();
+            Hashtable requests = new Hashtable();
+            long reqId = 0;
+            for (Iterator i=root.elementIterator("student");i.hasNext();) {
+                Element studentEl = (Element)i.next();
+                Student student = new Student(Long.parseLong(studentEl.attributeValue("externalId")));
+                int priority = 0;
+                for (Iterator j=studentEl.elementIterator("studentCourse");j.hasNext();) {
+                    Element courseEl = (Element)j.next();
+                    String subjectArea = courseEl.attributeValue("subject");
+                    String courseNbr = courseEl.attributeValue("courseNumber");
+                    Course course = null;
+                    for (Enumeration e=model.getOfferings().elements();course==null && e.hasMoreElements();) {
+                        Offering offering = (Offering)e.nextElement();
+                        for (Enumeration f=offering.getCourses().elements();course==null && f.hasMoreElements();) {
+                            Course c = (Course)f.nextElement();
+                            if (c.getSubjectArea().equals(subjectArea) && c.getCourseNumber().equals(courseNbr))
+                                course = c;
+                        }
+                    }
+                    if (course==null && courseNbr.charAt(courseNbr.length()-1)>='A' && courseNbr.charAt(courseNbr.length()-1)<='Z') {
+                        String courseNbrNoSfx = courseNbr.substring(0, courseNbr.length()-1);
+                        for (Enumeration e=model.getOfferings().elements();course==null && e.hasMoreElements();) {
+                            Offering offering = (Offering)e.nextElement();
+                            for (Enumeration f=offering.getCourses().elements();course==null && f.hasMoreElements();) {
+                                Course c = (Course)f.nextElement();
+                                if (c.getSubjectArea().equals(subjectArea) && c.getCourseNumber().equals(courseNbrNoSfx))
+                                    course = c;
+                            }
+                        }
+                    }
+                    if (course==null) {
+                        sLog.warn("Course "+subjectArea+" "+courseNbr+" not found.");
+                    } else {
+                        Vector courses = new Vector(1);
+                        courses.add(course);
+                        CourseRequest request = new CourseRequest(reqId++, priority++, false, student, courses, false);
+                        Vector requestsThisCourse = (Vector)requests.get(course);
+                        if (requestsThisCourse==null) {
+                            requestsThisCourse = new Vector();
+                            requests.put(course, requestsThisCourse);
+                        }
+                        requestsThisCourse.add(request);
+                    }
+                }
+                if (!student.getRequests().isEmpty())
+                    model.addStudent(student);
+            }
+            for (Iterator i=requests.entrySet().iterator();i.hasNext();) {
+                Map.Entry entry = (Map.Entry)i.next();
+                Course course = (Course)entry.getKey();
+                Vector requestsThisCourse = (Vector)entry.getValue();
+                double weight = getLastLikeStudentWeight(course, requestsThisCourse.size());
+                for (Enumeration e=requestsThisCourse.elements();e.hasMoreElements();) {
+                    CourseRequest request = (CourseRequest)e.nextElement();
+                    request.setWeight(weight);
+                }
+            }
+        } catch (Exception e) {
+            sLog.error(e.getMessage(),e);
+        }
+    }
 
     public static void main(String[] args) {
         try {
@@ -479,11 +590,14 @@ public class Test {
             }
 
             if (args.length>=3) {
-                File logFile = new File(ToolBox.configureLogging(args[2], null, true, false));
+                File logFile = new File(ToolBox.configureLogging(args[2]+File.separator+(sDateFormat.format(new Date())), null, true, false));
                 cfg.setProperty("General.Output", logFile.getParentFile().getAbsolutePath());
+            } else if (cfg.getProperty("General.Output")!=null) {
+                cfg.setProperty("General.Output", cfg.getProperty("General.Output",".")+File.separator+(sDateFormat.format(new Date())));
+                File logFile = new File(ToolBox.configureLogging(cfg.getProperty("General.Output","."), null, true, false));
             } else {
                 ToolBox.configureLogging();
-                cfg.setProperty("General.Output", System.getProperty("user.home", ".")+File.separator+"Sectioning-Test");
+                cfg.setProperty("General.Output", System.getProperty("user.home", ".")+File.separator+"Sectioning-Test"+File.separator+(sDateFormat.format(new Date())));
             }
             
             if (args.length>=4 && "online".equals(args[3]))
