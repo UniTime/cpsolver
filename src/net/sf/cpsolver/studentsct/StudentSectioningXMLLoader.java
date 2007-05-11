@@ -106,7 +106,10 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                         Long.parseLong(courseEl.attributeValue("id")),
                         courseEl.attributeValue("subjectArea",""),
                         courseEl.attributeValue("courseNbr","C"+courseEl.attributeValue("id")),
-                        offering);
+                        offering,
+                        Integer.parseInt(courseEl.attributeValue("limit","0")),
+                        Integer.parseInt(courseEl.attributeValue("projected","0"))
+                        );
                 courseTable.put(new Long(course.getId()), course);
             }
             for (Iterator j=offeringEl.elementIterator("config");j.hasNext();) {
