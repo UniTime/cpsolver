@@ -32,6 +32,7 @@ public class Course {
     private String iSubjectArea = null;
     private String iCourseNumber = null;
     private Offering iOffering = null;
+    private int iLimit =0, iProjected = 0; 
     
     /**
      * Constructor
@@ -46,6 +47,25 @@ public class Course {
         iCourseNumber = courseNumber;
         iOffering = offering;
         iOffering.getCourses().add(this);
+    }
+
+    /**
+     * Constructor
+     * @param id course offering unique id
+     * @param subjectArea subject area (e.g., MA, CS, ENGL)
+     * @param courseNumber course number under the given subject area
+     * @param offering instructional offering which is offered under this course offering
+     * @param limit course offering limit
+     * @param projected projected demand
+     */
+    public Course(long id, String subjectArea, String courseNumber, Offering offering, int limit, int projected) {
+        iId = id; 
+        iSubjectArea = subjectArea;
+        iCourseNumber = courseNumber;
+        iOffering = offering;
+        iOffering.getCourses().add(this);
+        iLimit = limit;
+        iProjected = projected;
     }
     
     /** Course offering unique id */ 
@@ -75,5 +95,15 @@ public class Course {
     /** Instructional offering which is offered under this course offering. */
     public Offering getOffering() {
         return iOffering;
+    }
+    
+    /** Course offering limit */
+    public int getLimit() {
+        return iLimit;
+    }
+    
+    /** Course offering projected number of students */
+    public int getProjected() {
+        return iProjected;
     }
 }
