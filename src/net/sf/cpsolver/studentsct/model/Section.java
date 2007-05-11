@@ -267,9 +267,11 @@ public class Section implements Assignment, Comparable {
      * than space held are discouraged). 
      */
     public double getOnlineSectioningPenalty() {
-        if (getLimit()<0 || getSpaceHeld()<(getLimit()-getEnrollmentWeight(null))) return 0.0; //not all space is held
+        if (getLimit()<0)return 0.0;
         
-        double penalty = getSpaceExpected() - getSpaceHeld();
+        double available = getLimit() - getEnrollmentWeight(null);
+        
+        double penalty = getSpaceExpected() - available / getLimit();
         
         return penalty;
     }
