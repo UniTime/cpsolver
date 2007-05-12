@@ -506,6 +506,7 @@ public class Test {
             for (Iterator i=root.elementIterator("student");i.hasNext();) {
                 Element studentEl = (Element)i.next();
                 Student student = new Student(Long.parseLong(studentEl.attributeValue("externalId")));
+                student.setDummy(true);
                 int priority = 0;
                 for (Iterator j=studentEl.elementIterator("studentCourse");j.hasNext();) {
                     Element courseEl = (Element)j.next();
