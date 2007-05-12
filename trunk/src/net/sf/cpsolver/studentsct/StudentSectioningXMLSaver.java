@@ -125,9 +125,9 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                     courseEl.addAttribute("subjectArea", course.getSubjectArea());
                 if (iShowNames)
                     courseEl.addAttribute("courseNbr", course.getCourseNumber());
-                if (course.getLimit()!=0)
+                if (iShowNames && course.getLimit()!=0)
                     courseEl.addAttribute("limit", String.valueOf(course.getLimit()));
-                if (course.getProjected()!=0)
+                if (iShowNames && course.getProjected()!=0)
                     courseEl.addAttribute("projected", String.valueOf(course.getProjected()));
             }
             for (Enumeration f=offering.getConfigs().elements();f.hasMoreElements();) {
