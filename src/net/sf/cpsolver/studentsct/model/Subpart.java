@@ -117,7 +117,7 @@ public class Subpart implements Comparable {
         return choices;
     }
     
-    /** Minimal penalty from {@link Section#getMaxPenalty()} */
+    /** Minimal penalty from {@link Section#getPenalty()} */
     public double getMinPenalty() {
         double min = Double.MAX_VALUE;
         for (Enumeration e=getSections().elements();e.hasMoreElements();) {
@@ -127,7 +127,7 @@ public class Subpart implements Comparable {
         return (min==Double.MAX_VALUE?0.0:min);
     }
     
-    /** Maximal penalty from {@link Section#getMaxPenalty()} */
+    /** Maximal penalty from {@link Section#getPenalty()} */
     public double getMaxPenalty() {
         double max = Double.MIN_VALUE;
         for (Enumeration e=getSections().elements();e.hasMoreElements();) {
