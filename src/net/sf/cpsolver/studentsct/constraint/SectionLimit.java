@@ -8,6 +8,7 @@ import net.sf.cpsolver.ifs.model.GlobalConstraint;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.model.Enrollment;
+import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Section;
 
 public class SectionLimit extends GlobalConstraint {
@@ -15,10 +16,10 @@ public class SectionLimit extends GlobalConstraint {
     public static double sMaxWeight = 0.0001;
     public static double sRatio = 1.0;
     
-    public static double getWeight(Enrollment enrollment) {
-        return Math.min(sMinWeight, Math.max(sMaxWeight, sRatio * enrollment.getRequest().getWeight())); 
+    public static double getWeight(Request request) {
+        return Math.min(sMinWeight, Math.max(sMaxWeight, sRatio * request.getWeight())); 
     }
-    
+
     public void computeConflicts(Value value, Set conflicts) {
         //get enrollment
         Enrollment enrollment = (Enrollment)value;
@@ -35,7 +36,7 @@ public class SectionLimit extends GlobalConstraint {
             if (section.getLimit()<0) continue;
             
             //new enrollment weight
-            double enrlWeight = section.getEnrollmentWeight(enrollment.getRequest()) + getWeight(enrollment);
+            double enrlWeight = section.getEnrollmentWeight(enrollment.getRequest()) + getWeight(enrollment.getRequest());
             
             //below limit -> ok
             if (enrlWeight<=section.getLimit()) continue;
@@ -83,7 +84,7 @@ public class SectionLimit extends GlobalConstraint {
             if (section.getLimit()<0) continue;
 
             //new enrollment weight
-            double enrlWeight = section.getEnrollmentWeight(enrollment.getRequest()) + getWeight(enrollment);
+            double enrlWeight = section.getEnrollmentWeight(enrollment.getRequest()) + getWeight(enrollment.getRequest());
             
             //above limit -> conflict
             if (enrlWeight>section.getLimit()) return true;
