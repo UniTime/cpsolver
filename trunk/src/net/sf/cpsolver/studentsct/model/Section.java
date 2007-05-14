@@ -262,18 +262,16 @@ public class Section implements Assignment, Comparable {
     }
     
     /**
-     * Online sectioning penalty. If the section available space is below or equal to the amount of space
-     * that is held for incoming students, it is expected space - held space (sections with more expected space
-     * than space held are discouraged). 
+     * Online sectioning penalty. 
      */
     public double getOnlineSectioningPenalty() {
-        if (getLimit()<0)return 0.0;
+        if (getLimit()<=0)return 0.0;
         
         double available = getLimit() - getEnrollmentWeight(null);
         
-        double penalty = getSpaceExpected() - available / getLimit();
+        double penalty = (getSpaceExpected() - available) / getLimit();
         
-        return penalty;
+        return Math.max(-1.0,Math.min(1.0,penalty));
     }
     
 }
