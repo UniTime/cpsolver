@@ -138,4 +138,25 @@ public class Offering {
         }
         return subparts;
     }
+    
+    /** Minimal penalty from {@link Config#getMinPenalty()} */
+    public double getMinPenalty() {
+        double min = Double.MAX_VALUE;
+        for (Enumeration e=getConfigs().elements();e.hasMoreElements();) {
+            Config config = (Config)e.nextElement();
+            min = Math.min(min, config.getMinPenalty());
+        }
+        return (min==Double.MAX_VALUE?0.0:min);
+    }
+    
+    /** Maximal penalty from {@link Config#getMaxPenalty()} */
+    public double getMaxPenalty() {
+        double max = Double.MIN_VALUE;
+        for (Enumeration e=getConfigs().elements();e.hasMoreElements();) {
+            Config config = (Config)e.nextElement();
+            max = Math.max(max, config.getMaxPenalty());
+        }
+        return (max==Double.MIN_VALUE?0.0:max);
+    }
+    
 }
