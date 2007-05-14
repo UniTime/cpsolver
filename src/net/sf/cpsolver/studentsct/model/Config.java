@@ -1,5 +1,6 @@
 package net.sf.cpsolver.studentsct.model;
 
+import java.util.Enumeration;
 import java.util.Vector;
 
 /**
@@ -71,5 +72,25 @@ public class Config {
     
     public String toString() {
         return getName();
+    }
+    
+    /** Average minimal penalty from {@link Subpart#getMinPenalty()} */
+    public double getMinPenalty() {
+        double min = 0.0;
+        for (Enumeration e=getSubparts().elements();e.hasMoreElements();) {
+            Subpart subpart = (Subpart)e.nextElement();
+            min += subpart.getMinPenalty();
+        }
+        return min / getSubparts().size();
+    }
+    
+    /** Average maximal penalty from {@link Subpart#getMaxPenalty()} */
+    public double getMaxPenalty() {
+        double max = 0.0;
+        for (Enumeration e=getSubparts().elements();e.hasMoreElements();) {
+            Subpart subpart = (Subpart)e.nextElement();
+            max += subpart.getMinPenalty();
+        }
+        return max / getSubparts().size();
     }
 }
