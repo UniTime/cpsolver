@@ -7,10 +7,12 @@ import java.text.DecimalFormat;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.Vector;
 
 import org.dom4j.Document;
@@ -168,6 +170,7 @@ public class Test {
         sLog.info("Total value of the solution is "+solution.getModel().getTotalValue());
         sLog.info("Average unassigned priority "+sDF.format(avgUnassignPriority((StudentSectioningModel)solution.getModel())));
         sLog.info("Average number of requests "+sDF.format(avgNrRequests((StudentSectioningModel)solution.getModel())));
+        sLog.info("Unassigned request weight "+sDF.format(((StudentSectioningModel)solution.getModel()).getUnassignedRequestWeight())+" / "+sDF.format(((StudentSectioningModel)solution.getModel()).getTotalRequestWeight()));
         sLog.info("Info: "+solution.getInfo());
 
         return solution;
@@ -299,17 +302,50 @@ public class Test {
         sLog.info("Total value of the solution is "+solution.getModel().getTotalValue());
         sLog.info("Average unassigned priority "+sDF.format(avgUnassignPriority((StudentSectioningModel)solution.getModel())));
         sLog.info("Average number of requests "+sDF.format(avgNrRequests((StudentSectioningModel)solution.getModel())));
+        sLog.info("Unassigned request weight "+sDF.format(((StudentSectioningModel)solution.getModel()).getUnassignedRequestWeight())+" / "+sDF.format(((StudentSectioningModel)solution.getModel()).getTotalRequestWeight()));
         sLog.info("Info: "+solution.getInfo());
 
         return solution;
     }
     
+    public static boolean areInHardConfict(Request r1, Request r2) {
+        for (Enumeration e=r1.values().elements();e.hasMoreElements();) {
+            Enrollment e1 = (Enrollment)e.nextElement();
+            for (Enumeration f=r2.values().elements();f.hasMoreElements();) {
+                Enrollment e2 = (Enrollment)f.nextElement();
+                if (!e1.isOverlapping(e2)) return false;
+            }
+        }
+        return true;
+    }
+    
+    public static HashSet explanations(Enrollment enrl, Enrollment conflict) {
+        HashSet expl = new HashSet();
+        for (Iterator i=enrl.getAssignments().iterator();i.hasNext();) {
+            Section s1 = (Section)i.next();
+            for (Iterator j=conflict.getAssignments().iterator();j.hasNext();) {
+                Section s2 = (Section)j.next();
+                if (s1.isOverlapping(s2))
+                    expl.add(s1.getSubpart().getName()+" "+s1.getTime().getLongName()+" vs "+s2.getSubpart().getName()+" "+s2.getTime().getLongName());
+            }
+        }
+        for (Iterator i=enrl.getAssignments().iterator();i.hasNext();) {
+            Section s1 = (Section)i.next();
+            if (conflict.getAssignments().contains(s1) && s1.getEnrollmentWeight(enrl.getRequest()) + SectionLimit.getWeight(enrl.getRequest())>s1.getLimit()) {
+                expl.add(s1.getSubpart().getName()+" n/a");
+            }
+        }
+        return expl;
+    }
+    
     public static CSVFile createCourseConflictTable(StudentSectioningModel model, boolean includeLastLikeStudents, boolean includeRealStudents) {
         CSVFile csv = new CSVFile();
         csv.setHeader(new CSVFile.CSVField[] {
-                new CSVFile.CSVField("UNASSIGNED"),
-                new CSVFile.CSVField("CONFLICT"),
-                new CSVFile.CSVField("NR_STUDENTS")
+                new CSVFile.CSVField("UnasgnCrs"),
+                new CSVFile.CSVField("ConflCrs"),
+                new CSVFile.CSVField("NrStud"),
+                new CSVFile.CSVField("NoAlt"),
+                new CSVFile.CSVField("Reason")
         });
         Hashtable unassignedCourseTable = new Hashtable();
         for (Enumeration e=model.unassignedVariables().elements();e.hasMoreElements();) {
@@ -336,8 +372,12 @@ public class Test {
                         conflictCourseTable = new Hashtable();
                         unassignedCourseTable.put(course, conflictCourseTable);
                     }
-                    Double weight = (Double)conflictCourseTable.get(course);
-                    conflictCourseTable.put(course, new Double((weight==null?0.0:weight.doubleValue())+courseRequest.getWeight()));
+                    Object[] weight = (Object[])conflictCourseTable.get(course);
+                    double nrStud = (weight==null?0.0:((Double)weight[0]).doubleValue()) + request.getWeight();
+                    boolean noAlt = (weight==null?true:((Boolean)weight[1]).booleanValue());
+                    HashSet expl = (weight==null?new HashSet():(HashSet)weight[2]);
+                    expl.add(course.getName()+" n/a");
+                    conflictCourseTable.put(course, new Object[] {new Double(nrStud),new Boolean(noAlt),expl}); 
                 }
                 
                 for (Enumeration f=availableValues.elements();f.hasMoreElements();) {
@@ -379,9 +419,13 @@ public class Test {
                                 sLog.warn("Course not found for request "+conflictCourseRequest+" of student "+conflictCourseRequest.getStudent()+".");
                                 continue;
                             }
-                            Double weight = (Double)conflictCourseTable.get(conflictCourse);
-                            double weightThisConflict = courseRequest.getWeight() / availableValues.size() / conflicts.size();
-                            conflictCourseTable.put(conflictCourse, new Double((weight==null?0.0:weight.doubleValue())+weightThisConflict));
+                            double weightThisConflict = request.getWeight() / availableValues.size() / conflicts.size();
+                            Object[] weight = (Object[])conflictCourseTable.get(conflictCourse);
+                            double nrStud = (weight==null?0.0:((Double)weight[0]).doubleValue()) + weightThisConflict;
+                            boolean noAlt = (weight==null?areInHardConfict(request, conflict.getRequest()):((Boolean)weight[1]).booleanValue());
+                            HashSet expl = (weight==null?new HashSet():(HashSet)weight[2]);
+                            expl.addAll(explanations(enrollment, conflict));
+                            conflictCourseTable.put(conflictCourse, new Object[] {new Double(nrStud),new Boolean(noAlt),expl}); 
                         }
                     }
                 }
@@ -394,11 +438,17 @@ public class Test {
             for (Iterator j=conflictCourseTable.entrySet().iterator();j.hasNext();) {
                 Map.Entry entry2 = (Map.Entry)j.next();
                 Course conflictCourse = (Course)entry2.getKey();
-                double weight = ((Double)entry2.getValue()).doubleValue();
+                Object[] weight = (Object[])entry2.getValue();
+                HashSet expl = (HashSet)weight[2];
+                String explStr = "";
+                for (Iterator k=new TreeSet(expl).iterator();k.hasNext();)
+                    explStr += k.next() + (k.hasNext()?"\n":"");
                 csv.addLine(new CSVFile.CSVField[] {
                    new CSVFile.CSVField(unassignedCourse.getName()),
                    new CSVFile.CSVField(conflictCourse.getName()),
-                   new CSVFile.CSVField(sDF.format(weight)),
+                   new CSVFile.CSVField(sDF.format((Double)weight[0])),
+                   new CSVFile.CSVField(((Boolean)weight[1]).booleanValue()?"Y":"N"),
+                   new CSVFile.CSVField(explStr)
                 });
              }
         }
@@ -568,9 +618,11 @@ public class Test {
 
     public static void main(String[] args) {
         try {
+            /*
             if (args==null || args.length==0) {
                 args = new String[] {"c:\\test\\test.cfg", "c:\\test\\pu-sectll-fal07-s.xml", "c:\\test\\log-test-online", "online"};
             }
+            */
             
             DataProperties cfg = new DataProperties();
             cfg.setProperty("Termination.Class","net.sf.cpsolver.ifs.termination.GeneralTerminationCondition");
