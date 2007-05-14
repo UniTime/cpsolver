@@ -118,13 +118,15 @@ public class Test {
         });
         double startTime = JProf.currentTimeSec();
         
+        BranchBoundEnrollmentsSelection bbSelection = new BranchBoundEnrollmentsSelection(cfg);
+        
         Vector students = new Vector(model.getStudents());
         Collections.shuffle(students);
         for (Enumeration e=students.elements();e.hasMoreElements();) {
             Student student = (Student)e.nextElement();
             sLog.info("Sectioning student: "+student);
             if (usePenalties) setPenalties(student);
-            BranchBoundEnrollmentsSelection.Selection selection = new BranchBoundEnrollmentsSelection.Selection(student);
+            BranchBoundEnrollmentsSelection.Selection selection = bbSelection.getSelection(student);
             if (selection.select()!=null) {
                 StudentSctNeighbourSelection.N1 neighbour = new StudentSctNeighbourSelection.N1(selection);
                 neighbour.assign(solution.getIteration());
@@ -566,6 +568,10 @@ public class Test {
 
     public static void main(String[] args) {
         try {
+            if (args==null || args.length==0) {
+                args = new String[] {"c:\\test\\test.cfg", "c:\\test\\pu-sectll-fal07-s.xml", "c:\\test\\log-test-online", "online"};
+            }
+            
             DataProperties cfg = new DataProperties();
             cfg.setProperty("Termination.Class","net.sf.cpsolver.ifs.termination.GeneralTerminationCondition");
             cfg.setProperty("Termination.StopWhenComplete","true");
@@ -581,7 +587,7 @@ public class Test {
             cfg.setProperty("Data.Initiative","puWestLafayetteTrdtn");
             cfg.setProperty("Data.Term","2007");
             cfg.setProperty("Data.Year","Fal");
-            cfg.setProperty("General.Input","c:\\test\\fal07ll.xml");
+            cfg.setProperty("General.Input","pu-sectll-fal07-s.xml");
             if (args.length>=1) {
                 cfg.load(new FileInputStream(args[0]));
             }
