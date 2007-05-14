@@ -23,11 +23,15 @@ public class StudentSctNeighbourSelection extends StandardNeighbourSelection {
     private int iSelectionIdx = -1;
     private Vector iSelections = new Vector();
     private RandomizedBacktrackNeighbourSelection iRBtNSel = null;
+    private BranchBoundEnrollmentsSelection iBBEnSel = null;
+    private SwapStudentsEnrollmentSelection iSwStEnSel = null;
     private HashSet iProblemStudents = new HashSet();
     
     public StudentSctNeighbourSelection(DataProperties properties) throws Exception {
         super(properties);
         iRBtNSel = new RandomizedBacktrackNeighbourSelection(properties);
+        iBBEnSel = new BranchBoundEnrollmentsSelection(properties);
+        iSwStEnSel = new SwapStudentsEnrollmentSelection(properties);
     }
     
     public void registerSelection(Selection selection) {
@@ -37,6 +41,8 @@ public class StudentSctNeighbourSelection extends StandardNeighbourSelection {
     public void init(Solver solver) {
         super.init(solver);
         iRBtNSel.init(solver);
+        iBBEnSel.init(solver);
+        iSwStEnSel.init(solver);
         setup();
     }
 
@@ -59,6 +65,7 @@ public class StudentSctNeighbourSelection extends StandardNeighbourSelection {
         //Phase 1: section all students using incremental branch & bound (no unassignments)
         registerSelection(new Selection() {
             private Enumeration iStudentsEnumeration = null;
+            private BranchBoundEnrollmentsSelection iBranchBoundEnrollmentsSelection = null;
             public void init(Solution solution) {
                 Vector students = new Vector(((StudentSectioningModel)solution.getModel()).getStudents());
                 Collections.shuffle(students);
@@ -67,7 +74,7 @@ public class StudentSctNeighbourSelection extends StandardNeighbourSelection {
             public Neighbour select(Solution solution) {
                 while (iStudentsEnumeration.hasMoreElements()) {
                     Student student = (Student)iStudentsEnumeration.nextElement();
-                    BranchBoundEnrollmentsSelection.Selection selection = new BranchBoundEnrollmentsSelection.Selection(student);
+                    BranchBoundEnrollmentsSelection.Selection selection = iBBEnSel.getSelection(student);
                     if (selection.select()!=null) return new N1(selection);
                 }
                 return null;
@@ -85,14 +92,14 @@ public class StudentSctNeighbourSelection extends StandardNeighbourSelection {
             }
             public Neighbour select(Solution solution) {
                 if (iStudent!=null && !iStudent.isComplete()) {
-                    SwapStudentsEnrollmentSelection.Selection selection = new SwapStudentsEnrollmentSelection.Selection(iStudent);
+                    SwapStudentsEnrollmentSelection.Selection selection = iSwStEnSel.getSelection(iStudent);
                     if (selection.select()!=null) return new N2(selection);
                 }
                 iStudent = null;
                 while (iStudentsEnumeration.hasMoreElements()) {
                     Student student = (Student)iStudentsEnumeration.nextElement();
                     if (student.isComplete() || student.nrAssignedRequests()==0) continue;
-                    SwapStudentsEnrollmentSelection.Selection selection = new SwapStudentsEnrollmentSelection.Selection(student);
+                    SwapStudentsEnrollmentSelection.Selection selection = iSwStEnSel.getSelection(student);
                     if (selection.select()!=null) {
                         iStudent = student;
                         return new N2(selection);
@@ -150,7 +157,7 @@ public class StudentSctNeighbourSelection extends StandardNeighbourSelection {
             }
             public Neighbour select(Solution solution) {
                 if (iStudent!=null && !iStudent.isComplete()) {
-                    SwapStudentsEnrollmentSelection.Selection selection = new SwapStudentsEnrollmentSelection.Selection(iStudent);
+                    SwapStudentsEnrollmentSelection.Selection selection = iSwStEnSel.getSelection(iStudent);
                     if (selection.select()!=null) 
                         return new N2(selection);
                     else
@@ -160,7 +167,7 @@ public class StudentSctNeighbourSelection extends StandardNeighbourSelection {
                 while (iStudentsEnumeration.hasMoreElements()) {
                     Student student = (Student)iStudentsEnumeration.nextElement();
                     if (student.isComplete() || student.nrAssignedRequests()==0) continue;
-                    SwapStudentsEnrollmentSelection.Selection selection = new SwapStudentsEnrollmentSelection.Selection(student);
+                    SwapStudentsEnrollmentSelection.Selection selection = iSwStEnSel.getSelection(student);
                     if (selection.select()!=null) {
                         iStudent = student;
                         return new N2(selection);
@@ -197,7 +204,7 @@ public class StudentSctNeighbourSelection extends StandardNeighbourSelection {
                 while (iStudentsEnumeration.hasMoreElements()) {
                     Student student = (Student)iStudentsEnumeration.nextElement();
                     if (student.nrAssignedRequests()==0 || student.isComplete()) continue;
-                    BranchBoundEnrollmentsSelection.Selection selection = new BranchBoundEnrollmentsSelection.Selection(student);
+                    BranchBoundEnrollmentsSelection.Selection selection = iBBEnSel.getSelection(student);
                     if (selection.select()!=null)
                         return new N1(selection);
                 }
@@ -285,7 +292,7 @@ public class StudentSctNeighbourSelection extends StandardNeighbourSelection {
                     if (enrollment==null)
                         sb.append("  -- not assigned");
                     else
-                        sb.append("  -- "+enrollment.getName());
+                        sb.append("  -- "+enrollment);
                 }
             }
             sb.append("\n}");
@@ -307,7 +314,7 @@ public class StudentSctNeighbourSelection extends StandardNeighbourSelection {
             Set conflicts = enrollment.getStudent().getModel().conflictValues(enrollment);
             for (Iterator i=conflicts.iterator();i.hasNext();) {
                 Enrollment conflict = (Enrollment)i.next();
-                Enrollment switchEnrl = conflict.bestSwap(enrollment, null);
+                Enrollment switchEnrl = SwapStudentsEnrollmentSelection.bestSwap(conflict, enrollment, null);
                 conflict.variable().unassign(iteration);
                 if (switchEnrl!=null)
                     switchEnrl.variable().assign(iteration, switchEnrl);
@@ -319,8 +326,8 @@ public class StudentSctNeighbourSelection extends StandardNeighbourSelection {
             StringBuffer sb = new StringBuffer("N2{");
             sb.append(" "+iSelection.getBestEnrollment().getRequest().getStudent());
             sb.append(" ("+iSelection.getBestValue()+")");
-            sb.append("\n "+iSelection.getBestEnrollment().getRequest().getName());
-            sb.append(" "+iSelection.getBestEnrollment().getName());
+            sb.append("\n "+iSelection.getBestEnrollment().getRequest());
+            sb.append(" "+iSelection.getBestEnrollment());
             sb.append("\n}");
             return sb.toString();
         }

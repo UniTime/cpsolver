@@ -14,6 +14,7 @@ import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.multi.MultiValue;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
+import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
@@ -21,8 +22,12 @@ import net.sf.cpsolver.studentsct.model.Student;
 
 public class BranchBoundEnrollmentsSelection implements ValueSelection {
     private static Logger sLog = Logger.getLogger(BranchBoundEnrollmentsSelection.class); 
-    public static long sTimeOut = 5000;
+    private int iTimeout = 10000;
     public static boolean sDebug = false;
+    
+    public BranchBoundEnrollmentsSelection(DataProperties properties) {
+        iTimeout = properties.getPropertyInt("Neighbour.BranchAndBoundTimeout", iTimeout);
+    }
 
     public void init(Solver solver) {}
     
@@ -31,7 +36,11 @@ public class BranchBoundEnrollmentsSelection implements ValueSelection {
         return new Selection(student).select();
     }
     
-    public static class Selection {
+    public Selection getSelection(Student student) {
+        return new Selection(student);
+    }
+    
+    public class Selection {
         private Student iStudent;
         private long iT0, iT1;
         private boolean iTimeoutReached;
@@ -154,7 +163,7 @@ public class BranchBoundEnrollmentsSelection implements ValueSelection {
         
         public void backTrack(int idx) {
             if (sDebug) sLog.debug("backTrack("+nrAssigned()+"/"+getValue()+","+idx+")");
-            if (sTimeOut>0 && (System.currentTimeMillis()-iT0)>sTimeOut) {
+            if (iTimeout>0 && (System.currentTimeMillis()-iT0)>iTimeout) {
                 if (sDebug) sLog.debug("  -- timeout reached");
                 iTimeoutReached=true; return;
             }
@@ -163,7 +172,7 @@ public class BranchBoundEnrollmentsSelection implements ValueSelection {
                 return;
             }
             if (idx==iAssignment.length) {
-                if (getValue()<iBestValue) {
+                if (iBestAssignment==null || getValue()<iBestValue) {
                     if (sDebug) sLog.debug("  -- best solution found "+nrAssigned()+"/"+getValue());
                     saveBest();
                 }
