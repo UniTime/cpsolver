@@ -8,12 +8,41 @@ import java.util.Set;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
+/**
+ * Representation of an enrollment of a student into a course. A student needs to 
+ * be enrolled in a section of each subpart of a selected configuration. When 
+ * parent-child relation is defined among sections, if a student is enrolled
+ * in a section that has a parent section defined, he/she has be enrolled in 
+ * the parent section as well. Also, the selected sections cannot overlap in time.
+ * <br><br>
+ * 
+ * @version
+ * StudentSct 1.1 (Student Sectioning)<br>
+ * Copyright (C) 2007 Tomas Muller<br>
+ * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
+ * Lazenska 391, 76314 Zlin, Czech Republic<br>
+ * <br>
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * <br><br>
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * <br><br>
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
+
 public class Enrollment extends Value {
     private static DecimalFormat sDF = new DecimalFormat("0.000");
     private Request iRequest = null;
     private Config iConfig = null;
     private Set iAssignments = null;
-    private Double iPenalty = null;
+    private Double iCachedPenalty = null;
     private Double iCachedDoubleValue = null;
 
     public static double sPriorityWeight = 0.90;
@@ -21,7 +50,15 @@ public class Enrollment extends Value {
     public static double sInitialWeight = 1.2;
     public static double sSelectedWeight = 1.1;
     public static double sWaitlistedWeight = 1.01;
-    
+    public static double sMinWeight = 0.0001;
+    public static double sNormPenalty = 5.0;
+
+    /** Constructor
+     * @param request course / free time request
+     * @param value value (1.0 for primary course, 0.5 for the first alternative, etc.)
+     * @param config selected configuration
+     * @param assignments valid list of sections
+     */
     public Enrollment(Request request, double value, Config config, Set assignments) {
         super(request);
         iRequest = request;
@@ -30,30 +67,37 @@ public class Enrollment extends Value {
         iValue = value;
     }
     
+    /** Student */
     public Student getStudent() {
         return iRequest.getStudent();
     }
     
+    /** Request */
     public Request getRequest() {
         return iRequest;
     }
     
+    /** True if the request is course request */
     public boolean isCourseRequest() {
         return iConfig!=null;
     }
     
+    /** Offering of the course request */
     public Offering getOffering() {
         return (iConfig==null?null:iConfig.getOffering());
     }
     
+    /** Config of the course request */
     public Config getConfig() {
         return iConfig;
     }
     
+    /** List of assignments (selected sections) */
     public Set getAssignments() {
         return iAssignments;
     }
     
+    /** True when this enrollment is overlapping with the given enrollment */
     public boolean isOverlapping(Enrollment enrl) {
         for (Iterator i=enrl.getAssignments().iterator();i.hasNext();) {
             Assignment assignment = (Assignment)i.next();
@@ -62,6 +106,7 @@ public class Enrollment extends Value {
         return false;
     }
     
+    /** Percent of sections that are wait-listed */
     public double percentWaitlisted() {
         if (!isCourseRequest()) return 0.0;
         CourseRequest courseRequest = (CourseRequest)getRequest();
@@ -74,6 +119,7 @@ public class Enrollment extends Value {
         return ((double)nrWaitlisted)/getAssignments().size();
     }
 
+    /** Percent of sections that are selected */
     public double percentSelected() {
         if (!isCourseRequest()) return 0.0;
         CourseRequest courseRequest = (CourseRequest)getRequest();
@@ -86,6 +132,7 @@ public class Enrollment extends Value {
         return ((double)nrSelected)/getAssignments().size();
     }
     
+    /** Percent of sections that are initial */
     public double percentInitial() {
         if (getRequest().getInitialAssignment()==null) return 0.0;
         Enrollment inital = (Enrollment)getRequest().getInitialAssignment();
@@ -98,6 +145,7 @@ public class Enrollment extends Value {
         return ((double)nrInitial)/getAssignments().size();
     }
 
+    /** True if all the sections are wait-listed */
     public boolean isWaitlisted() {
         if (!isCourseRequest()) return false;
         CourseRequest courseRequest = (CourseRequest)getRequest();
@@ -108,6 +156,7 @@ public class Enrollment extends Value {
         return true;
     }
     
+    /** True if all the sections are selected */
     public boolean isSelected() {
         if (!isCourseRequest()) return false;
         CourseRequest courseRequest = (CourseRequest)getRequest();
@@ -118,18 +167,27 @@ public class Enrollment extends Value {
         return true;
     }
     
+    /** Enrollment penalty -- sum of section penalties (see {@link Section#getPenalty()}) */
     public double getPenalty() {
-        if (!isCourseRequest()) return 0.0;
-        if (iPenalty!=null) return iPenalty.doubleValue();
-        double penalty = 0.0;
-        for (Iterator i=getAssignments().iterator();i.hasNext();) {
-            Section section = (Section)i.next();
-            penalty += section.getPenalty();
+        if (iCachedPenalty==null) {
+            double penalty = 0.0;
+            if (isCourseRequest()) {
+                for (Iterator i=getAssignments().iterator();i.hasNext();) {
+                    Section section = (Section)i.next();
+                    penalty += section.getPenalty();
+                }
+            }
+            iCachedPenalty = new Double(penalty/getAssignments().size());
         }
-        iPenalty = new Double(penalty);
-        return penalty;
+        return iCachedPenalty.doubleValue();
+    }
+    
+    /** Normalized enrollment penalty -- to be used in {@link Enrollment#toDouble()} */
+    public static double normalizePenalty(double penalty) {
+        return sNormPenalty/(sNormPenalty+penalty);
     }
 
+    /** Enrollment value */
     public double toDouble() {
         if (iCachedDoubleValue==null) {
             iCachedDoubleValue = new Double(
@@ -139,14 +197,15 @@ public class Enrollment extends Value {
                     Math.pow(sInitialWeight,percentInitial()) *
                     Math.pow(sSelectedWeight,percentSelected()) * 
                     Math.pow(sWaitlistedWeight,percentWaitlisted()) *
-                    getRequest().getWeight() * 
+                    //Math.max(sMinWeight,getRequest().getWeight()) * 
                     (getStudent().isDummy()?Student.sDummyStudentWeight:1.0) *
-                    (100.0/(100.0+getPenalty()))
+                    normalizePenalty(getPenalty())
             );
         }
         return iCachedDoubleValue.doubleValue();
     }
     
+    /** Enrollment name */
     public String getName() {
         if (getRequest() instanceof CourseRequest) {
             Course course = null;
@@ -177,7 +236,7 @@ public class Enrollment extends Value {
     }
     
     public String toString() {
-        String ret = getStudent()+" "+sDF.format(toDouble())+"/"+sDF.format(getRequest().getBound())+(getPenalty()==0.0?"":"/"+sDF.format(getPenalty()))+" "+getRequest();
+        String ret = sDF.format(toDouble())+"/"+sDF.format(getRequest().getBound())+(getPenalty()==0.0?"":"/"+sDF.format(getPenalty()));
         if (getRequest() instanceof CourseRequest) {
             ret+=" ";
             for (Iterator i=getAssignments().iterator();i.hasNext();) {
@@ -195,35 +254,5 @@ public class Enrollment extends Value {
         if (!ToolBox.equals(getRequest(),e.getRequest())) return false;
         if (!ToolBox.equals(getAssignments(),e.getAssignments())) return false;
         return true;
-    }
-    
-    public Enrollment bestSwap(Enrollment enrl, Set problematicStudents) {
-        Enrollment bestEnrollment = null;
-        for (Iterator i=getRequest().values().iterator();i.hasNext();) {
-            Enrollment enrollment = (Enrollment)i.next();
-            if (enrollment.equals(this)) continue;
-            if (!enrl.isConsistent(enrollment)) continue;
-            if (getStudent().getModel().conflictValues(enrollment).isEmpty()) {
-                if (bestEnrollment==null || bestEnrollment.toDouble()>enrollment.toDouble())
-                    bestEnrollment = enrollment;
-            }
-        }
-        if (bestEnrollment==null && problematicStudents!=null) {
-            boolean added = false;
-            for (Iterator i=getRequest().values().iterator();i.hasNext();) {
-                Enrollment enrollment = (Enrollment)i.next();
-                if (enrollment.equals(this)) continue;
-                if (!enrl.isConsistent(enrollment)) continue;
-                Set conflicts = getStudent().getModel().conflictValues(enrollment);
-                for (Iterator j=conflicts.iterator();j.hasNext();) {
-                    Enrollment conflict = (Enrollment)j.next();
-                    if (!enrl.getStudent().equals(conflict.getStudent()) && !getStudent().equals(conflict.getStudent()))
-                        problematicStudents.add(conflict.getStudent());
-                }
-            }
-            if (!added && !enrl.getStudent().equals(getStudent()))
-                problematicStudents.add(getStudent());
-        }
-        return bestEnrollment;
     }
 }
