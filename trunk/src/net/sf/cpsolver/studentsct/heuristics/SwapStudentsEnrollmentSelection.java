@@ -14,6 +14,7 @@ import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.multi.MultiValue;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
+import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
@@ -21,9 +22,14 @@ import net.sf.cpsolver.studentsct.model.Student;
 
 public class SwapStudentsEnrollmentSelection implements ValueSelection {
     private static Logger sLog = Logger.getLogger(SwapStudentsEnrollmentSelection.class); 
-    public static long sTimeOut = 5000;
+    private int iTimeout = 5000;
+    private int iMaxValues = 100;
     public static boolean sDebug = false;
-    public static int sMaxValues = 100;
+
+    public SwapStudentsEnrollmentSelection(DataProperties properties) {
+        iTimeout = properties.getPropertyInt("Neighbour.SwapStudentsTimeout", iTimeout);
+        iMaxValues = properties.getPropertyInt("Neighbour.SwapStudentsMaxValues", iMaxValues);
+    }
 
     public void init(Solver solver) {}
     
@@ -32,7 +38,11 @@ public class SwapStudentsEnrollmentSelection implements ValueSelection {
         return new Selection(student).select();
     }
     
-    public static class Selection {
+    public Selection getSelection(Student student) {
+        return new Selection(student);
+    }
+    
+    public class Selection {
         private Student iStudent;
         private long iT0, iT1;
         private boolean iTimeoutReached;
@@ -51,7 +61,7 @@ public class SwapStudentsEnrollmentSelection implements ValueSelection {
             iBestEnrollment = null;
             iProblemStudents = new HashSet();
             for (Enumeration e=iStudent.getRequests().elements();e.hasMoreElements();) {
-                if (sTimeOut>0 && (System.currentTimeMillis()-iT0)>sTimeOut) {
+                if (iTimeout>0 && (System.currentTimeMillis()-iT0)>iTimeout) {
                     if (!iTimeoutReached) {
                         if (sDebug) sLog.debug("  -- timeout reached");
                         iTimeoutReached=true; 
@@ -63,11 +73,11 @@ public class SwapStudentsEnrollmentSelection implements ValueSelection {
                 if (!iStudent.canAssign(request)) continue;
                 if (sDebug) sLog.debug("  -- checking request "+request);
                 Vector values = null;
-                if (sMaxValues>0 && request instanceof CourseRequest) {
-                    values = ((CourseRequest)request).computeRandomEnrollments(sMaxValues);
+                if (iMaxValues>0 && request instanceof CourseRequest) {
+                    values = ((CourseRequest)request).computeRandomEnrollments(iMaxValues);
                 } else values = request.values();
                 for (Enumeration f=values.elements();f.hasMoreElements();) {
-                    if (sTimeOut>0 && (System.currentTimeMillis()-iT0)>sTimeOut) {
+                    if (iTimeout>0 && (System.currentTimeMillis()-iT0)>iTimeout) {
                         if (!iTimeoutReached) {
                             if (sDebug) sLog.debug("  -- timeout reached");
                             iTimeoutReached=true; 
@@ -83,7 +93,7 @@ public class SwapStudentsEnrollmentSelection implements ValueSelection {
                     for (Iterator j=conflicts.iterator();j.hasNext();) {
                         Enrollment conflict = (Enrollment)j.next();
                         if (sDebug) sLog.debug("        -- conflict "+conflict);
-                        Enrollment other = conflict.bestSwap(enrollment, iProblemStudents);
+                        Enrollment other = bestSwap(conflict, enrollment, iProblemStudents);
                         if (other==null) {
                             if (sDebug) sLog.debug("          -- unable to resolve");
                             unresolvedConflict = true; break;
@@ -134,5 +144,37 @@ public class SwapStudentsEnrollmentSelection implements ValueSelection {
         public Set getProblemStudents() {
             return iProblemStudents;
         }
+        
+    }
+
+    /** Identify the best swap for the given student */
+    public static Enrollment bestSwap(Enrollment conflict, Enrollment enrl, Set problematicStudents) {
+        Enrollment bestEnrollment = null;
+        for (Iterator i=conflict.getRequest().values().iterator();i.hasNext();) {
+            Enrollment enrollment = (Enrollment)i.next();
+            if (enrollment.equals(conflict)) continue;
+            if (!enrl.isConsistent(enrollment)) continue;
+            if (conflict.getStudent().getModel().conflictValues(enrollment).isEmpty()) {
+                if (bestEnrollment==null || bestEnrollment.toDouble()>enrollment.toDouble())
+                    bestEnrollment = enrollment;
+            }
+        }
+        if (bestEnrollment==null && problematicStudents!=null) {
+            boolean added = false;
+            for (Iterator i=conflict.getRequest().values().iterator();i.hasNext();) {
+                Enrollment enrollment = (Enrollment)i.next();
+                if (enrollment.equals(conflict)) continue;
+                if (!enrl.isConsistent(enrollment)) continue;
+                Set conflicts = conflict.getStudent().getModel().conflictValues(enrollment);
+                for (Iterator j=conflicts.iterator();j.hasNext();) {
+                    Enrollment c = (Enrollment)j.next();
+                    if (!enrl.getStudent().equals(c.getStudent()) && !conflict.getStudent().equals(c.getStudent()))
+                        problematicStudents.add(c.getStudent());
+                }
+            }
+            if (!added && !enrl.getStudent().equals(conflict.getStudent()))
+                problematicStudents.add(conflict.getStudent());
+        }
+        return bestEnrollment;
     }
 }

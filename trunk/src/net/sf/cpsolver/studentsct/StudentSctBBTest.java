@@ -9,6 +9,7 @@ import java.util.Vector;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.solution.Solution;
+import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.studentsct.constraint.SectionLimit;
 import net.sf.cpsolver.studentsct.constraint.StudentConflict;
 import net.sf.cpsolver.studentsct.heuristics.BranchBoundEnrollmentsSelection;
@@ -44,7 +45,7 @@ public class StudentSctBBTest extends Model {
     public Solution getSolution() {
         if (iSolution==null) {
             iSolution = new Solution(this);
-            BranchBoundEnrollmentsSelection.Selection selection = new BranchBoundEnrollmentsSelection.Selection(getStudent());
+            BranchBoundEnrollmentsSelection.Selection selection = new BranchBoundEnrollmentsSelection(new DataProperties()).getSelection(getStudent());
             Value value = selection.select();
             if (value!=null)
                 getStudent().assign(0, value);
@@ -58,7 +59,7 @@ public class StudentSctBBTest extends Model {
         Vector ret = new Vector();
         ret.add(new Message(Message.sMsgLevelInfo,null,"<li>Solution found in "+iTime+" ms."));
         if (iTimeoutReached)
-            ret.add(new Message(Message.sMsgLevelInfo,null,"<li>"+(BranchBoundEnrollmentsSelection.sTimeOut/1000)+" s time out reached, solution optimality can not be guaranteed."));
+            ret.add(new Message(Message.sMsgLevelInfo,null,"<li>Time out reached, solution optimality can not be guaranteed."));
         for (Enumeration e=getStudent().getRequests().elements();e.hasMoreElements();) {
             Request request = (Request)e.nextElement();
             if (!request.isAlternative() && request.getAssignment()==null) {
