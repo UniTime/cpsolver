@@ -170,4 +170,22 @@ public class StudentSectioningModel extends Model {
             }
         }
     }
+    
+    public double getUnassignedRequestWeight() {
+        double weight = 0.0;
+        for (Enumeration e=unassignedVariables().elements();e.hasMoreElements();) {
+            Request request = (Request)e.nextElement();
+            weight += request.getWeight();
+        }
+        return weight;
+    }
+
+    public double getTotalRequestWeight() {
+        double weight = 0.0;
+        for (Enumeration e=variables().elements();e.hasMoreElements();) {
+            Request request = (Request)e.nextElement();
+            weight += request.getWeight();
+        }
+        return weight;
+    }
 }
