@@ -1,39 +1,62 @@
-package net.sf.cpsolver.studentsct.heuristics;
+package net.sf.cpsolver.studentsct.heuristics.selection;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
-import net.sf.cpsolver.ifs.heuristics.ValueSelection;
-import net.sf.cpsolver.ifs.model.Value;
-import net.sf.cpsolver.ifs.model.Variable;
-import net.sf.cpsolver.ifs.multi.MultiValue;
+import net.sf.cpsolver.ifs.extension.Extension;
+import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
+import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.studentsct.StudentSectioningModel;
+import net.sf.cpsolver.studentsct.extension.DistanceConflict;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Student;
 
-public class BranchBoundEnrollmentsSelection implements ValueSelection {
-    private static Logger sLog = Logger.getLogger(BranchBoundEnrollmentsSelection.class); 
+/**
+ * Section all students using incremental branch & bound (no unassignments)
+ */
+
+public class BranchBoundSelection implements NeighbourSelection {
+    private static Logger sLog = Logger.getLogger(BranchBoundSelection.class); 
     private int iTimeout = 10000;
+    private DistanceConflict iDistanceConflict = null;
     public static boolean sDebug = false;
+    protected Enumeration iStudentsEnumeration = null;
     
-    public BranchBoundEnrollmentsSelection(DataProperties properties) {
-        iTimeout = properties.getPropertyInt("Neighbour.BranchAndBoundTimeout", iTimeout);
+    public BranchBoundSelection(DataProperties properties) {
+        iTimeout = properties.getPropertyInt("Neighbour.BranchAndBoundTimeout", iTimeout);    
     }
 
-    public void init(Solver solver) {}
+    public void init(Solver solver) {
+        Vector students = new Vector(((StudentSectioningModel)solver.currentSolution().getModel()).getStudents());
+        Collections.shuffle(students);
+        iStudentsEnumeration = students.elements();
+        if (iDistanceConflict==null)
+            for (Enumeration e=solver.getExtensions().elements();e.hasMoreElements();) {
+                Extension ext = (Extension)e.nextElement();
+                if (ext instanceof DistanceConflict)
+                    iDistanceConflict = (DistanceConflict)ext;
+            }
+    }
     
-    public Value selectValue(Solution solution, Variable selectedVariable) {
-        Student student = (Student)selectedVariable;
-        return new Selection(student).select();
+    public Neighbour selectNeighbour(Solution solution) {
+        while (iStudentsEnumeration.hasMoreElements()) {
+            Student student = (Student)iStudentsEnumeration.nextElement();
+            Neighbour neighbour = getSelection(student).select();
+            if (neighbour!=null) return neighbour;
+        }
+        return null;
     }
     
     public Selection getSelection(Student student) {
@@ -52,7 +75,7 @@ public class BranchBoundEnrollmentsSelection implements ValueSelection {
             iStudent = student;
         }
         
-        public Value select() {
+        public BranchBoundNeighbour select() {
             iT0 = System.currentTimeMillis();
             iTimeoutReached = false;
             iAssignment = new Enrollment[iStudent.getRequests().size()];
@@ -62,7 +85,7 @@ public class BranchBoundEnrollmentsSelection implements ValueSelection {
             backTrack(0);
             iT1 = System.currentTimeMillis();
             if (iBestAssignment==null) return null;
-            return new MultiValue(iStudent, iBestAssignment);
+            return new BranchBoundNeighbour(iBestValue, iBestAssignment);
         }
         
         public boolean isTimeoutReached() {
@@ -84,10 +107,19 @@ public class BranchBoundEnrollmentsSelection implements ValueSelection {
         public double getBound(int idx) {
             double bound = 0.0;
             int i=0, alt=0;
+            int nrDist = 0;
             for (Enumeration e=iStudent.getRequests().elements();e.hasMoreElements();i++) {
                 Request r  = (Request)e.nextElement();
                 if (i<idx) {
-                    if (iAssignment[i]!=null) bound += iAssignment[i].toDouble();
+                    if (iAssignment[i]!=null) {
+                        if (iDistanceConflict!=null) {
+                            nrDist+=iDistanceConflict.nrConflicts(iAssignment[i]);
+                            for (int x=0;x<i;x++)
+                                if (iAssignment[x]!=null)
+                                    nrDist+=iDistanceConflict.nrConflicts(iAssignment[x],iAssignment[i]);
+                        }
+                        bound += iAssignment[i].toDouble(nrDist);
+                    }
                     if (r.isAlternative()) {
                         if (iAssignment[i]!=null || (r instanceof CourseRequest && ((CourseRequest)r).isWaitlist())) alt--;
                     } else {
@@ -106,20 +138,26 @@ public class BranchBoundEnrollmentsSelection implements ValueSelection {
         
         public double getValue() {
             double value = 0.0;
+            int nrDist = 0;
             for (int i=0;i<iAssignment.length;i++)
-                if (iAssignment[i]!=null) value += iAssignment[i].toDouble();
+                if (iAssignment[i]!=null) {
+                    if (iDistanceConflict!=null) {
+                        nrDist+=iDistanceConflict.nrConflicts(iAssignment[i]);
+                        for (int x=0;x<i;x++)
+                            if (iAssignment[x]!=null)
+                                nrDist+=iDistanceConflict.nrConflicts(iAssignment[x],iAssignment[i]);
+                    }
+                    value += iAssignment[i].toDouble(nrDist);
+                }
             return value;
         }
         
         public void saveBest() {
-            double value = 0.0;
             if (iBestAssignment==null)
                 iBestAssignment = new Enrollment[iAssignment.length];
-            for (int i=0;i<iAssignment.length;i++) {
+            for (int i=0;i<iAssignment.length;i++)
                 iBestAssignment[i] = iAssignment[i];
-                if (iAssignment[i]!=null) value += iAssignment[i].toDouble();
-            }
-            iBestValue = value;
+            iBestValue = getValue();
         }
         
         public Enrollment firstConflict(Enrollment enrollment) {
@@ -237,5 +275,49 @@ public class BranchBoundEnrollmentsSelection implements ValueSelection {
                 if (!hasNoConflictValue || request instanceof CourseRequest) backTrack(idx+1);
             }
         }
+    }    
+    
+    public static class BranchBoundNeighbour extends Neighbour {
+        private double iValue;
+        private Enrollment[] iAssignment;
+        
+        public BranchBoundNeighbour(double value, Enrollment[] assignment) {
+            iValue = value;
+            iAssignment = assignment;
+        }
+        
+        public void assign(long iteration) {
+            for (int i=0;i<iAssignment.length;i++)
+                if (iAssignment[i]!=null)
+                    iAssignment[i].variable().assign(iteration, iAssignment[i]);
+        }
+        
+        public String toString() {
+            StringBuffer sb = new StringBuffer("B&B{");
+            Student student = null;
+            for (int i=0;i<iAssignment.length;i++) {
+                if (iAssignment[i]!=null) {
+                    student = iAssignment[i].getRequest().getStudent();
+                    sb.append(" "+student);
+                    sb.append(" ("+iValue+")");
+                    break;
+                }
+            }
+            if (student!=null) {
+                int idx=0;
+                for (Enumeration e=student.getRequests().elements();e.hasMoreElements();idx++) {
+                    Request request = (Request)e.nextElement();
+                    sb.append("\n"+request);
+                    Enrollment enrollment = iAssignment[idx];
+                    if (enrollment==null)
+                        sb.append("  -- not assigned");
+                    else
+                        sb.append("  -- "+enrollment);
+                }
+            }
+            sb.append("\n}");
+            return sb.toString();
+        }
+        
     }
 }

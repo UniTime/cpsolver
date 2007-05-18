@@ -174,16 +174,6 @@ public class Section implements Assignment, Comparable {
         if (excludeRequest!=null && excludeRequest.getAssignment()!=null && iEnrollments.contains(excludeRequest.getAssignment()))
             weight -= excludeRequest.getWeight();
         return weight;
-        /*
-        double weight = 0.0;
-        for (Iterator i=iEnrollments.iterator();i.hasNext();) {
-            Enrollment enrollment = (Enrollment)i.next();
-            if (excludeRequest!=null && excludeRequest.equals(enrollment.getRequest()))
-                continue;
-            weight += enrollment.getRequest().getWeight();
-        }
-        return weight;
-        */
     }
     
     /** Long name: subpart name + time long name + room names + instructor names */
@@ -195,7 +185,11 @@ public class Section implements Assignment, Comparable {
     }
     
     public String toString() {
-        return getLongName()+" (L:"+(getLimit()<0?"unlimited":""+getLimit())+(getPenalty()==0.0?"":",P:"+sDF.format(getPenalty()))+")";
+        return getName()+
+        (getTime()==null?"":" "+getTime().getLongName())+
+        (getNrRooms()==0?"":" "+getPlacement().getRoomName(","))+
+        (getChoice().getInstructorNames()==null?"":" "+getChoice().getInstructorNames())+
+        " (L:"+(getLimit()<0?"unlimited":""+getLimit())+(getPenalty()==0.0?"":",P:"+sDF.format(getPenalty()))+")";
     }
     
     /** A (student) choice representing this section. */
@@ -273,5 +267,4 @@ public class Section implements Assignment, Comparable {
         
         return Math.max(-1.0,Math.min(1.0,penalty));
     }
-    
 }

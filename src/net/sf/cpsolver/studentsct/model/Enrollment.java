@@ -7,6 +7,8 @@ import java.util.Set;
 
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.util.ToolBox;
+import net.sf.cpsolver.studentsct.StudentSectioningModel;
+import net.sf.cpsolver.studentsct.extension.DistanceConflict;
 
 /**
  * Representation of an enrollment of a student into a course. A student needs to 
@@ -52,6 +54,7 @@ public class Enrollment extends Value {
     public static double sWaitlistedWeight = 1.01;
     public static double sMinWeight = 0.0001;
     public static double sNormPenalty = 5.0;
+    public static double sDistConfWeight = 0.95;
 
     /** Constructor
      * @param request course / free time request
@@ -189,6 +192,11 @@ public class Enrollment extends Value {
 
     /** Enrollment value */
     public double toDouble() {
+        return toDouble(nrDistanceConflicts());
+    }
+
+    /** Enrollment value */
+    public double toDouble(double nrDistanceConflicts) {
         if (iCachedDoubleValue==null) {
             iCachedDoubleValue = new Double(
                     -iValue * 
@@ -202,7 +210,8 @@ public class Enrollment extends Value {
                     normalizePenalty(getPenalty())
             );
         }
-        return iCachedDoubleValue.doubleValue();
+        return iCachedDoubleValue.doubleValue() * 
+            Math.pow(sDistConfWeight,nrDistanceConflicts);
     }
     
     /** Enrollment name */
@@ -254,5 +263,14 @@ public class Enrollment extends Value {
         if (!ToolBox.equals(getRequest(),e.getRequest())) return false;
         if (!ToolBox.equals(getAssignments(),e.getAssignments())) return false;
         return true;
+    }
+    
+    public double nrDistanceConflicts() {
+        if (!isCourseRequest()) return 0;
+        if (getRequest().getModel() instanceof StudentSectioningModel) {
+            DistanceConflict dc = ((StudentSectioningModel)getRequest().getModel()).getDistanceConflict();
+            if (dc==null) return 0;
+            return dc.nrAllConflicts(this);
+        } else return 0;
     }
 }

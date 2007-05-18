@@ -3,8 +3,6 @@ package net.sf.cpsolver.studentsct.model;
 import java.util.Enumeration;
 import java.util.Vector;
 
-import net.sf.cpsolver.ifs.multi.MultiVariable;
-
 /**
  * Representation of a student. Each student contains id, and a list of requests. 
  * <br><br>
@@ -31,7 +29,7 @@ import net.sf.cpsolver.ifs.multi.MultiVariable;
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
- */public class Student extends MultiVariable {
+ */public class Student {
     private long iId;
     private boolean iDummy = false;
     private Vector iRequests = new Vector();
@@ -134,11 +132,6 @@ import net.sf.cpsolver.ifs.multi.MultiVariable;
             if (r.getAssignment()!=null) nrAssignedRequests++;
         }
         return nrAssignedRequests;
-    }
-    
-    /** Variables: all student's requests */
-    public Vector variables() {
-        return getRequests();
     }
     
     public String toString() {
