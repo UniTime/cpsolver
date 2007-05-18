@@ -4,6 +4,7 @@ import java.util.Vector;
 
 import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.studentsct.heuristics.general.BacktrackNeighbourSelection;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
 
 public class RandomizedBacktrackNeighbourSelection extends BacktrackNeighbourSelection {
