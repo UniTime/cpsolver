@@ -57,7 +57,7 @@ public class SwapStudentSelection implements NeighbourSelection, ProblemStudents
         while (iStudentsEnumeration.hasMoreElements()) {
             Student student = (Student)iStudentsEnumeration.nextElement();
             if (student.isComplete() || student.nrAssignedRequests()==0) continue;
-            Selection selection = getSelection(iStudent);
+            Selection selection = getSelection(student);
             Neighbour neighbour = selection.select();
             if (neighbour!=null) {
                 iStudent = student;
