@@ -32,8 +32,10 @@ import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.JProf;
 import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.constraint.SectionLimit;
-import net.sf.cpsolver.studentsct.heuristics.BranchBoundEnrollmentsSelection;
-import net.sf.cpsolver.studentsct.heuristics.StudentSctNeighbourSelection;
+import net.sf.cpsolver.studentsct.extension.DistanceConflict;
+import net.sf.cpsolver.studentsct.heuristics.general.BacktrackNeighbourSelection;
+import net.sf.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
+import net.sf.cpsolver.studentsct.heuristics.selection.SwapStudentSelection;
 import net.sf.cpsolver.studentsct.model.Assignment;
 import net.sf.cpsolver.studentsct.model.Config;
 import net.sf.cpsolver.studentsct.model.Course;
@@ -60,6 +62,14 @@ public class Test {
             sLog.error("Unable to load model, reason: "+e.getMessage(), e);
             return null;
         }
+        if (cfg.getPropertyBoolean("Debug.DistanceConflict",false))
+            DistanceConflict.sDebug=true;
+        if (cfg.getPropertyBoolean("Debug.BranchBoundEnrollmentsSelection",false))
+            BranchBoundSelection.sDebug=true;
+        if (cfg.getPropertyBoolean("Debug.SwapStudentsSelection",false))
+            SwapStudentSelection.sDebug=true;
+        if (cfg.getPropertyBoolean("Debug.BacktrackNeighbourSelection",false))
+            BacktrackNeighbourSelection.sDebug=true;
         return model;
     }
 
@@ -114,23 +124,67 @@ public class Test {
             public void bestCleared(Solution solution) {}
             public void bestSaved(Solution solution) {
                 StudentSectioningModel m = (StudentSectioningModel)solution.getModel();
-                sLog.debug("**BEST** V:"+m.assignedVariables().size()+"/"+m.variables().size()+" - S:"+m.nrComplete()+"/"+m.getStudents().size()+" - TV:"+sDF.format(m.getTotalValue()));
+                sLog.debug("**BEST** V:"+m.assignedVariables().size()+"/"+m.variables().size()+" - S:"+
+                        m.nrComplete()+"/"+m.getStudents().size()+" - TV:"+sDF.format(m.getTotalValue())+
+                        (m.getDistanceConflict()==null?"":" - DC:"+sDF.format(m.getDistanceConflict().getTotalNrConflicts())));
             }
             public void bestRestored(Solution solution) {}
         });
+        /*
+        model.addModelListener(new ModelListener() {
+            public void variableAdded(Variable variable) {}
+            public void variableRemoved(Variable variable) {}
+            public void constraintAdded(Constraint constraint) {}
+            public void constraintRemoved(Constraint constraint) {}
+            public void beforeAssigned(long iteration, Value value) {
+                //sLog.debug("BEFORE_ASSIGN["+iteration+"] "+value);
+                Enrollment enrollment = (Enrollment)value;
+                StudentSectioningModel m = (StudentSectioningModel)enrollment.getRequest().getModel();
+                if (m.getDistanceConstraint()!=null) {
+                    m.getDistanceConstraint().setDebug(true);
+                    m.getDistanceConstraint().nrAllConflicts(enrollment);
+                    m.getDistanceConstraint().setDebug(false);
+                }
+            }
+            public void beforeUnassigned(long iteration, Value value) {
+                //sLog.debug("BEFORE_UNASSIGN["+iteration+"] "+value);
+                Enrollment enrollment = (Enrollment)value;
+                StudentSectioningModel m = (StudentSectioningModel)enrollment.getRequest().getModel();
+                if (m.getDistanceConstraint()!=null) {
+                    m.getDistanceConstraint().setDebug(true);
+                    m.getDistanceConstraint().nrAllConflicts(enrollment);
+                    m.getDistanceConstraint().setDebug(false);
+                }
+            }
+            public void afterAssigned(long iteration, Value value) {
+                sLog.debug("AFTER_ASSIGN["+iteration+"] "+value);
+            }
+            public void afterUnassigned(long iteration, Value value) {
+                sLog.debug("AFTER_UNASSIGN["+iteration+"] "+value);
+            }
+            public boolean init(Solver solver) {
+                return true;
+            }
+        });
+        */
         double startTime = JProf.currentTimeSec();
         
-        BranchBoundEnrollmentsSelection bbSelection = new BranchBoundEnrollmentsSelection(cfg);
         
+        Solver solver = new Solver(cfg);
+        solver.setInitalSolution(solution);
+        solver.initSolver();
+
+        BranchBoundSelection bbSelection = new BranchBoundSelection(cfg);
+        bbSelection.init(solver);
+
         Vector students = new Vector(model.getStudents());
         Collections.shuffle(students);
         for (Enumeration e=students.elements();e.hasMoreElements();) {
             Student student = (Student)e.nextElement();
             sLog.info("Sectioning student: "+student);
             if (usePenalties) setPenalties(student);
-            BranchBoundEnrollmentsSelection.Selection selection = bbSelection.getSelection(student);
-            if (selection.select()!=null) {
-                StudentSctNeighbourSelection.N1 neighbour = new StudentSctNeighbourSelection.N1(selection);
+            Neighbour neighbour = bbSelection.getSelection(student).select();
+            if (neighbour!=null) {
                 neighbour.assign(solution.getIteration());
                 sLog.info("Solution: "+neighbour);
                 if (usePenalties) updateSpace(student);
@@ -157,8 +211,6 @@ public class Test {
         checkSectionLimits((StudentSectioningModel)solution.getModel());
 
         try {
-            Solver solver = new Solver(cfg);
-            solver.setInitalSolution(solution);
             new StudentSectioningXMLSaver(solver).save(new File(new File(cfg.getProperty("General.Output",".")),"solution.xml"));
         } catch (Exception e) {
             sLog.error("Unable to save solution, reason: "+e.getMessage(),e);
@@ -260,7 +312,9 @@ public class Test {
             public void bestCleared(Solution solution) {}
             public void bestSaved(Solution solution) {
                 StudentSectioningModel m = (StudentSectioningModel)solution.getModel();
-                sLog.debug("**BEST** V:"+m.assignedVariables().size()+"/"+m.variables().size()+" - S:"+m.nrComplete()+"/"+m.getStudents().size()+" - TV:"+sDF.format(m.getTotalValue()));
+                sLog.debug("**BEST** V:"+m.assignedVariables().size()+"/"+m.variables().size()+" - S:"+
+                        m.nrComplete()+"/"+m.getStudents().size()+" - TV:"+sDF.format(m.getTotalValue())+
+                        (m.getDistanceConflict()==null?"":" - DC:"+sDF.format(m.getDistanceConflict().getTotalNrConflicts())));
             }
             public void bestRestored(Solution solution) {}
         });
@@ -635,7 +689,7 @@ public class Test {
             cfg.setProperty("Variable.Class","net.sf.cpsolver.ifs.heuristics.GeneralVariableSelection");
             cfg.setProperty("Neighbour.Class","net.sf.cpsolver.studentsct.heuristics.StudentSctNeighbourSelection");
             cfg.setProperty("General.SaveBestUnassigned", "-1");
-            cfg.setProperty("Extensions.Classes","net.sf.cpsolver.ifs.extension.ConflictStatistics");
+            cfg.setProperty("Extensions.Classes","net.sf.cpsolver.ifs.extension.ConflictStatistics;net.sf.cpsolver.studentsct.extension.DistanceConflict");
             cfg.setProperty("Data.Initiative","puWestLafayetteTrdtn");
             cfg.setProperty("Data.Term","2007");
             cfg.setProperty("Data.Year","Fal");
@@ -649,11 +703,11 @@ public class Test {
             }
 
             if (args.length>=3) {
-                File logFile = new File(ToolBox.configureLogging(args[2]+File.separator+(sDateFormat.format(new Date())), null, true, false));
+                File logFile = new File(ToolBox.configureLogging(args[2]+File.separator+(sDateFormat.format(new Date())), null, false, false));
                 cfg.setProperty("General.Output", logFile.getParentFile().getAbsolutePath());
             } else if (cfg.getProperty("General.Output")!=null) {
                 cfg.setProperty("General.Output", cfg.getProperty("General.Output",".")+File.separator+(sDateFormat.format(new Date())));
-                File logFile = new File(ToolBox.configureLogging(cfg.getProperty("General.Output","."), null, true, false));
+                File logFile = new File(ToolBox.configureLogging(cfg.getProperty("General.Output","."), null, false, false));
             } else {
                 ToolBox.configureLogging();
                 cfg.setProperty("General.Output", System.getProperty("user.home", ".")+File.separator+"Sectioning-Test"+File.separator+(sDateFormat.format(new Date())));

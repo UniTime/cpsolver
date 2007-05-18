@@ -7,12 +7,12 @@ import java.util.Set;
 import java.util.Vector;
 
 import net.sf.cpsolver.ifs.model.Model;
-import net.sf.cpsolver.ifs.model.Value;
+import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.studentsct.constraint.SectionLimit;
 import net.sf.cpsolver.studentsct.constraint.StudentConflict;
-import net.sf.cpsolver.studentsct.heuristics.BranchBoundEnrollmentsSelection;
+import net.sf.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
 import net.sf.cpsolver.studentsct.model.Choice;
 import net.sf.cpsolver.studentsct.model.Course;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
@@ -45,10 +45,10 @@ public class StudentSctBBTest extends Model {
     public Solution getSolution() {
         if (iSolution==null) {
             iSolution = new Solution(this);
-            BranchBoundEnrollmentsSelection.Selection selection = new BranchBoundEnrollmentsSelection(new DataProperties()).getSelection(getStudent());
-            Value value = selection.select();
-            if (value!=null)
-                getStudent().assign(0, value);
+            BranchBoundSelection.Selection selection = new BranchBoundSelection(new DataProperties()).getSelection(getStudent()); 
+            Neighbour neighbour = selection.select();
+            if (neighbour!=null)
+                neighbour.assign(0);
             iTime = selection.getTime();
             iTimeoutReached = selection.isTimeoutReached();
         }

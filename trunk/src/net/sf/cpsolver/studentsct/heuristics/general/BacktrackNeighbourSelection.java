@@ -1,4 +1,4 @@
-package net.sf.cpsolver.studentsct.heuristics;
+package net.sf.cpsolver.studentsct.heuristics.general;
 
 import java.util.Collection;
 import java.util.Enumeration;
@@ -35,11 +35,6 @@ public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
 		super(properties);
 		iTimeout = properties.getPropertyInt("Neighbour.BackTrackTimeout", iTimeout);
 		iDepth = properties.getPropertyInt("Neighbour.BackTrackDepth", iDepth);
-	}
-	
-	public BacktrackNeighbourSelection(Solver solver) throws Exception {
-		this(solver.getProperties());
-		init(solver);
 	}
 	
 	public void init(Solver solver) {

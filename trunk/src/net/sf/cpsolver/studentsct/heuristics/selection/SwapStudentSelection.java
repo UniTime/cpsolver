@@ -1,5 +1,6 @@
-package net.sf.cpsolver.studentsct.heuristics;
+package net.sf.cpsolver.studentsct.heuristics.selection;
 
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -8,40 +9,73 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
-import net.sf.cpsolver.ifs.heuristics.ValueSelection;
-import net.sf.cpsolver.ifs.model.Value;
-import net.sf.cpsolver.ifs.model.Variable;
-import net.sf.cpsolver.ifs.multi.MultiValue;
+import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
+import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Student;
 
-public class SwapStudentsEnrollmentSelection implements ValueSelection {
-    private static Logger sLog = Logger.getLogger(SwapStudentsEnrollmentSelection.class); 
+/**
+ * Pick a student (one by one) with an incomplete schedule, try to find an improvement, identify problematic students
+ */
+
+public class SwapStudentSelection implements NeighbourSelection, ProblemStudentsProvider {
+    private static Logger sLog = Logger.getLogger(SwapStudentSelection.class);
+    private HashSet iProblemStudents = new HashSet();
+    private Student iStudent = null;
+    private Enumeration iStudentsEnumeration = null;
     private int iTimeout = 5000;
     private int iMaxValues = 100;
     public static boolean sDebug = false;
-
-    public SwapStudentsEnrollmentSelection(DataProperties properties) {
+    
+    public SwapStudentSelection(DataProperties properties) {
         iTimeout = properties.getPropertyInt("Neighbour.SwapStudentsTimeout", iTimeout);
         iMaxValues = properties.getPropertyInt("Neighbour.SwapStudentsMaxValues", iMaxValues);
     }
-
-    public void init(Solver solver) {}
     
-    public Value selectValue(Solution solution, Variable selectedVariable) {
-        Student student = (Student)selectedVariable;
-        return new Selection(student).select();
+    public void init(Solver solver) {
+        Vector students = new Vector(((StudentSectioningModel)solver.currentSolution().getModel()).getStudents());
+        Collections.shuffle(students);
+        iStudentsEnumeration = students.elements();
+        iProblemStudents.clear();
+    }
+    
+    public Neighbour selectNeighbour(Solution solution) {
+        if (iStudent!=null && !iStudent.isComplete()) {
+            Selection selection = getSelection(iStudent);
+            Neighbour neighbour = selection.select();
+            if (neighbour!=null) return neighbour;
+            else
+                iProblemStudents.addAll(selection.getProblemStudents());
+        }
+        iStudent = null;
+        while (iStudentsEnumeration.hasMoreElements()) {
+            Student student = (Student)iStudentsEnumeration.nextElement();
+            if (student.isComplete() || student.nrAssignedRequests()==0) continue;
+            Selection selection = getSelection(iStudent);
+            Neighbour neighbour = selection.select();
+            if (neighbour!=null) {
+                iStudent = student;
+                return neighbour;
+            } else
+                iProblemStudents.addAll(selection.getProblemStudents());
+        }
+        return null;
+    }
+    
+    public HashSet getProblemStudents() {
+        return iProblemStudents;
     }
     
     public Selection getSelection(Student student) {
         return new Selection(student);
     }
-    
+
     public class Selection {
         private Student iStudent;
         private long iT0, iT1;
@@ -54,7 +88,7 @@ public class SwapStudentsEnrollmentSelection implements ValueSelection {
             iStudent = student;
         }
         
-        public Value select() {
+        public SwapStudentNeighbour select() {
             if (sDebug) sLog.debug("select(S"+iStudent.getId()+")");
             iT0 = System.currentTimeMillis();
             iTimeoutReached = false;
@@ -86,7 +120,7 @@ public class SwapStudentsEnrollmentSelection implements ValueSelection {
                     }
                     Enrollment enrollment = (Enrollment)f.nextElement();
                     if (sDebug) sLog.debug("      -- enrollment "+enrollment);
-                    Set conflicts = iStudent.getModel().conflictValues(enrollment);
+                    Set conflicts = enrollment.variable().getModel().conflictValues(enrollment);
                     if (conflicts.contains(enrollment)) continue;
                     double value = enrollment.toDouble();
                     boolean unresolvedConflict = false;
@@ -122,7 +156,7 @@ public class SwapStudentsEnrollmentSelection implements ValueSelection {
                 Request request = (Request)e.nextElement();
                 assignment[idx++] = (iBestEnrollment.getRequest().equals(request)?iBestEnrollment:(Enrollment)request.getAssignment());
             }
-            return new MultiValue(iStudent, assignment);
+            return new SwapStudentNeighbour(iBestValue, iBestEnrollment);
         }
         
         public boolean isTimeoutReached() {
@@ -154,7 +188,7 @@ public class SwapStudentsEnrollmentSelection implements ValueSelection {
             Enrollment enrollment = (Enrollment)i.next();
             if (enrollment.equals(conflict)) continue;
             if (!enrl.isConsistent(enrollment)) continue;
-            if (conflict.getStudent().getModel().conflictValues(enrollment).isEmpty()) {
+            if (conflict.variable().getModel().conflictValues(enrollment).isEmpty()) {
                 if (bestEnrollment==null || bestEnrollment.toDouble()>enrollment.toDouble())
                     bestEnrollment = enrollment;
             }
@@ -165,7 +199,7 @@ public class SwapStudentsEnrollmentSelection implements ValueSelection {
                 Enrollment enrollment = (Enrollment)i.next();
                 if (enrollment.equals(conflict)) continue;
                 if (!enrl.isConsistent(enrollment)) continue;
-                Set conflicts = conflict.getStudent().getModel().conflictValues(enrollment);
+                Set conflicts = conflict.variable().getModel().conflictValues(enrollment);
                 for (Iterator j=conflicts.iterator();j.hasNext();) {
                     Enrollment c = (Enrollment)j.next();
                     if (!enrl.getStudent().equals(c.getStudent()) && !conflict.getStudent().equals(c.getStudent()))
@@ -176,5 +210,39 @@ public class SwapStudentsEnrollmentSelection implements ValueSelection {
                 problematicStudents.add(conflict.getStudent());
         }
         return bestEnrollment;
+    }
+    
+    public static class SwapStudentNeighbour extends Neighbour {
+        private double iValue;
+        private Enrollment iEnrollment;
+        
+        public SwapStudentNeighbour(double value, Enrollment enrollment) {
+            iValue = value;
+            iEnrollment = enrollment;
+        }
+        
+        public void assign(long iteration) {
+            if (iEnrollment.variable().getAssignment()!=null)
+                iEnrollment.variable().unassign(iteration);
+            Set conflicts = iEnrollment.variable().getModel().conflictValues(iEnrollment);
+            for (Iterator i=conflicts.iterator();i.hasNext();) {
+                Enrollment conflict = (Enrollment)i.next();
+                Enrollment switchEnrl = bestSwap(conflict, iEnrollment, null);
+                conflict.variable().unassign(iteration);
+                if (switchEnrl!=null)
+                    switchEnrl.variable().assign(iteration, switchEnrl);
+            }
+            iEnrollment.variable().assign(iteration, iEnrollment);
+        }
+        
+        public String toString() {
+            StringBuffer sb = new StringBuffer("SwSt{");
+            sb.append(" "+iEnrollment.getRequest().getStudent());
+            sb.append(" ("+iValue+")");
+            sb.append("\n "+iEnrollment.getRequest());
+            sb.append(" "+iEnrollment);
+            sb.append("\n}");
+            return sb.toString();
+        }
     }
 }

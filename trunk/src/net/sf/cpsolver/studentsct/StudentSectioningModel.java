@@ -12,6 +12,7 @@ import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.studentsct.constraint.SectionLimit;
 import net.sf.cpsolver.studentsct.constraint.StudentConflict;
+import net.sf.cpsolver.studentsct.extension.DistanceConflict;
 import net.sf.cpsolver.studentsct.model.Config;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
 import net.sf.cpsolver.studentsct.model.Enrollment;
@@ -27,6 +28,7 @@ public class StudentSectioningModel extends Model {
     private HashSet iCompleteStudents = new HashSet();
     private double iTotalValue = 0.0;
     private DataProperties iProperties;
+    private DistanceConflict iDistanceConflict = null;
     
     public StudentSectioningModel(DataProperties properties) {
         super();
@@ -44,7 +46,6 @@ public class StudentSectioningModel extends Model {
     
     public void addStudent(Student student) {
         iStudents.addElement(student);
-        student.setModel(this);
         StudentConflict conflict = new StudentConflict();
         for (Enumeration e=student.getRequests().elements();e.hasMoreElements();) {
             Request request = (Request)e.nextElement();
@@ -80,6 +81,8 @@ public class StudentSectioningModel extends Model {
         Hashtable info = super.getInfo();
         info.put("Students with complete schedule" , 
                 sDoubleFormat.format(100.0*nrComplete()/getStudents().size())+"% ("+nrComplete()+"/"+getStudents().size()+")");
+        if (getDistanceConflict()!=null)
+            info.put("Student distance conflicts", sDoubleFormat.format(getDistanceConflict().getTotalNrConflicts()));
         return info;
     }
     
@@ -187,5 +190,13 @@ public class StudentSectioningModel extends Model {
             weight += request.getWeight();
         }
         return weight;
+    }
+    
+    public void setDistanceConflict(DistanceConflict dc) {
+        iDistanceConflict = dc;
+    }
+
+    public DistanceConflict getDistanceConflict() {
+        return iDistanceConflict;
     }
 }
