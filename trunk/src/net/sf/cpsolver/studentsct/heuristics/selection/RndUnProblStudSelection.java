@@ -4,6 +4,7 @@ import java.util.HashSet;
 
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
+import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.model.Student;
@@ -21,7 +22,7 @@ public class RndUnProblStudSelection extends RandomUnassignmentSelection {
         iRandom = properties.getPropertyDouble("Neighbour.RandomUnassignmentOfProblemStudentProb", 0.9);
     }
     
-    public void init(Solution solution) {
+    public void init(Solver solver) {
         iProblemStudents = iProblemStudentsProvider.getProblemStudents();
     }
     
