@@ -7,19 +7,15 @@ import java.text.DecimalFormat;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Enumeration;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.Vector;
 
 import org.dom4j.Document;
 import org.dom4j.Element;
 import org.dom4j.io.SAXReader;
 
-import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
@@ -27,16 +23,15 @@ import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solution.SolutionListener;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.solver.SolverListener;
-import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.JProf;
 import net.sf.cpsolver.ifs.util.ToolBox;
-import net.sf.cpsolver.studentsct.constraint.SectionLimit;
+import net.sf.cpsolver.studentsct.check.OverlapCheck;
+import net.sf.cpsolver.studentsct.check.SectionLimitCheck;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
 import net.sf.cpsolver.studentsct.heuristics.general.BacktrackNeighbourSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.SwapStudentSelection;
-import net.sf.cpsolver.studentsct.model.Assignment;
 import net.sf.cpsolver.studentsct.model.Config;
 import net.sf.cpsolver.studentsct.model.Course;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
@@ -46,6 +41,8 @@ import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Section;
 import net.sf.cpsolver.studentsct.model.Student;
 import net.sf.cpsolver.studentsct.model.Subpart;
+import net.sf.cpsolver.studentsct.report.CourseConflictTable;
+import net.sf.cpsolver.studentsct.report.DistanceConflictTable;
 
 public class Test {
     private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(Test.class);
@@ -85,8 +82,13 @@ public class Test {
             try {
                 File outDir = new File(cfg.getProperty("General.Output","."));
                 outDir.mkdirs();
-                createCourseConflictTable((StudentSectioningModel)solution.getModel(), true, false).save(new File(outDir, "conflicts-lastlike.csv"));
-                createCourseConflictTable((StudentSectioningModel)solution.getModel(), false, true).save(new File(outDir, "conflicts-real.csv"));
+                CourseConflictTable cct = new CourseConflictTable((StudentSectioningModel)solution.getModel());
+                cct.createTable(true, false).save(new File(outDir, "conflicts-lastlike.csv"));
+                cct.createTable(false, true).save(new File(outDir, "conflicts-real.csv"));
+                
+                DistanceConflictTable dct = new DistanceConflictTable((StudentSectioningModel)solution.getModel());
+                dct.createTable(true, false).save(new File(outDir, "distances-lastlike.csv"));
+                dct.createTable(false, true).save(new File(outDir, "distances-real.csv"));
             } catch (IOException e) {
                 sLog.error(e.getMessage(),e);
             }
@@ -96,9 +98,9 @@ public class Test {
         
         ((StudentSectioningModel)solution.getModel()).computeOnlineSectioningInfos();
         
-        checkOverlaps((StudentSectioningModel)solution.getModel());
+        new OverlapCheck((StudentSectioningModel)solution.getModel()).check();
         
-        checkSectionLimits((StudentSectioningModel)solution.getModel());
+        new SectionLimitCheck((StudentSectioningModel)solution.getModel()).check();
         
         try {
             Solver solver = new Solver(cfg);
@@ -198,17 +200,22 @@ public class Test {
         try {
             File outDir = new File(cfg.getProperty("General.Output","."));
             outDir.mkdirs();
-            createCourseConflictTable((StudentSectioningModel)solution.getModel(), true, false).save(new File(outDir, "conflicts-lastlike.csv"));
-            createCourseConflictTable((StudentSectioningModel)solution.getModel(), false, true).save(new File(outDir, "conflicts-real.csv"));
+            CourseConflictTable cct = new CourseConflictTable((StudentSectioningModel)solution.getModel());
+            cct.createTable(true, false).save(new File(outDir, "conflicts-lastlike.csv"));
+            cct.createTable(false, true).save(new File(outDir, "conflicts-real.csv"));
+
+            DistanceConflictTable dct = new DistanceConflictTable((StudentSectioningModel)solution.getModel());
+            dct.createTable(true, false).save(new File(outDir, "distances-lastlike.csv"));
+            dct.createTable(false, true).save(new File(outDir, "distances-real.csv"));
         } catch (IOException e) {
             sLog.error(e.getMessage(),e);
         }
         
         solution.saveBest();
 
-        checkOverlaps((StudentSectioningModel)solution.getModel());
+        new OverlapCheck((StudentSectioningModel)solution.getModel()).check();
         
-        checkSectionLimits((StudentSectioningModel)solution.getModel());
+        new SectionLimitCheck((StudentSectioningModel)solution.getModel()).check();
 
         try {
             new StudentSectioningXMLSaver(solver).save(new File(new File(cfg.getProperty("General.Output",".")),"solution.xml"));
@@ -220,8 +227,8 @@ public class Test {
         sLog.info("Number of assigned variables is "+solution.getModel().assignedVariables().size());
         sLog.info("Number of students with complete schedule is "+((StudentSectioningModel)solution.getModel()).nrComplete());
         sLog.info("Total value of the solution is "+solution.getModel().getTotalValue());
-        sLog.info("Average unassigned priority "+sDF.format(avgUnassignPriority((StudentSectioningModel)solution.getModel())));
-        sLog.info("Average number of requests "+sDF.format(avgNrRequests((StudentSectioningModel)solution.getModel())));
+        sLog.info("Average unassigned priority "+sDF.format(((StudentSectioningModel)solution.getModel()).avgUnassignPriority()));
+        sLog.info("Average number of requests "+sDF.format(((StudentSectioningModel)solution.getModel()).avgNrRequests()));
         sLog.info("Unassigned request weight "+sDF.format(((StudentSectioningModel)solution.getModel()).getUnassignedRequestWeight())+" / "+sDF.format(((StudentSectioningModel)solution.getModel()).getTotalRequestWeight()));
         sLog.info("Info: "+solution.getInfo());
 
@@ -354,234 +361,14 @@ public class Test {
         sLog.info("Number of assigned variables is "+solution.getModel().assignedVariables().size());
         sLog.info("Number of students with complete schedule is "+((StudentSectioningModel)solution.getModel()).nrComplete());
         sLog.info("Total value of the solution is "+solution.getModel().getTotalValue());
-        sLog.info("Average unassigned priority "+sDF.format(avgUnassignPriority((StudentSectioningModel)solution.getModel())));
-        sLog.info("Average number of requests "+sDF.format(avgNrRequests((StudentSectioningModel)solution.getModel())));
+        sLog.info("Average unassigned priority "+sDF.format(((StudentSectioningModel)solution.getModel()).avgUnassignPriority()));
+        sLog.info("Average number of requests "+sDF.format(((StudentSectioningModel)solution.getModel()).avgNrRequests()));
         sLog.info("Unassigned request weight "+sDF.format(((StudentSectioningModel)solution.getModel()).getUnassignedRequestWeight())+" / "+sDF.format(((StudentSectioningModel)solution.getModel()).getTotalRequestWeight()));
         sLog.info("Info: "+solution.getInfo());
 
         return solution;
     }
     
-    public static boolean areInHardConfict(Request r1, Request r2) {
-        for (Enumeration e=r1.values().elements();e.hasMoreElements();) {
-            Enrollment e1 = (Enrollment)e.nextElement();
-            for (Enumeration f=r2.values().elements();f.hasMoreElements();) {
-                Enrollment e2 = (Enrollment)f.nextElement();
-                if (!e1.isOverlapping(e2)) return false;
-            }
-        }
-        return true;
-    }
-    
-    public static HashSet explanations(Enrollment enrl, Enrollment conflict) {
-        HashSet expl = new HashSet();
-        for (Iterator i=enrl.getAssignments().iterator();i.hasNext();) {
-            Section s1 = (Section)i.next();
-            for (Iterator j=conflict.getAssignments().iterator();j.hasNext();) {
-                Section s2 = (Section)j.next();
-                if (s1.isOverlapping(s2))
-                    expl.add(s1.getSubpart().getName()+" "+s1.getTime().getLongName()+" vs "+s2.getSubpart().getName()+" "+s2.getTime().getLongName());
-            }
-        }
-        for (Iterator i=enrl.getAssignments().iterator();i.hasNext();) {
-            Section s1 = (Section)i.next();
-            if (conflict.getAssignments().contains(s1) && s1.getEnrollmentWeight(enrl.getRequest()) + SectionLimit.getWeight(enrl.getRequest())>s1.getLimit()) {
-                expl.add(s1.getSubpart().getName()+" n/a");
-            }
-        }
-        return expl;
-    }
-    
-    public static CSVFile createCourseConflictTable(StudentSectioningModel model, boolean includeLastLikeStudents, boolean includeRealStudents) {
-        CSVFile csv = new CSVFile();
-        csv.setHeader(new CSVFile.CSVField[] {
-                new CSVFile.CSVField("UnasgnCrs"),
-                new CSVFile.CSVField("ConflCrs"),
-                new CSVFile.CSVField("NrStud"),
-                new CSVFile.CSVField("NoAlt"),
-                new CSVFile.CSVField("Reason")
-        });
-        Hashtable unassignedCourseTable = new Hashtable();
-        for (Enumeration e=model.unassignedVariables().elements();e.hasMoreElements();) {
-            Request request = (Request)e.nextElement();
-            if (request.getStudent().isDummy() && !includeLastLikeStudents) continue;
-            if (!request.getStudent().isDummy() && !includeRealStudents) continue;
-            if (request instanceof CourseRequest) {
-                CourseRequest courseRequest = (CourseRequest)request;
-                if (courseRequest.getStudent().isComplete()) continue;
-                
-                Vector values = courseRequest.values();
-                SectionLimit limitConstraint = new SectionLimit();
-                Vector availableValues = new Vector(values.size());
-                for (Enumeration f=values.elements();f.hasMoreElements();) {
-                    Enrollment enrollment = (Enrollment)f.nextElement();
-                    if (!limitConstraint.inConflict(enrollment))
-                        availableValues.addElement(enrollment);
-                }
-                
-                if (availableValues.isEmpty()) {
-                    Course course = (Course)courseRequest.getCourses().firstElement();
-                    Hashtable conflictCourseTable = (Hashtable)unassignedCourseTable.get(course);
-                    if (conflictCourseTable==null) {
-                        conflictCourseTable = new Hashtable();
-                        unassignedCourseTable.put(course, conflictCourseTable);
-                    }
-                    Object[] weight = (Object[])conflictCourseTable.get(course);
-                    double nrStud = (weight==null?0.0:((Double)weight[0]).doubleValue()) + request.getWeight();
-                    boolean noAlt = (weight==null?true:((Boolean)weight[1]).booleanValue());
-                    HashSet expl = (weight==null?new HashSet():(HashSet)weight[2]);
-                    expl.add(course.getName()+" n/a");
-                    conflictCourseTable.put(course, new Object[] {new Double(nrStud),new Boolean(noAlt),expl}); 
-                }
-                
-                for (Enumeration f=availableValues.elements();f.hasMoreElements();) {
-                    Enrollment enrollment = (Enrollment)f.nextElement();
-                    Set conflicts = model.conflictValues(enrollment);
-                    if (conflicts.isEmpty()) {
-                        sLog.warn("Request "+courseRequest+" of student "+courseRequest.getStudent()+" not assigned, however, no conflicts were returned.");
-                        courseRequest.assign(0, enrollment);
-                        break;
-                    }
-                    Course course = null;
-                    for (Enumeration g=courseRequest.getCourses().elements();g.hasMoreElements();) {
-                        Course c = (Course)g.nextElement();
-                        if (c.getOffering().equals(enrollment.getConfig().getOffering())) {
-                            course = c; break;
-                        }
-                    }
-                    if (course==null) {
-                        sLog.warn("Course not found for request "+courseRequest+" of student "+courseRequest.getStudent()+".");
-                        continue;
-                    }
-                    Hashtable conflictCourseTable = (Hashtable)unassignedCourseTable.get(course);
-                    if (conflictCourseTable==null) {
-                        conflictCourseTable = new Hashtable();
-                        unassignedCourseTable.put(course, conflictCourseTable);
-                    }
-                    for (Iterator i=conflicts.iterator();i.hasNext();) {
-                        Enrollment conflict = (Enrollment)i.next();
-                        if (conflict.variable() instanceof CourseRequest) {
-                            CourseRequest conflictCourseRequest = (CourseRequest)conflict.variable();
-                            Course conflictCourse = null;
-                            for (Enumeration g=conflictCourseRequest.getCourses().elements();g.hasMoreElements();) {
-                                Course c = (Course)g.nextElement();
-                                if (c.getOffering().equals(conflict.getConfig().getOffering())) {
-                                    conflictCourse = c; break;
-                                }
-                            }
-                            if (conflictCourse==null) {
-                                sLog.warn("Course not found for request "+conflictCourseRequest+" of student "+conflictCourseRequest.getStudent()+".");
-                                continue;
-                            }
-                            double weightThisConflict = request.getWeight() / availableValues.size() / conflicts.size();
-                            Object[] weight = (Object[])conflictCourseTable.get(conflictCourse);
-                            double nrStud = (weight==null?0.0:((Double)weight[0]).doubleValue()) + weightThisConflict;
-                            boolean noAlt = (weight==null?areInHardConfict(request, conflict.getRequest()):((Boolean)weight[1]).booleanValue());
-                            HashSet expl = (weight==null?new HashSet():(HashSet)weight[2]);
-                            expl.addAll(explanations(enrollment, conflict));
-                            conflictCourseTable.put(conflictCourse, new Object[] {new Double(nrStud),new Boolean(noAlt),expl}); 
-                        }
-                    }
-                }
-            }
-        }
-        for (Iterator i=unassignedCourseTable.entrySet().iterator();i.hasNext();) {
-            Map.Entry entry = (Map.Entry)i.next();
-            Course unassignedCourse = (Course)entry.getKey();
-            Hashtable conflictCourseTable = (Hashtable)entry.getValue();
-            for (Iterator j=conflictCourseTable.entrySet().iterator();j.hasNext();) {
-                Map.Entry entry2 = (Map.Entry)j.next();
-                Course conflictCourse = (Course)entry2.getKey();
-                Object[] weight = (Object[])entry2.getValue();
-                HashSet expl = (HashSet)weight[2];
-                String explStr = "";
-                for (Iterator k=new TreeSet(expl).iterator();k.hasNext();)
-                    explStr += k.next() + (k.hasNext()?"\n":"");
-                csv.addLine(new CSVFile.CSVField[] {
-                   new CSVFile.CSVField(unassignedCourse.getName()),
-                   new CSVFile.CSVField(conflictCourse.getName()),
-                   new CSVFile.CSVField(sDF.format((Double)weight[0])),
-                   new CSVFile.CSVField(((Boolean)weight[1]).booleanValue()?"Y":"N"),
-                   new CSVFile.CSVField(explStr)
-                });
-             }
-        }
-        return csv;
-    }
-    
-    public static void checkOverlaps(StudentSectioningModel model) {
-        sLog.info("Checking for overlaps...");
-        for (Enumeration e=model.getStudents().elements();e.hasMoreElements();) {
-            Student student = (Student)e.nextElement();
-            Hashtable times = new Hashtable();
-            for (Enumeration f=student.getRequests().elements();f.hasMoreElements();) {
-                Request request = (Request)f.nextElement();
-                Enrollment enrollment = (Enrollment)request.getAssignment();
-                if (enrollment==null) continue;
-                for (Iterator g=enrollment.getAssignments().iterator();g.hasNext();) {
-                    Assignment assignment = (Assignment)g.next();
-                    if (assignment.getTime()==null) continue;
-                    for (Enumeration h=times.keys();h.hasMoreElements();) {
-                        TimeLocation time = (TimeLocation)h.nextElement();
-                        if (time.hasIntersection(assignment.getTime())) {
-                            sLog.error("Student "+student+" assignment "+assignment+" overlaps with "+times.get(time));
-                        }
-                    }
-                    times.put(assignment.getTime(),assignment);
-                }
-            }
-        }
-    }
-    
-    public static void checkSectionLimits(StudentSectioningModel model) {
-        sLog.info("Checking section limits...");
-        for (Enumeration e=model.getOfferings().elements();e.hasMoreElements();) {
-            Offering offering = (Offering)e.nextElement();
-            for (Enumeration f=offering.getConfigs().elements();f.hasMoreElements();) {
-                Config config = (Config)f.nextElement();
-                for (Enumeration g=config.getSubparts().elements();g.hasMoreElements();) {
-                    Subpart subpart = (Subpart)g.nextElement();
-                    for (Enumeration h=subpart.getSections().elements();h.hasMoreElements();) {
-                        Section section = (Section)h.nextElement();
-                        if (section.getLimit()<0) continue;
-                        double used = section.getEnrollmentWeight(null);
-                        double maxWeight = 0;
-                        for (Iterator i=section.getEnrollments().iterator();i.hasNext();) {
-                            Enrollment enrollment = (Enrollment)i.next();
-                            maxWeight = Math.max(maxWeight, enrollment.getRequest().getWeight());
-                        }
-                        if (used-maxWeight>section.getLimit()) {
-                            sLog.error("Section "+section.getName()+" exceeds its limit "+sDF.format(used)+">"+section.getLimit()+" for more than one student (W:"+maxWeight+")");
-                        } else if (Math.round(used)>section.getLimit()) {
-                            sLog.debug("Section "+section.getName()+" exceeds its limit "+sDF.format(used)+">"+section.getLimit()+" for less than one student (W:"+maxWeight+")");
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    public static double avgUnassignPriority(StudentSectioningModel model) {
-        double totalPriority = 0.0;  
-        for (Enumeration e=model.unassignedVariables().elements();e.hasMoreElements();) {
-            Request request = (Request)e.nextElement();
-            if (request.isAlternative()) continue;
-            totalPriority += request.getPriority();
-        }
-        return 1.0 + totalPriority / model.unassignedVariables().size();
-    }
-    
-    public static double avgNrRequests(StudentSectioningModel model) {
-        double totalRequests = 0.0;  
-        int totalStudents = 0;
-        for (Enumeration e=model.getStudents().elements();e.hasMoreElements();) {
-            Student student = (Student)e.nextElement();
-            if (student.nrRequests()==0) continue;
-            totalRequests += student.nrRequests();
-            totalStudents ++;
-        }
-        return totalRequests / totalStudents;
-    }
     
     public static double getLastLikeStudentWeight(Course course, int lastLike) {
         int projected = course.getProjected();
