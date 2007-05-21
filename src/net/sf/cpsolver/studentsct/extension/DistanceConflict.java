@@ -33,7 +33,8 @@ public class DistanceConflict extends Extension implements ModelListener {
     
     public DistanceConflict(Solver solver, DataProperties properties) {
         super(solver, properties);
-        ((StudentSectioningModel)solver.currentSolution().getModel()).setDistanceConflict(this);
+        if (solver!=null)
+            ((StudentSectioningModel)solver.currentSolution().getModel()).setDistanceConflict(this);
     }
     
     public boolean init(Solver solver) {
