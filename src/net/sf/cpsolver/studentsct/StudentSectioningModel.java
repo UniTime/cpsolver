@@ -199,4 +199,27 @@ public class StudentSectioningModel extends Model {
     public DistanceConflict getDistanceConflict() {
         return iDistanceConflict;
     }
+    
+    public double avgUnassignPriority() {
+        double totalPriority = 0.0;  
+        for (Enumeration e=unassignedVariables().elements();e.hasMoreElements();) {
+            Request request = (Request)e.nextElement();
+            if (request.isAlternative()) continue;
+            totalPriority += request.getPriority();
+        }
+        return 1.0 + totalPriority / unassignedVariables().size();
+    }
+    
+    public double avgNrRequests() {
+        double totalRequests = 0.0;  
+        int totalStudents = 0;
+        for (Enumeration e=getStudents().elements();e.hasMoreElements();) {
+            Student student = (Student)e.nextElement();
+            if (student.nrRequests()==0) continue;
+            totalRequests += student.nrRequests();
+            totalStudents ++;
+        }
+        return totalRequests / totalStudents;
+    }
+    
 }
