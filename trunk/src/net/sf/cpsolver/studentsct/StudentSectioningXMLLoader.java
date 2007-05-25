@@ -36,6 +36,8 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
     private boolean iLoadBest = false;
     private boolean iLoadInitial = false;
     private boolean iLoadCurrent = false;
+    private boolean iLoadOfferings = true;
+    private boolean iLoadStudents = true;
     
     public StudentSectioningXMLLoader(StudentSectioningModel model) {
         super(model);
@@ -43,6 +45,8 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         iLoadBest = getModel().getProperties().getPropertyBoolean("Xml.LoadBest", true);
         iLoadInitial = getModel().getProperties().getPropertyBoolean("Xml.LoadInitial", true);
         iLoadCurrent = getModel().getProperties().getPropertyBoolean("Xml.LoadCurrent", true);
+        iLoadOfferings = getModel().getProperties().getPropertyBoolean("Xml.LoadOfferings", true);
+        iLoadStudents = getModel().getProperties().getPropertyBoolean("Xml.LoadStudents", true);
     }
     
     private Solver iSolver = null;
@@ -88,226 +92,239 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             getModel().getProperties().setProperty("Data.Initiative", root.attributeValue("initiative"));
         String version = root.attributeValue("version");
         
-        Hashtable subpartTable = new Hashtable();
+        
         Hashtable offeringTable = new Hashtable();
-        Hashtable sectionTable = new Hashtable();
         Hashtable courseTable = new Hashtable();
         
-        for (Iterator i=root.element("offerings").elementIterator("offering");i.hasNext();) {
-            Element offeringEl = (Element)i.next();
-            Offering offering = new Offering(
-                    Long.parseLong(offeringEl.attributeValue("id")),
-                    offeringEl.attributeValue("name","O"+offeringEl.attributeValue("id")));
-            offeringTable.put(new Long(offering.getId()), offering);
-            getModel().addOffering(offering);
-            for (Iterator j=offeringEl.elementIterator("course");j.hasNext();) {
-                Element courseEl = (Element)j.next();
-                Course course = new Course(
-                        Long.parseLong(courseEl.attributeValue("id")),
-                        courseEl.attributeValue("subjectArea",""),
-                        courseEl.attributeValue("courseNbr","C"+courseEl.attributeValue("id")),
-                        offering,
-                        Integer.parseInt(courseEl.attributeValue("limit","0")),
-                        Integer.parseInt(courseEl.attributeValue("projected","0"))
-                        );
-                courseTable.put(new Long(course.getId()), course);
-            }
-            for (Iterator j=offeringEl.elementIterator("config");j.hasNext();) {
-                Element configEl = (Element)j.next();
-                Config config = new Config(
-                        Long.parseLong(configEl.attributeValue("id")),
-                        configEl.attributeValue("name","G"+configEl.attributeValue("id")),
-                        offering);
-                for (Iterator k=configEl.elementIterator("subpart");k.hasNext();) {
-                    Element subpartEl = (Element)k.next();
-                    Subpart parentSubpart = null;
-                    if (subpartEl.attributeValue("parent")!=null)
-                        parentSubpart = (Subpart)subpartTable.get(Long.valueOf(subpartEl.attributeValue("parent")));
-                    Subpart subpart = new Subpart(
-                            Long.parseLong(subpartEl.attributeValue("id")),
-                            subpartEl.attributeValue("itype"),
-                            subpartEl.attributeValue("name","P"+subpartEl.attributeValue("id")),
-                            config,
-                            parentSubpart);
-                    subpartTable.put(new Long(subpart.getId()),subpart);
-                    for (Iterator l=subpartEl.elementIterator("section");l.hasNext();) {
-                        Element sectionEl = (Element)l.next();
-                        Section parentSection = null;
-                        if (sectionEl.attributeValue("parent")!=null)
-                            parentSection = (Section)sectionTable.get(Long.valueOf(sectionEl.attributeValue("parent")));
-                        TimeLocation time = null;
-                        Element timeEl = sectionEl.element("time");
-                        if (timeEl!=null) {
-                            time = new TimeLocation(
-                                Integer.parseInt(timeEl.attributeValue("days"),2),
-                                Integer.parseInt(timeEl.attributeValue("start")),
-                                Integer.parseInt(timeEl.attributeValue("length")),
-                                0, 0, 
-                                timeEl.attributeValue("datePattern")==null?null:Long.valueOf(timeEl.attributeValue("datePattern")),
-                                timeEl.attributeValue("datePatternName",""),
-                                createBitSet(timeEl.attributeValue("dates")),
-                                Integer.parseInt(timeEl.attributeValue("breakTime","0")));
-                           if (timeEl.attributeValue("pattern")!=null)
-                                time.setTimePatternId(Long.valueOf(timeEl.attributeValue("pattern")));
-                        }
-                        Vector rooms = new Vector();
-                        for (Iterator m=sectionEl.elementIterator("room");m.hasNext();) {
-                            Element roomEl = (Element)m.next();
-                            int posX=-1, posY=-1;
-                            if (roomEl.attributeValue("location")!=null) {
-                                String loc = roomEl.attributeValue("location");
-                                posX = Integer.parseInt(loc.substring(0,loc.indexOf(',')));
-                                posY = Integer.parseInt(loc.substring(loc.indexOf(',')+1));
+        if (iLoadOfferings) {
+            Hashtable subpartTable = new Hashtable();
+            Hashtable sectionTable = new Hashtable();
+            for (Iterator i=root.element("offerings").elementIterator("offering");i.hasNext();) {
+                Element offeringEl = (Element)i.next();
+                Offering offering = new Offering(
+                        Long.parseLong(offeringEl.attributeValue("id")),
+                        offeringEl.attributeValue("name","O"+offeringEl.attributeValue("id")));
+                offeringTable.put(new Long(offering.getId()), offering);
+                getModel().addOffering(offering);
+                for (Iterator j=offeringEl.elementIterator("course");j.hasNext();) {
+                    Element courseEl = (Element)j.next();
+                    Course course = new Course(
+                            Long.parseLong(courseEl.attributeValue("id")),
+                            courseEl.attributeValue("subjectArea",""),
+                            courseEl.attributeValue("courseNbr","C"+courseEl.attributeValue("id")),
+                            offering,
+                            Integer.parseInt(courseEl.attributeValue("limit","0")),
+                            Integer.parseInt(courseEl.attributeValue("projected","0"))
+                            );
+                    courseTable.put(new Long(course.getId()), course);
+                }
+                for (Iterator j=offeringEl.elementIterator("config");j.hasNext();) {
+                    Element configEl = (Element)j.next();
+                    Config config = new Config(
+                            Long.parseLong(configEl.attributeValue("id")),
+                            configEl.attributeValue("name","G"+configEl.attributeValue("id")),
+                            offering);
+                    for (Iterator k=configEl.elementIterator("subpart");k.hasNext();) {
+                        Element subpartEl = (Element)k.next();
+                        Subpart parentSubpart = null;
+                        if (subpartEl.attributeValue("parent")!=null)
+                            parentSubpart = (Subpart)subpartTable.get(Long.valueOf(subpartEl.attributeValue("parent")));
+                        Subpart subpart = new Subpart(
+                                Long.parseLong(subpartEl.attributeValue("id")),
+                                subpartEl.attributeValue("itype"),
+                                subpartEl.attributeValue("name","P"+subpartEl.attributeValue("id")),
+                                config,
+                                parentSubpart);
+                        subpartTable.put(new Long(subpart.getId()),subpart);
+                        for (Iterator l=subpartEl.elementIterator("section");l.hasNext();) {
+                            Element sectionEl = (Element)l.next();
+                            Section parentSection = null;
+                            if (sectionEl.attributeValue("parent")!=null)
+                                parentSection = (Section)sectionTable.get(Long.valueOf(sectionEl.attributeValue("parent")));
+                            TimeLocation time = null;
+                            Element timeEl = sectionEl.element("time");
+                            if (timeEl!=null) {
+                                time = new TimeLocation(
+                                    Integer.parseInt(timeEl.attributeValue("days"),2),
+                                    Integer.parseInt(timeEl.attributeValue("start")),
+                                    Integer.parseInt(timeEl.attributeValue("length")),
+                                    0, 0, 
+                                    timeEl.attributeValue("datePattern")==null?null:Long.valueOf(timeEl.attributeValue("datePattern")),
+                                    timeEl.attributeValue("datePatternName",""),
+                                    createBitSet(timeEl.attributeValue("dates")),
+                                    Integer.parseInt(timeEl.attributeValue("breakTime","0")));
+                               if (timeEl.attributeValue("pattern")!=null)
+                                    time.setTimePatternId(Long.valueOf(timeEl.attributeValue("pattern")));
                             }
-                            RoomLocation room = new RoomLocation(
-                                Long.valueOf(roomEl.attributeValue("id")),
-                                roomEl.attributeValue("name","R"+roomEl.attributeValue("id")),
-                                roomEl.attributeValue("building")==null?null:Long.valueOf(roomEl.attributeValue("building")),
-                                0,
-                                Integer.parseInt(roomEl.attributeValue("capacity")),
-                                posX, posY, 
-                                "true".equals(roomEl.attributeValue("ignoreTooFar")),
-                                null);
-                            rooms.add(room);                                
+                            Vector rooms = new Vector();
+                            for (Iterator m=sectionEl.elementIterator("room");m.hasNext();) {
+                                Element roomEl = (Element)m.next();
+                                int posX=-1, posY=-1;
+                                if (roomEl.attributeValue("location")!=null) {
+                                    String loc = roomEl.attributeValue("location");
+                                    posX = Integer.parseInt(loc.substring(0,loc.indexOf(',')));
+                                    posY = Integer.parseInt(loc.substring(loc.indexOf(',')+1));
+                                }
+                                RoomLocation room = new RoomLocation(
+                                    Long.valueOf(roomEl.attributeValue("id")),
+                                    roomEl.attributeValue("name","R"+roomEl.attributeValue("id")),
+                                    roomEl.attributeValue("building")==null?null:Long.valueOf(roomEl.attributeValue("building")),
+                                    0,
+                                    Integer.parseInt(roomEl.attributeValue("capacity")),
+                                    posX, posY, 
+                                    "true".equals(roomEl.attributeValue("ignoreTooFar")),
+                                    null);
+                                rooms.add(room);                                
+                            }
+                            Placement placement = (time==null?null:new Placement(null, time, rooms));
+                            Section section = new Section(
+                                Long.parseLong(sectionEl.attributeValue("id")),
+                                Integer.parseInt(sectionEl.attributeValue("limit")),
+                                sectionEl.attributeValue("name","S"+sectionEl.attributeValue("id")),
+                                subpart,
+                                placement,
+                                sectionEl.attributeValue("instructorIds"),
+                                sectionEl.attributeValue("instructorNames"),
+                                parentSection);
+                            sectionTable.put(new Long(section.getId()), section);
+                            section.setSpaceHeld(Double.parseDouble(sectionEl.attributeValue("hold", "0.0")));
+                            section.setSpaceExpected(Double.parseDouble(sectionEl.attributeValue("expect", "0.0")));
                         }
-                        Placement placement = (time==null?null:new Placement(null, time, rooms));
-                        Section section = new Section(
-                            Long.parseLong(sectionEl.attributeValue("id")),
-                            Integer.parseInt(sectionEl.attributeValue("limit")),
-                            sectionEl.attributeValue("name","S"+sectionEl.attributeValue("id")),
-                            subpart,
-                            placement,
-                            sectionEl.attributeValue("instructorIds"),
-                            sectionEl.attributeValue("instructorNames"),
-                            parentSection);
-                        sectionTable.put(new Long(section.getId()), section);
-                        section.setSpaceHeld(Double.parseDouble(sectionEl.attributeValue("hold", "0.0")));
-                        section.setSpaceExpected(Double.parseDouble(sectionEl.attributeValue("expect", "0.0")));
                     }
+                }
+            }
+        } else {
+            for (Enumeration e=getModel().getOfferings().elements();e.hasMoreElements();) {
+                Offering offering = (Offering)e.nextElement();
+                offeringTable.put(new Long(offering.getId()), offering);
+                for (Enumeration f=offering.getCourses().elements();f.hasMoreElements();) {
+                    Course course = (Course)f.nextElement();
+                    courseTable.put(new Long(course.getId()), course);
                 }
             }
         }
         
-        Vector bestEnrollments = new Vector();
-        Vector currentEnrollments = new Vector();
-        
-        for (Iterator i=root.element("students").elementIterator("student");i.hasNext();) {
-            Element studentEl = (Element)i.next();
-            Student student = new Student(
-                Long.parseLong(studentEl.attributeValue("id")),
-                "true".equals(studentEl.attributeValue("dummy")));
-            for (Iterator j=studentEl.elementIterator();j.hasNext();) {
-                Element requestEl = (Element)j.next();
-                if ("freeTime".equals(requestEl.getName())) {
-                    TimeLocation time = new TimeLocation(
-                                Integer.parseInt(requestEl.attributeValue("days"),2),
-                                Integer.parseInt(requestEl.attributeValue("start")),
-                                Integer.parseInt(requestEl.attributeValue("length")),
-                                0, 0, 
-                                requestEl.attributeValue("datePattern")==null?null:Long.valueOf(requestEl.attributeValue("datePattern")),
-                                "",
-                                createBitSet(requestEl.attributeValue("dates")),
-                                0);
-                    FreeTimeRequest request = new FreeTimeRequest(
-                        Long.parseLong(requestEl.attributeValue("id")),
-                        Integer.parseInt(requestEl.attributeValue("priority")),
-                        "true".equals(requestEl.attributeValue("alternative")),
-                        student,
-                        time);
-                    if (requestEl.attributeValue("weight")!=null)
-                        request.setWeight(Double.parseDouble(requestEl.attributeValue("weight")));
-                    if (iLoadBest && requestEl.element("best")!=null)
-                        bestEnrollments.add(request.createEnrollment());
-                    if (iLoadInitial && requestEl.element("initial")!=null)
-                        request.setInitialAssignment(request.createEnrollment());
-                    if (iLoadCurrent && requestEl.element("current")!=null)
-                        currentEnrollments.add(request.createEnrollment());
-                } else if ("course".equals(requestEl.getName())) {
-                    Vector courses = new Vector();
-                    courses.add(courseTable.get(Long.valueOf(requestEl.attributeValue("course"))));
-                    for (Iterator k=requestEl.elementIterator("alternative");k.hasNext();)
-                        courses.add(courseTable.get(Long.valueOf(((Element)k.next()).attributeValue("course"))));
-                    CourseRequest courseRequest = new CourseRequest(
-                        Long.parseLong(requestEl.attributeValue("id")),
-                        Integer.parseInt(requestEl.attributeValue("priority")),
-                        "true".equals(requestEl.attributeValue("alternative")),
-                        student,
-                        courses,
-                        "true".equals(requestEl.attributeValue("waitlist")));
-                    if (requestEl.attributeValue("weight")!=null)
-                        courseRequest.setWeight(Double.parseDouble(requestEl.attributeValue("weight")));
-                    for (Iterator k=requestEl.elementIterator("waitlisted");k.hasNext();) {
-                        Element choiceEl = (Element)k.next();
-                        courseRequest.getWaitlistedChoices().add(new Choice(
-                            (Offering)offeringTable.get(Long.valueOf(choiceEl.attributeValue("offering"))),
-                            choiceEl.getText()));
-                    }
-                    for (Iterator k=requestEl.elementIterator("selected");k.hasNext();) {
-                        Element choiceEl = (Element)k.next();
-                        courseRequest.getSelectedChoices().add(new Choice(
-                            (Offering)offeringTable.get(Long.valueOf(choiceEl.attributeValue("offering"))),
-                            choiceEl.getText()));
-                    }
-                    Element initialEl = requestEl.element("initial");
-                    if (iLoadInitial && initialEl!=null) {
-                        HashSet sections = new HashSet();
-                        for (Iterator k=initialEl.elementIterator("section");k.hasNext();) {
-                            Element sectionEl = (Element)k.next();
-                            Section section = courseRequest.getSection(Long.parseLong(sectionEl.attributeValue("id")));
-                            sections.add(section);
+        if (iLoadStudents) {
+            Vector bestEnrollments = new Vector();
+            Vector currentEnrollments = new Vector();
+            for (Iterator i=root.element("students").elementIterator("student");i.hasNext();) {
+                Element studentEl = (Element)i.next();
+                Student student = new Student(
+                    Long.parseLong(studentEl.attributeValue("id")),
+                    "true".equals(studentEl.attributeValue("dummy")));
+                for (Iterator j=studentEl.elementIterator();j.hasNext();) {
+                    Element requestEl = (Element)j.next();
+                    if ("freeTime".equals(requestEl.getName())) {
+                        TimeLocation time = new TimeLocation(
+                                    Integer.parseInt(requestEl.attributeValue("days"),2),
+                                    Integer.parseInt(requestEl.attributeValue("start")),
+                                    Integer.parseInt(requestEl.attributeValue("length")),
+                                    0, 0, 
+                                    requestEl.attributeValue("datePattern")==null?null:Long.valueOf(requestEl.attributeValue("datePattern")),
+                                    "",
+                                    createBitSet(requestEl.attributeValue("dates")),
+                                    0);
+                        FreeTimeRequest request = new FreeTimeRequest(
+                            Long.parseLong(requestEl.attributeValue("id")),
+                            Integer.parseInt(requestEl.attributeValue("priority")),
+                            "true".equals(requestEl.attributeValue("alternative")),
+                            student,
+                            time);
+                        if (requestEl.attributeValue("weight")!=null)
+                            request.setWeight(Double.parseDouble(requestEl.attributeValue("weight")));
+                        if (iLoadBest && requestEl.element("best")!=null)
+                            bestEnrollments.add(request.createEnrollment());
+                        if (iLoadInitial && requestEl.element("initial")!=null)
+                            request.setInitialAssignment(request.createEnrollment());
+                        if (iLoadCurrent && requestEl.element("current")!=null)
+                            currentEnrollments.add(request.createEnrollment());
+                    } else if ("course".equals(requestEl.getName())) {
+                        Vector courses = new Vector();
+                        courses.add(courseTable.get(Long.valueOf(requestEl.attributeValue("course"))));
+                        for (Iterator k=requestEl.elementIterator("alternative");k.hasNext();)
+                            courses.add(courseTable.get(Long.valueOf(((Element)k.next()).attributeValue("course"))));
+                        CourseRequest courseRequest = new CourseRequest(
+                            Long.parseLong(requestEl.attributeValue("id")),
+                            Integer.parseInt(requestEl.attributeValue("priority")),
+                            "true".equals(requestEl.attributeValue("alternative")),
+                            student,
+                            courses,
+                            "true".equals(requestEl.attributeValue("waitlist")));
+                        if (requestEl.attributeValue("weight")!=null)
+                            courseRequest.setWeight(Double.parseDouble(requestEl.attributeValue("weight")));
+                        for (Iterator k=requestEl.elementIterator("waitlisted");k.hasNext();) {
+                            Element choiceEl = (Element)k.next();
+                            courseRequest.getWaitlistedChoices().add(new Choice(
+                                (Offering)offeringTable.get(Long.valueOf(choiceEl.attributeValue("offering"))),
+                                choiceEl.getText()));
                         }
-                        if (!sections.isEmpty())
-                            courseRequest.setInitialAssignment(courseRequest.createEnrollment(sections));
-                    }
-                    Element currentEl = requestEl.element("current");
-                    if (iLoadCurrent && currentEl!=null) {
-                        HashSet sections = new HashSet();
-                        for (Iterator k=currentEl.elementIterator("section");k.hasNext();) {
-                            Element sectionEl = (Element)k.next();
-                            Section section = courseRequest.getSection(Long.parseLong(sectionEl.attributeValue("id")));
-                            sections.add(section);
+                        for (Iterator k=requestEl.elementIterator("selected");k.hasNext();) {
+                            Element choiceEl = (Element)k.next();
+                            courseRequest.getSelectedChoices().add(new Choice(
+                                (Offering)offeringTable.get(Long.valueOf(choiceEl.attributeValue("offering"))),
+                                choiceEl.getText()));
                         }
-                        if (!sections.isEmpty())
-                            currentEnrollments.add(courseRequest.createEnrollment(sections));
-                    }
-                    Element bestEl = requestEl.element("best");
-                    if (iLoadBest && bestEl!=null) {
-                        HashSet sections = new HashSet();
-                        for (Iterator k=bestEl.elementIterator("section");k.hasNext();) {
-                            Element sectionEl = (Element)k.next();
-                            Section section = courseRequest.getSection(Long.parseLong(sectionEl.attributeValue("id")));
-                            sections.add(section);
+                        Element initialEl = requestEl.element("initial");
+                        if (iLoadInitial && initialEl!=null) {
+                            HashSet sections = new HashSet();
+                            for (Iterator k=initialEl.elementIterator("section");k.hasNext();) {
+                                Element sectionEl = (Element)k.next();
+                                Section section = courseRequest.getSection(Long.parseLong(sectionEl.attributeValue("id")));
+                                sections.add(section);
+                            }
+                            if (!sections.isEmpty())
+                                courseRequest.setInitialAssignment(courseRequest.createEnrollment(sections));
                         }
-                        if (!sections.isEmpty())
-                            bestEnrollments.add(courseRequest.createEnrollment(sections));
+                        Element currentEl = requestEl.element("current");
+                        if (iLoadCurrent && currentEl!=null) {
+                            HashSet sections = new HashSet();
+                            for (Iterator k=currentEl.elementIterator("section");k.hasNext();) {
+                                Element sectionEl = (Element)k.next();
+                                Section section = courseRequest.getSection(Long.parseLong(sectionEl.attributeValue("id")));
+                                sections.add(section);
+                            }
+                            if (!sections.isEmpty())
+                                currentEnrollments.add(courseRequest.createEnrollment(sections));
+                        }
+                        Element bestEl = requestEl.element("best");
+                        if (iLoadBest && bestEl!=null) {
+                            HashSet sections = new HashSet();
+                            for (Iterator k=bestEl.elementIterator("section");k.hasNext();) {
+                                Element sectionEl = (Element)k.next();
+                                Section section = courseRequest.getSection(Long.parseLong(sectionEl.attributeValue("id")));
+                                sections.add(section);
+                            }
+                            if (!sections.isEmpty())
+                                bestEnrollments.add(courseRequest.createEnrollment(sections));
+                        }
                     }
                 }
+                getModel().addStudent(student);
             }
-            getModel().addStudent(student);
-        }
-        
-        if (!bestEnrollments.isEmpty()) {
-            for (Enumeration e=bestEnrollments.elements();e.hasMoreElements();) {
-                Enrollment enrollment = (Enrollment)e.nextElement();
-                Hashtable conflicts = getModel().conflictConstraints(enrollment);
-                if (conflicts.isEmpty())
+
+            if (!bestEnrollments.isEmpty()) {
+                for (Enumeration e=bestEnrollments.elements();e.hasMoreElements();) {
+                    Enrollment enrollment = (Enrollment)e.nextElement();
+                    Hashtable conflicts = getModel().conflictConstraints(enrollment);
+                    if (conflicts.isEmpty())
+                        enrollment.variable().assign(0, enrollment);
+                    else {
+                        sLogger.warn("Enrollment "+enrollment+" conflicts with "+conflicts);
+                    }
+                }
+                getModel().saveBest();
+            } 
+            
+            if (!currentEnrollments.isEmpty()) {
+                for (Enumeration e=getModel().variables().elements();e.hasMoreElements();) {
+                    Request request = (Request)e.nextElement();
+                    if (request.getAssignment()!=null)
+                        request.unassign(0);
+                }
+                for (Enumeration e=currentEnrollments.elements();e.hasMoreElements();) {
+                    Enrollment enrollment = (Enrollment)e.nextElement();
                     enrollment.variable().assign(0, enrollment);
-                else {
-                    sLogger.warn("Enrollment "+enrollment+" conflicts with "+conflicts);
                 }
-            }
-            getModel().saveBest();
-        } 
-        
-        if (!currentEnrollments.isEmpty()) {
-            for (Enumeration e=getModel().variables().elements();e.hasMoreElements();) {
-                Request request = (Request)e.nextElement();
-                if (request.getAssignment()!=null)
-                    request.unassign(0);
-            }
-            for (Enumeration e=currentEnrollments.elements();e.hasMoreElements();) {
-                Enrollment enrollment = (Enrollment)e.nextElement();
-                enrollment.variable().assign(0, enrollment);
             }
         }
         
