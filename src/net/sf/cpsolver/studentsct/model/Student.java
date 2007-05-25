@@ -56,6 +56,10 @@ import java.util.Vector;
     public long getId() {
         return iId;
     }
+    /** Set student unique id */
+    public void setId(long id) {
+        iId = id;
+    }
 
     /** Student's course and free time requests */
     public Vector getRequests() {
