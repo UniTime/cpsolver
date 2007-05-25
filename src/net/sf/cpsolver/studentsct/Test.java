@@ -1,15 +1,20 @@
 package net.sf.cpsolver.studentsct;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.StringTokenizer;
 import java.util.Vector;
 
 import org.dom4j.Document;
@@ -55,6 +60,8 @@ public class Test {
             new StudentSectioningXMLLoader(model).load();
             if (cfg.getProperty("Test.LastLikeCourseDemands")!=null)
                 loadLastLikeCourseDemandsXml(model, new File(cfg.getProperty("Test.LastLikeCourseDemands")));
+            if (cfg.getProperty("Test.CrsReq")!=null)
+                loadCrsReqFiles(model, cfg.getProperty("Test.CrsReq"));
         } catch (Exception e) {
             sLog.error("Unable to load model, reason: "+e.getMessage(), e);
             return null;
@@ -442,6 +449,159 @@ public class Test {
                 if (!student.getRequests().isEmpty())
                     model.addStudent(student);
             }
+            for (Iterator i=requests.entrySet().iterator();i.hasNext();) {
+                Map.Entry entry = (Map.Entry)i.next();
+                Course course = (Course)entry.getKey();
+                Vector requestsThisCourse = (Vector)entry.getValue();
+                double weight = getLastLikeStudentWeight(course, requestsThisCourse.size());
+                for (Enumeration e=requestsThisCourse.elements();e.hasMoreElements();) {
+                    CourseRequest request = (CourseRequest)e.nextElement();
+                    request.setWeight(weight);
+                }
+            }
+        } catch (Exception e) {
+            sLog.error(e.getMessage(),e);
+        }
+    }
+    
+    public static void loadCrsReqFiles(StudentSectioningModel model, String files) {
+        try {
+            boolean lastLike = model.getProperties().getPropertyBoolean("Test.CrsReqIsLastLike", true);
+            boolean shuffleIds = model.getProperties().getPropertyBoolean("Test.CrsReqShuffleStudentIds", true);
+            boolean tryWithoutSuffix = model.getProperties().getPropertyBoolean("Test.CrsReqTryWithoutSuffix", false);
+            Hashtable students = new Hashtable();
+            for (StringTokenizer stk=new StringTokenizer(files,";");stk.hasMoreTokens();) {
+                String file = stk.nextToken();
+                sLog.debug("Loading "+file+" ...");
+                BufferedReader in = new BufferedReader(new FileReader(file));
+                String line; int lineIndex=0; long reqId = 0;
+                while ((line=in.readLine())!=null) {
+                    lineIndex++;
+                    if (line.length()<=150) continue;
+                    char code = line.charAt(13);
+                    if (code=='H' || code=='T') continue; //skip header and tail
+                    long studentId = Long.parseLong(line.substring(14,23));
+                    Student student = (Student)students.get(new Long(studentId));
+                    if (student==null) {
+                        student = new Student(studentId);
+                        if (lastLike) student.setDummy(true);
+                        students.put(new Long(studentId), student);
+                        sLog.debug("  -- loading student "+studentId+" ...");
+                    } else
+                        sLog.debug("  -- updating student "+studentId+" ...");
+                    line = line.substring(150);
+                    while (line.length()>=20) {
+                        String subjectArea = line.substring(0,4).trim();
+                        String courseNbr = line.substring(4,8).trim();
+                        if (subjectArea.length()==0 || courseNbr.length()==0) {
+                            line = line.substring(20);
+                            continue;
+                        }
+                        String instrSel = line.substring(8,10); //ZZ - Remove previous instructor selection
+                        char reqPDiv = line.charAt(10); //P - Personal preference; C - Conflict resolution; 
+                                                        //0 - (Zero) used by program only, for change requests to reschedule division
+                                                        //    (used to reschedule cancelled division)
+                        String reqDiv = line.substring(11,13); //00 - Reschedule division
+                        String reqSect = line.substring(13,15); //Contains designator for designator-required courses
+                        String credit = line.substring(15,19);
+                        char nameRaise = line.charAt(19); //N - Name raise
+                        char action =line.charAt(19); //A - Add; D - Drop; C - Change 
+                        sLog.debug("    -- requesting "+subjectArea+" "+courseNbr+" (action:"+action+") ...");
+                        Course course = null;
+                        for (Enumeration e=model.getOfferings().elements();course==null && e.hasMoreElements();) {
+                            Offering offering = (Offering)e.nextElement();
+                            for (Enumeration f=offering.getCourses().elements();course==null && f.hasMoreElements();) {
+                                Course c = (Course)f.nextElement();
+                                if (c.getSubjectArea().equals(subjectArea) && c.getCourseNumber().equals(courseNbr))
+                                    course = c;;
+                            }
+                        }
+                        if (course==null && tryWithoutSuffix && courseNbr.charAt(courseNbr.length()-1)>='A' && courseNbr.charAt(courseNbr.length()-1)<='Z') {
+                            String courseNbrNoSfx = courseNbr.substring(0, courseNbr.length()-1);
+                            for (Enumeration e=model.getOfferings().elements();course==null && e.hasMoreElements();) {
+                                Offering offering = (Offering)e.nextElement();
+                                for (Enumeration f=offering.getCourses().elements();course==null && f.hasMoreElements();) {
+                                    Course c = (Course)f.nextElement();
+                                    if (c.getSubjectArea().equals(subjectArea) && c.getCourseNumber().equals(courseNbrNoSfx))
+                                        course = c;
+                                }
+                            }
+                        }
+                        if (course==null) {
+                            if (courseNbr.charAt(courseNbr.length()-1)>='A' && courseNbr.charAt(courseNbr.length()-1)<='Z') {
+                            } else {
+                                sLog.warn("      -- course "+subjectArea+" "+courseNbr+" not found (file "+file+", line "+lineIndex+")");
+                            }
+                        } else {
+                            CourseRequest courseRequest = null;
+                            for (Enumeration e=student.getRequests().elements();courseRequest==null && e.hasMoreElements();) {
+                                Request request = (Request)e.nextElement();
+                                if (request instanceof CourseRequest && ((CourseRequest)request).getCourses().contains(course))
+                                    courseRequest = (CourseRequest)request;
+                            }
+                            if (action=='A') {
+                                if (courseRequest==null) {
+                                    Vector courses = new Vector(1); courses.add(course);
+                                    courseRequest = new CourseRequest(reqId++, student.getRequests().size(), false, student, courses, false);
+                                } else {
+                                    sLog.warn("      -- request for course "+course+" is already present"); 
+                                }
+                            } else if (action=='D') {
+                                if (courseRequest==null) {
+                                    sLog.warn("      -- request for course "+course+" is not present -- cannot be dropped");
+                                } else {
+                                    student.getRequests().remove(courseRequest);
+                                }
+                            } else if (action=='C') {
+                                if (courseRequest==null) {
+                                    sLog.warn("      -- request for course "+course+" is not present -- cannot be changed");
+                                } else {
+                                    //?
+                                }
+                            } else {
+                                sLog.warn("      -- unknown action "+action);
+                            }
+                        }
+                        line = line.substring(20);
+                    }
+                }
+                in.close();
+            }
+            Hashtable requests = new Hashtable();
+            long studentId = 0;
+            HashSet studentIds = new HashSet();
+            for (Enumeration e=students.elements();e.hasMoreElements();) {
+                Student student = (Student)e.nextElement();
+                if (!student.getRequests().isEmpty())
+                    model.addStudent(student);
+                if (shuffleIds) {
+                    long newId = -1;
+                    while (true) {
+                        newId = 1+(long)(999999999L * Math.random());
+                        if (studentIds.add(new Long(newId))) break;
+                    }
+                    student.setId(newId);
+                }
+                if (student.isDummy()) {
+                    for (Enumeration f=student.getRequests().elements();f.hasMoreElements();) {
+                        Request request = (Request)f.nextElement();
+                        if (request instanceof CourseRequest) {
+                            Course course = (Course)((CourseRequest)request).getCourses().firstElement();
+                            Vector requestsThisCourse = (Vector)requests.get(course);
+                            if (requestsThisCourse==null) {
+                                requestsThisCourse = new Vector();
+                                requests.put(course, requestsThisCourse);
+                            }
+                            requestsThisCourse.add(request);
+                        }
+                    }
+                }
+            }
+            Collections.sort(model.getStudents(), new Comparator() {
+                public int compare(Object o1, Object o2) {
+                    return Double.compare(((Student)o1).getId(),((Student)o2).getId());
+                }
+            });
             for (Iterator i=requests.entrySet().iterator();i.hasNext();) {
                 Map.Entry entry = (Map.Entry)i.next();
                 Course course = (Course)entry.getKey();
