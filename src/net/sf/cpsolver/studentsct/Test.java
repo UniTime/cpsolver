@@ -125,6 +125,7 @@ public class Test {
         if (model==null) return null;
         
         boolean usePenalties = cfg.getPropertyBoolean("Sectioning.UseOnlinePenalties", true);
+        boolean useStudentPrefPenalties = cfg.getPropertyBoolean("Sectioning.UseStudentPreferencePenalties", false);
         Solution solution = new Solution(model,0,0);
         solution.addSolutionListener(new SolutionListener() {
             public void solutionUpdated(Solution solution) {}
@@ -191,12 +192,15 @@ public class Test {
         for (Enumeration e=students.elements();e.hasMoreElements();) {
             Student student = (Student)e.nextElement();
             sLog.info("Sectioning student: "+student);
-            if (usePenalties) setPenalties(student);
+            if (useStudentPrefPenalties)
+                StudentPreferencePenalties.setPenalties(student);
+            else if (usePenalties) 
+                setPenalties(student);
             Neighbour neighbour = bbSelection.getSelection(student).select();
             if (neighbour!=null) {
                 neighbour.assign(solution.getIteration());
-                sLog.info("Solution: "+neighbour);
-                if (usePenalties) updateSpace(student);
+                sLog.info("Student "+student+" enrolls into "+neighbour);
+                if (usePenalties && !useStudentPrefPenalties) updateSpace(student);
             } else {
                 sLog.warn("No solution found.");
             }
@@ -616,7 +620,7 @@ public class Test {
             sLog.error(e.getMessage(),e);
         }
     }
-
+    
     public static void main(String[] args) {
         try {
             /*
@@ -660,13 +664,14 @@ public class Test {
                 cfg.setProperty("General.Output", System.getProperty("user.home", ".")+File.separator+"Sectioning-Test"+File.separator+(sDateFormat.format(new Date())));
             }
             
-            if (args.length>=4 && "online".equals(args[3]))
+            if (args.length>=4 && "online".equals(args[3])) {
                 onlineSectioning(cfg);
-            else if (args.length>=4 && "simple".equals(args[3])) {
+            } else if (args.length>=4 && "simple".equals(args[3])) {
                 cfg.setProperty("Sectioning.UseOnlinePenalties", "false");
                 onlineSectioning(cfg);
-            } else
+            } else {
                 batchSectioning(cfg);
+            }
         } catch (Exception e) {
             sLog.error(e.getMessage(),e);
             e.printStackTrace();
