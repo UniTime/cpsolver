@@ -107,11 +107,11 @@ public class BranchBoundSelection implements NeighbourSelection {
         public double getBound(int idx) {
             double bound = 0.0;
             int i=0, alt=0;
-            int nrDist = 0;
             for (Enumeration e=iStudent.getRequests().elements();e.hasMoreElements();i++) {
                 Request r  = (Request)e.nextElement();
                 if (i<idx) {
                     if (iAssignment[i]!=null) {
+                        double nrDist = 0;
                         if (iDistanceConflict!=null) {
                             nrDist+=iDistanceConflict.nrConflicts(iAssignment[i]);
                             for (int x=0;x<i;x++)
@@ -138,9 +138,9 @@ public class BranchBoundSelection implements NeighbourSelection {
         
         public double getValue() {
             double value = 0.0;
-            int nrDist = 0;
             for (int i=0;i<iAssignment.length;i++)
                 if (iAssignment[i]!=null) {
+                    double nrDist = 0;
                     if (iDistanceConflict!=null) {
                         nrDist+=iDistanceConflict.nrConflicts(iAssignment[i]);
                         for (int x=0;x<i;x++)
