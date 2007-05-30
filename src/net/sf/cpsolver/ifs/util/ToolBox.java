@@ -290,7 +290,7 @@ public class ToolBox {
     	return (o1==null?o2==null:o1.equals(o2));
     }
 
-    public static class LogOutputStream extends OutputStream {
+    private static class LogOutputStream extends OutputStream {
     	private Logger iLogger = null;
     	private Level iLevel = null;
     	private OutputStream iOldOutputStream;

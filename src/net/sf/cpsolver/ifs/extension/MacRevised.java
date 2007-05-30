@@ -1,5 +1,12 @@
 package net.sf.cpsolver.ifs.extension;
 
+
+import java.util.*;
+
+import net.sf.cpsolver.ifs.model.*;
+import net.sf.cpsolver.ifs.solver.*;
+import net.sf.cpsolver.ifs.util.*;
+
 /**
  * Another implementation of MAC propagation.
  * 
@@ -25,12 +32,6 @@ package net.sf.cpsolver.ifs.extension;
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
-
-import java.util.*;
-
-import net.sf.cpsolver.ifs.model.*;
-import net.sf.cpsolver.ifs.solver.*;
-import net.sf.cpsolver.ifs.util.*;
 
 public class MacRevised extends Extension {
     private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(MacRevised.class);

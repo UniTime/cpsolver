@@ -1,5 +1,19 @@
 package net.sf.cpsolver.ifs.util;
 
+import java.lang.ref.Reference;
+import java.lang.ref.ReferenceQueue;
+import java.lang.ref.SoftReference;
+import java.lang.ref.WeakReference;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.Vector;
+
+import org.apache.log4j.Logger;
+
 /** Simple table cache (key, value) using java soft references.
  * 
  * @version
@@ -22,19 +36,6 @@ package net.sf.cpsolver.ifs.util;
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
-import java.lang.ref.Reference;
-import java.lang.ref.ReferenceQueue;
-import java.lang.ref.SoftReference;
-import java.lang.ref.WeakReference;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
-
-import org.apache.log4j.Logger;
 
 public class SoftCache implements Map {
 	private static Logger sLogger = Logger.getLogger(SoftCache.class);
@@ -171,7 +172,7 @@ public class SoftCache implements Map {
 		}
 	}
 	
-	public static class Entry implements Map.Entry {
+	private static class Entry implements Map.Entry {
 		private Object iKey = null;
 		private Object iValue = null;
 		private Entry(Object key, Object value) {
