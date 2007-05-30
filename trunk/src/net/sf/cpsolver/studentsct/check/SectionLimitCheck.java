@@ -11,19 +11,56 @@ import net.sf.cpsolver.studentsct.model.Offering;
 import net.sf.cpsolver.studentsct.model.Section;
 import net.sf.cpsolver.studentsct.model.Subpart;
 
+/**
+ * This class looks and reports cases when a section limit is exceeded.  
+ *  
+ * <br><br>
+ * 
+ * Usage: if (new SectionLimitCheck(model).check()) ...
+ * 
+ * <br><br>
+ * 
+ * @version
+ * StudentSct 1.1 (Student Sectioning)<br>
+ * Copyright (C) 2007 Tomas Muller<br>
+ * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
+ * Lazenska 391, 76314 Zlin, Czech Republic<br>
+ * <br>
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * <br><br>
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * <br><br>
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
 public class SectionLimitCheck {
     private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(SectionLimitCheck.class);
     private static DecimalFormat sDF = new DecimalFormat("0.000");
     private StudentSectioningModel iModel;
     
+    /** Constructor
+     * @param model student sectioning model
+     */
     public SectionLimitCheck(StudentSectioningModel model) {
         iModel = model;
     }
     
+    /** Return student sectioning model */
     public StudentSectioningModel getModel() {
         return iModel;
     }
     
+    /** Check for sections that have more students enrolled than it is allowed, i.e.,
+     * the sum of requests weights is above the section limit
+     * @return false, if there is such a case
+     */
     public boolean check() {
         sLog.info("Checking section limits...");
         boolean ret = true;
