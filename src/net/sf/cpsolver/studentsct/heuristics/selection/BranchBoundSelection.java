@@ -33,9 +33,12 @@ public class BranchBoundSelection implements NeighbourSelection {
     private DistanceConflict iDistanceConflict = null;
     public static boolean sDebug = false;
     protected Enumeration iStudentsEnumeration = null;
+    private boolean iMinimizePenalty = false;
     
     public BranchBoundSelection(DataProperties properties) {
-        iTimeout = properties.getPropertyInt("Neighbour.BranchAndBoundTimeout", iTimeout);    
+        iTimeout = properties.getPropertyInt("Neighbour.BranchAndBoundTimeout", iTimeout);
+        iMinimizePenalty = properties.getPropertyBoolean("Neighbour.BranchAndBoundMinimizePenalty", iMinimizePenalty);
+        if (iMinimizePenalty) sLog.info("Overall penalty is going to be minimized (together with the maximization of the number of assigned requests and minimization of distance conflicts).");
     }
 
     public void init(Solver solver) {
@@ -104,22 +107,54 @@ public class BranchBoundSelection implements NeighbourSelection {
             return iBestValue;
         }
         
+        public int getBestNrAssigned() {
+            int nrAssigned = 0;
+            for (int i=0;i<iBestAssignment.length;i++)
+                if (iBestAssignment[i]!=null) nrAssigned++;
+            return nrAssigned;
+        }
+
+        public int getNrAssignedBound(int idx) {
+            int bound = 0;
+            int i=0, alt=0;
+            for (Enumeration e=iStudent.getRequests().elements();e.hasMoreElements();i++) {
+                Request r  = (Request)e.nextElement();
+                if (i<idx) {
+                    if (iAssignment[i]!=null) 
+                        bound++;
+                    if (r.isAlternative()) {
+                        if (iAssignment[i]!=null || (r instanceof CourseRequest && ((CourseRequest)r).isWaitlist())) alt--;
+                    } else {
+                        if (r instanceof CourseRequest && !((CourseRequest)r).isWaitlist() && iAssignment[i]==null) alt++;
+                    }
+                } else {
+                    if (!r.isAlternative())
+                        bound ++;
+                    else if (alt>0) {
+                        bound ++;
+                    }
+                }
+            }
+            return bound;
+        }
+        
+        public double getNrDistanceConflicts(int idx) {
+            if (iDistanceConflict==null || iAssignment[idx]==null) return 0;
+            double nrDist = iDistanceConflict.nrConflicts(iAssignment[idx]);
+            for (int x=0;x<idx;x++)
+                if (iAssignment[x]!=null)
+                    nrDist+=iDistanceConflict.nrConflicts(iAssignment[x],iAssignment[idx]);
+            return nrDist;
+        }
+
         public double getBound(int idx) {
             double bound = 0.0;
             int i=0, alt=0;
             for (Enumeration e=iStudent.getRequests().elements();e.hasMoreElements();i++) {
                 Request r  = (Request)e.nextElement();
                 if (i<idx) {
-                    if (iAssignment[i]!=null) {
-                        double nrDist = 0;
-                        if (iDistanceConflict!=null) {
-                            nrDist+=iDistanceConflict.nrConflicts(iAssignment[i]);
-                            for (int x=0;x<i;x++)
-                                if (iAssignment[x]!=null)
-                                    nrDist+=iDistanceConflict.nrConflicts(iAssignment[x],iAssignment[i]);
-                        }
-                        bound += iAssignment[i].toDouble(nrDist);
-                    }
+                    if (iAssignment[i]!=null) 
+                        bound += iAssignment[i].toDouble(getNrDistanceConflicts(i));
                     if (r.isAlternative()) {
                         if (iAssignment[i]!=null || (r instanceof CourseRequest && ((CourseRequest)r).isWaitlist())) alt--;
                     } else {
@@ -135,21 +170,48 @@ public class BranchBoundSelection implements NeighbourSelection {
             }
             return bound;
         }
-        
+
         public double getValue() {
             double value = 0.0;
             for (int i=0;i<iAssignment.length;i++)
-                if (iAssignment[i]!=null) {
-                    double nrDist = 0;
-                    if (iDistanceConflict!=null) {
-                        nrDist+=iDistanceConflict.nrConflicts(iAssignment[i]);
-                        for (int x=0;x<i;x++)
-                            if (iAssignment[x]!=null)
-                                nrDist+=iDistanceConflict.nrConflicts(iAssignment[x],iAssignment[i]);
-                    }
-                    value += iAssignment[i].toDouble(nrDist);
-                }
+                if (iAssignment[i]!=null)
+                    value += iAssignment[i].toDouble(getNrDistanceConflicts(i));
             return value;
+        }
+        
+        public double getPenalty() {
+            double bestPenalty = 0;
+            for (int i=0;i<iAssignment.length;i++)
+                if (iAssignment[i]!=null) bestPenalty += iAssignment[i].getPenalty() + getNrDistanceConflicts(i);
+            return bestPenalty;
+        }
+        
+        
+        public double getPenaltyBound(int idx) {
+            double bound = 0.0;
+            int i=0, alt=0;
+            for (Enumeration e=iStudent.getRequests().elements();e.hasMoreElements();i++) {
+                Request r  = (Request)e.nextElement();
+                if (i<idx) {
+                    if (iAssignment[i]!=null)
+                        bound += iAssignment[i].getPenalty() + getNrDistanceConflicts(i);
+                    if (r.isAlternative()) {
+                        if (iAssignment[i]!=null || (r instanceof CourseRequest && ((CourseRequest)r).isWaitlist())) alt--;
+                    } else {
+                        if (r instanceof CourseRequest && !((CourseRequest)r).isWaitlist() && iAssignment[i]==null) alt++;
+                    }
+                } else {
+                    if (!r.isAlternative()) {
+                        if (r instanceof CourseRequest)
+                            bound += ((CourseRequest)r).getMinPenalty();
+                    } else if (alt>0) {
+                        if (r instanceof CourseRequest)
+                            bound += ((CourseRequest)r).getMinPenalty();
+                        alt--;
+                    }
+                }
+            }
+            return bound;
         }
         
         public void saveBest() {
@@ -157,7 +219,10 @@ public class BranchBoundSelection implements NeighbourSelection {
                 iBestAssignment = new Enrollment[iAssignment.length];
             for (int i=0;i<iAssignment.length;i++)
                 iBestAssignment[i] = iAssignment[i];
-            iBestValue = getValue();
+            if (iMinimizePenalty)
+                iBestValue = getPenalty();
+            else
+                iBestValue = getValue();
         }
         
         public Enrollment firstConflict(Enrollment enrollment) {
@@ -192,7 +257,7 @@ public class BranchBoundSelection implements NeighbourSelection {
             return (alt>0);
         }
         
-        public int nrAssigned() {
+        public int getNrAssigned() {
             int assigned = 0;
             for (int i=0;i<iAssignment.length;i++)
                 if (iAssignment[i]!=null) assigned++;            
@@ -200,80 +265,95 @@ public class BranchBoundSelection implements NeighbourSelection {
         }
         
         public void backTrack(int idx) {
-            if (sDebug) sLog.debug("backTrack("+nrAssigned()+"/"+getValue()+","+idx+")");
+            if (sDebug) sLog.debug("backTrack("+getNrAssigned()+"/"+getValue()+","+idx+")");
             if (iTimeout>0 && (System.currentTimeMillis()-iT0)>iTimeout) {
                 if (sDebug) sLog.debug("  -- timeout reached");
                 iTimeoutReached=true; return;
             }
-            if (iBestAssignment!=null && getBound(idx)>=iBestValue) {
-                if (sDebug) sLog.debug("  -- branch "+getBound(idx)+" > "+iBestValue);
-                return;
-            }
-            if (idx==iAssignment.length) {
-                if (iBestAssignment==null || getValue()<iBestValue) {
-                    if (sDebug) sLog.debug("  -- best solution found "+nrAssigned()+"/"+getValue());
-                    saveBest();
-                }
-            } else {
-                Request request = (Request)iStudent.getRequests().elementAt(idx);
-                if (sDebug) sLog.debug("  -- request: "+request);
-                if (!canAssign(request, idx)) {
-                    if (sDebug) sLog.debug("    -- cannot assign");
-                    backTrack(idx+1);
+            if (iMinimizePenalty) {
+                if (iBestAssignment!=null && (getNrAssignedBound(idx)<getBestNrAssigned() || (getNrAssignedBound(idx)==getBestNrAssigned() && getPenaltyBound(idx)>=iBestValue))) {
+                    if (sDebug) sLog.debug("  -- branch number of assigned "+getNrAssignedBound(idx)+"<"+getBestNrAssigned()+", or penalty "+getPenaltyBound(idx)+">="+iBestValue);
                     return;
                 }
-                Collection values = null;
-                if (request instanceof CourseRequest) {
-                    CourseRequest courseRequest = (CourseRequest)request;
-                    if (!courseRequest.getSelectedChoices().isEmpty()) {
-                        if (sDebug) sLog.debug("    -- selection among selected enrollments");
-                        values = courseRequest.getSelectedEnrollments(true);
-                        if (values!=null && !values.isEmpty()) { 
-                            boolean hasNoConflictValue = false;
-                            for (Iterator i=values.iterator();i.hasNext();) {
-                                Enrollment enrollment = (Enrollment)i.next();
-                                if (firstConflict(enrollment)!=null) continue;
-                                hasNoConflictValue = true;
-                                if (sDebug) sLog.debug("      -- nonconflicting enrollment found: "+enrollment);
-                                iAssignment[idx] = enrollment;
-                                backTrack(idx+1);
-                                iAssignment[idx] = null;
-                            }
-                            if (hasNoConflictValue) return;
-                        }
+                if (idx==iAssignment.length) {
+                    if (iBestAssignment==null || (getNrAssigned()>getBestNrAssigned() || (getNrAssigned()==getBestNrAssigned() && getPenalty()<iBestValue))) {
+                        if (sDebug) sLog.debug("  -- best solution found "+getNrAssigned()+"/"+getPenalty());
+                        saveBest();
                     }
-                    values = (Collection)iValues.get(courseRequest);
-                    if (values==null) {
-                        values = courseRequest.getAvaiableEnrollmentsSkipSameTime();
-                        iValues.put(courseRequest, values);
-                    }
-                } else {
-                    values = request.computeEnrollments();
+                    return;
                 }
-                if (sDebug) {
-                    sLog.debug("  -- nrValues: "+values.size());
-                    int vIdx=1;
-                    for (Iterator i=values.iterator();i.hasNext();vIdx++) {
-                        Enrollment enrollment = (Enrollment)i.next();
-                        if (sDebug) sLog.debug("    -- ["+vIdx+"]: "+enrollment);
-                    }
+            } else {
+                if (iBestAssignment!=null && getBound(idx)>=iBestValue) {
+                    if (sDebug) sLog.debug("  -- branch "+getBound(idx)+" >= "+iBestValue);
+                    return;
                 }
-                boolean hasNoConflictValue = false;
-                for (Iterator i=values.iterator();i.hasNext();) {
-                    Enrollment enrollment = (Enrollment)i.next();
-                    if (sDebug) sLog.debug("    -- enrollment: "+enrollment);
-                    Enrollment conflict = firstConflict(enrollment);
-                    if (conflict!=null) {
-                        if (sDebug) sLog.debug("        -- in conflict with: "+conflict);
-                        continue;
+                if (idx==iAssignment.length) {
+                    if (iBestAssignment==null || getValue()<iBestValue) {
+                        if (sDebug) sLog.debug("  -- best solution found "+getNrAssigned()+"/"+getValue());
+                        saveBest();
                     }
-                    hasNoConflictValue = true;
-                    iAssignment[idx] = enrollment;
-                    backTrack(idx+1);
-                    iAssignment[idx] = null;
+                    return;
                 }
-                if (!hasNoConflictValue || request instanceof CourseRequest) backTrack(idx+1);
             }
+            
+            Request request = (Request)iStudent.getRequests().elementAt(idx);
+            if (sDebug) sLog.debug("  -- request: "+request);
+            if (!canAssign(request, idx)) {
+                if (sDebug) sLog.debug("    -- cannot assign");
+                backTrack(idx+1);
+                return;
+            }
+            Collection values = null;
+            if (request instanceof CourseRequest) {
+                CourseRequest courseRequest = (CourseRequest)request;
+                if (!courseRequest.getSelectedChoices().isEmpty()) {
+                    if (sDebug) sLog.debug("    -- selection among selected enrollments");
+                    values = courseRequest.getSelectedEnrollments(true);
+                    if (values!=null && !values.isEmpty()) { 
+                        boolean hasNoConflictValue = false;
+                        for (Iterator i=values.iterator();i.hasNext();) {
+                            Enrollment enrollment = (Enrollment)i.next();
+                            if (firstConflict(enrollment)!=null) continue;
+                            hasNoConflictValue = true;
+                            if (sDebug) sLog.debug("      -- nonconflicting enrollment found: "+enrollment);
+                            iAssignment[idx] = enrollment;
+                            backTrack(idx+1);
+                            iAssignment[idx] = null;
+                        }
+                        if (hasNoConflictValue) return;
+                    }
+                }
+                values = (Collection)iValues.get(courseRequest);
+                if (values==null) {
+                    values = courseRequest.getAvaiableEnrollmentsSkipSameTime();
+                    iValues.put(courseRequest, values);
+                }
+            } else {
+                values = request.computeEnrollments();
+            }
+            if (sDebug) {
+                sLog.debug("  -- nrValues: "+values.size());
+                int vIdx=1;
+                for (Iterator i=values.iterator();i.hasNext();vIdx++) {
+                    Enrollment enrollment = (Enrollment)i.next();
+                    if (sDebug) sLog.debug("    -- ["+vIdx+"]: "+enrollment);
+                }
+            }
+            boolean hasNoConflictValue = false;
+            for (Iterator i=values.iterator();i.hasNext();) {
+                Enrollment enrollment = (Enrollment)i.next();
+                if (sDebug) sLog.debug("    -- enrollment: "+enrollment);
+                Enrollment conflict = firstConflict(enrollment);
+                if (conflict!=null) {
+                    if (sDebug) sLog.debug("        -- in conflict with: "+conflict);
+                    continue;
+                }
+                hasNoConflictValue = true;
+                iAssignment[idx] = enrollment;
+                backTrack(idx+1);
+                iAssignment[idx] = null;
+            }
+            if (!hasNoConflictValue || request instanceof CourseRequest) backTrack(idx+1);
         }
     }    
     
