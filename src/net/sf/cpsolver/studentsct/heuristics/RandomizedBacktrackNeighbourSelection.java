@@ -8,7 +8,7 @@ import net.sf.cpsolver.studentsct.heuristics.general.BacktrackNeighbourSelection
 import net.sf.cpsolver.studentsct.model.CourseRequest;
 
 public class RandomizedBacktrackNeighbourSelection extends BacktrackNeighbourSelection {
-    public int iMaxValues = 25;
+    public int iMaxValues = 100;
     
     public RandomizedBacktrackNeighbourSelection(DataProperties properties) throws Exception {
         super(properties);
