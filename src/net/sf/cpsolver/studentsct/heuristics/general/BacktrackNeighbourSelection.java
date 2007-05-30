@@ -20,7 +20,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
 
 public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
     private static Logger sLog = Logger.getLogger(BacktrackNeighbourSelection.class);
-	private int iTimeout = 1000;
+	private int iTimeout = 5000;
 	private int iDepth = 4;
     public static boolean sDebug = false;
 	
