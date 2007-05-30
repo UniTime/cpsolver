@@ -139,7 +139,7 @@ public class ClassLimitConstraint extends Constraint {
 	
 	public String getName() { return iName; }
 	
-	public static class ClassLimitComparator implements Comparator {
+	private static class ClassLimitComparator implements Comparator {
 		public int compare(Object o1, Object o2) {
 			Placement p1 = (Placement)o1;
 			Lecture l1 = (Lecture)p1.variable();

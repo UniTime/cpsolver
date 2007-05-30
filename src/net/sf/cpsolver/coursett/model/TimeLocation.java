@@ -216,6 +216,7 @@ public class TimeLocation {
         return iHashCode;
     }
     
+    /** Integer enumeration */
     public interface IntEnumeration extends Enumeration {
     	public int nextInt();
     }

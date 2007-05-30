@@ -161,6 +161,7 @@ public class CSVFile implements Serializable {
 		return header;
 	}
 	
+    /** Representation of a  line of a CSV file */
 	public class CSVLine implements Serializable {
 		private static final long serialVersionUID = 1L;
 		Vector iFields = new Vector(iHeader==null?10:iHeader.size());
@@ -234,6 +235,7 @@ public class CSVFile implements Serializable {
 		}
 	}
 	
+    /** Representation of a field of a CSV file */
 	public static class CSVField implements Serializable {
 		private static final long serialVersionUID = 1L;
 		String iField = null;
@@ -294,6 +296,7 @@ public class CSVFile implements Serializable {
 		public boolean toBoolean() { return "Y".equalsIgnoreCase(iField) || "on".equalsIgnoreCase(iField) || "true".equalsIgnoreCase(iField) || "1".equalsIgnoreCase(iField); }
 	}
 	
+    /** An interface for filtering lines of a CSV file */
 	public static interface CSVFilter {
 		public boolean match(CSVLine line);
 	}

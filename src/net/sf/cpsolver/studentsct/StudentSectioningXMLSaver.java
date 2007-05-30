@@ -90,7 +90,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         sLogger.debug("Writting XML data to:"+outFile);
         
         Document document = DocumentHelper.createDocument();
-        document.addComment("Purdue University Student Sectioning");
+        document.addComment("Student Sectioning");
         
         if ((iSaveCurrent || iSaveBest) && !getModel().assignedVariables().isEmpty()) {
             StringBuffer comments = new StringBuffer("Solution Info:\n");

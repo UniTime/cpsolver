@@ -5,18 +5,51 @@ import java.util.Vector;
 
 import net.sf.cpsolver.ifs.util.ToolBox;
 
+/**
+ * A general roulette wheel selection.
+ * An object is selected randomly, proportionaly to the provided weight.
+ * This class also supports multiple selections (it implements {@link Enumeration} interface).
+ *
+ * <br><br>
+ * 
+ * @version
+ * StudentSct 1.1 (Student Sectioning)<br>
+ * Copyright (C) 2007 Tomas Muller<br>
+ * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
+ * Lazenska 391, 76314 Zlin, Czech Republic<br>
+ * <br>
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * <br><br>
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * <br><br>
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
+
 public class RouletteWheelSelection implements Enumeration {
     private Vector iAdepts = new Vector(), iPoints = new Vector();
     private double iTotalPoints = 0;
     private int iFirst = 0;
     
+    /** 
+     * Add an adept to the selection
+     * @param adept an object
+     * @param points object weight (more points, better chance to be selected)
+     */
     public void add(Object adept, double points) {
         iAdepts.add(adept);
         iPoints.add(new Double(points));
         iTotalPoints+=points;
     }
     
-    protected void swap(int idx1, int idx2) {
+    private void swap(int idx1, int idx2) {
         Object a1 = iAdepts.elementAt(idx1);
         Object a2 = iAdepts.elementAt(idx2);
         iAdepts.setElementAt(a2, idx1);
@@ -27,10 +60,14 @@ public class RouletteWheelSelection implements Enumeration {
         iPoints.setElementAt(p1, idx2);
     }
     
+    /** Are there still some adepts that have not been yet selected */
     public boolean hasMoreElements() {
         return iFirst<iAdepts.size();
     }
     
+    /** Perform selection. An object is selected randomly with the probability proportional to the 
+     * provided weight. Each object can be selected only once. 
+     */
     public Object nextElement() {
         if (!hasMoreElements()) return null;
         double rx = ToolBox.random()*iTotalPoints;
@@ -49,6 +86,7 @@ public class RouletteWheelSelection implements Enumeration {
         return selectedObject;
     }
     
+    /** Number of objects in the set */
     public int size() {
         return iAdepts.size();
     }
