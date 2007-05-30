@@ -85,29 +85,7 @@ public class Test {
         
         Solution solution = solveModel(model, cfg);
         
-        if (solution.getModel().assignedVariables().size()>0) {
-            try {
-                File outDir = new File(cfg.getProperty("General.Output","."));
-                outDir.mkdirs();
-                CourseConflictTable cct = new CourseConflictTable((StudentSectioningModel)solution.getModel());
-                cct.createTable(true, false).save(new File(outDir, "conflicts-lastlike.csv"));
-                cct.createTable(false, true).save(new File(outDir, "conflicts-real.csv"));
-                
-                DistanceConflictTable dct = new DistanceConflictTable((StudentSectioningModel)solution.getModel());
-                dct.createTable(true, false).save(new File(outDir, "distances-lastlike.csv"));
-                dct.createTable(false, true).save(new File(outDir, "distances-real.csv"));
-            } catch (IOException e) {
-                sLog.error(e.getMessage(),e);
-            }
-        }
-        
-        solution.saveBest();
-        
-        ((StudentSectioningModel)solution.getModel()).computeOnlineSectioningInfos();
-        
-        new OverlapCheck((StudentSectioningModel)solution.getModel()).check();
-        
-        new SectionLimitCheck((StudentSectioningModel)solution.getModel()).check();
+        printInfo(solution, true, true, true);
         
         try {
             Solver solver = new Solver(cfg);
@@ -186,6 +164,8 @@ public class Test {
 
         BranchBoundSelection bbSelection = new BranchBoundSelection(cfg);
         bbSelection.init(solver);
+        
+        double totalPenalty = 0, minPenalty = 0, maxPenalty = 0;
 
         Vector students = new Vector(model.getStudents());
         Collections.shuffle(students);
@@ -206,44 +186,101 @@ public class Test {
             }
             solution.update(JProf.currentTimeSec()-startTime);
             solution.saveBest();
+            totalPenalty += getPenalty(student);
+            minPenalty += getMinPenaltyOfAssignedCourseRequests(student);
+            maxPenalty += getMaxPenaltyOfAssignedCourseRequests(student);
         }
         
-        try {
-            File outDir = new File(cfg.getProperty("General.Output","."));
-            outDir.mkdirs();
-            CourseConflictTable cct = new CourseConflictTable((StudentSectioningModel)solution.getModel());
-            cct.createTable(true, false).save(new File(outDir, "conflicts-lastlike.csv"));
-            cct.createTable(false, true).save(new File(outDir, "conflicts-real.csv"));
-
-            DistanceConflictTable dct = new DistanceConflictTable((StudentSectioningModel)solution.getModel());
-            dct.createTable(true, false).save(new File(outDir, "distances-lastlike.csv"));
-            dct.createTable(false, true).save(new File(outDir, "distances-real.csv"));
-        } catch (IOException e) {
-            sLog.error(e.getMessage(),e);
-        }
+        printInfo(solution, true, false, true);
         
-        solution.saveBest();
-
-        new OverlapCheck((StudentSectioningModel)solution.getModel()).check();
+        sLog.info("Overall penalty is "+totalPenalty+" ("+getPerc(totalPenalty, minPenalty, maxPenalty)+")");
         
-        new SectionLimitCheck((StudentSectioningModel)solution.getModel()).check();
-
         try {
             new StudentSectioningXMLSaver(solver).save(new File(new File(cfg.getProperty("General.Output",".")),"solution.xml"));
         } catch (Exception e) {
             sLog.error("Unable to save solution, reason: "+e.getMessage(),e);
         }
-        
-        sLog.info("Best solution found after "+solution.getBestTime()+" seconds ("+solution.getBestIteration()+" iterations).");
-        sLog.info("Number of assigned variables is "+solution.getModel().assignedVariables().size());
-        sLog.info("Number of students with complete schedule is "+((StudentSectioningModel)solution.getModel()).nrComplete());
-        sLog.info("Total value of the solution is "+solution.getModel().getTotalValue());
-        sLog.info("Average unassigned priority "+sDF.format(((StudentSectioningModel)solution.getModel()).avgUnassignPriority()));
-        sLog.info("Average number of requests "+sDF.format(((StudentSectioningModel)solution.getModel()).avgNrRequests()));
-        sLog.info("Unassigned request weight "+sDF.format(((StudentSectioningModel)solution.getModel()).getUnassignedRequestWeight())+" / "+sDF.format(((StudentSectioningModel)solution.getModel()).getTotalRequestWeight()));
-        sLog.info("Info: "+solution.getInfo());
 
         return solution;
+    }
+    
+    public static double getPenalty(Student student) {
+        double penalty = 0.0;
+        for (Enumeration e=student.getRequests().elements();e.hasMoreElements();) {
+            Request request = (Request)e.nextElement();
+            Enrollment enrollment = (Enrollment)request.getAssignment();
+            if (enrollment!=null)
+                penalty += enrollment.getPenalty();
+        }
+        return penalty;
+    }
+
+    public static double getMinPenaltyOfAssignedCourseRequests(Student student) {
+        double penalty = 0.0;
+        for (Enumeration e=student.getRequests().elements();e.hasMoreElements();) {
+            Request request = (Request)e.nextElement();
+            if (request.getAssignment()!=null && request instanceof CourseRequest)
+                penalty += ((CourseRequest)request).getMinPenalty(); 
+        }
+        return penalty;
+    }
+
+    public static double getMaxPenaltyOfAssignedCourseRequests(Student student) {
+        double penalty = 0.0;
+        for (Enumeration e=student.getRequests().elements();e.hasMoreElements();) {
+            Request request = (Request)e.nextElement();
+            if (request.getAssignment()!=null && request instanceof CourseRequest)
+                penalty += ((CourseRequest)request).getMaxPenalty(); 
+        }
+        return penalty;
+    }
+
+    
+    
+    public static String getPerc(double value, double min, double max) {
+        if (max==min) return sDF.format(100.0);
+        return sDF.format(100.0 - 100.0*(value-min)/(max-min));
+    }
+    
+    public static void printInfo(Solution solution, boolean computeTables, boolean computeSectInfos, boolean runChecks) {
+        StudentSectioningModel model = (StudentSectioningModel)solution.getModel();
+
+        if (computeTables) {
+            if (solution.getModel().assignedVariables().size()>0) {
+                try {
+                    File outDir = new File(model.getProperties().getProperty("General.Output","."));
+                    outDir.mkdirs();
+                    CourseConflictTable cct = new CourseConflictTable((StudentSectioningModel)solution.getModel());
+                    cct.createTable(true, false).save(new File(outDir, "conflicts-lastlike.csv"));
+                    cct.createTable(false, true).save(new File(outDir, "conflicts-real.csv"));
+                    
+                    DistanceConflictTable dct = new DistanceConflictTable((StudentSectioningModel)solution.getModel());
+                    dct.createTable(true, false).save(new File(outDir, "distances-lastlike.csv"));
+                    dct.createTable(false, true).save(new File(outDir, "distances-real.csv"));
+                } catch (IOException e) {
+                    sLog.error(e.getMessage(),e);
+                }
+            }
+
+            solution.saveBest();
+        }
+        
+        if (computeSectInfos)
+            model.computeOnlineSectioningInfos();
+        
+        if (runChecks) {
+            new OverlapCheck(model).check();
+            new SectionLimitCheck(model).check();
+        }
+
+        sLog.info("Best solution found after "+solution.getBestTime()+" seconds ("+solution.getBestIteration()+" iterations).");
+        sLog.info("Number of assigned variables is "+solution.getModel().assignedVariables().size());
+        sLog.info("Number of students with complete schedule is "+model.nrComplete());
+        sLog.info("Total value of the solution is "+solution.getModel().getTotalValue());
+        sLog.info("Average unassigned priority is "+sDF.format(model.avgUnassignPriority()));
+        sLog.info("Average number of requests is "+sDF.format(model.avgNrRequests()));
+        sLog.info("Unassigned request weight is "+sDF.format(model.getUnassignedRequestWeight())+" / "+sDF.format(model.getTotalRequestWeight()));
+        sLog.info("Info: "+solution.getInfo());
     }
     
     private static void setPenalties(Student student) {
@@ -368,14 +405,7 @@ public class Test {
         solution = solver.lastSolution();
         solution.restoreBest();
         
-        sLog.info("Best solution found after "+solution.getBestTime()+" seconds ("+solution.getBestIteration()+" iterations).");
-        sLog.info("Number of assigned variables is "+solution.getModel().assignedVariables().size());
-        sLog.info("Number of students with complete schedule is "+((StudentSectioningModel)solution.getModel()).nrComplete());
-        sLog.info("Total value of the solution is "+solution.getModel().getTotalValue());
-        sLog.info("Average unassigned priority "+sDF.format(((StudentSectioningModel)solution.getModel()).avgUnassignPriority()));
-        sLog.info("Average number of requests "+sDF.format(((StudentSectioningModel)solution.getModel()).avgNrRequests()));
-        sLog.info("Unassigned request weight "+sDF.format(((StudentSectioningModel)solution.getModel()).getUnassignedRequestWeight())+" / "+sDF.format(((StudentSectioningModel)solution.getModel()).getTotalRequestWeight()));
-        sLog.info("Info: "+solution.getInfo());
+        printInfo(solution, false, false, false);
 
         return solution;
     }

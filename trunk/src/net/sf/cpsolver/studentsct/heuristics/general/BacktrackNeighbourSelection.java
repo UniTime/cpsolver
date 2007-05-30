@@ -18,10 +18,46 @@ import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
+/**
+ * Backtracking-based neighbour selection. A best neighbour that is found by
+ * a backtracking-based algorithm within a limited depth from a selected variable
+ * is returned.
+ * <br><br>
+ * Parameters:
+ * <br>
+ * <table border='1'><tr><th>Parameter</th><th>Type</th><th>Comment</th></tr>
+ * <tr><td>Neighbour.BackTrackTimeout</td><td>{@link Integer}</td><td>Timeout for each neighbour selection (in milliseconds).</td></tr>
+ * <tr><td>Neighbour.BackTrackDepth</td><td>{@link Integer}</td><td>Limit of search depth.</td></tr>
+ * </table>
+ *
+ * <br><br>
+ * 
+ * @version
+ * StudentSct 1.1 (Student Sectioning)<br>
+ * Copyright (C) 2007 Tomas Muller<br>
+ * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
+ * Lazenska 391, 76314 Zlin, Czech Republic<br>
+ * <br>
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * <br><br>
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * <br><br>
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
+
 public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
     private static Logger sLog = Logger.getLogger(BacktrackNeighbourSelection.class);
 	private int iTimeout = 5000;
 	private int iDepth = 4;
+    /** Debug flag */
     public static boolean sDebug = false;
 	
 	private Solution iSolution = null;
@@ -31,20 +67,37 @@ public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
     private long iT0,iT1;
     private boolean iTimeoutReached = false; 
 	
+    /**
+     * Constructor
+     * @param properties configuration
+     * @throws Exception
+     */
 	public BacktrackNeighbourSelection(DataProperties properties) throws Exception {
 		super(properties);
 		iTimeout = properties.getPropertyInt("Neighbour.BackTrackTimeout", iTimeout);
 		iDepth = properties.getPropertyInt("Neighbour.BackTrackDepth", iDepth);
 	}
 	
+    /** Solver initialization */
 	public void init(Solver solver) {
 		super.init(solver);
 	}
     
+    /** 
+     * Select neighbour. The standard variable selection 
+     * (see {@link StandardNeighbourSelection#getVariableSelection()}) is used to select
+     * a variable. A backtracking of a limited depth is than employed from this variable.
+     * The best assignment found is returned (see {@link BackTrackNeighbour}).
+     **/
     public Neighbour selectNeighbour(Solution solution) {
         return selectNeighbour(solution, getVariableSelection().selectVariable(solution));
     }
 
+    /** 
+     * Select neighbour -- starts from the provided variable. A backtracking of a limited 
+     * depth is employed from the given variable.
+     * The best assignment found is returned (see {@link BackTrackNeighbour}).
+     **/
 	public synchronized Neighbour selectNeighbour(Solution solution, Variable variable) {
         if (variable==null) return null;
         
@@ -72,8 +125,10 @@ public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
         return iBackTrackNeighbour;
 	}
     
+    /** Time needed to find a neighbour (last call of selectNeighbour method) */
     public long getTime() { return iT1 - iT0; }
     
+    /** True, if timeout was reached during the last call of selectNeighbour method */
     public boolean isTimeoutReched() { return iTimeoutReached; }
     
     private boolean containsConstantValues(Collection values) {
@@ -84,11 +139,13 @@ public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
     	}
     	return false;
     }    
-    
+
+    /** List of values of the given variable that will be considered */
     protected Vector values(Variable variable) {
         return variable.values();
     }
-
+    
+    /** Backtracking */
     private void backtrack(Vector variables2resolve, int idx, int depth) {
         if (sDebug) sLog.debug("  -- bt["+depth+"]: "+idx+" of "+variables2resolve.size()+" "+variables2resolve);
         if (!iTimeoutReached && iTimeout>0 && System.currentTimeMillis()-iT0>iTimeout)
@@ -162,10 +219,15 @@ public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
     }
 	
 	
+    /** Backtracking neighbour */
 	public class BackTrackNeighbour extends Neighbour {
 		private double iValue = 0;
 		private Vector iDifferentAssignments = null;
 		
+        /**
+         * Constructor
+         * @param resolvedVariables variables that has been changed
+         */
 		public BackTrackNeighbour(Vector resolvedVariables) {
 			iValue = iSolution.getModel().getTotalValue();
             iDifferentAssignments = new Vector();
@@ -176,6 +238,9 @@ public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
         	}
 		}
 		
+        /**
+         * Assign the neighbour
+         */
 		public void assign(long iteration) {
 			if (sDebug) sLog.debug("-- before assignment: nrAssigned="+iSolution.getModel().assignedVariables().size()+",  value="+iSolution.getModel().getTotalValue());
 			if (sDebug) sLog.debug("  "+this);
@@ -191,11 +256,14 @@ public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
 			if (sDebug) sLog.debug("-- after assignment: nrAssigned="+iSolution.getModel().assignedVariables().size()+",  value="+iSolution.getModel().getTotalValue());
 		}
 		
+        /**
+         * Compare two neighbours
+         */
 	    public int compareTo(Solution solution) {
 	        return Double.compare(iValue, solution.getModel().getTotalValue());
 	    }
 	    
-	    public String toString() {
+        public String toString() {
 	    	StringBuffer sb = new StringBuffer("BT{value="+(iValue-iSolution.getModel().getTotalValue())+": ");
 	    	for (Enumeration e=iDifferentAssignments.elements();e.hasMoreElements();) {
                 Value p = (Value)e.nextElement();

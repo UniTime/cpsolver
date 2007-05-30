@@ -24,8 +24,42 @@ import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Student;
 
 /**
- * Section all students using incremental branch & bound (no unassignments)
- */
+ * Section all students using incremental branch & bound (no unassignments).
+ * All students are taken in a random order, for each student a branch & bound
+ * algorithm is used to find his/her best schedule on top of all other existing
+ * student schedules (no enrollment of a different student is unassigned).
+ *
+ * <br><br>
+ * Parameters:
+ * <br>
+ * <table border='1'><tr><th>Parameter</th><th>Type</th><th>Comment</th></tr>
+ * <tr><td>Neighbour.BranchAndBoundTimeout</td><td>{@link Integer}</td><td>Timeout for each neighbour selection (in milliseconds).</td></tr>
+ * <tr><td>Neighbour.BranchAndBoundMinimizePenalty</td><td>{@link Boolean}</td><td>If true, section penalties (instead of section values) are minimized: 
+ * overall penalty is minimized together with the maximization of the number of assigned requests and minimization of distance conflicts 
+ * -- this variant is to better mimic the case when students can choose their sections (section times).</td></tr>
+ * </table>
+ * <br><br>
+ * 
+ * @version
+ * StudentSct 1.1 (Student Sectioning)<br>
+ * Copyright (C) 2007 Tomas Muller<br>
+ * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
+ * Lazenska 391, 76314 Zlin, Czech Republic<br>
+ * <br>
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * <br><br>
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * <br><br>
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+*/
 
 public class BranchBoundSelection implements NeighbourSelection {
     private static Logger sLog = Logger.getLogger(BranchBoundSelection.class); 
@@ -35,12 +69,19 @@ public class BranchBoundSelection implements NeighbourSelection {
     protected Enumeration iStudentsEnumeration = null;
     private boolean iMinimizePenalty = false;
     
+    /**
+     * Constructor
+     * @param properties configuration
+     */
     public BranchBoundSelection(DataProperties properties) {
         iTimeout = properties.getPropertyInt("Neighbour.BranchAndBoundTimeout", iTimeout);
         iMinimizePenalty = properties.getPropertyBoolean("Neighbour.BranchAndBoundMinimizePenalty", iMinimizePenalty);
         if (iMinimizePenalty) sLog.info("Overall penalty is going to be minimized (together with the maximization of the number of assigned requests and minimization of distance conflicts).");
     }
 
+    /**
+     * Initialize
+     */
     public void init(Solver solver) {
         Vector students = new Vector(((StudentSectioningModel)solver.currentSolution().getModel()).getStudents());
         Collections.shuffle(students);
@@ -53,6 +94,10 @@ public class BranchBoundSelection implements NeighbourSelection {
             }
     }
     
+    /** 
+     * Select neighbour. All students are taken, one by one in a random order. 
+     * For each student a branch & bound search is employed. 
+     */
     public Neighbour selectNeighbour(Solution solution) {
         while (iStudentsEnumeration.hasMoreElements()) {
             Student student = (Student)iStudentsEnumeration.nextElement();
@@ -62,10 +107,16 @@ public class BranchBoundSelection implements NeighbourSelection {
         return null;
     }
     
+    /**
+     * Branch & bound selection for a student
+     */
     public Selection getSelection(Student student) {
         return new Selection(student);
     }
     
+    /**
+     * Branch & bound selection for a student
+     */
     public class Selection {
         private Student iStudent;
         private long iT0, iT1;
@@ -74,10 +125,17 @@ public class BranchBoundSelection implements NeighbourSelection {
         private double iBestValue;
         private Hashtable iValues;
         
+        /**
+         * Constructor
+         * @param student selected student
+         */
         public Selection(Student student) {
             iStudent = student;
         }
         
+        /**
+         * Execute branch & bound, return the best found schedule for the selected student.
+         */
         public BranchBoundNeighbour select() {
             iT0 = System.currentTimeMillis();
             iTimeoutReached = false;
@@ -91,22 +149,27 @@ public class BranchBoundSelection implements NeighbourSelection {
             return new BranchBoundNeighbour(iBestValue, iBestAssignment);
         }
         
+        /** Was timeout reached */
         public boolean isTimeoutReached() {
             return iTimeoutReached;
         }
         
+        /** Time (in milliseconds) the branch & bound did run */
         public long getTime() {
             return iT1 - iT0;
         }
         
+        /** Best schedule */
         public Enrollment[] getBestAssignment() {
             return iBestAssignment;
         }
         
+        /** Value of the best schedule */
         public double getBestValue() {
             return iBestValue;
         }
         
+        /** Number of requests assigned in the best schedule */
         public int getBestNrAssigned() {
             int nrAssigned = 0;
             for (int i=0;i<iBestAssignment.length;i++)
@@ -114,6 +177,7 @@ public class BranchBoundSelection implements NeighbourSelection {
             return nrAssigned;
         }
 
+        /** Bound for the number of assigned requests in the current schedule */ 
         public int getNrAssignedBound(int idx) {
             int bound = 0;
             int i=0, alt=0;
@@ -138,6 +202,7 @@ public class BranchBoundSelection implements NeighbourSelection {
             return bound;
         }
         
+        /** Number of distance conflicts of idx-th assignment of the current schedule */
         public double getNrDistanceConflicts(int idx) {
             if (iDistanceConflict==null || iAssignment[idx]==null) return 0;
             double nrDist = iDistanceConflict.nrConflicts(iAssignment[idx]);
@@ -147,6 +212,7 @@ public class BranchBoundSelection implements NeighbourSelection {
             return nrDist;
         }
 
+        /** Bound for the current schedule */
         public double getBound(int idx) {
             double bound = 0.0;
             int i=0, alt=0;
@@ -171,6 +237,7 @@ public class BranchBoundSelection implements NeighbourSelection {
             return bound;
         }
 
+        /** Value of the current schedule */
         public double getValue() {
             double value = 0.0;
             for (int i=0;i<iAssignment.length;i++)
@@ -179,6 +246,7 @@ public class BranchBoundSelection implements NeighbourSelection {
             return value;
         }
         
+        /** Penalty of the current schedule */
         public double getPenalty() {
             double bestPenalty = 0;
             for (int i=0;i<iAssignment.length;i++)
@@ -187,6 +255,7 @@ public class BranchBoundSelection implements NeighbourSelection {
         }
         
         
+        /** Penalty bound of the current schedule */
         public double getPenaltyBound(int idx) {
             double bound = 0.0;
             int i=0, alt=0;
@@ -214,6 +283,7 @@ public class BranchBoundSelection implements NeighbourSelection {
             return bound;
         }
         
+        /** Save the current schedule as the best */ 
         public void saveBest() {
             if (iBestAssignment==null)
                 iBestAssignment = new Enrollment[iAssignment.length];
@@ -225,6 +295,7 @@ public class BranchBoundSelection implements NeighbourSelection {
                 iBestValue = getValue();
         }
         
+        /** First conflicting enrollment */
         public Enrollment firstConflict(Enrollment enrollment) {
             Set conflicts = enrollment.variable().getModel().conflictValues(enrollment);
             if (conflicts.contains(enrollment)) return enrollment;
@@ -241,6 +312,7 @@ public class BranchBoundSelection implements NeighbourSelection {
             return null;
         }
         
+        /** True if the given request can be assigned */
         public boolean canAssign(Request request, int idx) {
             if (!request.isAlternative() || iAssignment[idx]!=null) return true;
             int alt = 0;
@@ -257,6 +329,7 @@ public class BranchBoundSelection implements NeighbourSelection {
             return (alt>0);
         }
         
+        /** Number of assigned requests in the current schedule */
         public int getNrAssigned() {
             int assigned = 0;
             for (int i=0;i<iAssignment.length;i++)
@@ -264,6 +337,7 @@ public class BranchBoundSelection implements NeighbourSelection {
             return assigned;
         }
         
+        /** branch & bound search */
         public void backTrack(int idx) {
             if (sDebug) sLog.debug("backTrack("+getNrAssigned()+"/"+getValue()+","+idx+")");
             if (iTimeout>0 && (System.currentTimeMillis()-iT0)>iTimeout) {
@@ -357,15 +431,22 @@ public class BranchBoundSelection implements NeighbourSelection {
         }
     }    
     
+    /** Branch & bound neighbour -- a schedule of a student */
     public static class BranchBoundNeighbour extends Neighbour {
         private double iValue;
         private Enrollment[] iAssignment;
         
+        /**
+         * Constructor
+         * @param value value of the schedule
+         * @param assignment enrollments of student's requests
+         */
         public BranchBoundNeighbour(double value, Enrollment[] assignment) {
             iValue = value;
             iAssignment = assignment;
         }
         
+        /** Assign the schedule */
         public void assign(long iteration) {
             for (int i=0;i<iAssignment.length;i++)
                 if (iAssignment[i]!=null)

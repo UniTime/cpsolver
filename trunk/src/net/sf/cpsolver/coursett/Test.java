@@ -39,7 +39,7 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  * Usage:<br>
  * java -Xmx1024m -jar coursett1.0.jar config.properties [input_file] [output_folder]<br>
  * <br>
- * See http://www.smas.purdue.edu/research for example configuration files and banchmark data sets.<br><br>
+ * See http://www.unitime.org for example configuration files and banchmark data sets.<br><br>
  * 
  * The test does the following steps:<ul>
  * <li>Provided property file is loaded (see {@link DataProperties}).

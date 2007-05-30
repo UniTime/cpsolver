@@ -262,7 +262,7 @@ public class MinimizeNumberOfUsedGroupsOfTime extends Constraint implements Weak
     
     public boolean isEnabled() { return iEnabled; }
 
-    public static class GroupOfTime {
+    private static class GroupOfTime {
 		private int iStartSlot = 0;
 		private int iEndSlot = 0;
 		private int iDays = 0;

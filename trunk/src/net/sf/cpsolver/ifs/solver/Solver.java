@@ -58,8 +58,7 @@ import net.sf.cpsolver.ifs.util.*;
  * <ul>
  * <li> the termination condition (function canContinue, see {@link TerminationCondition}),
  * <li> the solution comparator (function better, see {@link SolutionComparator}),
- * <li> the variable selection (function selectVariable, see {@link VariableSelection}) and
- * <li> the value selection (function selectValue, see {@link ValueSelection}).
+ * <li> the neighbour selection (function selectNeighbour, see {@link NeighbourSelection}) and
  * </ul>
  * <br>
  * Usage:<ul><code>
@@ -86,8 +85,7 @@ import net.sf.cpsolver.ifs.util.*;
  * <tr><td>Solver.AutoConfigure</td><td>{@link Boolean}</td><td>If true, IFS Solver is configured according to the following parameters</td></tr>
  * <tr><td>Termination.Class</td><td>{@link String}</td><td>Fully qualified class name of the termination condition (see {@link TerminationCondition}, e.g. {@link GeneralTerminationCondition})</td></tr>
  * <tr><td>Comparator.Class</td><td>{@link String}</td><td>Fully qualified class name of the solution comparator (see {@link SolutionComparator}, e.g. {@link GeneralSolutionComparator})</td></tr>
- * <tr><td>Value.Class</td><td>{@link String}</td><td>Fully qualified class name of the value selection criterion (see {@link ValueSelection}, e.g. {@link GeneralValueSelection})</td></tr>
- * <tr><td>Variable.Class</td><td>{@link String}</td><td>Fully qualified class name of the variable selection criterion (see {@link VariableSelection}, e.g. {@link GeneralVariableSelection})</td></tr>
+ * <tr><td>Neighbour.Class</td><td>{@link String}</td><td>Fully qualified class name of the neighbour selection criterion (see {@link NeighbourSelection}, e.g. {@link StandardNeighbourSelection})</td></tr>
  * <tr><td>PerturbationCounter.Class</td><td>{@link String}</td><td>Fully qualified class name of the perturbation counter in case of solving minimal perturbation problem (see {@link PerturbationsCounter}, e.g. {@link DefaultPerturbationsCounter})</td></tr>
  * <tr><td>Extensions.Classes</td><td>{@link String}</td><td>Semi-colon separated list of fully qualified class names of IFS extensions (see {@link Extension}, e.g. {@link ConflictStatistics} or {@link MacPropagation})</td></tr>
  * </table>
