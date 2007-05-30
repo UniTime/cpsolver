@@ -265,6 +265,7 @@ public class Enrollment extends Value {
         return true;
     }
     
+    /** Number of distance conflicts, in which this enrollment is involved. */
     public double nrDistanceConflicts() {
         if (!isCourseRequest()) return 0;
         if (getRequest().getModel() instanceof StudentSectioningModel) {
