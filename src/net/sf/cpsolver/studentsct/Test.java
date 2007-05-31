@@ -34,6 +34,7 @@ import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.check.OverlapCheck;
 import net.sf.cpsolver.studentsct.check.SectionLimitCheck;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
+import net.sf.cpsolver.studentsct.heuristics.StudentSctNeighbourSelection;
 import net.sf.cpsolver.studentsct.heuristics.general.BacktrackNeighbourSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.SwapStudentSelection;
@@ -49,11 +50,63 @@ import net.sf.cpsolver.studentsct.model.Subpart;
 import net.sf.cpsolver.studentsct.report.CourseConflictTable;
 import net.sf.cpsolver.studentsct.report.DistanceConflictTable;
 
+/**
+ * A main class for running of the student sectioning solver from command line.
+ * <br><br>
+ * Usage:<br>
+ * java -Xmx1024m -jar studentsct-1.1.jar config.properties [input_file] [output_folder] [batch|online|simple]<br>
+ * <br>
+ * Modes:<br>
+ * &nbsp;&nbsp;batch ... batch sectioning mode (default mode -- IFS solver with {@link StudentSctNeighbourSelection} is used)<br>
+ * &nbsp;&nbsp;online ... online sectioning mode (students are sectioned one by one, sectioning info (expected/held space) is used)<br>
+ * &nbsp;&nbsp;simple ...  simple sectioning mode (students are sectioned one by one, sectioning info is not used)<br>
+ * See http://www.unitime.org for example configuration files and banchmark data sets.<br><br>
+ * 
+ * The test does the following steps:<ul>
+ * <li>Provided property file is loaded (see {@link DataProperties}).
+ * <li>Output folder is created (General.Output property) and loggings is setup (using log4j).
+ * <li>Input data are loaded from the given XML file (calling {@link StudentSectioningXMLLoader#load()}).
+ * <li>Solver is executed (see {@link Solver}).
+ * <li>Resultant solution is saved to an XML file (calling {@link StudentSectioningXMLSaver#save()}.
+ * </ul>
+ * Also, a log and some reports (e.g., {@link CourseConflictTable} and {@link DistanceConflictTable}) are created in the output folder. 
+ *
+ * <br><br>
+ * Parameters:
+ * <table border='1'><tr><th>Parameter</th><th>Type</th><th>Comment</th></tr>
+ * <tr><td>Test.LastLikeCourseDemands</td><td>{@link String}</td><td>Load last-like course demands from the given XML file (in the format that is being used for last like course demand table in the timetabling application)</td></tr>
+ * <tr><td>Test.CrsReq</td><td>{@link String}</td><td>Load student requests from the given semi-colon separated list files (in the format that is being used by the old MSF system)</td></tr>
+ * <tr><td>Sectioning.UseStudentPreferencePenalties</td><td>{@link Boolean}</td><td>If true, {@link StudentPreferencePenalties} are used (applicable only for online sectioning)</td></tr>
+ * </table>
+ * <br><br>
+ * 
+ * @version
+ * StudentSct 1.1 (Student Sectioning)<br>
+ * Copyright (C) 2007 Tomas Muller<br>
+ * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
+ * Lazenska 391, 76314 Zlin, Czech Republic<br>
+ * <br>
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * <br><br>
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * <br><br>
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
+
 public class Test {
     private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(Test.class);
     private static java.text.SimpleDateFormat sDateFormat = new java.text.SimpleDateFormat("yyMMdd_HHmmss",java.util.Locale.US);
     private static DecimalFormat sDF = new DecimalFormat("0.000");
     
+    /** Load student sectioning model */
     public static StudentSectioningModel loadModel(DataProperties cfg) {
         StudentSectioningModel model = new StudentSectioningModel(cfg);
         try {
@@ -77,6 +130,7 @@ public class Test {
         return model;
     }
 
+    /** Batch sectioning test */
     public static Solution batchSectioning(DataProperties cfg) {
         StudentSectioningModel model = loadModel(cfg);
         if (model==null) return null;
@@ -98,6 +152,7 @@ public class Test {
         return solution;
     }
 
+    /** Online sectioning test */
     public static Solution onlineSectioning(DataProperties cfg) {
         StudentSectioningModel model = loadModel(cfg);
         if (model==null) return null;
@@ -118,43 +173,6 @@ public class Test {
             }
             public void bestRestored(Solution solution) {}
         });
-        /*
-        model.addModelListener(new ModelListener() {
-            public void variableAdded(Variable variable) {}
-            public void variableRemoved(Variable variable) {}
-            public void constraintAdded(Constraint constraint) {}
-            public void constraintRemoved(Constraint constraint) {}
-            public void beforeAssigned(long iteration, Value value) {
-                //sLog.debug("BEFORE_ASSIGN["+iteration+"] "+value);
-                Enrollment enrollment = (Enrollment)value;
-                StudentSectioningModel m = (StudentSectioningModel)enrollment.getRequest().getModel();
-                if (m.getDistanceConstraint()!=null) {
-                    m.getDistanceConstraint().setDebug(true);
-                    m.getDistanceConstraint().nrAllConflicts(enrollment);
-                    m.getDistanceConstraint().setDebug(false);
-                }
-            }
-            public void beforeUnassigned(long iteration, Value value) {
-                //sLog.debug("BEFORE_UNASSIGN["+iteration+"] "+value);
-                Enrollment enrollment = (Enrollment)value;
-                StudentSectioningModel m = (StudentSectioningModel)enrollment.getRequest().getModel();
-                if (m.getDistanceConstraint()!=null) {
-                    m.getDistanceConstraint().setDebug(true);
-                    m.getDistanceConstraint().nrAllConflicts(enrollment);
-                    m.getDistanceConstraint().setDebug(false);
-                }
-            }
-            public void afterAssigned(long iteration, Value value) {
-                sLog.debug("AFTER_ASSIGN["+iteration+"] "+value);
-            }
-            public void afterUnassigned(long iteration, Value value) {
-                sLog.debug("AFTER_UNASSIGN["+iteration+"] "+value);
-            }
-            public boolean init(Solver solver) {
-                return true;
-            }
-        });
-        */
         double startTime = JProf.currentTimeSec();
         
         
@@ -204,6 +222,7 @@ public class Test {
         return solution;
     }
     
+    /** Sum of penalties of sections into which a student is enrolled */
     public static double getPenalty(Student student) {
         double penalty = 0.0;
         for (Enumeration e=student.getRequests().elements();e.hasMoreElements();) {
@@ -215,6 +234,7 @@ public class Test {
         return penalty;
     }
 
+    /** Minimal penalty of courses in which a student is enrolled */
     public static double getMinPenaltyOfAssignedCourseRequests(Student student) {
         double penalty = 0.0;
         for (Enumeration e=student.getRequests().elements();e.hasMoreElements();) {
@@ -225,6 +245,7 @@ public class Test {
         return penalty;
     }
 
+    /** Maximal penalty of courses in which a student is enrolled */
     public static double getMaxPenaltyOfAssignedCourseRequests(Student student) {
         double penalty = 0.0;
         for (Enumeration e=student.getRequests().elements();e.hasMoreElements();) {
@@ -235,13 +256,25 @@ public class Test {
         return penalty;
     }
 
-    
-    
+    /** 
+     * Compute percentage 
+     * @param value current value
+     * @param min minimal bound
+     * @param max maximal bound
+     * @return (value-min)/(max-min)
+     */
     public static String getPerc(double value, double min, double max) {
         if (max==min) return sDF.format(100.0);
         return sDF.format(100.0 - 100.0*(value-min)/(max-min));
     }
     
+    /**
+     * Print some information about the solution
+     * @param solution given solution
+     * @param computeTables true, if reports {@link CourseConflictTable} and {@link DistanceConflictTable} are to be computed as well
+     * @param computeSectInfos true, if online sectioning infou is to be computed as well (see {@link StudentSectioningModel#computeOnlineSectioningInfos()})
+     * @param runChecks true, if checks {@link OverlapCheck} and {@link SectionLimitCheck} are to be performed as well
+     */
     public static void printInfo(Solution solution, boolean computeTables, boolean computeSectInfos, boolean runChecks) {
         StudentSectioningModel model = (StudentSectioningModel)solution.getModel();
 
@@ -283,6 +316,7 @@ public class Test {
         sLog.info("Info: "+solution.getInfo());
     }
     
+    /** Set online sectioning penalties to all sections of all courses of the given student */
     private static void setPenalties(Student student) {
         for (Enumeration e=student.getRequests().elements();e.hasMoreElements();) {
             Request request = (Request)e.nextElement();
@@ -301,9 +335,11 @@ public class Test {
                     }
                 }
             }
+            courseRequest.clearCache();
         }
     }
 
+    /** Update online sectioning info after the given student is sectioned */
     private static void updateSpace(Student student) {
         for (Enumeration e=student.getRequests().elements();e.hasMoreElements();) {
             Request request = (Request)e.nextElement();
@@ -344,6 +380,7 @@ public class Test {
         }
     }
 
+    /** Solve the student sectioning problem using IFS solver */
     public static Solution solveModel(StudentSectioningModel model, DataProperties cfg) {
         Solver solver = new Solver(cfg);
         Solution solution = new Solution(model,0,0);
@@ -373,30 +410,7 @@ public class Test {
             }
             public void bestRestored(Solution solution) {}
         });
-        /*
-        solution.getModel().addModelListener(new ModelListener() {
-            public void variableAdded(Variable variable) {}
-            public void variableRemoved(Variable variable) {}
-            public void constraintAdded(Constraint constraint) {}
-            public void constraintRemoved(Constraint constraint) {}
-            public void beforeAssigned(long iteration, Value value) {
-                sLog.debug("BEFORE_ASSIGN["+iteration+"] "+value);
-            }
-            public void beforeUnassigned(long iteration, Value value) {
-                sLog.debug("BEFORE_UNASSIGN["+iteration+"] "+value);
-            }
-            public void afterAssigned(long iteration, Value value) {
-                sLog.debug("AFTER_ASSIGN["+iteration+"] "+value);
-            }
-            public void afterUnassigned(long iteration, Value value) {
-                sLog.debug("AFTER_UNASSIGN["+iteration+"] "+value);
-            }
-            public boolean init(Solver solver) {
-                return true;
-            }
-        });
-        */
-        
+
         solver.start();
         try {
             solver.getSolverThread().join();
@@ -411,6 +425,12 @@ public class Test {
     }
     
     
+    /**
+     *  Compute last-like student weight for the given course
+     * @param course given course
+     * @param lastLike number of last-like students for the course
+     * @return weight of a student request for the given course
+     */
     public static double getLastLikeStudentWeight(Course course, int lastLike) {
         int projected = course.getProjected();
         int limit = course.getLimit();
@@ -431,6 +451,10 @@ public class Test {
     }
     
     
+    /**
+     * Load last-like students from an XML file (the one that is used to load last like course demands table 
+     * in the timetabling application) 
+     */
     public static void loadLastLikeCourseDemandsXml(StudentSectioningModel model, File xml) {
         try {
             Document document = (new SAXReader()).read(xml);
@@ -498,6 +522,11 @@ public class Test {
         }
     }
     
+    /**
+     * Load course request from the given files (in the format being used by the old MSF system) 
+     * @param model student sectioning model (with offerings loaded)
+     * @param files semi-colon separated list of files to be loaded
+     */
     public static void loadCrsReqFiles(StudentSectioningModel model, String files) {
         try {
             boolean lastLike = model.getProperties().getPropertyBoolean("Test.CrsReqIsLastLike", true);
@@ -651,14 +680,9 @@ public class Test {
         }
     }
     
+    /** Main */
     public static void main(String[] args) {
         try {
-            /*
-            if (args==null || args.length==0) {
-                args = new String[] {"c:\\test\\test.cfg", "c:\\test\\pu-sectll-fal07-s.xml", "c:\\test\\log-test-online", "online"};
-            }
-            */
-            
             DataProperties cfg = new DataProperties();
             cfg.setProperty("Termination.Class","net.sf.cpsolver.ifs.termination.GeneralTerminationCondition");
             cfg.setProperty("Termination.StopWhenComplete","true");

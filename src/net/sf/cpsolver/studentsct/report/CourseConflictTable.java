@@ -18,6 +18,47 @@ import net.sf.cpsolver.studentsct.model.CourseRequest;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Section;
+import net.sf.cpsolver.studentsct.model.Student;
+
+/**
+ * This class lists conflicting courses in a {@link CSVFile} comma separated text file.
+ * <br><br>
+ *  
+ * Each line represent a course that has some unassigned course requests (column UnasgnCrs), 
+ * course that was conflicting with that course (column ConflCrs), and number of students with 
+ * that conflict. So, for instance if there was a student which cannot attend course A with 
+ * weight 1.5 (e.g., 10 last-like students projected to 15), and when A had two possible assignments 
+ * for that student, one conflicting with C (assigned to that student) and the other with D, 
+ * then 0.75 (1.5/2) was added to rows A, B and A, C. The column NoAlt is Y when every possible 
+ * enrollment of the first course is overlapping with every possible enrollment of the second 
+ * course (it is N otherwise) and a column Reason which lists the overlapping sections. 
+ * 
+ * <br><br>
+ * 
+ * Usage: new CourseConflictTable(model),createTable(true, true).save(aFile);
+ * 
+ * <br><br>
+ * 
+ * @version
+ * StudentSct 1.1 (Student Sectioning)<br>
+ * Copyright (C) 2007 Tomas Muller<br>
+ * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
+ * Lazenska 391, 76314 Zlin, Czech Republic<br>
+ * <br>
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * <br><br>
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * <br><br>
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
 
 public class CourseConflictTable {
     private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(CourseConflictTable.class);
@@ -25,14 +66,22 @@ public class CourseConflictTable {
     
     private StudentSectioningModel iModel = null;
     
+    /**
+     * Constructor
+     * @param model student sectioning model
+     */
     public CourseConflictTable(StudentSectioningModel model) {
         iModel = model;
     }
     
+    /** Return student sectioning model */
     public StudentSectioningModel getModel() {
         return iModel;
     }
 
+    /** 
+     * True, if there is no pair of enrollments of r1 and r2 that is not in a hard conflict 
+     */
     private boolean areInHardConfict(Request r1, Request r2) {
         for (Enumeration e=r1.values().elements();e.hasMoreElements();) {
             Enrollment e1 = (Enrollment)e.nextElement();
@@ -44,6 +93,12 @@ public class CourseConflictTable {
         return true;
     }
     
+    /**
+     * Return a set of explanations (Strings) for conflicts between the given enrollments
+     * @param enrl an enrollment
+     * @param conflict an enrollment conflicting with enrl
+     * @return a set of explanations, (e.g., AB 101 Lec 1 MWF 7:30 - 8:20 vs AB 201 Lec 1 F 7:30 - 9:20)
+     */
     private HashSet explanations(Enrollment enrl, Enrollment conflict) {
         HashSet expl = new HashSet();
         for (Iterator i=enrl.getAssignments().iterator();i.hasNext();) {
@@ -63,6 +118,12 @@ public class CourseConflictTable {
         return expl;
     }
     
+    /**
+     * Create report
+     * @param includeLastLikeStudents true, if last-like students should be included (i.e., {@link Student#isDummy()} is true) 
+     * @param includeRealStudents true, if real students should be included (i.e., {@link Student#isDummy()} is false)
+     * @return report as comma separated text file
+     */
     public CSVFile createTable(boolean includeLastLikeStudents, boolean includeRealStudents) {
         CSVFile csv = new CSVFile();
         csv.setHeader(new CSVFile.CSVField[] {

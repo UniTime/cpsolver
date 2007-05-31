@@ -12,23 +12,61 @@ import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
 
 /**
- * Standard value selection for some time
+ * Use the provided variable and value selection for some time. 
+ * The provided variable and value selection is used for the 
+ * number of iterations equal to the number of all 
+ * variables in the problem. If a complete solution is found, 
+ * the neighbour selection is stopped (it returns null).
+ *  
+ * <br><br>
+ * 
+ * @version
+ * StudentSct 1.1 (Student Sectioning)<br>
+ * Copyright (C) 2007 Tomas Muller<br>
+ * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
+ * Lazenska 391, 76314 Zlin, Czech Republic<br>
+ * <br>
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * <br><br>
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * <br><br>
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
-
 public class StandardSelection implements NeighbourSelection {
     private long iIteration = 0;
     private ValueSelection iValueSelection = null;
     private VariableSelection iVariableSelection = null;
     
+    /**
+     * Constructor (variable and value selection are expected to be already initialized). 
+     * @param properties configuration
+     * @param variableSelection variable selection
+     * @param valueSelection value selection
+     */
     public StandardSelection(DataProperties properties, VariableSelection variableSelection, ValueSelection valueSelection) {
         iVariableSelection = variableSelection;
         iValueSelection = valueSelection;
     }
     
+    /** Initialization */
     public void init(Solver solver) {
         iIteration = solver.currentSolution().getIteration();
     }
     
+    /**
+     * Employ the provided {@link VariableSelection} and {@link ValueSelection} and return the 
+     * selected value as {@link SimpleNeighbour}. The selection is stopped (null is returned) 
+     * after the number of iterations equal to the number of variables in the problem
+     * or when a complete solution is found.
+     */
     public Neighbour selectNeighbour(Solution solution) {
         if (solution.getModel().unassignedVariables().isEmpty() || solution.getIteration()>=iIteration+solution.getModel().countVariables()) return null;
         for (int i=0;i<10;i++) {

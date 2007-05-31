@@ -33,6 +33,47 @@ import net.sf.cpsolver.studentsct.model.Section;
 import net.sf.cpsolver.studentsct.model.Student;
 import net.sf.cpsolver.studentsct.model.Subpart;
 
+/**
+ * Save student sectioning solution into an XML file.
+ *
+ * <br><br>
+ * Parameters:
+ * <table border='1'><tr><th>Parameter</th><th>Type</th><th>Comment</th></tr>
+ * <tr><td>General.Output</td><td>{@link String}</td><td>Folder with the output solution in XML format (solution.xml)</td></tr>
+ * <tr><td>Xml.ConvertIds</td><td>{@link Boolean}</td><td>If true, ids are converted (to be able to make input data public)</td></tr>
+ * <tr><td>Xml.ShowNames</td><td>{@link Boolean}</td><td>If false, names are not exported (to be able to make input data public)</td></tr>
+ * <tr><td>Xml.SaveBest</td><td>{@link Boolean}</td><td>If true, best solution is saved.</td></tr>
+ * <tr><td>Xml.SaveInitial</td><td>{@link Boolean}</td><td>If true, initial solution is saved.</td></tr>
+ * <tr><td>Xml.SaveCurrent</td><td>{@link Boolean}</td><td>If true, current solution is saved.</td></tr>
+ * <tr><td>Xml.SaveOnlineSectioningInfo</td><td>{@link Boolean}</td><td>If true, save online sectioning info (i.e., expected and held space of each section)</td></tr>
+ * </table>
+ * <br><br>
+ * Usage:<br>
+ * <code>
+ * new StudentSectioningXMLSaver(solver).save(new File("solution.xml"));<br> 
+ * </code>
+ * 
+ * @version
+ * StudentSct 1.1 (Student Sectioning)<br>
+ * Copyright (C) 2007 Tomas Muller<br>
+ * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
+ * Lazenska 391, 76314 Zlin, Czech Republic<br>
+ * <br>
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * <br><br>
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * <br><br>
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
+
 public class StudentSectioningXMLSaver extends StudentSectioningSaver {
     private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(StudentSectioningXMLSaver.class);
     private static DecimalFormat[] sDF = {new DecimalFormat(""),new DecimalFormat("0"),new DecimalFormat("00"),new DecimalFormat("000"),new DecimalFormat("0000"),new DecimalFormat("00000"),new DecimalFormat("000000"),new DecimalFormat("0000000")};
@@ -48,6 +89,10 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
     private boolean iConvertIds = false;
     private boolean iShowNames = false;
 
+    /**
+     * Constructor
+     * @param solver student sectioning solver
+     */
     public StudentSectioningXMLSaver(Solver solver) {
         super(solver);
         iOutputFolder = new File(getModel().getProperties().getProperty("General.Output","."+File.separator+"output"));
@@ -59,6 +104,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         iConvertIds = getModel().getProperties().getPropertyBoolean("Xml.ConvertIds",false);
     }
 
+    /** Convert bitset to a bit string */
     private static String bitset2string(BitSet b) {
         StringBuffer sb = new StringBuffer();
         for (int i=0;i<b.length();i++)
@@ -66,23 +112,30 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         return sb.toString();
     }
     
+    /** Generate id for given object with the given id */
     private String getId(String type, String id) {
         if (!iConvertIds) return id.toString();
         return IdConvertor.getInstance().convert(type, id);
     }
     
+    /** Generate id for given object with the given id */
     private String getId(String type, Number id) {
         return getId(type, id.toString());
     }
     
+    /** Generate id for given object with the given id */
     private String getId(String type, long id) {
         return getId(type, String.valueOf(id));
     }
 
+    /** Save an XML file */
     public void save() throws Exception {
         save(null);
     }
     
+    /** Save an XML file 
+     * @param outFile output file 
+     */
     public void save(File outFile) throws Exception {
         if (outFile==null)
             outFile = new File(iOutputFolder,"solution.xml");

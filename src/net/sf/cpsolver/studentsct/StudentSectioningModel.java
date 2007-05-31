@@ -22,6 +22,31 @@ import net.sf.cpsolver.studentsct.model.Section;
 import net.sf.cpsolver.studentsct.model.Student;
 import net.sf.cpsolver.studentsct.model.Subpart;
 
+/**
+ * Student sectioning model.
+ * 
+ * <br><br>
+ * 
+ * @version
+ * StudentSct 1.1 (Student Sectioning)<br>
+ * Copyright (C) 2007 Tomas Muller<br>
+ * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
+ * Lazenska 391, 76314 Zlin, Czech Republic<br>
+ * <br>
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * <br><br>
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * <br><br>
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
 public class StudentSectioningModel extends Model {
     private Vector iStudents = new Vector();
     private Vector iOfferings = new Vector();
@@ -30,20 +55,33 @@ public class StudentSectioningModel extends Model {
     private DataProperties iProperties;
     private DistanceConflict iDistanceConflict = null;
     
+    /**
+     * Constructor
+     * @param properties configuration
+     */
     public StudentSectioningModel(DataProperties properties) {
         super();
         addGlobalConstraint(new SectionLimit());
         iProperties = properties;
     }
     
+    /**
+     * Students
+     */
     public Vector getStudents() {
         return iStudents;
     }
     
+    /**
+     * Students with complete schedules (see {@link Student#isComplete()})
+     */
     public Set getCompleteStudents() {
         return iCompleteStudents;
     }
     
+    /**
+     * Add a student into the model
+     */
     public void addStudent(Student student) {
         iStudents.addElement(student);
         StudentConflict conflict = new StudentConflict();
@@ -57,26 +95,30 @@ public class StudentSectioningModel extends Model {
             iCompleteStudents.add(student);
     }
     
+    /**
+     * List of offerings
+     */
     public Vector getOfferings() {
         return iOfferings;
     }
-    
+
+    /**
+     * Add an offering into the model
+     */
     public void addOffering(Offering offering) {
         iOfferings.add(offering);
     }
     
+    /**
+     * Number of students with complete schedule
+     */
     public int nrComplete() {
         return getCompleteStudents().size();
-        /*
-        int nrComplete = 0;
-        for (Enumeration e=iStudents.elements();e.hasMoreElements();) {
-            Student student = (Student)e.nextElement();
-            if (student.isComplete()) nrComplete++;
-        }
-        return nrComplete;
-        */
     }
     
+    /**
+     * Model info
+     */
     public Hashtable getInfo() {
         Hashtable info = super.getInfo();
         info.put("Students with complete schedule" , 
@@ -86,11 +128,17 @@ public class StudentSectioningModel extends Model {
         return info;
     }
     
+    /**
+     * Overall solution value
+     */
     public double getTotalValue() {
         return iTotalValue;
-        //return super.getTotalValue();
     }
     
+    /**
+     * Called after an enrollment was assigned to a request. The list of complete students 
+     * and the overall solution value are updated.
+     */
     public void afterAssigned(long iteration, Value value) {
         super.afterAssigned(iteration, value);
         Enrollment enrollment = (Enrollment)value;
@@ -100,6 +148,10 @@ public class StudentSectioningModel extends Model {
         iTotalValue += value.toDouble();
     }
     
+    /**
+     * Called before an enrollment was unassigned from a request. The list of complete students 
+     * and the overall solution value are updated.
+     */
     public void afterUnassigned(long iteration, Value value) {
         super.afterUnassigned(iteration, value);
         Enrollment enrollment = (Enrollment)value;
@@ -109,10 +161,16 @@ public class StudentSectioningModel extends Model {
         iTotalValue -= value.toDouble();
     }
     
+    /**
+     * Configuration
+     */
     public DataProperties getProperties() {
         return iProperties;
     }
     
+    /**
+     * Empty online student sectioning infos for all sections (see {@link Section#getSpaceExpected()} and {@link Section#getSpaceHeld()}). 
+     */
     public void clearOnlineSectioningInfos() {
         for (Enumeration e=iOfferings.elements();e.hasMoreElements();) {
             Offering offering = (Offering)e.nextElement();
@@ -130,6 +188,9 @@ public class StudentSectioningModel extends Model {
         }
     }
     
+    /**
+     * Compute online student sectioning infos for all sections (see {@link Section#getSpaceExpected()} and {@link Section#getSpaceHeld()}). 
+     */
     public void computeOnlineSectioningInfos() {
         clearOnlineSectioningInfos();
         for (Enumeration e=getStudents().elements();e.hasMoreElements();) {
@@ -174,6 +235,9 @@ public class StudentSectioningModel extends Model {
         }
     }
     
+    /**
+     * Sum of weights of all requests that are not assigned (see {@link Request#getWeight()}).
+     */
     public double getUnassignedRequestWeight() {
         double weight = 0.0;
         for (Enumeration e=unassignedVariables().elements();e.hasMoreElements();) {
@@ -183,6 +247,9 @@ public class StudentSectioningModel extends Model {
         return weight;
     }
 
+    /**
+     * Sum of weights of all requests (see {@link Request#getWeight()}).
+     */
     public double getTotalRequestWeight() {
         double weight = 0.0;
         for (Enumeration e=variables().elements();e.hasMoreElements();) {
@@ -192,14 +259,23 @@ public class StudentSectioningModel extends Model {
         return weight;
     }
     
+    /**
+     * Set distance conflict extension 
+     */
     public void setDistanceConflict(DistanceConflict dc) {
         iDistanceConflict = dc;
     }
 
+    /**
+     * Return distance conflict extension
+     */
     public DistanceConflict getDistanceConflict() {
         return iDistanceConflict;
     }
     
+    /**
+     * Average priority of unassigned requests (see {@link Request#getPriority()})
+     */
     public double avgUnassignPriority() {
         double totalPriority = 0.0;  
         for (Enumeration e=unassignedVariables().elements();e.hasMoreElements();) {
@@ -210,6 +286,9 @@ public class StudentSectioningModel extends Model {
         return 1.0 + totalPriority / unassignedVariables().size();
     }
     
+    /**
+     * Average number of requests per student (see {@link Student#getRequests()})
+     */
     public double avgNrRequests() {
         double totalRequests = 0.0;  
         int totalStudents = 0;
