@@ -15,8 +15,6 @@ import org.dom4j.io.SAXReader;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.TimeLocation;
-import net.sf.cpsolver.ifs.solution.Solution;
-import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.studentsct.model.Choice;
 import net.sf.cpsolver.studentsct.model.Config;
 import net.sf.cpsolver.studentsct.model.Course;
@@ -29,6 +27,47 @@ import net.sf.cpsolver.studentsct.model.Section;
 import net.sf.cpsolver.studentsct.model.Student;
 import net.sf.cpsolver.studentsct.model.Subpart;
 
+/**
+ * Load student sectioning model from an XML file.
+ *
+ * <br><br>
+ * Parameters:
+ * <table border='1'><tr><th>Parameter</th><th>Type</th><th>Comment</th></tr>
+ * <tr><td>General.Input</td><td>{@link String}</td><td>Path of an XML file to be loaded</td></tr>
+ * <tr><td>Xml.LoadBest</td><td>{@link Boolean}</td><td>If true, load best assignments</td></tr>
+ * <tr><td>Xml.LoadInitial</td><td>{@link Boolean}</td><td>If false, load initial assignments</td></tr>
+ * <tr><td>Xml.LoadCurrent</td><td>{@link Boolean}</td><td>If true, load current assignments</td></tr>
+ * <tr><td>Xml.LoadOfferings</td><td>{@link Boolean}</td><td>If true, load offerings (and their stucture, i.e., courses, configurations, subparts and sections)</td></tr>
+ * <tr><td>Xml.LoadStudents</td><td>{@link Boolean}</td><td>If true, load students (and their requests)</td></tr>
+ * </table>
+ * <br><br>
+ * Usage:<br>
+ * <code>
+ * StudentSectioningModel model = new StudentSectioningModel(cfg);<br>
+ * new StudentSectioningXMLLoader(model).load();<br>
+ * </code>
+ * 
+ * @version
+ * StudentSct 1.1 (Student Sectioning)<br>
+ * Copyright (C) 2007 Tomas Muller<br>
+ * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
+ * Lazenska 391, 76314 Zlin, Czech Republic<br>
+ * <br>
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * <br><br>
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * <br><br>
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
+
 public class StudentSectioningXMLLoader extends StudentSectioningLoader {
     private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(StudentSectioningXMLLoader.class);
 
@@ -39,6 +78,10 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
     private boolean iLoadOfferings = true;
     private boolean iLoadStudents = true;
     
+    /**
+     * Constructor
+     * @param model student sectioning model
+     */
     public StudentSectioningXMLLoader(StudentSectioningModel model) {
         super(model);
         iInputFile = new File(getModel().getProperties().getProperty("General.Input","."+File.separator+"solution.xml"));
@@ -48,20 +91,13 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         iLoadOfferings = getModel().getProperties().getPropertyBoolean("Xml.LoadOfferings", true);
         iLoadStudents = getModel().getProperties().getPropertyBoolean("Xml.LoadStudents", true);
     }
-    
-    private Solver iSolver = null;
-    
-    public void setSolver(Solver solver) {
-        iSolver = solver;
-    }
-    public Solver getSolver() {
-        return iSolver;
-    }
 
+    /** Set input file (e.g., if it is not set by General.Input property) */
     public void setInputFile(File inputFile) {
         iInputFile=inputFile;
     }
      
+    /** Create BitSet from a bit string */
     private static BitSet createBitSet(String bitString) {
         BitSet ret = new BitSet(bitString.length());
         for (int i=0;i<bitString.length();i++)
@@ -69,11 +105,8 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         return ret;
     }
 
+    /** Load the file */
     public void load() throws Exception {
-        load(null);
-    }
-    
-    public void load(Solution currentSolution) throws Exception {
         sLogger.debug("Reading XML data from "+iInputFile);
         
         Document document = (new SAXReader()).read(iInputFile);

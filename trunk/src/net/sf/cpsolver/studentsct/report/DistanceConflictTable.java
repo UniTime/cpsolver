@@ -16,7 +16,50 @@ import net.sf.cpsolver.studentsct.model.Course;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Section;
+import net.sf.cpsolver.studentsct.model.Student;
 
+/**
+ * This class lists distance student conflicts in a {@link CSVFile} comma separated text file.
+ * Two sections that are attended by the same student are considered in a 
+ * distance conflict if they are back-to-back taught in locations
+ * that are two far away. See {@link DistanceConflict} for more details.
+ * <br><br>
+ *  
+ * Each line represent a pair if courses that have one or more distance conflicts
+ * in between (columns Course1, Course2), column NrStud displays the number
+ * of student distance conflicts (weighted by requests weights), and column
+ * AvgDist displays the average distance for all the distance conflicts between
+ * these two courses. The column NoAlt is Y when every possible enrollment of the 
+ * first course is either overlapping or there is a distance conflict with every 
+ * possible enrollment of the second course (it is N otherwise) and a column 
+ * Reason which lists the sections that are involved in a distance conflict. 
+ * 
+ * <br><br>
+ * 
+ * Usage: new DistanceConflictTable(model),createTable(true, true).save(aFile);
+ * 
+ * <br><br>
+ * 
+ * @version
+ * StudentSct 1.1 (Student Sectioning)<br>
+ * Copyright (C) 2007 Tomas Muller<br>
+ * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
+ * Lazenska 391, 76314 Zlin, Czech Republic<br>
+ * <br>
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * <br><br>
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * <br><br>
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
 public class DistanceConflictTable {
     private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(DistanceConflictTable.class);
     private static DecimalFormat sDF = new DecimalFormat("0.000");
@@ -24,6 +67,10 @@ public class DistanceConflictTable {
     private StudentSectioningModel iModel = null;
     private DistanceConflict iDC = null;
     
+    /**
+     * Constructor
+     * @param model student sectioning model
+     */
     public DistanceConflictTable(StudentSectioningModel model) {
         iModel = model;
         iDC = model.getDistanceConflict();
@@ -31,10 +78,14 @@ public class DistanceConflictTable {
             iDC = new DistanceConflict(null, model.getProperties());
     }
     
+    /** Return student sectioning model */
     public StudentSectioningModel getModel() {
         return iModel;
     }
 
+    /** 
+     * True, if there is no pair of enrollments of r1 and r2 that is not in a hard conflict and without a distance conflict 
+     */
     private boolean areInHardConfict(Request r1, Request r2) {
         for (Enumeration e=r1.values().elements();e.hasMoreElements();) {
             Enrollment e1 = (Enrollment)e.nextElement();
@@ -46,6 +97,12 @@ public class DistanceConflictTable {
         return true;
     }
     
+    /**
+     * Create report
+     * @param includeLastLikeStudents true, if last-like students should be included (i.e., {@link Student#isDummy()} is true) 
+     * @param includeRealStudents true, if real students should be included (i.e., {@link Student#isDummy()} is false)
+     * @return report as comma separated text file
+     */
     public CSVFile createTable(boolean includeLastLikeStudents, boolean includeRealStudents) {
         CSVFile csv = new CSVFile();
         csv.setHeader(new CSVFile.CSVField[] {
