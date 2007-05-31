@@ -37,7 +37,7 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  * A main class for running of the solver from command line.
  * <br><br>
  * Usage:<br>
- * java -Xmx1024m -jar coursett1.0.jar config.properties [input_file] [output_folder]<br>
+ * java -Xmx1024m -jar coursett1.1.jar config.properties [input_file] [output_folder]<br>
  * <br>
  * See http://www.unitime.org for example configuration files and banchmark data sets.<br><br>
  * 
