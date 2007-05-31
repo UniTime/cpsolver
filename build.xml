@@ -73,7 +73,7 @@
             </fileset>
         </path>
     </target>
-    
+
     <target name="compile-java" depends="prepare">
         <javac debug="true" destdir="${build.dir}" source="1.4" target="1.4">
             <src path="${build.dir}"/>
@@ -81,7 +81,7 @@
         </javac>
     </target>
     
-    <target name="compile-java-rel" depends="init">
+    <target name="compile-java-rel" depends="prepare">
         <javac debug="false" optimize="true" destdir="${build.dir}" source="1.4" target="1.4">
             <src path="${build.dir}"/>
             <classpath refid="build.classpath"/>
@@ -124,7 +124,7 @@
         	<manifest>
         		<attribute name="Class-Path" value="log4j-1.2.8.jar dom4j-1.6.1.jar ifs-1.1.jar coursett-1.1.jar" /> 
         		<attribute name="StudentSct-Version" value="1.1_bld${build.number}"/>
-        		<attribute name="Main-Class" value="net.sf.cpsolver.coursett.Test"/>
+        		<attribute name="Main-Class" value="net.sf.cpsolver.studentsct.Test"/>
         	</manifest>
         </jar>
         <jar destfile="${dist-lib.dir}/cpsolver-all-1.1.jar">
@@ -247,7 +247,7 @@
 		</delete>
 	</target>
 	
-	<target name="dist" depends="clean,prepare,compile-java-rel,compile-jar,copy-libs,src,doc,jprof,done">
+	<target name="dist" depends="clean,prepare,compile-java,compile-jar,copy-libs,src,doc,jprof,done">
         <delete dir="${dist.dir}/lib" failonerror="false"/>
         <mkdir dir="${dist.dir}/lib"/>
 		<copy todir="${dist.dir}/lib" overwrite="Yes" preservelastmodified="Yes">
