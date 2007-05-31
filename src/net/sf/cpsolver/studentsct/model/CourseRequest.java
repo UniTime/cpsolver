@@ -323,6 +323,13 @@ public class CourseRequest extends Request {
         }
         return iCachedMaxPenalty.doubleValue();
     }
+    
+    /** Clear cached min/max penalties and cached bound */
+    public void clearCache() {
+        iCachedMaxPenalty = null;
+        iCachedMinPenalty = null;
+        iCachedBound = null;
+    }
 
     /** Estimated bound for this request -- it estimates the smallest value among all possible enrollments */
     public double getBound() {
