@@ -467,11 +467,19 @@ public class Model {
         iModelListeners.addElement(listener);
         if (listener instanceof InfoProvider)
         	iInfoProviders.addElement(listener);
+        for (Enumeration e=iConstraints.elements();e.hasMoreElements();)
+            listener.constraintAdded((Constraint)e.nextElement());
+        for (Enumeration e=iVariables.elements();e.hasMoreElements();)
+            listener.variableAdded((Variable)e.nextElement());
     }
     /** Removes a model listener */
     public void removeModelListener(ModelListener listener) {
         if (listener instanceof InfoProvider)
         	iInfoProviders.removeElement(listener);
+        for (Enumeration e=iVariables.elements();e.hasMoreElements();)
+            listener.variableRemoved((Variable)e.nextElement());
+        for (Enumeration e=iConstraints.elements();e.hasMoreElements();)
+            listener.constraintRemoved((Constraint)e.nextElement());
         iModelListeners.removeElement(listener);
     }
     
