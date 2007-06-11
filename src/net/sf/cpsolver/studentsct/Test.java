@@ -696,8 +696,8 @@ public class Test {
             cfg.setProperty("General.SaveBestUnassigned", "-1");
             cfg.setProperty("Extensions.Classes","net.sf.cpsolver.ifs.extension.ConflictStatistics;net.sf.cpsolver.studentsct.extension.DistanceConflict");
             cfg.setProperty("Data.Initiative","puWestLafayetteTrdtn");
-            cfg.setProperty("Data.Term","2007");
-            cfg.setProperty("Data.Year","Fal");
+            cfg.setProperty("Data.Term","Fal");
+            cfg.setProperty("Data.Year","2007");
             cfg.setProperty("General.Input","pu-sectll-fal07-s.xml");
             if (args.length>=1) {
                 cfg.load(new FileInputStream(args[0]));
