@@ -205,7 +205,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                         sectionEl.addAttribute("limit", String.valueOf(section.getLimit()));
                         if (section.getParent()!=null)
                             sectionEl.addAttribute("parent", getId("section", section.getParent().getId()));
-                        if (section.getChoice().getInstructorIds()!=null)
+                        if (iShowNames && section.getChoice().getInstructorIds()!=null)
                             sectionEl.addAttribute("instructorIds", section.getChoice().getInstructorIds());
                         if (iShowNames && section.getChoice().getInstructorNames()!=null)
                             sectionEl.addAttribute("instructorNames", section.getChoice().getInstructorNames());
@@ -221,9 +221,9 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                                     timeLocationEl.addAttribute("breakTime", String.valueOf(tl.getBreakTime()));
                                 if (iShowNames && tl.getTimePatternId()!=null)
                                     timeLocationEl.addAttribute("pattern", getId("timePattern", tl.getTimePatternId()));
-                                if (tl.getDatePatternId()!=null)
+                                if (iShowNames && tl.getDatePatternId()!=null)
                                     timeLocationEl.addAttribute("datePattern", tl.getDatePatternId().toString());
-                                if (tl.getDatePatternName()!=null && tl.getDatePatternName().length()>0)
+                                if (iShowNames && tl.getDatePatternName()!=null && tl.getDatePatternName().length()>0)
                                     timeLocationEl.addAttribute("datePatternName", tl.getDatePatternName());
                                 timeLocationEl.addAttribute("dates", bitset2string(tl.getWeekCode()));
                                 if (iShowNames)
@@ -278,7 +278,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                         requestEl.addAttribute("days", sDF[7].format(Long.parseLong(Integer.toBinaryString(tl.getDayCode()))));
                         requestEl.addAttribute("start", String.valueOf(tl.getStartSlot()));
                         requestEl.addAttribute("length", String.valueOf(tl.getLength()));
-                        if (tl.getDatePatternId()!=null)
+                        if (iShowNames && tl.getDatePatternId()!=null)
                             requestEl.addAttribute("datePattern", tl.getDatePatternId().toString());
                         requestEl.addAttribute("dates", bitset2string(tl.getWeekCode()));
                         if (iShowNames)
