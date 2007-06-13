@@ -106,7 +106,7 @@ public class Test implements SolutionListener {
         String loader = properties.getProperty("TimetableLoader");
         if (loader!=null) return loader;
         if (properties.getPropertyInt("General.InputVersion",-1)>=0)
-            return "edu.purdue.smas.timetable.solver.TimetableDatabaseLoader";
+            return "org.unitime.timetable.solver.TimetableDatabaseLoader";
         else
             return "net.sf.cpsolver.coursett.TimetableXMLLoader";
     }
@@ -120,7 +120,7 @@ public class Test implements SolutionListener {
         String saver = properties.getProperty("TimetableSaver");
         if (saver!=null) return saver;
         if (properties.getPropertyInt("General.InputVersion",-1)>=0)
-            return "edu.purdue.smas.timetable.solver.TimetableDatabaseSaver";
+            return "org.unitime.timetable.solver.TimetableDatabaseSaver";
         else
             return "net.sf.cpsolver.coursett.TimetableXMLSaver";
     }
