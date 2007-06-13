@@ -191,7 +191,7 @@ public class Test {
             Student student = (Student)e.nextElement();
             sLog.info("Sectioning student: "+student);
             if (useStudentPrefPenalties)
-                StudentPreferencePenalties.setPenalties(student);
+                StudentPreferencePenalties.setPenalties(student, cfg.getPropertyInt("Sectioning.Distribution", StudentPreferencePenalties.sDistTypePreference));
             else if (usePenalties) 
                 setPenalties(student);
             Neighbour neighbour = bbSelection.getSelection(student).select();

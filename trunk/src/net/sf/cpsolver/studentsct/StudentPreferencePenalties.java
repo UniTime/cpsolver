@@ -71,6 +71,9 @@ public class StudentPreferencePenalties {
     private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(StudentPreferencePenalties.class);
     private static DecimalFormat sDF = new DecimalFormat("0.000");
     private static boolean sDebug = false;
+    public static int sDistTypeUniform = 0;
+    public static int sDistTypePreference = 1;
+    public static int sDistTypePreferenceQuadratic = 2;
     
     public static int[][] sStudentRequestDistribution = new int[][] {
         //morning, 7:30a, 8:30a, 9:30a, 10:30a, 11:30a, 12:30p, 1:30p, 2:30p, 3:30p, 4:30p, evening
@@ -91,11 +94,18 @@ public class StudentPreferencePenalties {
      * The first time gets zero penalty, the second 1/nrTimes, the third 2/nrTimes etc. where 
      * nrTimes is the number of times in {@link StudentPreferencePenalties#sStudentRequestDistribution}.
      */
-    public StudentPreferencePenalties() {
+    public StudentPreferencePenalties(int disributionType) {
         RouletteWheelSelection roulette = new RouletteWheelSelection();
         for (int d=0;d<sStudentRequestDistribution.length;d++)
-            for (int t=0;t<sStudentRequestDistribution[d].length;t++)
-                roulette.add(new int[]{d,t}, sStudentRequestDistribution[d][t]);
+            for (int t=0;t<sStudentRequestDistribution[d].length;t++) {
+                if (disributionType==sDistTypeUniform) {
+                    roulette.add(new int[]{d,t}, 1);
+                } else if (disributionType==sDistTypePreference) {
+                    roulette.add(new int[]{d,t}, sStudentRequestDistribution[d][t]);
+                } else {
+                    roulette.add(new int[]{d,t}, sStudentRequestDistribution[d][t]*sStudentRequestDistribution[d][t]);
+                }       
+            }
         int idx = 0;
         while (roulette.hasMoreElements()) {
             int[] dt = (int[])roulette.nextElement();
@@ -151,9 +161,9 @@ public class StudentPreferencePenalties {
     /**
      * Set the computed penalties to all sections of all requests of the given student
      */
-    public static void setPenalties(Student student) {
+    public static void setPenalties(Student student, int distributionType) {
         if (sDebug) sLog.debug("Setting penalties for "+student);
-        StudentPreferencePenalties penalties = new StudentPreferencePenalties();
+        StudentPreferencePenalties penalties = new StudentPreferencePenalties(distributionType);
         for (Enumeration e=student.getRequests().elements();e.hasMoreElements();) {
             Request request = (Request)e.nextElement();
             if (!(request instanceof CourseRequest)) continue;
