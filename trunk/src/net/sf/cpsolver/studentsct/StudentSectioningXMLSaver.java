@@ -262,6 +262,14 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
             studentEl.addAttribute("id", getId("student", student.getId()));
             if (student.isDummy())
                 studentEl.addAttribute("dummy", "true");
+            for (Enumeration f=student.getAcademicAreaClasiffications().elements();f.hasMoreElements();) {
+                String aac = (String)f.nextElement();
+                studentEl.addElement("classification").addAttribute("area", aac.substring(0,aac.indexOf(':'))).addAttribute("code",aac.substring(aac.indexOf(':')+1));
+            }
+            for (Enumeration f=student.getMajors().elements();f.hasMoreElements();) {
+                String mj = (String)f.nextElement();
+                studentEl.addElement("major").addAttribute("code",mj);
+            }
             for (Enumeration f=student.getRequests().elements();f.hasMoreElements();) {
                 Request request = (Request)f.nextElement();
                 if (request instanceof FreeTimeRequest) {
