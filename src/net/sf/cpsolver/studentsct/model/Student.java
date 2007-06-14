@@ -33,6 +33,8 @@ import java.util.Vector;
     private long iId;
     private boolean iDummy = false;
     private Vector iRequests = new Vector();
+    private Vector iAcadAreaClassifs = new Vector();
+    private Vector iMajors = new Vector();
 
     public static double sDummyStudentWeight = 0.5;
 
@@ -156,5 +158,19 @@ import java.util.Vector;
      */
     public void setDummy(boolean dummy) {
         iDummy = dummy;
+    }
+    
+    /**
+     * List of academic area - classification codes (Strings) for the given student
+     */
+    public Vector getAcademicAreaClasiffications() {
+        return iAcadAreaClassifs;
+    }
+    
+    /**
+     * List of major codes (Strings) for the given student
+     */
+    public Vector getMajors() {
+        return iMajors;
     }
 }
