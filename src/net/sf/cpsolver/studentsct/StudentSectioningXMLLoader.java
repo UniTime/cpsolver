@@ -330,6 +330,11 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                             if (!sections.isEmpty())
                                 bestEnrollments.add(courseRequest.createEnrollment(sections));
                         }
+                    } else if ("classification".equals(requestEl.getName())) {
+                        student.getAcademicAreaClasiffications().add(
+                                requestEl.attributeValue("area","")+":"+requestEl.attributeValue("code",""));
+                    } else if ("major".equals(requestEl.getName())) {
+                        student.getMajors().add(requestEl.attributeValue("code",""));
                     }
                 }
                 getModel().addStudent(student);
