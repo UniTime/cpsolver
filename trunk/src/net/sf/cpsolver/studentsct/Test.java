@@ -38,6 +38,8 @@ import net.sf.cpsolver.studentsct.heuristics.StudentSctNeighbourSelection;
 import net.sf.cpsolver.studentsct.heuristics.general.BacktrackNeighbourSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.SwapStudentSelection;
+import net.sf.cpsolver.studentsct.heuristics.studentord.StudentOrder;
+import net.sf.cpsolver.studentsct.heuristics.studentord.StudentRandomOrder;
 import net.sf.cpsolver.studentsct.model.AcademicAreaCode;
 import net.sf.cpsolver.studentsct.model.Config;
 import net.sf.cpsolver.studentsct.model.Course;
@@ -79,6 +81,7 @@ import net.sf.cpsolver.studentsct.report.DistanceConflictTable;
  * <tr><td>Test.StudentInfos</td><td>{@link String}</td><td>Load last-like course demands from the given XML file (in the format that is being used for last like course demand table in the timetabling application)</td></tr>
  * <tr><td>Test.CrsReq</td><td>{@link String}</td><td>Load student requests from the given semi-colon separated list files (in the format that is being used by the old MSF system)</td></tr>
  * <tr><td>Sectioning.UseStudentPreferencePenalties</td><td>{@link Boolean}</td><td>If true, {@link StudentPreferencePenalties} are used (applicable only for online sectioning)</td></tr>
+ * <tr><td>Test.StudentOrder</td><td>{@link String}</td><td>A class that is used for ordering of students (must be an interface of {@link StudentOrder}, default is {@link StudentRandomOrder}, not applicable only for batch sectioning)</td></tr>
  * </table>
  * <br><br>
  * 
@@ -188,9 +191,16 @@ public class Test {
         bbSelection.init(solver);
         
         double totalPenalty = 0, minPenalty = 0, maxPenalty = 0;
-
-        Vector students = new Vector(model.getStudents());
-        Collections.shuffle(students);
+        
+        Vector students = model.getStudents();
+        try {
+            Class studentOrdClass = Class.forName(model.getProperties().getProperty("Test.StudentOrder", StudentRandomOrder.class.getName()));
+            StudentOrder studentOrd = (StudentOrder)studentOrdClass.getConstructor(new Class[] {DataProperties.class}).newInstance(new Object[] {model.getProperties()});
+            students = studentOrd.order(model.getStudents());
+        } catch (Exception e) {
+            sLog.error("Unable to reorder students, reason: "+e.getMessage(),e);
+        }
+        
         for (Enumeration e=students.elements();e.hasMoreElements();) {
             Student student = (Student)e.nextElement();
             sLog.info("Sectioning student: "+student);
