@@ -21,6 +21,7 @@ import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.ToolBox;
+import net.sf.cpsolver.studentsct.model.AcademicAreaCode;
 import net.sf.cpsolver.studentsct.model.Choice;
 import net.sf.cpsolver.studentsct.model.Config;
 import net.sf.cpsolver.studentsct.model.Course;
@@ -263,12 +264,28 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
             if (student.isDummy())
                 studentEl.addAttribute("dummy", "true");
             for (Enumeration f=student.getAcademicAreaClasiffications().elements();f.hasMoreElements();) {
-                String aac = (String)f.nextElement();
-                studentEl.addElement("classification").addAttribute("area", aac.substring(0,aac.indexOf(':'))).addAttribute("code",aac.substring(aac.indexOf(':')+1));
+                AcademicAreaCode aac = (AcademicAreaCode)f.nextElement();
+                Element aacEl = studentEl.addElement("classification");
+                if (aac.getArea()!=null)
+                    aacEl.addAttribute("area", aac.getArea());
+                if (aac.getCode()!=null)
+                    aacEl.addAttribute("code", aac.getCode());
             }
             for (Enumeration f=student.getMajors().elements();f.hasMoreElements();) {
-                String mj = (String)f.nextElement();
-                studentEl.addElement("major").addAttribute("code",mj);
+                AcademicAreaCode aac = (AcademicAreaCode)f.nextElement();
+                Element aacEl = studentEl.addElement("major");
+                if (aac.getArea()!=null)
+                    aacEl.addAttribute("area", aac.getArea());
+                if (aac.getCode()!=null)
+                    aacEl.addAttribute("code", aac.getCode());
+            }
+            for (Enumeration f=student.getMinors().elements();f.hasMoreElements();) {
+                AcademicAreaCode aac = (AcademicAreaCode)f.nextElement();
+                Element aacEl = studentEl.addElement("minor");
+                if (aac.getArea()!=null)
+                    aacEl.addAttribute("area", aac.getArea());
+                if (aac.getCode()!=null)
+                    aacEl.addAttribute("code", aac.getCode());
             }
             for (Enumeration f=student.getRequests().elements();f.hasMoreElements();) {
                 Request request = (Request)f.nextElement();
