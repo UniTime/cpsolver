@@ -15,6 +15,7 @@ import org.dom4j.io.SAXReader;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.TimeLocation;
+import net.sf.cpsolver.studentsct.model.AcademicAreaCode;
 import net.sf.cpsolver.studentsct.model.Choice;
 import net.sf.cpsolver.studentsct.model.Config;
 import net.sf.cpsolver.studentsct.model.Course;
@@ -331,10 +332,11 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                                 bestEnrollments.add(courseRequest.createEnrollment(sections));
                         }
                     } else if ("classification".equals(requestEl.getName())) {
-                        student.getAcademicAreaClasiffications().add(
-                                requestEl.attributeValue("area","")+":"+requestEl.attributeValue("code",""));
+                        student.getAcademicAreaClasiffications().add(new AcademicAreaCode(requestEl.attributeValue("area"),requestEl.attributeValue("code")));
                     } else if ("major".equals(requestEl.getName())) {
-                        student.getMajors().add(requestEl.attributeValue("code",""));
+                        student.getMajors().add(new AcademicAreaCode(requestEl.attributeValue("area"),requestEl.attributeValue("code")));
+                    } else if ("minor".equals(requestEl.getName())) {
+                        student.getMinors().add(new AcademicAreaCode(requestEl.attributeValue("area"),requestEl.attributeValue("code")));
                     }
                 }
                 getModel().addStudent(student);
