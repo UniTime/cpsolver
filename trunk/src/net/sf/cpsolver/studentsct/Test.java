@@ -38,6 +38,7 @@ import net.sf.cpsolver.studentsct.heuristics.StudentSctNeighbourSelection;
 import net.sf.cpsolver.studentsct.heuristics.general.BacktrackNeighbourSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.SwapStudentSelection;
+import net.sf.cpsolver.studentsct.model.AcademicAreaCode;
 import net.sf.cpsolver.studentsct.model.Config;
 import net.sf.cpsolver.studentsct.model.Course;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
@@ -75,6 +76,7 @@ import net.sf.cpsolver.studentsct.report.DistanceConflictTable;
  * Parameters:
  * <table border='1'><tr><th>Parameter</th><th>Type</th><th>Comment</th></tr>
  * <tr><td>Test.LastLikeCourseDemands</td><td>{@link String}</td><td>Load last-like course demands from the given XML file (in the format that is being used for last like course demand table in the timetabling application)</td></tr>
+ * <tr><td>Test.StudentInfos</td><td>{@link String}</td><td>Load last-like course demands from the given XML file (in the format that is being used for last like course demand table in the timetabling application)</td></tr>
  * <tr><td>Test.CrsReq</td><td>{@link String}</td><td>Load student requests from the given semi-colon separated list files (in the format that is being used by the old MSF system)</td></tr>
  * <tr><td>Sectioning.UseStudentPreferencePenalties</td><td>{@link Boolean}</td><td>If true, {@link StudentPreferencePenalties} are used (applicable only for online sectioning)</td></tr>
  * </table>
@@ -113,6 +115,8 @@ public class Test {
             new StudentSectioningXMLLoader(model).load();
             if (cfg.getProperty("Test.LastLikeCourseDemands")!=null)
                 loadLastLikeCourseDemandsXml(model, new File(cfg.getProperty("Test.LastLikeCourseDemands")));
+            if (cfg.getProperty("Test.StudentInfos")!=null)
+                loadStudentInfoXml(model, new File(cfg.getProperty("Test.StudentInfos")));
             if (cfg.getProperty("Test.CrsReq")!=null)
                 loadCrsReqFiles(model, cfg.getProperty("Test.CrsReq"));
         } catch (Exception e) {
@@ -680,6 +684,66 @@ public class Test {
         }
     }
     
+    /** Load student infos from a given XML file. */
+    public static void loadStudentInfoXml(StudentSectioningModel model, File xml) {
+        try {
+            sLog.info("Loading student infos from "+xml);
+            Document document = (new SAXReader()).read(xml);
+            Element root = document.getRootElement();
+            Hashtable requests = new Hashtable();
+            long reqId = 0;
+            Hashtable studentTable = new Hashtable();
+            for (Enumeration e=model.getStudents().elements();e.hasMoreElements();) {
+                Student student = (Student)e.nextElement();
+                studentTable.put(new Long(student.getId()), student);
+            }
+            for (Iterator i=root.elementIterator("student");i.hasNext();) {
+                Element studentEl = (Element)i.next();
+                Student student = (Student)studentTable.get(Long.valueOf(studentEl.attributeValue("externalId")));
+                if (student==null) {
+                    sLog.debug(" -- student "+studentEl.attributeValue("externalId")+" not found");
+                    continue;
+                }
+                sLog.debug(" -- loading info for student "+student);
+                student.getAcademicAreaClasiffications().clear();
+                if (studentEl.element("studentAcadAreaClass")!=null)
+                    for (Iterator j=studentEl.element("studentAcadAreaClass").elementIterator("acadAreaClass");j.hasNext();) {
+                        Element studentAcadAreaClassElement = (Element)j.next();
+                        student.getAcademicAreaClasiffications().add(
+                            new AcademicAreaCode(
+                                    studentAcadAreaClassElement.attributeValue("academicArea"),
+                                    studentAcadAreaClassElement.attributeValue("academicClass"))
+                            );
+                    }
+                sLog.debug("   -- acad areas classifs "+student.getAcademicAreaClasiffications());
+                student.getMajors().clear();
+                if (studentEl.element("studentMajors")!=null)
+                    for (Iterator j=studentEl.element("studentMajors").elementIterator("major");j.hasNext();) {
+                        Element studentMajorElement = (Element)j.next();
+                        student.getMajors().add(
+                            new AcademicAreaCode(
+                                    studentMajorElement.attributeValue("academicArea"),
+                                    studentMajorElement.attributeValue("code"))
+                            );
+                    }
+                sLog.debug("   -- majors "+student.getMajors());
+                student.getMinors().clear();
+                if (studentEl.element("studentMinors")!=null)
+                    for (Iterator j=studentEl.element("studentMinors").elementIterator("minor");j.hasNext();) {
+                        Element studentMinorElement = (Element)j.next();
+                        student.getMinors().add(
+                            new AcademicAreaCode(
+                                    studentMinorElement.attributeValue("academicArea",""),
+                                    studentMinorElement.attributeValue("code",""))
+                            );
+                    }
+                sLog.debug("   -- minors "+student.getMinors());
+            }
+        } catch (Exception e) {
+            sLog.error(e.getMessage(),e);
+        }
+    }
+    
     /** Main */
     public static void main(String[] args) {
         try {
@@ -702,6 +766,7 @@ public class Test {
             if (args.length>=1) {
                 cfg.load(new FileInputStream(args[0]));
             }
+            cfg.putAll(System.getProperties());
             
             if (args.length>=2) {
                 cfg.setProperty("General.Input", args[1]);
