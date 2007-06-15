@@ -74,6 +74,7 @@ public class StudentPreferencePenalties {
     public static int sDistTypeUniform = 0;
     public static int sDistTypePreference = 1;
     public static int sDistTypePreferenceQuadratic = 2;
+    public static int sDistTypePreferenceReverse = 3;
     
     public static int[][] sStudentRequestDistribution = new int[][] {
         //morning, 7:30a, 8:30a, 9:30a, 10:30a, 11:30a, 12:30p, 1:30p, 2:30p, 3:30p, 4:30p, evening
@@ -102,9 +103,13 @@ public class StudentPreferencePenalties {
                     roulette.add(new int[]{d,t}, 1);
                 } else if (disributionType==sDistTypePreference) {
                     roulette.add(new int[]{d,t}, sStudentRequestDistribution[d][t]);
-                } else {
+                } else if (disributionType==sDistTypePreferenceQuadratic) {
                     roulette.add(new int[]{d,t}, sStudentRequestDistribution[d][t]*sStudentRequestDistribution[d][t]);
-                }       
+                } else if (disributionType==sDistTypePreferenceReverse) {
+                    roulette.add(new int[]{d,t}, 11-sStudentRequestDistribution[d][t]);
+                } else {
+                    roulette.add(new int[]{d,t}, 1);
+                }
             }
         int idx = 0;
         while (roulette.hasMoreElements()) {
