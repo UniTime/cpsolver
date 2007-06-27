@@ -134,6 +134,7 @@ public class Test {
             SwapStudentSelection.sDebug=true;
         if (cfg.getPropertyBoolean("Debug.BacktrackNeighbourSelection",false))
             BacktrackNeighbourSelection.sDebug=true;
+        
         return model;
     }
 
@@ -547,11 +548,12 @@ public class Test {
             boolean shuffleIds = model.getProperties().getPropertyBoolean("Test.CrsReqShuffleStudentIds", true);
             boolean tryWithoutSuffix = model.getProperties().getPropertyBoolean("Test.CrsReqTryWithoutSuffix", false);
             Hashtable students = new Hashtable();
+            long reqId = 0;
             for (StringTokenizer stk=new StringTokenizer(files,";");stk.hasMoreTokens();) {
                 String file = stk.nextToken();
                 sLog.debug("Loading "+file+" ...");
                 BufferedReader in = new BufferedReader(new FileReader(file));
-                String line; int lineIndex=0; long reqId = 0;
+                String line; int lineIndex=0;
                 while ((line=in.readLine())!=null) {
                     lineIndex++;
                     if (line.length()<=150) continue;
