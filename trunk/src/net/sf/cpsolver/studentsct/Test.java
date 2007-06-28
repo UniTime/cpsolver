@@ -80,6 +80,7 @@ import net.sf.cpsolver.studentsct.report.DistanceConflictTable;
  * <tr><td>Test.LastLikeCourseDemands</td><td>{@link String}</td><td>Load last-like course demands from the given XML file (in the format that is being used for last like course demand table in the timetabling application)</td></tr>
  * <tr><td>Test.StudentInfos</td><td>{@link String}</td><td>Load last-like course demands from the given XML file (in the format that is being used for last like course demand table in the timetabling application)</td></tr>
  * <tr><td>Test.CrsReq</td><td>{@link String}</td><td>Load student requests from the given semi-colon separated list files (in the format that is being used by the old MSF system)</td></tr>
+ * <tr><td>Test.EtrChk</td><td>{@link String}</td><td>Load student information (academic area, classification, major, minor) from the given semi-colon separated list files (in the format that is being used by the old MSF system)</td></tr>
  * <tr><td>Sectioning.UseStudentPreferencePenalties</td><td>{@link Boolean}</td><td>If true, {@link StudentPreferencePenalties} are used (applicable only for online sectioning)</td></tr>
  * <tr><td>Test.StudentOrder</td><td>{@link String}</td><td>A class that is used for ordering of students (must be an interface of {@link StudentOrder}, default is {@link StudentRandomOrder}, not applicable only for batch sectioning)</td></tr>
  * </table>
@@ -647,7 +648,6 @@ public class Test {
                 in.close();
             }
             Hashtable requests = new Hashtable();
-            long studentId = 0;
             HashSet studentIds = new HashSet();
             for (Enumeration e=students.elements();e.hasMoreElements();) {
                 Student student = (Student)e.nextElement();
@@ -691,6 +691,43 @@ public class Test {
                     request.setWeight(weight);
                 }
             }
+            if (model.getProperties().getProperty("Test.EtrChk")!=null) {
+                for (StringTokenizer stk=new StringTokenizer(model.getProperties().getProperty("Test.EtrChk"),";");stk.hasMoreTokens();) {
+                    String file = stk.nextToken();
+                    sLog.debug("Loading "+file+" ...");
+                    BufferedReader in = new BufferedReader(new FileReader(file));
+                    String line; int lineIndex=0;
+                    while ((line=in.readLine())!=null) {
+                        lineIndex++;
+                        if (line.length()<55) continue;
+                        char code = line.charAt(12);
+                        if (code=='H' || code=='T') continue; //skip header and tail
+                        if (code=='D' || code=='K') continue; //skip delete nad cancel 
+                        long studentId = Long.parseLong(line.substring(2,11));
+                        Student student = (Student)students.get(new Long(studentId));
+                        if (student==null) {
+                            sLog.info("  -- student "+studentId+" not found");
+                            continue;
+                        } 
+                        sLog.info("  -- reading student "+studentId);
+                        String area = line.substring(15,18).trim();
+                        if (area.length()==0) continue;
+                        String clasf = line.substring(18,20).trim();
+                        String major = line.substring(21, 24).trim();
+                        String minor = line.substring(24, 27).trim();
+                        student.getAcademicAreaClasiffications().clear(); student.getMajors().clear(); student.getMinors().clear();
+                        student.getAcademicAreaClasiffications().add(new AcademicAreaCode(area, clasf));
+                        if (major.length()>0) student.getMajors().add(new AcademicAreaCode(area, major));
+                        if (minor.length()>0) student.getMinors().add(new AcademicAreaCode(area, minor));
+                    }
+                }
+            }
+            int without = 0;
+            for (Enumeration e=students.elements();e.hasMoreElements();) {
+                Student student = (Student)e.nextElement();
+                if (student.getAcademicAreaClasiffications().isEmpty()) without++;
+            }
+            sLog.info("Students without academic area: "+without);
         } catch (Exception e) {
             sLog.error(e.getMessage(),e);
         }
