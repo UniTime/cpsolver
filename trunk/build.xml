@@ -2,8 +2,9 @@
 <!--
 	IFS 1.1 (Iterative Forward Search)
 	CourseTT 1.1 (University Course Timetabling)
-	Copyright (C) 2006 Tomas Muller
-	muller@ktiml.mff.cuni.cz
+	StudentSct 1.1 (Student Sectioning)
+	Copyright (C) 2007 Tomas Muller
+	muller@unitime.org
 	Lazenska 391, 76314 Zlin, Czech Republic
 	
 	This library is free software; you can redistribute it and/or
@@ -168,7 +169,7 @@
     		IFS 1.1 (Iterative Forward Search)<br>
     		CourseTT 1.1 (University Course Timetabling)<br>
     		Copyright (C) 2006 Tomas Muller<br>
-    		<a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
+    		<a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
     		Lazenska 391, 76314 Zlin, Czech Republic<br>
     		<br>
     		This library is free software; you can redistribute it and/or
