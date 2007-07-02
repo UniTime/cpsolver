@@ -3,7 +3,7 @@
 /*
  * IFS 1.0 (Iterative Forward Search)
  * Copyright (C) 2006 Tomas Muller
- * muller@ktiml.mff.cuni.cz
+ * muller@unitime.org
  * Lazenska 391, 76314 Zlin, Czech Republic
  * 
  * This library is free software; you can redistribute it and/or
