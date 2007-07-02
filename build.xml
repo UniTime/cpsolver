@@ -192,7 +192,8 @@
        	<group title="Student Sectioning" packages="net.sf.cpsolver.studentsct*"/>
  	   	<link href="http://java.sun.com/j2se/1.5.0/docs/api/"/>
  	   	<link href="http://logging.apache.org/log4j/docs/api/"/>
- 	   	<fileset dir="src"/>
+ 	   	<fileset dir="src" includes="**/*.java"/>
+    	<packageset dir="src" includes="**/package.html"/>
  	   	<classpath>
  	   		<fileset dir="${lib.dir}">
  	   			<include name="**/*.jar"/>
@@ -248,6 +249,33 @@
 	</target>
 	
 	<target name="dist" depends="clean,prepare,compile-java,compile-jar,copy-libs,src,doc,jprof,done">
+        <delete dir="${dist.dir}/lib" failonerror="false"/>
+        <mkdir dir="${dist.dir}/lib"/>
+		<copy todir="${dist.dir}/lib" overwrite="Yes" preservelastmodified="Yes">
+			<fileset dir="${lib.dir}">
+				<include name="**/*.jar"/>
+				<exclude name="servlet.jar"/>
+			</fileset>
+		</copy>
+		<copy todir="${dist-lib.dir}" overwrite="Yes" preservelastmodified="Yes">
+			<fileset dir="${lib.dir}">
+				<include name="**/*.dll"/>
+			</fileset>
+		</copy>
+		<zip destfile="${dist.dir}/cpsolver-1.1_bld${build.number}.zip">
+			<fileset dir="${dist.dir}">
+				<include name="bin/**/*"/>
+				<include name="doc/**/*"/>
+				<include name="src/**/*"/>
+				<include name="lib/**/*"/>
+			</fileset>
+        	<fileset dir="${base.dir}/..">
+        		<include name="lgpl.txt"/>
+        	</fileset>
+		</zip>
+	</target>
+
+	<target name="dist-nojprof" depends="clean,prepare,compile-java,compile-jar,copy-libs,src,doc,done">
         <delete dir="${dist.dir}/lib" failonerror="false"/>
         <mkdir dir="${dist.dir}/lib"/>
 		<copy todir="${dist.dir}/lib" overwrite="Yes" preservelastmodified="Yes">
