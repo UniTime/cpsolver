@@ -13,7 +13,7 @@ package net.sf.cpsolver.ifs.solution;
  * @version
  * IFS 1.1 (Iterative Forward Search)<br>
  * Copyright (C) 2006 Tomas Muller<br>
- * <a href="mailto:muller@ktiml.mff.cuni.cz">muller@ktiml.mff.cuni.cz</a><br>
+ * <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
  * <br>
  * This library is free software; you can redistribute it and/or
