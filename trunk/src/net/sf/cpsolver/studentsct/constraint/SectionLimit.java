@@ -70,7 +70,7 @@ public class SectionLimit extends GlobalConstraint {
      * selected as conflicting untill the overall weight is under the limit.
      * 
      * @param value {@link Enrollment} that is being considered
-     * @return conflicts all computed conflicting requests are added into this set
+     * @param conflicts all computed conflicting requests are added into this set
      */
     public void computeConflicts(Value value, Set conflicts) {
         //get enrollment
