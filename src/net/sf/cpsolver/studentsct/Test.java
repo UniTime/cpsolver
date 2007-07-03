@@ -31,6 +31,7 @@ import net.sf.cpsolver.ifs.solver.SolverListener;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.JProf;
 import net.sf.cpsolver.ifs.util.ToolBox;
+import net.sf.cpsolver.studentsct.check.CourseLimitCheck;
 import net.sf.cpsolver.studentsct.check.OverlapCheck;
 import net.sf.cpsolver.studentsct.check.SectionLimitCheck;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
@@ -320,6 +321,12 @@ public class Test {
         if (runChecks) {
             new OverlapCheck(model).check();
             new SectionLimitCheck(model).check();
+            try {
+                CourseLimitCheck ch = new CourseLimitCheck(model);
+                if (!ch.check()) ch.getCSVFile().save(new File(new File(model.getProperties().getProperty("General.Output",".")), "course-limits.csv"));
+            } catch (IOException e) {
+                sLog.error(e.getMessage(),e);
+            }
         }
 
         sLog.info("Best solution found after "+solution.getBestTime()+" seconds ("+solution.getBestIteration()+" iterations).");
@@ -593,7 +600,7 @@ public class Test {
                             for (Enumeration f=offering.getCourses().elements();course==null && f.hasMoreElements();) {
                                 Course c = (Course)f.nextElement();
                                 if (c.getSubjectArea().equals(subjectArea) && c.getCourseNumber().equals(courseNbr))
-                                    course = c;;
+                                    course = c;
                             }
                         }
                         if (course==null && tryWithoutSuffix && courseNbr.charAt(courseNbr.length()-1)>='A' && courseNbr.charAt(courseNbr.length()-1)<='Z') {
