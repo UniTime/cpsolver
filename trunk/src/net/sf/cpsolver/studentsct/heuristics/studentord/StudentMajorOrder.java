@@ -38,7 +38,7 @@ public class StudentMajorOrder implements StudentOrder, Comparator {
         iReverse = config.getPropertyBoolean("StudentMajorOrder.Reverse", iReverse);
     }
 
-    /** Return the given set of students in a random order */
+    /** Order the given list of students */
     public Vector order(Vector students) {
         Vector ret = new Vector(students);
         Collections.sort(ret, this);
