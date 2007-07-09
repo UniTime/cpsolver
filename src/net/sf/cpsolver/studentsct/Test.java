@@ -3,6 +3,7 @@ package net.sf.cpsolver.studentsct;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.text.DecimalFormat;
@@ -18,8 +19,11 @@ import java.util.StringTokenizer;
 import java.util.Vector;
 
 import org.dom4j.Document;
+import org.dom4j.DocumentHelper;
 import org.dom4j.Element;
+import org.dom4j.io.OutputFormat;
 import org.dom4j.io.SAXReader;
+import org.dom4j.io.XMLWriter;
 
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.model.Value;
@@ -159,6 +163,8 @@ public class Test {
             sLog.error("Unable to save solution, reason: "+e.getMessage(),e);
         }
         
+        saveInfoToXML(solution, new File(new File(cfg.getProperty("General.Output",".")),"info.xml"));
+        
         return solution;
     }
 
@@ -235,6 +241,8 @@ public class Test {
         } catch (Exception e) {
             sLog.error("Unable to save solution, reason: "+e.getMessage(),e);
         }
+        
+        saveInfoToXML(solution, new File(new File(cfg.getProperty("General.Output",".")),"info.xml"));
 
         return solution;
     }
@@ -797,6 +805,31 @@ public class Test {
             }
         } catch (Exception e) {
             sLog.error(e.getMessage(),e);
+        }
+    }
+    
+    /** Save solution info as XML */
+    public static void saveInfoToXML(Solution solution, File file) {
+        FileOutputStream fos = null;
+        try {
+            Document document = DocumentHelper.createDocument();
+            document.addComment("Solution Info");
+            
+            Element root = document.addElement("info");
+            for (Iterator i=solution.getInfo().entrySet().iterator();i.hasNext();) {
+                Map.Entry entry = (Map.Entry)i.next();
+                root.addElement("property").addAttribute("name", entry.getKey().toString()).setText(entry.getValue().toString());
+            }
+
+            fos = new FileOutputStream(file);
+            (new XMLWriter(fos,OutputFormat.createPrettyPrint())).write(document);
+            fos.flush();fos.close();fos=null;
+        } catch (Exception e) {
+            sLog.error("Unable to save info, reason: "+e.getMessage(),e);
+        } finally {
+            try {
+                if (fos!=null) fos.close();
+            } catch (IOException e) {}
         }
     }
     
