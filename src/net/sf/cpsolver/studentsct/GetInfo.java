@@ -13,6 +13,7 @@ import net.sf.cpsolver.ifs.util.CSVFile;
 
 import org.dom4j.Comment;
 import org.dom4j.Document;
+import org.dom4j.Element;
 import org.dom4j.Node;
 import org.dom4j.io.SAXReader;
 
@@ -68,12 +69,49 @@ public class GetInfo {
         }
     }
     
-    public static void getInfo(File folder, Vector infos, String prefix) {
-        File solution = new File(folder, "solution.xml");
-        if (!solution.exists()) return;
+    public static Hashtable getInfo(Element root) {
         try {
-            System.out.println("Reading "+solution+" ...");
-            Document document = (new SAXReader()).read(solution);
+            Hashtable info = new Hashtable();
+            for (Iterator i=root.elementIterator("property");i.hasNext();) {
+                Element property = (Element)i.next();
+                String key = property.attributeValue("name");
+                String value = property.getText();
+                if (key==null || value==null) continue;
+                if (value.indexOf('(')>=0 && value.indexOf(')')>=0) {
+                    value = value.substring(value.indexOf('(')+1, value.indexOf(')'));
+                    if (value.indexOf('/')>=0) value = value.substring(0, value.indexOf('/'));
+                }
+                if (value.length()>0) info.put(key, value);
+                
+            }
+            return info;
+        } catch (Exception e) {
+            System.err.println("Error reading info, message: "+e.getMessage());
+            return null;
+        }
+    }
+    
+    
+    public static void getInfo(File folder, Vector infos, String prefix) {
+        File infoFile = new File(folder, "info.xml");
+        if (infoFile.exists()) {
+            System.out.println("Reading "+infoFile+" ...");
+            try {
+                Document document = (new SAXReader()).read(infoFile);
+                Hashtable info = getInfo(document.getRootElement());
+                if (info!=null && !info.isEmpty()) {
+                    infos.addElement(new Object[]{prefix,info});
+                    return;
+                }
+            } catch (Exception e) {
+                System.err.println("Error reading file "+infoFile+", message: "+e.getMessage());
+            }
+        }
+        File solutionFile = new File(folder, "solution.xml");
+        if (!solutionFile.exists()) return;
+        try {
+            System.out.println("Reading "+solutionFile+" ...");
+            Document document = (new SAXReader()).read(solutionFile);
             for (Iterator i=document.nodeIterator();i.hasNext();) {
                 Node node = (Node)i.next();
                 if (node instanceof Comment) {
@@ -85,7 +123,7 @@ public class GetInfo {
                 }
             }
         } catch (Exception e) {
-            System.err.println("Error reading file "+solution+", message: "+e.getMessage());
+            System.err.println("Error reading file "+solutionFile+", message: "+e.getMessage());
         }
     }
     
