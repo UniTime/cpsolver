@@ -7,6 +7,7 @@ import net.sf.cpsolver.studentsct.heuristics.selection.BacktrackSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.RandomUnassignmentSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.ResectionIncompleteStudentsSelection;
+import net.sf.cpsolver.studentsct.heuristics.selection.ResectionUnassignedStudentsSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.RndUnProblStudSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.StandardSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.SwapStudentSelection;
@@ -23,8 +24,12 @@ import net.sf.cpsolver.studentsct.heuristics.selection.SwapStudentSelection;
  * ({@link SwapStudentSelection} is used)
  * <li>Phase 6: random unassignment of some problematic students ({@link RndUnProblStudSelection} is used)
  * <li>Phase 7: resection incomplete students ({@link ResectionIncompleteStudentsSelection} is used)
- * <li>Phase 8: use standard value selection for some time ({@link StandardSelection} with {@link RouletteWheelRequestSelection} is used)
- * <li>Phase 9: random unassignment of some students ({@link RandomUnassignmentSelection} is used)
+ * <li>Phase 8: resection of students that were unassigned in step 6 ({@link ResectionUnassignedStudentsSelection} is used)
+ * <li>Phase 9: pick a student (one by one) with an incomplete schedule, try to find an improvement ({@link SwapStudentSelection} is used)
+ * <li>Phase 10: use standard value selection for some time ({@link StandardSelection} with {@link RouletteWheelRequestSelection} is used)
+ * <li>Phase 11: pick a student (one by one) with an incomplete schedule, try to find an improvement ({@link SwapStudentSelection} is used)
+ * <li>Phase 12: use backtrack neighbour selection ({@link BacktrackSelection} is used)
+ * <li>Phase 13: random unassignment of some students ({@link RandomUnassignmentSelection} is used)
  * </ul>
  * 
  * <br><br>
@@ -83,11 +88,23 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection {
         
         //Phase 7: resection incomplete students 
         registerSelection(new ResectionIncompleteStudentsSelection(solver.getProperties()));
+        
+        //Phase 8: resection of students that were unassigned in step 6
+        registerSelection(new ResectionUnassignedStudentsSelection(solver.getProperties()));
            
-        //Phase 8: use standard value selection for some time
+        //Phase 9: pick a student (one by one) with an incomplete schedule, try to find an improvement
+        registerSelection(new SwapStudentSelection(solver.getProperties()));
+
+        //Phase 10: use standard value selection for some time
         registerSelection(new StandardSelection(solver.getProperties(), new RouletteWheelRequestSelection(solver.getProperties()), getValueSelection()));
         
-        //Phase 9: random unassignment of some students
+        //Phase 11: pick a student (one by one) with an incomplete schedule, try to find an improvement
+        registerSelection(new SwapStudentSelection(solver.getProperties()));
+        
+        //Phase 12: use backtrack neighbour selection
+        registerSelection(new BacktrackSelection(solver.getProperties()));
+
+        //Phase 13: random unassignment of some students
         registerSelection(new RandomUnassignmentSelection(solver.getProperties()));
     }
     
