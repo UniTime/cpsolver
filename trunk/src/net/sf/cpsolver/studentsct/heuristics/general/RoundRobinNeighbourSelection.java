@@ -46,7 +46,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  */
 
 public class RoundRobinNeighbourSelection extends StandardNeighbourSelection {
-    private static Logger sLog = Logger.getLogger(RoundRobinNeighbourSelection.class);
+    private static Logger sLogger = Logger.getLogger(RoundRobinNeighbourSelection.class);
     private int iSelectionIdx = -1;
     private Vector iSelections = new Vector();
     private Solver iSolver = null;
