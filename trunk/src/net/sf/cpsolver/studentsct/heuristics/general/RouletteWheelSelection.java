@@ -35,7 +35,7 @@ import net.sf.cpsolver.ifs.util.ToolBox;
 
 public class RouletteWheelSelection implements Enumeration {
     private Vector iAdepts = new Vector(), iPoints = new Vector();
-    private double iTotalPoints = 0;
+    private double iTotalPoints = 0, iUsedPoints = 0;
     private int iFirst = 0;
     
     /** 
@@ -79,7 +79,9 @@ public class RouletteWheelSelection implements Enumeration {
         }
         
         Object selectedObject = iAdepts.elementAt(iIdx);
-        iTotalPoints -= ((Double)iPoints.elementAt(iIdx)).doubleValue();
+        double points = ((Double)iPoints.elementAt(iIdx)).doubleValue();
+        iTotalPoints -= points;
+        iUsedPoints += points;
         swap(iFirst, iIdx);
         iFirst++;
         
@@ -89,5 +91,20 @@ public class RouletteWheelSelection implements Enumeration {
     /** Number of objects in the set */
     public int size() {
         return iAdepts.size();
+    }
+    
+    /** Total value of objects that were already returned by the selection. */
+    public double getUsedPoints() {
+        return iUsedPoints;
+    }
+    
+    /** Total value of objects that are still in the selection. */
+    public double getRemainingPoints() {
+        return iTotalPoints;
+    }
+
+    /** Total value of objects that were added into the selection. */
+    public double getTotalPoints() {
+        return iTotalPoints+iUsedPoints;
     }
 }
