@@ -1,7 +1,5 @@
 package net.sf.cpsolver.studentsct.heuristics.selection;
 
-import java.util.Enumeration;
-
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.heuristics.ValueSelection;
 import net.sf.cpsolver.ifs.heuristics.VariableSelection;
@@ -24,7 +22,7 @@ import net.sf.cpsolver.studentsct.model.Request;
  * Parameters:
  * <br>
  * <table border='1'><tr><th>Parameter</th><th>Type</th><th>Comment</th></tr>
- * <tr><td>Neighbour.StandardIterations</td><td>{@link Long}</td><td>Number of iterations to perform.</td></tr>
+ * <tr><td>Neighbour.StandardIterations</td><td>{@link Long}</td><td>Number of iterations to perform. If -1, number of iterations is set to the number of unassigned variables.</td></tr>
  * </table>
  * <br><br>
  * 
@@ -53,7 +51,7 @@ public class StandardSelection implements NeighbourSelection {
     private long iIteration = 0;
     private ValueSelection iValueSelection = null;
     private VariableSelection iVariableSelection = null;
-    protected long iNrIterations = 10000;
+    protected long iNrIterations = -1;
     
     /**
      * Constructor (variable and value selection are expected to be already initialized). 
@@ -64,12 +62,12 @@ public class StandardSelection implements NeighbourSelection {
     public StandardSelection(DataProperties properties, VariableSelection variableSelection, ValueSelection valueSelection) {
         iVariableSelection = variableSelection;
         iValueSelection = valueSelection;
-        iNrIterations = properties.getPropertyLong("Neighbour.StandardIterations", iNrIterations);
     }
     
     /** Initialization */
     public void init(Solver solver) {
         iIteration = solver.currentSolution().getIteration();
+        iNrIterations = solver.getProperties().getPropertyLong("Neighbour.StandardIterations", -1);
     }
     
     /**
@@ -79,20 +77,13 @@ public class StandardSelection implements NeighbourSelection {
      * or when a complete solution is found.
      */
     public Neighbour selectNeighbour(Solution solution) {
+        if (iNrIterations<0) iNrIterations = solution.getModel().unassignedVariables().size();
         if (solution.getModel().unassignedVariables().isEmpty() || solution.getIteration()>=iIteration+iNrIterations) return null;
         for (int i=0;i<10;i++) {
             Request request = (Request)iVariableSelection.selectVariable(solution);
             Enrollment enrollment = (request==null?null:(Enrollment)iValueSelection.selectValue(solution, request));
-            try {
-                if (enrollment!=null && !enrollment.variable().getModel().conflictValues(enrollment).contains(enrollment))
-                    return new SimpleNeighbour(request, enrollment);
-            } catch (NullPointerException x) {
-                sLog.error("Unable to assign "+enrollment+" to "+request+", error: "+x.getMessage(),x);
-                for (Enumeration e=solution.getModel().assignedVariables().elements();e.hasMoreElements();) {
-                    Request r = (Request)e.nextElement();
-                    if (r.getAssignment()==null) sLog.error("Request "+r+" is not assigned.");
-                }
-            }
+            if (enrollment!=null && !enrollment.variable().getModel().conflictValues(enrollment).contains(enrollment))
+                return new SimpleNeighbour(request, enrollment);
         }
         return null;
     }
