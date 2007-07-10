@@ -39,6 +39,7 @@ import net.sf.cpsolver.studentsct.model.Request;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 public class RouletteWheelRequestSelection implements VariableSelection {
+    RouletteWheelSelection iRoulette = null;
     
     /**
      * Constructor
@@ -53,13 +54,12 @@ public class RouletteWheelRequestSelection implements VariableSelection {
         
     }
     
-    /** 
-     * Variable selection. {@link RouletteWheelSelection} is used.
-     * Unassigned request has 10 points, an assigned request has 1 point for
-     * each section that exceeds its bound. 
-     */
-    public Variable selectVariable(Solution solution) {
-        RouletteWheelSelection roulette = new RouletteWheelSelection();
+    /** Populate roulette wheel selection, if null or empty. */
+    protected RouletteWheelSelection getRoulette(Solution solution) {
+        if (iRoulette!=null && iRoulette.hasMoreElements()) {
+            if (iRoulette.getUsedPoints()<0.1*iRoulette.getTotalPoints()) return iRoulette;
+        }
+        iRoulette = new RouletteWheelSelection();
         for (Enumeration e=solution.getModel().variables().elements();e.hasMoreElements();) {
             Request request = (Request)e.nextElement();
             double points = 0;
@@ -71,8 +71,17 @@ public class RouletteWheelRequestSelection implements VariableSelection {
                     points +=1;
             }
             if (points>0)
-                roulette.add(request, points);
+                iRoulette.add(request, points);
         }
-        return (Variable)roulette.nextElement();
+        return iRoulette;
+    }
+    
+    /** 
+     * Variable selection. {@link RouletteWheelSelection} is used.
+     * Unassigned request has 10 points, an assigned request has 1 point for
+     * each section that exceeds its bound. 
+     */
+    public Variable selectVariable(Solution solution) {
+        return (Variable)getRoulette(solution).nextElement();
     }
 }
