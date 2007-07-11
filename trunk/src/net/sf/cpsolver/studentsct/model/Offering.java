@@ -159,4 +159,8 @@ public class Offering {
         return (max==Double.MIN_VALUE?0.0:max);
     }
     
+    public String toString() {
+        return iName;
+    }
+    
 }
