@@ -465,6 +465,10 @@ public class Test {
     public static double getLastLikeStudentWeight(Course course, int lastLike) {
         int projected = course.getProjected();
         int limit = course.getLimit();
+        if (course.getLimit()<0) {
+            sLog.debug("  -- Course "+course.getName()+" is unlimited.");
+            return 1.0;
+        }
         if (projected<=0) {
             sLog.warn("  -- No projected demand for course "+course.getName()+", using course limit ("+limit+")");
             projected = limit;
