@@ -88,6 +88,11 @@ public class Section implements Assignment, Comparable {
     public int getLimit() {
         return iLimit;
     }
+
+    /** Set section limit */
+    public void setLimit(int limit) {
+        iLimit = limit;
+    }
     
     /** Section name */
     public String getName() {

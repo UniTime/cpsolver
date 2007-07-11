@@ -102,6 +102,11 @@ public class Course {
         return iLimit;
     }
     
+    /** Set course offering limit */
+    public void setLimit(int limit) {
+        iLimit = limit;
+    }
+
     /** Course offering projected number of students */
     public int getProjected() {
         return iProjected;
