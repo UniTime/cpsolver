@@ -58,7 +58,7 @@ public class SectionLimit extends GlobalConstraint {
      * @return request's weight 
      */
     public static double getWeight(Request request) {
-        return Math.min(sMinWeight, Math.max(sMaxWeight, sRatio * request.getWeight())); 
+        return Math.max(sMinWeight, Math.min(sMaxWeight, sRatio * request.getWeight())); 
     }
 
     /**
