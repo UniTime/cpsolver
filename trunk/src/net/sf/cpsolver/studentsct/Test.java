@@ -501,6 +501,7 @@ public class Test {
                 Student student = new Student(Long.parseLong(studentEl.attributeValue("externalId")));
                 student.setDummy(true);
                 int priority = 0;
+                HashSet reqCourses = new HashSet();
                 for (Iterator j=studentEl.elementIterator("studentCourse");j.hasNext();) {
                     Element courseEl = (Element)j.next();
                     String subjectArea = courseEl.attributeValue("subject");
@@ -528,15 +529,19 @@ public class Test {
                     if (course==null) {
                         sLog.warn("Course "+subjectArea+" "+courseNbr+" not found.");
                     } else {
-                        Vector courses = new Vector(1);
-                        courses.add(course);
-                        CourseRequest request = new CourseRequest(reqId++, priority++, false, student, courses, false);
-                        Vector requestsThisCourse = (Vector)requests.get(course);
-                        if (requestsThisCourse==null) {
-                            requestsThisCourse = new Vector();
-                            requests.put(course, requestsThisCourse);
+                        if (!reqCourses.add(course)) {
+                            sLog.warn("Course "+subjectArea+" "+courseNbr+" already requested.");
+                        } else {
+                            Vector courses = new Vector(1);
+                            courses.add(course);
+                            CourseRequest request = new CourseRequest(reqId++, priority++, false, student, courses, false);
+                            Vector requestsThisCourse = (Vector)requests.get(course);
+                            if (requestsThisCourse==null) {
+                                requestsThisCourse = new Vector();
+                                requests.put(course, requestsThisCourse);
+                            }
+                            requestsThisCourse.add(request);
                         }
-                        requestsThisCourse.add(request);
                     }
                 }
                 if (!student.getRequests().isEmpty())
