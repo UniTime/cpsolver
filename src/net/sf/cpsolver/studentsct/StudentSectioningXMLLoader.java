@@ -130,7 +130,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         Hashtable offeringTable = new Hashtable();
         Hashtable courseTable = new Hashtable();
         
-        if (iLoadOfferings) {
+        if (iLoadOfferings && root.element("offerings")!=null) {
             Hashtable subpartTable = new Hashtable();
             Hashtable sectionTable = new Hashtable();
             for (Iterator i=root.element("offerings").elementIterator("offering");i.hasNext();) {
@@ -238,7 +238,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             }
         }
         
-        if (iLoadStudents) {
+        if (iLoadStudents && root.element("students")!=null) {
             Vector bestEnrollments = new Vector();
             Vector currentEnrollments = new Vector();
             for (Iterator i=root.element("students").elementIterator("student");i.hasNext();) {
