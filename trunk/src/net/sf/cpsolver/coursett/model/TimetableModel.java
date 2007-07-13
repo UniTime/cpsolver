@@ -107,6 +107,7 @@ public class TimetableModel extends ConstantModel {
         iStudentDistanceLimit75min = iProperties.getPropertyDouble("Student.DistanceLimit75min",iStudentDistanceLimit75min);
         iCmp = new TimetableComparator(properties);
         iPertCnt = new UniversalPerturbationsCounter(properties);
+        if (properties.getPropertyBoolean("OnFlySectioning.Enabled", false)) addModelListener(new OnFlySectioning(this));
     }
     
     public double getInstructorNoPreferenceLimit() {

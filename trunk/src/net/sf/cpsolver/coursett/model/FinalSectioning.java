@@ -95,6 +95,36 @@ public class FinalSectioning implements Runnable {
             variables = lecturesToRecompute;
         }
 	}
+    
+    /** Perform sectioning on the given lecture
+     * @param lecture given lecture
+     * @param recursive recursively resection lectures affected by a student swap
+     * @param configAsWell resection students between configurations as well
+     **/
+    public void resection(Lecture lecture, boolean recursive, boolean configAsWell) {
+        HashSet variables = new HashSet();
+        findAndPerformMoves(lecture, variables);
+        if (configAsWell) {
+            Configuration cfg = lecture.getConfiguration();
+            if (cfg!=null && cfg.getAltConfigurations().size()>1)
+                findAndPerformMoves(cfg, variables);
+        }
+        if (recursive) {
+            while (!variables.isEmpty()) {
+                HashSet lecturesToRecompute = new HashSet();
+                for (Iterator i=variables.iterator();i.hasNext();) {
+                    Lecture l = (Lecture)i.next();
+                    if (configAsWell && l.getParent()==null) {
+                        Configuration cfg = l.getConfiguration();
+                        if (cfg!=null && cfg.getAltConfigurations().size()>1)
+                            findAndPerformMoves(cfg, lecturesToRecompute);
+                    }
+                    findAndPerformMoves(l,lecturesToRecompute);
+                }
+                variables = lecturesToRecompute;
+            }
+        }
+    }
 	
     /** Swap students between this and the same lectures (lectures which differ only in the section) */
     public void findAndPerformMoves(Lecture lecture, HashSet lecturesToRecompute) {
