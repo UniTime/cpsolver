@@ -197,6 +197,58 @@ public class CourseLimitCheck {
                     }
                 }
             }
+            
+            if (offeringLimit>=0) {
+                int totalSectionLimit = 0;
+                for (Enumeration f=offering.getConfigs().elements();f.hasMoreElements();) {
+                    Config config = (Config)f.nextElement();
+                    int configLimit = -1;
+                    for (Enumeration g=config.getSubparts().elements();g.hasMoreElements();) {
+                        Subpart subpart = (Subpart)g.nextElement();
+                        int subpartLimit = 0;
+                        for (Enumeration h=subpart.getSections().elements();h.hasMoreElements();) {
+                            Section section = (Section)h.nextElement();
+                            subpartLimit += section.getLimit();
+                        }
+                        if (configLimit<0)
+                            configLimit = subpartLimit;
+                        else
+                            configLimit = Math.min(configLimit, subpartLimit);
+                    }
+                    totalSectionLimit += configLimit;
+                }
+                if (totalSectionLimit<offeringLimit) {
+                    sLog.error("Offering limit of "+offering+" is "+offeringLimit+", but total section limit is only "+totalSectionLimit);
+                    if (iUpZeroLimits && totalSectionLimit==0) {
+                        for (Enumeration f=offering.getConfigs().elements();f.hasMoreElements();) {
+                            Config config = (Config)f.nextElement();
+                            for (Enumeration g=config.getSubparts().elements();g.hasMoreElements();) {
+                                Subpart subpart = (Subpart)g.nextElement();
+                                for (Enumeration h=subpart.getSections().elements();h.hasMoreElements();) {
+                                    Section section = (Section)h.nextElement();
+                                    int oldLimit = section.getLimit();
+                                    section.setLimit(Math.max(section.getLimit(), (int)Math.ceil(offeringLimit/subpart.getSections().size())));
+                                    sLog.info("    -- limit of section "+section+" increased to "+section.getLimit()+" (was "+oldLimit+")");
+                                }
+                            }
+                        }
+                    } else if (iUpNonZeroLimits && totalSectionLimit>0) {
+                        double fact = ((double)offeringLimit)/totalSectionLimit;
+                        for (Enumeration f=offering.getConfigs().elements();f.hasMoreElements();) {
+                            Config config = (Config)f.nextElement();
+                            for (Enumeration g=config.getSubparts().elements();g.hasMoreElements();) {
+                                Subpart subpart = (Subpart)g.nextElement();
+                                for (Enumeration h=subpart.getSections().elements();h.hasMoreElements();) {
+                                    Section section = (Section)h.nextElement();
+                                    int oldLimit = section.getLimit();
+                                    section.setLimit((int)Math.ceil(fact*section.getLimit()));
+                                    sLog.info("    -- limit of section "+section+" increased to "+section.getLimit()+" (was "+oldLimit+")");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
         return ret;
     }
