@@ -36,6 +36,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.JProf;
 import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.check.CourseLimitCheck;
+import net.sf.cpsolver.studentsct.check.InevitableStudentConflicts;
 import net.sf.cpsolver.studentsct.check.OverlapCheck;
 import net.sf.cpsolver.studentsct.check.SectionLimitCheck;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
@@ -153,7 +154,10 @@ public class Test {
         
         Solution solution = solveModel(model, cfg);
         
-        printInfo(solution, true, true, true);
+        printInfo(solution,
+                cfg.getPropertyBoolean("Test.CreateReports", true),
+                cfg.getPropertyBoolean("Test.ComputeSectioningInfo", true),
+                cfg.getPropertyBoolean("Test.RunChecks", true));
         
         try {
             Solver solver = new Solver(cfg);
@@ -232,7 +236,10 @@ public class Test {
             maxPenalty += getMaxPenaltyOfAssignedCourseRequests(student);
         }
         
-        printInfo(solution, true, false, true);
+        printInfo(solution, 
+                cfg.getPropertyBoolean("Test.CreateReports", true),
+                false,
+                cfg.getPropertyBoolean("Test.RunChecks", true));
         
         sLog.info("Overall penalty is "+totalPenalty+" ("+getPerc(totalPenalty, minPenalty, maxPenalty)+")");
         
@@ -327,6 +334,14 @@ public class Test {
             model.computeOnlineSectioningInfos();
         
         if (runChecks) {
+            try {
+                if (model.getProperties().getPropertyBoolean("Test.InevitableStudentConflictsCheck", false)) {
+                    InevitableStudentConflicts ch = new InevitableStudentConflicts(model);
+                    if (!ch.check()) ch.getCSVFile().save(new File(new File(model.getProperties().getProperty("General.Output",".")), "inevitable-conflicts.csv"));
+                }
+            } catch (IOException e) {
+                sLog.error(e.getMessage(),e);
+            }
             new OverlapCheck(model).check();
             new SectionLimitCheck(model).check();
             try {
