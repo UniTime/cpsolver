@@ -195,7 +195,7 @@ public class BranchBoundSelection implements NeighbourSelection {
                     if (!r.isAlternative())
                         bound ++;
                     else if (alt>0) {
-                        bound ++;
+                        bound ++; alt--;
                     }
                 }
             }
