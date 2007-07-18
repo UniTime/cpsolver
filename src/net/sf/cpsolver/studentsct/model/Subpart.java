@@ -136,4 +136,14 @@ public class Subpart implements Comparable {
         }
         return (max==Double.MIN_VALUE?0.0:max);
     }
+    
+    /** Return children subparts*/
+    public Vector getChildren() {
+        Vector ret = new Vector(getConfig().getSubparts().size());
+        for (Enumeration e=getConfig().getSubparts().elements();e.hasMoreElements();) {
+            Subpart s = (Subpart)e.nextElement();
+            if (this.equals(s.getParent())) ret.add(s);
+        }
+        return ret;
+    }
 }
