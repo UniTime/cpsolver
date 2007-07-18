@@ -5,10 +5,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.Vector;
 
+import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.constraint.SectionLimit;
 
 /**
@@ -108,7 +110,24 @@ public class CourseRequest extends Request {
         }
         return ret;
     }
-
+    
+    /** Return true if the both sets of sections contain sections of the same subparts, and each pair of sections of the same subpart is offered at the same time. */ 
+    private boolean sameTimes(Set sections1, Set sections2) {
+        for (Iterator i1=sections1.iterator();i1.hasNext();) {
+            Section s1 = (Section)i1.next();
+            Section s2 = null;
+            for (Iterator i2=sections2.iterator();i2.hasNext();) {
+                Section s = (Section)i2.next();
+                if (s.getSubpart().equals(s1.getSubpart())) {
+                    s2 = s; break;
+                }
+            }
+            if (s2==null) return false;
+            if (!ToolBox.equals(s1.getTime(), s2.getTime())) return false;
+        }
+        return true;
+    }
+    
     /**
      * Recursive computation of enrollments 
      * @param enrollments list of enrollments to be returned
@@ -126,6 +145,21 @@ public class CourseRequest extends Request {
     private void computeEnrollments(Collection enrollments, double value, double penalty, Config config, HashSet sections, int idx, boolean avaiableOnly, boolean skipSameTime, boolean selectedOnly, boolean random, int limit) {
         if (limit>0 && enrollments.size()>=limit) return;
         if (config.getSubparts().size()==idx) {
+            if (skipSameTime) {
+                boolean waitListedOrSelected = false;
+                if (!getSelectedChoices().isEmpty() || !getWaitlistedChoices().isEmpty()) { 
+                    for (Iterator i=sections.iterator();i.hasNext();) {
+                        Section section = (Section)i.next();
+                        if (isWaitlisted(section) || isSelected(section)) { waitListedOrSelected = true; break; }
+                    }
+                }
+                if (!waitListedOrSelected) {
+                    for (Iterator i=enrollments.iterator();i.hasNext();) {
+                        Enrollment enrollment = (Enrollment)i.next();
+                        if (sameTimes(enrollment.getAssignments(), sections)) return; 
+                    }
+                }
+            }
             enrollments.add(new Enrollment(this, value, config, new HashSet(sections)));
         } else {
             Subpart subpart = (Subpart)config.getSubparts().elementAt(idx);
@@ -138,13 +172,14 @@ public class CourseRequest extends Request {
                 sectionsThisSubpart = new Vector(subpart.getSections());
                 Collections.sort(sectionsThisSubpart);
             }
+            boolean hasChildren = !subpart.getChildren().isEmpty();
             for (Enumeration e=sectionsThisSubpart.elements();e.hasMoreElements();) {
                 Section section = (Section)e.nextElement();
                 if (section.getParent()!=null && !sections.contains(section.getParent())) continue;
                 if (section.isOverlapping(sections)) continue;
                 if (avaiableOnly && section.getLimit()>=0 && section.getEnrollmentWeight(this)+SectionLimit.getWeight(this)>section.getLimit()) continue;
                 if (selectedOnly && !isSelected(section)) continue;
-                if (skipSameTime && section.getTime()!=null && !times.add(section.getTime()) && !isSelected(section) && !isWaitlisted(section)) continue;
+                if (skipSameTime && section.getTime()!=null && !hasChildren && !times.add(section.getTime()) && !isSelected(section) && !isWaitlisted(section)) continue;
                 sections.add(section);
                 computeEnrollments(enrollments, value, penalty+section.getPenalty(), config, sections, idx+1, avaiableOnly, skipSameTime, selectedOnly, random, limit);
                 sections.remove(section);
@@ -199,6 +234,23 @@ public class CourseRequest extends Request {
         }
         return avaiableEnrollmentsSkipSameTime;
     }
+    
+    /** 
+     * Return all possible enrollments.
+     */
+    public Vector getEnrollmentsSkipSameTime() {
+        Vector ret = new Vector();
+        int idx = 0;
+        for (Enumeration e=iCourses.elements();e.hasMoreElements();idx++) {
+            Course course = (Course)e.nextElement();
+            for (Enumeration f=course.getOffering().getConfigs().elements();f.hasMoreElements();) {
+                Config config = (Config)f.nextElement();
+                computeEnrollments(ret, Math.pow(sAltValue, idx), 0, config, new HashSet(), 0, false, true, false, false, -1);
+            }
+        }
+        return ret;
+    }
+    
     
     /** Wait-listed choices */
     public Set getWaitlistedChoices() {
