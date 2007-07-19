@@ -184,7 +184,7 @@ public class InevitableStudentConflicts {
                 if (x instanceof Course) {
                     Course course = (Course)x;
                     Vector courses = new Vector(1); courses.add(course);
-                    CourseRequest cr = new CourseRequest(0, 0, false, null, courses, false);
+                    CourseRequest cr = new CourseRequest(-1, 0, false, new Student(-1), courses, false);
                     String field = course.getName();
                     for (Iterator k=cr.getEnrollmentsSkipSameTime().iterator();k.hasNext();) {
                         field += "\n  "+enrollment2string((Enrollment)k.next());
