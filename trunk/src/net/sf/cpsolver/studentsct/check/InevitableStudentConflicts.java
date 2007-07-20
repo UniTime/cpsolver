@@ -95,6 +95,8 @@ public class InevitableStudentConflicts {
         long studentWithoutCompleteSchedule = 0;
         long inevitableRequests = 0;
         double inevitableRequestWeight = 0.0;
+        long incompleteInevitableRequests = 0;
+        double incompleteInevitableRequestWeight = 0.0;
         long total = 0;
         Comparator simpleCmp = new Comparator() {
             public int compare(Object o1, Object o2) {
@@ -115,15 +117,16 @@ public class InevitableStudentConflicts {
             } else {
                 StudentCheck ch = new StudentCheck(student.getRequests());
                 ch.check();
-                if (!ch.isBestComplete())
+                if (!ch.isBestComplete()) {
                     sLog.info("    Student "+student+" cannot have a complete schedule");
+                    studentWithoutCompleteSchedule++;
+                }
                 int idx = 0;
                 for (Enumeration f=student.getRequests().elements();f.hasMoreElements();idx++) {
                     Request request = (Request)f.nextElement();
                     Enrollment enrollment = ch.getBestAssignment()[idx];
                     if (enrollment==null) {
                         if (!ch.isBestComplete()) {
-                            studentWithoutCompleteSchedule++;
                             Vector noGood = noGood(student,ch,idx);
                             sLog.info("      Request "+request+" cannot be assigned");
                             for (Enumeration g=noGood.elements();g.hasMoreElements();) {
@@ -153,6 +156,10 @@ public class InevitableStudentConflicts {
                             int ir = (counter==null?1:((Integer)counter[0]).intValue()+1);
                             double irw = (counter==null?0.0:((Double)counter[1]).doubleValue())+request.getWeight();
                             noGoods.put(key, new Object[]{new Integer(ir), new Double(irw)});
+                            if (ch.canAssign(request, idx)) {
+                                incompleteInevitableRequests++;
+                                incompleteInevitableRequestWeight+=request.getWeight();
+                            }
                         }
                         inevitableRequests++;
                         inevitableRequestWeight+=request.getWeight();
@@ -186,8 +193,13 @@ public class InevitableStudentConflicts {
                     Vector courses = new Vector(1); courses.add(course);
                     CourseRequest cr = new CourseRequest(-1, 0, false, new Student(-1), courses, false);
                     String field = course.getName();
+                    int idx = 0;
                     for (Iterator k=cr.getEnrollmentsSkipSameTime().iterator();k.hasNext();) {
-                        field += "\n  "+enrollment2string((Enrollment)k.next());
+                        if (idx++>20) {
+                            field += "\n ..."; break;
+                        } else { 
+                            field += "\n  "+enrollment2string((Enrollment)k.next());
+                        }
                     }
                     fields.add(new CSVFile.CSVField(field));
                 } else
@@ -198,6 +210,8 @@ public class InevitableStudentConflicts {
         sLog.info("Students that can never obtain a complete schedule: "+studentWithoutCompleteSchedule);
         sLog.info("Inevitable student requests: "+inevitableRequests);
         sLog.info("Inevitable student request weight: "+inevitableRequestWeight);
+        sLog.info("Inevitable student requests of students without a complete schedule: "+incompleteInevitableRequests);
+        sLog.info("Inevitable student request weight of students without a complete schedule: "+incompleteInevitableRequestWeight);
         return (inevitableRequests==0);
     }
     
@@ -261,10 +275,10 @@ public class InevitableStudentConflicts {
         
         /**
          * Constructor
-         * @param student selected student
+         * @param requests course and free time requests of a student
          */
-        public StudentCheck(Vector requqests) {
-            iRequests = requqests;
+        public StudentCheck(Vector requests) {
+            iRequests = requests;
         }
         
         /**
