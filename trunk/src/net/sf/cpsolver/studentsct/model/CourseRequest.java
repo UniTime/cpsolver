@@ -47,6 +47,7 @@ public class CourseRequest extends Request {
     private Double iCachedBound = null, iCachedMinPenalty = null, iCachedMaxPenalty = null;
     /** Enrollment value: value * sAltValue ^ index, where index is zero for the first course, one for the second course etc. */
     public static double sAltValue = 0.5;
+    public static boolean sSameTimePrecise = false;
     
     /** Constructor
      * @param id request unique id
@@ -145,7 +146,7 @@ public class CourseRequest extends Request {
     private void computeEnrollments(Collection enrollments, double value, double penalty, Config config, HashSet sections, int idx, boolean avaiableOnly, boolean skipSameTime, boolean selectedOnly, boolean random, int limit) {
         if (limit>0 && enrollments.size()>=limit) return;
         if (config.getSubparts().size()==idx) {
-            if (skipSameTime) {
+            if (skipSameTime && sSameTimePrecise) {
                 boolean waitListedOrSelected = false;
                 if (!getSelectedChoices().isEmpty() || !getWaitlistedChoices().isEmpty()) { 
                     for (Iterator i=sections.iterator();i.hasNext();) {
