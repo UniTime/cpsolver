@@ -3,6 +3,7 @@ package net.sf.cpsolver.studentsct.check;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
@@ -33,6 +34,16 @@ import net.sf.cpsolver.studentsct.model.Student;
  * </code>
  * 
  * <br><br>
+ * Parameters:
+ * <table border='1'><tr><th>Parameter</th><th>Type</th><th>Comment</th></tr>
+ * <tr><td>InevitableStudentConflicts.DeleteInevitable</td><td>{@link Boolean}</td><td>
+ *   If true, for each no-good (the smallest set of requests of the same student that cannot be 
+ *   assigned at the same time), the problematic request (i.e., the request that was not 
+ *   assigned by {@link StudentCheck}) is removed from the model.
+ * </td></tr>
+ * </table>
+ * 
+ * <br><br>
  * 
  * @version
  * StudentSct 1.1 (Student Sectioning)<br>
@@ -59,6 +70,7 @@ public class InevitableStudentConflicts {
     private StudentSectioningModel iModel;
     private CSVFile iCSVFile = null;
     public static boolean sDebug = false;
+    private boolean iDeleteInevitable;
     
     /** Constructor
      * @param model student sectioning model
@@ -76,6 +88,7 @@ public class InevitableStudentConflicts {
                 new CSVFile.CSVField("4. Course"),
                 new CSVFile.CSVField("5. Course")
         });
+        iDeleteInevitable = model.getProperties().getPropertyBoolean("InevitableStudentConflicts.DeleteInevitable", false);
     }
     
     /** Return student sectioning model */
@@ -103,6 +116,7 @@ public class InevitableStudentConflicts {
                 return o1.toString().compareTo(o2.toString());
             }
         };
+        HashSet requests2remove = new HashSet();
         for (Enumeration e=getModel().getStudents().elements();e.hasMoreElements();) {
             Student student = (Student)e.nextElement();
             sLog.debug("  Checking "+(++total)+". student "+student+"...");
@@ -142,6 +156,10 @@ public class InevitableStudentConflicts {
                                     Enrollment en = (Enrollment)i.next();
                                     sLog.debug("          "+enrollment2string(en));
                                 }
+                            }
+                            if (iDeleteInevitable) {
+                                requests2remove.add(request); //noGood.lastElement()
+                                sLog.info("        -- request "+request+" picked to be removed from the model");
                             }
                             TreeSet key = new TreeSet(simpleCmp);
                             for (Enumeration g=noGood.elements();g.hasMoreElements();) {
@@ -207,12 +225,31 @@ public class InevitableStudentConflicts {
             }
             iCSVFile.addLine(fields);
         }
+        if (!requests2remove.isEmpty()) {
+            for (Iterator i=requests2remove.iterator();i.hasNext();) {
+                Request request = (Request)i.next();
+                removeRequest(request);
+            }
+        }
         sLog.info("Students that can never obtain a complete schedule: "+studentWithoutCompleteSchedule);
         sLog.info("Inevitable student requests: "+inevitableRequests);
         sLog.info("Inevitable student request weight: "+inevitableRequestWeight);
         sLog.info("Inevitable student requests of students without a complete schedule: "+incompleteInevitableRequests);
         sLog.info("Inevitable student request weight of students without a complete schedule: "+incompleteInevitableRequestWeight);
         return (inevitableRequests==0);
+    }
+    
+    /** Remove given request from the model */
+    private void removeRequest(Request request) {
+        request.getStudent().getRequests().remove(request);
+        for (Enumeration e=request.getStudent().getRequests().elements();e.hasMoreElements();) {
+            Request r = (Request)e.nextElement();
+            if (r.getPriority()>request.getPriority())
+                r.setPriority(r.getPriority()-1);
+        }
+        iModel.removeVariable(request);
+        if (request.getStudent().getRequests().isEmpty())
+            iModel.getStudents().remove(request.getStudent());
     }
     
     /** Convert given enrollment to a string (comma separated list of subpart names and time assignments only) */
