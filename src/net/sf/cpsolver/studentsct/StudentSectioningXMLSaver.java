@@ -47,6 +47,7 @@ import net.sf.cpsolver.studentsct.model.Subpart;
  * <tr><td>Xml.SaveInitial</td><td>{@link Boolean}</td><td>If true, initial solution is saved.</td></tr>
  * <tr><td>Xml.SaveCurrent</td><td>{@link Boolean}</td><td>If true, current solution is saved.</td></tr>
  * <tr><td>Xml.SaveOnlineSectioningInfo</td><td>{@link Boolean}</td><td>If true, save online sectioning info (i.e., expected and held space of each section)</td></tr>
+ * <tr><td>Xml.SaveStudentInfo</td><td>{@link Boolean}</td><td>If true, save student information (i.e., academic area classification, major, minor)</td></tr>
  * </table>
  * <br><br>
  * Usage:<br>
@@ -86,6 +87,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
     private boolean iSaveInitial = false;
     private boolean iSaveCurrent = false;
     private boolean iSaveOnlineSectioningInfo = false;
+    private boolean iSaveStudentInfo = true;
     
     private boolean iConvertIds = false;
     private boolean iShowNames = false;
@@ -101,6 +103,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         iSaveInitial = getModel().getProperties().getPropertyBoolean("Xml.SaveInitial", true);
         iSaveCurrent = getModel().getProperties().getPropertyBoolean("Xml.SaveCurrent", false);
         iSaveOnlineSectioningInfo = getModel().getProperties().getPropertyBoolean("Xml.SaveOnlineSectioningInfo", true);
+        iSaveStudentInfo = getModel().getProperties().getPropertyBoolean("Xml.SaveStudentInfo", true);
         iShowNames = getModel().getProperties().getPropertyBoolean("Xml.ShowNames",true);
         iConvertIds = getModel().getProperties().getPropertyBoolean("Xml.ConvertIds",false);
     }
@@ -263,29 +266,31 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
             studentEl.addAttribute("id", getId("student", student.getId()));
             if (student.isDummy())
                 studentEl.addAttribute("dummy", "true");
-            for (Enumeration f=student.getAcademicAreaClasiffications().elements();f.hasMoreElements();) {
-                AcademicAreaCode aac = (AcademicAreaCode)f.nextElement();
-                Element aacEl = studentEl.addElement("classification");
-                if (aac.getArea()!=null)
-                    aacEl.addAttribute("area", aac.getArea());
-                if (aac.getCode()!=null)
-                    aacEl.addAttribute("code", aac.getCode());
-            }
-            for (Enumeration f=student.getMajors().elements();f.hasMoreElements();) {
-                AcademicAreaCode aac = (AcademicAreaCode)f.nextElement();
-                Element aacEl = studentEl.addElement("major");
-                if (aac.getArea()!=null)
-                    aacEl.addAttribute("area", aac.getArea());
-                if (aac.getCode()!=null)
-                    aacEl.addAttribute("code", aac.getCode());
-            }
-            for (Enumeration f=student.getMinors().elements();f.hasMoreElements();) {
-                AcademicAreaCode aac = (AcademicAreaCode)f.nextElement();
-                Element aacEl = studentEl.addElement("minor");
-                if (aac.getArea()!=null)
-                    aacEl.addAttribute("area", aac.getArea());
-                if (aac.getCode()!=null)
-                    aacEl.addAttribute("code", aac.getCode());
+            if (iSaveStudentInfo) {
+                for (Enumeration f=student.getAcademicAreaClasiffications().elements();f.hasMoreElements();) {
+                    AcademicAreaCode aac = (AcademicAreaCode)f.nextElement();
+                    Element aacEl = studentEl.addElement("classification");
+                    if (aac.getArea()!=null)
+                        aacEl.addAttribute("area", aac.getArea());
+                    if (aac.getCode()!=null)
+                        aacEl.addAttribute("code", aac.getCode());
+                }
+                for (Enumeration f=student.getMajors().elements();f.hasMoreElements();) {
+                    AcademicAreaCode aac = (AcademicAreaCode)f.nextElement();
+                    Element aacEl = studentEl.addElement("major");
+                    if (aac.getArea()!=null)
+                        aacEl.addAttribute("area", aac.getArea());
+                    if (aac.getCode()!=null)
+                        aacEl.addAttribute("code", aac.getCode());
+                }
+                for (Enumeration f=student.getMinors().elements();f.hasMoreElements();) {
+                    AcademicAreaCode aac = (AcademicAreaCode)f.nextElement();
+                    Element aacEl = studentEl.addElement("minor");
+                    if (aac.getArea()!=null)
+                        aacEl.addAttribute("area", aac.getArea());
+                    if (aac.getCode()!=null)
+                        aacEl.addAttribute("code", aac.getCode());
+                }
             }
             for (Enumeration f=student.getRequests().elements();f.hasMoreElements();) {
                 Request request = (Request)f.nextElement();
