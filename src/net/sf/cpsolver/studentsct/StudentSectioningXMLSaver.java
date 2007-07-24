@@ -148,7 +148,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         
         if ((iSaveCurrent || iSaveBest) && !getModel().assignedVariables().isEmpty()) {
             StringBuffer comments = new StringBuffer("Solution Info:\n");
-            Dictionary solutionInfo=(getSolution()==null?getModel().getInfo():getSolution().getInfo());
+            Dictionary solutionInfo=(getSolution()==null?getModel().getExtendedInfo():getSolution().getExtendedInfo());
             for (Enumeration e=ToolBox.sortEnumeration(solutionInfo.keys());e.hasMoreElements();) {
                 String key = (String)e.nextElement();
                 Object value = solutionInfo.get(key);
