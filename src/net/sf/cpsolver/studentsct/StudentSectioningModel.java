@@ -301,4 +301,113 @@ public class StudentSectioningModel extends Model {
         return totalRequests / totalStudents;
     }
     
+    /** Number of last like ({@link Student#isDummy()} equals true) students. */
+    public int getNrLastLikeStudents() {
+        int nrLastLikeStudents = 0;
+        for (Enumeration e=getStudents().elements();e.hasMoreElements();) {
+            Student student = (Student)e.nextElement();
+            if (student.isDummy()) nrLastLikeStudents++;
+        }
+        return nrLastLikeStudents;
+    }
+    
+    /** Number of real ({@link Student#isDummy()} equals false) students. */
+    public int getNrRealStudents() {
+        int nrRealStudents = 0;
+        for (Enumeration e=getStudents().elements();e.hasMoreElements();) {
+            Student student = (Student)e.nextElement();
+            if (!student.isDummy()) nrRealStudents++;
+        }
+        return nrRealStudents;
+    }
+
+    /** Number of last like ({@link Student#isDummy()} equals true) students with a complete schedule ({@link Student#isComplete()} equals true). */
+    public int getNrCompleteLastLikeStudents() {
+        int nrLastLikeStudents = 0;
+        for (Iterator i=getCompleteStudents().iterator();i.hasNext();) {
+            Student student = (Student)i.next();
+            if (student.isDummy()) nrLastLikeStudents++;
+        }
+        return nrLastLikeStudents;
+    }
+    
+    /** Number of real ({@link Student#isDummy()} equals false) students with a complete schedule ({@link Student#isComplete()} equals true). */
+    public int getNrCompleteRealStudents() {
+        int nrRealStudents = 0;
+        for (Iterator i=getCompleteStudents().iterator();i.hasNext();) {
+            Student student = (Student)i.next();
+            if (!student.isDummy()) nrRealStudents++;
+        }
+        return nrRealStudents;
+    }
+
+    /** Number of requests from last-like ({@link Student#isDummy()} equals true) students. */
+    public int getNrLastLikeRequests() {
+        int nrLastLikeRequests = 0;
+        for (Enumeration e=variables().elements();e.hasMoreElements();) {
+            Request request = (Request)e.nextElement();
+            if (request.getStudent().isDummy()) nrLastLikeRequests++;
+        }
+        return nrLastLikeRequests;
+    }
+    
+    /** Number of requests from real ({@link Student#isDummy()} equals false) students. */
+    public int getNrRealRequests() {
+        int nrRealRequests = 0;
+        for (Enumeration e=variables().elements();e.hasMoreElements();) {
+            Request request = (Request)e.nextElement();
+            if (!request.getStudent().isDummy()) nrRealRequests++;
+        }
+        return nrRealRequests;
+    }
+
+    /** Number of requests from last-like ({@link Student#isDummy()} equals true) students that are assigned. */
+    public int getNrAssignedLastLikeRequests() {
+        int nrLastLikeRequests = 0;
+        for (Enumeration e=assignedVariables().elements();e.hasMoreElements();) {
+            Request request = (Request)e.nextElement();
+            if (request.getStudent().isDummy()) nrLastLikeRequests++;
+        }
+        return nrLastLikeRequests;
+    }
+    
+    /** Number of requests from real ({@link Student#isDummy()} equals false) students that are assigned. */
+    public int getNrAssignedRealRequests() {
+        int nrRealRequests = 0;
+        for (Enumeration e=assignedVariables().elements();e.hasMoreElements();) {
+            Request request = (Request)e.nextElement();
+            if (!request.getStudent().isDummy()) nrRealRequests++;
+        }
+        return nrRealRequests;
+    }
+    
+    /**
+     * Model extended info. Some more information (that is more expensive to compute) is added to an ordinary {@link Model#getInfo()}.
+     */
+    public Hashtable getExtendedInfo() {
+        Hashtable info = getInfo();
+        int nrLastLikeStudents = getNrLastLikeStudents();
+        if (nrLastLikeStudents!=0 && nrLastLikeStudents!=getStudents().size()) {
+            int nrRealStudents = getStudents().size() - nrLastLikeStudents;
+            int nrLastLikeCompleteStudents = getNrCompleteLastLikeStudents();
+            int nrRealCompleteStudents = getNrCompleteRealStudents();
+            info.put("Last-like students with complete schedule" ,
+                    sDoubleFormat.format(100.0*nrLastLikeCompleteStudents/nrLastLikeStudents)+"% ("+nrLastLikeCompleteStudents+"/"+nrLastLikeStudents+")");
+            info.put("Real students with complete schedule" ,
+                    sDoubleFormat.format(100.0*nrRealCompleteStudents/nrRealStudents)+"% ("+nrRealCompleteStudents+"/"+nrRealStudents+")");
+            int nrRealRequests = getNrRealRequests();
+            int nrLastLikeRequests = variables().size() - nrRealRequests;
+            int nrRealAssignedRequests = getNrAssignedRealRequests();
+            int nrLastLikeAssignedRequests = assignedVariables().size() - nrRealAssignedRequests;
+            info.put("Last-like assigned requests" ,
+                    sDoubleFormat.format(100.0*nrLastLikeAssignedRequests/nrLastLikeRequests)+"% ("+nrLastLikeAssignedRequests+"/"+nrLastLikeRequests+")");
+            info.put("Real assigned requests" ,
+                    sDoubleFormat.format(100.0*nrLastLikeAssignedRequests/nrRealRequests)+"% ("+nrLastLikeAssignedRequests+"/"+nrRealRequests+")");
+        }
+        info.put("Average unassigned priority", sDoubleFormat.format(avgUnassignPriority()));
+        info.put("Average number of requests", sDoubleFormat.format(avgNrRequests()));
+        info.put("Unassigned request weight", sDoubleFormat.format(getUnassignedRequestWeight())+" / "+sDoubleFormat.format(getTotalRequestWeight()));
+        return info;
+    }
+
 }
