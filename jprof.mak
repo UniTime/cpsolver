@@ -5,7 +5,7 @@ SRC_DIR = src\net\sf\cpsolver\ifs\util
 all: jprof.dll
 
 jprof.dll: $(SRC_DIR)\jprof.cc
-        cl -LD $(INCLUDES) -Tp$(SRC_DIR)\jprof.cc -o $@
+        cl -LD $(INCLUDES) -Tp$(SRC_DIR)\jprof.cc
 
 clean:
 	del *.lib
