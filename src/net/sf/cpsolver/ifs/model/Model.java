@@ -315,6 +315,14 @@ public class Model {
         return ret;
     }
     
+    /**
+     * Extended information about current solution. 
+     * Similar to {@link Model#getInfo()}, but some more information (that is more expensive to compute) might be added.
+     */
+    public java.util.Hashtable getExtendedInfo() {
+        return getInfo();
+    }
+    
     /** Returns information about the current solution. Information from all model listeners and constraints is also included.
      * Only variables from the given set are considered.
      */

@@ -114,7 +114,23 @@ public class Solution {
         return ret;
     }
     
-    /** Solution information. It consits from info from the model which is associated with the solution, 
+    /**
+     * Extended solution information. 
+     * Similar to {@link Solution#getInfo()}, but some more information (that is more expensive to compute) might be added.
+     * Also extended model information is added (see {@link Model#getExtendedInfo()}) into the resultant table. 
+     */
+    public Hashtable getExtendedInfo() {
+        Hashtable ret=getModel().getExtendedInfo();
+        if (getPerturbationsCounter()!=null) getPerturbationsCounter().getInfo(ret,getModel());
+        ret.put("Time",sTimeFormat.format(getTime())+" sec");
+        ret.put("Iteration",String.valueOf(getIteration()));
+        if (getTime()>0) ret.put("Speed",sTimeFormat.format((getIteration())/(double)getTime())+" it/s");
+        for (Enumeration i=iSolutionListeners.elements();i.hasMoreElements();)
+            ((SolutionListener)i.nextElement()).getInfo(this, ret);
+        return ret;
+    }
+    
+    /** Solution information. It consists from info from the model which is associated with the solution, 
      * time, iteration, speed and infos from all solution listeners. Only variables from the given set
      * are included.
      */
