@@ -16,6 +16,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.StringTokenizer;
+import java.util.TreeSet;
 import java.util.Vector;
 
 import org.dom4j.Document;
@@ -364,13 +365,7 @@ public class Test {
         }
 
         sLog.info("Best solution found after "+solution.getBestTime()+" seconds ("+solution.getBestIteration()+" iterations).");
-        sLog.info("Number of assigned variables is "+solution.getModel().assignedVariables().size());
-        sLog.info("Number of students with complete schedule is "+model.nrComplete());
-        sLog.info("Total value of the solution is "+solution.getModel().getTotalValue());
-        sLog.info("Average unassigned priority is "+sDF.format(model.avgUnassignPriority()));
-        sLog.info("Average number of requests is "+sDF.format(model.avgNrRequests()));
-        sLog.info("Unassigned request weight is "+sDF.format(model.getUnassignedRequestWeight())+" / "+sDF.format(model.getTotalRequestWeight()));
-        sLog.info("Info: "+solution.getInfo());
+        sLog.info("Info: "+ToolBox.dict2string(solution.getExtendedInfo(),2));
     }
     
     /** Set online sectioning penalties to all sections of all courses of the given student */
@@ -852,7 +847,15 @@ public class Test {
             document.addComment("Solution Info");
             
             Element root = document.addElement("info");
-            for (Iterator i=solution.getInfo().entrySet().iterator();i.hasNext();) {
+            TreeSet entrySet = new TreeSet(new Comparator() {
+                public int compare(Object o1, Object o2) {
+                    Map.Entry e1 = (Map.Entry)o1;
+                    Map.Entry e2 = (Map.Entry)o2;
+                    return ((Comparable)e1.getKey()).compareTo(e2.getKey());
+                }
+            });
+            entrySet.addAll(solution.getExtendedInfo().entrySet());
+            for (Iterator i=entrySet.iterator();i.hasNext();) {
                 Map.Entry entry = (Map.Entry)i.next();
                 root.addElement("property").addAttribute("name", entry.getKey().toString()).setText(entry.getValue().toString());
             }
