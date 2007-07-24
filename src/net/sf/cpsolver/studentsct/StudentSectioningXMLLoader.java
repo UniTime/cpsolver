@@ -40,7 +40,9 @@ import net.sf.cpsolver.studentsct.model.Subpart;
  * <tr><td>Xml.LoadCurrent</td><td>{@link Boolean}</td><td>If true, load current assignments</td></tr>
  * <tr><td>Xml.LoadOfferings</td><td>{@link Boolean}</td><td>If true, load offerings (and their stucture, i.e., courses, configurations, subparts and sections)</td></tr>
  * <tr><td>Xml.LoadStudents</td><td>{@link Boolean}</td><td>If true, load students (and their requests)</td></tr>
+ * <tr><td>Xml.StudentFilter</td><td>{@link StudentFilter}</td><td>If provided, students are filtered by the given student filter</td></tr>
  * </table>
+ * 
  * <br><br>
  * Usage:<br>
  * <code>
@@ -78,6 +80,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
     private boolean iLoadCurrent = false;
     private boolean iLoadOfferings = true;
     private boolean iLoadStudents = true;
+    private StudentFilter iStudentFilter = null;
     
     /**
      * Constructor
@@ -91,13 +94,38 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         iLoadCurrent = getModel().getProperties().getPropertyBoolean("Xml.LoadCurrent", true);
         iLoadOfferings = getModel().getProperties().getPropertyBoolean("Xml.LoadOfferings", true);
         iLoadStudents = getModel().getProperties().getPropertyBoolean("Xml.LoadStudents", true);
+        if (getModel().getProperties().getProperty("Xml.StudentFilter")!=null) {
+            try {
+                iStudentFilter = (StudentFilter)
+                    Class.forName(getModel().getProperties().getProperty("Xml.StudentFilter")).
+                    getConstructor(new Class[]{}).
+                    newInstance(new Object[]{});
+            } catch (Exception e) {
+                sLogger.error("Unable to create student filter, reason: "+e.getMessage(),e);
+            }
+        }
     }
 
     /** Set input file (e.g., if it is not set by General.Input property) */
     public void setInputFile(File inputFile) {
         iInputFile=inputFile;
     }
+    
+    /** Set student filter */
+    public void setStudentFilter(StudentFilter filter) {
+        iStudentFilter = filter;
+    }
+
+    /** Set whether to load students */
+    public void setLoadStudents(boolean loadStudents) {
+        iLoadStudents = loadStudents;
+    }
      
+    /** Set whether to load offerings */
+    public void setLoadOfferings(boolean loadOfferings) {
+        iLoadOfferings = loadOfferings;
+    }
+
     /** Create BitSet from a bit string */
     private static BitSet createBitSet(String bitString) {
         BitSet ret = new BitSet(bitString.length());
@@ -248,6 +276,17 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                     "true".equals(studentEl.attributeValue("dummy")));
                 for (Iterator j=studentEl.elementIterator();j.hasNext();) {
                     Element requestEl = (Element)j.next();
+                    if ("classification".equals(requestEl.getName())) {
+                        student.getAcademicAreaClasiffications().add(new AcademicAreaCode(requestEl.attributeValue("area"),requestEl.attributeValue("code")));
+                    } else if ("major".equals(requestEl.getName())) {
+                        student.getMajors().add(new AcademicAreaCode(requestEl.attributeValue("area"),requestEl.attributeValue("code")));
+                    } else if ("minor".equals(requestEl.getName())) {
+                        student.getMinors().add(new AcademicAreaCode(requestEl.attributeValue("area"),requestEl.attributeValue("code")));
+                    }
+                }
+                if (iStudentFilter!=null && !iStudentFilter.accept(student))  continue;
+                for (Iterator j=studentEl.elementIterator();j.hasNext();) {
+                    Element requestEl = (Element)j.next();
                     if ("freeTime".equals(requestEl.getName())) {
                         TimeLocation time = new TimeLocation(
                                     Integer.parseInt(requestEl.attributeValue("days"),2),
@@ -331,12 +370,6 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                             if (!sections.isEmpty())
                                 bestEnrollments.add(courseRequest.createEnrollment(sections));
                         }
-                    } else if ("classification".equals(requestEl.getName())) {
-                        student.getAcademicAreaClasiffications().add(new AcademicAreaCode(requestEl.attributeValue("area"),requestEl.attributeValue("code")));
-                    } else if ("major".equals(requestEl.getName())) {
-                        student.getMajors().add(new AcademicAreaCode(requestEl.attributeValue("area"),requestEl.attributeValue("code")));
-                    } else if ("minor".equals(requestEl.getName())) {
-                        student.getMinors().add(new AcademicAreaCode(requestEl.attributeValue("area"),requestEl.attributeValue("code")));
                     }
                 }
                 getModel().addStudent(student);
