@@ -162,7 +162,8 @@ public class Test {
         StudentSectioningModel model = loadModel(cfg);
         if (model==null) return null;
         
-        model.clearOnlineSectioningInfos();
+        if (cfg.getPropertyBoolean("Test.ComputeSectioningInfo", true))
+            model.clearOnlineSectioningInfos();
         
         Solution solution = solveModel(model, cfg);
         
@@ -897,8 +898,19 @@ public class Test {
             
             Hashtable lastLike = new Hashtable();
             Hashtable real = new Hashtable();
+            HashSet lastLikeIds = new HashSet();
+            HashSet realIds = new HashSet();
             for (Enumeration e=model.getStudents().elements();e.hasMoreElements();) {
                 Student student = (Student)e.nextElement();
+                if (student.isDummy()) {
+                    if (!lastLikeIds.add(new Long(student.getId()))){
+                        sLog.error("Two last-like student with id "+student.getId());
+                    }
+                } else {
+                    if (!realIds.add(new Long(student.getId()))){
+                        sLog.error("Two real student with id "+student.getId());
+                    }
+                }
                 for (Enumeration f=student.getRequests().elements();f.hasMoreElements();) {
                     Request request = (Request)f.nextElement();
                     if (request instanceof CourseRequest) {
@@ -911,6 +923,18 @@ public class Test {
             }
             for (Enumeration e=model.getStudents().elements();e.hasMoreElements();) {
                 Student student = (Student)e.nextElement();
+                if (student.isDummy() && realIds.contains(new Long(student.getId()))) {
+                    sLog.warn("There is both last-like and real student with id "+student.getId());
+                    long newId = -1;
+                    while (true) {
+                        newId = 1+(long)(999999999L * Math.random());
+                        if (!realIds.contains(new Long(newId)) && !lastLikeIds.contains(new Long(newId))) break;
+                    }
+                    lastLikeIds.remove(new Long(student.getId()));
+                    lastLikeIds.add(new Long(newId));
+                    student.setId(newId);
+                    sLog.warn("  -- last-like student id changed to "+student.getId());
+                }
                 for (Enumeration f=student.getRequests().elements();f.hasMoreElements();) {
                     Request request = (Request)f.nextElement();
                     if (!student.isDummy()) {
