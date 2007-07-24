@@ -68,6 +68,11 @@ public abstract class Request extends Variable implements Comparable {
         return iPriority;
     }
     
+    /** Set request priority */
+    public void setPriority(int priority) {
+        iPriority = priority;
+    }
+    
     /** True, if the request is alternative (alternative request can be assigned instead of a non-alternative course requests, if it is left unassigned) */
     public boolean isAlternative() {
         return iAlternative;
