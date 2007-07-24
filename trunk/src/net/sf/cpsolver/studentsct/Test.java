@@ -70,11 +70,11 @@ import net.sf.cpsolver.studentsct.report.DistanceConflictTable;
  * &nbsp;&nbsp;batch ... batch sectioning mode (default mode -- IFS solver with {@link StudentSctNeighbourSelection} is used)<br>
  * &nbsp;&nbsp;online ... online sectioning mode (students are sectioned one by one, sectioning info (expected/held space) is used)<br>
  * &nbsp;&nbsp;simple ...  simple sectioning mode (students are sectioned one by one, sectioning info is not used)<br>
- * See http://www.unitime.org for example configuration files and banchmark data sets.<br><br>
+ * See http://www.unitime.org for example configuration files and benchmark data sets.<br><br>
  * 
  * The test does the following steps:<ul>
  * <li>Provided property file is loaded (see {@link DataProperties}).
- * <li>Output folder is created (General.Output property) and loggings is setup (using log4j).
+ * <li>Output folder is created (General.Output property) and logging is setup (using log4j).
  * <li>Input data are loaded from the given XML file (calling {@link StudentSectioningXMLLoader#load()}).
  * <li>Solver is executed (see {@link Solver}).
  * <li>Resultant solution is saved to an XML file (calling {@link StudentSectioningXMLSaver#save()}.
@@ -93,6 +93,7 @@ import net.sf.cpsolver.studentsct.report.DistanceConflictTable;
  * <tr><td>Test.CombineStudents</td><td>{@link File}</td><td>If provided, students are combined from the input file (last-like students) and the provided file (real students). Freshmen are taken from last-like data, other students from real data.</td></tr>
  * <tr><td>Test.CombineStudentsLastLike</td><td>{@link File}</td><td>If provided (together with Test.CombineStudents), students are combined from the this file (last-like students) and Test.CombineStudents file (real students). Freshmen are taken from last-like data, other students from real data.</td></tr>
  * <tr><td>Test.StudentFilter</td><td>{@link StudentFilter}</td><td>If provided (together with Test.CombineStudents), the filter is used to filter last-like data, and its opposite (see {@link ReverseStudentFilter}) to filter students from real data.</td></tr>
+ * <tr><td>Test.FixPriorities</td><td>{@link Boolean}</td><td>If true, course/free time request priorities are corrected (to go from zero, without holes or duplicates).</td></tr>
  * </table>
  * <br><br>
  * 
@@ -153,7 +154,10 @@ public class Test {
             SwapStudentSelection.sDebug=true;
         if (cfg.getPropertyBoolean("Debug.BacktrackNeighbourSelection",false))
             BacktrackNeighbourSelection.sDebug=true;
-        
+        if (cfg.getPropertyBoolean("CourseRequest.SameTimePrecise", false))
+            CourseRequest.sSameTimePrecise=true;
+        if (cfg.getPropertyBoolean("Test.FixPriorities", false))
+            fixPriorities(model);
         return model;
     }
 
@@ -627,7 +631,7 @@ public class Test {
                         String instrSel = line.substring(8,10); //ZZ - Remove previous instructor selection
                         char reqPDiv = line.charAt(10); //P - Personal preference; C - Conflict resolution; 
                                                         //0 - (Zero) used by program only, for change requests to reschedule division
-                                                        //    (used to reschedule cancelled division)
+                                                        //    (used to reschedule canceled division)
                         String reqDiv = line.substring(11,13); //00 - Reschedule division
                         String reqSect = line.substring(13,15); //Contains designator for designator-required courses
                         String credit = line.substring(15,19);
@@ -774,9 +778,33 @@ public class Test {
                 Student student = (Student)e.nextElement();
                 if (student.getAcademicAreaClasiffications().isEmpty()) without++;
             }
+            fixPriorities(model);
             sLog.info("Students without academic area: "+without);
         } catch (Exception e) {
             sLog.error(e.getMessage(),e);
+        }
+    }
+    
+    public static void fixPriorities(StudentSectioningModel model) {
+        for (Enumeration e=model.getStudents().elements();e.hasMoreElements();) {
+            Student student = (Student)e.nextElement();
+            Collections.sort(student.getRequests(), new Comparator() {
+               public int compare(Object o1, Object o2) {
+                   Request r1 = (Request)o1;
+                   Request r2 = (Request)o2;
+                   int cmp = Double.compare(r1.getPriority(), r2.getPriority());
+                   if (cmp!=0) return cmp;
+                   return Double.compare(r1.getId(), r2.getId());
+               }
+            });
+            int priority = 0;
+            for (Enumeration f=student.getRequests().elements();f.hasMoreElements();priority++) {
+                Request request = (Request)f.nextElement();
+                if (priority!=request.getPriority()) {
+                    sLog.debug("Change priority of "+request+" to "+priority);
+                    request.setPriority(priority);
+                }
+            }
         }
     }
     
