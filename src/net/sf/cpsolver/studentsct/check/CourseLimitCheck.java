@@ -227,7 +227,7 @@ public class CourseLimitCheck {
                                 for (Enumeration h=subpart.getSections().elements();h.hasMoreElements();) {
                                     Section section = (Section)h.nextElement();
                                     int oldLimit = section.getLimit();
-                                    section.setLimit(Math.max(section.getLimit(), (int)Math.ceil(offeringLimit/subpart.getSections().size())));
+                                    section.setLimit(Math.max(section.getLimit(), (int)Math.ceil(((double)offeringLimit)/subpart.getSections().size())));
                                     sLog.info("    -- limit of section "+section+" increased to "+section.getLimit()+" (was "+oldLimit+")");
                                 }
                             }
