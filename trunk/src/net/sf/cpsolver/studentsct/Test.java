@@ -89,6 +89,9 @@ import net.sf.cpsolver.studentsct.report.DistanceConflictTable;
  * <tr><td>Test.EtrChk</td><td>{@link String}</td><td>Load student information (academic area, classification, major, minor) from the given semi-colon separated list files (in the format that is being used by the old MSF system)</td></tr>
  * <tr><td>Sectioning.UseStudentPreferencePenalties</td><td>{@link Boolean}</td><td>If true, {@link StudentPreferencePenalties} are used (applicable only for online sectioning)</td></tr>
  * <tr><td>Test.StudentOrder</td><td>{@link String}</td><td>A class that is used for ordering of students (must be an interface of {@link StudentOrder}, default is {@link StudentRandomOrder}, not applicable only for batch sectioning)</td></tr>
+ * <tr><td>Test.CombineStudents</td><td>{@link File}</td><td>If provided, students are combined from the input file (last-like students) and the provided file (real students). Freshmen are taken from last-like data, other students from real data.</td></tr>
+ * <tr><td>Test.CombineStudentsLastLike</td><td>{@link File}</td><td>If provided (together with Test.CombineStudents), students are combined from the this file (last-like students) and Test.CombineStudents file (real students). Freshmen are taken from last-like data, other students from real data.</td></tr>
+ * <tr><td>Test.StudentFilter</td><td>{@link StudentFilter}</td><td>If provided (together with Test.CombineStudents), the filter is used to filter last-like data, and its opposite (see {@link ReverseStudentFilter}) to filter students from real data.</td></tr>
  * </table>
  * <br><br>
  * 
@@ -122,7 +125,15 @@ public class Test {
     public static StudentSectioningModel loadModel(DataProperties cfg) {
         StudentSectioningModel model = new StudentSectioningModel(cfg);
         try {
-            new StudentSectioningXMLLoader(model).load();
+            StudentSectioningXMLLoader loader = new StudentSectioningXMLLoader(model);
+            if (cfg.getProperty("Test.CombineStudents")!=null)
+                loader.setLoadStudents(false);
+            loader.load();
+            if (cfg.getProperty("Test.CombineStudents")!=null) {
+                combineStudents(model, 
+                        new File(cfg.getProperty("Test.CombineStudentsLastLike",cfg.getProperty("General.Input","."+File.separator+"solution.xml"))), 
+                        new File(cfg.getProperty("Test.CombineStudents")));
+            }
             if (cfg.getProperty("Test.LastLikeCourseDemands")!=null)
                 loadLastLikeCourseDemandsXml(model, new File(cfg.getProperty("Test.LastLikeCourseDemands")));
             if (cfg.getProperty("Test.StudentInfos")!=null)
@@ -474,10 +485,11 @@ public class Test {
     /**
      *  Compute last-like student weight for the given course
      * @param course given course
+     * @param real number of real students for the course
      * @param lastLike number of last-like students for the course
      * @return weight of a student request for the given course
      */
-    public static double getLastLikeStudentWeight(Course course, int lastLike) {
+    public static double getLastLikeStudentWeight(Course course, int real, int lastLike) {
         int projected = course.getProjected();
         int limit = course.getLimit();
         if (course.getLimit()<0) {
@@ -495,8 +507,8 @@ public class Test {
             sLog.warn("  -- No last like info for course "+course.getName());
             return 1.0;
         }
-        double weight = ((double)projected) / lastLike; 
-        sLog.debug("  -- last like student weight for "+course.getName()+" is "+weight+" (lastLike="+lastLike+", projected="+projected+")");
+        double weight = ((double)Math.max(0, projected - real)) / lastLike; 
+        sLog.debug("  -- last like student weight for "+course.getName()+" is "+weight+" (lastLike="+lastLike+", real="+real+", projected="+projected+")");
         return weight;
     }
     
@@ -566,7 +578,7 @@ public class Test {
                 Map.Entry entry = (Map.Entry)i.next();
                 Course course = (Course)entry.getKey();
                 Vector requestsThisCourse = (Vector)entry.getValue();
-                double weight = getLastLikeStudentWeight(course, requestsThisCourse.size());
+                double weight = getLastLikeStudentWeight(course, 0, requestsThisCourse.size());
                 for (Enumeration e=requestsThisCourse.elements();e.hasMoreElements();) {
                     CourseRequest request = (CourseRequest)e.nextElement();
                     request.setWeight(weight);
@@ -724,7 +736,7 @@ public class Test {
                 Map.Entry entry = (Map.Entry)i.next();
                 Course course = (Course)entry.getKey();
                 Vector requestsThisCourse = (Vector)entry.getValue();
-                double weight = getLastLikeStudentWeight(course, requestsThisCourse.size());
+                double weight = getLastLikeStudentWeight(course, 0, requestsThisCourse.size());
                 for (Enumeration e=requestsThisCourse.elements();e.hasMoreElements();) {
                     CourseRequest request = (CourseRequest)e.nextElement();
                     request.setWeight(weight);
@@ -854,6 +866,64 @@ public class Test {
             try {
                 if (fos!=null) fos.close();
             } catch (IOException e) {}
+        }
+    }
+    
+    /** Combine students from the provided two files */
+    public static void combineStudents(StudentSectioningModel model, File lastLikeStudentData, File realStudentData) {
+        try {
+            StudentFilter filter = new FreshmanStudentFilter();
+            if (model.getProperties().getProperty("Test.StudentFilter")!=null) {
+                filter = (StudentFilter)Class.forName(model.getProperties().getProperty("Test.StudentFilter")).
+                    getConstructor(new Class[]{}).newInstance(new Object[]{});
+            }
+             
+            StudentSectioningXMLLoader lastLikeLoader = new StudentSectioningXMLLoader(model);
+            lastLikeLoader.setInputFile(lastLikeStudentData);
+            lastLikeLoader.setLoadOfferings(false);
+            lastLikeLoader.setLoadStudents(true);
+            lastLikeLoader.setStudentFilter(filter);
+            lastLikeLoader.load();
+            
+            StudentSectioningXMLLoader realLoader = new StudentSectioningXMLLoader(model);
+            realLoader.setInputFile(realStudentData);
+            realLoader.setLoadOfferings(false);
+            realLoader.setLoadStudents(true);
+            realLoader.setStudentFilter(new ReverseStudentFilter(filter));
+            realLoader.load();
+            
+            Hashtable lastLike = new Hashtable();
+            Hashtable real = new Hashtable();
+            for (Enumeration e=model.getStudents().elements();e.hasMoreElements();) {
+                Student student = (Student)e.nextElement();
+                for (Enumeration f=student.getRequests().elements();f.hasMoreElements();) {
+                    Request request = (Request)f.nextElement();
+                    if (request instanceof CourseRequest) {
+                        CourseRequest courseRequest = (CourseRequest)request;
+                        Course course = (Course)courseRequest.getCourses().firstElement();
+                        Integer cnt = (Integer)(student.isDummy()?lastLike:real).get(course);
+                        (student.isDummy()?lastLike:real).put(course, new Integer((cnt==null?0:cnt.intValue())+1));
+                    }
+                }
+            }
+            for (Enumeration e=model.getStudents().elements();e.hasMoreElements();) {
+                Student student = (Student)e.nextElement();
+                for (Enumeration f=student.getRequests().elements();f.hasMoreElements();) {
+                    Request request = (Request)f.nextElement();
+                    if (!student.isDummy()) {
+                        request.setWeight(1.0); continue;
+                    }
+                    if (request instanceof CourseRequest) {
+                        CourseRequest courseRequest = (CourseRequest)request;
+                        Course course = (Course)courseRequest.getCourses().firstElement();
+                        Integer lastLikeCnt = (Integer)lastLike.get(course);
+                        Integer realCnt = (Integer)real.get(course);
+                        courseRequest.setWeight(getLastLikeStudentWeight(course, realCnt==null?0:realCnt.intValue(), lastLikeCnt==null?0:lastLikeCnt.intValue()));
+                    } else request.setWeight(1.0);
+                }
+            }
+        } catch (Exception e) {
+            sLog.error("Unable to combine students, reason: "+e.getMessage(),e);
         }
     }
     
