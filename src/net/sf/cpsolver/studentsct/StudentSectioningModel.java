@@ -402,7 +402,7 @@ public class StudentSectioningModel extends Model {
             info.put("Last-like assigned requests" ,
                     sDoubleFormat.format(100.0*nrLastLikeAssignedRequests/nrLastLikeRequests)+"% ("+nrLastLikeAssignedRequests+"/"+nrLastLikeRequests+")");
             info.put("Real assigned requests" ,
-                    sDoubleFormat.format(100.0*nrLastLikeAssignedRequests/nrRealRequests)+"% ("+nrLastLikeAssignedRequests+"/"+nrRealRequests+")");
+                    sDoubleFormat.format(100.0*nrRealAssignedRequests/nrRealRequests)+"% ("+nrRealAssignedRequests+"/"+nrRealRequests+")");
         }
         info.put("Average unassigned priority", sDoubleFormat.format(avgUnassignPriority()));
         info.put("Average number of requests", sDoubleFormat.format(avgNrRequests()));
