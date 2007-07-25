@@ -154,10 +154,12 @@ public class Test {
             SwapStudentSelection.sDebug=true;
         if (cfg.getPropertyBoolean("Debug.BacktrackNeighbourSelection",false))
             BacktrackNeighbourSelection.sDebug=true;
-        if (cfg.getPropertyBoolean("CourseRequest.SameTimePrecise", false))
-            CourseRequest.sSameTimePrecise=true;
+        if (cfg.getProperty("CourseRequest.SameTimePrecise")!=null)
+            CourseRequest.sSameTimePrecise=cfg.getPropertyBoolean("CourseRequest.SameTimePrecise", false);
         if (cfg.getPropertyBoolean("Test.FixPriorities", false))
             fixPriorities(model);
+        if (cfg.getProperty("Student.DummyStudentWeight")!=null)
+            Student.sDummyStudentWeight = cfg.getPropertyDouble("Student.DummyStudentWeight", Student.sDummyStudentWeight);
         return model;
     }
 
