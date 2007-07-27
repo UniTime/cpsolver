@@ -249,12 +249,13 @@ public class Test {
                 sLog.warn("No solution found.");
             }
             solution.update(JProf.currentTimeSec()-startTime);
-            solution.saveBest();
             totalPenalty += getPenalty(student);
             minPenalty += getMinPenaltyOfAssignedCourseRequests(student);
             maxPenalty += getMaxPenaltyOfAssignedCourseRequests(student);
         }
         
+        solution.saveBest();
+
         printInfo(solution, 
                 cfg.getPropertyBoolean("Test.CreateReports", true),
                 false,
