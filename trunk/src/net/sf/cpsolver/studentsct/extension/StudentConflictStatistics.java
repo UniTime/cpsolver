@@ -1,4 +1,4 @@
-package net.sf.cpsolver.studentsct.heuristics;
+package net.sf.cpsolver.studentsct.extension;
 
 import net.sf.cpsolver.ifs.extension.ConflictStatistics;
 import net.sf.cpsolver.ifs.model.Value;
