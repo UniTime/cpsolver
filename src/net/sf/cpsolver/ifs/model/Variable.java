@@ -238,6 +238,7 @@ public class Variable implements Comparable {
     
     public boolean equals(Object o) {
         try {
+            if (o==null) return false;
             Variable v = (Variable)o;
             return getId()==v.getId();
         } catch (Exception e) {

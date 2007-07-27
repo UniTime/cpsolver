@@ -126,6 +126,7 @@ public class Value implements Comparable {
     /** By default, comparison is made on unique ids */
     public boolean equals(Object o) {
         try {
+            if (o==null) return false;
             return getId()==((Value)o).getId();
         } catch (Exception e) { return false; }
     }
