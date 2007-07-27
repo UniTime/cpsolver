@@ -10,6 +10,7 @@ import java.util.Vector;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.EnumerableHashSet;
 import net.sf.cpsolver.studentsct.constraint.SectionLimit;
 import net.sf.cpsolver.studentsct.constraint.StudentConflict;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
@@ -61,6 +62,9 @@ public class StudentSectioningModel extends Model {
      */
     public StudentSectioningModel(DataProperties properties) {
         super();
+        iAssignedVariables = new EnumerableHashSet();
+        iUnassignedVariables = new EnumerableHashSet();
+        iPerturbVariables = new EnumerableHashSet();
         addGlobalConstraint(new SectionLimit());
         iProperties = properties;
     }

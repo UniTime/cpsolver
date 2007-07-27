@@ -62,12 +62,12 @@ public class Model {
     private Vector iVariables = new FastVector();
     private Vector iConstraints = new FastVector();
     private Vector iGlobalConstraints = new FastVector();
-    private Vector iUnassignedVariables = new FastVector();
-    private Vector iAssignedVariables = new FastVector();
+    protected EnumerableCollection iUnassignedVariables = new FastVector();
+    protected EnumerableCollection iAssignedVariables = new FastVector();
     private Vector iInfoProviders = new FastVector();
     private Vector iVariablesWithInitialValueCache = null;
     
-    private Vector iPerturbVariables = null;
+    protected EnumerableCollection iPerturbVariables = null;
     
     private int iBestUnassignedVariables = -1;
     private int iBestPerturbations = 0;
@@ -153,15 +153,15 @@ public class Model {
     }
 
     /** The list of unassigned variables in the model */
-    public Vector unassignedVariables() { return iUnassignedVariables; }
+    public EnumerableCollection unassignedVariables() { return iUnassignedVariables; }
     /** The list of assigned variables in the model */
-    public Vector assignedVariables() { return iAssignedVariables; }
+    public EnumerableCollection assignedVariables() { return iAssignedVariables; }
     /** The list of perturbation variables in the model, i.e., the variables which has an initial value but which are not 
      * assigned with this value.
      */
-    public Vector perturbVariables() {
+    public EnumerableCollection perturbVariables() {
         if (iPerturbVariables!=null) return iPerturbVariables;
-        Vector perturbances = new FastVector();
+        EnumerableCollection perturbances = new FastVector();
         for (Enumeration e=variablesWithInitialValue().elements();e.hasMoreElements();) {
             Variable variable = (Variable)e.nextElement();
             if (variable.getAssignment()!=null) {
@@ -188,8 +188,8 @@ public class Model {
     /** The list of perturbation variables in the model, i.e., the variables which has an initial value but which are not 
      * assigned with this value. Only variables from the given set are considered.
      */
-    public Vector perturbVariables(Vector variables) {
-        Vector perturbances = new FastVector();
+    public EnumerableCollection perturbVariables(Vector variables) {
+        EnumerableCollection perturbances = new FastVector();
         for (Enumeration e=variables.elements();e.hasMoreElements();) {
         	Variable variable = (Variable)e.nextElement();
         	if (variable.getInitialAssignment()==null) continue;
@@ -438,9 +438,9 @@ public class Model {
     }
     
     /** The list of unassigned variables in the best ever found solution*/
-    public Vector bestUnassignedVariables() {
+    public EnumerableCollection bestUnassignedVariables() {
         if (iBestUnassignedVariables<0) return unassignedVariables();
-        Vector ret = new FastVector(variables().size());
+        EnumerableCollection ret = new FastVector(variables().size());
         for (Enumeration e=variables().elements();e.hasMoreElements();) {
             Variable variable = (Variable)e.nextElement();
             if (variable.getBestAssignment()==null) ret.addElement(variable);

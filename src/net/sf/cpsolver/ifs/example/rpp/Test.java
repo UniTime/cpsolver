@@ -305,7 +305,7 @@ public class Test {
                     Solution best = s.currentSolution();
                     best.restoreBest();
                     res.println("result(" + t + "," + i + "," + nf.format(best.getBestTime()) + "," + (best.getModel().variables().size() - best.getModel().getBestUnassignedVariables()) + "," + best.getBestIteration() + ",");
-                    Vector notPlaced = best.getModel().bestUnassignedVariables();
+                    EnumerableCollection notPlaced = best.getModel().bestUnassignedVariables();
                     if (notPlaced == null)
                         notPlaced = new FastVector();
                     res.print("  unassigned(" + (2 * notPlaced.size()) + "/[");
@@ -401,7 +401,7 @@ public class Test {
                     assigned += (best.getModel().variables().size() - best.getModel().getBestUnassignedVariables());
                     assigned2 += (best.getModel().variables().size() - best.getModel().getBestUnassignedVariables()) * (best.getModel().variables().size() - best.getModel().getBestUnassignedVariables());
                     res.println("result(" + genNr + ","+t+"," + nf.format(best.getBestTime()) + "," + (best.getModel().variables().size() - best.getModel().getBestUnassignedVariables()) + "," + best.getBestIteration() + ",");
-                    Vector notPlaced = best.getModel().bestUnassignedVariables();
+                    EnumerableCollection notPlaced = best.getModel().bestUnassignedVariables();
                     if (notPlaced == null)
                         notPlaced = new FastVector();
                     res.print("  unassigned(" + (2 * notPlaced.size()) + "/[");

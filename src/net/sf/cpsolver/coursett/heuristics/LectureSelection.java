@@ -22,6 +22,7 @@ import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.EnumerableCollection;
 import net.sf.cpsolver.ifs.util.FastVector;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
@@ -222,7 +223,7 @@ public class LectureSelection implements VariableSelection {
     }
 
     public Variable selectVariable(Solution solution) {
-    	Vector unassignedVariables = solution.getModel().unassignedVariables();
+    	EnumerableCollection unassignedVariables = solution.getModel().unassignedVariables();
     	if (iInteractiveMode) {
     		//remove variables that have no values
     		unassignedVariables = new FastVector(unassignedVariables.size());
@@ -233,7 +234,7 @@ public class LectureSelection implements VariableSelection {
     	}
     	
         if (unassignedVariables.isEmpty()) {
-            Vector variables = solution.getModel().perturbVariables();
+            EnumerableCollection variables = solution.getModel().perturbVariables();
             if (variables.isEmpty()) variables = solution.getModel().assignedVariables();
             
             if (iRW && ToolBox.random()<=iRandomWalkProb) return (Variable)ToolBox.random(variables);
