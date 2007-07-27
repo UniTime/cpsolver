@@ -1,6 +1,5 @@
 package net.sf.cpsolver.studentsct.heuristics.selection;
 
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -15,6 +14,8 @@ import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
+import net.sf.cpsolver.studentsct.heuristics.studentord.StudentChoiceRealFirstOrder;
+import net.sf.cpsolver.studentsct.heuristics.studentord.StudentOrder;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
@@ -71,6 +72,7 @@ public class SwapStudentSelection implements NeighbourSelection, ProblemStudents
     private int iTimeout = 5000;
     private int iMaxValues = 100;
     public static boolean sDebug = false;
+    protected StudentOrder iOrder = new StudentChoiceRealFirstOrder();
     
     /**
      * Constructor
@@ -79,12 +81,20 @@ public class SwapStudentSelection implements NeighbourSelection, ProblemStudents
     public SwapStudentSelection(DataProperties properties) {
         iTimeout = properties.getPropertyInt("Neighbour.SwapStudentsTimeout", iTimeout);
         iMaxValues = properties.getPropertyInt("Neighbour.SwapStudentsMaxValues", iMaxValues);
+        if (properties.getProperty("Neighbour.SwapStudentsOrder")!=null) {
+            try {
+                iOrder = (StudentOrder)Class.forName(properties.getProperty("Neighbour.SwapStudentsOrder")).
+                    getConstructor(new Class[] {DataProperties.class}).
+                    newInstance(new Object[] {properties});
+            } catch (Exception e) {
+                sLog.error("Unable to set student order, reason:"+e.getMessage(),e);
+            }
+        }
     }
     
     /** Initialization */
     public void init(Solver solver) {
-        Vector students = new Vector(((StudentSectioningModel)solver.currentSolution().getModel()).getStudents());
-        Collections.shuffle(students);
+        Vector students = iOrder.order(((StudentSectioningModel)solver.currentSolution().getModel()).getStudents());
         iStudentsEnumeration = students.elements();
         iProblemStudents.clear();
     }
@@ -145,7 +155,7 @@ public class SwapStudentSelection implements NeighbourSelection, ProblemStudents
         }
         
         /**
-         * The actuall selection
+         * The actual selection
          */
         public SwapStudentNeighbour select() {
             if (sDebug) sLog.debug("select(S"+iStudent.getId()+")");
