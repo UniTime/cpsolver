@@ -84,7 +84,7 @@ public abstract class Constraint {
     protected long iId = -1;
     
     private Vector iVariables = new FastVector();
-    private Vector iAssignedVariables = new FastVector();
+    protected EnumerableCollection iAssignedVariables = new FastVector();
     private Model iModel = null;
     private Vector iConstraintListeners = null;
     
@@ -100,7 +100,7 @@ public abstract class Constraint {
     /** The list of variables of this constraint */
     public Vector variables() { return iVariables; }
     /** The list of variables of this constraint that are assigned */
-    public Vector assignedVariables() { return iAssignedVariables; }
+    public EnumerableCollection assignedVariables() { return iAssignedVariables; }
     /** The number of variables of this constraint */
     public int countVariables() { return variables().size(); }
     /** The number of variables of this constraint that are assigned */

@@ -1,9 +1,11 @@
 package net.sf.cpsolver.ifs.util;
 
-import java.util.*;
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Iterator;
 
-/** Vector extension with faster enumeration.
- * In {@link FastVector#elements()}, no unnecessary check is made.
+/** 
+ * An extension of {@link HashSet} that implements {@link EnumerableCollection} interface.
  *
  * @version
  * IFS 1.1 (Iterative Forward Search)<br>
@@ -25,32 +27,30 @@ import java.util.*;
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
-
-public class FastVector extends Vector implements EnumerableCollection {
-	private static final long serialVersionUID = 1L;
-    
-    public FastVector() {
-        super();
-    }
-    public FastVector(int initialCapacity) {
-        super(initialCapacity);
-    }
-    public FastVector(int initialCapacity, int capacityIncrement) {
-        super(initialCapacity, capacityIncrement);
-    }
-    public FastVector(Collection c) {
-        super(c);
-    }
- 
+public class EnumerableHashSet extends HashSet implements EnumerableCollection {
+    /** Iterate the set */
     public Enumeration elements() {
-	return new Enumeration() {
-	    int count = 0;
-	    public boolean hasMoreElements() { return count < elementCount; }
-	    public Object nextElement() { return elementData[count++]; }
-	};
+        return new Enumeration() {
+            Iterator i=iterator();
+            public boolean hasMoreElements() {
+                return i.hasNext();
+            }
+            public Object nextElement() {
+                return i.next();
+            }
+        };
+        
     }
-    
-    public String toString() {
-        return size()+"/"+super.toString();
+    /** Add an element into the set */
+    public void addElement(Object o) {
+        add(o);
+    }
+    /** Remove an element from the set */
+    public boolean removeElement(Object o) {
+        return remove(o);
+    }
+    /** First element in the set (first using {@link HashSet#iterator()}) */
+    public Object firstElement() {
+        return (isEmpty()?null:elements().nextElement());
     }
 }
