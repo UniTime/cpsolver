@@ -1,7 +1,6 @@
 package net.sf.cpsolver.studentsct.heuristics.selection;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -18,6 +17,8 @@ import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
+import net.sf.cpsolver.studentsct.heuristics.studentord.StudentChoiceRealFirstOrder;
+import net.sf.cpsolver.studentsct.heuristics.studentord.StudentOrder;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
@@ -68,6 +69,7 @@ public class BranchBoundSelection implements NeighbourSelection {
     public static boolean sDebug = false;
     protected Enumeration iStudentsEnumeration = null;
     private boolean iMinimizePenalty = false;
+    protected StudentOrder iOrder = new StudentChoiceRealFirstOrder();
     
     /**
      * Constructor
@@ -77,14 +79,22 @@ public class BranchBoundSelection implements NeighbourSelection {
         iTimeout = properties.getPropertyInt("Neighbour.BranchAndBoundTimeout", iTimeout);
         iMinimizePenalty = properties.getPropertyBoolean("Neighbour.BranchAndBoundMinimizePenalty", iMinimizePenalty);
         if (iMinimizePenalty) sLog.info("Overall penalty is going to be minimized (together with the maximization of the number of assigned requests and minimization of distance conflicts).");
+        if (properties.getProperty("Neighbour.BranchAndBoundOrder")!=null) {
+            try {
+                iOrder = (StudentOrder)Class.forName(properties.getProperty("Neighbour.BranchAndBoundOrder")).
+                    getConstructor(new Class[] {DataProperties.class}).
+                    newInstance(new Object[] {properties});
+            } catch (Exception e) {
+                sLog.error("Unable to set student order, reason:"+e.getMessage(),e);
+            }
+        }
     }
-
+    
     /**
      * Initialize
      */
     public void init(Solver solver) {
-        Vector students = new Vector(((StudentSectioningModel)solver.currentSolution().getModel()).getStudents());
-        Collections.shuffle(students);
+        Vector students = iOrder.order(((StudentSectioningModel)solver.currentSolution().getModel()).getStudents());
         iStudentsEnumeration = students.elements();
         if (iDistanceConflict==null)
             for (Enumeration e=solver.getExtensions().elements();e.hasMoreElements();) {
