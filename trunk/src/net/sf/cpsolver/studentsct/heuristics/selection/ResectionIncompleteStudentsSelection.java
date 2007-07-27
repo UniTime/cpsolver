@@ -1,8 +1,12 @@
 package net.sf.cpsolver.studentsct.heuristics.selection;
 
+import org.apache.log4j.Logger;
+
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.studentsct.heuristics.studentord.StudentOrder;
+import net.sf.cpsolver.studentsct.heuristics.studentord.StudentRandomOrder;
 import net.sf.cpsolver.studentsct.model.Student;
 
 /**
@@ -36,9 +40,20 @@ import net.sf.cpsolver.studentsct.model.Student;
  */
 
 public class ResectionIncompleteStudentsSelection extends BranchBoundSelection {
+    private static Logger sLog = Logger.getLogger(ResectionIncompleteStudentsSelection.class);
 
     public ResectionIncompleteStudentsSelection(DataProperties properties) {
         super(properties);
+        iOrder = new StudentRandomOrder(properties);
+        if (properties.getProperty("Neighbour.ResectionIncompleteStudentsOrder")!=null) {
+            try {
+                iOrder = (StudentOrder)Class.forName(properties.getProperty("Neighbour.ResectionIncompleteStudentsOrder")).
+                    getConstructor(new Class[] {DataProperties.class}).
+                    newInstance(new Object[] {properties});
+            } catch (Exception e) {
+                sLog.error("Unable to set student order, reason:"+e.getMessage(),e);
+            }
+        }
     }
     
     /**
