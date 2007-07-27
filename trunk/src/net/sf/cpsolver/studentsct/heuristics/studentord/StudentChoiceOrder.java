@@ -17,7 +17,8 @@ import net.sf.cpsolver.studentsct.model.Student;
 import net.sf.cpsolver.studentsct.model.Subpart;
 
 /** 
- * Return the given set of students in an order of average number of choices of each student (students with more choices first).
+ * Return the given set of students in an order of average number 
+ * of choices of each student (students with more choices first).
  * 
  * @version
  * StudentSct 1.1 (Student Sectioning)<br>
@@ -45,6 +46,16 @@ public class StudentChoiceOrder implements StudentOrder, Comparator {
     
     public StudentChoiceOrder(DataProperties config) {
         iReverse = config.getPropertyBoolean("StudentChoiceOrder.Reverse", iReverse);
+    }
+    
+    /** Is order reversed */
+    public boolean isReverse() {
+        return iReverse;
+    }
+    
+    /** Set reverse order */
+    public void setReverse(boolean reverse) {
+        iReverse = reverse;
     }
 
     /** Order the given list of students */
