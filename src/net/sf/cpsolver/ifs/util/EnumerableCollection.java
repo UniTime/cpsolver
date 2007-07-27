@@ -1,9 +1,11 @@
 package net.sf.cpsolver.ifs.util;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Enumeration;
 
-/** Vector extension with faster enumeration.
- * In {@link FastVector#elements()}, no unnecessary check is made.
+/** 
+ * An extension of {@link Collection} that support elements() method 
+ * and few others.
  *
  * @version
  * IFS 1.1 (Iterative Forward Search)<br>
@@ -25,32 +27,13 @@ import java.util.*;
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
-
-public class FastVector extends Vector implements EnumerableCollection {
-	private static final long serialVersionUID = 1L;
-    
-    public FastVector() {
-        super();
-    }
-    public FastVector(int initialCapacity) {
-        super(initialCapacity);
-    }
-    public FastVector(int initialCapacity, int capacityIncrement) {
-        super(initialCapacity, capacityIncrement);
-    }
-    public FastVector(Collection c) {
-        super(c);
-    }
- 
-    public Enumeration elements() {
-	return new Enumeration() {
-	    int count = 0;
-	    public boolean hasMoreElements() { return count < elementCount; }
-	    public Object nextElement() { return elementData[count++]; }
-	};
-    }
-    
-    public String toString() {
-        return size()+"/"+super.toString();
-    }
+public interface EnumerableCollection extends Collection {
+    /** Enumerate content */
+    public Enumeration elements();
+    /** Add an element into the collection */
+    public void addElement(Object o);
+    /** Remove element from the collection */
+    public boolean removeElement(Object o);
+    /** First element in the collection */
+    public Object firstElement();
 }

@@ -5,6 +5,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Vector;
 
+import net.sf.cpsolver.ifs.util.EnumerableCollection;
+
 /**
  * Generic global constraint.
  * <br><br>
@@ -41,7 +43,7 @@ public abstract class GlobalConstraint extends Constraint {
     /** The list of variables of this constraint */
     public Vector variables() { return getModel().variables(); }
     /** The list of variables of this constraint that are assigned */
-    public Vector assignedVariables() { return getModel().assignedVariables(); }
+    public EnumerableCollection assignedVariables() { return getModel().assignedVariables(); }
 
     /** Add a variable to this constraint */
     public void addVariable(Variable variable) {
