@@ -134,7 +134,7 @@ public class CourseConflictTable {
                 new CSVFile.CSVField("Reason")
         });
         Hashtable unassignedCourseTable = new Hashtable();
-        for (Enumeration e=getModel().unassignedVariables().elements();e.hasMoreElements();) {
+        for (Enumeration e=new Vector(getModel().unassignedVariables()).elements();e.hasMoreElements();) {
             Request request = (Request)e.nextElement();
             if (request.getStudent().isDummy() && !includeLastLikeStudents) continue;
             if (!request.getStudent().isDummy() && !includeRealStudents) continue;
