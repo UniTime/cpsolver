@@ -41,6 +41,11 @@ import net.sf.cpsolver.studentsct.check.InevitableStudentConflicts;
 import net.sf.cpsolver.studentsct.check.OverlapCheck;
 import net.sf.cpsolver.studentsct.check.SectionLimitCheck;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
+import net.sf.cpsolver.studentsct.filter.CombinedStudentFilter;
+import net.sf.cpsolver.studentsct.filter.FreshmanStudentFilter;
+import net.sf.cpsolver.studentsct.filter.RandomStudentFilter;
+import net.sf.cpsolver.studentsct.filter.ReverseStudentFilter;
+import net.sf.cpsolver.studentsct.filter.StudentFilter;
 import net.sf.cpsolver.studentsct.heuristics.StudentSctNeighbourSelection;
 import net.sf.cpsolver.studentsct.heuristics.general.BacktrackNeighbourSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
@@ -90,9 +95,9 @@ import net.sf.cpsolver.studentsct.report.DistanceConflictTable;
  * <tr><td>Test.EtrChk</td><td>{@link String}</td><td>Load student information (academic area, classification, major, minor) from the given semi-colon separated list files (in the format that is being used by the old MSF system)</td></tr>
  * <tr><td>Sectioning.UseStudentPreferencePenalties</td><td>{@link Boolean}</td><td>If true, {@link StudentPreferencePenalties} are used (applicable only for online sectioning)</td></tr>
  * <tr><td>Test.StudentOrder</td><td>{@link String}</td><td>A class that is used for ordering of students (must be an interface of {@link StudentOrder}, default is {@link StudentRandomOrder}, not applicable only for batch sectioning)</td></tr>
- * <tr><td>Test.CombineStudents</td><td>{@link File}</td><td>If provided, students are combined from the input file (last-like students) and the provided file (real students). Freshmen are taken from last-like data, other students from real data.</td></tr>
- * <tr><td>Test.CombineStudentsLastLike</td><td>{@link File}</td><td>If provided (together with Test.CombineStudents), students are combined from the this file (last-like students) and Test.CombineStudents file (real students). Freshmen are taken from last-like data, other students from real data.</td></tr>
- * <tr><td>Test.StudentFilter</td><td>{@link StudentFilter}</td><td>If provided (together with Test.CombineStudents), the filter is used to filter last-like data, and its opposite (see {@link ReverseStudentFilter}) to filter students from real data.</td></tr>
+ * <tr><td>Test.CombineStudents</td><td>{@link File}</td><td>If provided, students are combined from the input file (last-like students) and the provided file (real students). Real non-freshmen students are taken from real data, last-like data are loaded on top of the real data (all students, but weighted to occupy only the remaining space).</td></tr>
+ * <tr><td>Test.CombineStudentsLastLike</td><td>{@link File}</td><td>If provided (together with Test.CombineStudents), students are combined from the this file (last-like students) and Test.CombineStudents file (real students). Real non-freshmen students are taken from real data, last-like data are loaded on top of the real data (all students, but weighted to occupy only the remaining space).</td></tr>
+ * <tr><td>Test.CombineAcceptProb</td><td>{@link Double}</td><td>Used in combining students, probability of a non-freshmen real student to be taken into the combined file (default is 1.0 -- all real non-freshmen students are taken).</td></tr>
  * <tr><td>Test.FixPriorities</td><td>{@link Boolean}</td><td>If true, course/free time request priorities are corrected (to go from zero, without holes or duplicates).</td></tr>
  * </table>
  * <br><br>
@@ -907,26 +912,41 @@ public class Test {
     /** Combine students from the provided two files */
     public static void combineStudents(StudentSectioningModel model, File lastLikeStudentData, File realStudentData) {
         try {
-            StudentFilter filter = new FreshmanStudentFilter();
-            if (model.getProperties().getProperty("Test.StudentFilter")!=null) {
-                filter = (StudentFilter)Class.forName(model.getProperties().getProperty("Test.StudentFilter")).
-                    getConstructor(new Class[]{}).newInstance(new Object[]{});
-            }
+            sLog.info("Test.CombineAcceptProb="+model.getProperties().getPropertyDouble("Test.CombineAcceptProb", 1.0));
+            StudentFilter batchFilter = 
+                new CombinedStudentFilter(
+                        new ReverseStudentFilter(new FreshmanStudentFilter()),
+                        new RandomStudentFilter(model.getProperties().getPropertyDouble("Test.CombineAcceptProb", 1.0)),
+                        CombinedStudentFilter.OP_AND
+                );
+            StudentFilter onlineFilter = new ReverseStudentFilter(batchFilter);
              
             StudentSectioningXMLLoader lastLikeLoader = new StudentSectioningXMLLoader(model);
             lastLikeLoader.setInputFile(lastLikeStudentData);
             lastLikeLoader.setLoadOfferings(false);
             lastLikeLoader.setLoadStudents(true);
-            lastLikeLoader.setStudentFilter(filter);
+            //lastLikeLoader.setStudentFilter(new ReverseStudentFilter(filter));
             lastLikeLoader.load();
             
             StudentSectioningXMLLoader realLoader = new StudentSectioningXMLLoader(model);
             realLoader.setInputFile(realStudentData);
             realLoader.setLoadOfferings(false);
             realLoader.setLoadStudents(true);
-            realLoader.setStudentFilter(new ReverseStudentFilter(filter));
+            realLoader.setStudentFilter(batchFilter);
             realLoader.load();
             
+            StudentSectioningModel onlineModel = new StudentSectioningModel(model.getProperties());
+            StudentSectioningXMLLoader onlineLoader = new StudentSectioningXMLLoader(onlineModel);
+            onlineLoader.setInputFile(realStudentData);
+            onlineLoader.setLoadOfferings(true);
+            onlineLoader.setLoadStudents(true);
+            onlineLoader.setStudentFilter(onlineFilter);
+            onlineLoader.load();
+            
+            Solver onlineSolver = new Solver(model.getProperties());
+            onlineSolver.setInitalSolution(onlineModel);
+            new StudentSectioningXMLSaver(onlineSolver).save(new File(new File(model.getProperties().getProperty("General.Output",".")),"online.xml"));
+
             Hashtable lastLike = new Hashtable();
             Hashtable real = new Hashtable();
             HashSet lastLikeIds = new HashSet();
@@ -952,7 +972,7 @@ public class Test {
                     }
                 }
             }
-            for (Enumeration e=model.getStudents().elements();e.hasMoreElements();) {
+            for (Enumeration e=new Vector(model.getStudents()).elements();e.hasMoreElements();) {
                 Student student = (Student)e.nextElement();
                 if (student.isDummy() && realIds.contains(new Long(student.getId()))) {
                     sLog.warn("There is both last-like and real student with id "+student.getId());
@@ -966,7 +986,7 @@ public class Test {
                     student.setId(newId);
                     sLog.warn("  -- last-like student id changed to "+student.getId());
                 }
-                for (Enumeration f=student.getRequests().elements();f.hasMoreElements();) {
+                for (Enumeration f=new Vector(student.getRequests()).elements();f.hasMoreElements();) {
                     Request request = (Request)f.nextElement();
                     if (!student.isDummy()) {
                         request.setWeight(1.0); continue;
@@ -978,8 +998,16 @@ public class Test {
                         Integer realCnt = (Integer)real.get(course);
                         courseRequest.setWeight(getLastLikeStudentWeight(course, realCnt==null?0:realCnt.intValue(), lastLikeCnt==null?0:lastLikeCnt.intValue()));
                     } else request.setWeight(1.0);
+                    if (request.getWeight()<=0.0) {
+                        model.removeVariable(request);
+                        student.getRequests().remove(request);
+                    }
+                }
+                if (student.getRequests().isEmpty()) {
+                    model.getStudents().remove(student);
                 }
             }
+            
         } catch (Exception e) {
             sLog.error("Unable to combine students, reason: "+e.getMessage(),e);
         }
