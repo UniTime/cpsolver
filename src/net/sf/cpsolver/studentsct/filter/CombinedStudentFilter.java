@@ -1,9 +1,10 @@
-package net.sf.cpsolver.studentsct;
+package net.sf.cpsolver.studentsct.filter;
 
 import net.sf.cpsolver.studentsct.model.Student;
 
 /**
- * This student filter accepts students that are not accepted by the provided student filter.  
+ * This student filter combines two given student filters with 
+ * logical operation AND or OR.  
  * 
  * @version
  * StudentSct 1.1 (Student Sectioning)<br>
@@ -25,23 +26,35 @@ import net.sf.cpsolver.studentsct.model.Student;
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
-
-public class ReverseStudentFilter implements StudentFilter {
-    private StudentFilter iFilter = null;
-
+public class CombinedStudentFilter implements StudentFilter {
+    /** AND */
+    public static final int OP_AND = 0;
+    /** OR */
+    public static final int OP_OR = 1;
+    private StudentFilter iFirst, iSecond;
+    private int iOp;
+    
     /**
      * Constructor
-     * @param filter student filter that is to be reversed
+     * @param first first filter
+     * @param second second filter
+     * @param op logical operation (either {@link CombinedStudentFilter#OP_AND} or {@link CombinedStudentFilter#OP_OR}}) 
      */
-    public ReverseStudentFilter(StudentFilter filter) {
-        iFilter = filter;
+    public CombinedStudentFilter(StudentFilter first, StudentFilter second, int op) {
+        iFirst = first;
+        iSecond = second;
+        iOp = op;
     }
     
-    /** 
-     * Accept student. Student is accepted if the provided student filter refuses him/her.
-     **/
+    /** A student is accepted if it is accepted by the first and/or the second filter */
     public boolean accept(Student student) {
-        return (iFilter==null?false:!iFilter.accept(student));
+        switch (iOp) {
+            case OP_OR :
+                return iFirst.accept(student) || iSecond.accept(student);
+            case OP_AND : 
+            default:
+                return iFirst.accept(student) && iSecond.accept(student);
+        }
     }
 
 }

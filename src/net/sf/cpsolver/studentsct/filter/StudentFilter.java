@@ -1,5 +1,7 @@
-package net.sf.cpsolver.studentsct;
+package net.sf.cpsolver.studentsct.filter;
 
+import net.sf.cpsolver.studentsct.StudentSectioningXMLLoader;
+import net.sf.cpsolver.studentsct.Test;
 import net.sf.cpsolver.studentsct.model.Student;
 
 /**
