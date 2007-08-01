@@ -149,7 +149,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         Document document = DocumentHelper.createDocument();
         document.addComment("Student Sectioning");
         
-        if ((iSaveCurrent || iSaveBest) && !getModel().assignedVariables().isEmpty()) {
+        if ((iSaveCurrent || iSaveBest)) { // && !getModel().assignedVariables().isEmpty()
             StringBuffer comments = new StringBuffer("Solution Info:\n");
             Dictionary solutionInfo=(getSolution()==null?getModel().getExtendedInfo():getSolution().getExtendedInfo());
             for (Enumeration e=ToolBox.sortEnumeration(solutionInfo.keys());e.hasMoreElements();) {
