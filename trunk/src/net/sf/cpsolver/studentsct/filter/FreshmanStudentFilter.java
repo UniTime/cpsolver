@@ -1,4 +1,4 @@
-package net.sf.cpsolver.studentsct;
+package net.sf.cpsolver.studentsct.filter;
 
 import java.util.Iterator;
 
@@ -30,6 +30,10 @@ import net.sf.cpsolver.studentsct.model.Student;
  */
 
 public class FreshmanStudentFilter implements StudentFilter {
+    
+    public FreshmanStudentFilter() {
+    }
+    
     /** 
      * Accept student. Student is accepted if it is freshmen, i.e., academic area classification 
      * code is A, 01, or 02.
