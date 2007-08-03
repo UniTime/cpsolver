@@ -450,18 +450,20 @@ public class Test {
         Solver solver = new Solver(cfg);
         Solution solution = new Solution(model,0,0);
         solver.setInitalSolution(solution);
-        solver.addSolverListener(new SolverListener() {
-            public boolean variableSelected(long iteration, Variable variable) {
-                return true;
-            }
-            public boolean valueSelected(long iteration, Variable variable, Value value) {
-                return true;
-            }
-            public boolean neighbourSelected(long iteration, Neighbour neighbour) {
-                sLog.debug("Select["+iteration+"]: "+neighbour);
-                return true;
-            }
-        });
+        if (cfg.getPropertyBoolean("Test.Verbose", false)) {
+            solver.addSolverListener(new SolverListener() {
+                public boolean variableSelected(long iteration, Variable variable) {
+                    return true;
+                }
+                public boolean valueSelected(long iteration, Variable variable, Value value) {
+                    return true;
+                }
+                public boolean neighbourSelected(long iteration, Neighbour neighbour) {
+                    sLog.debug("Select["+iteration+"]: "+neighbour);
+                    return true;
+                }
+            });
+        }
         solution.addSolutionListener(new SolutionListener() {
             public void solutionUpdated(Solution solution) {}
             public void getInfo(Solution solution, java.util.Dictionary info) {}
@@ -1042,11 +1044,11 @@ public class Test {
             }
 
             if (args.length>=3) {
-                File logFile = new File(ToolBox.configureLogging(args[2]+File.separator+(sDateFormat.format(new Date())), null, false, false));
+                File logFile = new File(ToolBox.configureLogging(args[2]+File.separator+(sDateFormat.format(new Date())), cfg, false, false));
                 cfg.setProperty("General.Output", logFile.getParentFile().getAbsolutePath());
             } else if (cfg.getProperty("General.Output")!=null) {
                 cfg.setProperty("General.Output", cfg.getProperty("General.Output",".")+File.separator+(sDateFormat.format(new Date())));
-                File logFile = new File(ToolBox.configureLogging(cfg.getProperty("General.Output","."), null, false, false));
+                File logFile = new File(ToolBox.configureLogging(cfg.getProperty("General.Output","."), cfg, false, false));
             } else {
                 ToolBox.configureLogging();
                 cfg.setProperty("General.Output", System.getProperty("user.home", ".")+File.separator+"Sectioning-Test"+File.separator+(sDateFormat.format(new Date())));
