@@ -99,6 +99,7 @@ import net.sf.cpsolver.studentsct.report.DistanceConflictTable;
  * <tr><td>Test.CombineStudentsLastLike</td><td>{@link File}</td><td>If provided (together with Test.CombineStudents), students are combined from the this file (last-like students) and Test.CombineStudents file (real students). Real non-freshmen students are taken from real data, last-like data are loaded on top of the real data (all students, but weighted to occupy only the remaining space).</td></tr>
  * <tr><td>Test.CombineAcceptProb</td><td>{@link Double}</td><td>Used in combining students, probability of a non-freshmen real student to be taken into the combined file (default is 1.0 -- all real non-freshmen students are taken).</td></tr>
  * <tr><td>Test.FixPriorities</td><td>{@link Boolean}</td><td>If true, course/free time request priorities are corrected (to go from zero, without holes or duplicates).</td></tr>
+ * <tr><td>Test.ExtraStudents</td><td>{@link File}</td><td>If provided, students are loaded from the given file on top of the students loaded from the ordinary input file (students with the same id are skipped).</td></tr>
  * </table>
  * <br><br>
  * 
@@ -140,6 +141,14 @@ public class Test {
                 combineStudents(model, 
                         new File(cfg.getProperty("Test.CombineStudentsLastLike",cfg.getProperty("General.Input","."+File.separator+"solution.xml"))), 
                         new File(cfg.getProperty("Test.CombineStudents")));
+            }
+            if (cfg.getProperty("Test.ExtraStudents")!=null) {
+                StudentSectioningXMLLoader extra = new StudentSectioningXMLLoader(model);
+                extra.setInputFile(new File(cfg.getProperty("Test.ExtraStudents")));
+                extra.setLoadOfferings(false);
+                extra.setLoadStudents(true);
+                extra.setStudentFilter(new ExtraStudentFilter(model));
+                extra.load();
             }
             if (cfg.getProperty("Test.LastLikeCourseDemands")!=null)
                 loadLastLikeCourseDemandsXml(model, new File(cfg.getProperty("Test.LastLikeCourseDemands")));
@@ -240,6 +249,7 @@ public class Test {
         
         for (Enumeration e=students.elements();e.hasMoreElements();) {
             Student student = (Student)e.nextElement();
+            if (student.nrAssignedRequests()>0) continue; //skip students with assigned courses (i.e., students already assigned by a batch sectioning process)
             sLog.info("Sectioning student: "+student);
             if (useStudentPrefPenalties)
                 StudentPreferencePenalties.setPenalties(student, cfg.getPropertyInt("Sectioning.Distribution", StudentPreferencePenalties.sDistTypePreference));
@@ -1065,6 +1075,19 @@ public class Test {
         } catch (Exception e) {
             sLog.error(e.getMessage(),e);
             e.printStackTrace();
+        }
+    }
+    
+    public static class ExtraStudentFilter implements StudentFilter {
+        HashSet iIds = new HashSet();
+        public ExtraStudentFilter(StudentSectioningModel model) {
+            for (Enumeration e=model.getStudents().elements();e.hasMoreElements();) {
+                Student student = (Student)e.nextElement();
+                iIds.add(new Long(student.getId()));
+            }
+        }
+        public boolean accept(Student student) {
+            return !iIds.contains(new Long(student.getId()));
         }
     }
 }
