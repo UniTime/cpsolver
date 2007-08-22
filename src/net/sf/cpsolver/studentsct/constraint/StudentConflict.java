@@ -74,7 +74,7 @@ public class StudentConflict extends Constraint {
         }
     }
     
-    /** Two enrollments are consistnet if they are not overlapping in time */
+    /** Two enrollments are consistent if they are not overlapping in time */
     public boolean isConsistent(Value value1, Value value2) {
         Enrollment e1 = (Enrollment)value1;
         Enrollment e2 = (Enrollment)value2;
