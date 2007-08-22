@@ -65,9 +65,9 @@ public class SectionLimit extends GlobalConstraint {
     }
 
     /**
-     * A given enrollment is conflicting, if there is a section which limit (excluding the 
-     * particular request of the given enrollment -- see {@link Section#getEnrollmentWeight(Request)}) 
-     * plus the weight computed by {@link SectionLimit#getWeight(Request)} exceeds the section limit.
+     * A given enrollment is conflicting, if there is a section which limit (computed 
+     * by {@link SectionLimit#getEnrollmentWeight(Section, Request)}) 
+     * exceeds the section limit.
      * <br>
      * For each of such sections, one or more existing enrollments are (randomly) 
      * selected as conflicting until the overall weight is under the limit.
@@ -133,9 +133,9 @@ public class SectionLimit extends GlobalConstraint {
     }
     
     /**
-     * A given enrollment is conflicting, if there is a section which limit (excluding the 
-     * particular request of the given enrollment -- see {@link Section#getEnrollmentWeight(Request)}) 
-     * plus the weight computed by {@link SectionLimit#getWeight(Request)} exceeds the section limit.
+     * A given enrollment is conflicting, if there is a section which limit(computed 
+     * by {@link SectionLimit#getEnrollmentWeight(Section, Request)}) 
+     * exceeds the section limit.
      * 
      * @param value {@link Enrollment} that is being considered
      * @return true, if there is a section which will exceed its limit when the given
