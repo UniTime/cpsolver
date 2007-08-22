@@ -178,7 +178,7 @@ public class CourseRequest extends Request {
                 Section section = (Section)e.nextElement();
                 if (section.getParent()!=null && !sections.contains(section.getParent())) continue;
                 if (section.isOverlapping(sections)) continue;
-                if (avaiableOnly && section.getLimit()>=0 && section.getEnrollmentWeight(this)+SectionLimit.getWeight(this)>section.getLimit()) continue;
+                if (avaiableOnly && section.getLimit()>=0 && SectionLimit.getEnrollmentWeight(section,this)>section.getLimit()) continue;
                 if (selectedOnly && !isSelected(section)) continue;
                 if (skipSameTime && section.getTime()!=null && !hasChildren && !times.add(section.getTime()) && !isSelected(section) && !isWaitlisted(section)) continue;
                 sections.add(section);
@@ -287,7 +287,7 @@ public class CourseRequest extends Request {
         return ret;
     }
     
-    /** True if the student can be put on a waitlist (no alternative course request will be given instead) */
+    /** True if the student can be put on a wait-list (no alternative course request will be given instead) */
     public boolean isWaitlist() {
         return iWaitlist;
     }
@@ -305,7 +305,7 @@ public class CourseRequest extends Request {
         return null;
     }
 
-    /** Return config of the requested courses with the given id */
+    /** Return configuration of the requested courses with the given id */
     public Config getConfig(long configId) {
         for (Enumeration e=getCourses().elements();e.hasMoreElements();) {
             Course course = (Course)e.nextElement();

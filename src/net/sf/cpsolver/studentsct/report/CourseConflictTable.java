@@ -111,7 +111,7 @@ public class CourseConflictTable {
         }
         for (Iterator i=enrl.getAssignments().iterator();i.hasNext();) {
             Section s1 = (Section)i.next();
-            if (conflict.getAssignments().contains(s1) && s1.getEnrollmentWeight(enrl.getRequest()) + SectionLimit.getWeight(enrl.getRequest())>s1.getLimit()) {
+            if (conflict.getAssignments().contains(s1) && SectionLimit.getEnrollmentWeight(s1, enrl.getRequest())>s1.getLimit()) {
                 expl.add(s1.getSubpart().getName()+" n/a");
             }
         }
