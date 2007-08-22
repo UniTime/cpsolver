@@ -2,11 +2,9 @@ package net.sf.cpsolver.studentsct.check;
 
 import java.text.DecimalFormat;
 import java.util.Enumeration;
-import java.util.Iterator;
 
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.model.Config;
-import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Offering;
 import net.sf.cpsolver.studentsct.model.Section;
 import net.sf.cpsolver.studentsct.model.Subpart;
@@ -74,16 +72,11 @@ public class SectionLimitCheck {
                         Section section = (Section)h.nextElement();
                         if (section.getLimit()<0) continue;
                         double used = section.getEnrollmentWeight(null);
-                        double maxWeight = 0;
-                        for (Iterator i=section.getEnrollments().iterator();i.hasNext();) {
-                            Enrollment enrollment = (Enrollment)i.next();
-                            maxWeight = Math.max(maxWeight, enrollment.getRequest().getWeight());
-                        }
-                        if (used-maxWeight>section.getLimit()) {
-                            sLog.error("Section "+section.getName()+" exceeds its limit "+sDF.format(used)+">"+section.getLimit()+" for more than one student (W:"+maxWeight+")");
+                        if (used-section.getMaxEnrollmentWeight()>section.getLimit()) {
+                            sLog.error("Section "+section.getName()+" exceeds its limit "+sDF.format(used)+">"+section.getLimit()+" for more than one student (W:"+section.getMaxEnrollmentWeight()+")");
                             ret = false;
                         } else if (Math.round(used)>section.getLimit()) {
-                            sLog.debug("Section "+section.getName()+" exceeds its limit "+sDF.format(used)+">"+section.getLimit()+" for less than one student (W:"+maxWeight+")");
+                            sLog.debug("Section "+section.getName()+" exceeds its limit "+sDF.format(used)+">"+section.getLimit()+" for less than one student (W:"+section.getMaxEnrollmentWeight()+")");
                         }
                     }
                 }
