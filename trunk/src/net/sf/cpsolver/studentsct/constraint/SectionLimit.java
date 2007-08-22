@@ -44,21 +44,24 @@ import net.sf.cpsolver.studentsct.model.Section;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 public class SectionLimit extends GlobalConstraint {
-    private static double sMinWeight = 0.0;
-    private static double sMaxWeight = 0.0001;
-    private static double sRatio = 1.0;
+    private static double sNominalWeight = 0.00001;
     
     /** 
-     * A wait of a request that is going to be enrolled into a section. 
-     * Some operations may be applied in order to overcome the rounding 
-     * problem with last-like students (e.g., 5 students are projected to
-     * two sections of limit 2 -- each section can have up to 3
-     * of these last-like students).
-     * @param request a request of a student
-     * @return request's weight 
+     * Enrollment weight of a section if the given request is assigned.
+     * In order to overcome rounding problems with last-like students (
+     * e.g., 5 students are projected to two sections of limit 2 -- 
+     * each section can have up to 3 of these last-like students),
+     * the weight of the request with the highest weight in the section is
+     * changed to a small nominal weight.   
+     * @param section a section that is of concern
+     * @param request a request of a student to be assigned containing the given section
+     * @return section's new weight
      */
-    public static double getWeight(Request request) {
-        return Math.max(sMinWeight, Math.min(sMaxWeight, sRatio * request.getWeight())); 
+    public static double getEnrollmentWeight(Section section, Request request) {
+        return 
+            section.getEnrollmentWeight(request) + request.getWeight()
+            - Math.max(section.getMaxEnrollmentWeight(),request.getWeight()) 
+            + sNominalWeight;
     }
 
     /**
@@ -67,7 +70,7 @@ public class SectionLimit extends GlobalConstraint {
      * plus the weight computed by {@link SectionLimit#getWeight(Request)} exceeds the section limit.
      * <br>
      * For each of such sections, one or more existing enrollments are (randomly) 
-     * selected as conflicting untill the overall weight is under the limit.
+     * selected as conflicting until the overall weight is under the limit.
      * 
      * @param value {@link Enrollment} that is being considered
      * @param conflicts all computed conflicting requests are added into this set
@@ -88,34 +91,43 @@ public class SectionLimit extends GlobalConstraint {
             if (section.getLimit()<0) continue;
             
             //new enrollment weight
-            double enrlWeight = section.getEnrollmentWeight(enrollment.getRequest()) + getWeight(enrollment.getRequest());
+            double enrlWeight = getEnrollmentWeight(section, enrollment.getRequest());
             
             //below limit -> ok
             if (enrlWeight<=section.getLimit()) continue;
             
             //above limit -> compute adepts (current assignments that are not yet conflicting)
             //exclude all conflicts as well
-            Vector adepts = new Vector(section.getEnrollments().size());
+            Vector dummyAdepts = new Vector(section.getEnrollments().size());
+            Vector realAdepts = new Vector(section.getEnrollments().size());
             for (Iterator j=section.getEnrollments().iterator();j.hasNext();) {
                 Enrollment e = (Enrollment)j.next();
                 if (e.getRequest().equals(enrollment.getRequest())) continue;
                 if (conflicts.contains(e))
                     enrlWeight -= e.getRequest().getWeight();
+                else if (e.getStudent().isDummy())
+                    dummyAdepts.addElement(e);
                 else
-                    adepts.addElement(e);
+                    realAdepts.addElement(e);
             }
             
             //while above limit -> pick an adept and make it conflicting
             while (enrlWeight>section.getLimit()) {
-                //no adepts -> enrollment cannot be assigned
-                if (adepts.isEmpty()) {
+                //pick adept (prefer dummy students), decrease enrollment weight, make conflict
+                if (!dummyAdepts.isEmpty()) {
+                    Enrollment conflict = (Enrollment)ToolBox.random(dummyAdepts);
+                    dummyAdepts.remove(conflict);
+                    enrlWeight -= conflict.getRequest().getWeight();
+                    conflicts.add(conflict);
+                } else if (!realAdepts.isEmpty()) {
+                    Enrollment conflict = (Enrollment)ToolBox.random(realAdepts);
+                    realAdepts.remove(conflict);
+                    enrlWeight -= conflict.getRequest().getWeight();
+                    conflicts.add(conflict);
+                } else {
+                    //no adepts -> enrollment cannot be assigned
                     conflicts.add(enrollment); break;
                 }
-                //pick adept, decrease enrollment weight, make conflict
-                Enrollment conflict = (Enrollment)ToolBox.random(adepts);
-                adepts.remove(conflict);
-                enrlWeight -= conflict.getRequest().getWeight();
-                conflicts.add(conflict);
             }
         }
     }
@@ -145,7 +157,7 @@ public class SectionLimit extends GlobalConstraint {
             if (section.getLimit()<0) continue;
 
             //new enrollment weight
-            double enrlWeight = section.getEnrollmentWeight(enrollment.getRequest()) + getWeight(enrollment.getRequest());
+            double enrlWeight = getEnrollmentWeight(section, enrollment.getRequest());
             
             //above limit -> conflict
             if (enrlWeight>section.getLimit()) return true;
