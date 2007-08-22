@@ -2,6 +2,7 @@ package net.sf.cpsolver.studentsct.filter;
 
 import java.util.HashSet;
 
+import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.model.Student;
 
 /**
@@ -32,8 +33,8 @@ import net.sf.cpsolver.studentsct.model.Student;
  */
 public class RandomStudentFilter implements StudentFilter {
     private double iProb = 1.0;
-    private HashSet iAcceptedStudents = new HashSet();
-    private HashSet iRejectedStudents = new HashSet();
+    private HashSet iAcceptedStudentIds = new HashSet();
+    private HashSet iRejectedStudentIds = new HashSet();
     
     /**
      * Constructor
@@ -47,14 +48,34 @@ public class RandomStudentFilter implements StudentFilter {
      * A student is accepted with the given probability
      */
     public boolean accept(Student student) {
-        if (iAcceptedStudents.contains(student)) return true;
-        if (iRejectedStudents.contains(student)) return false;
+        Long studentId = new Long(student.getId());
+        if (iAcceptedStudentIds.contains(studentId)) return true;
+        if (iRejectedStudentIds.contains(studentId)) return false;
         boolean accept = (Math.random()<iProb);
         if (accept)
-            iAcceptedStudents.add(student);
+            iAcceptedStudentIds.add(studentId);
         else
-            iRejectedStudents.add(student);
+            iRejectedStudentIds.add(studentId);
         return accept;
+    }
+    
+    /**
+     * Set acceptance probability. Update the sets of accepted and rejected students accordingly.
+     * @param prob new acceptance probability
+     */
+    public void setProbability(double prob) {
+        iProb = prob;
+        int accept = (int)Math.round(prob*(iAcceptedStudentIds.size()+iRejectedStudentIds.size()));
+        while (iAcceptedStudentIds.size()<accept && !iRejectedStudentIds.isEmpty()) {
+            Long studentId = (Long)ToolBox.random(iRejectedStudentIds);
+            iRejectedStudentIds.remove(studentId);
+            iAcceptedStudentIds.add(studentId);
+        }
+        while (iAcceptedStudentIds.size()>accept && !iAcceptedStudentIds.isEmpty()) {
+            Long studentId = (Long)ToolBox.random(iAcceptedStudentIds);
+            iRejectedStudentIds.add(studentId);
+            iAcceptedStudentIds.remove(studentId);
+        }
     }
 
 }
