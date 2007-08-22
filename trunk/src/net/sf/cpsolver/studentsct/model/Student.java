@@ -181,4 +181,19 @@ import java.util.Vector;
     public Vector getMinors() {
         return iMinors;
     }
+    
+    /**
+     * Compare two students for equality. Two students are considered equal if they have the same id.
+     */
+    public boolean equals(Object object) {
+        if (object==null || !(object instanceof Student)) return false;
+        return getId()==((Student)object).getId();
+    }
+    
+    /**
+     * Hash code (base only on student id)
+     */
+    public int hashCode() {
+        return (int)(iId ^ (iId >>> 32)); 
+    }
 }
