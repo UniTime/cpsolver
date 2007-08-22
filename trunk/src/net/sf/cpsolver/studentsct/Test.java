@@ -131,14 +131,13 @@ public class Test {
     
     /** Load student sectioning model */
     public static StudentSectioningModel loadModel(DataProperties cfg) {
-        StudentSectioningModel model = new StudentSectioningModel(cfg);
+        StudentSectioningModel model = null;
         try {
-            StudentSectioningXMLLoader loader = new StudentSectioningXMLLoader(model);
-            if (cfg.getProperty("Test.CombineStudents")!=null)
-                loader.setLoadStudents(false);
-            loader.load();
-            if (cfg.getProperty("Test.CombineStudents")!=null) {
-                combineStudents(model, 
+            if (cfg.getProperty("Test.CombineStudents")==null) {
+                model = new StudentSectioningModel(cfg);
+                new StudentSectioningXMLLoader(model).load();
+            } else {
+                model = combineStudents(cfg,
                         new File(cfg.getProperty("Test.CombineStudentsLastLike",cfg.getProperty("General.Input","."+File.separator+"solution.xml"))), 
                         new File(cfg.getProperty("Test.CombineStudents")));
             }
@@ -921,107 +920,122 @@ public class Test {
         }
     }
     
+    private static void fixWeights(StudentSectioningModel model) {
+        Hashtable lastLike = new Hashtable();
+        Hashtable real = new Hashtable();
+        HashSet lastLikeIds = new HashSet();
+        HashSet realIds = new HashSet();
+        for (Enumeration e=model.getStudents().elements();e.hasMoreElements();) {
+            Student student = (Student)e.nextElement();
+            if (student.isDummy()) {
+                if (!lastLikeIds.add(new Long(student.getId()))){
+                    sLog.error("Two last-like student with id "+student.getId());
+                }
+            } else {
+                if (!realIds.add(new Long(student.getId()))){
+                    sLog.error("Two real student with id "+student.getId());
+                }
+            }
+            for (Enumeration f=student.getRequests().elements();f.hasMoreElements();) {
+                Request request = (Request)f.nextElement();
+                if (request instanceof CourseRequest) {
+                    CourseRequest courseRequest = (CourseRequest)request;
+                    Course course = (Course)courseRequest.getCourses().firstElement();
+                    Integer cnt = (Integer)(student.isDummy()?lastLike:real).get(course);
+                    (student.isDummy()?lastLike:real).put(course, new Integer((cnt==null?0:cnt.intValue())+1));
+                }
+            }
+        }
+        for (Enumeration e=new Vector(model.getStudents()).elements();e.hasMoreElements();) {
+            Student student = (Student)e.nextElement();
+            if (student.isDummy() && realIds.contains(new Long(student.getId()))) {
+                sLog.warn("There is both last-like and real student with id "+student.getId());
+                long newId = -1;
+                while (true) {
+                    newId = 1+(long)(999999999L * Math.random());
+                    if (!realIds.contains(new Long(newId)) && !lastLikeIds.contains(new Long(newId))) break;
+                }
+                lastLikeIds.remove(new Long(student.getId()));
+                lastLikeIds.add(new Long(newId));
+                student.setId(newId);
+                sLog.warn("  -- last-like student id changed to "+student.getId());
+            }
+            for (Enumeration f=new Vector(student.getRequests()).elements();f.hasMoreElements();) {
+                Request request = (Request)f.nextElement();
+                if (!student.isDummy()) {
+                    request.setWeight(1.0); continue;
+                }
+                if (request instanceof CourseRequest) {
+                    CourseRequest courseRequest = (CourseRequest)request;
+                    Course course = (Course)courseRequest.getCourses().firstElement();
+                    Integer lastLikeCnt = (Integer)lastLike.get(course);
+                    Integer realCnt = (Integer)real.get(course);
+                    courseRequest.setWeight(getLastLikeStudentWeight(course, realCnt==null?0:realCnt.intValue(), lastLikeCnt==null?0:lastLikeCnt.intValue()));
+                } else request.setWeight(1.0);
+                 if (request.getWeight()<=0.0) {
+                    model.removeVariable(request);
+                    student.getRequests().remove(request);
+                }
+            }
+            if (student.getRequests().isEmpty()) {
+                model.getStudents().remove(student);
+            }
+        }        
+    }
+    
     /** Combine students from the provided two files */
-    public static void combineStudents(StudentSectioningModel model, File lastLikeStudentData, File realStudentData) {
+    public static StudentSectioningModel combineStudents(DataProperties cfg, File lastLikeStudentData, File realStudentData) {
         try {
-            sLog.info("Test.CombineAcceptProb="+model.getProperties().getPropertyDouble("Test.CombineAcceptProb", 1.0));
-            StudentFilter batchFilter = 
-                new CombinedStudentFilter(
-                        new ReverseStudentFilter(new FreshmanStudentFilter()),
-                        new RandomStudentFilter(model.getProperties().getPropertyDouble("Test.CombineAcceptProb", 1.0)),
-                        CombinedStudentFilter.OP_AND
-                );
-            StudentFilter onlineFilter = new ReverseStudentFilter(batchFilter);
-             
-            StudentSectioningXMLLoader lastLikeLoader = new StudentSectioningXMLLoader(model);
-            lastLikeLoader.setInputFile(lastLikeStudentData);
-            lastLikeLoader.setLoadOfferings(false);
-            lastLikeLoader.setLoadStudents(true);
-            //lastLikeLoader.setStudentFilter(new ReverseStudentFilter(filter));
-            lastLikeLoader.load();
+            RandomStudentFilter rnd = new RandomStudentFilter(1.0);
             
-            StudentSectioningXMLLoader realLoader = new StudentSectioningXMLLoader(model);
-            realLoader.setInputFile(realStudentData);
-            realLoader.setLoadOfferings(false);
-            realLoader.setLoadStudents(true);
-            realLoader.setStudentFilter(batchFilter);
-            realLoader.load();
+            StudentSectioningModel model = null;
             
-            StudentSectioningModel onlineModel = new StudentSectioningModel(model.getProperties());
-            StudentSectioningXMLLoader onlineLoader = new StudentSectioningXMLLoader(onlineModel);
-            onlineLoader.setInputFile(realStudentData);
-            onlineLoader.setLoadOfferings(true);
-            onlineLoader.setLoadStudents(true);
-            onlineLoader.setStudentFilter(onlineFilter);
-            onlineLoader.load();
-            
-            Solver onlineSolver = new Solver(model.getProperties());
-            onlineSolver.setInitalSolution(onlineModel);
-            new StudentSectioningXMLSaver(onlineSolver).save(new File(new File(model.getProperties().getProperty("General.Output",".")),"online.xml"));
+            for (StringTokenizer stk = new StringTokenizer(cfg.getProperty("Test.CombineAcceptProb", "1.0"),",");stk.hasMoreTokens();) {
+                double acceptProb = Double.parseDouble(stk.nextToken());
+                sLog.info("Test.CombineAcceptProb="+acceptProb);
+                rnd.setProbability(acceptProb);
+                
+                StudentFilter batchFilter = 
+                    new CombinedStudentFilter(
+                            new ReverseStudentFilter(new FreshmanStudentFilter()),
+                            rnd,
+                            CombinedStudentFilter.OP_AND
+                    );
+                StudentFilter onlineFilter = new ReverseStudentFilter(batchFilter);
+                
+                model = new StudentSectioningModel(cfg);
+                StudentSectioningXMLLoader loader = new StudentSectioningXMLLoader(model);
+                loader.setLoadStudents(false);
+                loader.load();
+                
+                StudentSectioningXMLLoader lastLikeLoader = new StudentSectioningXMLLoader(model);
+                lastLikeLoader.setInputFile(lastLikeStudentData);
+                lastLikeLoader.setLoadOfferings(false);
+                lastLikeLoader.setLoadStudents(true);
+                lastLikeLoader.load();
+                
+                StudentSectioningXMLLoader realLoader = new StudentSectioningXMLLoader(model);
+                realLoader.setInputFile(realStudentData);
+                realLoader.setLoadOfferings(false);
+                realLoader.setLoadStudents(true);
+                realLoader.setStudentFilter(batchFilter);
+                realLoader.load();
+                
+                fixWeights(model);
+                
+                fixPriorities(model);
+                
+                Solver solver = new Solver(model.getProperties());
+                solver.setInitalSolution(model);
+                new StudentSectioningXMLSaver(solver).save(new File(new File(model.getProperties().getProperty("General.Output",".")),"solution-r"+((int)(100.0*acceptProb))+".xml"));
 
-            Hashtable lastLike = new Hashtable();
-            Hashtable real = new Hashtable();
-            HashSet lastLikeIds = new HashSet();
-            HashSet realIds = new HashSet();
-            for (Enumeration e=model.getStudents().elements();e.hasMoreElements();) {
-                Student student = (Student)e.nextElement();
-                if (student.isDummy()) {
-                    if (!lastLikeIds.add(new Long(student.getId()))){
-                        sLog.error("Two last-like student with id "+student.getId());
-                    }
-                } else {
-                    if (!realIds.add(new Long(student.getId()))){
-                        sLog.error("Two real student with id "+student.getId());
-                    }
-                }
-                for (Enumeration f=student.getRequests().elements();f.hasMoreElements();) {
-                    Request request = (Request)f.nextElement();
-                    if (request instanceof CourseRequest) {
-                        CourseRequest courseRequest = (CourseRequest)request;
-                        Course course = (Course)courseRequest.getCourses().firstElement();
-                        Integer cnt = (Integer)(student.isDummy()?lastLike:real).get(course);
-                        (student.isDummy()?lastLike:real).put(course, new Integer((cnt==null?0:cnt.intValue())+1));
-                    }
-                }
-            }
-            for (Enumeration e=new Vector(model.getStudents()).elements();e.hasMoreElements();) {
-                Student student = (Student)e.nextElement();
-                if (student.isDummy() && realIds.contains(new Long(student.getId()))) {
-                    sLog.warn("There is both last-like and real student with id "+student.getId());
-                    long newId = -1;
-                    while (true) {
-                        newId = 1+(long)(999999999L * Math.random());
-                        if (!realIds.contains(new Long(newId)) && !lastLikeIds.contains(new Long(newId))) break;
-                    }
-                    lastLikeIds.remove(new Long(student.getId()));
-                    lastLikeIds.add(new Long(newId));
-                    student.setId(newId);
-                    sLog.warn("  -- last-like student id changed to "+student.getId());
-                }
-                for (Enumeration f=new Vector(student.getRequests()).elements();f.hasMoreElements();) {
-                    Request request = (Request)f.nextElement();
-                    if (!student.isDummy()) {
-                        request.setWeight(1.0); continue;
-                    }
-                    if (request instanceof CourseRequest) {
-                        CourseRequest courseRequest = (CourseRequest)request;
-                        Course course = (Course)courseRequest.getCourses().firstElement();
-                        Integer lastLikeCnt = (Integer)lastLike.get(course);
-                        Integer realCnt = (Integer)real.get(course);
-                        courseRequest.setWeight(getLastLikeStudentWeight(course, realCnt==null?0:realCnt.intValue(), lastLikeCnt==null?0:lastLikeCnt.intValue()));
-                    } else request.setWeight(1.0);
-                    if (request.getWeight()<=0.0) {
-                        model.removeVariable(request);
-                        student.getRequests().remove(request);
-                    }
-                }
-                if (student.getRequests().isEmpty()) {
-                    model.getStudents().remove(student);
-                }
             }
             
+            return model;
+
         } catch (Exception e) {
             sLog.error("Unable to combine students, reason: "+e.getMessage(),e);
+            return null;
         }
     }
     
