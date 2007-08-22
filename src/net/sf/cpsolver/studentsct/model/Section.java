@@ -52,6 +52,8 @@ public class Section implements Assignment, Comparable {
     private Choice iChoice = null;
     private double iPenalty = 0.0;
     private double iEnrollmentWeight = 0.0;
+    private double iMaxEnrollmentWeight = 0.0;
+    private double iMinEnrollmentWeight = 0.0;
     private double iSpaceExpected = 0.0;
     private double iSpaceHeld = 0.0;
     
@@ -157,6 +159,12 @@ public class Section implements Assignment, Comparable {
     
     /** Called when an enrollment with this section is assigned to a request */
     public void assigned(Enrollment enrollment) {
+        if (iEnrollments.isEmpty()) {
+            iMinEnrollmentWeight = iMaxEnrollmentWeight = enrollment.getRequest().getWeight();
+        } else {
+            iMaxEnrollmentWeight = Math.max(iMaxEnrollmentWeight, enrollment.getRequest().getWeight());
+            iMinEnrollmentWeight = Math.min(iMinEnrollmentWeight, enrollment.getRequest().getWeight());
+        }
         iEnrollments.add(enrollment);
         iEnrollmentWeight += enrollment.getRequest().getWeight();
     }
@@ -165,6 +173,34 @@ public class Section implements Assignment, Comparable {
     public void unassigned(Enrollment enrollment) {
         iEnrollments.remove(enrollment);
         iEnrollmentWeight -= enrollment.getRequest().getWeight();
+        if (iEnrollments.isEmpty()) {
+            iMinEnrollmentWeight = iMaxEnrollmentWeight = 0;
+        } else if (iMinEnrollmentWeight!=iMaxEnrollmentWeight) {
+            if (iMinEnrollmentWeight==enrollment.getRequest().getWeight()) {
+                double newMinEnrollmentWeight = Double.MAX_VALUE;
+                for (Iterator i=iEnrollments.iterator();i.hasNext();) {
+                    Enrollment e = (Enrollment)i.next();
+                    if (e.getRequest().getWeight()==iMinEnrollmentWeight) {
+                        newMinEnrollmentWeight = iMinEnrollmentWeight; break;
+                    } else {
+                        newMinEnrollmentWeight = Math.min(newMinEnrollmentWeight, e.getRequest().getWeight());
+                    }
+                }
+                iMinEnrollmentWeight = newMinEnrollmentWeight;
+            }
+            if (iMaxEnrollmentWeight==enrollment.getRequest().getWeight()) {
+                double newMaxEnrollmentWeight = Double.MIN_VALUE;
+                for (Iterator i=iEnrollments.iterator();i.hasNext();) {
+                    Enrollment e = (Enrollment)i.next();
+                    if (e.getRequest().getWeight()==iMaxEnrollmentWeight) {
+                        newMaxEnrollmentWeight = iMaxEnrollmentWeight; break;
+                    } else {
+                        newMaxEnrollmentWeight = Math.max(newMaxEnrollmentWeight, e.getRequest().getWeight());
+                    }
+                }
+                iMaxEnrollmentWeight = newMaxEnrollmentWeight;
+            }
+        }
     }
     
     /** Set of assigned enrollments */
@@ -181,6 +217,20 @@ public class Section implements Assignment, Comparable {
         return weight;
     }
     
+    /**
+     * Maximal weight of a single enrollment in the section
+     */
+    public double getMaxEnrollmentWeight() {
+        return iMaxEnrollmentWeight;
+    }
+    
+    /**
+     * Minimal weight of a single enrollment in the section
+     */
+    public double getMinEnrollmentWeight() {
+        return iMinEnrollmentWeight;
+    }
+
     /** Long name: subpart name + time long name + room names + instructor names */
     public String getLongName() {
         return getSubpart().getName()+
@@ -272,4 +322,5 @@ public class Section implements Assignment, Comparable {
         
         return Math.max(-1.0,Math.min(1.0,penalty));
     }
+    
 }
