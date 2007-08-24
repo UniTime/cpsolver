@@ -1,6 +1,5 @@
 package net.sf.cpsolver.studentsct.constraint;
 
-import java.io.File;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
@@ -9,9 +8,6 @@ import net.sf.cpsolver.ifs.model.GlobalConstraint;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.ToolBox;
-import net.sf.cpsolver.studentsct.StudentPreferencePenalties;
-import net.sf.cpsolver.studentsct.heuristics.studentord.StudentOrder;
-import net.sf.cpsolver.studentsct.heuristics.studentord.StudentRandomOrder;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Section;
