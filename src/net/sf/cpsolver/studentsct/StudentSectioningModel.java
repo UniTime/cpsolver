@@ -65,7 +65,7 @@ public class StudentSectioningModel extends Model {
         iAssignedVariables = new EnumerableHashSet();
         iUnassignedVariables = new EnumerableHashSet();
         iPerturbVariables = new EnumerableHashSet();
-        addGlobalConstraint(new SectionLimit());
+        addGlobalConstraint(new SectionLimit(properties));
         iProperties = properties;
     }
     

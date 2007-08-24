@@ -1,12 +1,17 @@
 package net.sf.cpsolver.studentsct.constraint;
 
+import java.io.File;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
 
 import net.sf.cpsolver.ifs.model.GlobalConstraint;
 import net.sf.cpsolver.ifs.model.Value;
+import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.ToolBox;
+import net.sf.cpsolver.studentsct.StudentPreferencePenalties;
+import net.sf.cpsolver.studentsct.heuristics.studentord.StudentOrder;
+import net.sf.cpsolver.studentsct.heuristics.studentord.StudentRandomOrder;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Section;
@@ -21,6 +26,11 @@ import net.sf.cpsolver.studentsct.model.Section;
  * Sections with negative limit are considered unlimited, and therefore
  * completely ignored by this constraint.
  * 
+ * <br><br>
+ * Parameters:
+ * <table border='1'><tr><th>Parameter</th><th>Type</th><th>Comment</th></tr>
+ * <tr><td>SectionLimit.PreferDummyStudents</td><td>{@link Boolean}</td><td>If true, requests of dummy (last-like) students are preferred to be selected as conflicting.</td></tr>
+ * </table>
  * <br><br>
  * 
  * @version
@@ -45,6 +55,17 @@ import net.sf.cpsolver.studentsct.model.Section;
  */
 public class SectionLimit extends GlobalConstraint {
     private static double sNominalWeight = 0.00001;
+    private boolean iPreferDummyStudents = false;
+    
+    /** 
+     * Constructor
+     * @param cfg solver configuration
+     */
+    public SectionLimit(DataProperties cfg) {
+        super();
+        iPreferDummyStudents = cfg.getPropertyBoolean("SectionLimit.PreferDummyStudents", false);
+    }
+    
     
     /** 
      * Enrollment weight of a section if the given request is assigned.
@@ -99,29 +120,29 @@ public class SectionLimit extends GlobalConstraint {
             //above limit -> compute adepts (current assignments that are not yet conflicting)
             //exclude all conflicts as well
             Vector dummyAdepts = new Vector(section.getEnrollments().size());
-            Vector realAdepts = new Vector(section.getEnrollments().size());
+            Vector adepts = new Vector(section.getEnrollments().size());
             for (Iterator j=section.getEnrollments().iterator();j.hasNext();) {
                 Enrollment e = (Enrollment)j.next();
                 if (e.getRequest().equals(enrollment.getRequest())) continue;
                 if (conflicts.contains(e))
                     enrlWeight -= e.getRequest().getWeight();
-                else if (e.getStudent().isDummy())
+                else if (iPreferDummyStudents && e.getStudent().isDummy())
                     dummyAdepts.addElement(e);
                 else
-                    realAdepts.addElement(e);
+                    adepts.addElement(e);
             }
             
             //while above limit -> pick an adept and make it conflicting
             while (enrlWeight>section.getLimit()) {
                 //pick adept (prefer dummy students), decrease enrollment weight, make conflict
-                if (!dummyAdepts.isEmpty()) {
+                if (iPreferDummyStudents && !dummyAdepts.isEmpty()) {
                     Enrollment conflict = (Enrollment)ToolBox.random(dummyAdepts);
                     dummyAdepts.remove(conflict);
                     enrlWeight -= conflict.getRequest().getWeight();
                     conflicts.add(conflict);
-                } else if (!realAdepts.isEmpty()) {
-                    Enrollment conflict = (Enrollment)ToolBox.random(realAdepts);
-                    realAdepts.remove(conflict);
+                } else if (!adepts.isEmpty()) {
+                    Enrollment conflict = (Enrollment)ToolBox.random(adepts);
+                    adepts.remove(conflict);
                     enrlWeight -= conflict.getRequest().getWeight();
                     conflicts.add(conflict);
                 } else {
