@@ -71,7 +71,7 @@ public class StudentSctBBTest extends Model {
             conflict.addVariable(request);
             addVariable(request);
         }
-        addGlobalConstraint(new SectionLimit());
+        addGlobalConstraint(new SectionLimit(new DataProperties()));
         addConstraint(conflict);
     }
     

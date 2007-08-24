@@ -11,6 +11,7 @@ import java.util.TreeSet;
 import java.util.Vector;
 
 import net.sf.cpsolver.ifs.util.CSVFile;
+import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.constraint.SectionLimit;
 import net.sf.cpsolver.studentsct.model.Course;
@@ -143,7 +144,7 @@ public class CourseConflictTable {
                 if (courseRequest.getStudent().isComplete()) continue;
                 
                 Vector values = courseRequest.values();
-                SectionLimit limitConstraint = new SectionLimit();
+                SectionLimit limitConstraint = new SectionLimit(new DataProperties());
                 Vector availableValues = new Vector(values.size());
                 for (Enumeration f=values.elements();f.hasMoreElements();) {
                     Enrollment enrollment = (Enrollment)f.nextElement();
