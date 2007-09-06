@@ -273,4 +273,21 @@ public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
 	    	return sb.toString();
 	    }
 	}
+	
+	/** Return maximal depth */
+	public int getDept() {
+	    return iDepth;
+	}
+	/** Set maximal depth */
+	public void setDept(int depth) {
+	    iDepth = depth;
+	}
+	/** Return time limit */
+	public int getTimeout() {
+	    return iTimeout;
+	}
+	/** Set time limit */
+	public void setTimeout(int timeout) {
+	    iTimeout = timeout;
+	}
 }
