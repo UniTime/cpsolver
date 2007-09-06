@@ -129,7 +129,7 @@ public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
     public long getTime() { return iT1 - iT0; }
     
     /** True, if timeout was reached during the last call of selectNeighbour method */
-    public boolean isTimeoutReched() { return iTimeoutReached; }
+    public boolean isTimeoutReached() { return iTimeoutReached; }
     
     private boolean containsConstantValues(Collection values) {
         for (Iterator i=values.iterator();i.hasNext();) {
@@ -275,11 +275,11 @@ public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
 	}
 	
 	/** Return maximal depth */
-	public int getDept() {
+	public int getDepth() {
 	    return iDepth;
 	}
 	/** Set maximal depth */
-	public void setDept(int depth) {
+	public void setDepth(int depth) {
 	    iDepth = depth;
 	}
 	/** Return time limit */
