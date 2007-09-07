@@ -1,6 +1,8 @@
 package net.sf.cpsolver.studentsct.report;
 
 import java.text.DecimalFormat;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -188,6 +190,20 @@ public class DistanceConflictTable {
                 });
              }
         }
+        if (csv.getLines()!=null)
+            Collections.sort(csv.getLines(), new Comparator() {
+                public int compare(Object o1, Object o2) {
+                    CSVFile.CSVLine l1 = (CSVFile.CSVLine)o1;
+                    CSVFile.CSVLine l2 = (CSVFile.CSVLine)o2;
+                    //int cmp = l2.getField(4).toString().compareTo(l1.getField(4).toString());
+                    //if (cmp!=0) return cmp;
+                    int cmp = Double.compare(l2.getField(2).toDouble(),l1.getField(2).toDouble());
+                    if (cmp!=0) return cmp;
+                    cmp = l1.getField(0).toString().compareTo(l2.getField(0).toString());
+                    if (cmp!=0) return cmp;
+                    return l1.getField(1).toString().compareTo(l2.getField(1).toString());
+                }
+             });
         return csv;
     }
 }
