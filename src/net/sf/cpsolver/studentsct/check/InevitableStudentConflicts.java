@@ -1,6 +1,7 @@
 package net.sf.cpsolver.studentsct.check;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -236,6 +237,16 @@ public class InevitableStudentConflicts {
         sLog.info("Inevitable student request weight: "+inevitableRequestWeight);
         sLog.info("Inevitable student requests of students without a complete schedule: "+incompleteInevitableRequests);
         sLog.info("Inevitable student request weight of students without a complete schedule: "+incompleteInevitableRequestWeight);
+        if (iCSVFile.getLines()!=null)
+            Collections.sort(iCSVFile.getLines(), new Comparator() {
+                public int compare(Object o1, Object o2) {
+                    CSVFile.CSVLine l1 = (CSVFile.CSVLine)o1;
+                    CSVFile.CSVLine l2 = (CSVFile.CSVLine)o2;
+                    int cmp = Double.compare(l2.getField(1).toDouble(),l1.getField(1).toDouble());
+                    if (cmp!=0) return cmp;
+                    return l1.getField(0).toString().compareTo(l2.getField(0).toString());
+                }
+             });
         return (inevitableRequests==0);
     }
     
