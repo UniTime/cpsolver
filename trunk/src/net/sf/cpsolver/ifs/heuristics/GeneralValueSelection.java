@@ -75,9 +75,9 @@ public class GeneralValueSelection implements ValueSelection {
     private double iWeightNrAssignments = 0.5;
     private double iWeightValue = 0.0;
     
-    private int iTabuSize = 0;
-    private ArrayList iTabu = null;
-    private int iTabuPos = 0;
+    protected int iTabuSize = 0;
+    protected ArrayList iTabu = null;
+    protected int iTabuPos = 0;
     
     private boolean iMPP = false;
     private ConflictStatistics iStat = null;
