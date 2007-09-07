@@ -81,8 +81,8 @@ public class InevitableStudentConflicts {
         iCSVFile = new CSVFile();
         iCSVFile.setHeader(new CSVFile.CSVField[] {
                 new CSVFile.CSVField("NoGood"),
-                new CSVFile.CSVField("NrRequests"),
-                new CSVFile.CSVField("TotalWeight"),
+                new CSVFile.CSVField("NrStud"),
+                new CSVFile.CSVField("StudWeight"),
                 new CSVFile.CSVField("1. Course"),
                 new CSVFile.CSVField("2. Course"),
                 new CSVFile.CSVField("3. Course"),
