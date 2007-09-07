@@ -60,8 +60,8 @@ public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
     /** Debug flag */
     public static boolean sDebug = false;
 	
-	private Solution iSolution = null;
-	private BackTrackNeighbour iBackTrackNeighbour = null;
+	protected Solution iSolution = null;
+	protected BackTrackNeighbour iBackTrackNeighbour = null;
 	private double iValue = 0;
 	private int iNrAssigned = 0;
     private long iT0,iT1;
@@ -145,6 +145,30 @@ public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
         return variable.values();
     }
     
+    /** Check bound */
+    protected boolean checkBound(Vector variables2resolve, int idx, int depth, Value value, Set conflicts) {
+        int nrUnassigned = variables2resolve.size()-idx;
+        if ((nrUnassigned+conflicts.size()>depth)) {
+            if (sDebug) sLog.debug("        -- too deap");
+            return false;
+        }
+        if (containsConstantValues(conflicts)) {
+            if (sDebug) sLog.debug("        -- contains constants values");
+            return false;
+        }
+        boolean containAssigned = false;
+        for (Iterator i=conflicts.iterator();!containAssigned && i.hasNext();) {
+            Value conflict = (Value)i.next();
+            int confIdx = variables2resolve.indexOf(conflict.variable());
+            if (confIdx>=0 && confIdx<=idx) {
+                if (sDebug) sLog.debug("        -- contains resolved variable "+conflict.variable());
+                containAssigned = true;
+            }
+        }
+        if (containAssigned) return false;
+        return true;
+    }
+    
     /** Backtracking */
     private void backtrack(Vector variables2resolve, int idx, int depth) {
         if (sDebug) sLog.debug("  -- bt["+depth+"]: "+idx+" of "+variables2resolve.size()+" "+variables2resolve);
@@ -178,24 +202,7 @@ public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
             if (sDebug) sLog.debug("      -- value "+value);
             Set conflicts = iSolution.getModel().conflictValues(value);
             if (sDebug) sLog.debug("      -- conflicts "+conflicts);
-            if ((nrUnassigned+conflicts.size()>depth)) {
-                if (sDebug) sLog.debug("        -- too deap");
-                continue;
-            }
-            if (containsConstantValues(conflicts)) {
-                if (sDebug) sLog.debug("        -- contains constants values");
-                continue;
-            }
-            boolean containAssigned = false;
-            for (Iterator i=conflicts.iterator();!containAssigned && i.hasNext();) {
-                Value conflict = (Value)i.next();
-                int confIdx = variables2resolve.indexOf(conflict.variable());
-                if (confIdx>=0 && confIdx<=idx) {
-                    if (sDebug) sLog.debug("        -- contains resolved variable "+conflict.variable());
-                    containAssigned = true;
-                }
-            }
-            if (containAssigned) continue;
+            if (!checkBound(variables2resolve,idx,depth,value,conflicts)) continue;
             Value current = variable.getAssignment();
             Vector newVariables2resolve = new Vector(variables2resolve);
             for (Iterator i=conflicts.iterator();i.hasNext();) {
@@ -236,6 +243,11 @@ public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
         		Value value = variable.getAssignment();
         		iDifferentAssignments.add(value);
         	}
+		}
+		
+		/** Neighbour value (solution total value if the neighbour is applied). */
+		public double getValue() {
+		    return iValue;
 		}
 		
         /**
