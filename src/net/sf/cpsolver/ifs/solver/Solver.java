@@ -421,7 +421,7 @@ public class Solver {
                         	neighbour=null; continue;
                         }
                     if (neighbour==null) {
-                    	iProgress.warn("No neighbour selected.");
+                    	sLogger.debug("No neighbour selected.");
                     	continue;
                     }
                 	
