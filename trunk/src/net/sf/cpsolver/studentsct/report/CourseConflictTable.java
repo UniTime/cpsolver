@@ -133,6 +133,7 @@ public class CourseConflictTable {
                 new CSVFile.CSVField("UnasgnCrs"),
                 new CSVFile.CSVField("ConflCrs"),
                 new CSVFile.CSVField("NrStud"),
+                new CSVFile.CSVField("StudWeight"),
                 new CSVFile.CSVField("NoAlt"),
                 new CSVFile.CSVField("Reason")
         });
@@ -162,11 +163,12 @@ public class CourseConflictTable {
                         unassignedCourseTable.put(course, conflictCourseTable);
                     }
                     Object[] weight = (Object[])conflictCourseTable.get(course);
-                    double nrStud = (weight==null?0.0:((Double)weight[0]).doubleValue()) + request.getWeight();
-                    boolean noAlt = (weight==null?true:((Boolean)weight[1]).booleanValue());
-                    HashSet expl = (weight==null?new HashSet():(HashSet)weight[2]);
+                    double nrStud = (weight==null?0.0:((Double)weight[0]).doubleValue()) + 1.0;
+                    double nrStudW = (weight==null?0.0:((Double)weight[1]).doubleValue()) + request.getWeight();
+                    boolean noAlt = (weight==null?true:((Boolean)weight[2]).booleanValue());
+                    HashSet expl = (weight==null?new HashSet():(HashSet)weight[3]);
                     expl.add(course.getName()+" n/a");
-                    conflictCourseTable.put(course, new Object[] {new Double(nrStud),new Boolean(noAlt),expl}); 
+                    conflictCourseTable.put(course, new Object[] {new Double(nrStud), new Double(nrStudW),new Boolean(noAlt),expl}); 
                 }
                 
                 for (Enumeration f=availableValues.elements();f.hasMoreElements();) {
@@ -209,12 +211,14 @@ public class CourseConflictTable {
                                 continue;
                             }
                             double weightThisConflict = request.getWeight() / availableValues.size() / conflicts.size();
+                            double partThisConflict = 1.0 / availableValues.size() / conflicts.size();
                             Object[] weight = (Object[])conflictCourseTable.get(conflictCourse);
-                            double nrStud = (weight==null?0.0:((Double)weight[0]).doubleValue()) + weightThisConflict;
-                            boolean noAlt = (weight==null?areInHardConfict(request, conflict.getRequest()):((Boolean)weight[1]).booleanValue());
-                            HashSet expl = (weight==null?new HashSet():(HashSet)weight[2]);
+                            double nrStud = (weight==null?0.0:((Double)weight[0]).doubleValue()) + partThisConflict;
+                            double nrStudW = (weight==null?0.0:((Double)weight[1]).doubleValue()) + weightThisConflict;
+                            boolean noAlt = (weight==null?areInHardConfict(request, conflict.getRequest()):((Boolean)weight[2]).booleanValue());
+                            HashSet expl = (weight==null?new HashSet():(HashSet)weight[3]);
                             expl.addAll(explanations(enrollment, conflict));
-                            conflictCourseTable.put(conflictCourse, new Object[] {new Double(nrStud),new Boolean(noAlt),expl}); 
+                            conflictCourseTable.put(conflictCourse, new Object[] {new Double(nrStud),new Double(nrStudW),new Boolean(noAlt),expl}); 
                         }
                     }
                 }
@@ -228,7 +232,7 @@ public class CourseConflictTable {
                 Map.Entry entry2 = (Map.Entry)j.next();
                 Course conflictCourse = (Course)entry2.getKey();
                 Object[] weight = (Object[])entry2.getValue();
-                HashSet expl = (HashSet)weight[2];
+                HashSet expl = (HashSet)weight[3];
                 String explStr = "";
                 for (Iterator k=new TreeSet(expl).iterator();k.hasNext();)
                     explStr += k.next() + (k.hasNext()?"\n":"");
@@ -236,7 +240,8 @@ public class CourseConflictTable {
                    new CSVFile.CSVField(unassignedCourse.getName()),
                    new CSVFile.CSVField(conflictCourse.getName()),
                    new CSVFile.CSVField(sDF.format((Double)weight[0])),
-                   new CSVFile.CSVField(((Boolean)weight[1]).booleanValue()?"Y":"N"),
+                   new CSVFile.CSVField(sDF.format((Double)weight[1])),
+                   new CSVFile.CSVField(((Boolean)weight[2]).booleanValue()?"Y":"N"),
                    new CSVFile.CSVField(explStr)
                 });
              }
