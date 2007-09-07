@@ -111,6 +111,7 @@ public class DistanceConflictTable {
                 new CSVFile.CSVField("Course1"),
                 new CSVFile.CSVField("Course2"),
                 new CSVFile.CSVField("NrStud"),
+                new CSVFile.CSVField("StudWeight"),
                 new CSVFile.CSVField("AvgDist"),
                 new CSVFile.CSVField("NoAlt"),
                 new CSVFile.CSVField("Reason")
@@ -156,15 +157,16 @@ public class DistanceConflictTable {
                 distConfTable.put(c1, firstCourseTable);
             }
             Object[] secondCourseTable = (Object[])firstCourseTable.get(c2);
-            double nrStud = (secondCourseTable==null?0.0:((Double)secondCourseTable[0]).doubleValue()) + conflict.getWeight();
-            double dist = (secondCourseTable==null?0.0:((Double)secondCourseTable[1]).doubleValue()) + (conflict.getDistance() * conflict.getWeight());
-            boolean hard = (secondCourseTable==null?areInHardConfict(r1,r2):((Boolean)secondCourseTable[2]).booleanValue());
-            HashSet expl = (HashSet)(secondCourseTable==null?null:secondCourseTable[3]);
+            double nrStud = (secondCourseTable==null?0.0:((Double)secondCourseTable[0]).doubleValue()) + 1.0;
+            double nrStudW = (secondCourseTable==null?0.0:((Double)secondCourseTable[1]).doubleValue()) + conflict.getWeight();
+            double dist = (secondCourseTable==null?0.0:((Double)secondCourseTable[2]).doubleValue()) + (conflict.getDistance() * conflict.getWeight());
+            boolean hard = (secondCourseTable==null?areInHardConfict(r1,r2):((Boolean)secondCourseTable[3]).booleanValue());
+            HashSet expl = (HashSet)(secondCourseTable==null?null:secondCourseTable[4]);
             if (expl==null) expl = new HashSet();
             expl.add(s1.getSubpart().getName()+" "+s1.getTime().getLongName()+" "+s1.getPlacement().getRoomName(",")+
                     " vs "+
                     s2.getSubpart().getName()+" "+s2.getTime().getLongName()+" "+s2.getPlacement().getRoomName(","));
-            firstCourseTable.put(c2, new Object[] {new Double(nrStud), new Double(dist), new Boolean(hard), expl});
+            firstCourseTable.put(c2, new Object[] {new Double(nrStud), new Double(nrStudW), new Double(dist), new Boolean(hard), expl});
         }
         for (Iterator i=distConfTable.entrySet().iterator();i.hasNext();) {
             Map.Entry entry = (Map.Entry)i.next();
@@ -174,18 +176,20 @@ public class DistanceConflictTable {
                 Map.Entry entry2 = (Map.Entry)j.next();
                 Course c2 = (Course)entry2.getKey();
                 Object[] secondCourseTable = (Object[])entry2.getValue();
-                HashSet expl = (HashSet)secondCourseTable[3];
+                HashSet expl = (HashSet)secondCourseTable[4];
                 String explStr = "";
                 for (Iterator k=new TreeSet(expl).iterator();k.hasNext();)
                     explStr += k.next() + (k.hasNext()?"\n":"");
                 double nrStud = ((Double)secondCourseTable[0]).doubleValue();
-                double dist = ((Double)secondCourseTable[1]).doubleValue()/nrStud;
+                double nrStudW = ((Double)secondCourseTable[1]).doubleValue();
+                double dist = ((Double)secondCourseTable[2]).doubleValue()/nrStud;
                 csv.addLine(new CSVFile.CSVField[] {
                    new CSVFile.CSVField(c1.getName()),
                    new CSVFile.CSVField(c2.getName()),
                    new CSVFile.CSVField(sDF.format(nrStud)),
+                   new CSVFile.CSVField(sDF.format(nrStudW)),
                    new CSVFile.CSVField(sDF.format(dist)),
-                   new CSVFile.CSVField(((Boolean)secondCourseTable[2]).booleanValue()?"Y":"N"),
+                   new CSVFile.CSVField(((Boolean)secondCourseTable[3]).booleanValue()?"Y":"N"),
                    new CSVFile.CSVField(explStr)
                 });
              }
