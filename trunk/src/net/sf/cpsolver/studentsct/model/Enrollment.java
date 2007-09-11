@@ -102,6 +102,7 @@ public class Enrollment extends Value {
     
     /** True when this enrollment is overlapping with the given enrollment */
     public boolean isOverlapping(Enrollment enrl) {
+        if (enrl==null) return false;
         for (Iterator i=enrl.getAssignments().iterator();i.hasNext();) {
             Assignment assignment = (Assignment)i.next();
             if (assignment.isOverlapping(getAssignments())) return true;
