@@ -170,7 +170,7 @@ public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
     }
     
     /** Backtracking */
-    private void backtrack(Vector variables2resolve, int idx, int depth) {
+    protected void backtrack(Vector variables2resolve, int idx, int depth) {
         if (sDebug) sLog.debug("  -- bt["+depth+"]: "+idx+" of "+variables2resolve.size()+" "+variables2resolve);
         if (!iTimeoutReached && iTimeout>0 && System.currentTimeMillis()-iT0>iTimeout)
             iTimeoutReached = true;
