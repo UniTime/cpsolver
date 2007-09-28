@@ -2,12 +2,12 @@ package net.sf.cpsolver.studentsct.heuristics;
 
 import java.util.Enumeration;
 
+import net.sf.cpsolver.ifs.heuristics.RouletteWheelSelection;
 import net.sf.cpsolver.ifs.heuristics.VariableSelection;
 import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
-import net.sf.cpsolver.studentsct.heuristics.general.RouletteWheelSelection;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
 

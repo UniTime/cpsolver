@@ -7,7 +7,7 @@ import java.util.Hashtable;
 import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.coursett.model.TimeLocation.IntEnumeration;
-import net.sf.cpsolver.studentsct.heuristics.general.RouletteWheelSelection;
+import net.sf.cpsolver.ifs.heuristics.RouletteWheelSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
 import net.sf.cpsolver.studentsct.model.Assignment;
 import net.sf.cpsolver.studentsct.model.Config;

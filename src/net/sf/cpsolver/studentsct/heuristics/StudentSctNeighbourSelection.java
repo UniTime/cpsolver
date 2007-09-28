@@ -1,8 +1,8 @@
 package net.sf.cpsolver.studentsct.heuristics;
 
+import net.sf.cpsolver.ifs.heuristics.RoundRobinNeighbourSelection;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
-import net.sf.cpsolver.studentsct.heuristics.general.RoundRobinNeighbourSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.BacktrackSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.RandomUnassignmentSelection;

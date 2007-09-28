@@ -47,7 +47,6 @@ import net.sf.cpsolver.studentsct.filter.RandomStudentFilter;
 import net.sf.cpsolver.studentsct.filter.ReverseStudentFilter;
 import net.sf.cpsolver.studentsct.filter.StudentFilter;
 import net.sf.cpsolver.studentsct.heuristics.StudentSctNeighbourSelection;
-import net.sf.cpsolver.studentsct.heuristics.general.BacktrackNeighbourSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.SwapStudentSelection;
 import net.sf.cpsolver.studentsct.heuristics.studentord.StudentOrder;
@@ -165,8 +164,6 @@ public class Test {
             BranchBoundSelection.sDebug=true;
         if (cfg.getPropertyBoolean("Debug.SwapStudentsSelection",false))
             SwapStudentSelection.sDebug=true;
-        if (cfg.getPropertyBoolean("Debug.BacktrackNeighbourSelection",false))
-            BacktrackNeighbourSelection.sDebug=true;
         if (cfg.getProperty("CourseRequest.SameTimePrecise")!=null)
             CourseRequest.sSameTimePrecise=cfg.getPropertyBoolean("CourseRequest.SameTimePrecise", false);
         if (cfg.getPropertyBoolean("Test.FixPriorities", false))
