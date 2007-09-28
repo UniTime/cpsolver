@@ -3,12 +3,12 @@ package net.sf.cpsolver.studentsct.heuristics.selection;
 import java.util.HashSet;
 
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
+import net.sf.cpsolver.ifs.heuristics.RoundRobinNeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.ToolBox;
-import net.sf.cpsolver.studentsct.heuristics.general.RoundRobinNeighbourSelection;
 import net.sf.cpsolver.studentsct.model.Student;
 
 /**

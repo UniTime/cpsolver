@@ -1,11 +1,9 @@
-package net.sf.cpsolver.studentsct.heuristics.general;
+package net.sf.cpsolver.ifs.heuristics;
 
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
-import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
-import net.sf.cpsolver.ifs.heuristics.StandardNeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;

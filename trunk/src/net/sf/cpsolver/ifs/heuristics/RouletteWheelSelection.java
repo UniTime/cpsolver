@@ -1,4 +1,4 @@
-package net.sf.cpsolver.studentsct.heuristics.general;
+package net.sf.cpsolver.ifs.heuristics;
 
 import java.util.Enumeration;
 import java.util.Vector;

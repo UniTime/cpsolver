@@ -1,10 +1,10 @@
 package net.sf.cpsolver.studentsct.heuristics;
 
-import java.util.Vector;
+import java.util.Enumeration;
 
+import net.sf.cpsolver.ifs.heuristics.BacktrackNeighbourSelection;
 import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.util.DataProperties;
-import net.sf.cpsolver.studentsct.heuristics.general.BacktrackNeighbourSelection;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
 
 /**
@@ -59,10 +59,10 @@ public class RandomizedBacktrackNeighbourSelection extends BacktrackNeighbourSel
      * {@link CourseRequest#computeRandomEnrollments(int)} with the provided limit is used 
      * for a {@link CourseRequest}.  
      */
-    protected Vector values(Variable variable) {
+    protected Enumeration values(Variable variable) {
         if (iMaxValues>0 && variable instanceof CourseRequest) {
-            return ((CourseRequest)variable).computeRandomEnrollments(iMaxValues);
+            return ((CourseRequest)variable).computeRandomEnrollments(iMaxValues).elements();
         } 
-        return variable.values();
+        return variable.values().elements();
     }
 }
