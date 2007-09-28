@@ -169,7 +169,7 @@
     		IFS 1.1 (Iterative Forward Search)<br>
     		CourseTT 1.1 (University Course Timetabling)<br>
     		Copyright (C) 2006 Tomas Muller<br>
-    		<a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
+    		<a href='mailto:muller@unitime.org'>muller@unitime.org</a><br>
     		Lazenska 391, 76314 Zlin, Czech Republic<br>
     		<br>
     		This library is free software; you can redistribute it and/or
@@ -204,7 +204,7 @@
     	<replace dir="${dist.dir}/doc">
     		<include name="**/*.html"/>
     		<replacetoken>Tomas Muller</replacetoken>
-    		<replacevalue>Tom&#225;&#353; M&#252;ller</replacevalue>
+    		<replacevalue><![CDATA[Tom&#225;&#353; M&#252;ller]]></replacevalue>
 		</replace>
     </target>
 	
