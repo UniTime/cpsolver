@@ -9,6 +9,8 @@ import java.util.Vector;
 import org.apache.log4j.Logger;
 
 import net.sf.cpsolver.ifs.constant.ConstantVariable;
+import net.sf.cpsolver.ifs.extension.ConflictStatistics;
+import net.sf.cpsolver.ifs.extension.Extension;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.model.Value;
@@ -53,6 +55,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  */
 
 public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
+    private ConflictStatistics iStat = null;
     private static Logger sLog = Logger.getLogger(BacktrackNeighbourSelection.class);
 	private int iTimeout = 5000;
 	private int iDepth = 4;
@@ -81,6 +84,11 @@ public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
     /** Solver initialization */
 	public void init(Solver solver) {
 		super.init(solver);
+        for (Enumeration i = solver.getExtensions().elements(); i.hasMoreElements();) {
+            Extension extension = (Extension)i.nextElement();
+            if (extension instanceof ConflictStatistics)
+                iStat = (ConflictStatistics)extension;
+        }
 	}
     
     /** 
@@ -290,10 +298,14 @@ public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
 		public void assign(long iteration) {
 			if (sLog.isDebugEnabled()) sLog.debug("-- before assignment: nrAssigned="+iSolution.getModel().assignedVariables().size()+",  value="+iSolution.getModel().getTotalValue());
 			if (sLog.isDebugEnabled()) sLog.debug("  "+this);
-			for (Enumeration e=iDifferentAssignments.elements();e.hasMoreElements();) {
+			int idx=0;
+			for (Enumeration e=iDifferentAssignments.elements();e.hasMoreElements();idx++) {
 				Value p = (Value)e.nextElement();
-				if (p.variable().getAssignment()!=null)
+				if (p.variable().getAssignment()!=null) {
+                    if (idx>0 && iStat!=null)
+                        iStat.variableUnassigned(iteration, p.variable().getAssignment(), (Value)iDifferentAssignments.firstElement());
 					p.variable().unassign(iteration);
+				}
 			}
 			for (Enumeration e=iDifferentAssignments.elements();e.hasMoreElements();) {
                 Value p = (Value)e.nextElement();
