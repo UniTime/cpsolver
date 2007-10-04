@@ -131,6 +131,9 @@ public class StandardNeighbourSelection implements NeighbourSelection {
      */
     public Neighbour selectNeighbour(Solution solution) {
         Variable variable = selectVariable(solution);
-    	return new SimpleNeighbour(variable, selectValue(solution, variable));
+        if (variable==null) return null;
+        Value value = selectValue(solution, variable);
+        if (value==null) return null;
+    	return new SimpleNeighbour(variable, value);
     }
 }
