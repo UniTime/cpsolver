@@ -159,7 +159,7 @@ public class ConflictStatistics extends Extension implements ConstraintListener,
     	return iNoGoods;
     }
     
-    private void variableUnassigned(long iteration, Value unassignedValue, Value assignedValue) {
+    public void variableUnassigned(long iteration, Value unassignedValue, Value assignedValue) {
     	if (iteration<=0) return;
         Assignment ass = new Assignment(iteration, assignedValue, iAgeing);
         Assignment unass = new Assignment(iteration, unassignedValue, iAgeing);
