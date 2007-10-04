@@ -39,6 +39,16 @@ public class SimpleNeighbour extends Neighbour {
 		iValue = value;
 	}
 	
+	/** Selected variable */
+	public Variable getVariable() {
+	    return iVariable;
+	}
+	
+	/** Selected value */
+	public Value getValue() {
+	    return iValue;
+	}
+	
 	/** Perform assignment */ 
 	public void assign(long iteration) {
 		if (iVariable==null) return;
