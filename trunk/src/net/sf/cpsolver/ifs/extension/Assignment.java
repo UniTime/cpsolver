@@ -109,13 +109,8 @@ public class Assignment {
     }
     
     public boolean equals(Object o) {
-        try {
-            Assignment a = (Assignment)o;
-            return a.getValue().getId() == getValue().getId();
-        }
-        catch (Exception e) {
-            return false;
-        }
+        if (o==null || !(o instanceof Assignment)) return false;
+        return ((Assignment)o).getValue().equals(getValue());
     }
     
     /** Returns comparator of assignments */
