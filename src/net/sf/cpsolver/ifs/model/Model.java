@@ -224,6 +224,15 @@ public class Model {
         return conflictValues;
     }
     
+    /** Return true if the given value is in conflict with a hard constraint */
+    public boolean inConflict(Value value) {
+        for (Enumeration c=value.variable().hardConstraints().elements(); c.hasMoreElements();)
+            if (((Constraint)c.nextElement()).inConflict(value)) return true;
+        for (Enumeration c=globalConstraints().elements(); c.hasMoreElements();)
+            if (((GlobalConstraint)c.nextElement()).inConflict(value)) return true;
+        return false;
+    }
+    
     /** The list of variales without initial value */
     public Vector variablesWithInitialValue() {
     	if (iVariablesWithInitialValueCache!=null)
