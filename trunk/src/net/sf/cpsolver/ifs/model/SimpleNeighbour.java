@@ -59,6 +59,6 @@ public class SimpleNeighbour extends Neighbour {
 	}
 	
 	public String toString() {
-		return iVariable.getName()+(iValue==null?"":" "+iValue.getName());
+		return iVariable.getName()+" "+(iVariable.getAssignment()==null?"null":iVariable.getAssignment().getName())+" -> "+(iValue==null?"null":iValue.getName());
 	}
 }
