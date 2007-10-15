@@ -408,7 +408,7 @@ public class Solver {
                 }
                 
                 if (iCurrentSolution.getModel().variables().isEmpty()) {
-                	iProgress.fatal("Nothing to solve.");
+                	iProgress.error("Nothing to solve.");
                 	iStop=true;
                 }
                 
