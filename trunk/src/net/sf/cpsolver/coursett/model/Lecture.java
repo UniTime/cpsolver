@@ -178,17 +178,16 @@ public class Lecture extends Variable implements ConstantVariable {
     
     /** Add an enrolled student */
     public void addStudent(Student student) {
-    	if (iStudents.contains(student)) return;
+    	if (!iStudents.add(student)) return;
     	if (getAssignment()!=null && getModel()!=null)
     		((TimetableModel)getModel()).getCommittedStudentConflictsCounter().inc(student.countConflictPlacements((Placement)getAssignment()));
-        iStudents.add(student);
         iSameStudents.clear();
         iCommitedConflicts.clear();
     }
     public void removeStudent(Student student) {
+        if (!iStudents.remove(student)) return;
     	if (getAssignment()!=null && getModel()!=null)
     		((TimetableModel)getModel()).getCommittedStudentConflictsCounter().dec(student.countConflictPlacements((Placement)getAssignment()));
-        iStudents.remove(student);
         iSameStudents.clear();
         iCommitedConflicts.clear();
     }
@@ -794,10 +793,10 @@ public class Lecture extends Variable implements ConstantVariable {
     }
     
     public void assign(long iteration, Value value) {
+        if (value!=null && getModel()!=null) {
+            ((TimetableModel)getModel()).getCommittedStudentConflictsCounter().inc(getCommitedConflicts((Placement)value));
+        }
     	super.assign(iteration, value);
-    	if (value!=null && getModel()!=null) {
-    		((TimetableModel)getModel()).getCommittedStudentConflictsCounter().inc(getCommitedConflicts((Placement)value));
-    	}
     }
     
     public void unassign(long iteration) {
