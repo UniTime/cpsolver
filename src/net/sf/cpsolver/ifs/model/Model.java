@@ -384,6 +384,15 @@ public class Model {
             variable.setBestAssignment(variable.getAssignment());
         }
     }
+    /** Clear the best ever found assignment */
+    public void clearBest() {
+        iBestUnassignedVariables = -1;
+        iBestPerturbations = 0;
+        for (Enumeration e=variables().elements();e.hasMoreElements();) {
+            Variable variable = (Variable)e.nextElement();
+            variable.setBestAssignment(null);
+        }
+    }
     /** Restore the best ever found assignment into the current assignment*/
     public void restoreBest() {
         for (Enumeration e=variables().elements();e.hasMoreElements();) {
