@@ -146,8 +146,8 @@ public class DbtValueSelection implements ValueSelection {
         }
         
         if (iMPP) {
-            if (iMPPLimit>=0 && solution.isBestComplete() && solution.getBestPertirbations()>=0 && solution.getBestPertirbations() <= iMPPLimit) {
-                iMPPLimit = solution.getBestPertirbations() - 1;
+            if (iMPPLimit>=0 && solution.isBestComplete() && solution.getModel().getBestPerturbations()>=0 && solution.getModel().getBestPerturbations() <= iMPPLimit) {
+                iMPPLimit = solution.getModel().getBestPerturbations() - 1;
                 sLogger.debug("MPP Limit decreased to "+iMPPLimit);
             }
             
