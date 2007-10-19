@@ -49,8 +49,7 @@ public class Solution {
     private double iBestTime = -1;
     private double iBestPerturbationsPenaly = -1.0;
     private double iBestValue = 0;
-    private int iBestPertirbations = -1;
-    
+
     private Vector iSolutionListeners = new FastVector();
     private PerturbationsCounter iPerturbationsCounter = null;
 
@@ -151,8 +150,6 @@ public class Solution {
     public long getBestIteration() { return (iBestIteration<0?getIteration():iBestIteration); }
     /** Solution time when the best ever found solution was found */
     public double getBestTime() { return (iBestTime<0?getTime():iBestTime); }
-    /** Number of perturbation variables (variables with non-initial value assigned) if the best ever solution found */
-    public int getBestPertirbations() { return iBestPertirbations; }
     /** Returns true, if all variables of the best ever solution found are assigned */
     public boolean isBestComplete() { return iBestComplete; }
     /** Total value of the best ever found solution -- sum of all assigned values (see {@link Value#toDouble()}).*/
@@ -165,10 +162,10 @@ public class Solution {
     
     /** Clear the best ever found solution */
     public void clearBest() {
+        getModel().clearBest();
         iBestInfo = null;
-        iBestTime = 0;
-        iBestIteration = 0;
-        iBestPertirbations = -1;
+        iBestTime = -1;
+        iBestIteration = -1;
         iBestComplete = false;
         iBestValue = 0;
         iBestPerturbationsPenaly = -1.0;
@@ -182,7 +179,6 @@ public class Solution {
         iBestInfo = getInfo();
         iBestTime = getTime();
         iBestIteration = getIteration();
-        iBestPertirbations = getModel().perturbVariables().size();
         iBestComplete = getModel().unassignedVariables().isEmpty();
         iBestValue = getModel().getTotalValue();
         iBestPerturbationsPenaly = (iPerturbationsCounter==null?0.0:iPerturbationsCounter.getPerturbationPenalty(getModel()));
