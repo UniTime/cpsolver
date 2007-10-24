@@ -29,4 +29,6 @@ package net.sf.cpsolver.ifs.model;
 public abstract class Neighbour {
 	/** Perform assignmnet */
 	public abstract void assign(long iteration);
+	/** Difference in the evaluation function, if this neighnour is assigned. */
+	public abstract double value();
 }
