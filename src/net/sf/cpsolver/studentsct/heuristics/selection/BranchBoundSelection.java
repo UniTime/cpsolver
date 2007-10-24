@@ -456,6 +456,10 @@ public class BranchBoundSelection implements NeighbourSelection {
             iAssignment = assignment;
         }
         
+        public double value() {
+            return iValue;
+        }
+        
         /** Assign the schedule */
         public void assign(long iteration) {
             for (int i=0;i<iAssignment.length;i++)
