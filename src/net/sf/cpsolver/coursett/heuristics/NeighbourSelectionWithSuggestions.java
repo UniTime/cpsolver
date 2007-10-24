@@ -208,6 +208,10 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
         	}
 		}
 		
+		public double value() {
+		    return iValue;
+		}
+		
 		public void assign(long iteration) {
 			//System.out.println("START ASSIGN: nrAssigned="+iSolution.getModel().assignedVariables().size()+",  value="+iCmp.currentValue(iSolution));
 			//System.out.println("  "+this);

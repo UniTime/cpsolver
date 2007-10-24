@@ -57,6 +57,14 @@ public class SimpleNeighbour extends Neighbour {
 		else
 			iVariable.unassign(iteration);
 	}
+
+	/** Improvement in the solution value if this neighbour is accepted. */
+	public double value() {
+	    return
+	        (iValue==null?0:iValue.toDouble()) -
+	        (iVariable==null || iVariable.getAssignment()==null?0:iVariable.getAssignment().toDouble());
+	}
+
 	
 	public String toString() {
 		return iVariable.getName()+" "+(iVariable.getAssignment()==null?"null":iVariable.getAssignment().getName())+" -> "+(iValue==null?"null":iValue.getName());
