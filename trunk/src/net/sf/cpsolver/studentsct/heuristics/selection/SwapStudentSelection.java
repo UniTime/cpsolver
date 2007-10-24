@@ -307,6 +307,10 @@ public class SwapStudentSelection implements NeighbourSelection, ProblemStudents
             iEnrollment = enrollment;
         }
         
+        public double value() {
+            return iValue;
+        }
+        
         /** 
          * Perform the move. 
          * All the requeired swaps are identified and performed as well.

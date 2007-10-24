@@ -283,7 +283,7 @@ public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
 		}
 		
 		/** Sum of values of variables from the neighbour that change their values */ 
-        public double getValue() {
+        public double value() {
             return iValue;
         }
 

@@ -91,6 +91,16 @@ public class RandomUnassignmentSelection implements NeighbourSelection {
             iStudent = student;
         }
         
+        public double value() {
+            double val = 0;
+            for (Enumeration e=iStudent.getRequests().elements();e.hasMoreElements();) {
+                Request request = (Request)e.nextElement();
+                if (request.getAssignment()!=null)
+                    val -= request.getAssignment().toDouble();
+            }
+            return val;
+        }
+        
         /** All requests of the given student are unassigned */
         public void assign(long iteration) {
             for (Enumeration e=iStudent.getRequests().elements();e.hasMoreElements();) {
