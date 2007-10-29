@@ -112,7 +112,7 @@ public abstract class Constraint {
         variable.addContstraint(this);
         if (variable.getAssignment()!=null) {
             this.assigned(0,variable.getAssignment());
-            iAssignedVariables.addElement(variable);
+            if (iAssignedVariables!=null) iAssignedVariables.addElement(variable);
         }
     }
     /** Remove a variable from this constraint */
@@ -122,7 +122,7 @@ public abstract class Constraint {
     	}
         variable.removeContstraint(this);
         iVariables.removeElement(variable);
-        if (iAssignedVariables.contains(variable)) iAssignedVariables.removeElement(variable);
+        if (iAssignedVariables!=null && iAssignedVariables.contains(variable)) iAssignedVariables.removeElement(variable);
     }
     
     /** The only method which has to be implemented by any constraint. It returns the 
@@ -166,7 +166,7 @@ public abstract class Constraint {
                 conflictValue.variable().unassign(iteration);
             }
         }
-        iAssignedVariables.addElement(value.variable());
+        if (iAssignedVariables!=null) iAssignedVariables.addElement(value.variable());
         if (iConstraintListeners!=null)
             for (Enumeration e=iConstraintListeners.elements();e.hasMoreElements();)
                 ((ConstraintListener)e.nextElement()).constraintAfterAssigned(iteration, this, value, conf);
@@ -175,7 +175,7 @@ public abstract class Constraint {
     /** Given value is unassigned from its varable.
      */
     public void unassigned(long iteration, Value value) {
-        iAssignedVariables.removeElement(value.variable());
+        if (iAssignedVariables!=null) iAssignedVariables.removeElement(value.variable());
     }
 
     /** Adds a constraint listener */
