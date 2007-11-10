@@ -37,13 +37,11 @@ public class ExamNeighbourSelection implements NeighbourSelection {
                 n = iCon.selectNeighbour(solution);
                 if (n!=null) return n;
                 iPhase++;
-                /*
                 sLog.info("***** hill climbing phase *****");
             case 1 : 
                 n = iHC.selectNeighbour(solution);
                 if (n!=null) return n;
                 iPhase++;
-                */
                 sLog.info("***** simulated annealing phase *****");
             default :
                 return iSA.selectNeighbour(solution);
