@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
+import org.apache.log4j.Logger;
 import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
 import org.dom4j.Element;
@@ -23,6 +24,7 @@ import net.sf.cpsolver.ifs.util.EnumerableHashSet;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
 public class ExamModel extends Model {
+    private static Logger sLog = Logger.getLogger(ExamModel.class); 
     private DataProperties iProperties = null;
     private int iMaxRooms = 4;
     private Vector iPeriods = new Vector();
@@ -525,7 +527,7 @@ public class ExamModel extends Model {
             if (exam.hasPreAssignedPeriod() || !exam.getPreassignedRooms().isEmpty()) {
                 Element pre = ex.addElement("pre-assigned");
                 if (exam.hasPreAssignedPeriod())
-                    pre.addElement("period").addAttribute("id", String.valueOf(exam.getPreAssignedPeriod()));
+                    pre.addElement("period").addAttribute("id", String.valueOf(exam.getPreAssignedPeriod().getIndex()));
                 for (Iterator i=exam.getPreassignedRooms().iterator();i.hasNext();) {
                     ExamRoom r = (ExamRoom)i.next();
                     pre.addElement("room").addAttribute("id", r.getRoomId());
@@ -636,17 +638,18 @@ public class ExamModel extends Model {
             String name = e.attributeValue("name");
             String value = e.attributeValue("value");
             if ("isDayBreakBackToBack".equals(name)) setDayBreakBackToBack("true".equals(value));
-            if ("directConflictWeight".equals(name)) setDirectConflictWeight(Double.parseDouble(value));
-            if ("backToBackConflictWeight".equals(name)) setBackToBackConflictWeight(Double.parseDouble(value));
-            if ("moreThanTwoADayWeight".equals(name)) setMoreThanTwoADayWeight(Double.parseDouble(value));
-            if ("enrollmentFactor".equals(name)) setEnrollmentFactor(Double.parseDouble(value));
-            if ("maxRooms".equals(name)) setMaxRooms(Integer.parseInt(value));
-            if ("periodWeight".equals(name)) setPeriodWeight(Double.parseDouble(value));
-            if ("roomSizeWeight".equals(name)) setRoomSizeWeight(Double.parseDouble(value));
-            if ("roomLocationWeight".equals(name)) setRoomLocationWeight(Double.parseDouble(value));
-            if ("roomSplitWeight".equals(name)) setRoomSplitWeight(Double.parseDouble(value));
-            if ("notOriginalRoomWeight".equals(name)) setNotOriginalRoomWeight(Double.parseDouble(value));
-            if ("centralCoordinates".equals(name)) setCentralCoordinates(Integer.parseInt(value.substring(0,value.indexOf(','))), Integer.parseInt(value.substring(value.indexOf(',')+1)));            
+            else if ("directConflictWeight".equals(name)) setDirectConflictWeight(Double.parseDouble(value));
+            else if ("backToBackConflictWeight".equals(name)) setBackToBackConflictWeight(Double.parseDouble(value));
+            else if ("moreThanTwoADayWeight".equals(name)) setMoreThanTwoADayWeight(Double.parseDouble(value));
+            else if ("enrollmentFactor".equals(name)) setEnrollmentFactor(Double.parseDouble(value));
+            else if ("maxRooms".equals(name)) setMaxRooms(Integer.parseInt(value));
+            else if ("periodWeight".equals(name)) setPeriodWeight(Double.parseDouble(value));
+            else if ("roomSizeWeight".equals(name)) setRoomSizeWeight(Double.parseDouble(value));
+            else if ("roomLocationWeight".equals(name)) setRoomLocationWeight(Double.parseDouble(value));
+            else if ("roomSplitWeight".equals(name)) setRoomSplitWeight(Double.parseDouble(value));
+            else if ("notOriginalRoomWeight".equals(name)) setNotOriginalRoomWeight(Double.parseDouble(value));
+            else if ("centralCoordinates".equals(name)) setCentralCoordinates(Integer.parseInt(value.substring(0,value.indexOf(','))), Integer.parseInt(value.substring(value.indexOf(',')+1)));
+            else getProperties().setProperty(name, value);
         }
         for (Iterator i=root.element("periods").elementIterator("period");i.hasNext();) {
             Element e = (Element)i.next();
@@ -783,18 +786,49 @@ public class ExamModel extends Model {
                             ((Exam)((ExamPlacement)j.next()).variable()).setAllowDirectConflicts(true);
                     }
                 }
+                conf = conflictValues(placement);
             }
-            if (!inConflict(placement)) exam.assign(0, placement);
+            if (conf.isEmpty()) {
+                exam.assign(0, exam.getInitialAssignment());
+            } else {
+                sLog.error("Unable to assign "+exam.getInitialAssignment().getName()+" to exam "+exam.getName());
+                sLog.error("Conflicts:"+ToolBox.dict2string(conflictConstraints(exam.getInitialAssignment()), 2));
+            }
         }
         for (Enumeration e=new Vector(unassignedVariables()).elements();e.hasMoreElements();) {
             Exam exam = (Exam)e.nextElement();
             if (!exam.hasPreAssignedPeriod()) continue;
+            ExamPlacement placement = null;
             if (exam.hasPreAssignedRooms()) {
-                exam.assign(0, new ExamPlacement(exam, exam.getPreAssignedPeriod(), new HashSet(exam.getPreassignedRooms())));
+                placement = new ExamPlacement(exam, exam.getPreAssignedPeriod(), new HashSet(exam.getPreassignedRooms()));
             } else {
                 Set bestRooms = exam.findBestAvailableRooms(exam.getPreAssignedPeriod());
-                if (bestRooms!=null)
-                    exam.assign(0, new ExamPlacement(exam, exam.getPreAssignedPeriod(), bestRooms));
+                if (bestRooms==null) {
+                    sLog.error("Unable to assign "+exam.getPreAssignedPeriod()+" to exam "+exam.getName()+" -- no suitable room found.");
+                    continue;
+                }
+                placement = new ExamPlacement(exam, exam.getPreAssignedPeriod(), bestRooms);
+            }
+            Set conflicts = conflictValues(placement);
+            if (!conflicts.isEmpty()) {
+                for (Iterator i=conflictConstraints(placement).entrySet().iterator();i.hasNext();) {
+                    Map.Entry entry = (Map.Entry)i.next();
+                    Constraint constraint = (Constraint)entry.getKey();
+                    Set values = (Set)entry.getValue();
+                    if (constraint instanceof ExamStudent) {
+                        ((ExamStudent)constraint).setAllowDirectConflicts(true);
+                        exam.setAllowDirectConflicts(true);
+                        for (Iterator j=values.iterator();j.hasNext();)
+                            ((Exam)((ExamPlacement)j.next()).variable()).setAllowDirectConflicts(true);
+                    }
+                }
+                conflicts = conflictValues(placement);
+            }
+            if (conflicts.isEmpty()) {
+                exam.assign(0, placement);
+            } else {
+                sLog.error("Unable to assign "+placement.getName()+" to exam "+exam.getName());
+                sLog.error("Conflicts:"+ToolBox.dict2string(conflictConstraints(exam.getInitialAssignment()), 2));
             }
         }
         return true;
