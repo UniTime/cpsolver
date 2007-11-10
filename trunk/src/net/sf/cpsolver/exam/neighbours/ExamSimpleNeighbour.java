@@ -10,7 +10,7 @@ import net.sf.cpsolver.ifs.model.SimpleNeighbour;
 
 public class ExamSimpleNeighbour extends SimpleNeighbour {
     private static Logger sLog = Logger.getLogger(ExamSimpleNeighbour.class);
-    private static boolean sCheck = true;
+    private static boolean sCheck = false;
     public double iValue = 0;
     private double iDx;
     private double[] iDxM;
