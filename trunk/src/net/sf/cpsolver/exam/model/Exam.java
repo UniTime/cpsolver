@@ -453,7 +453,7 @@ public class Exam extends Variable {
         loop: for (int nrRooms=1;nrRooms<=getMaxRooms();nrRooms++) {
             HashSet rooms = new HashSet(); int size = 0;
             while (rooms.size()<nrRooms && size<getStudents().size()) {
-                int minSize = (getStudents().size()-size)/nrRooms;
+                int minSize = (getStudents().size()-size)/(nrRooms-rooms.size());
                 ExamRoom best = null; int bestSize = 0;
                 for (Enumeration e=getRooms().elements();e.hasMoreElements();) {
                     ExamRoom room = (ExamRoom)e.nextElement();
