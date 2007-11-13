@@ -24,9 +24,49 @@ import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
+/**
+ * An examination timetabling test program. The follwoing steps are performed:
+ * <ul>
+ *  <li>Input properties are loaded
+ *  <li>Input problem is loaded (General.Input property)
+ *  <li>Problem is solved (using the given properties)
+ *  <li>Solution is save (General.OutputFile property)
+ * </ul>
+ * <br><br>
+ * Usage:
+ * <code>
+ * &nbsp;&nbsp;&nbsp;java -Xmx1024m -jar examtt-1.1.jar exam.properties input.xml output.xml
+ * </code>
+ * <br><br>
+ * 
+ * @version
+ * ExamTT 1.1 (Examination Timetabling)<br>
+ * Copyright (C) 2007 Tomas Muller<br>
+ * <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
+ * Lazenska 391, 76314 Zlin, Czech Republic<br>
+ * <br>
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * <br><br>
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * <br><br>
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
 public class Test {
     private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(Test.class);
     
+    /**
+     * Setup log4j logging
+     * @param logFile log file
+     * @param debug true if debug messages should be logged (use -Ddebug=true to enable debug message)
+     */
     public static void setupLogging(File logFile, boolean debug) {
         Logger root = Logger.getRootLogger();
         ConsoleAppender console = new ConsoleAppender(new PatternLayout("%m%n"));//%-5p %c{1}> %m%n
@@ -47,32 +87,55 @@ public class Test {
         if (!debug) root.setLevel(Level.INFO);
     }
 
+    /**
+     * Main program
+     * @param args problem property file, 
+     * input file (optional, may be set by General.Input property), 
+     * output file (optional, may be set by General.OutputFile property)
+     */
     public static void main(String[] args) {
         try {
             DataProperties cfg = new DataProperties();
             cfg.setProperty("Termination.StopWhenComplete","false");
             cfg.setProperty("Termination.TimeOut","1800");
             cfg.setProperty("General.SaveBestUnassigned", "-1");
-            cfg.setProperty("General.Input","c:\\exam1070.xml");
-            cfg.setProperty("General.OutputFile","c:\\exam1070s.xml");
-            //cfg.setProperty("Extensions.Classes","net.sf.cpsolver.ifs.extension.ConflictStatistics");
-            //cfg.setProperty("Neighbour.Class","net.sf.cpsolver.exam.heuristics.ExamConstruction");
             cfg.setProperty("Neighbour.Class","net.sf.cpsolver.exam.heuristics.ExamNeighbourSelection");
             if (args.length>=1) {
                 cfg.load(new FileInputStream(args[0]));
             }
             cfg.putAll(System.getProperties());
             
+            File inputFile = new File("c:\\test\\exam\\exam1070.xml");
             if (args.length>=2) {
-                cfg.setProperty("General.Input", args[1]);
+                inputFile = new File(args[1]);
             }
+            cfg.setProperty("General.Input", inputFile.toString());
             
-            setupLogging(null, false);
+            String outName = inputFile.getName();
+            if (outName.indexOf('.')>=0)
+                outName = outName.substring(0,outName.lastIndexOf('.')) + "s.xml";
+            File outFile = new File(inputFile.getParentFile(),outName);
+            if (args.length>=3) {
+                outFile = new File(args[2]);
+                if (outFile.exists() && outFile.isDirectory())
+                    outFile = new File(outFile, outName);
+                if (!outFile.exists() && !outFile.getName().endsWith(".xml"))
+                    outFile = new File(outFile, outName);
+            }
+            if (outFile.getParentFile()!=null) outFile.getParentFile().mkdirs();
+            cfg.setProperty("General.OutputFile", outFile.toString());
+            cfg.setProperty("General.Output", outFile.getParent());
+            
+            String logName = inputFile.getName();
+            if (logName.indexOf('.')>=0)
+                logName = logName.substring(0,logName.lastIndexOf('.')) + ".log";
+            setupLogging(new File(outFile.getParent(),logName), 
+                    "true".equals(System.getProperty("debug","false")));
             
             ExamModel model = new ExamModel(cfg);
             
             Document document = (new SAXReader()).read(new File(cfg.getProperty("General.Input")));
-            model.load(document, false, false);
+            model.load(document);
             
             sLog.info("Loaded model: "+ToolBox.dict2string(model.getExtendedInfo(), 2));
             
@@ -114,7 +177,7 @@ public class Test {
             sLog.info("Total value of the solution is "+solution.getModel().getTotalValue());
             
             FileOutputStream fos = new FileOutputStream(new File(cfg.getProperty("General.OutputFile",cfg.getProperty("General.Output")+File.separator+"solution.xml")));
-            (new XMLWriter(fos,OutputFormat.createPrettyPrint())).write(model.save(true,true));
+            (new XMLWriter(fos,OutputFormat.createPrettyPrint())).write(model.save());
             fos.flush();fos.close();
         } catch (Exception e) {
             e.printStackTrace();

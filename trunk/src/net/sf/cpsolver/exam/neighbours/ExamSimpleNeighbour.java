@@ -7,11 +7,36 @@ import org.apache.log4j.Logger;
 import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.ifs.model.SimpleNeighbour;
-
+/**
+ * Extension of {@link SimpleNeighbour}. The only difference is that
+ * the value ({@link SimpleNeighbour#value()}) is decreased by 1000 if the
+ * selected variable has no current assignment.
+ * <br><br>
+ * 
+ * @version
+ * ExamTT 1.1 (Examination Timetabling)<br>
+ * Copyright (C) 2007 Tomas Muller<br>
+ * <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
+ * Lazenska 391, 76314 Zlin, Czech Republic<br>
+ * <br>
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * <br><br>
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * <br><br>
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
 public class ExamSimpleNeighbour extends SimpleNeighbour {
     private static Logger sLog = Logger.getLogger(ExamSimpleNeighbour.class);
     private static boolean sCheck = false;
-    public double iValue = 0;
+    private double iValue = 0;
     private double iDx;
     private double[] iDxM;
     
