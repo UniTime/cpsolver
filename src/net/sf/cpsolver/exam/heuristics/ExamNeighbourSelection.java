@@ -8,6 +8,37 @@ import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
+/**
+ * Examination timetabling neighbour selection.
+ * <br><br>
+ * It consists of the following three phases:
+ * <ul>
+ * <li>Construction phase ({@link ExamConstruction} until all exams are assigned) 
+ * <li>Hill-climbing phase ({@link ExamHillClimbing} until the given number if idle iterations)
+ * <li>Simulated annealing phase ({@link ExamSimulatedAnnealing} until timeout is reached)
+ * </ul>
+ * <br><br>
+ * 
+ * @version
+ * ExamTT 1.1 (Examination Timetabling)<br>
+ * Copyright (C) 2007 Tomas Muller<br>
+ * <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
+ * Lazenska 391, 76314 Zlin, Czech Republic<br>
+ * <br>
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * <br><br>
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * <br><br>
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
 public class ExamNeighbourSelection implements NeighbourSelection {
     private static Logger sLog = Logger.getLogger(ExamNeighbourSelection.class); 
     private ExamConstruction iCon = null;
@@ -15,18 +46,33 @@ public class ExamNeighbourSelection implements NeighbourSelection {
     private ExamHillClimbing iHC = null;
     private int iPhase = -1;
     
+    /**
+     * Constructor
+     * @param properties problem properties
+     */
     public ExamNeighbourSelection(DataProperties properties) {
         iCon = new ExamConstruction(properties);
         iSA = new ExamSimulatedAnnealing(properties);
         iHC = new ExamHillClimbing(properties);
     }
     
+    /**
+     * Initialization
+     */
     public void init(Solver solver){
         iCon.init(solver);
         iSA.init(solver);
         iHC.init(solver);
     }
 
+    /**
+     * Neighbour selection. It consists of the following three phases:
+     * <ul>
+     * <li>Construction phase ({@link ExamConstruction} until all exams are assigned) 
+     * <li>Hill-climbing phase ({@link ExamHillClimbing} until the given number if idle iterations)
+     * <li>Simulated annealing phase ({@link ExamSimulatedAnnealing} until timeout is reached)
+     * </ul>
+     */
     public Neighbour selectNeighbour(Solution solution) {
         Neighbour n = null;
         switch (iPhase) {

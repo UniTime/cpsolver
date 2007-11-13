@@ -13,9 +13,61 @@ import java.util.Vector;
 import org.apache.log4j.Logger;
 
 import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
+/**
+ * Representation of an exam (problem variable).
+ * Each exam has defined a length (in minutes), type (whether it is a section or a course exam),
+ * seating type (whether it requires normal or alternate seating) and a maximal number of rooms.
+ * If the maximal number of rooms is zero, the exam will be timetabled only in time (it does not
+ * require a room).  
+ * <br><br>
+ * An exam can be only assigned to a period {@link ExamPeriod} that is long enough (see {@link ExamPeriod#getLength()}) 
+ * that is available (see {@link Exam#setAvailable(int, boolean)}, {@link Exam#isAvailable(ExamPeriod)}).
+ * An exam can have one period pre-assigned (see {@link Exam#setPreAssignedPeriod(ExamPeriod)}, 
+ * {@link Exam#hasPreAssignedPeriod()}, {@link Exam#getPreAssignedPeriod()}). In such a case, the exam
+ * can only be assigned to the pre-assigned period. 
+ * <br><br>
+ * A set of rooms that are available in the given period (see {@link ExamRoom#isAvailable(ExamPeriod)}), 
+ * and which together cover the size of exam (number of students attending the exam) has to be
+ * assigned to an exam. Based on the type of seating (see {@link Exam#hasAltSeating()}), either
+ * room sizes (see {@link ExamRoom#getSize()}) or alternative seating sizes (see {@link ExamRoom#getAltSize()}) 
+ * are used. An exam has one or more room groups associated with it (see {@link Exam#addRoomGroup(ExamRoomGroup)},
+ * {@link Exam#getRoomGroups()}). Only rooms of room groups that are associated with the exam can be used
+ * for room assignments. The only exception to this rule is the original room of a section exam
+ * (i.e., the room where the section was timetabled). If such room is provided (see
+ * {@link Exam#setOriginalRoom(ExamRoom)}, {@link Exam#getOriginalRoom()}), and it is of enough 
+ * size, an exam is preferred to be assigned into this original room.  
+ * An exam can have a set of rooms pre-assiged (see {@link Exam#setPreAssignedPeriod(ExamPeriod)},
+ * {@link Exam#hasPreAssignedRooms()}, {@link Exam#getPreassignedRooms()}). In such a case, the exam
+ * can only be assigned to the provided pre-assigned rooms (all of them).
+ * <br><br>
+ * Various penalties for an assignment of a period or a set of rooms may apply. See {@link ExamPlacement} 
+ * for more details.
+ * <br><br>
+ * 
+ * @version
+ * ExamTT 1.1 (Examination Timetabling)<br>
+ * Copyright (C) 2007 Tomas Muller<br>
+ * <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
+ * Lazenska 391, 76314 Zlin, Czech Republic<br>
+ * <br>
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * <br><br>
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * <br><br>
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
 public class Exam extends Variable {
     private static boolean sAlterMaxSize = false;
     private static Logger sLog = Logger.getLogger(Exam.class);
@@ -34,7 +86,16 @@ public class Exam extends Variable {
     private boolean iAvailable[] = null;
     private Vector iRooms = null;
     private Vector iPeriods = null;
+    private Integer sPenaltyFactor = null;
     
+    /**
+     * Constructor
+     * @param id exam unique id
+     * @param length exam length in minutes
+     * @param sectionExam true if section exam, false if course exam
+     * @param altSeating true if alternative seating is requested
+     * @param maxRooms maximum number of rooms to be used
+     */
     public Exam(long id, int length, boolean sectionExam, boolean altSeating, int maxRooms) {
         super();
         iId = id;
@@ -44,11 +105,24 @@ public class Exam extends Variable {
         iMaxRooms = maxRooms;
     }
     
+    /**
+     * Values (assignment of a period and a set of rooms)
+     * @return list of {@link ExamPlacement}
+     */
     public Vector values() {
         if (super.values()==null) init();
         return super.values();
     }
     
+    /**
+     * Return list of possible rooms. If an exam is pre-assigned in space, the resultant list contains only the 
+     * pre-assigned room(s). Otherwise, a union of all rooms of all room groups {@link Exam#getRoomGroups()} are 
+     * returned. If the exam has an original room (see {@link Exam#getOriginalRoom()}) and it is large 
+     * enough to take the exam, it is also included in the resultant list even if it is not from on of
+     * exam's room groups.
+     * @return list of {@link ExamRoom} ordered from the largest to the smallest one 
+     * (using either {@link ExamRoom#getSize()} or {@link ExamRoom#getAltSize()} based on {@link Exam#hasAltSeating()})
+     */
     public Vector getRooms() {
         if (iRooms==null) {
             if (getMaxRooms()==0) iRooms=new Vector(0);
@@ -86,6 +160,12 @@ public class Exam extends Variable {
         return iRooms;
     }
     
+    /**
+     * Return list of possible periods. If the exam has a period pre-assigned (see {@link Exam#hasPreAssignedPeriod()}),
+     * the resultant list only contains the pre-assigned period {@link Exam#getPreAssignedPeriod()}). 
+     * Periods, that are not available ({@link Exam#isAvailable(ExamPeriod)} is false) are excluded from the list.
+     * @return list of {@link ExamPeriod}, ordered by {@link ExamPeriod#getIndex()}
+     */
     public Vector getPeriods() {
         if (iPeriods==null) {
             if (hasPreAssignedPeriod()) {
@@ -102,7 +182,10 @@ public class Exam extends Variable {
         return iPeriods;
     }
     
-    public boolean init() {
+    /** 
+     * Initialize exam's domain. 
+     */ 
+    private boolean init() {
         ExamModel model = (ExamModel)getModel();
         Vector values = new Vector();
         if (getMaxRooms()==0) {
@@ -134,7 +217,7 @@ public class Exam extends Variable {
             }
             TreeSet roomSets = new TreeSet();
             boolean norp = (getOriginalRoom()!=null && (hasAltSeating()?getOriginalRoom().getAltSize():getOriginalRoom().getSize())>=getStudents().size());
-            genRoomSets(roomSets, 0, getRooms(), getMaxRooms(), new HashSet(), 0, 0, 0, norp);
+            genRoomSets(roomSets, 0, getRooms(), getMaxRooms(), new HashSet(), 0, norp);
             if (roomSets.isEmpty()) {
                 sLog.error("  Exam "+getName()+" has no room placements.");
                 setValues(new Vector(0));
@@ -162,7 +245,7 @@ public class Exam extends Variable {
         return !values.isEmpty();
     }
     
-    private void genRoomSets(TreeSet roomSets, int roomIdx, Vector rooms, int maxRooms, Set roomsSoFar, int sizeSoFar, double distPen, double innerDistPen, boolean norp) {
+    private void genRoomSets(TreeSet roomSets, int roomIdx, Vector rooms, int maxRooms, Set roomsSoFar, int sizeSoFar, boolean norp) {
         ExamModel model = (ExamModel)getModel();
         if (sizeSoFar>=getStudents().size()) {
             int nrRooms = roomsSoFar.size();
@@ -170,7 +253,6 @@ public class Exam extends Variable {
             double penalty = 
                 model.getRoomSplitWeight() * getRoomSplitPenalty(roomsSoFar) +
                 model.getRoomSizeWeight() * getRoomSizePenalty(sizeSoFar) +
-                model.getRoomLocationWeight() * getPenaltyFactor() * (distPen/nrRooms + 2*innerDistPen/nrRooms2) +
                 (norp?model.getNotOriginalRoomWeight() * getNotOriginalRoomPenalty(roomsSoFar):0);
             if (roomSets.size()>=rooms.size()) {
                 RoomSet last = (RoomSet)roomSets.last();
@@ -197,7 +279,6 @@ public class Exam extends Variable {
             genRoomSets(
                     roomSets, roomIdx+1, rooms, maxRooms-1, 
                     roomsSoFar, sizeSoFar+(hasAltSeating()?room.getAltSize():room.getSize()), 
-                    distPen+getDistance(room), innerDistPen+getDistance(roomsSoFar, room),
                     norp
                     );
             roomsSoFar.remove(room);
@@ -208,7 +289,7 @@ public class Exam extends Variable {
         }
     }
     
-    public class RoomSet implements Comparable {
+    private class RoomSet implements Comparable {
         private Set iRooms;
         private double iPenalty;
         public RoomSet(Set rooms, double penalty) {
@@ -228,41 +309,69 @@ public class Exam extends Variable {
         }
     }
     
+    /**
+     * Compute room penalty of a set of rooms. 
+     * @param rooms set of rooms to be assigned to the exam
+     * @return penalty
+     */
     public double getRoomPenalty(Set rooms) {
         ExamModel model = (ExamModel)getModel();
         return
             model.getRoomSizeWeight() * getRoomSizePenalty(rooms) +
-            model.getRoomLocationWeight() * getRoomLocationPenalty(rooms) +
             model.getRoomSplitWeight() * getRoomSplitPenalty(rooms)+
             model.getNotOriginalRoomWeight() * getNotOriginalRoomPenalty(rooms);
     }
     
-    public double getRoomSplitPenalty(Set rooms) {
+    /**
+     * Cost for using more than one room.
+     * @param rooms set of rooms to be assigned to the exam
+     * @return penalty (1 for 2 rooms, 2 for 3 rooms, 4 for 4 rooms, etc.)
+     */
+    public int getRoomSplitPenalty(Set rooms) {
         if (rooms.size()<=1) return 0;
-        return getPenaltyFactor()*(1 << (rooms.size()-2));
+        return (1 << (rooms.size()-2));
     }
     
-    public double getNotOriginalRoomPenalty(Set rooms) {
+    /**
+     * Cost for using room(s) different from the original room
+     * @param rooms set of rooms to be assigned to the exam
+     * @return 1 if there is an original room and it is of enough capacity, 
+     * but the given set of rooms is not composed of the original room; zero otherwise
+     */
+    public int getNotOriginalRoomPenalty(Set rooms) {
         if (getOriginalRoom()==null) return 0;
         if (getMaxRooms()==0) return 0;
         if ((hasAltSeating()?getOriginalRoom().getAltSize():getOriginalRoom().getSize())>=getStudents().size()) return 0;
-        return (rooms.size()==1 && rooms.contains(getOriginalRoom())?0.0:getPenaltyFactor());
+        return (rooms.size()==1 && rooms.contains(getOriginalRoom())?0:1);
     }
     
-    private double getPenaltyFactor() {
-        return getStudents().size()/((ExamModel)getModel()).getEnrollmentFactor();
+    /**
+     * Cost for using a period
+     * @param period a period to be assigned to the exam
+     * @return {@link ExamPeriod#getWeight()}
+     */
+    public int getPeriodPenalty(ExamPeriod period) {
+        return period.getWeight();
     }
     
-    public double getPeriodPenalty(ExamPeriod period) {
-        return period.getWeight()*getPenaltyFactor();
-    }
-    
-    public double getRoomSizePenalty(int size) {
+    /**
+     * Cost for using room(s) that are too big
+     * @param size total size of rooms to be assigned to the exam (using either {@link ExamRoom#getSize()} or 
+     * {@link ExamRoom#getAltSize()} based on {@link Exam#hasAltSeating()})
+     * @return difference between given size and the number of students
+     */
+    public int getRoomSizePenalty(int size) {
         int diff = size-getStudents().size();
-        return getPenaltyFactor()*(diff<0?0:diff);
+        return (diff<0?0:diff);
     }
     
-    public double getRoomSizePenalty(Set rooms) {
+    /**
+     * Cost for using room(s) that are too big
+     * @param rooms set of rooms to be assigned to the exam 
+     * @return difference between total room size (computed using either {@link ExamRoom#getSize()} or 
+     * {@link ExamRoom#getAltSize()} based on {@link Exam#hasAltSeating()}) and the number of students
+     */
+    public int getRoomSizePenalty(Set rooms) {
         int size = 0;
         for (Iterator i=rooms.iterator();i.hasNext();) {
             ExamRoom room = (ExamRoom)i.next();
@@ -271,65 +380,11 @@ public class Exam extends Variable {
         return getRoomSizePenalty(size);
     }
     
-    public double getDistance(ExamRoom room) {
-        ExamModel model = (ExamModel)getModel();
-        int x1 = (getOriginalRoom()!=null?getOriginalRoom().getCoordX():-1);
-        int y1 = (getOriginalRoom()!=null?getOriginalRoom().getCoordY():-1);
-        if (x1<0) x1 = model.getCentralCoordX();
-        if (y1<0) y1 = model.getCentralCoordY();
-        int x2 = room.getCoordX();
-        int y2 = room.getCoordY();
-        if (x2<0) x2 = model.getCentralCoordX();
-        if (y2<0) y2 = model.getCentralCoordY();
-        return Math.sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2));
-    }
-    
-    public double getDistance(Set rooms, ExamRoom room) {
-        double dist = 0;
-        for (Iterator i=rooms.iterator();i.hasNext();) {
-            ExamRoom r = (ExamRoom)i.next();
-            dist += getDistance(r,room);
-        }
-        return dist;
-    }
-    
-    public double getDistance(ExamRoom r1, ExamRoom r2) {
-        ExamModel model = (ExamModel)getModel();
-        int x1 = r1.getCoordX();
-        int y1 = r1.getCoordY();
-        if (x1<0) x1 = model.getCentralCoordX();
-        if (y1<0) y1 = model.getCentralCoordY();
-        int x2 = r2.getCoordX();
-        int y2 = r2.getCoordY();
-        if (x2<0) x2 = model.getCentralCoordX();
-        if (y2<0) y2 = model.getCentralCoordY();
-        return Math.sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2));
-    }
-
-    public double getRoomLocationPenalty(Set rooms) {
-        if (rooms.isEmpty()) return 0;
-        int size = 0;
-        int dist = 0;
-        for (Iterator i=rooms.iterator();i.hasNext();) {
-            ExamRoom room = (ExamRoom)i.next();
-            dist += getDistance(room);
-        }
-        int innerDist = 0;
-        if (rooms.size()>1) {
-            dist /= rooms.size();
-            for (Iterator i=rooms.iterator();i.hasNext();) {
-                ExamRoom r1 = (ExamRoom)i.next();
-                for (Iterator j=rooms.iterator();j.hasNext();) {
-                    ExamRoom r2 = (ExamRoom)j.next();
-                    if (r1.getId()<r2.getId()) innerDist += getDistance(r1,r2);
-                }
-            }
-            innerDist /= rooms.size()*(rooms.size()-1)/2;
-        }
-        return getPenaltyFactor()*(dist+2*innerDist);
-    }
-    
-
+    /**
+     * Sets whether the exam is available (can be timetabled) in the given period 
+     * @param period a period
+     * @param avail true if the exam can be timetable, false otherwise
+     */
     public void setAvailable(int period, boolean avail) {
         if (iAvailable==null) {
             iAvailable = new boolean[((ExamModel)getModel()).getNrPeriods()];
@@ -339,10 +394,26 @@ public class Exam extends Variable {
         iAvailable[period]=avail;
     }
     
+    /**
+     * True if the exam can be timetable in the given period (this method does not check pre-assigned period,
+     * or the length of the period)
+     * @param period
+     * @return true, if the given period is available for this exam 
+     */
     public boolean isAvailable(ExamPeriod period) {
+        int periodProhibitedWeight = ((ExamModel)getModel()).getPeriodProhibitedWeight();
+        if (periodProhibitedWeight>0 && !period.equals(iPreAssignedPeriod) && period.getWeight()>=periodProhibitedWeight) return false;
         return (iAvailable==null?true:iAvailable[period.getIndex()]); 
     }
     
+    /**
+     * True if the exam can be timetable in the given period and the given set of rooms (i.e., 
+     * {@link Exam#isAvailable(ExamPeriod)} and {@link ExamRoom#isAvailable(ExamPeriod)} for each
+     * room in the set)
+     * @param period a period to be assigned to the exam
+     * @param rooms a set of rooms to be assigned to the exam
+     * @return true if the exam is available and all the given rooms are available 
+     */
     public boolean isAvailable(ExamPeriod period, Set rooms) {
         if (!isAvailable(period)) return false;
         for (Iterator i=rooms.iterator();i.hasNext();) {
@@ -351,88 +422,199 @@ public class Exam extends Variable {
         }
         return true;
     }
-
+    
+    /**
+     * True if the exam is section exam, false if it is course exam
+     * @return true if the exam is section exam, false if it is course exam
+     */
     public boolean isSectionExam() {
         return iSectionExam;
     }
     
+    /**
+     * True if alternative seating is required ({@link ExamRoom#getAltSize()} is to be used),
+     * false if normal seating is required ({@link ExamRoom#getSize()} is to be used).
+     * @return true if alternative seating is required, false otherwise
+     */
     public boolean hasAltSeating() {
         return iAltSeating;
     }
     
+    /**
+     * Length of the exam in minutes. The assigned period has to be of the same or greater length. 
+     * @return length of the exam in minutes
+     */
     public int getLength() {
         return iLength;
     }
     
+    /**
+     * Set pre-assigned period. If a period is pre-assigned, the exam can only be assigned to the 
+     * pre-assigned period.
+     * @param period pre-assigned period or null for unsetting the pre-assigned period
+     */
     public void setPreAssignedPeriod(ExamPeriod period) {
         iPreAssignedPeriod = period;
     }
+    /** 
+     * Pre-assigned period. If a period is pre-assigned, the exam can only be assigned to the 
+     * pre-assigned period.
+     * @return pre-assigned period or null if there is none
+     */
     public ExamPeriod getPreAssignedPeriod() {
         return iPreAssignedPeriod;
     }
+    /**
+     * True if there is a period pre-assigned for the exam
+     * @return true if there is a period pre-assigned for the exam, false otherwise
+     */
     public boolean hasPreAssignedPeriod() {
         return iPreAssignedPeriod!=null;
     }
     
+    /**
+     * Set average period. This represents an average period that the exam was assigned to in the past.
+     * It may be used to weight period penalty {@link Exam#getPeriodPenalty(ExamPeriod)} in order to
+     * put more weight on exams that were badly assigned last time(s) and ensuring some form of
+     * fairness.
+     * @param period average period
+     */
     public void setAveragePeriod(int period) {
         iAveragePeriod = period;
     }
+    
+    /**
+     * Average period. This represents an average period that the exam was assigned to in the past.
+     * It may be used to weight period penalty {@link Exam#getPeriodPenalty(ExamPeriod)} in order to
+     * put more weight on exams that were badly assigned last time(s) and ensuring some form of
+     * fairness.
+     * @return average period
+     */
     public int getAveragePeriod() {
         return iAveragePeriod;
     }
+    
+    /**
+     * True if there is an average period assigned to the exam. This represents an average period 
+     * that the exam was assigned to in the past.
+     * It is used to weight period penalty {@link Exam#getPeriodPenalty(ExamPeriod)} in order to
+     * put more weight on exams that were badly assigned last time(s) and ensuring some form of
+     * fairness. If there is no average period, number of periods /2 is to be used in the
+     * period penalty {@link Exam#getPeriodPenalty(ExamPeriod)}. 
+     */
     public boolean hasAveragePeriod() {
         return iAveragePeriod>=0;
     }
     
+    /**
+     * True if a direct student conflict is allowed, see {@link ExamStudent#canConflict(Exam, Exam)} 
+     * @return true if a direct student conflict is allowed
+     */
     public boolean isAllowDirectConflicts() {
         return iAllowDirectConflicts;
     }
     
+    /**
+     * Set whether a direct student conflict is allowed, see {@link ExamStudent#canConflict(Exam, Exam)} 
+     * @param allowDirectConflicts true if a direct student conflict is allowed
+     */
     public void setAllowDirectConflicts(boolean allowDirectConflicts) {
         iAllowDirectConflicts = allowDirectConflicts;
     }
     
+    /** Adds a constraint. Called automatically when the constraint is added to the model, i.e.,
+     * {@link Model#addConstraint(Constraint)} is called.
+     * @param constraint added constraint
+     */
     public void addContstraint(Constraint constraint) {
         if (constraint instanceof ExamStudent) iStudents.add((ExamStudent)constraint);
         super.addContstraint(constraint);
     }
     
+    /** Removes a constraint. Called automatically when the constraint is removed from the model, i.e.,
+     * {@link Model#removeConstraint(Constraint)} is called.
+     * @param constraint added constraint
+     */
     public void removeContstraint(Constraint constraint) {
         if (constraint instanceof ExamStudent) iStudents.remove((ExamStudent)constraint);
         super.removeContstraint(constraint);
     }
     
+    /** 
+     * List of students that are enrolled in the exam
+     * @return list of {@link ExamStudent}
+     */
     public Vector getStudents() { return iStudents; }
     
+    /**
+     * List of room groups associated with the exam. Only rooms of the given room groups can be used 
+     * for placing this exam.
+     * @return list of {@link ExamRoomGroup}
+     */
     public Vector getRoomGroups() { return iRoomGroups; }
     public void addRoomGroup(ExamRoomGroup rg) { 
         if (!iRoomGroups.contains(rg)) iRoomGroups.add(rg);
     }
     
+    /**
+     * Original room of a section exam. If the original room is set and it is of enough size, 
+     * it is preferred to assign the exam into the original room. 
+     * @return original room
+     */
     public ExamRoom getOriginalRoom() {
         return iOriginalRoom;
     }
+    
+    /**
+     * Set original room of a section exam. If the original room is set and it is of enough size, 
+     * it is preferred to assign the exam into the original room.
+     * @param room original room or null to unset original room
+     */
     public void setOriginalRoom(ExamRoom room) {
         iOriginalRoom = room;
     }
+    
+    /** 
+     * List of rooms that are pre-assigned to the exam. If an exam has one or more rooms pre-assigned,
+     * it has to be assigned to pre-assigned rooms (all of them). The room capacity check is omnited
+     * in such a case.
+     * @return list of {@link ExamRoom}
+     */
     public Vector getPreassignedRooms() {
         return iPreassignedRooms;
     }
+
+    /** 
+     * True, if there are one or more rooms that are pre-assigned to the exam. 
+     * @return true if there are pre-assigned rooms, false otherwise
+     */
     public boolean hasPreAssignedRooms() {
         return !iPreassignedRooms.isEmpty();
     }
     
+    /**
+     * Maximal number of rooms that can be assigned to the exam 
+     * @return maximal number of rooms that can be assigned to the exam
+     */
     public int getMaxRooms() {
         return iMaxRooms;
     }
+    /**
+     * Set maximal number of rooms that can be assigned to the exam 
+     * @param maxRooms maximal number of rooms that can be assigned to the exam
+     */
     public void setMaxRooms(int maxRooms) {
         iMaxRooms = maxRooms;
     }
     
-    public Set findRooms(ExamPeriod period) {
-        return findBestAvailableRooms(period);
-    }
-    
+    /**
+     * Find best available rooms for the exam in the given period. First of all, it tries to find the minimal
+     * number of rooms that cover the size of the exam. Among these, a set of rooms of 
+     * total smallest size is preferred. If the original room is available and of enough size, it is retuned. 
+     * All necessary checks are made (avaiability of rooms, pre-assigned rooms, room sizes etc.).
+     * @param period given period.
+     * @return best available rooms for the exam in the given period, null if there is no valid assignment
+     */
     public Set findBestAvailableRooms(ExamPeriod period) {
         if (!isAvailable(period)) return null;
         if (hasPreAssignedPeriod() && !period.equals(getPreAssignedPeriod())) return null;
@@ -475,6 +657,14 @@ public class Exam extends Variable {
         return null;
     }
     
+    /**
+     * Randomly find a set of available rooms for the exam in the given period. First of all, it tries to find the minimal
+     * number of rooms that cover the size of the exam. Among these, a set of rooms of 
+     * total smallest size is preferred.
+     * All necessary checks are made (avaiability of rooms, pre-assigned rooms, room sizes etc.). 
+     * @param period given period.
+     * @return randomly computed set of available rooms for the exam in the given period, null if there is no valid assignment
+     */
     public Set findRoomsRandom(ExamPeriod period) {
         if (!isAvailable(period)) return null;
         if (hasPreAssignedPeriod() && !period.equals(getPreAssignedPeriod())) return null;
@@ -516,7 +706,10 @@ public class Exam extends Variable {
     }
     
     private HashSet iCorrelatedExams = null;
-    
+    /**
+     * Number of exams that are correlated with this exam (there is at least one student attending both exams). 
+     * @return number of correlated exams
+     */
     public int nrStudentCorrelatedExams() {
         if (iCorrelatedExams==null) { 
             iCorrelatedExams = new HashSet();
@@ -530,6 +723,11 @@ public class Exam extends Variable {
         return iCorrelatedExams.size();
     }
     
+    /** 
+     * An exam with more correlated exams is preferred ({@link Exam#nrStudentCorrelatedExams()}).
+     * If it is the same, ratio number of students / number of available periods is used.
+     * If the same, exam ids are used.
+     */
     public int compareTo(Object o) {
         Exam e = (Exam)o;
         int cmp = -Double.compare(nrStudentCorrelatedExams(),e.nrStudentCorrelatedExams());
@@ -539,7 +737,90 @@ public class Exam extends Variable {
         return super.compareTo(o);
     }
     
+    /**
+     * True, if there is a student of this exam 
+     * (that does not have direct conflicts allowed, see {@link ExamStudent#canConflict(Exam, Exam)}) 
+     * that attends some other exam in the given period.
+     * @param period a period
+     * @return true if there is a student conflict
+     */
+    public boolean hasStudentConflictWithPreAssigned(ExamPeriod period) {
+        for (Enumeration e=getStudents().elements();e.hasMoreElements();) {
+            ExamStudent s = (ExamStudent)e.nextElement();
+            for (Iterator i=s.getExams(period).iterator();i.hasNext();) {
+                Exam exam = (Exam)i.next();
+                if (exam.equals(this)) continue;
+                if (s.canConflict(this, exam)) continue;
+                if (exam.hasPreAssignedPeriod()) return true;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Number of students of this exam 
+     * (that does not have direct conflicts allowed, see {@link ExamStudent#canConflict(Exam, Exam)}) 
+     * that attend some other exam in the given period.
+     * @param period a period
+     * @return number of direct student conflicts that are prohibited 
+     */
+    public int countStudentConflicts(ExamPeriod period) {
+        int conf = 0;
+        for (Enumeration e=getStudents().elements();e.hasMoreElements();) {
+            ExamStudent s = (ExamStudent)e.nextElement();
+            for (Iterator i=s.getExams(period).iterator();i.hasNext();) {
+                Exam exam = (Exam)i.next();
+                if (exam.equals(this)) continue;
+                if (s.canConflict(this, exam)) continue;
+                conf++;
+            }
+        }
+        return conf;
+    }
+    
+    /**
+     * List of exams that are assigned to the given period and share one or more students with this exam 
+     * (that does not have direct conflicts allowed, see {@link ExamStudent#canConflict(Exam, Exam)}).
+     * @param period a period
+     * @return list of {@link Exam} (other than this exam, that are placed in the given period and create
+     * prohibited direct conflicts) 
+     */
+    public HashSet getStudentConflicts(ExamPeriod period) {
+        HashSet conf = new HashSet();
+        int inc = (getAssignment()!=null && ((ExamPlacement)getAssignment()).getPeriod().equals(period)?0:1);
+        for (Enumeration e=getStudents().elements();e.hasMoreElements();) {
+            ExamStudent s = (ExamStudent)e.nextElement();
+            for (Iterator i=s.getExams(period).iterator();i.hasNext();) {
+                Exam exam = (Exam)i.next();
+                if (exam.equals(this)) continue;
+                if (!s.canConflict(this, exam)) conf.add(exam);
+            }
+        }
+        return conf;
+    }
+    
+    /**
+     * Allow all direct student conflict for the given period (see {@link ExamStudent#canConflict(Exam, Exam)}).
+     * @param period a period
+     */
+    public void allowAllStudentConflicts(ExamPeriod period) {
+        for (Enumeration e=getStudents().elements();e.hasMoreElements();) {
+            ExamStudent s = (ExamStudent)e.nextElement();
+            for (Iterator i=s.getExams(period).iterator();i.hasNext();) {
+                Exam exam = (Exam)i.next();
+                if (exam.equals(this)) continue;
+                exam.setAllowDirectConflicts(true);
+                setAllowDirectConflicts(true);
+                s.setAllowDirectConflicts(true);
+            }
+        }
+    }
+    
+    /**
+     * String representation 
+     * @return exam id  (periods: number of periods, rooms: number of rooms, student: number of students, maxRooms: max rooms[, alt if alternate seating is required]) 
+     */
     public String toString() {
-        return getName()+" (periods:"+getPeriods().size()+", rooms:"+getRooms().size()+", student:"+getStudents().size()+", corrEx:"+nrStudentCorrelatedExams()+" ,maxRooms:"+getMaxRooms()+(hasAltSeating()?", alt":"")+")";
+        return getName()+" (periods:"+getPeriods().size()+", rooms:"+getRooms().size()+", student:"+getStudents().size()+" ,maxRooms:"+getMaxRooms()+(hasAltSeating()?", alt":"")+")";
     }
 }
