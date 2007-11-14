@@ -3,6 +3,7 @@
 	IFS 1.1 (Iterative Forward Search)
 	CourseTT 1.1 (University Course Timetabling)
 	StudentSct 1.1 (Student Sectioning)
+	ExamTT 1.1 (Examination Timetabling)
 	Copyright (C) 2007 Tomas Muller
 	muller@unitime.org
 	Lazenska 391, 76314 Zlin, Czech Republic
@@ -128,6 +129,19 @@
         		<attribute name="Main-Class" value="net.sf.cpsolver.studentsct.Test"/>
         	</manifest>
         </jar>
+        <jar destfile="${dist-lib.dir}/examtt-1.1.jar">
+            <fileset dir="${build.dir}">
+                <include name="net/sf/cpsolver/exam/**/*.class"/>
+            </fileset>
+        	<fileset dir="${base.dir}/..">
+        		<include name="lgpl.txt"/>
+        	</fileset>
+        	<manifest>
+        		<attribute name="Class-Path" value="log4j-1.2.8.jar dom4j-1.6.1.jar ifs-1.1.jar" /> 
+        		<attribute name="ExamTT-Version" value="1.1_bld${build.number}"/>
+        		<attribute name="Main-Class" value="net.sf.cpsolver.exam.Test"/>
+        	</manifest>
+        </jar>
         <jar destfile="${dist-lib.dir}/cpsolver-all-1.1.jar">
             <fileset dir="${build.dir}">
                 <include name="net/sf/cpsolver/**/*.class"/>
@@ -140,6 +154,7 @@
         		<attribute name="Ifs-Version" value="1.1_bld${build.number}"/>
         		<attribute name="CourseTT-Version" value="1.1_bld${build.number}"/>
         		<attribute name="StudentSct-Version" value="1.1_bld${build.number}"/>
+        		<attribute name="ExamTT-Version" value="1.1_bld${build.number}"/>
         		<attribute name="Main-Class" value="net.sf.cpsolver.coursett.Test"/>
         	</manifest>
         </jar>
@@ -168,6 +183,8 @@
     		<table border='0' style='font-size: 11pt;font-weight: normal;'><tr><td align='left'>
     		IFS 1.1 (Iterative Forward Search)<br>
     		CourseTT 1.1 (University Course Timetabling)<br>
+    		StudentSct 1.1 (Student Sectioning)<br>
+    		ExamTT 1.1 (Examination Timetabling)<br>
     		Copyright (C) 2006 Tomas Muller<br>
     		<a href='mailto:muller@unitime.org'>muller@unitime.org</a><br>
     		Lazenska 391, 76314 Zlin, Czech Republic<br>
@@ -191,6 +208,7 @@
  	   	<group title="Iterative Forward Search Examples" packages="net.sf.cpsolver.ifs.example*"/>
    	   	<group title="University Course Timetabling" packages="net.sf.cpsolver.coursett*"/>
        	<group title="Student Sectioning" packages="net.sf.cpsolver.studentsct*"/>
+    	<group title="Examination Timetabling" packages="net.sf.cpsolver.exam*"/>
  	   	<link href="http://java.sun.com/j2se/1.5.0/docs/api/"/>
  	   	<link href="http://logging.apache.org/log4j/docs/api/"/>
  	   	<fileset dir="src" includes="**/*.java"/>
