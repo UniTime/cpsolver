@@ -44,6 +44,7 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  */
 public class ExamTimeMove implements NeighbourSelection {
     private boolean iCheckStudentConflicts = false;
+    private boolean iCheckDistributionConstraints = true;
     
     /**
      * Constructor
@@ -51,6 +52,7 @@ public class ExamTimeMove implements NeighbourSelection {
      */
     public ExamTimeMove(DataProperties properties) {
         iCheckStudentConflicts = properties.getPropertyBoolean("ExamTimeMove.CheckStudentConflicts", iCheckStudentConflicts);
+        iCheckDistributionConstraints = properties.getPropertyBoolean("ExamTimeMove.CheckDistributionConstraints", iCheckDistributionConstraints);
     }
     
     /**
@@ -71,6 +73,7 @@ public class ExamTimeMove implements NeighbourSelection {
         if (placement!=null && placement.getPeriod().equals(period)) return null;
         if (!exam.isAvailable(period)) return null;
         if (iCheckStudentConflicts && exam.countStudentConflicts(period)>0) return null;
+        if (iCheckDistributionConstraints && !exam.checkDistributionConstraints(period)) return null;
         if (placement!=null) {
             boolean ok = true;
             for (Iterator i=placement.getRooms().iterator();i.hasNext();) {

@@ -73,6 +73,7 @@ public class Exam extends Variable {
     private static Logger sLog = Logger.getLogger(Exam.class);
     protected static java.text.DecimalFormat sDoubleFormat = new java.text.DecimalFormat("0.00",new java.text.DecimalFormatSymbols(Locale.US));
     private Vector iStudents = new Vector();
+    private Vector iDistConstraints = new Vector();
     private boolean iAllowDirectConflicts = true;
     private boolean iSectionExam = false;
     private boolean iAltSeating = false;
@@ -527,7 +528,8 @@ public class Exam extends Variable {
      * @param constraint added constraint
      */
     public void addContstraint(Constraint constraint) {
-        if (constraint instanceof ExamStudent) iStudents.add((ExamStudent)constraint);
+        if (constraint instanceof ExamStudent) iStudents.add(constraint);
+        if (constraint instanceof ExamDistributionConstraint) iDistConstraints.add(constraint);
         super.addContstraint(constraint);
     }
     
@@ -536,7 +538,8 @@ public class Exam extends Variable {
      * @param constraint added constraint
      */
     public void removeContstraint(Constraint constraint) {
-        if (constraint instanceof ExamStudent) iStudents.remove((ExamStudent)constraint);
+        if (constraint instanceof ExamStudent) iStudents.remove(constraint);
+        if (constraint instanceof ExamDistributionConstraint) iDistConstraints.remove(constraint);
         super.removeContstraint(constraint);
     }
     
@@ -546,6 +549,66 @@ public class Exam extends Variable {
      */
     public Vector getStudents() { return iStudents; }
     
+    
+    /** 
+     * List of distribution constraints that this exam is involved in
+     * @return list of {@link ExamDistributionConstraint}
+     */
+    public Vector getDistributionConstraints() { return iStudents; }
+    
+    /** 
+     * Check all distribution constraint that this exam is involved in 
+     * @param period a period to be assigned to this exam
+     * @return true, if there is no assignment of some other exam in conflict with the given period
+     */
+    public boolean checkDistributionConstraints(ExamPeriod period) {
+        dc: for (Enumeration e=iDistConstraints.elements();e.hasMoreElements();) {
+            ExamDistributionConstraint dc = (ExamDistributionConstraint)e.nextElement();
+            Exam other = (Exam)dc.another(this);
+            ExamPlacement placement = (ExamPlacement)other.getAssignment();
+            if (placement==null) continue;
+            switch (dc.getType()) {
+            case ExamDistributionConstraint.sDistSamePeriod :
+                if (period.getIndex()!=placement.getPeriod().getIndex()) return false;
+                continue dc;
+            case ExamDistributionConstraint.sDistDifferentPeriod :
+                if (period.getIndex()==placement.getPeriod().getIndex()) return false;
+                continue dc;
+            case ExamDistributionConstraint.sDistPrecedence :
+                if (dc.first().equals(this)) {
+                    if (period.getIndex()>=placement.getPeriod().getIndex()) return false;
+                } else {
+                    if (period.getIndex()<=placement.getPeriod().getIndex()) return false;
+                }
+                continue dc;
+            }
+        }
+        return true;
+    }
+
+    /** 
+     * Check all distribution constraint that this exam is involved in 
+     * @param room a room to be assigned to this exam
+     * @return true, if there is no assignment of some other exam in conflict with the given room
+     */
+    public boolean checkDistributionConstraints(ExamRoom room) {
+        dc: for (Enumeration e=iDistConstraints.elements();e.hasMoreElements();) {
+            ExamDistributionConstraint dc = (ExamDistributionConstraint)e.nextElement();
+            Exam other = (Exam)dc.another(this);
+            ExamPlacement placement = (ExamPlacement)other.getAssignment();
+            if (placement==null) continue;
+            switch (dc.getType()) {
+            case ExamDistributionConstraint.sDistSameRoom :
+                if (!placement.getRooms().contains(room)) return false;
+                continue dc;
+            case ExamDistributionConstraint.sDistDifferentRoom :
+                if (placement.getRooms().contains(room)) return false;
+                continue dc;
+            }
+        }
+        return true;
+    }
+        
     /**
      * List of room groups associated with the exam. Only rooms of the given room groups can be used 
      * for placing this exam.
@@ -623,12 +686,14 @@ public class Exam extends Variable {
             for (Enumeration e=getPreassignedRooms().elements();e.hasMoreElements();) {
                 ExamRoom room = (ExamRoom)e.nextElement();
                 if (room.getPlacement(period)!=null) return null;
+                if (!checkDistributionConstraints(room)) return null;
             }
             return new HashSet(getPreassignedRooms());
         }
         if (getOriginalRoom()!=null && getOriginalRoom().isAvailable(period) &&
             getOriginalRoom().getPlacement(period)==null &&
-           (hasAltSeating()?getOriginalRoom().getAltSize():getOriginalRoom().getSize())>=getStudents().size()) {
+           (hasAltSeating()?getOriginalRoom().getAltSize():getOriginalRoom().getSize())>=getStudents().size() &&
+           checkDistributionConstraints(getOriginalRoom())) {
                 HashSet rooms = new HashSet(); rooms.add(getOriginalRoom());
                 return rooms;
         }
@@ -642,6 +707,7 @@ public class Exam extends Variable {
                     if (!room.isAvailable(period)) continue;
                     if (room.getPlacement(period)!=null) continue;
                     if (rooms.contains(room)) continue;
+                    if (!checkDistributionConstraints(room)) continue;
                     int s = (hasAltSeating()?room.getAltSize():room.getSize());
                     if (s<minSize) break;
                     if (best==null || bestSize>s) {
@@ -673,6 +739,7 @@ public class Exam extends Variable {
             for (Enumeration e=getPreassignedRooms().elements();e.hasMoreElements();) {
                 ExamRoom room = (ExamRoom)e.nextElement();
                 if (room.getPlacement(period)!=null) return null;
+                if (!checkDistributionConstraints(room)) return null;
             }
             return new HashSet(getPreassignedRooms());
         }
@@ -681,6 +748,7 @@ public class Exam extends Variable {
         if (getOriginalRoom()!=null && getOriginalRoom().isAvailable(period) &&
             getOriginalRoom().getPlacement(period)==null &&
             (hasAltSeating()?getOriginalRoom().getAltSize():getOriginalRoom().getSize())>=getStudents().size() &&
+            checkDistributionConstraints(getOriginalRoom()) &&
             ToolBox.random()<0.5) {
             rooms.add(getOriginalRoom());
             return rooms;
@@ -692,6 +760,7 @@ public class Exam extends Variable {
                 if (!room.isAvailable(period)) continue;
                 if (room.getPlacement(period)!=null) continue;
                 if (rooms.contains(room)) continue;
+                if (!checkDistributionConstraints(room)) continue;
                 int s = (hasAltSeating()?room.getAltSize():room.getSize());
                 if (size+s>=exSize && size+s-exSize<minSize) {
                     rooms.add(room); return rooms;

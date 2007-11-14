@@ -40,6 +40,7 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  */
 public class ExamRoomMove implements NeighbourSelection {
     private boolean iCheckStudentConflicts = false;
+    private boolean iCheckDistributionConstraints = true;
     
     /**
      * Constructor
@@ -47,6 +48,7 @@ public class ExamRoomMove implements NeighbourSelection {
      */
     public ExamRoomMove(DataProperties properties) {
         iCheckStudentConflicts = properties.getPropertyBoolean("ExamRoomMove.CheckStudentConflicts", iCheckStudentConflicts);
+        iCheckDistributionConstraints = properties.getPropertyBoolean("ExamRoomMove.CheckDistributionConstraints", iCheckDistributionConstraints);
     }
     
     /**
@@ -65,6 +67,7 @@ public class ExamRoomMove implements NeighbourSelection {
         ExamPlacement placement = (ExamPlacement)exam.getAssignment();
         ExamPeriod period = (placement!=null?placement.getPeriod():(ExamPeriod)ToolBox.random(model.getPeriods()));
         if (iCheckStudentConflicts && placement==null && exam.countStudentConflicts(period)>0) return null;
+        if (iCheckDistributionConstraints && placement==null && !exam.checkDistributionConstraints(period)) return null;
         Set rooms = exam.findRoomsRandom(period);
         if (rooms==null) return null;
         return new ExamSimpleNeighbour(new ExamPlacement(exam, period, rooms));
