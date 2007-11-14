@@ -60,7 +60,7 @@ import org.apache.log4j.Logger;
 public class ExamConstruction implements NeighbourSelection {
     private static Logger sLog = Logger.getLogger(ExamConstruction.class);
     private HashSet iAssignments = new HashSet();
-    private boolean iCheckLocalOptimality = true;
+    private boolean iCheckLocalOptimality = false;
 
     /**
      * Constructor
@@ -97,6 +97,7 @@ public class ExamConstruction implements NeighbourSelection {
                     if (iAssignments.contains(exam.getId()+":"+period.getIndex())) continue;
                     if (exam.hasStudentConflictWithPreAssigned(period)) continue;
                 }
+                if (!exam.checkDistributionConstraints(period)) continue;
                 ExamPlacement placement = new ExamPlacement(exam, period, null);
                 if (best==null || best.getTimeCost()>placement.getTimeCost()) {
                     Set rooms = exam.findBestAvailableRooms(period);
@@ -139,6 +140,7 @@ public class ExamConstruction implements NeighbourSelection {
                 if (iAssignments.contains(bestExam.getId()+":"+period.getIndex())) continue;
                 if (bestExam.hasStudentConflictWithPreAssigned(period)) continue;
             }
+            if (!bestExam.checkDistributionConstraints(period)) continue;
             ExamPlacement placement = new ExamPlacement(bestExam, period, null);
             if (best==null || best.getTimeCost()>placement.getTimeCost()) {
                 Set rooms = bestExam.findBestAvailableRooms(period);
