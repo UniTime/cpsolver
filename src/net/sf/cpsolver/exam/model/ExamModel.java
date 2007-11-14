@@ -84,14 +84,16 @@ public class ExamModel extends Model {
     private Vector iPeriods = new Vector();
     private Vector iRooms = new Vector();
     private Vector iStudents = new Vector();
+    private Vector iDistributionConstraints = new Vector();
+
     
     private boolean iDayBreakBackToBack = true;
     private double iDirectConflictWeight = 500.0;
     private double iMoreThanTwoADayWeight = 100.0;
-    private double iBackToBackConflictWeight = 50.0;
+    private double iBackToBackConflictWeight = 25.0;
     private double iDistanceBackToBackConflictWeight = 50.0;
-    private double iPeriodWeight = 10.0;
-    private double iRoomSizeWeight = 0.0001;
+    private double iPeriodWeight = 1.0;
+    private double iRoomSizeWeight = 0.001;
     private double iRoomSplitWeight = 1.0;
     private double iNotOriginalRoomWeight = 0.1;
     private int iBackToBackDistance = 67;
@@ -807,6 +809,12 @@ public class ExamModel extends Model {
     public Vector getStudents() { return iStudents; }
     
     /**
+     * Distribution constraints
+     * @return list of {@link ExamDistributionConstraint} 
+     */
+    public Vector getDistributionConstraints() { return iDistributionConstraints;}
+    
+    /**
      * Save model (including its solution) into XML.
      */
     public Document save() {
@@ -883,6 +891,8 @@ public class ExamModel extends Model {
             if (!allAvail)
                 r.addAttribute("available", available);
         }
+        int perProhW = getPeriodProhibitedWeight();
+        setPeriodProhibitedWeight(-1);
         Element exams = root.addElement("exams");
         for (Enumeration e=variables().elements();e.hasMoreElements();) {
             Exam exam = (Exam)e.nextElement();
@@ -942,6 +952,7 @@ public class ExamModel extends Model {
                 }
             }
         }
+        setPeriodProhibitedWeight(perProhW);
         Element students = root.addElement("students");
         for (Enumeration e=getStudents().elements();e.hasMoreElements();) {
             ExamStudent student = (ExamStudent)e.nextElement();
@@ -951,6 +962,14 @@ public class ExamModel extends Model {
                 Exam ex = (Exam)f.nextElement();
                 s.addElement("exam").addAttribute("id", String.valueOf(ex.getId()));
             }
+        }
+        Element distConstraints = root.addElement("constraints");
+        for (Enumeration e=getDistributionConstraints().elements();e.hasMoreElements();) {
+            ExamDistributionConstraint distConstraint = (ExamDistributionConstraint)e.nextElement();
+            Element dc = distConstraints.addElement(distConstraint.getTypeString());
+            dc.addAttribute("id", String.valueOf(distConstraint.getId()));
+            dc.addElement("exam").addAttribute("id", String.valueOf(distConstraint.first().getId()));
+            dc.addElement("exam").addAttribute("id", String.valueOf(distConstraint.second().getId()));
         }
         if (saveConflictTable) {
             Element conflicts = root.addElement("conflicts");
@@ -1143,15 +1162,14 @@ public class ExamModel extends Model {
             addConstraint(student);
             getStudents().add(student);
         }        
-        Element students = root.addElement("students");
-        for (Enumeration e=getStudents().elements();e.hasMoreElements();) {
-            ExamStudent student = (ExamStudent)e.nextElement();
-            Element s = students.addElement("student");
-            s.addAttribute("id", student.getStudentId());
-            for (Enumeration f=student.variables().elements();f.hasMoreElements();) {
-                Exam ex = (Exam)f.nextElement();
-                s.addElement("exam").addAttribute("id", String.valueOf(ex.getId()));
+        for (Iterator i=root.element("constraints").elementIterator();i.hasNext();) {
+            Element e = (Element)i.next();
+            ExamDistributionConstraint dc = new ExamDistributionConstraint(Long.parseLong(e.attributeValue("id")), e.getName());
+            for (Iterator j=e.elementIterator("exam");j.hasNext();) {
+                dc.addVariable((Exam)exams.get(Long.valueOf(((Element)j.next()).attributeValue("id"))));
             }
+            addConstraint(dc);
+            getDistributionConstraints().add(dc);
         }
         init();
         for (Enumeration e=assignments.elements();e.hasMoreElements();) {
