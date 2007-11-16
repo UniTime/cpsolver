@@ -65,7 +65,7 @@ public class ExamRoomMove implements NeighbourSelection {
         ExamModel model = (ExamModel)solution.getModel();
         Exam exam = (Exam)ToolBox.random(model.variables());
         ExamPlacement placement = (ExamPlacement)exam.getAssignment();
-        ExamPeriod period = (placement!=null?placement.getPeriod():(ExamPeriod)ToolBox.random(model.getPeriods()));
+        ExamPeriod period = (placement!=null?placement.getPeriod():(ExamPeriod)ToolBox.random(exam.getPeriods()));
         if (iCheckStudentConflicts && placement==null && exam.countStudentConflicts(period)>0) return null;
         if (iCheckDistributionConstraints && placement==null && !exam.checkDistributionConstraints(period)) return null;
         Set rooms = exam.findRoomsRandom(period);

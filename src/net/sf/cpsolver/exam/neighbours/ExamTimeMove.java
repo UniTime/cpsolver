@@ -69,7 +69,7 @@ public class ExamTimeMove implements NeighbourSelection {
         ExamModel model = (ExamModel)solution.getModel();
         Exam exam = (Exam)ToolBox.random(model.variables());
         ExamPlacement placement = (ExamPlacement)exam.getAssignment();
-        ExamPeriod period = (ExamPeriod)ToolBox.random(model.getPeriods());
+        ExamPeriod period = (ExamPeriod)ToolBox.random(exam.getPeriods());
         if (placement!=null && placement.getPeriod().equals(period)) return null;
         if (!exam.isAvailable(period)) return null;
         if (iCheckStudentConflicts && exam.countStudentConflicts(period)>0) return null;
