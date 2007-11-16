@@ -85,10 +85,11 @@ public class ExamModel extends Model {
     private Vector iRooms = new Vector();
     private Vector iStudents = new Vector();
     private Vector iDistributionConstraints = new Vector();
+    private Vector iInstructors = new Vector();
 
     
     private boolean iDayBreakBackToBack = true;
-    private double iDirectConflictWeight = 500.0;
+    private double iDirectConflictWeight = 1000.0;
     private double iMoreThanTwoADayWeight = 100.0;
     private double iBackToBackConflictWeight = 25.0;
     private double iDistanceBackToBackConflictWeight = 50.0;
@@ -809,6 +810,12 @@ public class ExamModel extends Model {
     public Vector getStudents() { return iStudents; }
     
     /**
+     * Problem instructors
+     * @return list of {@link ExamInstructor}
+     */
+    public Vector getInstructors() { return iInstructors; }
+
+    /**
      * Distribution constraints
      * @return list of {@link ExamDistributionConstraint} 
      */
@@ -866,7 +873,9 @@ public class ExamModel extends Model {
         for (Enumeration e=getRooms().elements();e.hasMoreElements();) {
             ExamRoom room = (ExamRoom)e.nextElement();
             Element r = rooms.addElement("room");
-            r.addAttribute("id", room.getRoomId());
+            r.addAttribute("id", String.valueOf(room.getId()));
+            if (room.hasName())
+                r.addAttribute("name", room.getName());
             r.addAttribute("size", String.valueOf(room.getSize()));
             r.addAttribute("alt", String.valueOf(room.getAltSize()));
             if (room.getCoordX()>=0 && room.getCoordY()>=0)
@@ -898,6 +907,8 @@ public class ExamModel extends Model {
             Exam exam = (Exam)e.nextElement();
             Element ex = exams.addElement("exam");
             ex.addAttribute("id", String.valueOf(exam.getId()));
+            if (exam.hasName())
+                ex.addAttribute("name", exam.getName());
             ex.addAttribute("length", String.valueOf(exam.getLength()));
             ex.addAttribute("type", (exam.isSectionExam()?"section":"course"));
             ex.addAttribute("alt", (exam.hasAltSeating()?"true":"false"));
@@ -905,14 +916,14 @@ public class ExamModel extends Model {
                 ex.addAttribute("maxRooms", String.valueOf(exam.getMaxRooms()));
             ex.addAttribute("enrl", String.valueOf(exam.getStudents().size()));
             if (exam.getOriginalRoom()!=null)
-                ex.addElement("original-room").addAttribute("id", exam.getOriginalRoom().getRoomId());
+                ex.addElement("original-room").addAttribute("id", String.valueOf(exam.getOriginalRoom().getId()));
             if (exam.hasPreAssignedPeriod() || !exam.getPreassignedRooms().isEmpty()) {
                 Element pre = ex.addElement("pre-assigned");
                 if (exam.hasPreAssignedPeriod())
                     pre.addElement("period").addAttribute("id", String.valueOf(exam.getPreAssignedPeriod().getIndex()));
                 for (Iterator i=exam.getPreassignedRooms().iterator();i.hasNext();) {
                     ExamRoom r = (ExamRoom)i.next();
-                    pre.addElement("room").addAttribute("id", r.getRoomId());
+                    pre.addElement("room").addAttribute("id", String.valueOf(r.getId()));
                 }
             }
             String available = "";
@@ -940,7 +951,7 @@ public class ExamModel extends Model {
                 asg.addElement("period").addAttribute("id", String.valueOf(p.getPeriod().getIndex()));
                 for (Iterator i=p.getRooms().iterator();i.hasNext();) {
                     ExamRoom r = (ExamRoom)i.next();
-                    asg.addElement("room").addAttribute("id", r.getRoomId());
+                    asg.addElement("room").addAttribute("id", String.valueOf(r.getId()));
                 }            }
             p = (ExamPlacement)exam.getInitialAssignment();
             if (p!=null && saveInitial) {
@@ -948,7 +959,7 @@ public class ExamModel extends Model {
                 ini.addElement("period").addAttribute("id", String.valueOf(p.getPeriod().getIndex()));
                 for (Iterator i=p.getRooms().iterator();i.hasNext();) {
                     ExamRoom r = (ExamRoom)i.next();
-                    ini.addElement("room").addAttribute("id", r.getRoomId());
+                    ini.addElement("room").addAttribute("id", String.valueOf(r.getId()));
                 }
             }
         }
@@ -957,10 +968,22 @@ public class ExamModel extends Model {
         for (Enumeration e=getStudents().elements();e.hasMoreElements();) {
             ExamStudent student = (ExamStudent)e.nextElement();
             Element s = students.addElement("student");
-            s.addAttribute("id", student.getStudentId());
+            s.addAttribute("id", String.valueOf(student.getId()));
             for (Enumeration f=student.variables().elements();f.hasMoreElements();) {
                 Exam ex = (Exam)f.nextElement();
                 s.addElement("exam").addAttribute("id", String.valueOf(ex.getId()));
+            }
+        }
+        Element instructors = root.addElement("instructors");
+        for (Enumeration e=getInstructors().elements();e.hasMoreElements();) {
+            ExamInstructor instructor = (ExamInstructor)e.nextElement();
+            Element i = instructors.addElement("instructor");
+            i.addAttribute("id", String.valueOf(instructor.getId()));
+            if (instructor.hasName())
+                i.addAttribute("name", instructor.getName());
+            for (Enumeration f=instructor.variables().elements();f.hasMoreElements();) {
+                Exam ex = (Exam)f.nextElement();
+                i.addElement("exam").addAttribute("id", String.valueOf(ex.getId()));
             }
         }
         Element distConstraints = root.addElement("constraints");
@@ -979,7 +1002,7 @@ public class ExamModel extends Model {
                     ExamPeriod period = (ExamPeriod)f.nextElement();
                     int nrExams = student.getExams(period).size();
                     if (nrExams>1) {
-                        Element dir = conflicts.addElement("direct").addAttribute("student", student.getStudentId());
+                        Element dir = conflicts.addElement("direct").addAttribute("student", String.valueOf(student.getId()));
                         for (Iterator i=student.getExams(period).iterator();i.hasNext();) {
                             Exam exam = (Exam)i.next();
                             dir.addElement("exam").addAttribute("id",String.valueOf(exam.getId()));
@@ -991,7 +1014,7 @@ public class ExamModel extends Model {
                                 Exam ex1 = (Exam)i.next();
                                 for (Iterator j=student.getExams(period.next()).iterator();j.hasNext();) {
                                     Exam ex2 = (Exam)j.next();
-                                    Element btb = conflicts.addElement("back-to-back").addAttribute("student", student.getStudentId());
+                                    Element btb = conflicts.addElement("back-to-back").addAttribute("student", String.valueOf(student.getId()));
                                     btb.addElement("exam").addAttribute("id",String.valueOf(ex1.getId()));
                                     btb.addElement("exam").addAttribute("id",String.valueOf(ex2.getId()));
                                     if (getBackToBackDistance()>=0) {
@@ -1005,7 +1028,7 @@ public class ExamModel extends Model {
                     if (period.next()==null || period.next().getDay()!=period.getDay()) {
                         int nrExamsADay = student.getExamsADay(period.getDay()).size();
                         if (nrExamsADay>2) {
-                            Element mt2 = conflicts.addElement("more-2-day").addAttribute("student", student.getStudentId());
+                            Element mt2 = conflicts.addElement("more-2-day").addAttribute("student", String.valueOf(student.getId()));
                             for (Iterator i=student.getExamsADay(period.getDay()).iterator();i.hasNext();) {
                                 Exam exam = (Exam)i.next();
                                 mt2.addElement("exam").addAttribute("id",String.valueOf(exam.getId()));
@@ -1025,8 +1048,8 @@ public class ExamModel extends Model {
     public boolean load(Document document) {
         boolean loadInitial = getProperties().getPropertyBoolean("Xml.LoadInitial", true);
         boolean loadSolution = getProperties().getPropertyBoolean("Xml.LoadSolution", true);
-        boolean loadPreassignedTimes = getProperties().getPropertyBoolean("Xml.LoadPreassignedTimes", false);
-        boolean loadPreassignedRooms = getProperties().getPropertyBoolean("Xml.LoadPreassignedRooms", false);
+        boolean loadPreassignedTimes = getProperties().getPropertyBoolean("Xml.LoadPreassignedTimes", true);
+        boolean loadPreassignedRooms = getProperties().getPropertyBoolean("Xml.LoadPreassignedRooms", true);
         Element root=document.getRootElement();
         if (!"examtt".equals(root.getName())) return false;
         if (root.attribute("initiative")!=null)
@@ -1064,14 +1087,15 @@ public class ExamModel extends Model {
             Element e = (Element)i.next();
             String coords = e.attributeValue("coordinates");
             ExamRoom room = new ExamRoom(this,
-                    e.attributeValue("id"),
+                    Long.parseLong(e.attributeValue("id")),
+                    e.attributeValue("name"),
                     Integer.parseInt(e.attributeValue("size")),
                     Integer.parseInt(e.attributeValue("alt")),
                     (coords==null?-1:Integer.parseInt(coords.substring(0,coords.indexOf(',')))),
                     (coords==null?-1:Integer.parseInt(coords.substring(coords.indexOf(',')+1))));
             addConstraint(room);
             getRooms().add(room);
-            rooms.put(room.getRoomId(),room);
+            rooms.put(new Long(room.getId()),room);
             String available = e.attributeValue("available");
             if (available!=null)
                 for (Enumeration f=getPeriods().elements();f.hasMoreElements();) {
@@ -1096,13 +1120,14 @@ public class ExamModel extends Model {
             Element e = (Element)i.next();
             Exam exam = new Exam(
                     Long.parseLong(e.attributeValue("id")),
+                    e.attributeValue("name"),
                     Integer.parseInt(e.attributeValue("length")),
                     "section".equals(e.attributeValue("type")),
                     "true".equals(e.attributeValue("alt")),
                     (e.attribute("maxRooms")==null?getMaxRooms():Integer.parseInt(e.attributeValue("maxRooms"))));
             exams.put(new Long(exam.getId()),exam);
             if (e.element("original-room")!=null)
-                exam.setOriginalRoom((ExamRoom)rooms.get(e.element("original-room").attributeValue("id")));
+                exam.setOriginalRoom((ExamRoom)rooms.get(Long.valueOf(e.element("original-room").attributeValue("id"))));
             Element pre = e.element("pre-assigned");
             if (pre!=null) {
                 Element per = pre.element("period");
@@ -1110,7 +1135,7 @@ public class ExamModel extends Model {
                     exam.setPreAssignedPeriod(getPeriod(Integer.parseInt(per.attributeValue("id"))));
                 if (loadPreassignedRooms)
                     for (Iterator j=pre.elementIterator("room");j.hasNext();) {
-                        String roomId = (String)((Element)j.next()).attributeValue("id");
+                        Long roomId = Long.valueOf(((Element)j.next()).attributeValue("id"));
                         exam.getPreassignedRooms().add((ExamRoom)rooms.get(roomId));
                     }
             }
@@ -1134,7 +1159,7 @@ public class ExamModel extends Model {
                 if (per!=null) {
                     ExamPlacement p = new ExamPlacement(exam, getPeriod(Integer.parseInt(per.attributeValue("id"))), new HashSet());
                     for (Iterator j=asg.elementIterator("room");j.hasNext();) {
-                        String roomId = (String)((Element)j.next()).attributeValue("id");
+                        Long roomId = Long.valueOf(((Element)j.next()).attributeValue("id"));
                         p.getRooms().add((ExamRoom)rooms.get(roomId));
                     }
                     assignments.add(p);
@@ -1146,7 +1171,7 @@ public class ExamModel extends Model {
                 if (per!=null) {
                     ExamPlacement p = new ExamPlacement(exam, getPeriod(Integer.parseInt(per.attributeValue("id"))), new HashSet());
                     for (Iterator j=ini.elementIterator("room");j.hasNext();) {
-                        String roomId = (String)((Element)j.next()).attributeValue("id");
+                        Long roomId = Long.valueOf(((Element)j.next()).attributeValue("id"));
                         p.getRooms().add((ExamRoom)rooms.get(roomId));
                     }
                     exam.setInitialAssignment(p);
@@ -1155,22 +1180,33 @@ public class ExamModel extends Model {
         }
         for (Iterator i=root.element("students").elementIterator("student");i.hasNext();) {
             Element e = (Element)i.next();
-            ExamStudent student = new ExamStudent(this,e.attributeValue("id"));
+            ExamStudent student = new ExamStudent(this,Long.parseLong(e.attributeValue("id")));
             for (Iterator j=e.elementIterator("exam");j.hasNext();) {
                 student.addVariable((Exam)exams.get(Long.valueOf(((Element)j.next()).attributeValue("id"))));
             }
             addConstraint(student);
             getStudents().add(student);
         }        
-        for (Iterator i=root.element("constraints").elementIterator();i.hasNext();) {
-            Element e = (Element)i.next();
-            ExamDistributionConstraint dc = new ExamDistributionConstraint(Long.parseLong(e.attributeValue("id")), e.getName());
-            for (Iterator j=e.elementIterator("exam");j.hasNext();) {
-                dc.addVariable((Exam)exams.get(Long.valueOf(((Element)j.next()).attributeValue("id"))));
+        if (root.element("instructors")!=null)
+            for (Iterator i=root.element("instructors").elementIterator("instructor");i.hasNext();) {
+                Element e = (Element)i.next();
+                ExamInstructor instructor = new ExamInstructor(this,Long.parseLong(e.attributeValue("id")),e.attributeValue("name"));
+                for (Iterator j=e.elementIterator("exam");j.hasNext();) {
+                    instructor.addVariable((Exam)exams.get(Long.valueOf(((Element)j.next()).attributeValue("id"))));
+                }
+                addConstraint(instructor);
+                getInstructors().add(instructor);
+            }        
+        if (root.element("constraints")!=null)
+            for (Iterator i=root.element("constraints").elementIterator();i.hasNext();) {
+                Element e = (Element)i.next();
+                ExamDistributionConstraint dc = new ExamDistributionConstraint(Long.parseLong(e.attributeValue("id")), e.getName());
+                for (Iterator j=e.elementIterator("exam");j.hasNext();) {
+                    dc.addVariable((Exam)exams.get(Long.valueOf(((Element)j.next()).attributeValue("id"))));
+                }
+                addConstraint(dc);
+                getDistributionConstraints().add(dc);
             }
-            addConstraint(dc);
-            getDistributionConstraints().add(dc);
-        }
         init();
         for (Enumeration e=assignments.elements();e.hasMoreElements();) {
             ExamPlacement placement = (ExamPlacement)e.nextElement();
