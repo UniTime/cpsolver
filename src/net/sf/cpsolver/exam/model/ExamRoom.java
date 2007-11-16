@@ -32,11 +32,10 @@ import net.sf.cpsolver.ifs.model.Value;
 public class ExamRoom extends Constraint implements Comparable {
     private ExamPlacement[] iTable;
     private boolean[] iAvailable;
-    private String iId;
+    private String iName;
     private int iSize, iAltSize;
     private int iCoordX, iCoordY;
-    private int iHashCode;
-
+    
     /**
      * Constructor
      * @param model examination timetabling model
@@ -46,11 +45,11 @@ public class ExamRoom extends Constraint implements Comparable {
      * @param coordX x coordinate
      * @param coordY y coordinate
      */
-    public ExamRoom(ExamModel model, String id, int size, int altSize, int coordX, int coordY) {
+    public ExamRoom(ExamModel model, long id, String name, int size, int altSize, int coordX, int coordY) {
         super();
         iAssignedVariables = null;
         iId = id;
-        iHashCode = id.hashCode();
+        iName = name;
         iCoordX = coordX; iCoordY = coordY; 
         iSize = size; iAltSize = altSize;
         iTable = new ExamPlacement[model.getNrPeriods()];
@@ -74,10 +73,6 @@ public class ExamRoom extends Constraint implements Comparable {
         return (int)Math.sqrt(dx*dx+dy*dy);
     }
     
-    /**
-     * Room unique id
-     */
-    public String getRoomId() { return iId; }
     /**
      * Normal seating capacity (to be used when {@link Exam#hasAltSeating()} is false)
      */
@@ -167,21 +162,35 @@ public class ExamRoom extends Constraint implements Comparable {
     public boolean equals(Object o) {
         if (o==null || !(o instanceof ExamRoom)) return false;
         ExamRoom r = (ExamRoom)o;
-        return getRoomId().equals(r.getRoomId());
+        return getId()==r.getId();
     }
     
     /**
      * Hash code
      */
     public int hashCode() {
-        return iHashCode;
+        return (int)(getId() ^ (getId() >>> 32));
+    }
+    
+    /**
+     * Room name
+     */
+    public String getName() {
+        return (hasName()?iName:String.valueOf(getId()));
+    }
+    
+    /**
+     * Room name
+     */
+    public boolean hasName() {
+        return (iName!=null && iName.length()>0);
     }
     
     /**
      * Room unique id
      */
     public String toString() {
-        return getRoomId();
+        return getName();
     }
     
     /**
