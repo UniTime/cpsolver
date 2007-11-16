@@ -88,6 +88,7 @@ public class Exam extends Variable {
     private Vector iRooms = null;
     private Vector iPeriods = null;
     private Integer sPenaltyFactor = null;
+    private String iName = null;
     
     /**
      * Constructor
@@ -97,9 +98,10 @@ public class Exam extends Variable {
      * @param altSeating true if alternative seating is requested
      * @param maxRooms maximum number of rooms to be used
      */
-    public Exam(long id, int length, boolean sectionExam, boolean altSeating, int maxRooms) {
+    public Exam(long id, String name, int length, boolean sectionExam, boolean altSeating, int maxRooms) {
         super();
         iId = id;
+        iName = name;
         iLength = length;
         iSectionExam = sectionExam;
         iAltSeating = altSeating;
@@ -892,4 +894,11 @@ public class Exam extends Variable {
     public String toString() {
         return getName()+" (periods:"+getPeriods().size()+", rooms:"+getRooms().size()+", student:"+getStudents().size()+" ,maxRooms:"+getMaxRooms()+(hasAltSeating()?", alt":"")+")";
     }
+    
+    /** Exam name */
+    public String getName() { return (hasName()?iName:String.valueOf(getId())); }
+    /** Exam name */
+    public void setName(String name) { iName = name; }
+    /** Exam name */
+    public boolean hasName() { return iName != null && iName.length()>0; }
 }
