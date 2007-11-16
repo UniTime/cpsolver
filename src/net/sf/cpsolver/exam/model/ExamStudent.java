@@ -33,7 +33,6 @@ import net.sf.cpsolver.ifs.model.Value;
 public class ExamStudent extends Constraint implements Comparable {
     private HashSet[] iTable;
     private HashSet[] iDayTable;
-    private String iId;
     private boolean iAllowDirectConflicts = true;
     
     /**
@@ -41,7 +40,7 @@ public class ExamStudent extends Constraint implements Comparable {
      * @param model examination timetabling model
      * @param id student unique id
      */
-    public ExamStudent(ExamModel model, String id) {
+    public ExamStudent(ExamModel model, long id) {
         super();
         iAssignedVariables = null;
         iId = id;
@@ -76,10 +75,6 @@ public class ExamStudent extends Constraint implements Comparable {
         return isAllowDirectConflicts() && ex1.isAllowDirectConflicts() && ex2.isAllowDirectConflicts();
     }
     
-    /**
-     * Student unique id
-     */
-    public String getStudentId() { return iId; }
     /**
      * Exam(s) enrolled by the student that are scheduled in the given period
      */
@@ -156,21 +151,21 @@ public class ExamStudent extends Constraint implements Comparable {
     public boolean equals(Object o) {
         if (o==null || !(o instanceof ExamStudent)) return false;
         ExamStudent s = (ExamStudent)o;
-        return getStudentId().equals(s.getStudentId());
+        return getId()==s.getId();
     }
     
     /**
      * Hash code
      */
     public int hashCode() {
-        return getStudentId().hashCode();
+        return (int)(getId() ^ (getId() >>> 32));
     }
     
     /**
      * Student unique id
      */
     public String toString() {
-        return getStudentId();
+        return String.valueOf(getId());
     }
     
     /**
