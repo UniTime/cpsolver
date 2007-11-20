@@ -42,6 +42,7 @@ public class ExamStudent extends Constraint implements Comparable {
      */
     public ExamStudent(ExamModel model, long id) {
         super();
+        iAllowDirectConflicts = model.getProperties().getPropertyBoolean("Student.AllowDirectConflicts", iAllowDirectConflicts);
         iAssignedVariables = null;
         iId = id;
         iTable = new HashSet[model.getNrPeriods()];
