@@ -86,6 +86,36 @@ public class Test {
         }
         if (!debug) root.setLevel(Level.INFO);
     }
+    
+    public static class ShutdownHook extends Thread {
+        Solver iSolver = null;
+        public ShutdownHook(Solver solver) {
+            setName("ShutdownHook");
+            iSolver = solver;
+        }
+        public void run() {
+            try {
+                if (iSolver.isRunning()) iSolver.stopSolver();
+                Solution solution = iSolver.lastSolution();
+                Progress.removeInstance(solution.getModel());
+                if (solution.getBestInfo()==null) {
+                    sLog.error("No best solution found.");
+                } else solution.restoreBest();
+                
+                sLog.info("Best solution:"+ToolBox.dict2string(solution.getExtendedInfo(),1));
+                
+                sLog.info("Best solution found after "+solution.getBestTime()+" seconds ("+solution.getBestIteration()+" iterations).");
+                sLog.info("Number of assigned variables is "+solution.getModel().assignedVariables().size());
+                sLog.info("Total value of the solution is "+solution.getModel().getTotalValue());
+                
+                FileOutputStream fos = new FileOutputStream(new File(iSolver.getProperties().getProperty("General.OutputFile",iSolver.getProperties().getProperty("General.Output")+File.separator+"solution.xml")));
+                (new XMLWriter(fos,OutputFormat.createPrettyPrint())).write(((ExamModel)solution.getModel()).save());
+                fos.flush();fos.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
     /**
      * Main program
@@ -158,27 +188,12 @@ public class Test {
                 public void bestRestored(Solution solution) {}
             });
 
+            Runtime.getRuntime().addShutdownHook(new ShutdownHook(solver));
             
             solver.start();
             try {
                 solver.getSolverThread().join();
             } catch (InterruptedException e) {}
-            
-            Solution solution = solver.lastSolution();
-            Progress.removeInstance(solution.getModel());
-            if (solution.getBestInfo()==null) {
-                sLog.error("No best solution found.");
-            } else solution.restoreBest();
-            
-            sLog.info("Best solution:"+ToolBox.dict2string(solution.getExtendedInfo(),1));
-            
-            sLog.info("Best solution found after "+solution.getBestTime()+" seconds ("+solution.getBestIteration()+" iterations).");
-            sLog.info("Number of assigned variables is "+solution.getModel().assignedVariables().size());
-            sLog.info("Total value of the solution is "+solution.getModel().getTotalValue());
-            
-            FileOutputStream fos = new FileOutputStream(new File(cfg.getProperty("General.OutputFile",cfg.getProperty("General.Output")+File.separator+"solution.xml")));
-            (new XMLWriter(fos,OutputFormat.createPrettyPrint())).write(model.save());
-            fos.flush();fos.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
