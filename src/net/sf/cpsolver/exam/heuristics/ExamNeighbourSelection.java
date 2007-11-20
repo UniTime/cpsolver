@@ -16,6 +16,9 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  * <li>Construction phase ({@link ExamConstruction} until all exams are assigned) 
  * <li>Hill-climbing phase ({@link ExamHillClimbing} until the given number if idle iterations)
  * <li>Simulated annealing phase ({@link ExamSimulatedAnnealing} until timeout is reached)
+ * <ul>
+ *      <li>Or greate deluge phase (when Exam.GreatDeluge is true,{@link ExamGreatDeluge} until timeout is reached)
+ * </ul>
  * </ul>
  * <br><br>
  * 
@@ -44,7 +47,9 @@ public class ExamNeighbourSelection implements NeighbourSelection {
     private ExamConstruction iCon = null;
     private ExamSimulatedAnnealing iSA = null;
     private ExamHillClimbing iHC = null;
+    private ExamGreatDeluge iGD = null;
     private int iPhase = -1;
+    private boolean iUseGD = false;
     
     /**
      * Constructor
@@ -54,6 +59,8 @@ public class ExamNeighbourSelection implements NeighbourSelection {
         iCon = new ExamConstruction(properties);
         iSA = new ExamSimulatedAnnealing(properties);
         iHC = new ExamHillClimbing(properties);
+        iGD = new ExamGreatDeluge(properties);
+        iUseGD = properties.getPropertyBoolean("Exam.GreatDeluge", iUseGD);
     }
     
     /**
@@ -63,6 +70,7 @@ public class ExamNeighbourSelection implements NeighbourSelection {
         iCon.init(solver);
         iSA.init(solver);
         iHC.init(solver);
+        iGD.init(solver);
     }
 
     /**
@@ -84,13 +92,16 @@ public class ExamNeighbourSelection implements NeighbourSelection {
                 if (n!=null) return n;
                 iPhase++;
                 sLog.info("***** hill climbing phase *****");
-            case 1 : 
+            case 1 :
                 n = iHC.selectNeighbour(solution);
                 if (n!=null) return n;
                 iPhase++;
-                sLog.info("***** simulated annealing phase *****");
+                sLog.info("***** "+(iUseGD?"great deluge":"simulated annealing")+" phase *****");
             default :
-                return iSA.selectNeighbour(solution);
+                if (iUseGD)
+                    return iGD.selectNeighbour(solution);
+                else
+                    return iSA.selectNeighbour(solution);
         }
     }
     
