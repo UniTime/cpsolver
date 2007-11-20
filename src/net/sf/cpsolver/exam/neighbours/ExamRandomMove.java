@@ -64,11 +64,15 @@ public class ExamRandomMove implements NeighbourSelection {
     public Neighbour selectNeighbour(Solution solution) {
         ExamModel model = (ExamModel)solution.getModel();
         Exam exam = (Exam)ToolBox.random(model.variables());
-        ExamPeriod period = (ExamPeriod)ToolBox.random(exam.getPeriods());
-        if (iCheckStudentConflicts && exam.countStudentConflicts(period)>0) return null;
-        if (iCheckDistributionConstraints && !exam.checkDistributionConstraints(period)) return null;
-        Set rooms = exam.findBestAvailableRooms(period);
-        if (rooms==null) return null;
-        return new ExamSimpleNeighbour(new ExamPlacement(exam, period, rooms));
+        int px = ToolBox.random(exam.getPeriods().size());
+        for (int p=0;p<exam.getPeriods().size();p++) {
+            ExamPeriod period = (ExamPeriod)exam.getPeriods().elementAt((p+px)%exam.getPeriods().size());
+            if (iCheckStudentConflicts && exam.countStudentConflicts(period)>0) continue;
+            if (iCheckDistributionConstraints && !exam.checkDistributionConstraints(period)) continue;
+            Set rooms = exam.findBestAvailableRooms(period);
+            if (rooms==null) continue;
+            return new ExamSimpleNeighbour(new ExamPlacement(exam, period, rooms));
+        }
+        return null;
     }
 }
