@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Set;
@@ -901,4 +902,28 @@ public class Exam extends Variable {
     public void setName(String name) { iName = name; }
     /** Exam name */
     public boolean hasName() { return iName != null && iName.length()>0; }
+    
+    private Hashtable iJenrls = null;
+    /**
+     * Joint enrollments 
+     * @return table {@link Exam} (an exam that has at least one student in common with this exam) -> {@link Vector} (list of students in common)  
+     */
+    public Hashtable getJointEnrollments() {
+        if (iJenrls!=null) return iJenrls;
+        iJenrls = new Hashtable();
+        for (Enumeration e=getStudents().elements();e.hasMoreElements();) {
+            ExamStudent student = (ExamStudent)e.nextElement();
+            for (Enumeration f=student.variables().elements();f.hasMoreElements();) {
+                Exam other = (Exam)f.nextElement();
+                if (other.equals(this)) continue;
+                Vector students = (Vector)iJenrls.get(other);
+                if (students==null) {
+                    students = new Vector();
+                    iJenrls.put(other, students);
+                }
+                students.add(student);
+            }
+        }
+        return iJenrls;
+    }
 }
