@@ -156,7 +156,7 @@ public class Test {
             cfg.setProperty("General.OutputFile", outFile.toString());
             cfg.setProperty("General.Output", outFile.getParent());
             
-            String logName = inputFile.getName();
+            String logName = outFile.getName();
             if (logName.indexOf('.')>=0)
                 logName = logName.substring(0,logName.lastIndexOf('.')) + ".log";
             setupLogging(new File(outFile.getParent(),logName), 
