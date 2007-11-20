@@ -570,6 +570,7 @@ public class ExamModel extends Model {
      * @return number of distance back-to-back student conflicts
      */
     public int getNrDistanceBackToBackConflicts(boolean precise) {
+        if (getBackToBackDistance()<0) return 0;
         if (!precise) return iNrDistanceBackToBackConflicts;
         int conflicts = 0;
         for (Enumeration e=getStudents().elements();e.hasMoreElements();) {
