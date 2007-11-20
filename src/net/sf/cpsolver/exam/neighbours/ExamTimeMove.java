@@ -69,24 +69,27 @@ public class ExamTimeMove implements NeighbourSelection {
         ExamModel model = (ExamModel)solution.getModel();
         Exam exam = (Exam)ToolBox.random(model.variables());
         ExamPlacement placement = (ExamPlacement)exam.getAssignment();
-        ExamPeriod period = (ExamPeriod)ToolBox.random(exam.getPeriods());
-        if (placement!=null && placement.getPeriod().equals(period)) return null;
-        if (!exam.isAvailable(period)) return null;
-        if (iCheckStudentConflicts && exam.countStudentConflicts(period)>0) return null;
-        if (iCheckDistributionConstraints && !exam.checkDistributionConstraints(period)) return null;
-        if (placement!=null) {
-            boolean ok = true;
-            for (Iterator i=placement.getRooms().iterator();i.hasNext();) {
-                ExamRoom room = (ExamRoom)i.next();
-                if (!room.isAvailable(period) || room.getPlacement(period)!=null) {
-                    ok = false; break;
+        int px = ToolBox.random(exam.getPeriods().size());
+        for (int p=0;p<exam.getPeriods().size();p++) {
+            ExamPeriod period = (ExamPeriod)exam.getPeriods().elementAt((p+px)%exam.getPeriods().size());
+            if (placement!=null && placement.getPeriod().equals(period)) continue;
+            if (iCheckStudentConflicts && exam.countStudentConflicts(period)>0) continue;
+            if (iCheckDistributionConstraints && !exam.checkDistributionConstraints(period)) continue;
+            if (placement!=null) {
+                boolean ok = true;
+                for (Iterator i=placement.getRooms().iterator();i.hasNext();) {
+                    ExamRoom room = (ExamRoom)i.next();
+                    if (!room.isAvailable(period) || room.getPlacement(period)!=null) {
+                        ok = false; break;
+                    }
                 }
+                if (ok)
+                    return new ExamSimpleNeighbour(new ExamPlacement(exam, period, placement.getRooms()));
             }
-            if (ok)
-                return new ExamSimpleNeighbour(new ExamPlacement(exam, period, placement.getRooms()));
+            Set rooms = exam.findBestAvailableRooms(period);
+            if (rooms==null) continue;
+            return new ExamSimpleNeighbour(new ExamPlacement(exam, period, rooms));
         }
-        Set rooms = exam.findBestAvailableRooms(period);
-        if (rooms==null) return null;
-        return new ExamSimpleNeighbour(new ExamPlacement(exam, period, rooms));
+        return null;
     }
 }
