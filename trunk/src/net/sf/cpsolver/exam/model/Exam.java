@@ -90,6 +90,7 @@ public class Exam extends Variable {
     private Vector iPeriods = null;
     private Integer sPenaltyFactor = null;
     private String iName = null;
+    private Vector iCourseSections = new Vector();
     
     /**
      * Constructor
@@ -925,5 +926,41 @@ public class Exam extends Variable {
             }
         }
         return iJenrls;
+    }
+    
+    /**
+     * Courses and/or sections that are having this exam
+     * @return list of {@link ExamCourseSection} 
+     */
+    public Vector getCourseSections() {
+        return iCourseSections;
+    }
+
+    /**
+     * Courses/sections of this exam into which the given student is enrolled into
+     * @param student a student that is enrolled into this exam
+     * @return list of courses/sections {@link ExamCourseSection} which are having this exam with the given student enrolled in  
+     */
+    public Vector getCourseSections(ExamStudent student) {
+        Vector ret = new Vector();
+        for (Enumeration e=iCourseSections.elements();e.hasMoreElements();) {
+            ExamCourseSection cs = (ExamCourseSection)e.nextElement();
+            if (cs.getStudents().contains(student)) ret.add(cs);
+        }
+        return ret;
+    }
+
+    /**
+     * Courses/sections of this exam into which the given instructor is enrolled into
+     * @param instructor an instructor that is enrolled into this exam
+     * @return list of courses/sections {@link ExamCourseSection} which are having this exam with the given instructor enrolled in  
+     */
+    public Vector getCourseSections(ExamInstructor instructor) {
+        Vector ret = new Vector();
+        for (Enumeration e=iCourseSections.elements();e.hasMoreElements();) {
+            ExamCourseSection cs = (ExamCourseSection)e.nextElement();
+            if (cs.getIntructors().contains(instructor)) ret.add(cs);
+        }
+        return ret;
     }
 }
