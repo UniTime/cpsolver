@@ -3,6 +3,7 @@ package net.sf.cpsolver.exam.model;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.Vector;
 
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Value;
@@ -34,6 +35,7 @@ public class ExamStudent extends Constraint implements Comparable {
     private HashSet[] iTable;
     private HashSet[] iDayTable;
     private boolean iAllowDirectConflicts = true;
+    private Vector iCourseSections = new Vector();
     
     /**
      * Constructor
@@ -181,5 +183,13 @@ public class ExamStudent extends Constraint implements Comparable {
      */
     public boolean isHard() {
         return !iAllowDirectConflicts;
+    }
+    
+    /**
+     * Courses and/or sections that this student is enrolled to
+     * @return list of {@link ExamCourseSection} 
+     */
+    public Vector getCourseSections() {
+        return iCourseSections;
     }
 }

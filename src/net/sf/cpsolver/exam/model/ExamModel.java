@@ -916,6 +916,10 @@ public class ExamModel extends Model {
             if (exam.getMaxRooms()!=getMaxRooms())
                 ex.addAttribute("maxRooms", String.valueOf(exam.getMaxRooms()));
             ex.addAttribute("enrl", String.valueOf(exam.getStudents().size()));
+            for (Enumeration f=exam.getCourseSections().elements();f.hasMoreElements();) {
+                ExamCourseSection cs = (ExamCourseSection)f.nextElement();
+                ex.addElement(cs.isSection()?"section":"course").addAttribute("id", String.valueOf(cs.getId())).addAttribute("name", cs.getName());
+            }
             if (exam.getOriginalRoom()!=null)
                 ex.addElement("original-room").addAttribute("id", String.valueOf(exam.getOriginalRoom().getId()));
             if (exam.hasPreAssignedPeriod() || !exam.getPreassignedRooms().isEmpty()) {
@@ -972,7 +976,11 @@ public class ExamModel extends Model {
             s.addAttribute("id", String.valueOf(student.getId()));
             for (Enumeration f=student.variables().elements();f.hasMoreElements();) {
                 Exam ex = (Exam)f.nextElement();
-                s.addElement("exam").addAttribute("id", String.valueOf(ex.getId()));
+                Element x = s.addElement("exam").addAttribute("id", String.valueOf(ex.getId()));
+                for (Enumeration g=ex.getCourseSections(student).elements();g.hasMoreElements();) {
+                    ExamCourseSection cs = (ExamCourseSection)g.nextElement();
+                    x.addElement(cs.isSection()?"section":"course").addAttribute("id", String.valueOf(cs.getId()));
+                }
             }
         }
         Element instructors = root.addElement("instructors");
@@ -984,7 +992,11 @@ public class ExamModel extends Model {
                 i.addAttribute("name", instructor.getName());
             for (Enumeration f=instructor.variables().elements();f.hasMoreElements();) {
                 Exam ex = (Exam)f.nextElement();
-                i.addElement("exam").addAttribute("id", String.valueOf(ex.getId()));
+                Element x = i.addElement("exam").addAttribute("id", String.valueOf(ex.getId()));
+                for (Enumeration g=ex.getCourseSections(instructor).elements();g.hasMoreElements();) {
+                    ExamCourseSection cs = (ExamCourseSection)g.nextElement();
+                    x.addElement(cs.isSection()?"section":"course").addAttribute("id", String.valueOf(cs.getId()));
+                }
             }
         }
         Element distConstraints = root.addElement("constraints");
@@ -1117,6 +1129,7 @@ public class ExamModel extends Model {
         }
         Vector assignments = new Vector();
         Hashtable exams = new Hashtable();
+        Hashtable courseSections = new Hashtable();
         for (Iterator i=root.element("exams").elementIterator("exam");i.hasNext();) {
             Element e = (Element)i.next();
             Exam exam = new Exam(
@@ -1178,12 +1191,38 @@ public class ExamModel extends Model {
                     exam.setInitialAssignment(p);
                 }
             }
+            for (Iterator j=e.elementIterator("course");j.hasNext();) {
+                Element f = (Element)j.next();
+                ExamCourseSection cs = new ExamCourseSection(exam, Long.parseLong(f.attributeValue("id")),f.attributeValue("name"), false);
+                exam.getCourseSections().add(cs);
+                courseSections.put(new Long(cs.getId()),cs);
+            }
+            for (Iterator j=e.elementIterator("section");j.hasNext();) {
+                Element f = (Element)j.next();
+                ExamCourseSection cs = new ExamCourseSection(exam, Long.parseLong(f.attributeValue("id")),f.attributeValue("name"), true);
+                exam.getCourseSections().add(cs);
+                courseSections.put(new Long(cs.getId()),cs);
+            }
         }
         for (Iterator i=root.element("students").elementIterator("student");i.hasNext();) {
             Element e = (Element)i.next();
             ExamStudent student = new ExamStudent(this,Long.parseLong(e.attributeValue("id")));
             for (Iterator j=e.elementIterator("exam");j.hasNext();) {
-                student.addVariable((Exam)exams.get(Long.valueOf(((Element)j.next()).attributeValue("id"))));
+                Element x = (Element)j.next();
+                Exam ex = (Exam)exams.get(Long.valueOf(x.attributeValue("id")));
+                student.addVariable(ex);
+                for (Iterator k=x.elementIterator("course");k.hasNext();) {
+                    Element f = (Element)k.next();
+                    ExamCourseSection cs = (ExamCourseSection)courseSections.get(Long.valueOf(f.attributeValue("id")));
+                    student.getCourseSections().add(cs);
+                    cs.getStudents().add(student);
+                }
+                for (Iterator k=x.elementIterator("section");k.hasNext();) {
+                    Element f = (Element)k.next();
+                    ExamCourseSection cs = (ExamCourseSection)courseSections.get(Long.valueOf(f.attributeValue("id")));
+                    student.getCourseSections().add(cs);
+                    cs.getStudents().add(student);
+                }
             }
             addConstraint(student);
             getStudents().add(student);
@@ -1193,7 +1232,21 @@ public class ExamModel extends Model {
                 Element e = (Element)i.next();
                 ExamInstructor instructor = new ExamInstructor(this,Long.parseLong(e.attributeValue("id")),e.attributeValue("name"));
                 for (Iterator j=e.elementIterator("exam");j.hasNext();) {
-                    instructor.addVariable((Exam)exams.get(Long.valueOf(((Element)j.next()).attributeValue("id"))));
+                    Element x = (Element)j.next();
+                    Exam ex = (Exam)exams.get(Long.valueOf(x.attributeValue("id")));
+                    instructor.addVariable(ex);
+                    for (Iterator k=x.elementIterator("course");k.hasNext();) {
+                        Element f = (Element)k.next();
+                        ExamCourseSection cs = (ExamCourseSection)courseSections.get(Long.valueOf(f.attributeValue("id")));
+                        instructor.getCourseSections().add(cs);
+                        cs.getIntructors().add(instructor);
+                    }
+                    for (Iterator k=x.elementIterator("section");k.hasNext();) {
+                        Element f = (Element)k.next();
+                        ExamCourseSection cs = (ExamCourseSection)courseSections.get(Long.valueOf(f.attributeValue("id")));
+                        instructor.getCourseSections().add(cs);
+                        cs.getIntructors().add(instructor);
+                    }
                 }
                 addConstraint(instructor);
                 getInstructors().add(instructor);
