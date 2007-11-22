@@ -555,7 +555,7 @@ public class ExamModel extends Model {
                 ExamPeriod period = (ExamPeriod)f.nextElement();
                 int nrExams = student.getExams(period).size();
                 if (nrExams==0) continue;
-                if (period.next()!=null && !student.getExams(period.next()).isEmpty() && (!isDayBreakBackToBack() || period.next().getDay()==period.getDay())) 
+                if (period.next()!=null && !student.getExams(period.next()).isEmpty() && (isDayBreakBackToBack() || period.next().getDay()==period.getDay())) 
                     conflicts += nrExams*student.getExams(period.next()).size();
             }
         }

@@ -109,14 +109,14 @@ public class ExamPlacement extends Value {
         for (Enumeration e=exam.getStudents().elements();e.hasMoreElements();) {
             ExamStudent s = (ExamStudent)e.nextElement();
             if (getPeriod().prev()!=null) {
-                if (!model.isDayBreakBackToBack() || getPeriod().prev().getDay()==getPeriod().getDay()) {
+                if (model.isDayBreakBackToBack() || getPeriod().prev().getDay()==getPeriod().getDay()) {
                     Set exams = s.getExams(getPeriod().prev());
                     int nrExams = exams.size() + (exams.contains(exam)?-1:0);
                     penalty += nrExams;
                 }
             }
             if (getPeriod().next()!=null) {
-                if (!model.isDayBreakBackToBack() || getPeriod().next().getDay()==getPeriod().getDay()) {
+                if (model.isDayBreakBackToBack() || getPeriod().next().getDay()==getPeriod().getDay()) {
                     Set exams = s.getExams(getPeriod().next());
                     int nrExams = exams.size() + (exams.contains(exam)?-1:0);
                     penalty += nrExams;
