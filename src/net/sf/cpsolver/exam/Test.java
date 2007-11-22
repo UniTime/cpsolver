@@ -17,6 +17,17 @@ import org.dom4j.io.SAXReader;
 import org.dom4j.io.XMLWriter;
 
 import net.sf.cpsolver.exam.model.ExamModel;
+import net.sf.cpsolver.exam.reports.ExamAssignments;
+import net.sf.cpsolver.exam.reports.ExamCourseSectionAssignments;
+import net.sf.cpsolver.exam.reports.ExamInstructorConflicts;
+import net.sf.cpsolver.exam.reports.ExamPeriodUsage;
+import net.sf.cpsolver.exam.reports.ExamRoomSchedule;
+import net.sf.cpsolver.exam.reports.ExamRoomSplit;
+import net.sf.cpsolver.exam.reports.ExamStudentBackToBackConflicts;
+import net.sf.cpsolver.exam.reports.ExamStudentConflicts;
+import net.sf.cpsolver.exam.reports.ExamStudentConflictsPerExam;
+import net.sf.cpsolver.exam.reports.ExamStudentDirectConflicts;
+import net.sf.cpsolver.exam.reports.ExamStudentMoreTwoADay;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solution.SolutionListener;
 import net.sf.cpsolver.ifs.solver.Solver;
@@ -108,9 +119,43 @@ public class Test {
                 sLog.info("Number of assigned variables is "+solution.getModel().assignedVariables().size());
                 sLog.info("Total value of the solution is "+solution.getModel().getTotalValue());
                 
-                FileOutputStream fos = new FileOutputStream(new File(iSolver.getProperties().getProperty("General.OutputFile",iSolver.getProperties().getProperty("General.Output")+File.separator+"solution.xml")));
+                File outFile = new File(iSolver.getProperties().getProperty("General.OutputFile",iSolver.getProperties().getProperty("General.Output")+File.separator+"solution.xml"));
+                FileOutputStream fos = new FileOutputStream(outFile);
                 (new XMLWriter(fos,OutputFormat.createPrettyPrint())).write(((ExamModel)solution.getModel()).save());
                 fos.flush();fos.close();
+                
+                new ExamAssignments((ExamModel)solution.getModel()).report().
+                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".schdex.csv"));
+
+                new ExamCourseSectionAssignments((ExamModel)solution.getModel()).report().
+                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".schdcs.csv"));
+
+                new ExamStudentConflicts((ExamModel)solution.getModel()).report().
+                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".sconf.csv"));
+
+                new ExamInstructorConflicts((ExamModel)solution.getModel()).report().
+                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".iconf.csv"));
+
+                new ExamStudentConflictsPerExam((ExamModel)solution.getModel()).report().
+                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".sconfex.csv"));
+
+                new ExamStudentDirectConflicts((ExamModel)solution.getModel()).report().
+                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".sdir.csv"));
+
+                new ExamStudentBackToBackConflicts((ExamModel)solution.getModel()).report().
+                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".sbtb.csv"));
+
+                new ExamStudentMoreTwoADay((ExamModel)solution.getModel()).report().
+                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".sm2d.csv"));
+
+                new ExamPeriodUsage((ExamModel)solution.getModel()).report().
+                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".per.csv"));
+
+                new ExamRoomSchedule((ExamModel)solution.getModel()).report().
+                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".schdr.csv"));
+
+                new ExamRoomSplit((ExamModel)solution.getModel()).report().
+                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".rsplit.csv"));
             } catch (Exception e) {
                 e.printStackTrace();
             }
