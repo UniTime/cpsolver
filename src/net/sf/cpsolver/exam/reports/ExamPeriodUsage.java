@@ -2,6 +2,7 @@ package net.sf.cpsolver.exam.reports;
 
 import java.text.DecimalFormat;
 import java.util.Enumeration;
+import java.util.Vector;
 
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamModel;
@@ -41,6 +42,8 @@ import net.sf.cpsolver.ifs.util.CSVFile.CSVField;
  */
 public class ExamPeriodUsage {
     private ExamModel iModel = null;
+    /** Exam enrollment limits */
+    public static int[] sLimits = new int[] {10, 50, 100, 200}; 
     
     /**
      * Constructor
@@ -55,34 +58,43 @@ public class ExamPeriodUsage {
      */
     public CSVFile report() {
         CSVFile csv = new CSVFile();
-        csv.setHeader(new CSVField[] {
-                new CSVField("Period"),
-                new CSVField("Date"),
-                new CSVField("Time"),
-                new CSVField("Weight"),
-                new CSVField("NrExams"),
-                new CSVField("Students")
-        });
+        Vector header = new Vector();
+        header.add(new CSVField("Period"));
+        header.add(new CSVField("Date"));
+        header.add(new CSVField("Time"));
+        header.add(new CSVField("Weight"));
+        header.add(new CSVField("NrExams"));
+        header.add(new CSVField("Students"));
+        for (int i=0;i<sLimits.length;i++) {
+            header.add(new CSVField("NrExams>="+sLimits[i]));
+        }
+        csv.setHeader(header);
         DecimalFormat df = new DecimalFormat("0.0");
         for (Enumeration e=iModel.getPeriods().elements();e.hasMoreElements();) {
             ExamPeriod period = (ExamPeriod)e.nextElement();
             int nrExams = 0;
             int nrStudents = 0;
+            int[] nrExamsLim = new int[sLimits.length];
+            for (int i=0;i<sLimits.length;i++) nrExamsLim[i]=0;
             for (Enumeration f=iModel.variables().elements();f.hasMoreElements();) {
                 Exam exam = (Exam)f.nextElement();
                 ExamPlacement placement = (ExamPlacement)exam.getAssignment();
                 if (placement==null || !(placement.getPeriod().equals(period))) continue;
                 nrExams++;
                 nrStudents+=exam.getStudents().size();
+                for (int i=0;i<sLimits.length;i++)
+                    if (exam.getStudents().size()>=sLimits[i]) nrExamsLim[i]++;
             }
-            csv.addLine(new CSVField[] {
-                    new CSVField(period.getIndex()+1),
-                    new CSVField(period.getDayStr()),
-                    new CSVField(period.getTimeStr()),
-                    new CSVField(period.getWeight()),
-                    new CSVField(nrExams),
-                    new CSVField(nrStudents)
-            });
+            Vector line = new Vector();
+            line.add(new CSVField(period.getIndex()+1));
+            line.add(new CSVField(period.getDayStr()));
+            line.add(new CSVField(period.getTimeStr()));
+            line.add(new CSVField(period.getWeight()));
+            line.add(new CSVField(nrExams));
+            line.add(new CSVField(nrStudents));
+            for (int i=0;i<sLimits.length;i++)
+                line.add(new CSVField(nrExamsLim[i]));
+            csv.addLine(line);
         }
         return csv;
     }
