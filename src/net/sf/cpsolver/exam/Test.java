@@ -20,11 +20,13 @@ import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.reports.ExamAssignments;
 import net.sf.cpsolver.exam.reports.ExamCourseSectionAssignments;
 import net.sf.cpsolver.exam.reports.ExamInstructorConflicts;
+import net.sf.cpsolver.exam.reports.ExamNbrMeetingsPerDay;
 import net.sf.cpsolver.exam.reports.ExamPeriodUsage;
 import net.sf.cpsolver.exam.reports.ExamRoomSchedule;
 import net.sf.cpsolver.exam.reports.ExamRoomSplit;
 import net.sf.cpsolver.exam.reports.ExamStudentBackToBackConflicts;
 import net.sf.cpsolver.exam.reports.ExamStudentConflicts;
+import net.sf.cpsolver.exam.reports.ExamStudentConflictsBySectionCourse;
 import net.sf.cpsolver.exam.reports.ExamStudentConflictsPerExam;
 import net.sf.cpsolver.exam.reports.ExamStudentDirectConflicts;
 import net.sf.cpsolver.exam.reports.ExamStudentMoreTwoADay;
@@ -156,6 +158,12 @@ public class Test {
 
                 new ExamRoomSplit((ExamModel)solution.getModel()).report().
                     save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".rsplit.csv"));
+
+                new ExamNbrMeetingsPerDay((ExamModel)solution.getModel()).report().
+                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".distmpd.csv"));
+                
+                new ExamStudentConflictsBySectionCourse((ExamModel)solution.getModel()).report().
+                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".sconfcs.csv"));
             } catch (Exception e) {
                 e.printStackTrace();
             }
