@@ -64,11 +64,11 @@ import net.sf.cpsolver.studentsct.model.Student;
 
 public class BranchBoundSelection implements NeighbourSelection {
     private static Logger sLog = Logger.getLogger(BranchBoundSelection.class); 
-    private int iTimeout = 10000;
-    private DistanceConflict iDistanceConflict = null;
+    protected int iTimeout = 10000;
+    protected DistanceConflict iDistanceConflict = null;
     public static boolean sDebug = false;
     protected Enumeration iStudentsEnumeration = null;
-    private boolean iMinimizePenalty = false;
+    protected boolean iMinimizePenalty = false;
     protected StudentOrder iOrder = new StudentChoiceRealFirstOrder();
     
     /**
@@ -128,12 +128,22 @@ public class BranchBoundSelection implements NeighbourSelection {
      * Branch & bound selection for a student
      */
     public class Selection {
-        private Student iStudent;
-        private long iT0, iT1;
-        private boolean iTimeoutReached;
-        private Enrollment[] iAssignment, iBestAssignment;
-        private double iBestValue;
-        private Hashtable iValues;
+        /** Student */
+        protected Student iStudent;
+        /** Start time */
+        protected long iT0;
+        /** End time */
+        protected long iT1;
+        /** Was timeout reached */
+        protected boolean iTimeoutReached;
+        /** Current assignment */
+        protected Enrollment[] iAssignment;
+        /** Best assignment */
+        protected Enrollment[] iBestAssignment;
+        /** Best value */
+        protected double iBestValue;
+        /** Value cache */
+        protected Hashtable iValues;
         
         /**
          * Constructor
@@ -256,11 +266,16 @@ public class BranchBoundSelection implements NeighbourSelection {
             return value;
         }
         
+        /** Assignment penalty */
+        protected double getAssignmentPenalty(int i) {
+            return iAssignment[i].getPenalty() + getNrDistanceConflicts(i);
+        }
+        
         /** Penalty of the current schedule */
         public double getPenalty() {
             double bestPenalty = 0;
             for (int i=0;i<iAssignment.length;i++)
-                if (iAssignment[i]!=null) bestPenalty += iAssignment[i].getPenalty() + getNrDistanceConflicts(i);
+                if (iAssignment[i]!=null) bestPenalty += getAssignmentPenalty(i);
             return bestPenalty;
         }
         
@@ -273,7 +288,7 @@ public class BranchBoundSelection implements NeighbourSelection {
                 Request r  = (Request)e.nextElement();
                 if (i<idx) {
                     if (iAssignment[i]!=null)
-                        bound += iAssignment[i].getPenalty() + getNrDistanceConflicts(i);
+                        bound += getAssignmentPenalty(i);
                     if (r.isAlternative()) {
                         if (iAssignment[i]!=null || (r instanceof CourseRequest && ((CourseRequest)r).isWaitlist())) alt--;
                     } else {
@@ -306,7 +321,7 @@ public class BranchBoundSelection implements NeighbourSelection {
         }
         
         /** First conflicting enrollment */
-        public Enrollment firstConflict(Enrollment enrollment) {
+        public Enrollment firstConflict(int idx, Enrollment enrollment) {
             Set conflicts = enrollment.variable().getModel().conflictValues(enrollment);
             if (conflicts.contains(enrollment)) return enrollment;
             if (conflicts!=null && !conflicts.isEmpty()) {
@@ -397,7 +412,7 @@ public class BranchBoundSelection implements NeighbourSelection {
                         boolean hasNoConflictValue = false;
                         for (Iterator i=values.iterator();i.hasNext();) {
                             Enrollment enrollment = (Enrollment)i.next();
-                            if (firstConflict(enrollment)!=null) continue;
+                            if (firstConflict(idx, enrollment)!=null) continue;
                             hasNoConflictValue = true;
                             if (sDebug) sLog.debug("      -- nonconflicting enrollment found: "+enrollment);
                             iAssignment[idx] = enrollment;
@@ -414,7 +429,7 @@ public class BranchBoundSelection implements NeighbourSelection {
                 }
             } else {
                 values = request.computeEnrollments();
-            }
+            }    
             if (sDebug) {
                 sLog.debug("  -- nrValues: "+values.size());
                 int vIdx=1;
@@ -427,7 +442,7 @@ public class BranchBoundSelection implements NeighbourSelection {
             for (Iterator i=values.iterator();i.hasNext();) {
                 Enrollment enrollment = (Enrollment)i.next();
                 if (sDebug) sLog.debug("    -- enrollment: "+enrollment);
-                Enrollment conflict = firstConflict(enrollment);
+                Enrollment conflict = firstConflict(idx, enrollment);
                 if (conflict!=null) {
                     if (sDebug) sLog.debug("        -- in conflict with: "+conflict);
                     continue;
