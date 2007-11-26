@@ -19,6 +19,8 @@ import java.util.StringTokenizer;
 import java.util.TreeSet;
 import java.util.Vector;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
 import org.dom4j.Element;
@@ -26,6 +28,7 @@ import org.dom4j.io.OutputFormat;
 import org.dom4j.io.SAXReader;
 import org.dom4j.io.XMLWriter;
 
+import net.sf.cpsolver.ifs.heuristics.BacktrackNeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
@@ -48,22 +51,20 @@ import net.sf.cpsolver.studentsct.filter.ReverseStudentFilter;
 import net.sf.cpsolver.studentsct.filter.StudentFilter;
 import net.sf.cpsolver.studentsct.heuristics.StudentSctNeighbourSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
+import net.sf.cpsolver.studentsct.heuristics.selection.OnlineSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.SwapStudentSelection;
 import net.sf.cpsolver.studentsct.heuristics.studentord.StudentOrder;
 import net.sf.cpsolver.studentsct.heuristics.studentord.StudentRandomOrder;
 import net.sf.cpsolver.studentsct.model.AcademicAreaCode;
-import net.sf.cpsolver.studentsct.model.Config;
 import net.sf.cpsolver.studentsct.model.Course;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Offering;
 import net.sf.cpsolver.studentsct.model.Request;
-import net.sf.cpsolver.studentsct.model.Section;
 import net.sf.cpsolver.studentsct.model.Student;
-import net.sf.cpsolver.studentsct.model.Subpart;
 import net.sf.cpsolver.studentsct.report.CourseConflictTable;
 import net.sf.cpsolver.studentsct.report.DistanceConflictTable;
-
+ 
 /**
  * A main class for running of the student sectioning solver from command line.
  * <br><br>
@@ -166,6 +167,7 @@ public class Test {
             SwapStudentSelection.sDebug=true;
         if (cfg.getProperty("CourseRequest.SameTimePrecise")!=null)
             CourseRequest.sSameTimePrecise=cfg.getPropertyBoolean("CourseRequest.SameTimePrecise", false);
+        Logger.getLogger(BacktrackNeighbourSelection.class).setLevel(cfg.getPropertyBoolean("Debug.BacktrackNeighbourSelection",false)?Level.DEBUG:Level.INFO);
         if (cfg.getPropertyBoolean("Test.FixPriorities", false))
             fixPriorities(model);
         if (cfg.getProperty("Student.DummyStudentWeight")!=null)
@@ -206,22 +208,8 @@ public class Test {
         StudentSectioningModel model = loadModel(cfg);
         if (model==null) return null;
         
-        boolean usePenalties = cfg.getPropertyBoolean("Sectioning.UseOnlinePenalties", true);
-        boolean useStudentPrefPenalties = cfg.getPropertyBoolean("Sectioning.UseStudentPreferencePenalties", false);
         Solution solution = new Solution(model,0,0);
-        solution.addSolutionListener(new SolutionListener() {
-            public void solutionUpdated(Solution solution) {}
-            public void getInfo(Solution solution, java.util.Dictionary info) {}
-            public void getInfo(Solution solution, java.util.Dictionary info, java.util.Vector variables) {}
-            public void bestCleared(Solution solution) {}
-            public void bestSaved(Solution solution) {
-                StudentSectioningModel m = (StudentSectioningModel)solution.getModel();
-                sLog.debug("**BEST** V:"+m.assignedVariables().size()+"/"+m.variables().size()+" - S:"+
-                        m.nrComplete()+"/"+m.getStudents().size()+" - TV:"+sDF.format(m.getTotalValue())+
-                        (m.getDistanceConflict()==null?"":" - DC:"+sDF.format(m.getDistanceConflict().getTotalNrConflicts())));
-            }
-            public void bestRestored(Solution solution) {}
-        });
+        solution.addSolutionListener(new TestSolutionListener());
         double startTime = JProf.currentTimeSec();
         
         
@@ -229,8 +217,8 @@ public class Test {
         solver.setInitalSolution(solution);
         solver.initSolver();
 
-        BranchBoundSelection bbSelection = new BranchBoundSelection(cfg);
-        bbSelection.init(solver);
+        OnlineSelection onlineSelection = new OnlineSelection(cfg);
+        onlineSelection.init(solver);
         
         double totalPenalty = 0, minPenalty = 0, maxPenalty = 0;
         
@@ -247,15 +235,11 @@ public class Test {
             Student student = (Student)e.nextElement();
             if (student.nrAssignedRequests()>0) continue; //skip students with assigned courses (i.e., students already assigned by a batch sectioning process)
             sLog.info("Sectioning student: "+student);
-            if (useStudentPrefPenalties)
-                StudentPreferencePenalties.setPenalties(student, cfg.getPropertyInt("Sectioning.Distribution", StudentPreferencePenalties.sDistTypePreference));
-            else if (usePenalties) 
-                setPenalties(student);
-            Neighbour neighbour = bbSelection.getSelection(student).select();
+            Neighbour neighbour = onlineSelection.getSelection(student).select();
             if (neighbour!=null) {
                 neighbour.assign(solution.getIteration());
                 sLog.info("Student "+student+" enrolls into "+neighbour);
-                if (usePenalties && !useStudentPrefPenalties) updateSpace(student);
+                onlineSelection.updateSpace(student);
             } else {
                 sLog.warn("No solution found.");
             }
@@ -387,70 +371,6 @@ public class Test {
         sLog.info("Info: "+ToolBox.dict2string(solution.getExtendedInfo(),2));
     }
     
-    /** Set online sectioning penalties to all sections of all courses of the given student */
-    private static void setPenalties(Student student) {
-        for (Enumeration e=student.getRequests().elements();e.hasMoreElements();) {
-            Request request = (Request)e.nextElement();
-            if (!(request instanceof CourseRequest)) continue;
-            CourseRequest courseRequest = (CourseRequest)request;
-            for (Enumeration f=courseRequest.getCourses().elements();f.hasMoreElements();) {
-                Course course = (Course)f.nextElement();
-                for (Enumeration g=course.getOffering().getConfigs().elements();g.hasMoreElements();) {
-                    Config config = (Config)g.nextElement();
-                    for (Enumeration h=config.getSubparts().elements();h.hasMoreElements();) {
-                        Subpart subpart = (Subpart)h.nextElement();
-                        for (Enumeration i=subpart.getSections().elements();i.hasMoreElements();) {
-                            Section section = (Section)i.nextElement();
-                            section.setPenalty(section.getOnlineSectioningPenalty());
-                        }
-                    }
-                }
-            }
-            courseRequest.clearCache();
-        }
-    }
-
-    /** Update online sectioning info after the given student is sectioned */
-    private static void updateSpace(Student student) {
-        for (Enumeration e=student.getRequests().elements();e.hasMoreElements();) {
-            Request request = (Request)e.nextElement();
-            if (!(request instanceof CourseRequest)) continue;
-            CourseRequest courseRequest = (CourseRequest)request;
-            if (courseRequest.getAssignment()==null) return; //not enrolled --> no update
-            Enrollment enrollment = (Enrollment)courseRequest.getAssignment();
-            for (Iterator i=enrollment.getAssignments().iterator();i.hasNext();) {
-                Section section = (Section)i.next();
-                section.setSpaceHeld(section.getSpaceHeld()-courseRequest.getWeight());
-                //sLog.debug("  -- space held for "+section+" decreased by 1 (to "+section.getSpaceHeld()+")");
-            }
-            Vector feasibleEnrollments = new Vector();
-            for (Enumeration g=courseRequest.values().elements();g.hasMoreElements();) {
-                Enrollment enrl = (Enrollment)g.nextElement();
-                boolean overlaps = false;
-                for (Enumeration h=courseRequest.getStudent().getRequests().elements();h.hasMoreElements();) {
-                    CourseRequest otherCourseRequest = (CourseRequest)h.nextElement();
-                    if (otherCourseRequest.equals(courseRequest)) continue;
-                    Enrollment otherErollment = (Enrollment)otherCourseRequest.getAssignment();
-                    if (otherErollment==null) continue;
-                    if (enrl.isOverlapping(otherErollment)) {
-                        overlaps = true; break;
-                    }
-                }
-                if (!overlaps)
-                    feasibleEnrollments.add(enrl);
-            }
-            double decrement = courseRequest.getWeight() / feasibleEnrollments.size();
-            for (Enumeration g=feasibleEnrollments.elements();g.hasMoreElements();) {
-                Enrollment feasibleEnrollment = (Enrollment)g.nextElement();
-                for (Iterator i=feasibleEnrollment.getAssignments().iterator();i.hasNext();) {
-                    Section section = (Section)i.next();
-                    section.setSpaceExpected(section.getSpaceExpected()-decrement);
-                    //sLog.debug("  -- space expected for "+section+" decreased by "+decrement+" (to "+section.getSpaceExpected()+")");
-                }
-            }
-        }
-    }
-
     /** Solve the student sectioning problem using IFS solver */
     public static Solution solveModel(StudentSectioningModel model, DataProperties cfg) {
         Solver solver = new Solver(cfg);
@@ -470,19 +390,7 @@ public class Test {
                 }
             });
         }
-        solution.addSolutionListener(new SolutionListener() {
-            public void solutionUpdated(Solution solution) {}
-            public void getInfo(Solution solution, java.util.Dictionary info) {}
-            public void getInfo(Solution solution, java.util.Dictionary info, java.util.Vector variables) {}
-            public void bestCleared(Solution solution) {}
-            public void bestSaved(Solution solution) {
-                StudentSectioningModel m = (StudentSectioningModel)solution.getModel();
-                sLog.debug("**BEST** V:"+m.assignedVariables().size()+"/"+m.variables().size()+" - S:"+
-                        m.nrComplete()+"/"+m.getStudents().size()+" - TV:"+sDF.format(m.getTotalValue())+
-                        (m.getDistanceConflict()==null?"":" - DC:"+sDF.format(m.getDistanceConflict().getTotalNrConflicts())));
-            }
-            public void bestRestored(Solution solution) {}
-        });
+        solution.addSolutionListener(new TestSolutionListener());
 
         solver.start();
         try {
@@ -1100,5 +1008,23 @@ public class Test {
         public boolean accept(Student student) {
             return !iIds.contains(new Long(student.getId()));
         }
+    }
+    
+    public static class TestSolutionListener implements SolutionListener {
+        public void solutionUpdated(Solution solution) {}
+        public void getInfo(Solution solution, java.util.Dictionary info) {}
+        public void getInfo(Solution solution, java.util.Dictionary info, java.util.Vector variables) {}
+        public void bestCleared(Solution solution) {}
+        public void bestSaved(Solution solution) {
+            StudentSectioningModel m = (StudentSectioningModel)solution.getModel();
+            sLog.debug("**BEST** "+
+                    (m.getNrRealStudents(false)>0?"RRq:"+m.getNrAssignedRealRequests(false)+"/"+m.getNrRealRequests(false)+", ":"")+
+                    (m.getNrLastLikeStudents(false)>0?"DRq:"+m.getNrAssignedLastLikeRequests(false)+"/"+m.getNrLastLikeRequests(false)+", ":"")+
+                    (m.getNrRealStudents(false)>0?"RS:"+m.getNrCompleteRealStudents(false)+"/"+m.getNrRealStudents(false)+", ":"")+
+                    (m.getNrLastLikeStudents(false)>0?"DS:"+m.getNrCompleteLastLikeStudents(false)+"/"+m.getNrLastLikeStudents(false)+", ":"")+
+                    "V:"+sDF.format(m.getTotalValue())+
+                    (m.getDistanceConflict()==null?"":", DC:"+sDF.format(m.getDistanceConflict().getTotalNrConflicts())));
+        }
+        public void bestRestored(Solution solution) {}
     }
 }
