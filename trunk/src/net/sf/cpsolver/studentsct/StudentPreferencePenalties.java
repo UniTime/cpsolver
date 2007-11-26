@@ -3,6 +3,7 @@ package net.sf.cpsolver.studentsct;
 import java.text.DecimalFormat;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.Iterator;
 
 import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.model.TimeLocation;
@@ -13,6 +14,7 @@ import net.sf.cpsolver.studentsct.model.Assignment;
 import net.sf.cpsolver.studentsct.model.Config;
 import net.sf.cpsolver.studentsct.model.Course;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
+import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Section;
 import net.sf.cpsolver.studentsct.model.Student;
@@ -161,6 +163,19 @@ public class StudentPreferencePenalties {
      */
     public double getPenalty(Assignment assignment) {
         return (assignment.getTime()==null?0.0:getPenalty(assignment.getTime()));
+    }
+    
+    /**
+     * Return penalty of an enrollment. It is an average penalty of all its assignments {@link Enrollment#getAssignments()}. 
+     */
+    public double getPenalty(Enrollment enrollment) {
+        if (!enrollment.isCourseRequest() || enrollment.getAssignments().isEmpty()) return 0;
+        double penalty = 0;
+        for (Iterator i=enrollment.getAssignments().iterator();i.hasNext();) {
+            Section section = (Section)i.next();
+            penalty += getPenalty(section);
+        }
+        return penalty/enrollment.getAssignments().size();
     }
 
     /**
