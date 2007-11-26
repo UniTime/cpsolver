@@ -779,7 +779,16 @@ public class ExamModel extends Model {
         info.put("Number of Exams With Original Room",String.valueOf(nrOrigRoomExams));
         info.put("Number of Exams With Pre-Assigned Time",String.valueOf(nrPreassignedTime));
         info.put("Number of Exams With Pre-Assigned Room",String.valueOf(nrPreassignedRoom));
-        
+        int[] nbrMtgs = new int[11];
+        for (int i=0;i<=10;i++) nbrMtgs[i]=0;
+        for (Enumeration e=getStudents().elements();e.hasMoreElements();) {
+            ExamStudent student = (ExamStudent)e.nextElement();
+            nbrMtgs[Math.min(10,student.variables().size())]++;
+        }
+        for (int i=0;i<=10;i++) {
+            if (nbrMtgs[i]==0) continue;
+            info.put("Number of Students with "+(i==0?"no":String.valueOf(i))+(i==10?" or more":"")+" meeting"+(i!=1?"s":""),String.valueOf(nbrMtgs[i]));
+        }
         return info;
     }
 
