@@ -51,6 +51,7 @@ public class ExamCourseSection {
      * @param section true if section, false if course
      */
     public ExamCourseSection(Exam exam, long id, String name, boolean section) {
+        iExam = exam;
         iId = id;
         iName = name;
         iSection = section;
