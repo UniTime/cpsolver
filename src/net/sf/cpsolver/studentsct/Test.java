@@ -161,7 +161,7 @@ public class Test {
         }
         if (cfg.getPropertyBoolean("Debug.DistanceConflict",false))
             DistanceConflict.sDebug=true;
-        if (cfg.getPropertyBoolean("Debug.BranchBoundEnrollmentsSelection",false))
+        if (cfg.getPropertyBoolean("Debug.BranchBoundSelection",false))
             BranchBoundSelection.sDebug=true;
         if (cfg.getPropertyBoolean("Debug.SwapStudentsSelection",false))
             SwapStudentSelection.sDebug=true;
