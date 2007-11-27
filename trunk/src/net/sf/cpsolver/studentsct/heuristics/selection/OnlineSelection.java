@@ -75,6 +75,7 @@ public class OnlineSelection extends BranchBoundSelection {
         iDistributionType = properties.getPropertyInt("Sectioning.Distribution", StudentPreferencePenalties.sDistTypePreference);
         iEpsilon = properties.getPropertyDouble("Sectioning.Epsilon", iEpsilon);
         iUsePenalties = properties.getPropertyBoolean("Sectioning.UseOnlinePenalties", iUsePenalties);
+        if (iUseStudentPrefPenalties && !properties.containsPropery("Sectioning.UseOnlinePenalties")) iUsePenalties = false;
         if (iUsePenalties || !iUseStudentPrefPenalties)
             iBranchBound = new BranchBoundSelection(properties);
         iMinimizePenalty=true;
@@ -176,7 +177,10 @@ public class OnlineSelection extends BranchBoundSelection {
          * Execute branch & bound, return the best found schedule for the selected student.
          */
         public BranchBoundNeighbour select() {
-            if (iSelection!=null) iSelection.select();
+            if (iSelection!=null) {
+                BranchBoundNeighbour onlineSelection = iSelection.select();
+                if (sDebug) sLog.debug("Online: "+onlineSelection);
+            }
             return super.select();
         }
         
@@ -190,7 +194,13 @@ public class OnlineSelection extends BranchBoundSelection {
             Enrollment conflict = super.firstConflict(idx, enrollment);
             if (conflict!=null) return conflict;
             if (iSelection==null || iSelection.getBestAssignment()==null || iSelection.getBestAssignment()[idx]==null) return null;
-            if (iPenalties.getPenalty(enrollment)>(1+iEpsilon)*iSelection.getBestAssignment()[idx].getPenalty()) return enrollment;
+            double bestPenalty = iSelection.getBestAssignment()[idx].getPenalty();
+            double limit = (iEpsilon<0?Math.max(0, bestPenalty):(bestPenalty<0?1-iEpsilon:1+iEpsilon)*bestPenalty);
+            if (enrollment.getPenalty()>limit) {
+                if (sDebug) sLog.debug("  -- enrollment "+enrollment+" was filtered out " +
+                		"(penalty="+enrollment.getPenalty()+", best="+bestPenalty+", limit="+limit+")");
+                return enrollment;
+            }
             return null;
         }
     }    
