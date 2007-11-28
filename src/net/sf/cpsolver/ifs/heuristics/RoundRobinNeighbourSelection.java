@@ -81,9 +81,14 @@ public class RoundRobinNeighbourSelection extends StandardNeighbourSelection {
             NeighbourSelection selection = (NeighbourSelection)iSelections.elementAt(iSelectionIdx);
             Neighbour neighbour = selection.selectNeighbour(solution);
             if (neighbour!=null) return neighbour;
-            iSelectionIdx = (1+iSelectionIdx) % iSelections.size();
-            sLogger.debug("Phase changed to "+(iSelectionIdx+1));
-            ((NeighbourSelection)iSelections.elementAt(iSelectionIdx)).init(iSolver);
+            changeSelection(solution);
         }
+    }
+    
+    /** Change selection */
+    public void changeSelection(Solution solution) {
+        iSelectionIdx = (1+iSelectionIdx) % iSelections.size();
+        sLogger.debug("Phase changed to "+(iSelectionIdx+1));
+        ((NeighbourSelection)iSelections.elementAt(iSelectionIdx)).init(iSolver);
     }
 }
