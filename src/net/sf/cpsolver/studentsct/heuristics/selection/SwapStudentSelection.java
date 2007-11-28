@@ -145,6 +145,7 @@ public class SwapStudentSelection implements NeighbourSelection, ProblemStudents
         private Enrollment iBestEnrollment;
         private double iBestValue;
         private HashSet iProblemStudents;
+        private Vector iBestSwaps;
         
         /**
          * Constructor
@@ -193,6 +194,7 @@ public class SwapStudentSelection implements NeighbourSelection, ProblemStudents
                     if (conflicts.contains(enrollment)) continue;
                     double value = enrollment.toDouble();
                     boolean unresolvedConflict = false;
+                    Vector swaps = new Vector(conflicts.size());
                     for (Iterator j=conflicts.iterator();j.hasNext();) {
                         Enrollment conflict = (Enrollment)j.next();
                         if (sDebug) sLog.debug("        -- conflict "+conflict);
@@ -201,13 +203,14 @@ public class SwapStudentSelection implements NeighbourSelection, ProblemStudents
                             if (sDebug) sLog.debug("          -- unable to resolve");
                             unresolvedConflict = true; break;
                         }
+                        swaps.add(other);
                         if (sDebug) sLog.debug("          -- can be resolved by switching to "+other.getName());
                         value -= conflict.toDouble();
                         value += other.toDouble();
                     }
                     if (unresolvedConflict) continue;
                     if (iBestEnrollment==null || iBestEnrollment.toDouble()>value) {
-                        iBestEnrollment = enrollment; iBestValue = value;
+                        iBestEnrollment = enrollment; iBestValue = value; iBestSwaps = swaps;
                     };
                 }
             }
@@ -225,7 +228,7 @@ public class SwapStudentSelection implements NeighbourSelection, ProblemStudents
                 Request request = (Request)e.nextElement();
                 assignment[idx++] = (iBestEnrollment.getRequest().equals(request)?iBestEnrollment:(Enrollment)request.getAssignment());
             }
-            return new SwapStudentNeighbour(iBestValue, iBestEnrollment);
+            return new SwapStudentNeighbour(iBestValue, iBestEnrollment, iBestSwaps);
         }
         
         /** Was timeout reached during the selection */
@@ -282,8 +285,9 @@ public class SwapStudentSelection implements NeighbourSelection, ProblemStudents
                 Set conflicts = conflict.variable().getModel().conflictValues(enrollment);
                 for (Iterator j=conflicts.iterator();j.hasNext();) {
                     Enrollment c = (Enrollment)j.next();
-                    if (!enrl.getStudent().equals(c.getStudent()) && !conflict.getStudent().equals(c.getStudent()))
-                        problematicStudents.add(c.getStudent());
+                    if (enrl.getStudent().isDummy() && !c.getStudent().isDummy()) continue;
+                    if (enrl.getStudent().equals(c.getStudent()) || conflict.getStudent().equals(c.getStudent())) continue;
+                    problematicStudents.add(c.getStudent());
                 }
             }
             if (!added && !enrl.getStudent().equals(conflict.getStudent()))
@@ -296,15 +300,18 @@ public class SwapStudentSelection implements NeighbourSelection, ProblemStudents
     public static class SwapStudentNeighbour extends Neighbour {
         private double iValue;
         private Enrollment iEnrollment;
+        private Vector iSwaps;
         
         /**
          * Constructor
          * @param value cost of the move
-         * @param enrollment the enrollment which is to be assigned to the given student 
+         * @param enrollment the enrollment which is to be assigned to the given student
+         * @param swaps enrollment swaps 
          */
-        public SwapStudentNeighbour(double value, Enrollment enrollment) {
+        public SwapStudentNeighbour(double value, Enrollment enrollment, Vector swaps) {
             iValue = value;
             iEnrollment = enrollment;
+            iSwaps = swaps;
         }
         
         public double value() {
@@ -318,15 +325,15 @@ public class SwapStudentSelection implements NeighbourSelection, ProblemStudents
         public void assign(long iteration) {
             if (iEnrollment.variable().getAssignment()!=null)
                 iEnrollment.variable().unassign(iteration);
-            Set conflicts = iEnrollment.variable().getModel().conflictValues(iEnrollment);
-            for (Iterator i=conflicts.iterator();i.hasNext();) {
-                Enrollment conflict = (Enrollment)i.next();
-                Enrollment switchEnrl = bestSwap(conflict, iEnrollment, null);
-                conflict.variable().unassign(iteration);
-                if (switchEnrl!=null)
-                    switchEnrl.variable().assign(iteration, switchEnrl);
+            for (Enumeration e=iSwaps.elements();e.hasMoreElements();) {
+                Enrollment swap = (Enrollment)e.nextElement();
+                swap.variable().unassign(iteration);
             }
             iEnrollment.variable().assign(iteration, iEnrollment);
+            for (Enumeration e=iSwaps.elements();e.hasMoreElements();) {
+                Enrollment swap = (Enrollment)e.nextElement();
+                swap.variable().assign(iteration, swap);
+            }
         }
         
         public String toString() {
@@ -335,6 +342,12 @@ public class SwapStudentSelection implements NeighbourSelection, ProblemStudents
             sb.append(" ("+iValue+")");
             sb.append("\n "+iEnrollment.getRequest());
             sb.append(" "+iEnrollment);
+            for (Enumeration e=iSwaps.elements();e.hasMoreElements();) {
+                Enrollment swap = (Enrollment)e.nextElement();
+                sb.append("\n "+swap.getRequest());
+                sb.append(" "+swap.variable().getAssignment());
+                sb.append(" -> "+swap);
+            }
             sb.append("\n}");
             return sb.toString();
         }
