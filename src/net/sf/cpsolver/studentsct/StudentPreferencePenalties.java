@@ -15,6 +15,7 @@ import net.sf.cpsolver.studentsct.model.Config;
 import net.sf.cpsolver.studentsct.model.Course;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
 import net.sf.cpsolver.studentsct.model.Enrollment;
+import net.sf.cpsolver.studentsct.model.Offering;
 import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Section;
 import net.sf.cpsolver.studentsct.model.Student;
@@ -177,7 +178,87 @@ public class StudentPreferencePenalties {
         }
         return penalty/enrollment.getAssignments().size();
     }
+    
+    /** Minimal penalty of a course request */
+    public double getMinPenalty(CourseRequest request) {
+        double min = Double.MAX_VALUE;
+        for (Enumeration e=request.getCourses().elements();e.hasMoreElements();) {
+            Course course = (Course)e.nextElement();
+            min = Math.min(min, getMinPenalty(course.getOffering()));
+        }
+        return (min==Double.MAX_VALUE?0.0:min);
+    }
 
+    /** Minimal penalty of an offering */
+    public double getMinPenalty(Offering offering) {
+        double min = Double.MAX_VALUE;
+        for (Enumeration e=offering.getConfigs().elements();e.hasMoreElements();) {
+            Config config = (Config)e.nextElement();
+            min = Math.min(min, getMinPenalty(config));
+        }
+        return (min==Double.MAX_VALUE?0.0:min);
+    }
+
+    /** Minimal penalty of a config */
+    public double getMinPenalty(Config config) {
+        double min = 0;
+        for (Enumeration e=config.getSubparts().elements();e.hasMoreElements();) {
+            Subpart subpart = (Subpart)e.nextElement();
+            min += getMinPenalty(subpart);
+        }
+        return min;
+    }
+    
+    /** Minimal penalty of a subpart */
+    public double getMinPenalty(Subpart subpart) {
+        double min = Double.MAX_VALUE;
+        for (Enumeration e=subpart.getSections().elements();e.hasMoreElements();) {
+            Section section = (Section)e.nextElement();
+            min = Math.min(min, getPenalty(section));
+        }
+        return (min==Double.MAX_VALUE?0.0:min);
+    }
+
+    /** Maximal penalty of a course request */ 
+    public double getMaxPenalty(CourseRequest request) {
+        double max = Double.MIN_VALUE;
+        for (Enumeration e=request.getCourses().elements();e.hasMoreElements();) {
+            Course course = (Course)e.nextElement();
+            max = Math.max(max, getMaxPenalty(course.getOffering()));
+        }
+        return (max==Double.MIN_VALUE?0.0:max);
+    }
+
+    /** Maximal penalty of an offering */
+    public double getMaxPenalty(Offering offering) {
+        double max = Double.MIN_VALUE;
+        for (Enumeration e=offering.getConfigs().elements();e.hasMoreElements();) {
+            Config config = (Config)e.nextElement();
+            max = Math.max(max, getMaxPenalty(config));
+        }
+        return (max==Double.MIN_VALUE?0.0:max);
+    }
+
+    /** Maximal penalty of a config */
+    public double getMaxPenalty(Config config) {
+        double max = 0;
+        for (Enumeration e=config.getSubparts().elements();e.hasMoreElements();) {
+            Subpart subpart = (Subpart)e.nextElement();
+            max += getMaxPenalty(subpart);
+        }
+        return max;
+    }
+    
+    /** Maximal penalty of a subpart */
+    public double getMaxPenalty(Subpart subpart) {
+        double max = Double.MIN_VALUE;
+        for (Enumeration e=subpart.getSections().elements();e.hasMoreElements();) {
+            Section section = (Section)e.nextElement();
+            max = Math.max(max, getPenalty(section));
+        }
+        return (max==Double.MIN_VALUE?0.0:max);
+    }
+    
     /**
      * Set the computed penalties to all sections of all requests of the given student
      */
