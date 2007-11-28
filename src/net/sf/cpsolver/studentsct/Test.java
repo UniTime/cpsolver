@@ -968,7 +968,7 @@ public class Test {
             cfg.setProperty("Termination.StopWhenComplete","true");
             cfg.setProperty("Termination.TimeOut","600");
             cfg.setProperty("Comparator.Class","net.sf.cpsolver.ifs.solution.GeneralSolutionComparator");
-            cfg.setProperty("Value.Class","net.sf.cpsolver.ifs.heuristics.GeneralValueSelection");
+            cfg.setProperty("Value.Class","net.sf.cpsolver.studentsct.heuristics.EnrollmentSelection");//net.sf.cpsolver.ifs.heuristics.GeneralValueSelection
             cfg.setProperty("Value.WeightConflicts", "1.0");
             cfg.setProperty("Value.WeightNrAssignments", "0.0");
             cfg.setProperty("Variable.Class","net.sf.cpsolver.ifs.heuristics.GeneralVariableSelection");
