@@ -1,8 +1,12 @@
 package net.sf.cpsolver.studentsct.heuristics;
 
+import java.text.DecimalFormat;
+
 import net.sf.cpsolver.ifs.heuristics.RoundRobinNeighbourSelection;
+import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.heuristics.selection.BacktrackSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.RandomUnassignmentSelection;
@@ -56,7 +60,9 @@ import net.sf.cpsolver.studentsct.heuristics.selection.SwapStudentSelection;
  */
 
 public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection {
-
+    private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(StudentSctNeighbourSelection.class);
+    private static DecimalFormat sDF = new DecimalFormat("0.000");
+    
     public StudentSctNeighbourSelection(DataProperties properties) throws Exception {
         super(properties);
     }
@@ -106,6 +112,18 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection {
 
         //Phase 13: random unassignment of some students
         registerSelection(new RandomUnassignmentSelection(solver.getProperties()));
+    }
+    
+    public void changeSelection(Solution solution) {
+        super.changeSelection(solution);
+        StudentSectioningModel m = (StudentSectioningModel)solution.getModel();
+        sLog.debug("**CURR** "+
+                (m.getNrRealStudents(false)>0?"RRq:"+m.getNrAssignedRealRequests(false)+"/"+m.getNrRealRequests(false)+", ":"")+
+                (m.getNrLastLikeStudents(false)>0?"DRq:"+m.getNrAssignedLastLikeRequests(false)+"/"+m.getNrLastLikeRequests(false)+", ":"")+
+                (m.getNrRealStudents(false)>0?"RS:"+m.getNrCompleteRealStudents(false)+"/"+m.getNrRealStudents(false)+", ":"")+
+                (m.getNrLastLikeStudents(false)>0?"DS:"+m.getNrCompleteLastLikeStudents(false)+"/"+m.getNrLastLikeStudents(false)+", ":"")+
+                "V:"+sDF.format(m.getTotalValue())+
+                (m.getDistanceConflict()==null?"":", DC:"+sDF.format(m.getDistanceConflict().getTotalNrConflicts())));
     }
     
 }
