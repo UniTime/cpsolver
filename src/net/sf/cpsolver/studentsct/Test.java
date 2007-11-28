@@ -198,7 +198,7 @@ public class Test {
             sLog.error("Unable to save solution, reason: "+e.getMessage(),e);
         }
         
-        saveInfoToXML(solution, new File(new File(cfg.getProperty("General.Output",".")),"info.xml"));
+        saveInfoToXML(solution, null, new File(new File(cfg.getProperty("General.Output",".")),"info.xml"));
         
         return solution;
     }
@@ -221,6 +221,7 @@ public class Test {
         onlineSelection.init(solver);
         
         double totalPenalty = 0, minPenalty = 0, maxPenalty = 0;
+        double totalPrefPenalty = 0, minPrefPenalty = 0, maxPrefPenalty = 0;
         
         Vector students = model.getStudents();
         try {
@@ -235,7 +236,9 @@ public class Test {
             Student student = (Student)e.nextElement();
             if (student.nrAssignedRequests()>0) continue; //skip students with assigned courses (i.e., students already assigned by a batch sectioning process)
             sLog.info("Sectioning student: "+student);
-            Neighbour neighbour = onlineSelection.getSelection(student).select();
+            
+            BranchBoundSelection.Selection selection = onlineSelection.getSelection(student); 
+            Neighbour neighbour = selection.select();
             if (neighbour!=null) {
                 neighbour.assign(solution.getIteration());
                 sLog.info("Student "+student+" enrolls into "+neighbour);
@@ -247,6 +250,12 @@ public class Test {
             totalPenalty += getPenalty(student);
             minPenalty += getMinPenaltyOfAssignedCourseRequests(student);
             maxPenalty += getMaxPenaltyOfAssignedCourseRequests(student);
+            if (selection instanceof OnlineSelection.EpsilonSelection) {
+                OnlineSelection.EpsilonSelection epsSelection = (OnlineSelection.EpsilonSelection)selection;
+                totalPrefPenalty += epsSelection.getBestPenalty();
+                minPrefPenalty += epsSelection.getMinAssignedPenalty();
+                maxPrefPenalty += epsSelection.getMaxAssignedPenalty();
+            }
         }
         
         solution.saveBest();
@@ -256,15 +265,21 @@ public class Test {
                 false,
                 cfg.getPropertyBoolean("Test.RunChecks", true));
         
+        Hashtable extra = new Hashtable();
         sLog.info("Overall penalty is "+totalPenalty+" ("+getPerc(totalPenalty, minPenalty, maxPenalty)+")");
-        
+        extra.put("Overall penalty", totalPenalty+" ("+getPerc(totalPenalty, minPenalty, maxPenalty)+")");
+        if (onlineSelection.isUseStudentPrefPenalties()) {
+            sLog.info("Overall preference penalty is "+totalPrefPenalty+" ("+getPerc(totalPrefPenalty, minPrefPenalty, maxPrefPenalty)+")");
+            extra.put("Overall preference penalty", totalPrefPenalty+" ("+getPerc(totalPrefPenalty, minPrefPenalty, maxPrefPenalty)+")");
+        }
+
         try {
             new StudentSectioningXMLSaver(solver).save(new File(new File(cfg.getProperty("General.Output",".")),"solution.xml"));
         } catch (Exception e) {
             sLog.error("Unable to save solution, reason: "+e.getMessage(),e);
         }
         
-        saveInfoToXML(solution, new File(new File(cfg.getProperty("General.Output",".")),"info.xml"));
+        saveInfoToXML(solution, extra, new File(new File(cfg.getProperty("General.Output",".")),"info.xml"));
 
         return solution;
     }
@@ -793,7 +808,7 @@ public class Test {
     }
     
     /** Save solution info as XML */
-    public static void saveInfoToXML(Solution solution, File file) {
+    public static void saveInfoToXML(Solution solution, Hashtable extra, File file) {
         FileOutputStream fos = null;
         try {
             Document document = DocumentHelper.createDocument();
@@ -808,6 +823,7 @@ public class Test {
                 }
             });
             entrySet.addAll(solution.getExtendedInfo().entrySet());
+            if (extra!=null) entrySet.addAll(extra.entrySet());
             for (Iterator i=entrySet.iterator();i.hasNext();) {
                 Map.Entry entry = (Map.Entry)i.next();
                 root.addElement("property").addAttribute("name", entry.getKey().toString()).setText(entry.getValue().toString());
