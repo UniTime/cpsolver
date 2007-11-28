@@ -81,6 +81,16 @@ public class OnlineSelection extends BranchBoundSelection {
         iMinimizePenalty=true;
     }
     
+    /** Use student preference penalties */
+    public boolean isUseStudentPrefPenalties() {
+        return iUseStudentPrefPenalties;
+    }
+    
+    /** Use online penalties */
+    public boolean isUsePenalties() {
+        return iUsePenalties;
+    }
+
     /** Set online sectioning penalties to all sections of all courses of the given student */
     private static void setPenalties(Student student) {
         for (Enumeration e=student.getRequests().elements();e.hasMoreElements();) {
@@ -202,6 +212,46 @@ public class OnlineSelection extends BranchBoundSelection {
                 return enrollment;
             }
             return null;
+        }
+
+        /** Student preference penalties */
+        public StudentPreferencePenalties getPenalties() {
+            return iPenalties;
+        }
+        
+        /** Best penalty */
+        public double getBestPenalty() {
+            double penalty = 0.0;
+            for (int i=0;i<iBestAssignment.length;i++) {
+                if (iBestAssignment[i]==null) continue;
+                penalty += iPenalties.getPenalty(iBestAssignment[i]);
+            }
+            return penalty;
+            
+        }
+        
+        /** Minimal student preference penalty of courses in which a student is enrolled */
+        public double getMinAssignedPenalty() {
+            double penalty = 0.0;
+            for (int i=0;i<iBestAssignment.length;i++) {
+                if (iBestAssignment[i]==null) continue;
+                Request request = (Request)iBestAssignment[i].getRequest();
+                if (request instanceof CourseRequest)
+                    penalty += iPenalties.getMinPenalty((CourseRequest)request); 
+            }
+            return penalty;
+        }
+
+        /** Maximal student preference penalty of courses in which a student is enrolled */
+        public double getMaxAssignedPenalty() {
+            double penalty = 0.0;
+            for (int i=0;i<iBestAssignment.length;i++) {
+                if (iBestAssignment[i]==null) continue;
+                Request request = (Request)iBestAssignment[i].getRequest();
+                if (request instanceof CourseRequest)
+                    penalty += iPenalties.getMaxPenalty((CourseRequest)request); 
+            }
+            return penalty;
         }
     }    
 }
