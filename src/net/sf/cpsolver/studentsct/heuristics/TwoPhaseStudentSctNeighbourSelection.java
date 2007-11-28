@@ -41,9 +41,11 @@ import net.sf.cpsolver.studentsct.model.Student;
  */
 
 public class TwoPhaseStudentSctNeighbourSelection extends StudentSctNeighbourSelection {
+    private int iNrRounds = 7;
 
     public TwoPhaseStudentSctNeighbourSelection(DataProperties properties) throws Exception {
         super(properties);
+        iNrRounds = properties.getPropertyInt("TwoPhaseSectioning.NrRoundsFirstPhase", iNrRounds);
     }
     
     /** Initialization -- also remove all the dummy students from the problem */
@@ -70,6 +72,8 @@ public class TwoPhaseStudentSctNeighbourSelection extends StudentSctNeighbourSel
 
     private boolean addDummyStudents(Solution solution) {
         if (iDummyStudents==null || iDummyStudents.isEmpty()) return false;
+        iNrRounds--;
+        if (iNrRounds>0) return false;
         solution.restoreBest();
         StudentSectioningModel model = (StudentSectioningModel)solution.getModel();
         for (Enumeration e=iDummyStudents.elements();e.hasMoreElements();) {
