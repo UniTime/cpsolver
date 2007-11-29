@@ -162,7 +162,10 @@ public class OnlineSelection extends BranchBoundSelection {
         if (iUsePenalties) setPenalties(student);
         Selection selection = null;
         if (iBranchBound!=null) selection = iBranchBound.getSelection(student);
-        if (iUseStudentPrefPenalties) selection = new EpsilonSelection(student, selection);
+        if (iUseStudentPrefPenalties) {
+            EpsilonSelection epsSelection = new EpsilonSelection(student, selection);
+            if (selection==null || epsSelection.getBestAssignment()!=null) selection = epsSelection; 
+        }
         return selection;
     }
     
