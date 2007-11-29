@@ -221,6 +221,7 @@ public class OnlineSelection extends BranchBoundSelection {
         
         /** Best penalty */
         public double getBestPenalty() {
+            if (iBestAssignment==null) return 0.0;
             double penalty = 0.0;
             for (int i=0;i<iBestAssignment.length;i++) {
                 if (iBestAssignment[i]==null) continue;
@@ -232,6 +233,7 @@ public class OnlineSelection extends BranchBoundSelection {
         
         /** Minimal student preference penalty of courses in which a student is enrolled */
         public double getMinAssignedPenalty() {
+            if (iBestAssignment==null) return 0.0;
             double penalty = 0.0;
             for (int i=0;i<iBestAssignment.length;i++) {
                 if (iBestAssignment[i]==null) continue;
@@ -244,6 +246,7 @@ public class OnlineSelection extends BranchBoundSelection {
 
         /** Maximal student preference penalty of courses in which a student is enrolled */
         public double getMaxAssignedPenalty() {
+            if (iBestAssignment==null) return 0.0;
             double penalty = 0.0;
             for (int i=0;i<iBestAssignment.length;i++) {
                 if (iBestAssignment[i]==null) continue;
