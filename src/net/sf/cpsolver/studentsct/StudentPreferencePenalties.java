@@ -215,7 +215,7 @@ public class StudentPreferencePenalties {
             Subpart subpart = (Subpart)e.nextElement();
             min += getMinPenalty(subpart);
         }
-        return min;
+        return min/config.getSubparts().size();
     }
     
     /** Minimal penalty of a subpart */
@@ -264,7 +264,7 @@ public class StudentPreferencePenalties {
             Subpart subpart = (Subpart)e.nextElement();
             max += getMaxPenalty(subpart);
         }
-        return max;
+        return max/config.getSubparts().size();
     }
     
     /** Maximal penalty of a subpart */
