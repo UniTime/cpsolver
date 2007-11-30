@@ -84,7 +84,6 @@ public class FreeTimeRequest extends Request implements Assignment {
     public Enrollment createEnrollment() {
         HashSet assignments = new HashSet();
         assignments.add(this);
-        Vector enrollments = new Vector(1);
         return new Enrollment(this, 1.0, null, assignments);
     }
     
