@@ -7,7 +7,10 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.log4j.Logger;
+
 import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.model.ConstraintListener;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.util.DataProperties;
@@ -50,6 +53,7 @@ import net.sf.cpsolver.studentsct.model.Subpart;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 public class StudentSectioningModel extends Model {
+    private static Logger sLog = Logger.getLogger(StudentSectioningModel.class); 
     private Vector iStudents = new Vector();
     private Vector iOfferings = new Vector();
     private HashSet iCompleteStudents = new HashSet();
@@ -67,7 +71,24 @@ public class StudentSectioningModel extends Model {
         iAssignedVariables = new EnumerableHashSet();
         iUnassignedVariables = new EnumerableHashSet();
         iPerturbVariables = new EnumerableHashSet();
-        addGlobalConstraint(new SectionLimit(properties));
+        SectionLimit sectionLimit = new SectionLimit(properties);
+        addGlobalConstraint(sectionLimit);
+        sectionLimit.addConstraintListener(new ConstraintListener() {
+            public void constraintBeforeAssigned(long iteration, Constraint constraint, Value assigned, Set unassigned) {
+                Enrollment enrollment = (Enrollment)assigned;
+                if (enrollment.getStudent().isDummy())
+                    for (Iterator i=unassigned.iterator();i.hasNext();) {
+                        Enrollment conflict = (Enrollment)i.next();
+                        if (!conflict.getStudent().isDummy()) {
+                            sLog.warn("Enrolment of a real student "+conflict.getStudent()+" is unassigned "+
+                                    "\n  -- "+conflict+
+                                    "\ndue to an enrollment of a dummy student "+enrollment.getStudent()+" " +
+                                    "\n  -- "+enrollment);
+                        }
+                    }
+            }
+            public void constraintAfterAssigned(long iteration, Constraint constraint, Value assigned, Set unassigned) {}
+        });
         iProperties = properties;
     }
     
