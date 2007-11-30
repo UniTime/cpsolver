@@ -252,9 +252,25 @@ public class Test {
             maxPenalty += getMaxPenaltyOfAssignedCourseRequests(student);
             if (selection instanceof OnlineSelection.EpsilonSelection) {
                 OnlineSelection.EpsilonSelection epsSelection = (OnlineSelection.EpsilonSelection)selection;
-                totalPrefPenalty += epsSelection.getBestPenalty();
-                minPrefPenalty += epsSelection.getMinAssignedPenalty();
-                maxPrefPenalty += epsSelection.getMaxAssignedPenalty();
+                double prefPenalty = epsSelection.getBestPenalty();
+                double min = epsSelection.getMinAssignedPenalty();
+                double max = epsSelection.getMaxAssignedPenalty();
+                if (prefPenalty<min || prefPenalty>max) {
+                    sLog.warn("  Preference penalty "+prefPenalty+" is not between "+min+" and "+max);
+                    for (int i=0;i<epsSelection.getBestAssignment().length;i++) {
+                        if (epsSelection.getBestAssignment()[i]==null) continue;
+                        sLog.info(epsSelection.getBestAssignment()[i].getRequest()+" has preference penalty "+
+                                epsSelection.getPenalties().getPenalty(epsSelection.getBestAssignment()[i])+", min: "+
+                                epsSelection.getPenalties().getMinPenalty(epsSelection.getBestAssignment()[i].getRequest())+", max: "+
+                                epsSelection.getPenalties().getMaxPenalty(epsSelection.getBestAssignment()[i].getRequest()));
+                    }
+                    prefPenalty = Math.max(min, Math.min(max, prefPenalty));
+                } else { 
+                    sLog.debug("  -- preference penalty is "+prefPenalty+", min:"+min+", max:"+max);
+                }
+                totalPrefPenalty += prefPenalty;
+                minPrefPenalty += min;
+                maxPrefPenalty += max;
             }
         }
         
