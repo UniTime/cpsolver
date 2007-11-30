@@ -121,11 +121,15 @@ public class EnrollmentSelection implements ValueSelection {
         StudentSectioningModel model = (StudentSectioningModel)value.variable().getModel();
         if (model.getNrLastLikeRequests(false)==0 || model.getNrRealRequests(false)==0) return true;
         Request request = (Request)value.variable();
-        if (!request.getStudent().isDummy()) return true;
-        if (conflicts==null) conflicts = value.variable().getModel().conflictValues(value);
-        for (Iterator i=conflicts.iterator();i.hasNext();) {
-            Enrollment conflict = (Enrollment)i.next();
-            if (!conflict.getRequest().getStudent().isDummy()) return false;
+        if (request.getStudent().isDummy()) {
+            if (conflicts==null) conflicts = value.variable().getModel().conflictValues(value);
+            for (Iterator i=conflicts.iterator();i.hasNext();) {
+                Enrollment conflict = (Enrollment)i.next();
+                if (!conflict.getRequest().getStudent().isDummy()) return false;
+            }
+        } else {
+            if (conflicts==null) conflicts = value.variable().getModel().conflictValues(value);
+            if (conflicts.size()>(request.getAssignment()==null?1:0)) return false;
         }
         return true;
     }
