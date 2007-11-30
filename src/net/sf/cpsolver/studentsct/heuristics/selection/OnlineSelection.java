@@ -162,10 +162,7 @@ public class OnlineSelection extends BranchBoundSelection {
         if (iUsePenalties) setPenalties(student);
         Selection selection = null;
         if (iBranchBound!=null) selection = iBranchBound.getSelection(student);
-        if (iUseStudentPrefPenalties) {
-            EpsilonSelection epsSelection = new EpsilonSelection(student, selection);
-            if (selection==null || epsSelection.getBestAssignment()!=null) selection = epsSelection; 
-        }
+        if (iUseStudentPrefPenalties) selection = new EpsilonSelection(student, selection); 
         return selection;
     }
     
@@ -190,11 +187,15 @@ public class OnlineSelection extends BranchBoundSelection {
          * Execute branch & bound, return the best found schedule for the selected student.
          */
         public BranchBoundNeighbour select() {
+            BranchBoundNeighbour onlineSelection = null;
             if (iSelection!=null) {
-                BranchBoundNeighbour onlineSelection = iSelection.select();
+                onlineSelection = iSelection.select();
                 if (sDebug) sLog.debug("Online: "+onlineSelection);
             }
-            return super.select();
+            BranchBoundNeighbour neighbour = super.select();
+            if (neighbour!=null) return neighbour;
+            if (onlineSelection!=null) return onlineSelection;
+            return null;
         }
         
         /** Assignment penalty */
@@ -240,9 +241,7 @@ public class OnlineSelection extends BranchBoundSelection {
             double penalty = 0.0;
             for (int i=0;i<iBestAssignment.length;i++) {
                 if (iBestAssignment[i]==null) continue;
-                Request request = (Request)iBestAssignment[i].getRequest();
-                if (request instanceof CourseRequest)
-                    penalty += iPenalties.getMinPenalty((CourseRequest)request); 
+                penalty += iPenalties.getMinPenalty(iBestAssignment[i].getRequest()); 
             }
             return penalty;
         }
@@ -253,9 +252,7 @@ public class OnlineSelection extends BranchBoundSelection {
             double penalty = 0.0;
             for (int i=0;i<iBestAssignment.length;i++) {
                 if (iBestAssignment[i]==null) continue;
-                Request request = (Request)iBestAssignment[i].getRequest();
-                if (request instanceof CourseRequest)
-                    penalty += iPenalties.getMaxPenalty((CourseRequest)request); 
+                penalty += iPenalties.getMaxPenalty(iBestAssignment[i].getRequest()); 
             }
             return penalty;
         }
