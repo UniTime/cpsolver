@@ -15,6 +15,7 @@ import net.sf.cpsolver.studentsct.model.Config;
 import net.sf.cpsolver.studentsct.model.Course;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
 import net.sf.cpsolver.studentsct.model.Enrollment;
+import net.sf.cpsolver.studentsct.model.FreeTimeRequest;
 import net.sf.cpsolver.studentsct.model.Offering;
 import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Section;
@@ -170,7 +171,6 @@ public class StudentPreferencePenalties {
      * Return penalty of an enrollment. It is an average penalty of all its assignments {@link Enrollment#getAssignments()}. 
      */
     public double getPenalty(Enrollment enrollment) {
-        if (!enrollment.isCourseRequest() || enrollment.getAssignments().isEmpty()) return 0;
         double penalty = 0;
         for (Iterator i=enrollment.getAssignments().iterator();i.hasNext();) {
             Section section = (Section)i.next();
@@ -179,6 +179,15 @@ public class StudentPreferencePenalties {
         return penalty/enrollment.getAssignments().size();
     }
     
+    /** Minimal penalty of a course request */ 
+    public double getMinPenalty(Request request) {
+        if (request instanceof CourseRequest)
+            return getMinPenalty((CourseRequest)request);
+        else if (request instanceof FreeTimeRequest)
+            return getPenalty(((FreeTimeRequest)request).getTime());
+        return 0;
+    }
+
     /** Minimal penalty of a course request */
     public double getMinPenalty(CourseRequest request) {
         double min = Double.MAX_VALUE;
@@ -217,6 +226,15 @@ public class StudentPreferencePenalties {
             min = Math.min(min, getPenalty(section));
         }
         return (min==Double.MAX_VALUE?0.0:min);
+    }
+    
+    /** Maximal penalty of a course request */ 
+    public double getMaxPenalty(Request request) {
+        if (request instanceof CourseRequest)
+            return getMaxPenalty((CourseRequest)request);
+        else if (request instanceof FreeTimeRequest)
+            return getPenalty(((FreeTimeRequest)request).getTime());
+        return 0;
     }
 
     /** Maximal penalty of a course request */ 
