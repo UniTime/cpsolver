@@ -178,7 +178,7 @@
     <target name="doc">
         <delete dir="${dist.dir}/doc" failonerror="false"/>
         <mkdir dir="${dist.dir}/doc"/>
-    	<javadoc destdir="${dist.dir}/doc" author="true" version="true" use="true" windowtitle="Iterative Forward Search API Documentation" source="1.4" linksource="true" breakiterator="true">
+    	<javadoc destdir="${dist.dir}/doc" author="true" version="true" use="true" windowtitle="Constraint Solver API Documentation -- CPSolver v1.1 build ${build.number}" source="1.4" linksource="true" breakiterator="true">
     		<doctitle><![CDATA[
     		<table border='0' style='font-size: 11pt;font-weight: normal;'><tr><td align='left'>
     		IFS 1.1 (Iterative Forward Search)<br>
