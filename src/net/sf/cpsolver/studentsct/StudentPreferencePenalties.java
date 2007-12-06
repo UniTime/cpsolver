@@ -4,6 +4,8 @@ import java.text.DecimalFormat;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.Set;
+import java.util.Vector;
 
 import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.model.TimeLocation;
@@ -277,6 +279,54 @@ public class StudentPreferencePenalties {
         return (max==Double.MIN_VALUE?0.0:max);
     }
     
+    /** Minimal and maximal available enrollment penalty of a request */ 
+    public double[] getMinMaxAvailableEnrollmentPenalty(Request request) {
+        if (request instanceof CourseRequest) {
+            return getMinMaxAvailableEnrollmentPenalty((CourseRequest)request);
+        } else {
+            double pen = getPenalty(((FreeTimeRequest)request).getTime());
+            return new double[] {pen,pen};
+        }
+    }
+
+    /** Minimal and maximal available enrollment penalty of a request */
+    public double[] getMinMaxAvailableEnrollmentPenalty(CourseRequest request) {
+        Set enrollments = request.getAvaiableEnrollmentsSkipSameTime();
+        if (enrollments.isEmpty()) return new double[] {0,0};
+        double min = Double.MAX_VALUE, max = Double.MIN_VALUE;
+        for (Iterator i=enrollments.iterator();i.hasNext();) {
+            Enrollment enrollment = (Enrollment)i.next();
+            double penalty = getPenalty(enrollment);
+            min = Math.min(min, penalty);
+            max = Math.max(max, penalty);
+        }
+        return new double[] {min, max};
+    }
+
+    /** Minimal and maximal available enrollment penalty of a request */ 
+    public double[] getMinMaxEnrollmentPenalty(Request request) {
+        if (request instanceof CourseRequest) {
+            return getMinMaxEnrollmentPenalty((CourseRequest)request);
+        } else {
+            double pen = getPenalty(((FreeTimeRequest)request).getTime());
+            return new double[] {pen,pen};
+        }
+    }
+
+    /** Minimal and maximal available enrollment penalty of a request */
+    public double[] getMinMaxEnrollmentPenalty(CourseRequest request) {
+        Vector enrollments = request.getEnrollmentsSkipSameTime();
+        if (enrollments.isEmpty()) return new double[] {0,0};
+        double min = Double.MAX_VALUE, max = Double.MIN_VALUE;
+        for (Enumeration e=enrollments.elements();e.hasMoreElements();) {
+            Enrollment enrollment = (Enrollment)e.nextElement();
+            double penalty = getPenalty(enrollment);
+            min = Math.min(min, penalty);
+            max = Math.max(max, penalty);
+        }
+        return new double[] {min, max};
+    }
+
     /**
      * Set the computed penalties to all sections of all requests of the given student
      */
