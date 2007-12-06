@@ -222,39 +222,5 @@ public class OnlineSelection extends BranchBoundSelection {
         public StudentPreferencePenalties getPenalties() {
             return iPenalties;
         }
-        
-        /** Best penalty */
-        public double getBestPenalty() {
-            if (iBestAssignment==null) return 0.0;
-            double penalty = 0.0;
-            for (int i=0;i<iBestAssignment.length;i++) {
-                if (iBestAssignment[i]==null) continue;
-                penalty += iPenalties.getPenalty(iBestAssignment[i]);
-            }
-            return penalty;
-            
-        }
-        
-        /** Minimal student preference penalty of courses in which a student is enrolled */
-        public double getMinAssignedPenalty() {
-            if (iBestAssignment==null) return 0.0;
-            double penalty = 0.0;
-            for (int i=0;i<iBestAssignment.length;i++) {
-                if (iBestAssignment[i]==null) continue;
-                penalty += iPenalties.getMinPenalty(iBestAssignment[i].getRequest()); 
-            }
-            return penalty;
-        }
-
-        /** Maximal student preference penalty of courses in which a student is enrolled */
-        public double getMaxAssignedPenalty() {
-            if (iBestAssignment==null) return 0.0;
-            double penalty = 0.0;
-            for (int i=0;i<iBestAssignment.length;i++) {
-                if (iBestAssignment[i]==null) continue;
-                penalty += iPenalties.getMaxPenalty(iBestAssignment[i].getRequest()); 
-            }
-            return penalty;
-        }
     }    
 }

@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
 import java.util.Vector;
@@ -53,6 +54,7 @@ import net.sf.cpsolver.studentsct.heuristics.StudentSctNeighbourSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.OnlineSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.SwapStudentSelection;
+import net.sf.cpsolver.studentsct.heuristics.selection.BranchBoundSelection.BranchBoundNeighbour;
 import net.sf.cpsolver.studentsct.heuristics.studentord.StudentOrder;
 import net.sf.cpsolver.studentsct.heuristics.studentord.StudentRandomOrder;
 import net.sf.cpsolver.studentsct.model.AcademicAreaCode;
@@ -221,7 +223,11 @@ public class Test {
         onlineSelection.init(solver);
         
         double totalPenalty = 0, minPenalty = 0, maxPenalty = 0;
+        double minAvEnrlPenalty = 0, maxAvEnrlPenalty = 0;
+        double minEnrlPenalty = 0, maxEnrlPenalty = 0;
         double totalPrefPenalty = 0, minPrefPenalty = 0, maxPrefPenalty = 0;
+        double minAvEnrlPrefPenalty = 0, maxAvEnrlPrefPenalty = 0;
+        double minEnrlPrefPenalty = 0, maxEnrlPrefPenalty = 0;
         
         Vector students = model.getStudents();
         try {
@@ -238,8 +244,38 @@ public class Test {
             sLog.info("Sectioning student: "+student);
             
             BranchBoundSelection.Selection selection = onlineSelection.getSelection(student); 
-            Neighbour neighbour = selection.select();
+            BranchBoundNeighbour neighbour = selection.select();
             if (neighbour!=null) {
+                StudentPreferencePenalties penalties = null;
+                if (selection instanceof OnlineSelection.EpsilonSelection)
+                    penalties = ((OnlineSelection.EpsilonSelection)selection).getPenalties();
+                for (int i=0;i<neighbour.getAssignment().length;i++) {
+                    if (neighbour.getAssignment()[i]==null) continue;
+                    Enrollment enrollment = neighbour.getAssignment()[i];
+                    if (enrollment.getRequest() instanceof CourseRequest) {
+                        CourseRequest request = (CourseRequest)enrollment.getRequest();
+                        double[] avEnrlMinMax = getMinMaxAvailableEnrollmentPenalty(request);
+                        minAvEnrlPenalty += avEnrlMinMax[0];
+                        maxAvEnrlPenalty += avEnrlMinMax[1];
+                        double[] enrlMinMax = getMinMaxEnrollmentPenalty(request);
+                        minEnrlPenalty += enrlMinMax[0];
+                        maxEnrlPenalty += enrlMinMax[1];
+                        totalPenalty += enrollment.getPenalty();
+                        minPenalty += request.getMinPenalty();
+                        maxPenalty += request.getMaxPenalty();
+                        if (penalties!=null) {
+                            double[] avEnrlPrefMinMax = penalties.getMinMaxAvailableEnrollmentPenalty(enrollment.getRequest());
+                            minAvEnrlPrefPenalty += avEnrlPrefMinMax[0];
+                            maxAvEnrlPrefPenalty += avEnrlPrefMinMax[1];
+                            double[] enrlPrefMinMax = penalties.getMinMaxEnrollmentPenalty(enrollment.getRequest());
+                            minEnrlPrefPenalty += enrlPrefMinMax[0];
+                            maxEnrlPrefPenalty += enrlPrefMinMax[1];
+                            totalPrefPenalty += penalties.getPenalty(enrollment);
+                            minPrefPenalty += penalties.getMinPenalty(enrollment.getRequest());
+                            maxPrefPenalty += penalties.getMaxPenalty(enrollment.getRequest());
+                        }
+                    }
+                }
                 neighbour.assign(solution.getIteration());
                 sLog.info("Student "+student+" enrolls into "+neighbour);
                 onlineSelection.updateSpace(student);
@@ -247,31 +283,6 @@ public class Test {
                 sLog.warn("No solution found.");
             }
             solution.update(JProf.currentTimeSec()-startTime);
-            totalPenalty += getPenalty(student);
-            minPenalty += getMinPenaltyOfAssignedCourseRequests(student);
-            maxPenalty += getMaxPenaltyOfAssignedCourseRequests(student);
-            if (selection instanceof OnlineSelection.EpsilonSelection) {
-                OnlineSelection.EpsilonSelection epsSelection = (OnlineSelection.EpsilonSelection)selection;
-                double prefPenalty = epsSelection.getBestPenalty();
-                double min = epsSelection.getMinAssignedPenalty();
-                double max = epsSelection.getMaxAssignedPenalty();
-                if (prefPenalty<min || prefPenalty>max) {
-                    sLog.warn("  Preference penalty "+prefPenalty+" is not between "+min+" and "+max);
-                    for (int i=0;i<epsSelection.getBestAssignment().length;i++) {
-                        if (epsSelection.getBestAssignment()[i]==null) continue;
-                        sLog.info(epsSelection.getBestAssignment()[i].getRequest()+" has preference penalty "+
-                                epsSelection.getPenalties().getPenalty(epsSelection.getBestAssignment()[i])+", min: "+
-                                epsSelection.getPenalties().getMinPenalty(epsSelection.getBestAssignment()[i].getRequest())+", max: "+
-                                epsSelection.getPenalties().getMaxPenalty(epsSelection.getBestAssignment()[i].getRequest()));
-                    }
-                    prefPenalty = Math.max(min, Math.min(max, prefPenalty));
-                } else { 
-                    sLog.debug("  -- preference penalty is "+prefPenalty+", min:"+min+", max:"+max);
-                }
-                totalPrefPenalty += prefPenalty;
-                minPrefPenalty += min;
-                maxPrefPenalty += max;
-            }
         }
         
         solution.saveBest();
@@ -282,11 +293,15 @@ public class Test {
                 cfg.getPropertyBoolean("Test.RunChecks", true));
         
         Hashtable extra = new Hashtable();
-        sLog.info("Overall penalty is "+totalPenalty+" ("+getPerc(totalPenalty, minPenalty, maxPenalty)+")");
-        extra.put("Overall penalty", totalPenalty+" ("+getPerc(totalPenalty, minPenalty, maxPenalty)+")");
+        sLog.info("Overall penalty is "+getPerc(totalPenalty, minPenalty, maxPenalty)+"% ("+sDF.format(totalPenalty)+"/"+sDF.format(minPenalty)+".."+sDF.format(maxPenalty)+")");
+        extra.put("Overall penalty", getPerc(totalPenalty, minPenalty, maxPenalty)+"% ("+sDF.format(totalPenalty)+"/"+sDF.format(minPenalty)+".."+sDF.format(maxPenalty)+")");
+        extra.put("Overall enrollment penalty", getPerc(totalPenalty, minEnrlPenalty, maxEnrlPenalty)+"% ("+sDF.format(totalPenalty)+"/"+sDF.format(minEnrlPenalty)+".."+sDF.format(maxEnrlPenalty)+")");
+        extra.put("Overall available enrollment penalty", getPerc(totalPenalty, minAvEnrlPenalty, maxAvEnrlPenalty)+"% ("+sDF.format(totalPenalty)+"/"+sDF.format(minAvEnrlPenalty)+".."+sDF.format(maxAvEnrlPenalty)+")");
         if (onlineSelection.isUseStudentPrefPenalties()) {
-            sLog.info("Overall preference penalty is "+totalPrefPenalty+" ("+getPerc(totalPrefPenalty, minPrefPenalty, maxPrefPenalty)+")");
-            extra.put("Overall preference penalty", totalPrefPenalty+" ("+getPerc(totalPrefPenalty, minPrefPenalty, maxPrefPenalty)+")");
+            sLog.info("Overall preference penalty is "+getPerc(totalPrefPenalty, minPrefPenalty, maxPrefPenalty)+"% ("+sDF.format(totalPrefPenalty)+"/"+sDF.format(minPrefPenalty)+".."+sDF.format(maxPrefPenalty)+")");
+            extra.put("Overall preference penalty", getPerc(totalPrefPenalty, minPrefPenalty, maxPrefPenalty)+"% ("+sDF.format(totalPrefPenalty)+"/"+sDF.format(minPrefPenalty)+".."+sDF.format(maxPrefPenalty)+")");
+            extra.put("Overall preference enrollment penalty", getPerc(totalPrefPenalty, minEnrlPrefPenalty, maxEnrlPrefPenalty)+"% ("+sDF.format(totalPrefPenalty)+"/"+sDF.format(minEnrlPrefPenalty)+".."+sDF.format(maxEnrlPrefPenalty)+")");
+            extra.put("Overall preference available enrollment penalty", getPerc(totalPrefPenalty, minAvEnrlPrefPenalty, maxAvEnrlPrefPenalty)+"% ("+sDF.format(totalPrefPenalty)+"/"+sDF.format(minAvEnrlPrefPenalty)+".."+sDF.format(maxAvEnrlPrefPenalty)+")");
         }
 
         try {
@@ -300,38 +315,32 @@ public class Test {
         return solution;
     }
     
-    /** Sum of penalties of sections into which a student is enrolled */
-    public static double getPenalty(Student student) {
-        double penalty = 0.0;
-        for (Enumeration e=student.getRequests().elements();e.hasMoreElements();) {
-            Request request = (Request)e.nextElement();
-            Enrollment enrollment = (Enrollment)request.getAssignment();
-            if (enrollment!=null)
-                penalty += enrollment.getPenalty();
+    /** Minimum and maximum enrollment penalty, i.e., {@link Enrollment#getPenalty()} of all enrollments */
+    public static double[] getMinMaxEnrollmentPenalty(CourseRequest request) {
+        Vector enrollments = request.getEnrollmentsSkipSameTime();
+        if (enrollments.isEmpty()) return new double[] {0,0};
+        double min = Double.MAX_VALUE, max = Double.MIN_VALUE;
+        for (Enumeration e=enrollments.elements();e.hasMoreElements();) {
+            Enrollment enrollment = (Enrollment)e.nextElement();
+            double penalty = enrollment.getPenalty();
+            min = Math.min(min, penalty);
+            max = Math.max(max, penalty);
         }
-        return penalty;
+        return new double[] {min, max};
     }
 
-    /** Minimal penalty of courses in which a student is enrolled */
-    public static double getMinPenaltyOfAssignedCourseRequests(Student student) {
-        double penalty = 0.0;
-        for (Enumeration e=student.getRequests().elements();e.hasMoreElements();) {
-            Request request = (Request)e.nextElement();
-            if (request.getAssignment()!=null && request instanceof CourseRequest)
-                penalty += ((CourseRequest)request).getMinPenalty(); 
+    /** Minimum and maximum available enrollment penalty, i.e., {@link Enrollment#getPenalty()} of all available enrollments */
+    public static double[] getMinMaxAvailableEnrollmentPenalty(CourseRequest request) {
+        Set enrollments = request.getAvaiableEnrollmentsSkipSameTime();
+        if (enrollments.isEmpty()) return new double[] {0,0};
+        double min = Double.MAX_VALUE, max = Double.MIN_VALUE;
+        for (Iterator i=enrollments.iterator();i.hasNext();) {
+            Enrollment enrollment = (Enrollment)i.next();
+            double penalty = enrollment.getPenalty();
+            min = Math.min(min, penalty);
+            max = Math.max(max, penalty);
         }
-        return penalty;
-    }
-
-    /** Maximal penalty of courses in which a student is enrolled */
-    public static double getMaxPenaltyOfAssignedCourseRequests(Student student) {
-        double penalty = 0.0;
-        for (Enumeration e=student.getRequests().elements();e.hasMoreElements();) {
-            Request request = (Request)e.nextElement();
-            if (request.getAssignment()!=null && request instanceof CourseRequest)
-                penalty += ((CourseRequest)request).getMaxPenalty(); 
-        }
-        return penalty;
+        return new double[] {min, max};
     }
 
     /** 
