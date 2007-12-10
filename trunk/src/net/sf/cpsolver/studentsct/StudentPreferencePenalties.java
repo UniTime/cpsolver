@@ -4,7 +4,6 @@ import java.text.DecimalFormat;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.Set;
 import java.util.Vector;
 
 import net.sf.cpsolver.coursett.Constants;
@@ -291,7 +290,7 @@ public class StudentPreferencePenalties {
 
     /** Minimal and maximal available enrollment penalty of a request */
     public double[] getMinMaxAvailableEnrollmentPenalty(CourseRequest request) {
-        Set enrollments = request.getAvaiableEnrollmentsSkipSameTime();
+        Vector enrollments = request.getAvaiableEnrollments();
         if (enrollments.isEmpty()) return new double[] {0,0};
         double min = Double.MAX_VALUE, max = Double.MIN_VALUE;
         for (Iterator i=enrollments.iterator();i.hasNext();) {
@@ -315,7 +314,7 @@ public class StudentPreferencePenalties {
 
     /** Minimal and maximal available enrollment penalty of a request */
     public double[] getMinMaxEnrollmentPenalty(CourseRequest request) {
-        Vector enrollments = request.getEnrollmentsSkipSameTime();
+        Vector enrollments = request.values();
         if (enrollments.isEmpty()) return new double[] {0,0};
         double min = Double.MAX_VALUE, max = Double.MIN_VALUE;
         for (Enumeration e=enrollments.elements();e.hasMoreElements();) {
