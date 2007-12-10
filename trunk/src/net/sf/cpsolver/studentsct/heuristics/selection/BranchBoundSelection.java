@@ -70,6 +70,7 @@ public class BranchBoundSelection implements NeighbourSelection {
     protected Enumeration iStudentsEnumeration = null;
     protected boolean iMinimizePenalty = false;
     protected StudentOrder iOrder = new StudentChoiceRealFirstOrder();
+    protected double iDistConfWeight = 1.0;
     
     /**
      * Constructor
@@ -88,6 +89,7 @@ public class BranchBoundSelection implements NeighbourSelection {
                 sLog.error("Unable to set student order, reason:"+e.getMessage(),e);
             }
         }
+        iDistConfWeight = properties.getPropertyDouble("DistanceConflict.Weight", iDistConfWeight);
     }
     
     /**
@@ -268,7 +270,7 @@ public class BranchBoundSelection implements NeighbourSelection {
         
         /** Assignment penalty */
         protected double getAssignmentPenalty(int i) {
-            return iAssignment[i].getPenalty() + getNrDistanceConflicts(i);
+            return iAssignment[i].getPenalty() + iDistConfWeight*getNrDistanceConflicts(i);
         }
         
         /** Penalty of the current schedule */
@@ -424,7 +426,7 @@ public class BranchBoundSelection implements NeighbourSelection {
                 }
                 values = (Collection)iValues.get(courseRequest);
                 if (values==null) {
-                    values = courseRequest.getAvaiableEnrollmentsSkipSameTime();
+                    values = courseRequest.getAvaiableEnrollments();
                     iValues.put(courseRequest, values);
                 }
             } else {
