@@ -56,7 +56,18 @@ public class GetInfo {
                     String value = line.substring(idx+1).trim();
                     if (value.indexOf('(')>=0 && value.indexOf(')')>=0) {
                         value = value.substring(value.indexOf('(')+1, value.indexOf(')'));
-                        if (value.indexOf('/')>=0) value = value.substring(0, value.indexOf('/'));
+                        if (value.indexOf('/')>=0) {
+                            String bound = value.substring(value.indexOf('/')+1);
+                            if (bound.indexOf("..")>=0) {
+                                String min = bound.substring(0, bound.indexOf(".."));
+                                String max = bound.substring(bound.indexOf("..")+2);
+                                info.put(key+" Min",min);
+                                info.put(key+" Max",max);
+                            } else {
+                                info.put(key+" Bound",bound);
+                            }
+                            value = value.substring(0, value.indexOf('/'));
+                        }
                     }
                     if (value.length()>0) info.put(key, value);
                 }
@@ -79,7 +90,18 @@ public class GetInfo {
                 if (key==null || value==null) continue;
                 if (value.indexOf('(')>=0 && value.indexOf(')')>=0) {
                     value = value.substring(value.indexOf('(')+1, value.indexOf(')'));
-                    if (value.indexOf('/')>=0) value = value.substring(0, value.indexOf('/'));
+                    if (value.indexOf('/')>=0) {
+                        String bound = value.substring(value.indexOf('/')+1);
+                        if (bound.indexOf("..")>=0) {
+                            String min = bound.substring(0, bound.indexOf(".."));
+                            String max = bound.substring(bound.indexOf("..")+2);
+                            info.put(key+" Min",min);
+                            info.put(key+" Max",max);
+                        } else {
+                            info.put(key+" Bound",bound);
+                        }
+                        value = value.substring(0, value.indexOf('/'));
+                    }
                 }
                 if (value.length()>0) info.put(key, value);
                 
