@@ -5,7 +5,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.util.Collections;
 import java.util.Comparator;
@@ -15,7 +17,6 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
 import java.util.Vector;
@@ -206,7 +207,7 @@ public class Test {
     }
 
     /** Online sectioning test */
-    public static Solution onlineSectioning(DataProperties cfg) {
+    public static Solution onlineSectioning(DataProperties cfg) throws Exception {
         StudentSectioningModel model = loadModel(cfg);
         if (model==null) return null;
         
@@ -224,10 +225,14 @@ public class Test {
         
         double totalPenalty = 0, minPenalty = 0, maxPenalty = 0;
         double minAvEnrlPenalty = 0, maxAvEnrlPenalty = 0;
-        double minEnrlPenalty = 0, maxEnrlPenalty = 0;
         double totalPrefPenalty = 0, minPrefPenalty = 0, maxPrefPenalty = 0;
         double minAvEnrlPrefPenalty = 0, maxAvEnrlPrefPenalty = 0;
-        double minEnrlPrefPenalty = 0, maxEnrlPrefPenalty = 0;
+        int nrChoices = 0, nrEnrollments = 0, nrCourseRequests = 0;
+        int chChoices = 0, chCourseRequests = 0, chStudents = 0;
+        
+        File outDir = new File(model.getProperties().getProperty("General.Output","."));
+        outDir.mkdirs();
+        PrintWriter pw = new PrintWriter(new FileWriter(new File(outDir,"choices.csv")));
         
         Vector students = model.getStudents();
         try {
@@ -247,8 +252,29 @@ public class Test {
             BranchBoundNeighbour neighbour = selection.select();
             if (neighbour!=null) {
                 StudentPreferencePenalties penalties = null;
-                if (selection instanceof OnlineSelection.EpsilonSelection)
-                    penalties = ((OnlineSelection.EpsilonSelection)selection).getPenalties();
+                if (selection instanceof OnlineSelection.EpsilonSelection) {
+                    OnlineSelection.EpsilonSelection epsSelection = (OnlineSelection.EpsilonSelection)selection;
+                    penalties = epsSelection.getPenalties();
+                    for (int i=0;i<neighbour.getAssignment().length;i++) {
+                        Request r = (Request)student.getRequests().elementAt(i);
+                        if (r instanceof CourseRequest) {
+                            nrCourseRequests++;chCourseRequests++;
+                            CourseRequest request = (CourseRequest)r;
+                            for (Enumeration f=request.getAvaiableEnrollments().elements();f.hasMoreElements();) {
+                                Enrollment x = (Enrollment)f.nextElement();
+                                nrEnrollments++;
+                                if (epsSelection.isAllowed(i, x)) {
+                                    nrChoices++;chChoices++;
+                                }
+                            }
+                        }
+                    }
+                    chStudents++;
+                    if (chStudents==100) {
+                        pw.println(sDF.format(((double)chChoices)/chCourseRequests)); pw.flush();
+                        chStudents = 0; chChoices = 0; chCourseRequests = 0;
+                    }
+                }
                 for (int i=0;i<neighbour.getAssignment().length;i++) {
                     if (neighbour.getAssignment()[i]==null) continue;
                     Enrollment enrollment = neighbour.getAssignment()[i];
@@ -257,9 +283,6 @@ public class Test {
                         double[] avEnrlMinMax = getMinMaxAvailableEnrollmentPenalty(request);
                         minAvEnrlPenalty += avEnrlMinMax[0];
                         maxAvEnrlPenalty += avEnrlMinMax[1];
-                        double[] enrlMinMax = getMinMaxEnrollmentPenalty(request);
-                        minEnrlPenalty += enrlMinMax[0];
-                        maxEnrlPenalty += enrlMinMax[1];
                         totalPenalty += enrollment.getPenalty();
                         minPenalty += request.getMinPenalty();
                         maxPenalty += request.getMaxPenalty();
@@ -267,9 +290,6 @@ public class Test {
                             double[] avEnrlPrefMinMax = penalties.getMinMaxAvailableEnrollmentPenalty(enrollment.getRequest());
                             minAvEnrlPrefPenalty += avEnrlPrefMinMax[0];
                             maxAvEnrlPrefPenalty += avEnrlPrefMinMax[1];
-                            double[] enrlPrefMinMax = penalties.getMinMaxEnrollmentPenalty(enrollment.getRequest());
-                            minEnrlPrefPenalty += enrlPrefMinMax[0];
-                            maxEnrlPrefPenalty += enrlPrefMinMax[1];
                             totalPrefPenalty += penalties.getPenalty(enrollment);
                             minPrefPenalty += penalties.getMinPenalty(enrollment.getRequest());
                             maxPrefPenalty += penalties.getMaxPenalty(enrollment.getRequest());
@@ -285,6 +305,11 @@ public class Test {
             solution.update(JProf.currentTimeSec()-startTime);
         }
         
+        if (chCourseRequests>0)
+            pw.println(sDF.format(((double)chChoices)/chCourseRequests));
+        
+        pw.flush(); pw.close();
+        
         solution.saveBest();
 
         printInfo(solution, 
@@ -295,13 +320,13 @@ public class Test {
         Hashtable extra = new Hashtable();
         sLog.info("Overall penalty is "+getPerc(totalPenalty, minPenalty, maxPenalty)+"% ("+sDF.format(totalPenalty)+"/"+sDF.format(minPenalty)+".."+sDF.format(maxPenalty)+")");
         extra.put("Overall penalty", getPerc(totalPenalty, minPenalty, maxPenalty)+"% ("+sDF.format(totalPenalty)+"/"+sDF.format(minPenalty)+".."+sDF.format(maxPenalty)+")");
-        extra.put("Overall enrollment penalty", getPerc(totalPenalty, minEnrlPenalty, maxEnrlPenalty)+"% ("+sDF.format(totalPenalty)+"/"+sDF.format(minEnrlPenalty)+".."+sDF.format(maxEnrlPenalty)+")");
         extra.put("Overall available enrollment penalty", getPerc(totalPenalty, minAvEnrlPenalty, maxAvEnrlPenalty)+"% ("+sDF.format(totalPenalty)+"/"+sDF.format(minAvEnrlPenalty)+".."+sDF.format(maxAvEnrlPenalty)+")");
         if (onlineSelection.isUseStudentPrefPenalties()) {
             sLog.info("Overall preference penalty is "+getPerc(totalPrefPenalty, minPrefPenalty, maxPrefPenalty)+"% ("+sDF.format(totalPrefPenalty)+"/"+sDF.format(minPrefPenalty)+".."+sDF.format(maxPrefPenalty)+")");
             extra.put("Overall preference penalty", getPerc(totalPrefPenalty, minPrefPenalty, maxPrefPenalty)+"% ("+sDF.format(totalPrefPenalty)+"/"+sDF.format(minPrefPenalty)+".."+sDF.format(maxPrefPenalty)+")");
-            extra.put("Overall preference enrollment penalty", getPerc(totalPrefPenalty, minEnrlPrefPenalty, maxEnrlPrefPenalty)+"% ("+sDF.format(totalPrefPenalty)+"/"+sDF.format(minEnrlPrefPenalty)+".."+sDF.format(maxEnrlPrefPenalty)+")");
             extra.put("Overall preference available enrollment penalty", getPerc(totalPrefPenalty, minAvEnrlPrefPenalty, maxAvEnrlPrefPenalty)+"% ("+sDF.format(totalPrefPenalty)+"/"+sDF.format(minAvEnrlPrefPenalty)+".."+sDF.format(maxAvEnrlPrefPenalty)+")");
+            extra.put("Average number of choices", sDF.format(((double)nrChoices)/nrCourseRequests)+" ("+nrChoices+"/"+nrCourseRequests+")");
+            extra.put("Average number of enrollments", sDF.format(((double)nrEnrollments)/nrCourseRequests)+" ("+nrEnrollments+"/"+nrCourseRequests+")");
         }
 
         try {
@@ -317,7 +342,7 @@ public class Test {
     
     /** Minimum and maximum enrollment penalty, i.e., {@link Enrollment#getPenalty()} of all enrollments */
     public static double[] getMinMaxEnrollmentPenalty(CourseRequest request) {
-        Vector enrollments = request.getEnrollmentsSkipSameTime();
+        Vector enrollments = request.values();
         if (enrollments.isEmpty()) return new double[] {0,0};
         double min = Double.MAX_VALUE, max = Double.MIN_VALUE;
         for (Enumeration e=enrollments.elements();e.hasMoreElements();) {
@@ -331,11 +356,11 @@ public class Test {
 
     /** Minimum and maximum available enrollment penalty, i.e., {@link Enrollment#getPenalty()} of all available enrollments */
     public static double[] getMinMaxAvailableEnrollmentPenalty(CourseRequest request) {
-        Set enrollments = request.getAvaiableEnrollmentsSkipSameTime();
+        Vector enrollments = request.getAvaiableEnrollments();
         if (enrollments.isEmpty()) return new double[] {0,0};
         double min = Double.MAX_VALUE, max = Double.MIN_VALUE;
-        for (Iterator i=enrollments.iterator();i.hasNext();) {
-            Enrollment enrollment = (Enrollment)i.next();
+        for (Enumeration e=enrollments.elements();e.hasMoreElements();) {
+            Enrollment enrollment = (Enrollment)e.nextElement();
             double penalty = enrollment.getPenalty();
             min = Math.min(min, penalty);
             max = Math.max(max, penalty);
