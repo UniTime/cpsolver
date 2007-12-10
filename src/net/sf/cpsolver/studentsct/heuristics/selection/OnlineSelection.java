@@ -200,22 +200,26 @@ public class OnlineSelection extends BranchBoundSelection {
         
         /** Assignment penalty */
         protected double getAssignmentPenalty(int i) {
-            return iPenalties.getPenalty(iAssignment[i]) + getNrDistanceConflicts(i);
+            return iPenalties.getPenalty(iAssignment[i]) + iDistConfWeight*getNrDistanceConflicts(i);
+        }
+        
+        public boolean isAllowed(int idx, Enrollment enrollment) {
+            if (iSelection==null || iSelection.getBestAssignment()==null || iSelection.getBestAssignment()[idx]==null) return true;
+            double bestPenalty = iSelection.getBestAssignment()[idx].getPenalty();
+            double limit = (iEpsilon<0?Math.max(0, bestPenalty):(bestPenalty<0?1-iEpsilon:1+iEpsilon)*bestPenalty);
+            if (enrollment.getPenalty()>limit) {
+                if (sDebug) sLog.debug("  -- enrollment "+enrollment+" was filtered out " +
+                        "(penalty="+enrollment.getPenalty()+", best="+bestPenalty+", limit="+limit+")");
+                return false;
+            }
+            return true;
         }
         
         /** First conflicting enrollment */
         public Enrollment firstConflict(int idx, Enrollment enrollment) {
             Enrollment conflict = super.firstConflict(idx, enrollment);
             if (conflict!=null) return conflict;
-            if (iSelection==null || iSelection.getBestAssignment()==null || iSelection.getBestAssignment()[idx]==null) return null;
-            double bestPenalty = iSelection.getBestAssignment()[idx].getPenalty();
-            double limit = (iEpsilon<0?Math.max(0, bestPenalty):(bestPenalty<0?1-iEpsilon:1+iEpsilon)*bestPenalty);
-            if (enrollment.getPenalty()>limit) {
-                if (sDebug) sLog.debug("  -- enrollment "+enrollment+" was filtered out " +
-                		"(penalty="+enrollment.getPenalty()+", best="+bestPenalty+", limit="+limit+")");
-                return enrollment;
-            }
-            return null;
+            return (isAllowed(idx, enrollment)?null:enrollment);
         }
 
         /** Student preference penalties */
