@@ -154,6 +154,8 @@ public class Solution {
     public boolean isBestComplete() { return iBestComplete; }
     /** Total value of the best ever found solution -- sum of all assigned values (see {@link Value#toDouble()}).*/
     public double getBestValue() { return iBestValue; }
+    /** Set total value of the best ever found solution */
+    public void setBestValue(double bestValue) { iBestValue = bestValue; }
     /** Perturbation penalty of the best ever found solution (see {@link PerturbationsCounter}) */
     public double getBestPerturbationsPenalty() { return iBestPerturbationsPenaly; }
     
