@@ -71,6 +71,7 @@ public class Model {
     
     private int iBestUnassignedVariables = -1;
     private int iBestPerturbations = 0;
+    private int iNrAssignedVariables = 0;
     
     /** Constructor */
     public Model() {
@@ -86,8 +87,12 @@ public class Model {
         iVariables.addElement(variable);
         if (variable instanceof InfoProvider)
         	iInfoProviders.addElement(variable);
-        if (variable.getAssignment()==null) iUnassignedVariables.addElement(variable);
-        else iAssignedVariables.addElement(variable);
+        if (variable.getAssignment()==null) {
+            if (iUnassignedVariables!=null) iUnassignedVariables.addElement(variable);
+        } else {
+            if (iAssignedVariables!=null) iAssignedVariables.addElement(variable);
+            iNrAssignedVariables++;
+        }
         if (variable.getAssignment()!=null) variable.assign(0L,variable.getAssignment());
         for (Enumeration e=iModelListeners.elements();e.hasMoreElements();)
             ((ModelListener)e.nextElement()).variableAdded(variable);
@@ -99,8 +104,9 @@ public class Model {
         iVariables.removeElement(variable);
         if (variable instanceof InfoProvider)
         	iInfoProviders.removeElement(variable);
-        if (iUnassignedVariables.contains(variable)) iUnassignedVariables.removeElement(variable);
-        if (iAssignedVariables.contains(variable)) iAssignedVariables.removeElement(variable);
+        if (iUnassignedVariables!=null && iUnassignedVariables.contains(variable)) iUnassignedVariables.removeElement(variable);
+        if (iAssignedVariables!=null && iAssignedVariables.contains(variable)) iAssignedVariables.removeElement(variable);
+        if (variable.getAssignment()!=null) iNrAssignedVariables--;
         for (Enumeration e=iModelListeners.elements();e.hasMoreElements();)
             ((ModelListener)e.nextElement()).variableRemoved(variable);
         invalidateVariablesWithInitialValueCache();
@@ -153,9 +159,39 @@ public class Model {
     }
 
     /** The list of unassigned variables in the model */
-    public EnumerableCollection unassignedVariables() { return iUnassignedVariables; }
+    public EnumerableCollection unassignedVariables() {
+        if (iUnassignedVariables!=null) return iUnassignedVariables;
+        FastVector un = new FastVector(iVariables.size());
+        for (Enumeration e=iVariables.elements();e.hasMoreElements();) {
+            Variable variable = (Variable)e.nextElement();
+            if (variable.getAssignment()==null) un.add(variable);
+        }
+        return un;
+    }
+    
+    /** Number of unassigned variables */
+    public int nrUnassignedVariables() {
+        if (iUnassignedVariables!=null) return iUnassignedVariables.size();
+        return iVariables.size() - iNrAssignedVariables;
+    }
+
     /** The list of assigned variables in the model */
-    public EnumerableCollection assignedVariables() { return iAssignedVariables; }
+    public EnumerableCollection assignedVariables() { 
+        if (iAssignedVariables!=null) return iAssignedVariables;
+        FastVector as = new FastVector(iVariables.size());
+        for (Enumeration e=iVariables.elements();e.hasMoreElements();) {
+            Variable variable = (Variable)e.nextElement();
+            if (variable.getAssignment()!=null) as.add(variable);
+        }
+        return as;
+    }
+    
+    /** Number of assigned variables */
+    public int nrAssignedVariables() {
+        if (iAssignedVariables!=null) return iAssignedVariables.size();
+        return iNrAssignedVariables;
+    }
+    
     /** The list of perturbation variables in the model, i.e., the variables which has an initial value but which are not 
      * assigned with this value.
      */
@@ -264,8 +300,9 @@ public class Model {
     
     /** Called after a value is assigned to its variable */
     public void afterAssigned(long iteration, Value value) {
-        iUnassignedVariables.removeElement(value.variable());
-        iAssignedVariables.addElement(value.variable());
+        if (iUnassignedVariables!=null) iUnassignedVariables.removeElement(value.variable());
+        if (iAssignedVariables!=null) iAssignedVariables.addElement(value.variable());
+        iNrAssignedVariables++;
         iPerturbVariables = null;
         for (Enumeration e=iModelListeners.elements();e.hasMoreElements();)
             ((ModelListener)e.nextElement()).afterAssigned(iteration, value);
@@ -273,8 +310,9 @@ public class Model {
     
     /** Called after a value is unassigned from its variable */
     public void afterUnassigned(long iteration, Value value) {
-        iUnassignedVariables.addElement(value.variable());
-        iAssignedVariables.removeElement(value.variable());
+        if (iUnassignedVariables!=null) iUnassignedVariables.addElement(value.variable());
+        if (iAssignedVariables!=null) iAssignedVariables.removeElement(value.variable());
+        iNrAssignedVariables--;
         iPerturbVariables = null;
         for (Enumeration e=iModelListeners.elements();e.hasMoreElements();)
             ((ModelListener)e.nextElement()).afterUnassigned(iteration, value);
@@ -290,7 +328,7 @@ public class Model {
         });
         return "Model{\n    variables="+ToolBox.col2string(variables(),2)+
         ",\n    constraints="+ToolBox.col2string(constraints(),2)+
-        ",\n    #unassigned="+unassignedVariables().size()+
+        ",\n    #unassigned="+nrUnassignedVariables()+
         ",\n    unassigned="+ToolBox.col2string(unassignedVariables(),2)+
         ",\n    #perturbations="+perturbVariables().size()+"+"+(variables().size()-variablesWithInitialValue().size())+
         ",\n    perturbations="+ToolBox.col2string(perturbVariables(),2)+
@@ -313,7 +351,7 @@ public class Model {
      */
     public java.util.Hashtable getInfo() {
         java.util.Hashtable ret = new java.util.Hashtable();
-        ret.put("Assigned variables", getPercRev(assignedVariables().size(),0,variables().size())+"% ("+assignedVariables().size()+"/"+variables().size()+")");
+        ret.put("Assigned variables", getPercRev(nrAssignedVariables(),0,variables().size())+"% ("+nrAssignedVariables()+"/"+variables().size()+")");
         int nrVarsWithInitialValue = variablesWithInitialValue().size(); 
         if (nrVarsWithInitialValue>0) {
         	ret.put("Perturbation variables", getPercRev(perturbVariables().size(),0,nrVarsWithInitialValue)+"% ("+perturbVariables().size()+" + "+(variables().size()-nrVarsWithInitialValue)+")");
@@ -377,7 +415,7 @@ public class Model {
     public int getBestPerturbations() { return iBestPerturbations; }
     /** Save the current assignment as the best ever found assignment */
     public void saveBest() {
-        iBestUnassignedVariables = unassignedVariables().size();
+        iBestUnassignedVariables = nrUnassignedVariables();//unassignedVariables().size();
         iBestPerturbations = perturbVariables().size();
         for (Enumeration e=variables().elements();e.hasMoreElements();) {
             Variable variable = (Variable)e.nextElement();
