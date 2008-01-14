@@ -230,6 +230,8 @@ public class Test {
         int nrChoices = 0, nrEnrollments = 0, nrCourseRequests = 0;
         int chChoices = 0, chCourseRequests = 0, chStudents = 0;
         
+        int choiceLimit = model.getProperties().getPropertyInt("Test.ChoicesLimit", -1);
+        
         File outDir = new File(model.getProperties().getProperty("General.Output","."));
         outDir.mkdirs();
         PrintWriter pw = new PrintWriter(new FileWriter(new File(outDir,"choices.csv")));
@@ -259,12 +261,16 @@ public class Test {
                         Request r = (Request)student.getRequests().elementAt(i);
                         if (r instanceof CourseRequest) {
                             nrCourseRequests++;chCourseRequests++;
+                            int chChoicesThisRq = 0;
                             CourseRequest request = (CourseRequest)r;
                             for (Enumeration f=request.getAvaiableEnrollments().elements();f.hasMoreElements();) {
                                 Enrollment x = (Enrollment)f.nextElement();
                                 nrEnrollments++;
                                 if (epsSelection.isAllowed(i, x)) {
-                                    nrChoices++;chChoices++;
+                                    nrChoices++;
+                                    if (choiceLimit<=0 || chChoicesThisRq<choiceLimit) {
+                                        chChoices++;chChoicesThisRq++;
+                                    }
                                 }
                             }
                         }
