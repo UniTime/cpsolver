@@ -181,7 +181,7 @@ public class Solution {
         iBestInfo = getInfo();
         iBestTime = getTime();
         iBestIteration = getIteration();
-        iBestComplete = getModel().unassignedVariables().isEmpty();
+        iBestComplete = getModel().nrUnassignedVariables()==0;
         iBestValue = getModel().getTotalValue();
         iBestPerturbationsPenaly = (iPerturbationsCounter==null?0.0:iPerturbationsCounter.getPerturbationPenalty(getModel()));
         for (Enumeration i=iSolutionListeners.elements();i.hasMoreElements();)

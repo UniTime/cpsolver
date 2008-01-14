@@ -67,12 +67,12 @@ public class MPPTerminationCondition implements TerminationCondition {
     }
     
     public boolean canContinue(Solution currentSolution) {
-        if (iMinPerturbances>=0 && currentSolution.getModel().unassignedVariables().isEmpty() && 
+        if (iMinPerturbances>=0 && currentSolution.getModel().nrUnassignedVariables()==0 && 
             currentSolution.getModel().perturbVariables().size()<=iMinPerturbances) {
                 sLogger.info("A complete solution with allowed number of perturbances found.");
                 return false;
         }
-        if (iMinPertPenalty>=0.0 && currentSolution.getModel().unassignedVariables().isEmpty() && 
+        if (iMinPertPenalty>=0.0 && currentSolution.getModel().nrUnassignedVariables()==0 && 
             currentSolution.getPerturbationsCounter().getPerturbationPenalty(currentSolution.getModel())<=iMinPertPenalty) {
                 sLogger.info("A complete solution with allowed perturbation penalty found.");
                 return false;
@@ -86,7 +86,7 @@ public class MPPTerminationCondition implements TerminationCondition {
             return false;
         }
         if (iStopWhenComplete || (iMaxIter<0 && iTimeOut<0)) {
-            boolean ret = (!currentSolution.getModel().unassignedVariables().isEmpty());
+            boolean ret = (currentSolution.getModel().nrUnassignedVariables()!=0);
             if (!ret) sLogger.info("Complete solution found.");
             return ret;
         }

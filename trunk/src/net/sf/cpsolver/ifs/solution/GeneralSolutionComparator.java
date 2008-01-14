@@ -41,7 +41,7 @@ public class GeneralSolutionComparator implements SolutionComparator {
     
     public boolean isBetterThanBestSolution(Solution currentSolution) {
         if (currentSolution.getBestInfo()==null) return true;
-        int unassigned = currentSolution.getModel().unassignedVariables().size();
+        int unassigned = currentSolution.getModel().nrUnassignedVariables();
         if (currentSolution.getModel().getBestUnassignedVariables()!=unassigned)
             return currentSolution.getModel().getBestUnassignedVariables()>unassigned;
         return currentSolution.getModel().getTotalValue()<currentSolution.getBestValue();

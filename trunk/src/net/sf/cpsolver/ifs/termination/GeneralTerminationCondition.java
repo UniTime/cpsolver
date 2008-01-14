@@ -61,7 +61,7 @@ public class GeneralTerminationCondition implements TerminationCondition {
             return false;
         }
         if (iStopWhenComplete || (iMaxIter<0 && iTimeOut<0)) {
-            boolean ret = (!currentSolution.getModel().unassignedVariables().isEmpty());
+            boolean ret = (currentSolution.getModel().nrUnassignedVariables()!=0);
             if (!ret) sLogger.info("Complete solution found.");
             return ret;
         }

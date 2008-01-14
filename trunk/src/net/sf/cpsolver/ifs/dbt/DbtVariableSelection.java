@@ -65,7 +65,7 @@ public class DbtVariableSelection implements VariableSelection {
      * @see VariableSelection#selectVariable(Solution)
      */
     public Variable selectVariable(Solution solution) {
-        if (solution.getModel().unassignedVariables().isEmpty()) {
+        if (solution.getModel().nrUnassignedVariables()==0) {
             return null;
         }
         if (iProp != null) { 
