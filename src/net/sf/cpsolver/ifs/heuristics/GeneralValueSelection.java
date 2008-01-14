@@ -126,7 +126,7 @@ public class GeneralValueSelection implements ValueSelection {
     public Value selectValue(Solution solution, Variable selectedVariable) {
         if (iMPP) {
             if (selectedVariable.getInitialAssignment() != null) {
-                if (solution.getModel().unassignedVariables().isEmpty()) {
+                if (solution.getModel().nrUnassignedVariables()==0) {
                     if (solution.getModel().perturbVariables().size() <= iMPPLimit)
                         iMPPLimit = solution.getModel().perturbVariables().size() - 1;
                 }

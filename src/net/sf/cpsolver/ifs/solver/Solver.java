@@ -399,8 +399,8 @@ public class Solver {
                 }
                 long prog = 9999;
                 sLogger.info("Initial solution:"+ToolBox.dict2string(iCurrentSolution.getInfo(),1));
-                if ((iSaveBestUnassigned<0 || iSaveBestUnassigned>=iCurrentSolution.getModel().unassignedVariables().size()) && (iCurrentSolution.getBestInfo()==null || getSolutionComparator().isBetterThanBestSolution(iCurrentSolution))) {
-                    if (iCurrentSolution.getModel().unassignedVariables().isEmpty())
+                if ((iSaveBestUnassigned<0 || iSaveBestUnassigned>=iCurrentSolution.getModel().nrUnassignedVariables()) && (iCurrentSolution.getBestInfo()==null || getSolutionComparator().isBetterThanBestSolution(iCurrentSolution))) {
+                    if (iCurrentSolution.getModel().nrUnassignedVariables()==0)
                         sLogger.info("Complete solution "+ToolBox.dict2string(iCurrentSolution.getInfo(),1)+" was found.");
                     synchronized (iCurrentSolution) {
                         iCurrentSolution.saveBest();
@@ -434,8 +434,8 @@ public class Solver {
                     onAssigned(startTime);
                     
                     // Check if the solution is the best ever found one
-                    if ((iSaveBestUnassigned<0 || iSaveBestUnassigned>=iCurrentSolution.getModel().unassignedVariables().size()) && (iCurrentSolution.getBestInfo()==null || getSolutionComparator().isBetterThanBestSolution(iCurrentSolution))) {
-                        if (iCurrentSolution.getModel().unassignedVariables().isEmpty()) {
+                    if ((iSaveBestUnassigned<0 || iSaveBestUnassigned>=iCurrentSolution.getModel().nrUnassignedVariables()) && (iCurrentSolution.getBestInfo()==null || getSolutionComparator().isBetterThanBestSolution(iCurrentSolution))) {
+                        if (iCurrentSolution.getModel().nrUnassignedVariables()==0) {
                         	iProgress.debug("Complete solution of value "+iCurrentSolution.getModel().getTotalValue()+" was found.");
                         } 
                         synchronized (iCurrentSolution) {
@@ -452,8 +452,8 @@ public class Solver {
                         } else {
                             iProgress.setProgress(prog/100);
                         }
-                    } else if ((iCurrentSolution.getBestInfo()==null || iCurrentSolution.getModel().getBestUnassignedVariables()>0) && (iCurrentSolution.getModel().variables().size()-iCurrentSolution.getModel().unassignedVariables().size())>iProgress.getProgress()) {
-                        iProgress.setProgress(iCurrentSolution.getModel().variables().size()-iCurrentSolution.getModel().unassignedVariables().size());
+                    } else if ((iCurrentSolution.getBestInfo()==null || iCurrentSolution.getModel().getBestUnassignedVariables()>0) && (iCurrentSolution.getModel().variables().size()-iCurrentSolution.getModel().nrUnassignedVariables())>iProgress.getProgress()) {
+                        iProgress.setProgress(iCurrentSolution.getModel().variables().size()-iCurrentSolution.getModel().nrUnassignedVariables());
                     }
                     
                 }

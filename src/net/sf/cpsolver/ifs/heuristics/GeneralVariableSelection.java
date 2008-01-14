@@ -90,7 +90,7 @@ public class GeneralVariableSelection implements VariableSelection {
 
     /** Variable selection */
     public Variable selectVariable(Solution solution) {
-        if (solution.getModel().unassignedVariables().isEmpty()) {
+        if (solution.getModel().nrUnassignedVariables()==0) {
             if (!solution.getModel().perturbVariables().isEmpty())
                 return (Variable)ToolBox.random(solution.getModel().perturbVariables());
             else
