@@ -86,7 +86,7 @@ public abstract class Constraint {
     private Vector iVariables = new FastVector();
     protected EnumerableCollection iAssignedVariables = new FastVector();
     private Model iModel = null;
-    private Vector iConstraintListeners = null;
+    protected Vector iConstraintListeners = null;
     
     /** Constructor */
     public Constraint() {
