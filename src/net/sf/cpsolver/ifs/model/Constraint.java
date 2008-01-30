@@ -203,4 +203,10 @@ public abstract class Constraint {
     /** Returns true if the constraint is hard. Only hard constraints are allowed to
      * unassign a variable when there is a conflict with a value that is being assigned */
     public boolean isHard() { return true; }
+    
+    /** Compare two constraints for equality ({@link Constraint#getId()} is used)*/
+    public boolean equals(Object o) {
+        if (o==null || !(o instanceof Constraint)) return false;
+        return getId()==((Constraint)o).getId();
+    }
 }
