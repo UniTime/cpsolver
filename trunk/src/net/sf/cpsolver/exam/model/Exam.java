@@ -358,6 +358,17 @@ public class Exam extends Variable {
     public int getPeriodPenalty(ExamPeriod period) {
         return period.getWeight();
     }
+
+    /**
+     * Rotation penalty (an exam that has been in later period last times tries to be in an earlier period)
+     * @param period a period to be assigned to the exam
+     * @return period index &times; average period
+     */
+    public int getRotationPenalty(ExamPeriod period) {
+        if (iAveragePeriod<0) return 0;
+        //return (1+period.getWeight())*iAveragePeriod;
+        return period.getIndex()*iAveragePeriod;
+    }
     
     /**
      * Cost for using room(s) that are too big

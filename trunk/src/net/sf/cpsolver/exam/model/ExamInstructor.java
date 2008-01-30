@@ -189,4 +189,8 @@ public class ExamInstructor extends Constraint {
     public Vector getCourseSections() {
         return iCourseSections;
     }
+    
+    public boolean isHard() {
+        return !isAllowDirectConflicts();
+    }
 }

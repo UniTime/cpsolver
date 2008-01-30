@@ -182,7 +182,7 @@ public class ExamStudent extends Constraint implements Comparable {
      * Constraint is hard if {@link ExamStudent#isAllowDirectConflicts()} is false.
      */
     public boolean isHard() {
-        return !iAllowDirectConflicts;
+        return !isAllowDirectConflicts();
     }
     
     /**

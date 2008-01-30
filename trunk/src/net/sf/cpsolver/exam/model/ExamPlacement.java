@@ -244,6 +244,19 @@ public class ExamPlacement extends Value {
             iPeriodPenalty = new Integer(((Exam)variable()).getPeriodPenalty(getPeriod()));
         return iPeriodPenalty.intValue();
     }
+    
+    
+    private Integer iRotationPenalty = null;
+    /**
+     * Rotation penalty (an exam that has been in later period last times tries to be in an earlier period)
+     * @return  {@link Exam#getRotationPenalty(ExamPeriod)}
+     */
+    public int getRotationPenalty() {
+        if (iRotationPenalty==null) 
+            iRotationPenalty = new Integer(((Exam)variable()).getRotationPenalty(getPeriod()));
+        return iRotationPenalty.intValue();
+    }
+
 
     /**
      * Overall cost of using this placement. 
@@ -270,38 +283,9 @@ public class ExamPlacement extends Value {
             model.getPeriodWeight()*getPeriodPenalty()+ 
             model.getRoomSizeWeight()*getRoomSizePenalty()+
             model.getRoomSplitWeight()*getRoomSplitPenalty()+
-            model.getNotOriginalRoomWeight()*getNotOriginalRoomPenalty();
+            model.getNotOriginalRoomWeight()*getNotOriginalRoomPenalty()+
+            model.getExamRotationWeight()*getRotationPenalty();
     }
-    
-    /**
-     * Overall cost of using this placement. 
-     * The cost of an assignment consists of the following criteria:
-     * <ul>
-     *  <li> Direct student conflicts {@link ExamPlacement#getNrDirectConflicts()}, weighted by {@link ExamModel#getDirectConflictWeight()}
-     *  <li> Back-to-back student conflicts {@link ExamPlacement#getNrBackToBackConflicts()}, weighted by {@link ExamModel#getBackToBackConflictWeight()}
-     *  <li> Distance back-to-back student conflicts {@link ExamPlacement#getNrDistanceBackToBackConflicts()}, weighted by {@link ExamModel#getDistanceBackToBackConflictWeight()}
-     *  <li> More than two exams a day student conflicts {@link ExamPlacement#getNrMoreThanTwoADayConflicts()}, weighted by {@link ExamModel#getMoreThanTwoADayWeight()}
-     *  <li> Period penalty {@link ExamPlacement#getPeriodPenalty()}, weighted by {@link ExamModel#getPeriodWeight()}
-     *  <li> Room size penalty {@link ExamPlacement#getRoomSizePenalty()}, weighted by {@link ExamModel#getRoomSizeWeight()}
-     *  <li> Room split penalty {@link ExamPlacement#getRoomSplitPenalty()}, weighted by {@link ExamModel#getRoomSplitWeight()}
-     *  <li> Non-original room penalty {@link ExamPlacement#getNotOriginalRoomPenalty()}, weighted by {@link ExamModel#getNotOriginalRoomWeight()}
-     * </ul>
-     * @return an array with each weighted cost
-     */
-    public double[] toDoubleArray() {
-        Exam exam = (Exam)variable();
-        ExamModel model = (ExamModel)exam.getModel();
-        return new double[] {
-            model.getDirectConflictWeight()*getNrDirectConflicts(),
-            model.getMoreThanTwoADayWeight()*getNrMoreThanTwoADayConflicts(),
-            model.getBackToBackConflictWeight()*getNrBackToBackConflicts(),
-            model.getDistanceBackToBackConflictWeight()*getNrDistanceBackToBackConflicts(),
-            model.getPeriodWeight()*getPeriodPenalty(),
-            model.getRoomSizeWeight()*getRoomSizePenalty(),
-            model.getRoomSplitWeight()*getRoomSplitPenalty(),
-            model.getNotOriginalRoomWeight()*getNotOriginalRoomPenalty()
-        };
-    }    
     
     /**
      * Overall cost of using this period. 
@@ -320,7 +304,8 @@ public class ExamPlacement extends Value {
             model.getDirectConflictWeight()*getNrDirectConflicts()+
             model.getBackToBackConflictWeight()*getNrBackToBackConflicts()+
             model.getMoreThanTwoADayWeight()*getNrMoreThanTwoADayConflicts()+
-            model.getPeriodWeight()*getPeriodPenalty(); 
+            model.getPeriodWeight()*getPeriodPenalty()+
+            model.getExamRotationWeight()*getRotationPenalty(); 
     }
     
     /**

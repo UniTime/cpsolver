@@ -60,24 +60,25 @@ public class ExamGreatDeluge implements NeighbourSelection, SolutionListener {
     private static DecimalFormat sDF2 = new DecimalFormat("0.00");
     private static DecimalFormat sDF5 = new DecimalFormat("0.00000");
     private double iBound = 0.0;
-    private double iCoolRate = 0.9999995;
+    private double iCoolRate = 0.99999995;
     private long iIter;
     private double iUpperBoundRate = 1.05;
-    private double iLowerBoundRate = 0.97;
+    private double iLowerBoundRate = 0.95;
     private int iMoves = 0;
     private int iAcceptedMoves = 0;
     private int iNrIdle = 0;
     private long iT0 = -1;
     private long iLastImprovingIter = 0;
+    private double iBestValue = 0;
 
     private NeighbourSelection[] iNeighbours = null;
 
     /**
      * Constructor. Following problem properties are considered:
      * <ul>
-     * <li>GreatDeluge.CoolRate ... bound cooling rate (default 0.9999995)
+     * <li>GreatDeluge.CoolRate ... bound cooling rate (default 0.99999995)
      * <li>GreatDeluge.UpperBoundRate ... bound upper bound relative to best solution ever found (default 1.05)
-     * <li>GreatDeluge.LowerBoundRate ... bound lower bound relative to best solution ever found (default 0.97)
+     * <li>GreatDeluge.LowerBoundRate ... bound lower bound relative to best solution ever found (default 0.95)
      * </ul>
      * @param properties problem properties
      */
@@ -163,8 +164,11 @@ public class ExamGreatDeluge implements NeighbourSelection, SolutionListener {
     
     /** Update last improving iteration count */
     public void bestSaved(Solution solution) {
-        iNrIdle = 0;
-        iLastImprovingIter = iIter;
+        if (Math.abs(iBestValue-solution.getBestValue())>=1.0) {
+            iLastImprovingIter = iIter;
+            iNrIdle = 0;
+            iBestValue = solution.getBestValue();
+        }
     }
     public void solutionUpdated(Solution solution) {}
     public void getInfo(Solution solution, java.util.Dictionary info) {}
