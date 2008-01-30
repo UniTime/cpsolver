@@ -124,7 +124,7 @@ public class ExamConstruction implements NeighbourSelection {
      */
     public Neighbour selectNeighbour(Solution solution) {
         ExamModel model = (ExamModel)solution.getModel();
-        if (model.unassignedVariables().isEmpty()) return (iCheckLocalOptimality?checkLocalOptimality(model):null);
+        if (model.nrUnassignedVariables()==0) return (iCheckLocalOptimality?checkLocalOptimality(model):null);
         Exam bestExam = null;
         for (Enumeration e=model.unassignedVariables().elements();e.hasMoreElements();) {
             Exam exam = (Exam)e.nextElement();

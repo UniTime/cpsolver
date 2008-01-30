@@ -49,23 +49,19 @@ public class ExamSimpleNeighbour extends SimpleNeighbour {
             iValue -= 1000;
         if (sCheck) {
             iDx = placement.toDouble(); 
-            iDxM = placement.toDoubleArray();
-            if (placement.variable().getAssignment()!=null) {
+            if (placement.variable().getAssignment()!=null)
                 iDx -= placement.variable().getAssignment().toDouble();
-                double[] x = ((ExamPlacement)placement.variable().getAssignment()).toDoubleArray();
-                for (int i=0;i<iDxM.length;i++) iDxM[i] -= x[i];
-            }
         }
     }
     
     public void assign(long iteration) {
         if (sCheck) {
-            int before = getVariable().getModel().unassignedVariables().size();
+            int before = getVariable().getModel().nrUnassignedVariables();
             double beforeVal = getVariable().getModel().getTotalValue();
             double[] beforeValM = ((ExamModel)getVariable().getModel()).getTotalMultiValue(); 
             String n = toString();
             getVariable().assign(iteration, getValue());
-            int after = getVariable().getModel().unassignedVariables().size();
+            int after = getVariable().getModel().nrUnassignedVariables();
             double afterVal = getVariable().getModel().getTotalValue();
             double[] afterValM = ((ExamModel)getVariable().getModel()).getTotalMultiValue();
             if (after>before) {

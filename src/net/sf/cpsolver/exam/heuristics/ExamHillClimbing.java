@@ -52,6 +52,7 @@ public class ExamHillClimbing implements NeighbourSelection, SolutionListener {
     private NeighbourSelection[] iNeighbours = null;
     private int iMaxIdleIters = 25000;
     private int iLastImprovingIter = 0;
+    private double iBestValue = 0;
     private int iIter = 0;
 
     /**
@@ -98,7 +99,10 @@ public class ExamHillClimbing implements NeighbourSelection, SolutionListener {
      * Memorize the iteration when the last best solution was found.
      */
     public void bestSaved(Solution solution) {
-        iLastImprovingIter = iIter;
+        if (Math.abs(iBestValue-solution.getBestValue())>=1.0) {
+            iLastImprovingIter = iIter;
+            iBestValue = solution.getBestValue();
+        }
     }
     public void solutionUpdated(Solution solution) {}
     public void getInfo(Solution solution, java.util.Dictionary info) {}
