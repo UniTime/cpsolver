@@ -140,20 +140,24 @@ public class ExamRoom extends Constraint implements Comparable {
      * An exam was assigned, update room assignment table
      */
     public void assigned(long iteration, Value value) {
-        super.assigned(iteration, value);
+        //super.assigned(iteration, value);
         ExamPlacement p = (ExamPlacement)value;
-        if (!p.getRooms().contains(this)) return;
+        if (p.getRooms().contains(this)) {
+            if (iTable[p.getPeriod().getIndex()]!=null)
+                iTable[p.getPeriod().getIndex()].variable().unassign(iteration);
             iTable[p.getPeriod().getIndex()] = p;
+        }
     }
     
     /**
      * An exam was unassigned, update room assignment table
      */
     public void unassigned(long iteration, Value value) {
-        super.unassigned(iteration, value);
+        //super.unassigned(iteration, value);
         ExamPlacement p = (ExamPlacement)value;
-        if (!p.getRooms().contains(this)) return;
+        if (p.getRooms().contains(this)) {
             iTable[p.getPeriod().getIndex()] = null;
+        }
     }
     
     /**

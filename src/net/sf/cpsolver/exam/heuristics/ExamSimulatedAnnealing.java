@@ -88,6 +88,7 @@ public class ExamSimulatedAnnealing implements NeighbourSelection, SolutionListe
     private int iMoves = 0;
     private double iAbsValue = 0;
     private long iT0 = -1;
+    private double iBestValue = 0;
     
     private NeighbourSelection[] iNeighbours = null;
     
@@ -245,6 +246,10 @@ public class ExamSimulatedAnnealing implements NeighbourSelection, SolutionListe
      * Memorize the iteration when the last best solution was found.
      */
     public void bestSaved(Solution solution) {
+        if (Math.abs(iBestValue-solution.getBestValue())>=1.0) {
+            iLastImprovingIter = iIter;
+            iBestValue = solution.getBestValue();
+        }
         iLastImprovingIter = iIter;
     }
     public void solutionUpdated(Solution solution) {}

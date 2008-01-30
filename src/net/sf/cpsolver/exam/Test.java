@@ -100,6 +100,35 @@ public class Test {
         if (!debug) root.setLevel(Level.INFO);
     }
     
+    /** Generate exam reports */
+    public static void createReports(ExamModel model, File outDir, String outName) throws IOException {
+        new ExamAssignments(model).report().save(new File(outDir,outName+".schdex.csv"));
+
+        new ExamCourseSectionAssignments(model).report().save(new File(outDir,outName+".schdcs.csv"));
+
+        new ExamStudentConflicts(model).report().save(new File(outDir,outName+".sconf.csv"));
+
+        new ExamInstructorConflicts(model).report().save(new File(outDir,outName+".iconf.csv"));
+
+        new ExamStudentConflictsPerExam(model).report().save(new File(outDir,outName+".sconfex.csv"));
+
+        new ExamStudentDirectConflicts(model).report().save(new File(outDir,outName+".sdir.csv"));
+
+        new ExamStudentBackToBackConflicts(model).report().save(new File(outDir,outName+".sbtb.csv"));
+
+        new ExamStudentMoreTwoADay(model).report().save(new File(outDir,outName+".sm2d.csv"));
+
+        new ExamPeriodUsage(model).report().save(new File(outDir,outName+".per.csv"));
+
+        new ExamRoomSchedule(model).report().save(new File(outDir,outName+".schdr.csv"));
+
+        new ExamRoomSplit(model).report().save(new File(outDir,outName+".rsplit.csv"));
+
+        new ExamNbrMeetingsPerDay(model).report().save(new File(outDir,outName+".distmpd.csv"));
+    
+        new ExamStudentConflictsBySectionCourse(model).report().save(new File(outDir,outName+".sconfcs.csv"));
+    }
+    
     public static class ShutdownHook extends Thread {
         Solver iSolver = null;
         public ShutdownHook(Solver solver) {
@@ -118,7 +147,7 @@ public class Test {
                 sLog.info("Best solution:"+ToolBox.dict2string(solution.getExtendedInfo(),1));
                 
                 sLog.info("Best solution found after "+solution.getBestTime()+" seconds ("+solution.getBestIteration()+" iterations).");
-                sLog.info("Number of assigned variables is "+solution.getModel().assignedVariables().size());
+                sLog.info("Number of assigned variables is "+solution.getModel().nrAssignedVariables());
                 sLog.info("Total value of the solution is "+solution.getModel().getTotalValue());
                 
                 File outFile = new File(iSolver.getProperties().getProperty("General.OutputFile",iSolver.getProperties().getProperty("General.Output")+File.separator+"solution.xml"));
@@ -126,44 +155,8 @@ public class Test {
                 (new XMLWriter(fos,OutputFormat.createPrettyPrint())).write(((ExamModel)solution.getModel()).save());
                 fos.flush();fos.close();
                 
-                new ExamAssignments((ExamModel)solution.getModel()).report().
-                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".schdex.csv"));
-
-                new ExamCourseSectionAssignments((ExamModel)solution.getModel()).report().
-                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".schdcs.csv"));
-
-                new ExamStudentConflicts((ExamModel)solution.getModel()).report().
-                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".sconf.csv"));
-
-                new ExamInstructorConflicts((ExamModel)solution.getModel()).report().
-                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".iconf.csv"));
-
-                new ExamStudentConflictsPerExam((ExamModel)solution.getModel()).report().
-                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".sconfex.csv"));
-
-                new ExamStudentDirectConflicts((ExamModel)solution.getModel()).report().
-                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".sdir.csv"));
-
-                new ExamStudentBackToBackConflicts((ExamModel)solution.getModel()).report().
-                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".sbtb.csv"));
-
-                new ExamStudentMoreTwoADay((ExamModel)solution.getModel()).report().
-                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".sm2d.csv"));
-
-                new ExamPeriodUsage((ExamModel)solution.getModel()).report().
-                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".per.csv"));
-
-                new ExamRoomSchedule((ExamModel)solution.getModel()).report().
-                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".schdr.csv"));
-
-                new ExamRoomSplit((ExamModel)solution.getModel()).report().
-                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".rsplit.csv"));
-
-                new ExamNbrMeetingsPerDay((ExamModel)solution.getModel()).report().
-                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".distmpd.csv"));
+                createReports((ExamModel)solution.getModel(),outFile.getParentFile(), outFile.getName().substring(0,outFile.getName().lastIndexOf('.')));
                 
-                new ExamStudentConflictsBySectionCourse((ExamModel)solution.getModel()).report().
-                    save(new File(outFile.getParentFile(),outFile.getName().substring(0,outFile.getName().lastIndexOf('.'))+".sconfcs.csv"));
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -233,8 +226,9 @@ public class Test {
                 public void bestSaved(Solution solution) {
                     ExamModel m = (ExamModel)solution.getModel();
                     if (sLog.isInfoEnabled()) {
-                        sLog.info("**BEST["+solution.getIteration()+"]** V:"+m.assignedVariables().size()+"/"+m.variables().size()+
-                                " - T:"+new DecimalFormat("0.00").format(m.getTotalValue())+
+                        sLog.info("**BEST["+solution.getIteration()+"]** "+
+                                (m.nrUnassignedVariables()>0?"V:"+m.nrAssignedVariables()+"/"+m.variables().size()+" - ":"")+
+                                "T:"+new DecimalFormat("0.00").format(m.getTotalValue())+
                                 " ("+m+")");
                     }
                 }

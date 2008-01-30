@@ -43,7 +43,8 @@ import net.sf.cpsolver.ifs.util.CSVFile.CSVField;
 public class ExamPeriodUsage {
     private ExamModel iModel = null;
     /** Exam enrollment limits */
-    public static int[] sLimits = new int[] {10, 50, 100, 200}; 
+    public static int[] sLimits = new int[] {10, 50, 100, 200};
+    private static DecimalFormat sDF = new DecimalFormat("0.00"); 
     
     /**
      * Constructor
@@ -68,6 +69,8 @@ public class ExamPeriodUsage {
         for (int i=0;i<sLimits.length;i++) {
             header.add(new CSVField("NrExams>="+sLimits[i]));
         }
+        header.add(new CSVField("AvgPeriod"));
+        header.add(new CSVField("WgAvgPeriod"));
         csv.setHeader(header);
         DecimalFormat df = new DecimalFormat("0.0");
         for (Enumeration e=iModel.getPeriods().elements();e.hasMoreElements();) {
@@ -75,6 +78,7 @@ public class ExamPeriodUsage {
             int nrExams = 0;
             int nrStudents = 0;
             int[] nrExamsLim = new int[sLimits.length];
+            int totAvgPer = 0, nrAvgPer = 0, totWgAvgPer = 0;
             for (int i=0;i<sLimits.length;i++) nrExamsLim[i]=0;
             for (Enumeration f=iModel.variables().elements();f.hasMoreElements();) {
                 Exam exam = (Exam)f.nextElement();
@@ -82,6 +86,10 @@ public class ExamPeriodUsage {
                 if (placement==null || !(placement.getPeriod().equals(period))) continue;
                 nrExams++;
                 nrStudents+=exam.getStudents().size();
+                if (exam.getAveragePeriod()>=0) {
+                    totAvgPer += exam.getAveragePeriod(); nrAvgPer ++;
+                    totWgAvgPer += exam.getAveragePeriod() * exam.getStudents().size();
+                }
                 for (int i=0;i<sLimits.length;i++)
                     if (exam.getStudents().size()>=sLimits[i]) nrExamsLim[i]++;
             }
@@ -94,6 +102,10 @@ public class ExamPeriodUsage {
             line.add(new CSVField(nrStudents));
             for (int i=0;i<sLimits.length;i++)
                 line.add(new CSVField(nrExamsLim[i]));
+            if (nrAvgPer>0) {
+                line.add(new CSVField(sDF.format(((double)totAvgPer)/nrAvgPer)));
+                line.add(new CSVField(sDF.format(((double)totWgAvgPer)/nrAvgPer)));
+            }
             csv.addLine(line);
         }
         return csv;
