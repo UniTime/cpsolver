@@ -1,9 +1,10 @@
 package net.sf.cpsolver.exam.model;
 
+import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Set;
 
-import net.sf.cpsolver.ifs.model.BinaryConstraint;
+import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Value;
 
 /**
@@ -39,7 +40,7 @@ import net.sf.cpsolver.ifs.model.Value;
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
-public class ExamDistributionConstraint extends BinaryConstraint {
+public class ExamDistributionConstraint extends Constraint {
     /** Same room constraint type */
     public static final int sDistSameRoom = 0;
     /** Different room constraint type */
@@ -50,25 +51,59 @@ public class ExamDistributionConstraint extends BinaryConstraint {
     public static final int sDistDifferentPeriod = 3;
     /** Precedence constraint type */
     public static final int sDistPrecedence = 4;
+    /** Precedence constraint type (reverse order) */
+    public static final int sDistPrecedenceRev = 5;
     /** Distribution type name */
     public static final String[] sDistType = new String[] {
         "same-room",
         "different-room",
         "same-period",
         "different-period",
-        "precedence"
+        "precedence",
+        "precedence-rev"
     };
     
     private int iType = -1;
+    private boolean iHard = true;
+    private int iWeight = 0;
     
     /**
      * Constructor
      * @param id constraint unique id
      * @param type constraint type
+     * @param hard true if the constraint is hard (cannot be violated)
+     * @param weight if not hard, penalty for violation
      */
-    public ExamDistributionConstraint(long id, int type) {
+    public ExamDistributionConstraint(long id, int type, boolean hard, int weight) {
         iId = id;
         iType = type;
+        iHard = hard;
+        iWeight = weight;
+    }
+
+    /**
+     * Constructor
+     * @param id constraint unique id
+     * @param type constraint type (EX_SAME_PREF, EX_SAME_ROOM, or EX_PRECEDENCE)
+     * @param pref preference (R/P for required/prohibited, or -2, -1, 0, 1, 2 for preference (from preferred to discouraged)) 
+     */
+    public ExamDistributionConstraint(long id, String type, String pref) {
+        iId = id;
+        boolean neg = "P".equals(pref) || "2".equals(pref) || "1".equals(pref);
+        if ("EX_SAME_PER".equals(type)) {
+            iType = (neg?sDistDifferentPeriod:sDistSamePeriod);
+        } else if ("EX_SAME_ROOM".equals(type)) {
+            iType = (neg?sDistDifferentRoom:sDistSameRoom);
+        } else if ("EX_PRECEDENCE".equals(type)) {
+            iType = (neg?sDistPrecedenceRev:sDistPrecedence);
+        } else
+            throw new RuntimeException("Unkown type "+type);
+        if ("P".equals(pref) || "R".equals(pref))
+            iHard = true;
+        else {
+            iHard = false;
+            iWeight = Integer.parseInt(pref) * Integer.parseInt(pref);
+        }
     }
 
     /**
@@ -76,13 +111,25 @@ public class ExamDistributionConstraint extends BinaryConstraint {
      * @param id constraint unique id
      * @param type constraint type name
      */
-    public ExamDistributionConstraint(long id, String type) {
+    public ExamDistributionConstraint(long id, String type, boolean hard, int weight) {
         iId = id;
         for (int i=0;i<sDistType.length;i++)
             if (sDistType[i].equals(type)) iType = i;
         if (iType<0)
             throw new RuntimeException("Unknown type '"+type+"'.");
+        iHard = hard;
+        iWeight = weight;
     }
+    
+    /**
+     * True if hard (must be satisfied), false for soft (should be satisfied)
+     */
+    public boolean isHard() { return iHard; }
+    
+    /**
+     * If not hard, penalty for violation
+     */
+    public int getWeight() { return iWeight; }
     
     /**
      * Constraint type
@@ -102,7 +149,7 @@ public class ExamDistributionConstraint extends BinaryConstraint {
      * String representation -- constraint type name (exam 1, exam 2)
      */
     public String toString() {
-        return getTypeString()+" ("+first().getId()+","+second().getId()+")";
+        return getTypeString()+" ("+variables()+")";
     }
     
     /**
@@ -110,8 +157,18 @@ public class ExamDistributionConstraint extends BinaryConstraint {
      * assigned and {@link ExamDistributionConstraint#check(ExamPlacement, ExamPlacement)} is false
      */
     public void computeConflicts(Value value, Set conflicts) {
-        if (inConflict(value))
-            conflicts.add(another(value.variable()).getAssignment());
+        boolean before = true;
+        ExamPlacement givenPlacement = (ExamPlacement)value;
+        for (Enumeration e=variables().elements();e.hasMoreElements();) {
+            Exam exam = (Exam)e.nextElement();
+            if (exam.equals(value.variable())) {
+                before = false; continue;
+            }
+            ExamPlacement placement = (ExamPlacement)exam.getAssignment();
+            if (placement==null) continue;
+            if (!check(before?placement:givenPlacement, before?givenPlacement:placement))
+                conflicts.add(placement);
+        }
     }
     
     /**
@@ -119,30 +176,28 @@ public class ExamDistributionConstraint extends BinaryConstraint {
      * assigned and {@link ExamDistributionConstraint#check(ExamPlacement, ExamPlacement)} is false
      */
     public boolean inConflict(Value value) {
-        ExamPlacement first, second;
-        if (value.variable().equals(first())) {
-            first = (ExamPlacement)value;
-            second = (ExamPlacement)second().getAssignment();
-        } else {
-            first = (ExamPlacement)first().getAssignment();
-            second = (ExamPlacement)value;
+        boolean before = true;
+        ExamPlacement givenPlacement = (ExamPlacement)value;
+        for (Enumeration e=variables().elements();e.hasMoreElements();) {
+            Exam exam = (Exam)e.nextElement();
+            if (exam.equals(value.variable())) {
+                before = false; continue;
+            }
+            ExamPlacement placement = (ExamPlacement)exam.getAssignment();
+            if (placement==null) continue;
+            if (!check(before?placement:givenPlacement, before?givenPlacement:placement)) return false;
         }
-        return first!=null && second!=null && !check(first,second); 
+        return true;
     }
     
     /**
      * Consistency check -- {@link ExamDistributionConstraint#check(ExamPlacement, ExamPlacement)} is called
      */
     public boolean isConsistent(Value value1, Value value2) {
-        ExamPlacement first, second;
-        if (value1.variable().equals(first())) {
-            first = (ExamPlacement)value1;
-            second = (ExamPlacement)value2;
-        } else {
-            first = (ExamPlacement)value2;
-            second = (ExamPlacement)value1;
-        }
-        return check(first, second);
+        ExamPlacement first = (ExamPlacement)value1;
+        ExamPlacement second = (ExamPlacement)value2;
+        boolean before = (variables().indexOf(value1.variable())<variables().indexOf(value2.variable()));
+        return check(before?first:second, before?second:first);
     }
     
     /**
@@ -176,6 +231,6 @@ public class ExamDistributionConstraint extends BinaryConstraint {
     public boolean equals(Object o) {
         if (o==null || !(o instanceof ExamDistributionConstraint)) return false;
         ExamDistributionConstraint c = (ExamDistributionConstraint)o;
-        return getType()==c.getType() && first().equals(c.first()) && second().equals(c.second());
+        return getType()==c.getType() && getId()==c.getId();
     }
 }
