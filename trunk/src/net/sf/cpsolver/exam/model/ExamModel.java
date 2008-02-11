@@ -98,6 +98,7 @@ public class ExamModel extends Model {
     private double iRoomSplitWeight = 10.0;
     private double iNotOriginalRoomWeight = 1.0;
     private double iRoomWeight = 1.0;
+    private double iDistributionWeight = 1.0;
     private int iBackToBackDistance = 67;
     private int iPeriodProhibitedWeight = 99;
 
@@ -108,6 +109,7 @@ public class ExamModel extends Model {
     private int iRoomSizePenalty = 0;
     private int iRoomSplitPenalty = 0;
     private int iRoomPenalty = 0;
+    private int iDistributionPenalty = 0;
     private int iPeriodPenalty = 0;
     private int iExamRotationPenalty = 0;
     private int iNotOriginalRoomPenalty = 0;
@@ -137,6 +139,7 @@ public class ExamModel extends Model {
         iNotOriginalRoomWeight = properties.getPropertyDouble("Exams.NotOriginalRoomWeight", iNotOriginalRoomWeight);
         iBackToBackDistance = properties.getPropertyInt("Exams.BackToBackDistance", iBackToBackDistance);
         iPeriodProhibitedWeight = properties.getPropertyInt("Exams.PeriodProhibitedWeight", iPeriodProhibitedWeight);
+        iDistributionWeight = properties.getPropertyDouble("Exams.DistributionWeight", iDistributionWeight);
     }
     
     /**
@@ -442,6 +445,23 @@ public class ExamModel extends Model {
     public void setPeriodProhibitedWeight(int periodProhibitedWeight) {
         iPeriodProhibitedWeight = periodProhibitedWeight;
     }
+    /**
+     * A weight of violated distribution soft constraints (see {@link ExamDistributionConstraint}, 
+     * can be set by problem property Exams.RoomDistributionWeight, or in the input xml file,
+     * property roomDistributionWeight)
+     */
+    public double getDistributionWeight() {
+        return iDistributionWeight;
+    }
+    /**
+     * A weight of violated distribution soft constraints (see {@link ExamDistributionConstraint}, 
+     * can be set by problem property Exams.RoomDistributionWeight, or in the input xml file,
+     * property roomDistributionWeight)
+     * 
+     */
+    public void setDistributionWeight(double distributionWeight) {
+        iDistributionWeight = distributionWeight;
+    }
     
     
     /** Called before a value is unassigned from its variable, optimization criteria are updated */
@@ -458,6 +478,7 @@ public class ExamModel extends Model {
         iExamRotationPenalty -= placement.getRotationPenalty();
         iNotOriginalRoomPenalty -= placement.getNotOriginalRoomPenalty();
         iRoomPenalty -= placement.getRoomPenalty();
+        //iDistributionPenalty
     }
     
     /** Called after a value is assigned to its variable, optimization criteria are updated */
@@ -474,6 +495,7 @@ public class ExamModel extends Model {
         iExamRotationPenalty += placement.getRotationPenalty();
         iNotOriginalRoomPenalty += placement.getNotOriginalRoomPenalty();
         iRoomPenalty += placement.getRoomPenalty();
+        //iDistributionPenalty
     }
 
     /**
@@ -511,7 +533,8 @@ public class ExamModel extends Model {
             getRoomSizeWeight()*getRoomSizePenalty(false)+
             getRoomSplitWeight()*getRoomSplitPenalty(false)+
             getNotOriginalRoomWeight()*getNotOriginalRoomPenalty(false)+
-            getRoomWeight()*getRoomPenalty(false);
+            getRoomWeight()*getRoomPenalty(false)+
+            getDistributionWeight()*getDistributionPenalty(false);
     }
     
     /**
@@ -549,7 +572,8 @@ public class ExamModel extends Model {
                 getRoomSizeWeight()*getRoomSizePenalty(false),
                 getRoomSplitWeight()*getRoomSplitPenalty(false),
                 getNotOriginalRoomWeight()*getNotOriginalRoomPenalty(false),
-                getRoomWeight()*getRoomPenalty(false)
+                getRoomWeight()*getRoomPenalty(false),
+                getDistributionWeight()*getDistributionPenalty(false)
         };
     }
     
@@ -567,7 +591,8 @@ public class ExamModel extends Model {
             "RSz:"+getRoomSizePenalty(false)+","+
             "RSp:"+getRoomSplitPenalty(false)+","+
             "ROg:"+getNotOriginalRoomPenalty(false)+","+
-            "RW:"+getRoomPenalty(false);
+            "RW:"+getRoomPenalty(false)+","+
+            "DP:"+getDistributionPenalty(false);
     }
 
     /**
@@ -749,12 +774,34 @@ public class ExamModel extends Model {
      * @return total non-original room penalty
      */
     public int getRoomPenalty(boolean precise) {
-        if (!precise) return iNotOriginalRoomPenalty;
+        if (!precise) return iRoomPenalty;
         int penalty = 0;
         for (Enumeration e=assignedVariables().elements();e.hasMoreElements();) {
             penalty += ((ExamPlacement)((Exam)e.nextElement()).getAssignment()).getRoomPenalty();
         }
         return penalty;
+    }
+
+    /**
+     * Return total distribution penalty, i.e., the sum of {@link ExamDistributionConstraint#getWeight()} of all
+     * violated soft distribution constraints.
+     * @param precise if false, the cached value is used
+     * @return total non-original room penalty
+     */
+    public int getDistributionPenalty(boolean precise) {
+        if (!precise) return iDistributionPenalty;
+        int penalty = 0;
+        for (Enumeration e=getDistributionConstraints().elements();e.hasMoreElements();) {
+            ExamDistributionConstraint dc = (ExamDistributionConstraint)e.nextElement();
+            if (!dc.isSatisfied())
+                penalty += dc.getWeight();
+        }
+        return penalty;
+    }
+    
+    /** To be called by soft {@link ExamDistributionConstraint} when satisfaction changes. */
+    protected void addDistributionPenalty(int inc) {
+        iDistributionPenalty += inc;
     }
 
     /**
@@ -792,6 +839,9 @@ public class ExamModel extends Model {
         info.put("Room Penalty",
                 getRoomPenalty(false)+" ("+
                 sDoubleFormat.format(getRoomWeight()*getRoomPenalty(false))+")");
+        info.put("Distribution Penalty",
+                getDistributionPenalty(false)+" ("+
+                sDoubleFormat.format(getDistributionWeight()*getRoomPenalty(false))+")");
         return info;
     }
     
@@ -809,6 +859,7 @@ public class ExamModel extends Model {
         info.put("Period Penalty [p]",String.valueOf(getPeriodPenalty(true)));
         info.put("Not-Original Room Penalty [p]",String.valueOf(getNotOriginalRoomPenalty(true)));
         info.put("Room Penalty [p]",String.valueOf(getRoomPenalty(true)));
+        info.put("Distribution Penalty [p]",String.valueOf(getDistributionPenalty(true)));
         info.put("Number of Periods",String.valueOf(getPeriods().size()));
         info.put("Number of Exams",String.valueOf(variables().size()));
         info.put("Number of Rooms",String.valueOf(getRooms().size()));
@@ -959,6 +1010,7 @@ public class ExamModel extends Model {
         params.addElement("property").addAttribute("name", "roomSplitWeight").addAttribute("value", String.valueOf(getRoomSplitWeight()));
         params.addElement("property").addAttribute("name", "notOriginalRoomWeight").addAttribute("value", String.valueOf(getNotOriginalRoomWeight()));
         params.addElement("property").addAttribute("name", "roomWeight").addAttribute("value", String.valueOf(getRoomWeight()));
+        params.addElement("property").addAttribute("name", "distributionWeight").addAttribute("value", String.valueOf(getDistributionWeight()));
         params.addElement("property").addAttribute("name", "periodProhibitedWeight").addAttribute("value", String.valueOf(getPeriodProhibitedWeight()));
         Element periods = root.addElement("periods");
         for (Enumeration e=getPeriods().elements();e.hasMoreElements();) {
@@ -1209,6 +1261,7 @@ public class ExamModel extends Model {
                 else if ("notOriginalRoomWeight".equals(name)) setNotOriginalRoomWeight(Double.parseDouble(value));
                 else if ("periodProhibitedWeight".equals(name)) setPeriodProhibitedWeight(Integer.parseInt(value));
                 else if ("roomWeight".equals(name)) setRoomWeight(Double.parseDouble(value));
+                else if ("distributionWeight".equals(name)) setDistributionWeight(Double.parseDouble(value));
                 else getProperties().setProperty(name, value);
             }
         for (Iterator i=root.element("periods").elementIterator("period");i.hasNext();) {
