@@ -256,6 +256,17 @@ public class ExamPlacement extends Value {
             iRotationPenalty = new Integer(((Exam)variable()).getRotationPenalty(getPeriod()));
         return iRotationPenalty.intValue();
     }
+    
+    private Integer iRoomPenalty = null;
+    /**
+     * Room weight (penalty for using given rooms) 
+     * @return {@link Exam#getRoomWeight(Set)}
+     */
+    public int getRoomPenalty() {
+        if (iRoomPenalty==null)
+            iRoomPenalty = new Integer(((Exam)variable()).getRoomWeight(getRooms()));
+        return iRoomPenalty.intValue();
+    }
 
 
     /**
@@ -284,7 +295,8 @@ public class ExamPlacement extends Value {
             model.getRoomSizeWeight()*getRoomSizePenalty()+
             model.getRoomSplitWeight()*getRoomSplitPenalty()+
             model.getNotOriginalRoomWeight()*getNotOriginalRoomPenalty()+
-            model.getExamRotationWeight()*getRotationPenalty();
+            model.getExamRotationWeight()*getRotationPenalty()+
+            model.getRoomWeight()*getRoomPenalty();
     }
     
     /**
@@ -325,7 +337,8 @@ public class ExamPlacement extends Value {
             model.getDistanceBackToBackConflictWeight()*getNrDistanceBackToBackConflicts()+
             model.getRoomSizeWeight()*getRoomSizePenalty()+
             model.getRoomSplitWeight()*getRoomSplitPenalty()+
-            model.getNotOriginalRoomWeight()*getNotOriginalRoomPenalty();
+            model.getNotOriginalRoomWeight()*getNotOriginalRoomPenalty()+
+            model.getRoomWeight()*getRoomPenalty();
     }
     
     /**
