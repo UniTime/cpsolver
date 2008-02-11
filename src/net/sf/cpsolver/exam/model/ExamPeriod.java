@@ -10,7 +10,7 @@ package net.sf.cpsolver.exam.model;
  * A penalty weight ({@link ExamPeriod#getWeight()}) can be assigned to each period. It is used 
  * to penalize unpopular examination times (e.g., evening or last-day).   
  * <br><br>
- * A list of periods is to be defined using {@link ExamModel#addPeriod(String, String, int, int)}, inserting
+ * A list of periods is to be defined using {@link ExamModel#addPeriod(Long, String, String, int, int)}, inserting
  * periods in the order of increasing days and times.
  * <br><br>
  * 
@@ -36,6 +36,7 @@ package net.sf.cpsolver.exam.model;
  */
 public class ExamPeriod implements Comparable {
     private int iIndex = -1;
+    private Long iId = null;
     private String iTimeStr;
     private String iDayStr;
     private int iLength;
@@ -45,18 +46,30 @@ public class ExamPeriod implements Comparable {
     
     /**
      * Constructor
+     * @param id period unique identifier
      * @param day day (e.g., 07/12/10)
      * @param time (e.g., 8:00am-10:00am)
      * @param length length of period in minutes
      * @param weight penalization of using this period
      */
-    public ExamPeriod(String day, String time, int length, int weight) {
+    public ExamPeriod(Long id, String day, String time, int length, int weight) {
+        iId = id;
         iDayStr = day;
         iTimeStr = time;
         iLength = length;
         iWeight = weight;
     }
     
+    /** Period unique identifier */
+    public Long getId() {
+        return iId;
+    }
+    
+    /** Period unique identifier */
+    public void setId(Long id) {
+        iId = id;
+    }
+
     /**
      * Day string, e.g., 07/12/10
      */
@@ -115,7 +128,7 @@ public class ExamPeriod implements Comparable {
      */
     public ExamPeriod next() { return iNext; }
     /**
-     * Set priod indexes (only to be used by {@link ExamModel#addPeriod(String, String, int, int)})
+     * Set priod indexes (only to be used by {@link ExamModel#addPeriod(Long, String, String, int, int)})
      * @param index period index
      * @param day day index
      * @param time time index
@@ -126,12 +139,12 @@ public class ExamPeriod implements Comparable {
         iTime = time;
     }
     /**
-     * Set previous period (only to be used by {@link ExamModel#addPeriod(String, String, int, int)})
+     * Set previous period (only to be used by {@link ExamModel#addPeriod(Long, String, String, int, int)})
      * @param prev previous period
      */
     public void setPrev(ExamPeriod prev) { iPrev = prev;}
     /**
-     * Set next period (only to be used by {@link ExamModel#addPeriod(String, String, int, int)})
+     * Set next period (only to be used by {@link ExamModel#addPeriod(Long, String, String, int, int)})
      * @param next next period
      */
     public void setNext(ExamPeriod next) { iNext = next;}
