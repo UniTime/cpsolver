@@ -97,6 +97,7 @@ public class ExamModel extends Model {
     private double iRoomSizeWeight = 0.001;
     private double iRoomSplitWeight = 10.0;
     private double iNotOriginalRoomWeight = 1.0;
+    private double iRoomWeight = 1.0;
     private int iBackToBackDistance = 67;
     private int iPeriodProhibitedWeight = 99;
 
@@ -106,6 +107,7 @@ public class ExamModel extends Model {
     private int iNrMoreThanTwoADayConflicts = 0;
     private int iRoomSizePenalty = 0;
     private int iRoomSplitPenalty = 0;
+    private int iRoomPenalty = 0;
     private int iPeriodPenalty = 0;
     private int iExamRotationPenalty = 0;
     private int iNotOriginalRoomPenalty = 0;
@@ -130,6 +132,7 @@ public class ExamModel extends Model {
         iPeriodWeight = properties.getPropertyDouble("Exams.PeriodWeight", iPeriodWeight);
         iExamRotationWeight = properties.getPropertyDouble("Exams.RotationWeight", iExamRotationWeight);
         iRoomSizeWeight = properties.getPropertyDouble("Exams.RoomSizeWeight", iRoomSizeWeight);
+        iRoomWeight = properties.getPropertyDouble("Exams.RoomWeight", iRoomWeight);
         iRoomSplitWeight = properties.getPropertyDouble("Exams.RoomSplitWeight", iRoomSplitWeight);
         iNotOriginalRoomWeight = properties.getPropertyDouble("Exams.NotOriginalRoomWeight", iNotOriginalRoomWeight);
         iBackToBackDistance = properties.getPropertyInt("Exams.BackToBackDistance", iBackToBackDistance);
@@ -351,6 +354,24 @@ public class ExamModel extends Model {
         iRoomSizeWeight = roomSizeWeight;
     }
     /**
+     * A weight for room penalty weight (used in {@link ExamPlacement#getRoomPenalty()}, 
+     * can be set by problem property Exams.RoomPreferenceWeight, or in the input xml file,
+     * property roomPreferenceWeight)
+     * 
+     */
+    public double getRoomWeight() {
+        return iRoomWeight;
+    }
+    /**
+     * A weight for room penalty weight (used in {@link ExamPlacement#getRoomPenalty()}, 
+     * can be set by problem property Exams.RoomWeight, or in the input xml file,
+     * property roomWeight)
+     * 
+     */
+    public void setRoomWeight(double roomWeight) {
+        iRoomWeight = roomWeight;
+    }
+    /**
      * A weight for room split penalty (used in {@link Exam#getRoomSplitPenalty(Set)}, 
      * can be set by problem property Exams.RoomSplitWeight, or in the input xml file,
      * property roomSplitWeight)
@@ -436,6 +457,7 @@ public class ExamModel extends Model {
         iPeriodPenalty -= placement.getPeriodPenalty();
         iExamRotationPenalty -= placement.getRotationPenalty();
         iNotOriginalRoomPenalty -= placement.getNotOriginalRoomPenalty();
+        iRoomPenalty -= placement.getRoomPenalty();
     }
     
     /** Called after a value is assigned to its variable, optimization criteria are updated */
@@ -451,6 +473,7 @@ public class ExamModel extends Model {
         iPeriodPenalty += placement.getPeriodPenalty();
         iExamRotationPenalty += placement.getRotationPenalty();
         iNotOriginalRoomPenalty += placement.getNotOriginalRoomPenalty();
+        iRoomPenalty += placement.getRoomPenalty();
     }
 
     /**
@@ -487,7 +510,8 @@ public class ExamModel extends Model {
             getPeriodWeight()*getPeriodPenalty(false)+
             getRoomSizeWeight()*getRoomSizePenalty(false)+
             getRoomSplitWeight()*getRoomSplitPenalty(false)+
-            getNotOriginalRoomWeight()*getNotOriginalRoomPenalty(false);
+            getNotOriginalRoomWeight()*getNotOriginalRoomPenalty(false)+
+            getRoomWeight()*getRoomPenalty(false);
     }
     
     /**
@@ -524,7 +548,8 @@ public class ExamModel extends Model {
                 getPeriodWeight()*getPeriodPenalty(false),
                 getRoomSizeWeight()*getRoomSizePenalty(false),
                 getRoomSplitWeight()*getRoomSplitPenalty(false),
-                getNotOriginalRoomWeight()*getNotOriginalRoomPenalty(false)
+                getNotOriginalRoomWeight()*getNotOriginalRoomPenalty(false),
+                getRoomWeight()*getRoomPenalty(false)
         };
     }
     
@@ -541,7 +566,8 @@ public class ExamModel extends Model {
             "RP:"+getExamRotationPenalty(false)+","+
             "RSz:"+getRoomSizePenalty(false)+","+
             "RSp:"+getRoomSplitPenalty(false)+","+
-            "ROg:"+getNotOriginalRoomPenalty(false);
+            "ROg:"+getNotOriginalRoomPenalty(false)+","+
+            "RW:"+getRoomPenalty(false);
     }
 
     /**
@@ -717,6 +743,21 @@ public class ExamModel extends Model {
     }
 
     /**
+     * Return total room (weight) penalty, i.e., the sum of {@link ExamPlacement#getRoomPenalty()} of all
+     * assigned placements.
+     * @param precise if false, the cached value is used
+     * @return total non-original room penalty
+     */
+    public int getRoomPenalty(boolean precise) {
+        if (!precise) return iNotOriginalRoomPenalty;
+        int penalty = 0;
+        for (Enumeration e=assignedVariables().elements();e.hasMoreElements();) {
+            penalty += ((ExamPlacement)((Exam)e.nextElement()).getAssignment()).getRoomPenalty();
+        }
+        return penalty;
+    }
+
+    /**
      * Info table
      */
     public Hashtable getInfo() {
@@ -748,6 +789,9 @@ public class ExamModel extends Model {
         info.put("Not-Original Room Penalty",
                 getNotOriginalRoomPenalty(false)+" ("+
                 sDoubleFormat.format(getNotOriginalRoomWeight()*getNotOriginalRoomPenalty(false))+")");
+        info.put("Room Penalty",
+                getRoomPenalty(false)+" ("+
+                sDoubleFormat.format(getRoomWeight()*getRoomPenalty(false))+")");
         return info;
     }
     
@@ -764,6 +808,7 @@ public class ExamModel extends Model {
         info.put("Room Split Penalty [p]",String.valueOf(getRoomSplitPenalty(true)));
         info.put("Period Penalty [p]",String.valueOf(getPeriodPenalty(true)));
         info.put("Not-Original Room Penalty [p]",String.valueOf(getNotOriginalRoomPenalty(true)));
+        info.put("Room Penalty [p]",String.valueOf(getRoomPenalty(true)));
         info.put("Number of Periods",String.valueOf(getPeriods().size()));
         info.put("Number of Exams",String.valueOf(variables().size()));
         info.put("Number of Rooms",String.valueOf(getRooms().size()));
@@ -913,6 +958,7 @@ public class ExamModel extends Model {
         params.addElement("property").addAttribute("name", "roomSizeWeight").addAttribute("value", String.valueOf(getRoomSizeWeight()));
         params.addElement("property").addAttribute("name", "roomSplitWeight").addAttribute("value", String.valueOf(getRoomSplitWeight()));
         params.addElement("property").addAttribute("name", "notOriginalRoomWeight").addAttribute("value", String.valueOf(getNotOriginalRoomWeight()));
+        params.addElement("property").addAttribute("name", "roomWeight").addAttribute("value", String.valueOf(getRoomWeight()));
         params.addElement("property").addAttribute("name", "periodProhibitedWeight").addAttribute("value", String.valueOf(getPeriodProhibitedWeight()));
         Element periods = root.addElement("periods");
         for (Enumeration e=getPeriods().elements();e.hasMoreElements();) {
@@ -1162,6 +1208,7 @@ public class ExamModel extends Model {
                 else if ("roomSplitWeight".equals(name)) setRoomSplitWeight(Double.parseDouble(value));
                 else if ("notOriginalRoomWeight".equals(name)) setNotOriginalRoomWeight(Double.parseDouble(value));
                 else if ("periodProhibitedWeight".equals(name)) setPeriodProhibitedWeight(Integer.parseInt(value));
+                else if ("roomWeight".equals(name)) setRoomWeight(Double.parseDouble(value));
                 else getProperties().setProperty(name, value);
             }
         for (Iterator i=root.element("periods").elementIterator("period");i.hasNext();) {

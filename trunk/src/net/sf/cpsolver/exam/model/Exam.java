@@ -373,7 +373,7 @@ public class Exam extends Variable {
         comb.addPreferenceInt(period.getWeight());
         return comb.getPreferenceInt();
     }
-
+    
     /**
      * Rotation penalty (an exam that has been in later period last times tries to be in an earlier period)
      * @param period a period to be assigned to the exam
@@ -1037,4 +1037,17 @@ public class Exam extends Variable {
         Integer weight = (Integer)iRoomWeights.get(room);
         return (weight==null?0:weight.intValue());
     }
+    
+    /**
+     * Combined room weight for the case when multiple rooms are used 
+     */
+    public int getRoomWeight(Set rooms) {
+        MinMaxPreferenceCombination comb = new MinMaxPreferenceCombination();
+        for (Iterator i=rooms.iterator();i.hasNext();) {
+            ExamRoom r = (ExamRoom)i.next();
+            comb.addPreferenceInt(getWeight(r));
+        }
+        return comb.getPreferenceInt();
+    }
+
 }
