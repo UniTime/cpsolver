@@ -17,6 +17,7 @@ import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.util.ToolBox;
+import net.sf.cpsolver.coursett.preference.MinMaxPreferenceCombination;
 
 /**
  * Representation of an exam (problem variable).
@@ -86,11 +87,13 @@ public class Exam extends Variable {
     private ExamRoom iOriginalRoom = null;
     private Vector iPreassignedRooms = new Vector();
     private boolean iAvailable[] = null;
+    private int iWeight[] = null;
     private Vector iRooms = null;
     private Vector iPeriods = null;
     private Integer sPenaltyFactor = null;
     private String iName = null;
     private Vector iCourseSections = new Vector();
+    private Hashtable iRoomWeights = new Hashtable();
     
     /**
      * Constructor
@@ -133,6 +136,9 @@ public class Exam extends Variable {
             if (getMaxRooms()==0) iRooms=new Vector(0);
             else if (hasPreAssignedRooms()) {
                 iRooms = new Vector(getPreassignedRooms());
+            } else if (iRoomWeights!=null) {
+                iRooms=new Vector(iRoomWeights.size());
+                iRooms.addAll(iRoomWeights.keySet());
             } else {
                 HashSet rooms = new HashSet();
                 for (Enumeration e=getRoomGroups().elements();e.hasMoreElements();) {
@@ -144,22 +150,22 @@ public class Exam extends Variable {
                         rooms.add(getOriginalRoom());
                 }
                 iRooms = new Vector(rooms);
-                Collections.sort(iRooms, new Comparator() {
-                    public int compare(Object o1, Object o2) {
-                        ExamRoom r1 = (ExamRoom)o1;
-                        ExamRoom r2 = (ExamRoom)o2;
-                        int s1 = (hasAltSeating()?r1.getAltSize():r1.getSize());
-                        int s2 = (hasAltSeating()?r2.getAltSize():r2.getSize());
-                        int cmp = -Double.compare(s1, s2);
-                        if (cmp!=0) return cmp;
-                        return r1.compareTo(r2);
-                    }
-                });
-                if (sAlterMaxSize && iRooms.size()>50) {
-                    ExamRoom med = (ExamRoom)iRooms.elementAt(Math.min(50, iRooms.size()/2));
-                    int medSize = (hasAltSeating()?med.getAltSize():med.getSize());
-                    setMaxRooms(Math.min(getMaxRooms(),1+(getStudents().size()/medSize)));
+            }
+            Collections.sort(iRooms, new Comparator() {
+                public int compare(Object o1, Object o2) {
+                    ExamRoom r1 = (ExamRoom)o1;
+                    ExamRoom r2 = (ExamRoom)o2;
+                    int s1 = (hasAltSeating()?r1.getAltSize():r1.getSize());
+                    int s2 = (hasAltSeating()?r2.getAltSize():r2.getSize());
+                    int cmp = -Double.compare(s1, s2);
+                    if (cmp!=0) return cmp;
+                    return r1.compareTo(r2);
                 }
+            });
+            if (sAlterMaxSize && iRooms.size()>50) {
+                ExamRoom med = (ExamRoom)iRooms.elementAt(Math.min(50, iRooms.size()/2));
+                int medSize = (hasAltSeating()?med.getAltSize():med.getSize());
+                setMaxRooms(Math.min(getMaxRooms(),1+(getStudents().size()/medSize)));
             }
         }
         return iRooms;
@@ -209,6 +215,7 @@ public class Exam extends Variable {
             } else {
                 for (Enumeration e=model.getPeriods().elements();e.hasMoreElements();) {
                     ExamPeriod period = (ExamPeriod)e.nextElement();
+                    if (period.getLength()<getLength()) continue;
                     if (isAvailable(period))
                         values.addElement(new ExamPlacement(this, period, new HashSet(getPreassignedRooms())));
                 }
@@ -355,8 +362,16 @@ public class Exam extends Variable {
      * @param period a period to be assigned to the exam
      * @return {@link ExamPeriod#getWeight()}
      */
-    public int getPeriodPenalty(ExamPeriod period) {
-        return period.getWeight();
+    public int getPeriodPenalty(ExamPeriod period, Set rooms) {
+        MinMaxPreferenceCombination comb = new MinMaxPreferenceCombination();
+        comb.addPreferenceInt(getWeight(period));
+        if (rooms!=null && !rooms.isEmpty())
+            for (Iterator i=rooms.iterator();i.hasNext();) {
+                ExamRoom r = (ExamRoom)i.next();
+                comb.addPreferenceInt(r.getWeight(period));
+            }
+        comb.addPreferenceInt(period.getWeight());
+        return comb.getPreferenceInt();
     }
 
     /**
@@ -409,7 +424,7 @@ public class Exam extends Variable {
         }
         iAvailable[period]=avail;
     }
-    
+
     /**
      * True if the exam can be timetable in the given period (this method does not check pre-assigned period,
      * or the length of the period)
@@ -420,6 +435,22 @@ public class Exam extends Variable {
         int periodProhibitedWeight = ((ExamModel)getModel()).getPeriodProhibitedWeight();
         if (periodProhibitedWeight>0 && !period.equals(iPreAssignedPeriod) && period.getWeight()>=periodProhibitedWeight) return false;
         return (iAvailable==null?true:iAvailable[period.getIndex()]); 
+    }
+    
+    /** Set period weight */
+    public void setWeight(int period, int weight) {
+        if (iWeight==null) {
+            iWeight = new int[((ExamModel)getModel()).getNrPeriods()];
+            for (int i=0;i<iWeight.length;i++)
+                iWeight[i]=0;
+        }
+        iWeight[period]=weight;
+    }
+
+    /** Return period weight */
+    public int getWeight(ExamPeriod period) {
+        if (iWeight==null) return 0;
+        return iWeight[period.getIndex()];
     }
     
     /**
@@ -490,7 +521,7 @@ public class Exam extends Variable {
     
     /**
      * Set average period. This represents an average period that the exam was assigned to in the past.
-     * It may be used to weight period penalty {@link Exam#getPeriodPenalty(ExamPeriod)} in order to
+     * It may be used to weight period penalty {@link Exam#getPeriodPenalty(ExamPeriod, Set)} in order to
      * put more weight on exams that were badly assigned last time(s) and ensuring some form of
      * fairness.
      * @param period average period
@@ -501,7 +532,7 @@ public class Exam extends Variable {
     
     /**
      * Average period. This represents an average period that the exam was assigned to in the past.
-     * It may be used to weight period penalty {@link Exam#getPeriodPenalty(ExamPeriod)} in order to
+     * It may be used to weight period penalty {@link Exam#getPeriodPenalty(ExamPeriod, Set)} in order to
      * put more weight on exams that were badly assigned last time(s) and ensuring some form of
      * fairness.
      * @return average period
@@ -513,10 +544,10 @@ public class Exam extends Variable {
     /**
      * True if there is an average period assigned to the exam. This represents an average period 
      * that the exam was assigned to in the past.
-     * It is used to weight period penalty {@link Exam#getPeriodPenalty(ExamPeriod)} in order to
+     * It is used to weight period penalty {@link Exam#getPeriodPenalty(ExamPeriod, Set)} in order to
      * put more weight on exams that were badly assigned last time(s) and ensuring some form of
      * fairness. If there is no average period, number of periods /2 is to be used in the
-     * period penalty {@link Exam#getPeriodPenalty(ExamPeriod)}. 
+     * period penalty {@link Exam#getPeriodPenalty(ExamPeriod, Set)}. 
      */
     public boolean hasAveragePeriod() {
         return iAveragePeriod>=0;
@@ -577,25 +608,32 @@ public class Exam extends Variable {
      * @return true, if there is no assignment of some other exam in conflict with the given period
      */
     public boolean checkDistributionConstraints(ExamPeriod period) {
-        dc: for (Enumeration e=iDistConstraints.elements();e.hasMoreElements();) {
+        for (Enumeration e=iDistConstraints.elements();e.hasMoreElements();) {
             ExamDistributionConstraint dc = (ExamDistributionConstraint)e.nextElement();
-            Exam other = (Exam)dc.another(this);
-            ExamPlacement placement = (ExamPlacement)other.getAssignment();
-            if (placement==null) continue;
-            switch (dc.getType()) {
-            case ExamDistributionConstraint.sDistSamePeriod :
-                if (period.getIndex()!=placement.getPeriod().getIndex()) return false;
-                continue dc;
-            case ExamDistributionConstraint.sDistDifferentPeriod :
-                if (period.getIndex()==placement.getPeriod().getIndex()) return false;
-                continue dc;
-            case ExamDistributionConstraint.sDistPrecedence :
-                if (dc.first().equals(this)) {
-                    if (period.getIndex()>=placement.getPeriod().getIndex()) return false;
-                } else {
-                    if (period.getIndex()<=placement.getPeriod().getIndex()) return false;
+            if (!dc.isHard()) continue;
+            boolean before = true;
+            for (Enumeration f=dc.variables().elements();f.hasMoreElements();) {
+                Exam exam = (Exam)e.nextElement();
+                if (exam.equals(this)) {
+                    before = false; continue;
                 }
-                continue dc;
+                ExamPlacement placement = (ExamPlacement)exam.getAssignment();
+                if (placement==null) continue;
+                switch (dc.getType()) {
+                    case ExamDistributionConstraint.sDistSamePeriod :
+                        if (period.getIndex()!=placement.getPeriod().getIndex()) return false;
+                        break;
+                    case ExamDistributionConstraint.sDistDifferentPeriod :
+                        if (period.getIndex()==placement.getPeriod().getIndex()) return false;
+                        break;
+                    case ExamDistributionConstraint.sDistPrecedence :
+                        if (before) {
+                            if (period.getIndex()>=placement.getPeriod().getIndex()) return false;
+                        } else {
+                            if (period.getIndex()<=placement.getPeriod().getIndex()) return false;
+                        }
+                        break;
+                }
             }
         }
         return true;
@@ -607,18 +645,22 @@ public class Exam extends Variable {
      * @return true, if there is no assignment of some other exam in conflict with the given room
      */
     public boolean checkDistributionConstraints(ExamRoom room) {
-        dc: for (Enumeration e=iDistConstraints.elements();e.hasMoreElements();) {
+        for (Enumeration e=iDistConstraints.elements();e.hasMoreElements();) {
             ExamDistributionConstraint dc = (ExamDistributionConstraint)e.nextElement();
-            Exam other = (Exam)dc.another(this);
-            ExamPlacement placement = (ExamPlacement)other.getAssignment();
-            if (placement==null) continue;
-            switch (dc.getType()) {
-            case ExamDistributionConstraint.sDistSameRoom :
-                if (!placement.getRooms().contains(room)) return false;
-                continue dc;
-            case ExamDistributionConstraint.sDistDifferentRoom :
-                if (placement.getRooms().contains(room)) return false;
-                continue dc;
+            if (!dc.isHard()) continue;
+            for (Enumeration f=dc.variables().elements();f.hasMoreElements();) {
+                Exam exam = (Exam)e.nextElement();
+                if (exam.equals(this)) continue;
+                ExamPlacement placement = (ExamPlacement)exam.getAssignment();
+                if (placement==null) continue;
+                switch (dc.getType()) {
+                    case ExamDistributionConstraint.sDistSameRoom :
+                        if (!placement.getRooms().contains(room)) return false;
+                        break;
+                    case ExamDistributionConstraint.sDistDifferentRoom :
+                        if (placement.getRooms().contains(room)) return false;
+                        break;
+                }
             }
         }
         return true;
@@ -973,5 +1015,26 @@ public class Exam extends Variable {
             if (cs.getIntructors().contains(instructor)) ret.add(cs);
         }
         return ret;
+    }
+    
+    /** Provide list of available rooms with their weights
+     * @param roomWeights table {@link ExamRoom} : weight {@link Integer}
+     **/
+    public void setRoomWeights(Hashtable roomWeights) {
+        iRoomWeights = roomWeights;
+    }
+    
+    /** Get list of available rooms with their weights (if it was provided)
+     * @param table {@link ExamRoom} : weight {@link Integer}
+     **/
+    public Hashtable getRoomWeights() {
+        return iRoomWeights;
+    }
+    
+    /** Get room weight */
+    public int getWeight(ExamRoom room) {
+        if (iRoomWeights==null) return 0;
+        Integer weight = (Integer)iRoomWeights.get(room);
+        return (weight==null?0:weight.intValue());
     }
 }
