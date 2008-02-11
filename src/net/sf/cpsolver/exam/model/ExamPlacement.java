@@ -241,7 +241,7 @@ public class ExamPlacement extends Value {
      */
     public int getPeriodPenalty() {
         if (iPeriodPenalty==null) 
-            iPeriodPenalty = new Integer(((Exam)variable()).getPeriodPenalty(getPeriod()));
+            iPeriodPenalty = new Integer(((Exam)variable()).getPeriodPenalty(getPeriod(),getRooms()));
         return iPeriodPenalty.intValue();
     }
     
