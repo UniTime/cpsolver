@@ -32,6 +32,7 @@ import net.sf.cpsolver.ifs.model.Value;
 public class ExamRoom extends Constraint implements Comparable {
     private ExamPlacement[] iTable;
     private boolean[] iAvailable;
+    private int[] iWeight;
     private String iName;
     private int iSize, iAltSize;
     private int iCoordX, iCoordY;
@@ -54,9 +55,11 @@ public class ExamRoom extends Constraint implements Comparable {
         iSize = size; iAltSize = altSize;
         iTable = new ExamPlacement[model.getNrPeriods()];
         iAvailable = new boolean[model.getNrPeriods()];
+        iWeight = new int[model.getNrPeriods()];
         for (int i=0;i<iTable.length;i++) {
             iTable[i]=null;
             iAvailable[i]=true;
+            iWeight[i]=0;
         }
     }
     
@@ -107,6 +110,11 @@ public class ExamRoom extends Constraint implements Comparable {
      * @param available true if an exam can be scheduled into this room at the given period, false if otherwise
      */
     public void setAvailable(int period, boolean available) { iAvailable[period]=available; }
+    
+    /** Return room weight for given period */
+    public int getWeight(ExamPeriod period) { return iWeight[period.getIndex()]; }
+    /** Set room weight for given period */
+    public void setWeight(int period, int weight) { iWeight[period]=weight; }
     
     /**
      * Compute conflicts between the given assignment of an exam and all the current assignments (of this room)
