@@ -93,7 +93,7 @@ public class Exam extends Variable {
     private Integer sPenaltyFactor = null;
     private String iName = null;
     private Vector iCourseSections = new Vector();
-    private Hashtable iRoomWeights = new Hashtable();
+    private Hashtable iRoomWeights = null;
     
     /**
      * Constructor
@@ -613,7 +613,7 @@ public class Exam extends Variable {
             if (!dc.isHard()) continue;
             boolean before = true;
             for (Enumeration f=dc.variables().elements();f.hasMoreElements();) {
-                Exam exam = (Exam)e.nextElement();
+                Exam exam = (Exam)f.nextElement();
                 if (exam.equals(this)) {
                     before = false; continue;
                 }
@@ -649,7 +649,7 @@ public class Exam extends Variable {
             ExamDistributionConstraint dc = (ExamDistributionConstraint)e.nextElement();
             if (!dc.isHard()) continue;
             for (Enumeration f=dc.variables().elements();f.hasMoreElements();) {
-                Exam exam = (Exam)e.nextElement();
+                Exam exam = (Exam)f.nextElement();
                 if (exam.equals(this)) continue;
                 ExamPlacement placement = (ExamPlacement)exam.getAssignment();
                 if (placement==null) continue;
