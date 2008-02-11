@@ -1,6 +1,7 @@
 package net.sf.cpsolver.exam.model;
 
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -232,5 +233,90 @@ public class ExamDistributionConstraint extends Constraint {
         if (o==null || !(o instanceof ExamDistributionConstraint)) return false;
         ExamDistributionConstraint c = (ExamDistributionConstraint)o;
         return getType()==c.getType() && getId()==c.getId();
+    }
+    
+    /**
+     * Return true if this is hard constraint or this is a soft constraint without any violation
+     */
+    public boolean isSatisfied() {
+        if (isHard()) return true;
+        switch (getType()) {
+        case sDistPrecedence :
+            ExamPeriod last = null;
+            for (Enumeration e=variables().elements();e.hasMoreElements();) {
+                Exam exam = (Exam)e.nextElement();
+                ExamPlacement placement = (ExamPlacement)exam.getAssignment();
+                if (placement==null) continue;
+                if (last==null || last.getIndex()<placement.getPeriod().getIndex())
+                    last = placement.getPeriod();
+                else
+                    return false;
+            }
+            return true;
+        case sDistSamePeriod :
+            ExamPeriod period = null;
+            for (Enumeration e=variables().elements();e.hasMoreElements();) {
+                Exam exam = (Exam)e.nextElement();
+                ExamPlacement placement = (ExamPlacement)exam.getAssignment();
+                if (placement==null) continue;
+                if (period==null)
+                    period = placement.getPeriod();
+                else if (period.getIndex()!=placement.getPeriod().getIndex())
+                    return false;
+            }
+            return true;
+        case sDistDifferentPeriod :
+            HashSet periods = new HashSet();
+            for (Enumeration e=variables().elements();e.hasMoreElements();) {
+                Exam exam = (Exam)e.nextElement();
+                ExamPlacement placement = (ExamPlacement)exam.getAssignment();
+                if (placement==null) continue;
+                if (!periods.add(placement.getPeriod())) return false;
+            }
+            return true;
+        case sDistSameRoom :
+            Set rooms = null;
+            for (Enumeration e=variables().elements();e.hasMoreElements();) {
+                Exam exam = (Exam)e.nextElement();
+                ExamPlacement placement = (ExamPlacement)exam.getAssignment();
+                if (placement==null) continue;
+                if (rooms==null)
+                    rooms = placement.getRooms();
+                else if (!rooms.containsAll(placement.getRooms()) || !placement.getRooms().containsAll(rooms))
+                    return false;
+            }
+            return true;
+        case sDistDifferentRoom :
+            HashSet allRooms = new HashSet();
+            for (Enumeration e=variables().elements();e.hasMoreElements();) {
+                Exam exam = (Exam)e.nextElement();
+                ExamPlacement placement = (ExamPlacement)exam.getAssignment();
+                if (placement==null) continue;
+                for (Iterator i=placement.getRooms().iterator();i.hasNext();) {
+                    ExamRoom room = (ExamRoom)i.next();
+                    if (!allRooms.add(room)) return false;
+                }
+            }
+            return true;
+        default :
+            return false;
+        }
+    }
+    
+    boolean iIsSatisfied = true;
+    public void assigned(long iteration, Value value) {
+        super.assigned(iteration, value);
+        if (!isHard() && iIsSatisfied!=isSatisfied()) {
+            iIsSatisfied = !iIsSatisfied;
+            ((ExamModel)value.variable().getModel()).addDistributionPenalty(iIsSatisfied?getWeight():-getWeight());
+        }
+    }
+    
+    public void unassigned(long iteration, Value value) {
+        super.unassigned(iteration, value);
+        if (!isHard() && iIsSatisfied!=isSatisfied()) {
+            iIsSatisfied = !iIsSatisfied;
+            ((ExamModel)value.variable().getModel()).addDistributionPenalty(iIsSatisfied?getWeight():-getWeight());
+        }
     }
 }
