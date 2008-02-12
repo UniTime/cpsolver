@@ -1025,7 +1025,7 @@ public class Exam extends Variable {
     }
     
     /** Get list of available rooms with their weights (if it was provided)
-     * @param table {@link ExamRoom} : weight {@link Integer}
+     * @return table {@link ExamRoom} : weight {@link Integer}
      **/
     public Hashtable getRoomWeights() {
         return iRoomWeights;
