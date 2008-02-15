@@ -4,12 +4,16 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.text.DecimalFormat;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.Locale;
+import java.util.Vector;
 
+import net.sf.cpsolver.coursett.constraint.DepartmentSpreadConstraint;
 import net.sf.cpsolver.coursett.constraint.GroupConstraint;
 import net.sf.cpsolver.coursett.constraint.InstructorConstraint;
 import net.sf.cpsolver.coursett.constraint.JenrlConstraint;
@@ -21,10 +25,12 @@ import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.coursett.model.TimetableModel;
+import net.sf.cpsolver.coursett.model.Student;
 import net.sf.cpsolver.ifs.extension.ConflictStatistics;
 import net.sf.cpsolver.ifs.extension.Extension;
 import net.sf.cpsolver.ifs.extension.MacPropagation;
 import net.sf.cpsolver.ifs.extension.ViolatedInitials;
+import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solution.SolutionListener;
 import net.sf.cpsolver.ifs.solver.Solver;
@@ -197,7 +203,8 @@ public class Test implements SolutionListener {
                 sLogger.info("Last solution: "+ToolBox.dict2string(bestSolution.getInfo(),1));
                 bestSolution.restoreBest();
                 sLogger.info("Best solution: "+ToolBox.dict2string(bestSolution.getInfo(),1));
-                ((TimetableModel)bestSolution.getModel()).switchStudents();
+                if (properties.getPropertyBoolean("General.SwitchStudents", true))
+                    ((TimetableModel)bestSolution.getModel()).switchStudents();
                 sLogger.info("Best solution: "+ToolBox.dict2string(bestSolution.getInfo(),1));
                 saveOutputCSV(bestSolution,new File(outDir,"output.csv"));
                 
@@ -412,7 +419,21 @@ public class Test implements SolutionListener {
         TimetableModel model = (TimetableModel)solution.getModel();
         File outDir = new File(model.getProperties().getProperty("General.Output","."));
         PrintWriter pw = new PrintWriter(new FileWriter(outDir.toString()+File.separator+"info.txt"));
-        pw.println("Solution info: "+ToolBox.dict2string(solution.getInfo(),1));        
+        PrintWriter pwi = new PrintWriter(new FileWriter(outDir.toString()+File.separator+"info.csv"));
+        String name = new File(model.getProperties().getProperty("General.Input")).getName();
+        pwi.println("Instance,"+name.substring(0, name.lastIndexOf('.')));
+        pw.println("Solution info: "+ToolBox.dict2string(solution.getInfo(),1));
+        pw.println("Bounds: "+ToolBox.dict2string(model.getBounds(),1));
+        Hashtable info = solution.getInfo();
+        for (Enumeration e=ToolBox.sortEnumeration(info.keys());e.hasMoreElements();) {
+            String key = (String)e.nextElement();
+            if (key.equals("Memory usage")) continue;
+            if (key.equals("Iteration")) continue;
+            if (key.equals("Time")) continue;
+            String value = (String)info.get(key);
+            if (value.indexOf(' ')>0) value=value.substring(0,value.indexOf(' '));
+            pwi.println(key+","+value);
+        }
     	printRoomInfo(pw, model);
     	printClassInfo(pw, model);
         long nrValues = 0;
@@ -420,8 +441,10 @@ public class Test implements SolutionListener {
         long nrRooms = 0;
         double totalMaxNormTimePref = 0.0;
         double totalMinNormTimePref = 0.0;
+        double totalNormTimePref = 0.0;
         int totalMaxRoomPref = 0;
         int totalMinRoomPref = 0;
+        int totalRoomPref = 0;
         long nrStudentEnrls = 0;
         long nrInevitableStudentConflicts = 0;
         long nrJenrls = 0;
@@ -447,6 +470,13 @@ public class Test implements SolutionListener {
         HashSet offerings = new HashSet();
         HashSet configs = new HashSet();
         HashSet subparts = new HashSet();
+        int[] sizeLimits = new int[] {0, 25, 50, 75, 100, 150, 200, 400};
+        int[] nrRoomsOfSize = new int[sizeLimits.length];
+        int[] minRoomOfSize = new int[sizeLimits.length];
+        int[] maxRoomOfSize = new int[sizeLimits.length];
+        int[] totalUsedSlots = new int[sizeLimits.length];
+        int[] totalUsedSeats = new int[sizeLimits.length];
+        int[] totalUsedSeats2 = new int[sizeLimits.length];
         for (Enumeration e1=model.variables().elements();e1.hasMoreElements();) {
             Lecture lect = (Lecture)e1.nextElement();
             if (lect.getConfiguration()!=null) {
@@ -468,8 +498,23 @@ public class Test implements SolutionListener {
                 nrHalfHours += p.getTimeLocation().getNrMeetings() * p.getTimeLocation().getNrSlotsPerMeeting();
                 totalMaxNormTimePref += lect.getMinMaxTimePreference()[1];
                 totalMinNormTimePref += lect.getMinMaxTimePreference()[0];
+                totalNormTimePref += Math.abs(lect.getMinMaxTimePreference()[1]-lect.getMinMaxTimePreference()[0]);
                 totalMaxRoomPref += lect.getMinMaxRoomPreference()[1];
                 totalMinRoomPref += lect.getMinMaxRoomPreference()[0];
+                totalRoomPref += Math.abs(lect.getMinMaxRoomPreference()[1]-lect.getMinMaxRoomPreference()[0]);
+                TimeLocation time = p.getTimeLocation();
+                for (int d=0;d<Constants.NR_DAYS_WEEK;d++) {
+                    if ((time.getDayCode() & Constants.DAY_CODES[d]) == 0) continue;
+                    for (int t=Math.max(time.getStartSlot(),Constants.DAY_SLOTS_FIRST);t<=Math.min(time.getStartSlot()+time.getLength()-1, Constants.DAY_SLOTS_LAST);t++) {
+                        for (int l=0;l<sizeLimits.length;l++) {
+                            if (sizeLimits[l]<=lect.minRoomSize()) {
+                                totalUsedSlots[l]+=lect.getNrRooms();
+                                totalUsedSeats[l]+=lect.classLimit();
+                                totalUsedSeats2[l]+=lect.minRoomSize()*lect.getNrRooms();
+                            }
+                        }
+                    }
+                }
             }
             if (lect.values().size()==1) {
                 nrSingleValueVariables++;
@@ -518,52 +563,96 @@ public class Test implements SolutionListener {
             	}
             }
         }
+        int totalCommitedPlacements = 0;
+        for (Iterator i=students.iterator();i.hasNext();) {
+            Student student = (Student)i.next();
+            if (student.getCommitedPlacements()!=null)
+                totalCommitedPlacements += student.getCommitedPlacements().size();
+        }
         pw.println("Total number of classes: "+model.variables().size());
+        pwi.println("Number of classes,"+model.variables().size());
         pw.println("Total number of instructional offerings: "+offerings.size()+" ("+sDoubleFormat.format(100.0*offerings.size()/model.variables().size())+"%)");
+        //pwi.println("Number of instructional offerings,"+offerings.size());
         pw.println("Total number of configurations: "+configs.size()+" ("+sDoubleFormat.format(100.0*configs.size()/model.variables().size())+"%)");
         pw.println("Total number of scheduling subparts: "+subparts.size()+" ("+sDoubleFormat.format(100.0*subparts.size()/model.variables().size())+"%)");
+        //pwi.println("Number of scheduling subparts,"+subparts.size());
         pw.println("Average number classes per subpart: "+sDoubleFormat.format(1.0*model.variables().size()/subparts.size()));
+        pwi.println("Avg. classes per instruction,"+sDoubleFormat.format(1.0*model.variables().size()/subparts.size()));
         pw.println("Average number classes per config: "+sDoubleFormat.format(1.0*model.variables().size()/configs.size()));
         pw.println("Average number classes per offering: "+sDoubleFormat.format(1.0*model.variables().size()/offerings.size()));
         pw.println("Total number of classes with only one value: "+nrSingleValueVariables+" ("+sDoubleFormat.format(100.0*nrSingleValueVariables/model.variables().size())+"%)");
         pw.println("Total number of classes with only one time: "+nrSingleTimeVariables+" ("+sDoubleFormat.format(100.0*nrSingleTimeVariables/model.variables().size())+"%)");
         pw.println("Total number of classes with only one room: "+nrSingleRoomVariables+" ("+sDoubleFormat.format(100.0*nrSingleRoomVariables/model.variables().size())+"%)");
+        pwi.println("Classes with single value,"+nrSingleValueVariables);
+        //pwi.println("Classes with only one time/room,"+nrSingleTimeVariables+"/"+nrSingleRoomVariables);
         pw.println("Total number of classes requesting no room: "+(model.variables().size()-nrOneOrMoreRoomVariables)+" ("+sDoubleFormat.format(100.0*(model.variables().size()-nrOneOrMoreRoomVariables)/model.variables().size())+"%)");
         pw.println("Total number of classes requesting one room: "+nrOneRoomVariables+" ("+sDoubleFormat.format(100.0*nrOneRoomVariables/model.variables().size())+"%)");
         pw.println("Total number of classes requesting one or more rooms: "+nrOneOrMoreRoomVariables+" ("+sDoubleFormat.format(100.0*nrOneOrMoreRoomVariables/model.variables().size())+"%)");
+        //pwi.println("% classes requesting no room,"+sDoubleFormat.format(100.0*(model.variables().size()-nrOneOrMoreRoomVariables)/model.variables().size())+"%");
+        //pwi.println("% classes requesting one room,"+sDoubleFormat.format(100.0*nrOneRoomVariables/model.variables().size())+"%");
+        //pwi.println("% classes requesting two or more rooms,"+sDoubleFormat.format(100.0*(nrOneOrMoreRoomVariables-nrOneRoomVariables)/model.variables().size())+"%");
         pw.println("Average number of requested rooms: "+sDoubleFormat.format(1.0*nrReqRooms/model.variables().size()));
         pw.println("Average minimal class limit: "+sDoubleFormat.format(1.0*totalMinLimit/model.variables().size()));
         pw.println("Average maximal class limit: "+sDoubleFormat.format(1.0*totalMaxLimit/model.variables().size()));
+        //pwi.println("Average class limit,"+sDoubleFormat.format(1.0*(totalMinLimit+totalMaxLimit)/(2*model.variables().size())));
         pw.println("Average number of placements: "+sDoubleFormat.format(1.0*nrValues/model.variables().size()));
+        //pwi.println("Average domain size,"+sDoubleFormat.format(1.0*nrValues/model.variables().size()));
+        pwi.println("Avg. domain size,"+sDoubleFormat.format(1.0*nrValues/model.variables().size()));
         pw.println("Average number of time locations: "+sDoubleFormat.format(1.0*nrTimes/model.variables().size()));
+        pwi.println("Avg. number of avail. times/rooms,"+sDoubleFormat.format(1.0*nrTimes/model.variables().size())+"/"+sDoubleFormat.format(1.0*nrRooms/model.variables().size()));
         pw.println("Average number of room locations: "+sDoubleFormat.format(1.0*nrRooms/model.variables().size()));
         pw.println("Average minimal requested room size: "+sDoubleFormat.format(1.0*totalAvailableMinRoomSize/nrOneOrMoreRoomVariables));
         pw.println("Average maximal requested room size: "+sDoubleFormat.format(1.0*totalAvailableMaxRoomSize/nrOneOrMoreRoomVariables));
         pw.println("Average requested room sizes: "+sDoubleFormat.format(1.0*totalRoomSize/nrRooms));
+        pw.println("Average requested room size,"+sDoubleFormat.format(1.0*totalRoomSize/nrRooms));
         pw.println("Average maximum normalized time preference: "+sDoubleFormat.format(totalMaxNormTimePref/model.variables().size()));
         pw.println("Average minimum normalized time preference: "+sDoubleFormat.format(totalMinNormTimePref/model.variables().size()));
+        pw.println("Average normalized time preference,"+sDoubleFormat.format(totalNormTimePref/model.variables().size()));
         pw.println("Average maximum room preferences: "+sDoubleFormat.format(1.0*totalMaxRoomPref/nrOneOrMoreRoomVariables));
         pw.println("Average minimum room preferences: "+sDoubleFormat.format(1.0*totalMinRoomPref/nrOneOrMoreRoomVariables));
+        pw.println("Average room preferences,"+sDoubleFormat.format(1.0*totalRoomPref/nrOneOrMoreRoomVariables));
         pw.println("Total number of students:"+students.size());
+        pwi.println("Number of students,"+students.size());
+        pw.println("Number of inevitable student conflicts,"+nrInevitableStudentConflicts);
         pw.println("Total amount of student enrollments: "+nrStudentEnrls);
+        pw.println("Number of student enrollments,"+nrStudentEnrls);
         pw.println("Total amount of joined enrollments: "+nrJenrls);
+        pw.println("Number of joint student enrollments,"+nrJenrls);
         pw.println("Average number of students: "+sDoubleFormat.format(1.0*students.size()/model.variables().size()));
         pw.println("Average number of enrollemnts (per student): "+sDoubleFormat.format(1.0*nrStudentEnrls/students.size()));
+        pwi.println("Avg. number of classes per student,"+sDoubleFormat.format(1.0*nrStudentEnrls/students.size()));
+        pwi.println("Avg. number of committed classes per student,"+sDoubleFormat.format(1.0*totalCommitedPlacements/students.size()));
         pw.println("Total amount of inevitable student conflicts: "+nrInevitableStudentConflicts+" ("+sDoubleFormat.format(100.0*nrInevitableStudentConflicts/nrStudentEnrls)+"%)");
         pw.println("Average number of meetings (per class): "+sDoubleFormat.format(1.0*nrMeetings/model.variables().size()));
-        pw.println("Average number of hours (per class): "+sDoubleFormat.format(1.0*nrHalfHours/model.variables().size()/12.0));
+        pw.println("Average number of hours per class: "+sDoubleFormat.format(1.0*nrHalfHours/model.variables().size()/12.0));
+        pwi.println("Avg. number of meetings per class,"+sDoubleFormat.format(1.0*nrMeetings/model.variables().size()));
+        pwi.println("Avg. number of hours per class,"+sDoubleFormat.format(1.0*nrHalfHours/model.variables().size()/12.0));
         int minRoomSize = Integer.MAX_VALUE;
         int maxRoomSize = Integer.MIN_VALUE;
         int nrDistancePairs = 0;
         double maxRoomDistance = Double.MIN_VALUE;
         double totalRoomDistance = 0.0;
-        long totalAvailableSlots = 0;
-        long totalAllSlots = 0;
+        int[] totalAvailableSlots = new int[sizeLimits.length];
+        int[] totalAvailableSeats = new int[sizeLimits.length];
+        int totalAllSlots = 0;
         totalRoomSize = 0;
         for (Enumeration e1=model.getRoomConstraints().elements();e1.hasMoreElements();) {
         	RoomConstraint rc = (RoomConstraint)e1.nextElement();
         	minRoomSize = Math.min(minRoomSize, rc.getCapacity());
         	maxRoomSize = Math.max(maxRoomSize, rc.getCapacity());
+        	for (int l=0;l<sizeLimits.length;l++) {
+        	    if (sizeLimits[l]<=rc.getCapacity() && (l+1==sizeLimits.length || rc.getCapacity()<sizeLimits[l+1])) {
+        	        nrRoomsOfSize[l]++;
+        	        if (minRoomOfSize[l]==0)
+        	            minRoomOfSize[l]=rc.getCapacity();
+        	        else
+        	            minRoomOfSize[l]=Math.min(minRoomOfSize[l],rc.getCapacity());
+                    if (maxRoomOfSize[l]==0)
+                        maxRoomOfSize[l]=rc.getCapacity();
+                    else
+                        maxRoomOfSize[l]=Math.max(maxRoomOfSize[l],rc.getCapacity());
+        	    }
+        	}
         	totalRoomSize += rc.getCapacity();
         	if (rc.getPosX()>=0 && rc.getPosY()>=0) {
         		for (Enumeration e2=model.getRoomConstraints().elements();e2.hasMoreElements();) {
@@ -579,20 +668,37 @@ public class Test implements SolutionListener {
         	for (int d=0;d<Constants.NR_DAYS_WEEK;d++) {
         		for (int t=Constants.DAY_SLOTS_FIRST;t<=Constants.DAY_SLOTS_LAST;t++) {
         			totalAllSlots++;
-        			if (rc.isAvailable(d*Constants.SLOTS_PER_DAY+t))
-        				totalAvailableSlots++;
+        			if (rc.isAvailable(d*Constants.SLOTS_PER_DAY+t)) {
+                        for (int l=0;l<sizeLimits.length;l++) {
+                            if (sizeLimits[l]<=rc.getCapacity()) {
+                                totalAvailableSlots[l]++;
+                                totalAvailableSeats[l]+=rc.getCapacity();
+                            }
+                        }
+        			}
         		}
         	}
         	
         }
         pw.println("Total number of rooms: "+model.getRoomConstraints().size());
+        pwi.println("Number of rooms,"+model.getRoomConstraints().size());
         pw.println("Minimal room size: "+minRoomSize);
         pw.println("Maximal room size: "+maxRoomSize);
+        pwi.println("Room size min/max,"+minRoomSize+"/"+maxRoomSize);
         pw.println("Average room size: "+sDoubleFormat.format(1.0*totalRoomSize/model.getRoomConstraints().size()));
         pw.println("Maximal distance between two rooms: "+sDoubleFormat.format(5.0*maxRoomDistance));
         pw.println("Average distance between two rooms: "+sDoubleFormat.format(5.0*totalRoomDistance/nrDistancePairs));
-        pw.println("Average hours available: "+sDoubleFormat.format(1.0*totalAvailableSlots/12.0));
-        totalAvailableSlots = totalAllSlots = 0;
+        pw.println("Average distance between two rooms [m],"+sDoubleFormat.format(5.0*totalRoomDistance/nrDistancePairs));
+        pw.println("Maximal distance between two rooms [m],"+sDoubleFormat.format(5.0*maxRoomDistance));
+        for (int l=0;l<sizeLimits.length;l++) {
+            pwi.println("\"Room frequency (size>="+sizeLimits[l]+", used/avaiable times)\","+sDoubleFormat.format(100.0*totalUsedSlots[l]/totalAvailableSlots[l])+"%");
+            pwi.println("\"Room utilization (size>="+sizeLimits[l]+", used/available seats)\","+sDoubleFormat.format(100.0*totalUsedSeats[l]/totalAvailableSeats[l])+"%");
+            pwi.println("\"Number of rooms (size>="+sizeLimits[l]+")\","+nrRoomsOfSize[l]);
+            pwi.println("\"Min/max room size (size>="+sizeLimits[l]+")\","+minRoomOfSize[l]+"-"+maxRoomOfSize[l]);
+            //pwi.println("\"Room utilization (size>="+sizeLimits[l]+", minRoomSize)\","+sDoubleFormat.format(100.0*totalUsedSeats2[l]/totalAvailableSeats[l])+"%");
+        }
+        pw.println("Average hours available: "+sDoubleFormat.format(1.0*totalAvailableSlots[0]/model.getRoomConstraints().size()/12.0));
+        totalAllSlots = 0;
         int totalInstructedClasses = 0;
         for (Enumeration e1=model.getInstructorConstraints().elements();e1.hasMoreElements();) {
         	InstructorConstraint ic = (InstructorConstraint)e1.nextElement();
@@ -600,15 +706,17 @@ public class Test implements SolutionListener {
         	for (int d=0;d<Constants.NR_DAYS_WEEK;d++) {
         		for (int t=Constants.DAY_SLOTS_FIRST;t<=Constants.DAY_SLOTS_LAST;t++) {
         			totalAllSlots++;
-        			if (ic.isAvailable(d*Constants.SLOTS_PER_DAY+t))
-        				totalAvailableSlots++;
         		}
         	}
         }
         pw.println("Total number of instructors: "+model.getInstructorConstraints().size());
+        pwi.println("Number of instructors,"+model.getInstructorConstraints().size());
         pw.println("Total class-instructor assignments: "+totalInstructedClasses+" ("+sDoubleFormat.format(100.0*totalInstructedClasses/model.variables().size())+"%)");
+        pwi.println("Number of class-instructor assignments,"+totalInstructedClasses);
         pw.println("Average classes per instructor: "+sDoubleFormat.format(1.0*totalInstructedClasses/model.getInstructorConstraints().size()));
-        pw.println("Average hours available: "+sDoubleFormat.format(1.0*totalAvailableSlots/model.getInstructorConstraints().size()/12.0));
+        pwi.println("Average classes per instructor,"+sDoubleFormat.format(1.0*totalInstructedClasses/model.getInstructorConstraints().size()));
+        //pw.println("Average hours available: "+sDoubleFormat.format(1.0*totalAvailableSlots/model.getInstructorConstraints().size()/12.0));
+        //pwi.println("Instructor availability [h],"+sDoubleFormat.format(1.0*totalAvailableSlots/model.getInstructorConstraints().size()/12.0));
         int nrGroupConstraints = model.getGroupConstraints().size() + model.getSpreadConstraints().size();
         int nrHardGroupConstraints = 0;
         int nrVarsInGroupConstraints = 0;
@@ -622,39 +730,173 @@ public class Test implements SolutionListener {
         	nrVarsInGroupConstraints += sc.variables().size();
         }
         pw.println("Total number of group constraints: "+nrGroupConstraints+" ("+sDoubleFormat.format(100.0*nrGroupConstraints/model.variables().size())+"%)");
+        //pwi.println("Number of group constraints,"+nrGroupConstraints);
         pw.println("Total number of hard group constraints: "+nrHardGroupConstraints+" ("+sDoubleFormat.format(100.0*nrHardGroupConstraints/model.variables().size())+"%)");
+        //pwi.println("Number of hard group constraints,"+nrHardGroupConstraints);
         pw.println("Average classes per group constraint: "+sDoubleFormat.format(1.0*nrVarsInGroupConstraints/nrGroupConstraints));
+        //pwi.println("Average classes per group constraint,"+sDoubleFormat.format(1.0*nrVarsInGroupConstraints/nrGroupConstraints));
+        pwi.println("Avg. number distribution constraints per class,"+sDoubleFormat.format(1.0*nrVarsInGroupConstraints/model.variables().size()));
         pw.flush();pw.close();
+        pwi.flush();pwi.close();
     }
     
-    private void saveOutputCSV(Solution s,File f) {
+    private void saveOutputCSV(Solution s,File file) {
         try {
-            PrintWriter w = new PrintWriter(new FileWriter(f));
+            DecimalFormat dx = new DecimalFormat("000");
+            PrintWriter w = new PrintWriter(new FileWriter(file));
             TimetableModel m = (TimetableModel)s.getModel();
-            w.println("Assigned variables;"+m.assignedVariables().size());
+            int idx = 1;
+            w.println("000."+dx.format(idx++)+" Assigned variables,"+m.assignedVariables().size());
             if (m.getProperties().getPropertyBoolean("General.MPP",false))
-                w.println("Add. perturbancies;"+s.getPerturbationsCounter().getPerturbationPenalty(m));
-            w.println("Time [sec];"+sDoubleFormat.format(s.getBestTime()));
-            w.println("Hard student conflicts;"+m.getHardStudentConflicts());
+                w.println("000."+dx.format(idx++)+" Add. perturbancies,"+s.getPerturbationsCounter().getPerturbationPenalty(m));
+            w.println("000."+dx.format(idx++)+" Time [sec],"+sDoubleFormat.format(s.getBestTime()));
+            w.println("000."+dx.format(idx++)+" Hard student conflicts,"+m.getHardStudentConflicts());
             if (m.getProperties().getPropertyBoolean("General.UseDistanceConstraints", true))
-                w.println("Distance student conf.;"+m.getStudentDistanceConflicts());
-            w.println("Student conflicts;"+m.getViolatedStudentConflicts());
-            w.println("Time preferences;"+sDoubleFormat.format(m.getGlobalTimePreference()));
-            w.println("Room preferences;"+m.getGlobalRoomPreference());
-            w.println("Useless half-hours;"+m.getUselessSlots());
-            w.println("Too big room;"+m.countTooBigRooms());
+                w.println("000."+dx.format(idx++)+" Distance student conf.,"+m.getStudentDistanceConflicts());
+            w.println("000."+dx.format(idx++)+" Student conflicts,"+m.getViolatedStudentConflicts());
+            w.println("000."+dx.format(idx++)+" Time preferences,"+sDoubleFormat.format(m.getGlobalTimePreference()));
+            w.println("000."+dx.format(idx++)+" Room preferences,"+m.getGlobalRoomPreference());
+            w.println("000."+dx.format(idx++)+" Useless half-hours,"+m.getUselessSlots());
+            w.println("000."+dx.format(idx++)+" Too big room,"+m.countTooBigRooms());
+            w.println("000."+dx.format(idx++)+" Distribution preferences,"+sDoubleFormat.format(m.getGlobalGroupConstraintPreference()));
             if (m.getProperties().getPropertyBoolean("General.UseDistanceConstraints", true))
-                w.println("Distance instructor pref.;"+m.getInstructorDistancePreference());
+                w.println("000."+dx.format(idx++)+" Back-to-back instructor pref.,"+m.getInstructorDistancePreference());
             if (m.getProperties().getPropertyBoolean("General.DeptBalancing",true)) {
-                w.println("Dept. spread penalty;"+sDoubleFormat.format(m.getDepartmentSpreadPenalty()));
+                w.println("000."+dx.format(idx++)+" Dept. balancing penalty,"+sDoubleFormat.format(m.getDepartmentSpreadPenalty()));
             }
-            w.println("Spread penalty;"+sDoubleFormat.format(m.getSpreadPenalty()));
+            w.println("000."+dx.format(idx++)+" Same subpart balancing penalty,"+sDoubleFormat.format(m.getSpreadPenalty()));
             if (m.getProperties().getPropertyBoolean("General.MPP",false)) {
                 Hashtable mppInfo = ((UniversalPerturbationsCounter)s.getPerturbationsCounter()).getCompactInfo(m, false, false);
                 for (Enumeration e=ToolBox.sortEnumeration(mppInfo.keys());e.hasMoreElements();) {
                     String key = (String)e.nextElement();
-                    w.println(key+";"+mppInfo.get(key));
+                    w.println("000."+dx.format(idx++)+" "+key+","+mppInfo.get(key));
                 }
+            }
+            Hashtable subs = new Hashtable();
+            for (Enumeration e=m.variables().elements();e.hasMoreElements();) {
+                Lecture lecture = (Lecture)e.nextElement();
+                if (lecture.isCommitted()) continue;
+                Vector vars = (Vector)subs.get(lecture.getScheduler());
+                if (vars==null) {
+                    vars=new Vector();
+                    subs.put(lecture.getScheduler(),vars);
+                }
+                vars.add(lecture);
+            }
+            for (Enumeration e=ToolBox.sortEnumeration(subs.keys());e.hasMoreElements();) {
+                Long scheduler = (Long)e.nextElement();
+                Vector vars = (Vector)subs.get(scheduler);
+                idx = 001; int bidx = 101;
+                int nrAssg = 0, enrls = 0;
+                int roomPref = 0, minRoomPref = 0, maxRoomPref = 0;
+                double timePref = 0, minTimePref = 0, maxTimePref = 0;
+                double grPref = 0, minGrPref = 0, maxGrPref = 0;
+                long allSC = 0, hardSC = 0, distSC = 0;
+                int instPref = 0, worstInstrPref = 0;
+                int spreadPen = 0, deptSpreadPen = 0;
+                int tooBigRooms = 0;
+                int rcs = 0, uselessSlots = 0, uselessSlotsHH = 0, uselessSlotsBTP = 0;
+                HashSet used = new HashSet();
+                for (Enumeration f=vars.elements();f.hasMoreElements();) {
+                    Lecture lecture = (Lecture)f.nextElement();
+                    if (lecture.isCommitted()) continue;
+                    enrls+= lecture.students().size();
+                    Placement placement = (Placement)lecture.getAssignment();
+                    if (placement!=null) nrAssg++;
+                    
+                    int[] minMaxRoomPref = lecture.getMinMaxRoomPreference();
+                    minRoomPref += minMaxRoomPref[0];
+                    maxRoomPref += minMaxRoomPref[1];
+                    
+                    double[] minMaxTimePref = lecture.getMinMaxTimePreference();
+                    minTimePref += minMaxTimePref[0];
+                    maxTimePref += minMaxTimePref[1];
+                    
+                    if (placement!=null) {
+                        roomPref += placement.getRoomPreference();
+                        timePref += placement.getTimeLocation().getNormalizedPreference();
+                        tooBigRooms += placement.getTooBigRoomPreference();
+                    }
+                    
+                    for (Enumeration g=lecture.constraints().elements();g.hasMoreElements();) {
+                        Constraint c = (Constraint)g.nextElement();
+                        if (!used.add(c)) continue;
+                        
+                        if (c instanceof InstructorConstraint) {
+                            InstructorConstraint ic = (InstructorConstraint)c;
+                            instPref += ic.getPreference();
+                            worstInstrPref += ic.getWorstPreference();
+                        }
+                        
+                        if (c instanceof DepartmentSpreadConstraint) {
+                            DepartmentSpreadConstraint dsc = (DepartmentSpreadConstraint)c;
+                            deptSpreadPen += dsc.getPenalty();
+                        } else if (c instanceof SpreadConstraint) {
+                            SpreadConstraint sc = (SpreadConstraint)c;
+                            spreadPen += sc.getPenalty();
+                        }
+                        
+                        if (c instanceof GroupConstraint) {
+                            GroupConstraint gc = (GroupConstraint)c;
+                            if (gc.isHard()) continue;
+                            minGrPref += Math.min(gc.getPreference(),0);
+                            maxGrPref += Math.max(gc.getPreference(),0);
+                            grPref += gc.getCurrentPreference();
+                        }
+                        
+                        if (c instanceof JenrlConstraint) {
+                            JenrlConstraint jc = (JenrlConstraint)c;
+                            if (!jc.isInConflict() || !jc.isOfTheSameProblem()) continue;
+                            Lecture l1 = (Lecture)jc.first();
+                            Lecture l2 = (Lecture)jc.second();
+                            allSC += jc.getJenrl();
+                            if (l1.areStudentConflictsHard(l2))
+                                hardSC += jc.getJenrl();
+                            Placement p1 = (Placement)l1.getAssignment();
+                            Placement p2 = (Placement)l2.getAssignment();
+                            if (!p1.getTimeLocation().hasIntersection(p2.getTimeLocation()))
+                                distSC += jc.getJenrl();
+                        }
+                        
+                        if (c instanceof RoomConstraint) {
+                            RoomConstraint rc = (RoomConstraint)c;
+                            uselessSlots+=rc.countUselessSlots();
+                            uselessSlotsHH+=rc.countUselessSlotsHalfHours();
+                            uselessSlotsBTP+=rc.countUselessSlotsBrokenTimePatterns();
+                            rcs ++;
+                        }
+                    }
+                }
+                w.println(dx.format(scheduler)+"."+dx.format(idx++)+" Assigned variables,"+nrAssg);
+                w.println(dx.format(scheduler)+"."+dx.format(bidx++)+" Assigned variables max,"+vars.size());
+                if (m.getProperties().getPropertyBoolean("General.MPP",false)) {
+                    w.println(dx.format(scheduler)+"."+dx.format(idx++)+" Add. perturbancies,"+s.getPerturbationsCounter().getPerturbationPenalty(m,vars));
+                }
+                w.println(dx.format(scheduler)+"."+dx.format(idx++)+" Hard student conflicts,"+hardSC);
+                w.println(dx.format(scheduler)+"."+dx.format(bidx++)+" Student enrollments,"+enrls);
+                if (m.getProperties().getPropertyBoolean("General.UseDistanceConstraints", true))
+                    w.println(dx.format(scheduler)+"."+dx.format(idx++)+" Distance student conf.,"+distSC);
+                w.println(dx.format(scheduler)+"."+dx.format(idx++)+" Student conflicts,"+allSC);
+                w.println(dx.format(scheduler)+"."+dx.format(idx++)+" Time preferences,"+timePref);
+                w.println(dx.format(scheduler)+"."+dx.format(bidx++)+" Time preferences min,"+minTimePref);
+                w.println(dx.format(scheduler)+"."+dx.format(bidx++)+" Time preferences max,"+maxTimePref);
+                w.println(dx.format(scheduler)+"."+dx.format(idx++)+" Room preferences,"+roomPref);
+                w.println(dx.format(scheduler)+"."+dx.format(bidx++)+" Room preferences min,"+minRoomPref);
+                w.println(dx.format(scheduler)+"."+dx.format(bidx++)+" Room preferences max,"+maxRoomPref);
+                w.println(dx.format(scheduler)+"."+dx.format(idx++)+" Useless half-hours,"+uselessSlots);
+                w.println(dx.format(scheduler)+"."+dx.format(bidx++)+" Useless half-hours max,"+(Constants.sPreferenceLevelStronglyDiscouraged*rcs*Constants.SLOTS_PER_DAY_NO_EVENINGS*Constants.NR_DAYS_WEEK));
+                w.println(dx.format(scheduler)+"."+dx.format(idx++)+" Too big room,"+tooBigRooms);
+                w.println(dx.format(scheduler)+"."+dx.format(bidx++)+" Too big room max,"+(Constants.sPreferenceLevelStronglyDiscouraged*vars.size()));
+                w.println(dx.format(scheduler)+"."+dx.format(idx++)+" Distribution preferences,"+grPref);
+                w.println(dx.format(scheduler)+"."+dx.format(bidx++)+" Distribution preferences min,"+minGrPref);
+                w.println(dx.format(scheduler)+"."+dx.format(bidx++)+" Distribution preferences max,"+maxGrPref);
+                if (m.getProperties().getPropertyBoolean("General.UseDistanceConstraints", true))
+                    w.println(dx.format(scheduler)+"."+dx.format(idx++)+" Back-to-back instructor pref,"+instPref);
+                w.println(dx.format(scheduler)+"."+dx.format(bidx++)+" Back-to-back instructor pref max,"+worstInstrPref);
+                if (m.getProperties().getPropertyBoolean("General.DeptBalancing",true)) {
+                    w.println(dx.format(scheduler)+"."+dx.format(idx++)+" Department balancing penalty,"+sDoubleFormat.format(((double)deptSpreadPen)/12.0));
+                }
+                w.println(dx.format(scheduler)+"."+dx.format(idx++)+" Same subpart balancing penalty,"+sDoubleFormat.format(((double)spreadPen)/12.0));
             }
             w.flush();w.close();
         } catch (java.io.IOException io) {
