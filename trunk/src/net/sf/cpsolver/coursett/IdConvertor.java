@@ -42,18 +42,20 @@ import org.dom4j.io.XMLWriter;
  */
 public class IdConvertor {
 	private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(IdConvertor.class);
-	public static IdConvertor sInstance = null;
-	public Hashtable iConversion = new Hashtable();
+	private static IdConvertor sInstance = null;
+	private Hashtable iConversion = new Hashtable();
+	private String iFile = null;
 
     /** Constructor -- use {@link IdConvertor#getInstance} to get an instance of this class. */
-	protected IdConvertor() {
+	protected IdConvertor(String file) {
+	    iFile = file;
 		load();
 	}
 	
     /** Get an instance of IdConvertor class. */
 	public static IdConvertor getInstance() {
 		if (sInstance==null)
-			sInstance = new IdConvertor();
+			sInstance = new IdConvertor(null);
 		return sInstance;
 	}
 	
@@ -76,9 +78,7 @@ public class IdConvertor {
 	
     /** Save id conversion file. Name of the file needs to be provided by system property IdConvertor.File */
 	public void save() {
-		String file = (String)System.getProperty("IdConvertor.File");
-		if (file==null) return;
-		(new File(file)).getParentFile().mkdirs();
+		(new File(iFile)).getParentFile().mkdirs();
 		Document document = DocumentHelper.createDocument();
 		Element root = document.addElement("id-convertor");
 		synchronized (iConversion) {
@@ -95,7 +95,7 @@ public class IdConvertor {
 		}
         FileOutputStream fos = null;
         try {
-        	fos = new FileOutputStream(file);
+        	fos = new FileOutputStream(iFile);
         	(new XMLWriter(fos,OutputFormat.createPrettyPrint())).write(document);
         	fos.flush();fos.close();fos=null;
         } catch (Exception e) {
@@ -110,9 +110,10 @@ public class IdConvertor {
     /** Load id conversion file. Name of the file needs to be provided by system property IdConvertor.File */
 	public void load() {
 		try {
-			String file = (String)System.getProperty("IdConvertor.File");
-			if (file==null || !(new File(file)).getParentFile().exists()) return;
-			Document document = (new SAXReader()).read(file);
+			if (iFile==null) iFile = (String)System.getProperty("IdConvertor.File","idconv.xml");
+			if (iFile==null || !(new File(iFile)).getParentFile().exists()) return;
+			if (!(new File(iFile).exists())) return;
+			Document document = (new SAXReader()).read(iFile);
 			Element root = document.getRootElement();
 			synchronized (iConversion) {
 				iConversion.clear();
