@@ -364,6 +364,22 @@ public class TimetableModel extends ConstantModel {
         return penalty;
     }
     
+    public java.util.Hashtable getBounds() {
+        Hashtable ret = new Hashtable();
+        ret.put("Room preferences min", ""+iMinRoomPreference);
+        ret.put("Room preferences max", ""+iMaxRoomPreference);
+        ret.put("Time preferences min", ""+iMinTimePreference);
+        ret.put("Time preferences max", ""+iMaxTimePreference);
+        ret.put("Distribution preferences min", ""+iMinGroupConstraintPreference);
+        ret.put("Distribution preferences max", ""+iMaxGroupConstraintPreference);
+        if (getProperties().getPropertyBoolean("General.UseDistanceConstraints",false)) {
+            ret.put("Back-to-back instructor preferences max", ""+getInstructorWorstDistancePreference());
+        }
+        ret.put("Too big rooms max", ""+(Constants.sPreferenceLevelStronglyDiscouraged*variables().size()));
+        ret.put("Useless half-hours", ""+(Constants.sPreferenceLevelStronglyDiscouraged*getRoomConstraints().size()*Constants.SLOTS_PER_DAY_NO_EVENINGS*Constants.NR_DAYS_WEEK));
+        return ret;
+    }
+    
     /** Global info */
     public java.util.Hashtable getInfo() {
         Hashtable ret = super.getInfo();
