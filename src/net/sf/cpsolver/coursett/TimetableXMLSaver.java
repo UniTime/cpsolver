@@ -91,6 +91,8 @@ public class TimetableXMLSaver extends TimetableSaver {
     private boolean iSaveCurrent = false;
     private boolean iExportStudentSectioning = false;
     
+    private IdConvertor iIdConvertor = null;
+    
     public TimetableXMLSaver(Solver solver) {
         super(solver);
     	iOutputFolder = new File(getModel().getProperties().getProperty("General.Output","."+File.separator+"output"));
@@ -113,7 +115,8 @@ public class TimetableXMLSaver extends TimetableSaver {
     
     private String getId(String type, String id) {
     	if (!iConvertIds) return id.toString();
-    	return IdConvertor.getInstance().convert(type, id);
+    	if (iIdConvertor==null) iIdConvertor = new IdConvertor(getModel().getProperties().getProperty("Xml.IdConv"));
+    	return iIdConvertor.convert(type, id);
     }
     
     private String getId(String type, Number id) {
@@ -276,7 +279,7 @@ public class TimetableXMLSaver extends TimetableSaver {
             for (Enumeration e2=lecture.getInstructorConstraints().elements();e2.hasMoreElements();) {
             	InstructorConstraint ic = (InstructorConstraint)e2.nextElement();
                 Element instrEl = classEl.addElement("instructor").addAttribute("id", getId("inst", ic.getResourceId()));
-                if (iSaveCurrent && placement!=null) instrEl.addAttribute("solution","true");
+                if ((lecture.isCommitted() || iSaveCurrent) && placement!=null) instrEl.addAttribute("solution","true");
                 if (iSaveInitial && initialPlacement!=null) instrEl.addAttribute("initial","true");
                 if (iSaveBest && bestPlacement!=null && !bestPlacement.equals(placement)) instrEl.addAttribute("best", "true");
             }
@@ -285,7 +288,7 @@ public class TimetableXMLSaver extends TimetableSaver {
                 Element roomLocationEl = (Element)classEl.addElement("room");
                 roomLocationEl.addAttribute("id",  getId("room", rl.getId()));
                 roomLocationEl.addAttribute("pref", String.valueOf(rl.getPreference()));
-                if (iSaveCurrent && placement!=null && placement.hasRoomLocation(rl.getId())) roomLocationEl.addAttribute("solution", "true");
+                if ((lecture.isCommitted() || iSaveCurrent) && placement!=null && placement.hasRoomLocation(rl.getId())) roomLocationEl.addAttribute("solution", "true");
                 if (iSaveInitial && initialPlacement!=null && initialPlacement.hasRoomLocation(rl.getId())) roomLocationEl.addAttribute("initial", "true");
                 if (iSaveBest && bestPlacement!=null && !bestPlacement.equals(placement) && bestPlacement.hasRoomLocation(rl.getId())) roomLocationEl.addAttribute("best", "true");
                 if (!roomElements.containsKey(getId("room", rl.getId()))) {
@@ -329,7 +332,7 @@ public class TimetableXMLSaver extends TimetableSaver {
                     classEl.addAttribute("dates", bitset2string(tl.getWeekCode()));
                 	first = false;
                 }
-                if (iSaveCurrent && placement!=null && placement.getTimeLocation().equals(tl)) timeLocationEl.addAttribute("solution", "true");
+                if ((lecture.isCommitted() || iSaveCurrent) && placement!=null && placement.getTimeLocation().equals(tl)) timeLocationEl.addAttribute("solution", "true");
                 if (iSaveInitial && initialPlacement!=null && initialPlacement.getTimeLocation().equals(tl)) timeLocationEl.addAttribute("initial", "true");
                 if (iSaveBest && bestPlacement!=null && !bestPlacement.equals(placement) && bestPlacement.getTimeLocation().equals(tl)) timeLocationEl.addAttribute("best", "true");
             }
@@ -517,6 +520,6 @@ public class TimetableXMLSaver extends TimetableSaver {
     		} catch (IOException e) {}
         }
         
-        if (iConvertIds) IdConvertor.getInstance().save();
+        if (iConvertIds) iIdConvertor.save();
     }
 }
