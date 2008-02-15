@@ -2,6 +2,7 @@ package net.sf.cpsolver.studentsct;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.StringReader;
 import java.util.Enumeration;
 import java.util.Hashtable;
@@ -80,6 +81,42 @@ public class GetInfo {
         }
     }
     
+    public static Hashtable getInfo(File outputFile) {
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(outputFile));
+            String line = null;
+            Hashtable info = new Hashtable();
+            while ((line=reader.readLine())!=null) {
+                int idx = line.indexOf(','); 
+                if (idx>=0) {
+                    String key = line.substring(0, idx).trim();
+                    String value = line.substring(idx+1).trim();
+                    if (value.indexOf('(')>=0 && value.indexOf(')')>=0) {
+                        value = value.substring(value.indexOf('(')+1, value.indexOf(')'));
+                        if (value.indexOf('/')>=0) {
+                            String bound = value.substring(value.indexOf('/')+1);
+                            if (bound.indexOf("..")>=0) {
+                                String min = bound.substring(0, bound.indexOf(".."));
+                                String max = bound.substring(bound.indexOf("..")+2);
+                                info.put(key+" Min",min);
+                                info.put(key+" Max",max);
+                            } else {
+                                info.put(key+" Bound",bound);
+                            }
+                            value = value.substring(0, value.indexOf('/'));
+                        }
+                    }
+                    if (value.length()>0) info.put(key, value);
+                }
+            }
+            reader.close();
+            return info;
+        } catch (Exception e) {
+            System.err.println("Error reading info, message: "+e.getMessage());
+            return null;
+        }
+    }
+    
     public static Hashtable getInfo(Element root) {
         try {
             Hashtable info = new Hashtable();
@@ -121,6 +158,19 @@ public class GetInfo {
             try {
                 Document document = (new SAXReader()).read(infoFile);
                 Hashtable info = getInfo(document.getRootElement());
+                if (info!=null && !info.isEmpty()) {
+                    infos.addElement(new Object[]{prefix,info});
+                    return;
+                }
+            } catch (Exception e) {
+                System.err.println("Error reading file "+infoFile+", message: "+e.getMessage());
+            }
+        }
+        File outputFile = new File(folder, "output.csv");
+        if (outputFile.exists()) {
+            System.out.println("Reading "+outputFile+" ...");
+            try {
+                Hashtable info = getInfo(outputFile);
                 if (info!=null && !info.isEmpty()) {
                     infos.addElement(new Object[]{prefix,info});
                     return;
