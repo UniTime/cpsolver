@@ -227,6 +227,24 @@ public class TimetableXMLLoader extends TimetableLoader {
         String version = root.attributeValue("version");
         //boolean timePatternTransform = "1.0".equals(version) || "2.0".equals(version);
         
+        Hashtable perts = new Hashtable();
+        if (getModel().getProperties().getPropertyInt("MPP.TimePert", 0)>0) {
+            int nrChanges = getModel().getProperties().getPropertyInt("MPP.TimePert", 0);
+            int idx = 0;
+            for (Iterator i=root.element("perturbations").elementIterator("class");i.hasNext() && idx<nrChanges;idx++) {
+                Element pertEl = (Element)i.next();
+                Long classId = Long.valueOf(pertEl.attributeValue("id"));
+                TimeLocation tl = new TimeLocation(
+                        Integer.parseInt(pertEl.attributeValue("days"),2),
+                        Integer.parseInt(pertEl.attributeValue("start")),
+                        Integer.parseInt(pertEl.attributeValue("length")),
+                        0,
+                        0.0,
+                        null, null, null, 0);
+                perts.put(classId, tl);
+            }
+        }
+        
         iProgress.setPhase("Creating rooms ...",root.element("rooms").elements("room").size());
         Hashtable roomElements = new Hashtable();
         Hashtable roomConstraints = new Hashtable();
@@ -332,7 +350,7 @@ public class TimetableXMLLoader extends TimetableLoader {
             
             Configuration config = null;
             if (classEl.attributeValue("config")!=null) {
-            	config = (Configuration)configs.get(Integer.valueOf(classEl.attributeValue("config")));
+            	config = (Configuration)configs.get(Long.valueOf(classEl.attributeValue("config")));
             }
             if (config==null && classEl.attributeValue("offering")!=null) {
             	Long offeringId = Long.valueOf(classEl.attributeValue("offering"));
@@ -421,6 +439,7 @@ public class TimetableXMLLoader extends TimetableLoader {
             TimeLocation initialTimeLocation = null;
             TimeLocation assignedTimeLocation = null;
             TimeLocation bestTimeLocation = null;
+            TimeLocation prohibitedTime = (TimeLocation)perts.get(Long.valueOf(classEl.attributeValue("id")));
             for (Iterator i2=classEl.elementIterator("time");i2.hasNext();) {
                 Element timeLocationEl = (Element)i2.next();
                 TimeLocation tl = new TimeLocation(
@@ -438,6 +457,13 @@ public class TimetableXMLLoader extends TimetableLoader {
                 if (timePatternTransform)
                 	tl = transformTimePattern(Long.valueOf(classEl.attributeValue("id")),tl);
                 */
+                if (prohibitedTime!=null && 
+                        prohibitedTime.getDayCode()==tl.getDayCode() && 
+                        prohibitedTime.getStartSlot()==tl.getStartSlot() && 
+                        prohibitedTime.getLength()==tl.getLength()) {
+                    sLogger.info("Time "+tl.getLongName()+" is prohibited for class "+classEl.attributeValue("id"));
+                    continue;
+                }
                 if ("true".equals(timeLocationEl.attributeValue("solution")))
                 	assignedTimeLocation = tl;
                 if ("true".equals(timeLocationEl.attributeValue("initial")))
@@ -742,7 +768,10 @@ public class TimetableXMLLoader extends TimetableLoader {
             Placement placement = (Placement)entry.getValue();
             Hashtable conflictConstraints = getModel().conflictConstraints(placement);
             if (conflictConstraints.isEmpty()) {
-                lecture.assign(0,placement);
+                if (!lecture.isCommitted() && !placement.isValid()) {
+                    sLogger.warn("WARNING: Lecture "+lecture.getName()+" does not contain assignment "+placement.getLongName()+" in its domain ("+placement.getNotValidReason()+").");
+                } else
+                    lecture.assign(0,placement);
             } else {
                 sLogger.warn("WARNING: Unable to assign "+lecture.getName()+" := "+placement.getName());
                 sLogger.debug("  Reason:");
