@@ -137,6 +137,7 @@ public class Test implements SolutionListener {
 	public Test(String[] args) {
         try {
             DataProperties properties = ToolBox.loadProperties(new java.io.File(args[0]));
+            properties.putAll(System.getProperties());
             properties.setProperty("General.Output", properties.getProperty("General.Output",".")+File.separator+(sDateFormat.format(new Date())));
             if (args.length>1)
                 properties.setProperty("General.Input", args[1]);
@@ -144,12 +145,6 @@ public class Test implements SolutionListener {
                 properties.setProperty("General.Output", args[2]+File.separator+(sDateFormat.format(new Date())));
             System.out.println("Output folder: "+properties.getProperty("General.Output"));
             ToolBox.configureLogging(properties.getProperty("General.Output"),properties,false,false);
-            
-            /*
-            if (properties.getPropertyBoolean("General.InitHibernate",false)) {
-            	HibernateUtil.configureHibernate(properties.getProperty("connection.url"));
-            }
-            */
             
             File outDir = new File(properties.getProperty("General.Output","."));
             outDir.mkdirs();
@@ -212,7 +207,10 @@ public class Test implements SolutionListener {
                 
                 if (properties.getPropertyBoolean("General.Save",false)) {
                 	TimetableSaver saver = (TimetableSaver)Class.forName(getTimetableSaverClass(properties)).getConstructor(new Class[] {Solver.class}).newInstance(new Object[] {solver});
-                	saver.save();
+                	if ((saver instanceof TimetableXMLSaver) && properties.getProperty("General.SolutionFile")!=null)
+                	    ((TimetableXMLSaver)saver).save(new File(properties.getProperty("General.SolutionFile")));
+                	else
+                	    saver.save();
                 }
             } else sLogger.info("Last solution:"+ToolBox.dict2string(solver.lastSolution().getInfo(),1));
             
@@ -227,6 +225,9 @@ public class Test implements SolutionListener {
             out.println("</html>");
             out.flush(); out.close();
             Progress.removeInstance(model);
+            
+            System.out.println("Unassigned variables: "+model.nrUnassignedVariables());
+            System.exit(model.nrUnassignedVariables());
         } catch (Throwable t) {
             sLogger.error("Test failed.",t);
         }
@@ -503,14 +504,22 @@ public class Test implements SolutionListener {
                 totalMinRoomPref += lect.getMinMaxRoomPreference()[0];
                 totalRoomPref += Math.abs(lect.getMinMaxRoomPreference()[1]-lect.getMinMaxRoomPreference()[0]);
                 TimeLocation time = p.getTimeLocation();
-                for (int d=0;d<Constants.NR_DAYS_WEEK;d++) {
-                    if ((time.getDayCode() & Constants.DAY_CODES[d]) == 0) continue;
-                    for (int t=Math.max(time.getStartSlot(),Constants.DAY_SLOTS_FIRST);t<=Math.min(time.getStartSlot()+time.getLength()-1, Constants.DAY_SLOTS_LAST);t++) {
-                        for (int l=0;l<sizeLimits.length;l++) {
-                            if (sizeLimits[l]<=lect.minRoomSize()) {
-                                totalUsedSlots[l]+=lect.getNrRooms();
-                                totalUsedSeats[l]+=lect.classLimit();
-                                totalUsedSeats2[l]+=lect.minRoomSize()*lect.getNrRooms();
+                boolean hasRoomConstraint = false;
+                for (Enumeration g=lect.roomLocations().elements();g.hasMoreElements();) {
+                    RoomLocation roomLocation = (RoomLocation)g.nextElement();
+                    if (roomLocation.getRoomConstraint().getConstraint())
+                        hasRoomConstraint = true;
+                }
+                if (hasRoomConstraint && lect.getNrRooms()>0) {
+                    for (int d=0;d<Constants.NR_DAYS_WEEK;d++) {
+                        if ((time.getDayCode() & Constants.DAY_CODES[d]) == 0) continue;
+                        for (int t=Math.max(time.getStartSlot(),Constants.DAY_SLOTS_FIRST);t<=Math.min(time.getStartSlot()+time.getLength()-1, Constants.DAY_SLOTS_LAST);t++) {
+                            for (int l=0;l<sizeLimits.length;l++) {
+                                if (sizeLimits[l]<=lect.minRoomSize()) {
+                                    totalUsedSlots[l]+=lect.getNrRooms();
+                                    totalUsedSeats[l]+=lect.classLimit();
+                                    totalUsedSeats2[l]+=lect.minRoomSize()*lect.getNrRooms();
+                                }
                             }
                         }
                     }
@@ -634,10 +643,12 @@ public class Test implements SolutionListener {
         double totalRoomDistance = 0.0;
         int[] totalAvailableSlots = new int[sizeLimits.length];
         int[] totalAvailableSeats = new int[sizeLimits.length];
-        int totalAllSlots = 0;
+        int totalAllSlots = 0, nrOfRooms = 0;
         totalRoomSize = 0;
         for (Enumeration e1=model.getRoomConstraints().elements();e1.hasMoreElements();) {
         	RoomConstraint rc = (RoomConstraint)e1.nextElement();
+        	if (!rc.getConstraint() || rc.variables().isEmpty()) continue;
+        	nrOfRooms++;
         	minRoomSize = Math.min(minRoomSize, rc.getCapacity());
         	maxRoomSize = Math.max(maxRoomSize, rc.getCapacity());
         	for (int l=0;l<sizeLimits.length;l++) {
@@ -665,23 +676,22 @@ public class Test implements SolutionListener {
         			}
         		}
         	}
-        	for (int d=0;d<Constants.NR_DAYS_WEEK;d++) {
-        		for (int t=Constants.DAY_SLOTS_FIRST;t<=Constants.DAY_SLOTS_LAST;t++) {
-        			totalAllSlots++;
-        			if (rc.isAvailable(d*Constants.SLOTS_PER_DAY+t)) {
+            for (int d=0;d<Constants.NR_DAYS_WEEK;d++) {
+                for (int t=Constants.DAY_SLOTS_FIRST;t<=Constants.DAY_SLOTS_LAST;t++) {
+                    totalAllSlots++;
+                    if (rc.isAvailable(d*Constants.SLOTS_PER_DAY+t)) {
                         for (int l=0;l<sizeLimits.length;l++) {
                             if (sizeLimits[l]<=rc.getCapacity()) {
                                 totalAvailableSlots[l]++;
                                 totalAvailableSeats[l]+=rc.getCapacity();
                             }
                         }
-        			}
-        		}
-        	}
-        	
+                    }
+                }
+            }
         }
-        pw.println("Total number of rooms: "+model.getRoomConstraints().size());
-        pwi.println("Number of rooms,"+model.getRoomConstraints().size());
+        pw.println("Total number of rooms: "+nrOfRooms);
+        pwi.println("Number of rooms,"+nrOfRooms);
         pw.println("Minimal room size: "+minRoomSize);
         pw.println("Maximal room size: "+maxRoomSize);
         pwi.println("Room size min/max,"+minRoomSize+"/"+maxRoomSize);
@@ -690,7 +700,7 @@ public class Test implements SolutionListener {
         pw.println("Average distance between two rooms: "+sDoubleFormat.format(5.0*totalRoomDistance/nrDistancePairs));
         pw.println("Average distance between two rooms [m],"+sDoubleFormat.format(5.0*totalRoomDistance/nrDistancePairs));
         pw.println("Maximal distance between two rooms [m],"+sDoubleFormat.format(5.0*maxRoomDistance));
-        for (int l=0;l<sizeLimits.length;l++) {
+        for (int l=0;l<1;l++) {//sizeLimits.length;l++) {
             pwi.println("\"Room frequency (size>="+sizeLimits[l]+", used/avaiable times)\","+sDoubleFormat.format(100.0*totalUsedSlots[l]/totalAvailableSlots[l])+"%");
             pwi.println("\"Room utilization (size>="+sizeLimits[l]+", used/available seats)\","+sDoubleFormat.format(100.0*totalUsedSeats[l]/totalAvailableSeats[l])+"%");
             pwi.println("\"Number of rooms (size>="+sizeLimits[l]+")\","+nrRoomsOfSize[l]);
@@ -740,20 +750,20 @@ public class Test implements SolutionListener {
         pwi.flush();pwi.close();
     }
     
-    private void saveOutputCSV(Solution s,File file) {
+    public static void saveOutputCSV(Solution s,File file) {
         try {
             DecimalFormat dx = new DecimalFormat("000");
             PrintWriter w = new PrintWriter(new FileWriter(file));
             TimetableModel m = (TimetableModel)s.getModel();
             int idx = 1;
             w.println("000."+dx.format(idx++)+" Assigned variables,"+m.assignedVariables().size());
-            if (m.getProperties().getPropertyBoolean("General.MPP",false))
-                w.println("000."+dx.format(idx++)+" Add. perturbancies,"+s.getPerturbationsCounter().getPerturbationPenalty(m));
             w.println("000."+dx.format(idx++)+" Time [sec],"+sDoubleFormat.format(s.getBestTime()));
             w.println("000."+dx.format(idx++)+" Hard student conflicts,"+m.getHardStudentConflicts());
             if (m.getProperties().getPropertyBoolean("General.UseDistanceConstraints", true))
                 w.println("000."+dx.format(idx++)+" Distance student conf.,"+m.getStudentDistanceConflicts());
             w.println("000."+dx.format(idx++)+" Student conflicts,"+m.getViolatedStudentConflicts());
+            w.println("000."+dx.format(idx++)+" Committed student conflicts,"+m.getCommitedStudentConflicts());
+            w.println("000."+dx.format(idx++)+" All Student conflicts,"+(m.getViolatedStudentConflicts()+m.getCommitedStudentConflicts()));
             w.println("000."+dx.format(idx++)+" Time preferences,"+sDoubleFormat.format(m.getGlobalTimePreference()));
             w.println("000."+dx.format(idx++)+" Room preferences,"+m.getGlobalRoomPreference());
             w.println("000."+dx.format(idx++)+" Useless half-hours,"+m.getUselessSlots());
@@ -766,11 +776,66 @@ public class Test implements SolutionListener {
             }
             w.println("000."+dx.format(idx++)+" Same subpart balancing penalty,"+sDoubleFormat.format(m.getSpreadPenalty()));
             if (m.getProperties().getPropertyBoolean("General.MPP",false)) {
-                Hashtable mppInfo = ((UniversalPerturbationsCounter)s.getPerturbationsCounter()).getCompactInfo(m, false, false);
+                Hashtable mppInfo = ((UniversalPerturbationsCounter)m.getPerturbationsCounter()).getCompactInfo(m, false, false);
+                int pidx = 51;
+                w.println("000."+dx.format(pidx++)+" Perturbation penalty,"+sDoubleFormat.format(m.getPerturbationsCounter().getPerturbationPenalty(m)));
+                w.println("000."+dx.format(pidx++)+" Additional perturbations,"+m.perturbVariables().size());
+                int nrPert = 0, nrStudentPert = 0;
+                for (Enumeration e=m.variables().elements();e.hasMoreElements();) { 
+                    Lecture lecture = (Lecture)e.nextElement();
+                    if (lecture.getInitialAssignment()!=null) continue;
+                    nrPert++;
+                    nrStudentPert+=lecture.classLimit();
+                }
+                w.println("000."+dx.format(pidx++)+" Given perturbations,"+nrPert);
+                w.println("000."+dx.format(pidx++)+" Given student perturbations,"+nrStudentPert);
                 for (Enumeration e=ToolBox.sortEnumeration(mppInfo.keys());e.hasMoreElements();) {
                     String key = (String)e.nextElement();
-                    w.println("000."+dx.format(idx++)+" "+key+","+mppInfo.get(key));
+                    Number value = (Number)mppInfo.get(key);
+                    w.println("000."+dx.format(pidx++)+" "+key+","+sDoubleFormat.format(value));
                 }
+            }
+            HashSet students = new HashSet();
+            int enrls = 0;
+            int minRoomPref = 0, maxRoomPref = 0;
+            int minGrPref = 0, maxGrPref = 0;
+            int minTimePref = 0, maxTimePref = 0;
+            int worstInstrPref = 0;
+            HashSet used = new HashSet();
+            for (Enumeration e1=m.variables().elements();e1.hasMoreElements();) {
+                Lecture lecture = (Lecture)e1.nextElement();
+                enrls += (lecture.students()==null?0:lecture.students().size());
+                students.addAll(lecture.students());
+                
+                int[] minMaxRoomPref = lecture.getMinMaxRoomPreference();
+                minRoomPref += minMaxRoomPref[0];
+                maxRoomPref += minMaxRoomPref[1];
+                
+                double[] minMaxTimePref = lecture.getMinMaxTimePreference();
+                minTimePref += minMaxTimePref[0];
+                maxTimePref += minMaxTimePref[1];
+                for (Enumeration g=lecture.constraints().elements();g.hasMoreElements();) {
+                    Constraint c = (Constraint)g.nextElement();
+                    if (!used.add(c)) continue;
+                    
+                    if (c instanceof InstructorConstraint) {
+                        InstructorConstraint ic = (InstructorConstraint)c;
+                        worstInstrPref += ic.getWorstPreference();
+                    }
+                    
+                    if (c instanceof GroupConstraint) {
+                        GroupConstraint gc = (GroupConstraint)c;
+                        if (gc.isHard()) continue;
+                        minGrPref += Math.min(gc.getPreference(),0);
+                        maxGrPref += Math.max(gc.getPreference(),0);
+                    }
+                }
+            }
+            int totalCommitedPlacements = 0;
+            for (Iterator i=students.iterator();i.hasNext();) {
+                Student student = (Student)i.next();
+                if (student.getCommitedPlacements()!=null)
+                    totalCommitedPlacements += student.getCommitedPlacements().size();
             }
             Hashtable subs = new Hashtable();
             for (Enumeration e=m.variables().elements();e.hasMoreElements();) {
@@ -783,26 +848,43 @@ public class Test implements SolutionListener {
                 }
                 vars.add(lecture);
             }
+            int bidx = 101;
+            w.println("000."+dx.format(bidx++)+" Assigned variables max,"+m.variables().size());
+            w.println("000."+dx.format(bidx++)+" Student enrollments,"+enrls);
+            w.println("000."+dx.format(bidx++)+" Student commited enrollments,"+totalCommitedPlacements);
+            w.println("000."+dx.format(bidx++)+" All student enrollments,"+(enrls+totalCommitedPlacements));
+            w.println("000."+dx.format(bidx++)+" Time preferences min,"+minTimePref);
+            w.println("000."+dx.format(bidx++)+" Time preferences max,"+maxTimePref);
+            w.println("000."+dx.format(bidx++)+" Room preferences min,"+minRoomPref);
+            w.println("000."+dx.format(bidx++)+" Room preferences max,"+maxRoomPref);
+            w.println("000."+dx.format(bidx++)+" Useless half-hours max,"+(Constants.sPreferenceLevelStronglyDiscouraged*m.getRoomConstraints().size()*Constants.SLOTS_PER_DAY_NO_EVENINGS*Constants.NR_DAYS_WEEK));
+            w.println("000."+dx.format(bidx++)+" Too big room max,"+(Constants.sPreferenceLevelStronglyDiscouraged*m.variables().size()));
+            w.println("000."+dx.format(bidx++)+" Distribution preferences min,"+minGrPref);
+            w.println("000."+dx.format(bidx++)+" Distribution preferences max,"+maxGrPref);
+            w.println("000."+dx.format(bidx++)+" Back-to-back instructor pref max,"+worstInstrPref);
             for (Enumeration e=ToolBox.sortEnumeration(subs.keys());e.hasMoreElements();) {
                 Long scheduler = (Long)e.nextElement();
                 Vector vars = (Vector)subs.get(scheduler);
-                idx = 001; int bidx = 101;
-                int nrAssg = 0, enrls = 0;
-                int roomPref = 0, minRoomPref = 0, maxRoomPref = 0;
-                double timePref = 0, minTimePref = 0, maxTimePref = 0;
-                double grPref = 0, minGrPref = 0, maxGrPref = 0;
-                long allSC = 0, hardSC = 0, distSC = 0;
-                int instPref = 0, worstInstrPref = 0;
+                idx = 001; bidx = 101;
+                int nrAssg = 0; enrls = 0;
+                int roomPref = 0; minRoomPref = 0; maxRoomPref = 0;
+                double timePref = 0; minTimePref = 0; maxTimePref = 0;
+                double grPref = 0; minGrPref = 0; maxGrPref = 0;
+                long allSC = 0, hardSC = 0, distSC = 0, comSC = 0;
+                int instPref = 0; worstInstrPref = 0;
                 int spreadPen = 0, deptSpreadPen = 0;
                 int tooBigRooms = 0;
                 int rcs = 0, uselessSlots = 0, uselessSlotsHH = 0, uselessSlotsBTP = 0;
-                HashSet used = new HashSet();
+                used = new HashSet();
                 for (Enumeration f=vars.elements();f.hasMoreElements();) {
                     Lecture lecture = (Lecture)f.nextElement();
                     if (lecture.isCommitted()) continue;
                     enrls+= lecture.students().size();
                     Placement placement = (Placement)lecture.getAssignment();
-                    if (placement!=null) nrAssg++;
+                    if (placement!=null) {
+                        nrAssg++;
+                        comSC += lecture.getCommitedConflicts(placement);
+                    }
                     
                     int[] minMaxRoomPref = lecture.getMinMaxRoomPreference();
                     minRoomPref += minMaxRoomPref[0];
@@ -869,9 +951,6 @@ public class Test implements SolutionListener {
                 }
                 w.println(dx.format(scheduler)+"."+dx.format(idx++)+" Assigned variables,"+nrAssg);
                 w.println(dx.format(scheduler)+"."+dx.format(bidx++)+" Assigned variables max,"+vars.size());
-                if (m.getProperties().getPropertyBoolean("General.MPP",false)) {
-                    w.println(dx.format(scheduler)+"."+dx.format(idx++)+" Add. perturbancies,"+s.getPerturbationsCounter().getPerturbationPenalty(m,vars));
-                }
                 w.println(dx.format(scheduler)+"."+dx.format(idx++)+" Hard student conflicts,"+hardSC);
                 w.println(dx.format(scheduler)+"."+dx.format(bidx++)+" Student enrollments,"+enrls);
                 if (m.getProperties().getPropertyBoolean("General.UseDistanceConstraints", true))
