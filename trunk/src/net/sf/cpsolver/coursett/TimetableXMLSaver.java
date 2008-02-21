@@ -229,6 +229,7 @@ public class TimetableXMLSaver extends TimetableSaver {
             if (lecture.isCommitted() && placement==null)
             	placement = (Placement)lecture.getInitialAssignment();
             Placement initialPlacement = (Placement)lecture.getInitialAssignment();
+            //if (initialPlacement==null) initialPlacement = (Placement)lecture.getAssignment();
             Placement bestPlacement = (Placement)lecture.getBestAssignment();
             Element classEl = classesEl.addElement("class").addAttribute("id", getId("class", lecture.getClassId()));
             classElements.put(lecture.getClassId(), classEl);
@@ -487,6 +488,24 @@ public class TimetableXMLSaver extends TimetableSaver {
                 	Lecture lecture = (Lecture)placement.variable();
                 	stEl.addElement("class").addAttribute("id",getId("class", lecture.getClassId()));
                 }
+            }
+        }
+        
+        if (getModel().getProperties().getPropertyInt("MPP.GenTimePert", 0)>0) {
+            Element perturbationsEl = root.addElement("perturbations");
+            int nrChanges = getModel().getProperties().getPropertyInt("MPP.GenTimePert", 0);
+            Vector lectures = new Vector();
+            while (lectures.size()<nrChanges) {
+                Lecture lecture = (Lecture)ToolBox.random(getModel().assignedVariables());
+                if (lecture.isCommitted() || lecture.timeLocations().size()<=1 || lectures.contains(lecture)) continue;
+                Placement placement = (Placement)lecture.getAssignment();
+                TimeLocation tl = (TimeLocation)placement.getTimeLocation();
+                perturbationsEl.addElement("class")
+                    .addAttribute("id", getId("class", lecture.getClassId()))
+                    .addAttribute("days", sDF[7].format(Long.parseLong(Integer.toBinaryString(tl.getDayCode()))))
+                    .addAttribute("start", String.valueOf(tl.getStartSlot()))
+                    .addAttribute("length", String.valueOf(tl.getLength()));
+                lectures.add(lecture);
             }
         }
         
