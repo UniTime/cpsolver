@@ -600,7 +600,7 @@ public class Exam extends Variable {
      * List of distribution constraints that this exam is involved in
      * @return list of {@link ExamDistributionConstraint}
      */
-    public Vector getDistributionConstraints() { return iStudents; }
+    public Vector getDistributionConstraints() { return iDistConstraints; }
     
     /** 
      * Check all distribution constraint that this exam is involved in 
