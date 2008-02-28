@@ -75,6 +75,7 @@ public class Exam extends Variable {
     private static Logger sLog = Logger.getLogger(Exam.class);
     protected static java.text.DecimalFormat sDoubleFormat = new java.text.DecimalFormat("0.00",new java.text.DecimalFormatSymbols(Locale.US));
     private Vector iStudents = new Vector();
+    private Vector iInstructors = new Vector();
     private Vector iDistConstraints = new Vector();
     private boolean iAllowDirectConflicts = true;
     private boolean iSectionExam = false;
@@ -576,6 +577,7 @@ public class Exam extends Variable {
     public void addContstraint(Constraint constraint) {
         if (constraint instanceof ExamStudent) iStudents.add(constraint);
         if (constraint instanceof ExamDistributionConstraint) iDistConstraints.add(constraint);
+        if (constraint instanceof ExamInstructor) iInstructors.add(constraint);
         super.addContstraint(constraint);
     }
     
@@ -586,6 +588,7 @@ public class Exam extends Variable {
     public void removeContstraint(Constraint constraint) {
         if (constraint instanceof ExamStudent) iStudents.remove(constraint);
         if (constraint instanceof ExamDistributionConstraint) iDistConstraints.remove(constraint);
+        if (constraint instanceof ExamInstructor) iInstructors.remove(constraint);
         super.removeContstraint(constraint);
     }
     
@@ -602,6 +605,12 @@ public class Exam extends Variable {
      */
     public Vector getDistributionConstraints() { return iDistConstraints; }
     
+    /** 
+     * List of instructors that are assigned to this exam
+     * @return list of {@link ExamInstructor}
+     */
+    public Vector getInstructors() { return iInstructors; }
+
     /** 
      * Check all distribution constraint that this exam is involved in 
      * @param period a period to be assigned to this exam
