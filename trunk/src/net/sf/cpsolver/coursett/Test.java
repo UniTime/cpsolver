@@ -746,6 +746,7 @@ public class Test implements SolutionListener {
         pw.println("Average classes per group constraint: "+sDoubleFormat.format(1.0*nrVarsInGroupConstraints/nrGroupConstraints));
         //pwi.println("Average classes per group constraint,"+sDoubleFormat.format(1.0*nrVarsInGroupConstraints/nrGroupConstraints));
         pwi.println("Avg. number distribution constraints per class,"+sDoubleFormat.format(1.0*nrVarsInGroupConstraints/model.variables().size()));
+        pwi.println("Joint enrollment constraints,"+model.getJenrlConstraints().size());
         pw.flush();pw.close();
         pwi.flush();pwi.close();
     }
