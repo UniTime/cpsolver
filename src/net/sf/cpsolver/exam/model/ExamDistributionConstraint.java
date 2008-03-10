@@ -186,9 +186,9 @@ public class ExamDistributionConstraint extends Constraint {
             }
             ExamPlacement placement = (ExamPlacement)exam.getAssignment();
             if (placement==null) continue;
-            if (!check(before?placement:givenPlacement, before?givenPlacement:placement)) return false;
+            if (!check(before?placement:givenPlacement, before?givenPlacement:placement)) return true;
         }
-        return true;
+        return false;
     }
     
     /**
@@ -211,6 +211,8 @@ public class ExamDistributionConstraint extends Constraint {
         switch (getType()) {
         case sDistPrecedence :
             return first.getPeriod().getIndex()<second.getPeriod().getIndex();
+        case sDistPrecedenceRev :
+            return first.getPeriod().getIndex()>second.getPeriod().getIndex();
         case sDistSamePeriod :
             return first.getPeriod().getIndex()==second.getPeriod().getIndex();
         case sDistDifferentPeriod :
@@ -239,15 +241,35 @@ public class ExamDistributionConstraint extends Constraint {
      * Return true if this is hard constraint or this is a soft constraint without any violation
      */
     public boolean isSatisfied() {
+        return isSatisfied(null);
+    }
+    
+    /**
+     * Return true if this is hard constraint or this is a soft constraint without any violation
+     * @param placement exam assignment to be made
+     */
+    public boolean isSatisfied(ExamPlacement p) {
         if (isHard()) return true;
         switch (getType()) {
         case sDistPrecedence :
             ExamPeriod last = null;
             for (Enumeration e=variables().elements();e.hasMoreElements();) {
                 Exam exam = (Exam)e.nextElement();
-                ExamPlacement placement = (ExamPlacement)exam.getAssignment();
+                ExamPlacement placement = (p!=null && exam.equals(p.variable())?p:(ExamPlacement)exam.getAssignment());
                 if (placement==null) continue;
                 if (last==null || last.getIndex()<placement.getPeriod().getIndex())
+                    last = placement.getPeriod();
+                else
+                    return false;
+            }
+            return true;
+        case sDistPrecedenceRev :
+            last = null;
+            for (Enumeration e=variables().elements();e.hasMoreElements();) {
+                Exam exam = (Exam)e.nextElement();
+                ExamPlacement placement = (p!=null && exam.equals(p.variable())?p:(ExamPlacement)exam.getAssignment());
+                if (placement==null) continue;
+                if (last==null || last.getIndex()>placement.getPeriod().getIndex())
                     last = placement.getPeriod();
                 else
                     return false;
@@ -257,7 +279,7 @@ public class ExamDistributionConstraint extends Constraint {
             ExamPeriod period = null;
             for (Enumeration e=variables().elements();e.hasMoreElements();) {
                 Exam exam = (Exam)e.nextElement();
-                ExamPlacement placement = (ExamPlacement)exam.getAssignment();
+                ExamPlacement placement = (p!=null && exam.equals(p.variable())?p:(ExamPlacement)exam.getAssignment());
                 if (placement==null) continue;
                 if (period==null)
                     period = placement.getPeriod();
@@ -269,7 +291,7 @@ public class ExamDistributionConstraint extends Constraint {
             HashSet periods = new HashSet();
             for (Enumeration e=variables().elements();e.hasMoreElements();) {
                 Exam exam = (Exam)e.nextElement();
-                ExamPlacement placement = (ExamPlacement)exam.getAssignment();
+                ExamPlacement placement = (p!=null && exam.equals(p.variable())?p:(ExamPlacement)exam.getAssignment());
                 if (placement==null) continue;
                 if (!periods.add(placement.getPeriod())) return false;
             }
@@ -278,7 +300,7 @@ public class ExamDistributionConstraint extends Constraint {
             Set rooms = null;
             for (Enumeration e=variables().elements();e.hasMoreElements();) {
                 Exam exam = (Exam)e.nextElement();
-                ExamPlacement placement = (ExamPlacement)exam.getAssignment();
+                ExamPlacement placement = (p!=null && exam.equals(p.variable())?p:(ExamPlacement)exam.getAssignment());
                 if (placement==null) continue;
                 if (rooms==null)
                     rooms = placement.getRooms();
@@ -290,7 +312,7 @@ public class ExamDistributionConstraint extends Constraint {
             HashSet allRooms = new HashSet();
             for (Enumeration e=variables().elements();e.hasMoreElements();) {
                 Exam exam = (Exam)e.nextElement();
-                ExamPlacement placement = (ExamPlacement)exam.getAssignment();
+                ExamPlacement placement = (p!=null && exam.equals(p.variable())?p:(ExamPlacement)exam.getAssignment());
                 if (placement==null) continue;
                 for (Iterator i=placement.getRooms().iterator();i.hasNext();) {
                     ExamRoom room = (ExamRoom)i.next();
@@ -302,6 +324,7 @@ public class ExamDistributionConstraint extends Constraint {
             return false;
         }
     }
+    
     
     boolean iIsSatisfied = true;
     public void assigned(long iteration, Value value) {
