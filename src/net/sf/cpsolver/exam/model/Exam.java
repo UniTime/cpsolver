@@ -637,6 +637,13 @@ public class Exam extends Variable {
                         break;
                     case ExamDistributionConstraint.sDistPrecedence :
                         if (before) {
+                            if (period.getIndex()<=placement.getPeriod().getIndex()) return false;
+                        } else {
+                            if (period.getIndex()>=placement.getPeriod().getIndex()) return false;
+                        }
+                        break;
+                    case ExamDistributionConstraint.sDistPrecedenceRev :
+                        if (before) {
                             if (period.getIndex()>=placement.getPeriod().getIndex()) return false;
                         } else {
                             if (period.getIndex()<=placement.getPeriod().getIndex()) return false;
