@@ -246,7 +246,7 @@ public class ExamDistributionConstraint extends Constraint {
     
     /**
      * Return true if this is hard constraint or this is a soft constraint without any violation
-     * @param placement exam assignment to be made
+     * @param p exam assignment to be made
      */
     public boolean isSatisfied(ExamPlacement p) {
         if (isHard()) return true;
