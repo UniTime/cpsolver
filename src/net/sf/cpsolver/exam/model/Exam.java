@@ -187,6 +187,7 @@ public class Exam extends Variable {
                 iPeriods = new Vector();
                 for (Enumeration e=((ExamModel)getModel()).getPeriods().elements();e.hasMoreElements();) {
                     ExamPeriod period = (ExamPeriod)e.nextElement();
+                    if (period.getLength()<getLength()) continue;
                     if (isAvailable(period)) iPeriods.add(period);
                 }
             }
