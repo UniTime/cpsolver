@@ -101,6 +101,10 @@ public class ExamModel extends Model {
     private double iDistributionWeight = 1.0;
     private int iBackToBackDistance = 67;
     private int iPeriodProhibitedWeight = 99;
+    private double iInstructorDirectConflictWeight = 1000.0;
+    private double iInstructorMoreThanTwoADayWeight = 100.0;
+    private double iInstructorBackToBackConflictWeight = 10.0;
+    private double iInstructorDistanceBackToBackConflictWeight = 25.0;
 
     private int iNrDirectConflicts = 0;
     private int iNrBackToBackConflicts = 0;
@@ -113,7 +117,11 @@ public class ExamModel extends Model {
     private int iPeriodPenalty = 0;
     private int iExamRotationPenalty = 0;
     private int iNotOriginalRoomPenalty = 0;
-    
+    private int iNrInstructorDirectConflicts = 0;
+    private int iNrInstructorBackToBackConflicts = 0;
+    private int iNrInstructorDistanceBackToBackConflicts = 0;
+    private int iNrInstructorMoreThanTwoADayConflicts = 0;
+
     private Vector iRoomGroups = new Vector();
     
     /**
@@ -140,6 +148,10 @@ public class ExamModel extends Model {
         iBackToBackDistance = properties.getPropertyInt("Exams.BackToBackDistance", iBackToBackDistance);
         iPeriodProhibitedWeight = properties.getPropertyInt("Exams.PeriodProhibitedWeight", iPeriodProhibitedWeight);
         iDistributionWeight = properties.getPropertyDouble("Exams.DistributionWeight", iDistributionWeight);
+        iInstructorDirectConflictWeight = properties.getPropertyDouble("Exams.InstructorDirectConflictWeight", iInstructorDirectConflictWeight);
+        iInstructorBackToBackConflictWeight = properties.getPropertyDouble("Exams.InstructorBackToBackConflictWeight", iInstructorBackToBackConflictWeight);
+        iInstructorDistanceBackToBackConflictWeight = properties.getPropertyDouble("Exams.InstructorDistanceBackToBackConflictWeight", iInstructorDistanceBackToBackConflictWeight);
+        iInstructorMoreThanTwoADayWeight = properties.getPropertyDouble("Exams.InstructorMoreThanTwoADayWeight", iInstructorMoreThanTwoADayWeight);
     }
     
     /**
@@ -280,6 +292,63 @@ public class ExamModel extends Model {
     public void setMoreThanTwoADayWeight(double moreThanTwoADayWeight) {
         iMoreThanTwoADayWeight = moreThanTwoADayWeight;
     }
+    /**
+     * Direct instructor conflict weight (can be set by problem property Exams.InstructorDirectConflictWeight, 
+     * or in the input xml file, property instructorDirectConflictWeight)
+     */
+    public double getInstructorDirectConflictWeight() {
+        return iInstructorDirectConflictWeight;
+    }
+    /**
+     * Direct instructor conflict weight (can be set by problem property Exams.InstructorDirectConflictWeight, 
+     * or in the input xml file, property instructorDirectConflictWeight)
+     */
+    public void setInstructorDirectConflictWeight(double directConflictWeight) {
+        iInstructorDirectConflictWeight = directConflictWeight;
+    }
+    /**
+     * Back-to-back instructor conflict weight (can be set by problem property Exams.InstructorBackToBackConflictWeight, 
+     * or in the input xml file, property instructorBackToBackConflictWeight)
+     */
+    public double getInstructorBackToBackConflictWeight() {
+        return iInstructorBackToBackConflictWeight;
+    }
+    /**
+     * Back-to-back instructor conflict weight (can be set by problem property Exams.InstructorBackToBackConflictWeight, 
+     * or in the input xml file, property instructorBackToBackConflictWeight)
+     */
+    public void setInstructorBackToBackConflictWeight(double backToBackConflictWeight) {
+        iInstructorBackToBackConflictWeight = backToBackConflictWeight;
+    }
+    /**
+     * Distance back-to-back instructor conflict weight (can be set by problem property Exams.InstructorDistanceBackToBackConflictWeight, 
+     * or in the input xml file, property instructorDistanceBackToBackConflictWeight)
+     */
+    public double getInstructorDistanceBackToBackConflictWeight() {
+        return iInstructorDistanceBackToBackConflictWeight;
+    }
+    /**
+     * Distance back-to-back instructor conflict weight (can be set by problem property Exams.InstructorDistanceBackToBackConflictWeight, 
+     * or in the input xml file, property instructorDistanceBackToBackConflictWeight)
+     */
+    public void setInstructorDistanceBackToBackConflictWeight(double distanceBackToBackConflictWeight) {
+        iInstructorDistanceBackToBackConflictWeight = distanceBackToBackConflictWeight;
+    }
+    /**
+     * More than two exams a day instructor conflict weight (can be set by problem 
+     * property Exams.InstructorMoreThanTwoADayWeight, or in the input xml file, property instructorMoreThanTwoADayWeight)
+     */
+    public double getInstructorMoreThanTwoADayWeight() {
+        return iInstructorMoreThanTwoADayWeight;
+    }
+    /**
+     * More than two exams a day instructor conflict weight (can be set by problem 
+     * property Exams.InstructorMoreThanTwoADayWeight, or in the input xml file, property instructorMoreThanTwoADayWeight)
+     */
+    public void setInstructorMoreThanTwoADayWeight(double moreThanTwoADayWeight) {
+        iInstructorMoreThanTwoADayWeight = moreThanTwoADayWeight;
+    }
+
     /**
      * True when back-to-back student conflict is to be encountered when a student
      * is enrolled into an exam that is on the last period of one day and another
@@ -478,6 +547,10 @@ public class ExamModel extends Model {
         iExamRotationPenalty -= placement.getRotationPenalty();
         iNotOriginalRoomPenalty -= placement.getNotOriginalRoomPenalty();
         iRoomPenalty -= placement.getRoomPenalty();
+        iNrInstructorDirectConflicts -= placement.getNrInstructorDirectConflicts();
+        iNrInstructorBackToBackConflicts -= placement.getNrInstructorBackToBackConflicts();
+        iNrInstructorMoreThanTwoADayConflicts -= placement.getNrInstructorMoreThanTwoADayConflicts();
+        iNrInstructorDistanceBackToBackConflicts -= placement.getNrInstructorDistanceBackToBackConflicts();
         //iDistributionPenalty
     }
     
@@ -495,6 +568,10 @@ public class ExamModel extends Model {
         iExamRotationPenalty += placement.getRotationPenalty();
         iNotOriginalRoomPenalty += placement.getNotOriginalRoomPenalty();
         iRoomPenalty += placement.getRoomPenalty();
+        iNrInstructorDirectConflicts += placement.getNrInstructorDirectConflicts();
+        iNrInstructorBackToBackConflicts += placement.getNrInstructorBackToBackConflicts();
+        iNrInstructorMoreThanTwoADayConflicts += placement.getNrInstructorMoreThanTwoADayConflicts();
+        iNrInstructorDistanceBackToBackConflicts += placement.getNrInstructorDistanceBackToBackConflicts();
         //iDistributionPenalty
     }
 
@@ -534,7 +611,11 @@ public class ExamModel extends Model {
             getRoomSplitWeight()*getRoomSplitPenalty(false)+
             getNotOriginalRoomWeight()*getNotOriginalRoomPenalty(false)+
             getRoomWeight()*getRoomPenalty(false)+
-            getDistributionWeight()*getDistributionPenalty(false);
+            getDistributionWeight()*getDistributionPenalty(false)+
+            getInstructorDirectConflictWeight()*getNrInstructorDirectConflicts(false)+
+            getInstructorMoreThanTwoADayWeight()*getNrInstructorMoreThanTwoADayConflicts(false)+
+            getInstructorBackToBackConflictWeight()*getNrInstructorBackToBackConflicts(false)+
+            getInstructorDistanceBackToBackConflictWeight()*getNrInstructorDistanceBackToBackConflicts(false);
     }
     
     /**
@@ -609,7 +690,8 @@ public class ExamModel extends Model {
             for (Enumeration f=getPeriods().elements();f.hasMoreElements();) {
                 ExamPeriod period = (ExamPeriod)f.nextElement();
                 int nrExams = student.getExams(period).size();
-                if (nrExams>1) conflicts += nrExams-1;
+                if (!student.isAvailable(period)) conflicts += nrExams;
+                else if (nrExams>1) conflicts += nrExams-1;
             }
         }
         return conflicts;
@@ -684,6 +766,103 @@ public class ExamModel extends Model {
             ExamStudent student = (ExamStudent)e.nextElement();
             for (int d=0;d<getNrDays();d++) {
                 int nrExams = student.getExamsADay(d).size();
+                if (nrExams>2)
+                    conflicts += nrExams-2;
+            }
+        }
+        return conflicts;
+    }
+    
+    /**
+     * Return number of direct instructor conflicts, i.e., the total number of cases where an instructor is enrolled
+     * into two exams that are scheduled at the same period.
+     * @param precise if false, the cached value is used
+     * @return number of direct instructor conflicts
+     */
+    public int getNrInstructorDirectConflicts(boolean precise) {
+        if (!precise) return iNrInstructorDirectConflicts;
+        int conflicts = 0;
+        for (Enumeration e=getInstructors().elements();e.hasMoreElements();) {
+            ExamInstructor instructor = (ExamInstructor)e.nextElement();
+            for (Enumeration f=getPeriods().elements();f.hasMoreElements();) {
+                ExamPeriod period = (ExamPeriod)f.nextElement();
+                int nrExams = instructor.getExams(period).size();
+                if (!instructor.isAvailable(period)) conflicts += nrExams;
+                else if (nrExams>1) conflicts += nrExams-1;
+            }
+        }
+        return conflicts;
+    }
+    
+    /**
+     * Return number of back-to-back instructor conflicts, i.e., the total number of cases where an instructor is enrolled
+     * into two exams that are scheduled at consecutive periods. If {@link ExamModel#isDayBreakBackToBack()} is false,
+     * the last period of one day and the first period of the following day are not considered as consecutive periods.
+     * @param precise if false, the cached value is used
+     * @return number of back-to-back instructor conflicts
+     */
+    public int getNrInstructorBackToBackConflicts(boolean precise) {
+        if (!precise) return iNrInstructorBackToBackConflicts;
+        int conflicts = 0;
+        for (Enumeration e=getInstructors().elements();e.hasMoreElements();) {
+            ExamInstructor instructor = (ExamInstructor)e.nextElement();
+            for (Enumeration f=getPeriods().elements();f.hasMoreElements();) {
+                ExamPeriod period = (ExamPeriod)f.nextElement();
+                int nrExams = instructor.getExams(period).size();
+                if (nrExams==0) continue;
+                if (period.next()!=null && !instructor.getExams(period.next()).isEmpty() && (isDayBreakBackToBack() || period.next().getDay()==period.getDay())) 
+                    conflicts += nrExams*instructor.getExams(period.next()).size();
+            }
+        }
+        return conflicts;
+    }
+    
+    /**
+     * Return number of distance back-to-back instructor conflicts, i.e., the total number of back-to-back instructor conflicts
+     * where the two exam take place in rooms that are too far a part (i.e., {@link ExamPlacement#getDistance(ExamPlacement)} is
+     * greater than {@link ExamModel#getBackToBackDistance()}).
+     * @param precise if false, the cached value is used
+     * @return number of distance back-to-back student conflicts
+     */
+    public int getNrInstructorDistanceBackToBackConflicts(boolean precise) {
+        if (getBackToBackDistance()<0) return 0;
+        if (!precise) return iNrInstructorDistanceBackToBackConflicts;
+        int conflicts = 0;
+        for (Enumeration e=getInstructors().elements();e.hasMoreElements();) {
+            ExamInstructor instructor = (ExamInstructor)e.nextElement();
+            for (Enumeration f=getPeriods().elements();f.hasMoreElements();) {
+                ExamPeriod period = (ExamPeriod)f.nextElement();
+                Set exams = instructor.getExams(period);
+                if (exams.isEmpty()) continue;
+                if (period.next()!=null && !instructor.getExams(period.next()).isEmpty() && period.next().getDay()==period.getDay()) {
+                    for (Iterator i1=exams.iterator();i1.hasNext();) {
+                        Exam x1 = (Exam)i1.next();
+                        ExamPlacement p1 =(ExamPlacement)x1.getAssignment();
+                        for (Iterator i2=instructor.getExams(period.next()).iterator();i2.hasNext();) {
+                            Exam x2 = (Exam)i2.next();
+                            ExamPlacement p2 =(ExamPlacement)x2.getAssignment();
+                            if (p1.getDistance(p2)>getBackToBackDistance()) conflicts++;
+                        }
+                    }
+                }
+            }
+        }
+        return conflicts;
+    }
+
+    /**
+     * Return number of more than two exams a day instructor conflicts, i.e., the total number of cases where an instructor 
+     * is enrolled into three exams that are scheduled at the same day (i.e., {@link ExamPeriod#getDay()} is the same).
+     * @param precise if false, the cached value is used
+     * @return number of more than two exams a day student conflicts
+     */
+    public int getNrInstructorMoreThanTwoADayConflicts(boolean precise) {
+        if (!precise) return iNrInstructorMoreThanTwoADayConflicts;
+        int conflicts = 0;
+        for (Enumeration e=getInstructors().elements();e.hasMoreElements();) {
+            ExamInstructor instructor = (ExamInstructor)e.nextElement();
+            for (int d=0;d<getNrDays();d++) {
+                int nrExams = instructor.getExamsADay(d).size();
                 if (nrExams>2)
                     conflicts += nrExams-2;
             }
@@ -842,6 +1021,18 @@ public class ExamModel extends Model {
         info.put("Distribution Penalty",
                 getDistributionPenalty(false)+" ("+
                 sDoubleFormat.format(getDistributionWeight()*getRoomPenalty(false))+")");
+        info.put("Instructor Direct Conflicts",
+                getNrInstructorDirectConflicts(false)+" ("+
+                sDoubleFormat.format(getInstructorDirectConflictWeight()*getNrInstructorDirectConflicts(false))+")");
+        info.put("Instructor More Than 2 A Day Conflicts",
+                getNrInstructorMoreThanTwoADayConflicts(false)+" ("+
+                sDoubleFormat.format(getInstructorMoreThanTwoADayWeight()*getNrInstructorMoreThanTwoADayConflicts(false))+")");
+        info.put("Instructor Back-To-Back Conflicts",
+                getNrInstructorBackToBackConflicts(false)+" ("+
+                sDoubleFormat.format(getInstructorBackToBackConflictWeight()*getNrInstructorBackToBackConflicts(false))+")");
+        info.put("Instructor Distance Back-To-Back Conflicts",
+                getNrInstructorDistanceBackToBackConflicts(false)+" ("+
+                sDoubleFormat.format(getInstructorDistanceBackToBackConflictWeight()*getNrInstructorDistanceBackToBackConflicts(false))+")");
         return info;
     }
     
@@ -854,6 +1045,10 @@ public class ExamModel extends Model {
         info.put("More Than 2 A Day Conflicts [p]",String.valueOf(getNrMoreThanTwoADayConflicts(true)));
         info.put("Back-To-Back Conflicts [p]",String.valueOf(getNrBackToBackConflicts(true)));
         info.put("Distance Back-To-Back Conflicts [p]",String.valueOf(getNrDistanceBackToBackConflicts(true)));
+        info.put("Instructor Direct Conflicts [p]",String.valueOf(getNrInstructorDirectConflicts(true)));
+        info.put("Instructor More Than 2 A Day Conflicts [p]",String.valueOf(getNrInstructorMoreThanTwoADayConflicts(true)));
+        info.put("Instructor Back-To-Back Conflicts [p]",String.valueOf(getNrInstructorBackToBackConflicts(true)));
+        info.put("Instructor Distance Back-To-Back Conflicts [p]",String.valueOf(getNrInstructorDistanceBackToBackConflicts(true)));
         info.put("Room Size Penalty [p]",String.valueOf(getRoomSizePenalty(true)));
         info.put("Room Split Penalty [p]",String.valueOf(getRoomSplitPenalty(true)));
         info.put("Period Penalty [p]",String.valueOf(getPeriodPenalty(true)));
@@ -1012,6 +1207,10 @@ public class ExamModel extends Model {
         params.addElement("property").addAttribute("name", "roomWeight").addAttribute("value", String.valueOf(getRoomWeight()));
         params.addElement("property").addAttribute("name", "distributionWeight").addAttribute("value", String.valueOf(getDistributionWeight()));
         params.addElement("property").addAttribute("name", "periodProhibitedWeight").addAttribute("value", String.valueOf(getPeriodProhibitedWeight()));
+        params.addElement("property").addAttribute("name", "instructorDirectConflictWeight").addAttribute("value", String.valueOf(getInstructorDirectConflictWeight()));
+        params.addElement("property").addAttribute("name", "instructorMoreThanTwoADayWeight").addAttribute("value", String.valueOf(getInstructorMoreThanTwoADayWeight()));
+        params.addElement("property").addAttribute("name", "instructorBackToBackConflictWeight").addAttribute("value", String.valueOf(getInstructorBackToBackConflictWeight()));
+        params.addElement("property").addAttribute("name", "instructorDistanceBackToBackConflictWeight").addAttribute("value", String.valueOf(getInstructorDistanceBackToBackConflictWeight()));
         Element periods = root.addElement("periods");
         for (Enumeration e=getPeriods().elements();e.hasMoreElements();) {
             ExamPeriod period = (ExamPeriod)e.nextElement();
@@ -1148,6 +1347,14 @@ public class ExamModel extends Model {
                     x.addElement(cs.isSection()?"section":"course").addAttribute("id", String.valueOf(cs.getId()));
                 }
             }
+            String available = "";
+            boolean allAvail = true;
+            for (Enumeration f=getPeriods().elements();f.hasMoreElements();) {
+                ExamPeriod period = (ExamPeriod)f.nextElement();
+                available += student.isAvailable(period)?"1":"0";
+                if (!student.isAvailable(period)) allAvail=false;
+            }
+            if (!allAvail) s.addAttribute("available", available);
         }
         Element instructors = root.addElement("instructors");
         for (Enumeration e=getInstructors().elements();e.hasMoreElements();) {
@@ -1164,6 +1371,14 @@ public class ExamModel extends Model {
                     x.addElement(cs.isSection()?"section":"course").addAttribute("id", String.valueOf(cs.getId()));
                 }
             }
+            String available = "";
+            boolean allAvail = true;
+            for (Enumeration f=getPeriods().elements();f.hasMoreElements();) {
+                ExamPeriod period = (ExamPeriod)f.nextElement();
+                available += instructor.isAvailable(period)?"1":"0";
+                if (!instructor.isAvailable(period)) allAvail=false;
+            }
+            if (!allAvail) i.addAttribute("available", available);
         }
         Element distConstraints = root.addElement("constraints");
         for (Enumeration e=getDistributionConstraints().elements();e.hasMoreElements();) {
@@ -1262,6 +1477,10 @@ public class ExamModel extends Model {
                 else if ("periodProhibitedWeight".equals(name)) setPeriodProhibitedWeight(Integer.parseInt(value));
                 else if ("roomWeight".equals(name)) setRoomWeight(Double.parseDouble(value));
                 else if ("distributionWeight".equals(name)) setDistributionWeight(Double.parseDouble(value));
+                else if ("instructorDirectConflictWeight".equals(name)) setInstructorDirectConflictWeight(Double.parseDouble(value));
+                else if ("instructorMoreThanTwoADayWeight".equals(name)) setInstructorMoreThanTwoADayWeight(Double.parseDouble(value));
+                else if ("instructorBackToBackConflictWeight".equals(name)) setInstructorBackToBackConflictWeight(Double.parseDouble(value));
+                else if ("instructorDistanceBackToBackConflictWeight".equals(name)) setInstructorDistanceBackToBackConflictWeight(Double.parseDouble(value));
                 else getProperties().setProperty(name, value);
             }
         for (Iterator i=root.element("periods").elementIterator("period");i.hasNext();) {
@@ -1411,6 +1630,12 @@ public class ExamModel extends Model {
                     cs.getStudents().add(student);
                 }
             }
+            String available = e.attributeValue("available");
+            if (available!=null)
+                for (Enumeration f=getPeriods().elements();f.hasMoreElements();) {
+                    ExamPeriod period = (ExamPeriod)f.nextElement();
+                    if (available.charAt(period.getIndex())=='0') student.setAvailable(period.getIndex(), false);
+                }
             addConstraint(student);
             getStudents().add(student);
         }        
@@ -1435,9 +1660,15 @@ public class ExamModel extends Model {
                         cs.getIntructors().add(instructor);
                     }
                 }
+                String available = e.attributeValue("available");
+                if (available!=null)
+                    for (Enumeration f=getPeriods().elements();f.hasMoreElements();) {
+                        ExamPeriod period = (ExamPeriod)f.nextElement();
+                        if (available.charAt(period.getIndex())=='0') instructor.setAvailable(period.getIndex(), false);
+                    }
                 addConstraint(instructor);
                 getInstructors().add(instructor);
-            }        
+            }
         if (root.element("constraints")!=null)
             for (Iterator i=root.element("constraints").elementIterator();i.hasNext();) {
                 Element e = (Element)i.next();
