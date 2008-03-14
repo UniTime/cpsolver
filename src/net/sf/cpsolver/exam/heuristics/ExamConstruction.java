@@ -61,6 +61,7 @@ public class ExamConstruction implements NeighbourSelection {
     private static Logger sLog = Logger.getLogger(ExamConstruction.class);
     private HashSet iAssignments = new HashSet();
     private boolean iCheckLocalOptimality = false;
+    private HashSet iSkip = new HashSet();
 
     /**
      * Constructor
@@ -74,6 +75,7 @@ public class ExamConstruction implements NeighbourSelection {
      * Initialization
      */
     public void init(Solver solver) {
+        iSkip.clear();
     }
     
     /**
@@ -124,14 +126,15 @@ public class ExamConstruction implements NeighbourSelection {
      */
     public Neighbour selectNeighbour(Solution solution) {
         ExamModel model = (ExamModel)solution.getModel();
-        if (model.nrUnassignedVariables()==0) return (iCheckLocalOptimality?checkLocalOptimality(model):null);
+        if (model.nrUnassignedVariables()<=iSkip.size()) return (iCheckLocalOptimality?checkLocalOptimality(model):null);
         Exam bestExam = null;
         for (Enumeration e=model.unassignedVariables().elements();e.hasMoreElements();) {
             Exam exam = (Exam)e.nextElement();
+            if (iSkip.contains(exam)) continue;
             if (bestExam==null || exam.compareTo(bestExam)<0)
                 bestExam = exam;
         }
-        if (sLog.isDebugEnabled()) sLog.debug("  -- "+bestExam);
+        if (sLog.isDebugEnabled()) sLog.debug("  -- "+bestExam+" (id:"+bestExam.getId()+")");
         ExamPlacement best = null;
         for (Enumeration e=model.getPeriods().elements();e.hasMoreElements();) {
             ExamPeriod period = (ExamPeriod)e.nextElement();
@@ -178,6 +181,9 @@ public class ExamConstruction implements NeighbourSelection {
                 iAssignments.add(bestExam.getId()+":"+best.getPeriod().getIndex());
                 return new ExamSimpleNeighbour(best);
             }
+        }
+        if (!iSkip.contains(bestExam)) {
+            iSkip.add(bestExam); return selectNeighbour(solution);
         }
         return (iCheckLocalOptimality?checkLocalOptimality(model):null);
     }
