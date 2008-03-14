@@ -91,6 +91,7 @@ public class ExamPlacement extends Value {
             Set exams = s.getExams(getPeriod());
             int nrExams = exams.size() + (exams.contains(exam)?0:1);
             if (nrExams>1) penalty++;
+            else if (!s.isAvailable(getPeriod())) penalty++;
         }
         return penalty;
     }
@@ -199,6 +200,110 @@ public class ExamPlacement extends Value {
         return penalty;
     }
     
+    /**
+     * Number of direct instructor conflicts, i.e., number of cases when this exam
+     * is attended by an instructor that attends some other exam at the same period 
+     */
+    public int getNrInstructorDirectConflicts() {
+        Exam exam = (Exam)variable();
+        //if (!exam.isAllowDirectConflicts()) return 0;
+        int penalty = 0;
+        for (Enumeration e=exam.getInstructors().elements();e.hasMoreElements();) {
+            ExamInstructor s = (ExamInstructor)e.nextElement();
+            Set exams = s.getExams(getPeriod());
+            int nrExams = exams.size() + (exams.contains(exam)?0:1);
+            if (nrExams>1) penalty++;
+            else if (!s.isAvailable(getPeriod())) penalty++;
+        }
+        return penalty;
+    }
+    
+    /**
+     * Number of back-to-back instructor conflicts, i.e., number of cases when this exam
+     * is attended by an instructor that attends some other exam at the previous {@link ExamPeriod#prev()}
+     * or following {@link ExamPeriod#next()} period. If {@link ExamModel#isDayBreakBackToBack()} is false,
+     * back-to-back conflicts are only considered between consecutive periods that are of the 
+     * same day.
+     */
+    public int getNrInstructorBackToBackConflicts() {
+        Exam exam = (Exam)variable();
+        ExamModel model = (ExamModel)exam.getModel();
+        int penalty = 0;
+        for (Enumeration e=exam.getInstructors().elements();e.hasMoreElements();) {
+            ExamInstructor s = (ExamInstructor)e.nextElement();
+            if (getPeriod().prev()!=null) {
+                if (model.isDayBreakBackToBack() || getPeriod().prev().getDay()==getPeriod().getDay()) {
+                    Set exams = s.getExams(getPeriod().prev());
+                    int nrExams = exams.size() + (exams.contains(exam)?-1:0);
+                    penalty += nrExams;
+                }
+            }
+            if (getPeriod().next()!=null) {
+                if (model.isDayBreakBackToBack() || getPeriod().next().getDay()==getPeriod().getDay()) {
+                    Set exams = s.getExams(getPeriod().next());
+                    int nrExams = exams.size() + (exams.contains(exam)?-1:0);
+                    penalty += nrExams;
+                }
+            }
+        }
+        return penalty;
+    }
+    
+    /**
+     * Number of back-to-back distance instructor conflicts, i.e., number of cases when this exam
+     * is attended by an instructor that attends some other exam at the previous {@link ExamPeriod#prev()}
+     * or following {@link ExamPeriod#next()} period and the distance {@link ExamPlacement#getDistance(ExamPlacement)}
+     * between these two exams is greater than {@link ExamModel#getBackToBackDistance()}. 
+     * Distance back-to-back conflicts are only 
+     * considered between consecutive periods that are of the 
+     * same day.
+     */
+    public int getNrInstructorDistanceBackToBackConflicts() {
+        Exam exam = (Exam)variable();
+        ExamModel model = (ExamModel)exam.getModel();
+        int btbDist = model.getBackToBackDistance();
+        if (btbDist<0) return 0;
+        int penalty = 0;
+        for (Enumeration e=exam.getInstructors().elements();e.hasMoreElements();) {
+            ExamInstructor s = (ExamInstructor)e.nextElement();
+            if (getPeriod().prev()!=null) {
+                if (getPeriod().prev().getDay()==getPeriod().getDay()) {
+                    for (Iterator i=s.getExams(getPeriod().prev()).iterator();i.hasNext();) {
+                        Exam x = (Exam)i.next();
+                        if (x.equals(exam)) continue;
+                        if (getDistance((ExamPlacement)x.getAssignment())>btbDist) penalty++;
+                    }
+                }
+            }
+            if (getPeriod().next()!=null) {
+                if (getPeriod().next().getDay()==getPeriod().getDay()) {
+                    for (Iterator i=s.getExams(getPeriod().next()).iterator();i.hasNext();) {
+                        Exam x = (Exam)i.next();
+                        if (x.equals(exam)) continue;
+                        if (getDistance((ExamPlacement)x.getAssignment())>btbDist) penalty++;
+                    }
+                }
+            }
+        }
+        return penalty;
+    }
+    
+    /**
+     * Number of more than two exams a day instructor conflicts, i.e., when this exam
+     * is attended by an instructor student that attends two or more other exams at the same day. 
+     */
+    public int getNrInstructorMoreThanTwoADayConflicts() {
+        Exam exam = (Exam)variable();
+        int penalty = 0;
+        for (Enumeration e=exam.getInstructors().elements();e.hasMoreElements();) {
+            ExamInstructor s = (ExamInstructor)e.nextElement();
+            Set exams = s.getExamsADay(getPeriod());
+            int nrExams = exams.size() + (exams.contains(exam)?0:1);
+            if (nrExams>2) penalty++;
+        }
+        return penalty;
+    }
+    
     private Integer iRoomSizePenalty = null;
     /**
      * Cost for using room(s) that are too big
@@ -296,7 +401,11 @@ public class ExamPlacement extends Value {
             model.getRoomSplitWeight()*getRoomSplitPenalty()+
             model.getNotOriginalRoomWeight()*getNotOriginalRoomPenalty()+
             model.getExamRotationWeight()*getRotationPenalty()+
-            model.getRoomWeight()*getRoomPenalty();
+            model.getRoomWeight()*getRoomPenalty()+
+            model.getInstructorDirectConflictWeight()*getNrInstructorDirectConflicts()+
+            model.getInstructorMoreThanTwoADayWeight()*getNrInstructorMoreThanTwoADayConflicts()+
+            model.getInstructorBackToBackConflictWeight()*getNrInstructorBackToBackConflicts()+
+            model.getInstructorDistanceBackToBackConflictWeight()*getNrInstructorDistanceBackToBackConflicts();
     }
     
     /**
@@ -317,7 +426,11 @@ public class ExamPlacement extends Value {
             model.getBackToBackConflictWeight()*getNrBackToBackConflicts()+
             model.getMoreThanTwoADayWeight()*getNrMoreThanTwoADayConflicts()+
             model.getPeriodWeight()*getPeriodPenalty()+
-            model.getExamRotationWeight()*getRotationPenalty(); 
+            model.getExamRotationWeight()*getRotationPenalty()+
+            model.getInstructorDirectConflictWeight()*getNrInstructorDirectConflicts()+
+            model.getInstructorMoreThanTwoADayWeight()*getNrInstructorMoreThanTwoADayConflicts()+
+            model.getInstructorBackToBackConflictWeight()*getNrInstructorBackToBackConflicts()+
+            model.getInstructorDistanceBackToBackConflictWeight()*getNrInstructorDistanceBackToBackConflicts();
     }
     
     /**
