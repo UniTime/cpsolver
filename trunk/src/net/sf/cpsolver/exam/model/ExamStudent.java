@@ -36,6 +36,7 @@ public class ExamStudent extends Constraint implements Comparable {
     private HashSet[] iDayTable;
     private boolean iAllowDirectConflicts = true;
     private Vector iCourseSections = new Vector();
+    private boolean[] iAvailable = null;
     
     /**
      * Constructor
@@ -192,4 +193,27 @@ public class ExamStudent extends Constraint implements Comparable {
     public Vector getCourseSections() {
         return iCourseSections;
     }
+    
+    /**
+     * True if the student is available (for examination timetabling) during the given period
+     * @param period a period
+     * @return true if a student can attend an exam at the given period, false if otherwise
+     */
+    public boolean isAvailable(ExamPeriod period) { 
+        return (iAvailable==null?true:iAvailable[period.getIndex()]); 
+    }
+    
+    /**
+     * Set whether the student is available (for examination timetabling) during the given period
+     * @param period a period
+     * @param available true if a student can attend an exam at the given period, false if otherwise
+     */
+    public void setAvailable(int period, boolean available) {
+        if (iAvailable==null) {
+            iAvailable = new boolean[iTable.length];
+            for (int i=0;i<iTable.length;i++) iAvailable[i]=true;
+        }
+        iAvailable[period]=available; 
+    }
+
 }
