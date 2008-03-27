@@ -12,6 +12,7 @@ import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solution.SolutionListener;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
 
@@ -89,6 +90,8 @@ public class ExamSimulatedAnnealing implements NeighbourSelection, SolutionListe
     private double iAbsValue = 0;
     private long iT0 = -1;
     private double iBestValue = 0;
+    private Progress iProgress = null;
+    private boolean iActive;
     
     private NeighbourSelection[] iNeighbours = null;
     
@@ -136,6 +139,9 @@ public class ExamSimulatedAnnealing implements NeighbourSelection, SolutionListe
         solver.currentSolution().addSolutionListener(this);
         for (int i=0;i<iNeighbours.length;i++)
             iNeighbours[i].init(solver);
+        solver.setUpdateProgress(false);
+        iProgress = Progress.getInstance(solver.currentSolution().getModel());
+        iActive = false;
     }
     
     /**
@@ -167,6 +173,7 @@ public class ExamSimulatedAnnealing implements NeighbourSelection, SolutionListe
                 "p(+10)="+sDF5.format(100.0*prob(10))+"%, "+
                 "p(+100)="+sDF10.format(100.0*prob(100))+"%)");
         iLastReheatIter=iIter;
+        iProgress.setPhase("Simulated Annealing ["+sDF2.format(iTemperature)+"]...");
     }
     
     /**
@@ -226,6 +233,7 @@ public class ExamSimulatedAnnealing implements NeighbourSelection, SolutionListe
         if (iIter>iLastImprovingIter+iRestoreBestLength) restoreBest(solution);
         if (iIter>Math.max(iLastReheatIter,iLastImprovingIter)+iReheatLength) reheat(solution);
         if (iIter>iLastCoolingIter+iTemperatureLength) cool(solution);
+        iProgress.setProgress(Math.round(100.0 * (iIter-Math.max(iLastReheatIter,iLastImprovingIter)) / iReheatLength));
     }
     
     /**
@@ -234,11 +242,16 @@ public class ExamSimulatedAnnealing implements NeighbourSelection, SolutionListe
      * {@link ExamSimulatedAnnealing#incIter(Solution)}. 
      */
     public Neighbour selectNeighbour(Solution solution) {
+        if (!iActive) {
+            iProgress.setPhase("Simulated Annealing ["+sDF2.format(iTemperature)+"]...");
+            iActive = true;
+        }
         Neighbour neighbour = null;
         while ((neighbour=genMove(solution))!=null) {
             iMoves++; iAbsValue += neighbour.value() * neighbour.value();
             if (accept(solution,neighbour)) break;
         }
+        if (neighbour==null) iActive = false;
         return (neighbour==null?null:neighbour);
     }
     

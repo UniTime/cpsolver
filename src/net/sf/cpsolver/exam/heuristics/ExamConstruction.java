@@ -14,6 +14,7 @@ import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.Progress;
 
 
 import org.apache.log4j.Logger;
@@ -62,6 +63,8 @@ public class ExamConstruction implements NeighbourSelection {
     private HashSet iAssignments = new HashSet();
     private boolean iCheckLocalOptimality = false;
     private HashSet iSkip = new HashSet();
+    private Progress iProgress = null;
+    private boolean iActive;
 
     /**
      * Constructor
@@ -76,6 +79,9 @@ public class ExamConstruction implements NeighbourSelection {
      */
     public void init(Solver solver) {
         iSkip.clear();
+        solver.setUpdateProgress(false);
+        iProgress = Progress.getInstance(solver.currentSolution().getModel());
+        iActive = false;
     }
     
     /**
@@ -86,29 +92,32 @@ public class ExamConstruction implements NeighbourSelection {
      * locally optimal).
      */
     public Neighbour checkLocalOptimality(ExamModel model) {
-        for (Enumeration e=model.assignedVariables().elements();e.hasMoreElements();) {
-            Exam exam = (Exam)e.nextElement();
-            ExamPlacement current = (ExamPlacement)exam.getAssignment(); 
-            if (exam.hasPreAssignedPeriod()) continue;
-            if (current.getTimeCost()<=0) continue;
-            ExamPlacement best = null;
-            for (Enumeration f=model.getPeriods().elements();f.hasMoreElements();) {
-                ExamPeriod period = (ExamPeriod)f.nextElement();
-                if (!exam.isAvailable(period)) continue;
-                if (exam.countStudentConflicts(period)>0) {
-                    if (iAssignments.contains(exam.getId()+":"+period.getIndex())) continue;
-                    if (exam.hasStudentConflictWithPreAssigned(period)) continue;
+        if (iCheckLocalOptimality) {
+            for (Enumeration e=model.assignedVariables().elements();e.hasMoreElements();) {
+                Exam exam = (Exam)e.nextElement();
+                ExamPlacement current = (ExamPlacement)exam.getAssignment(); 
+                if (exam.hasPreAssignedPeriod()) continue;
+                if (current.getTimeCost()<=0) continue;
+                ExamPlacement best = null;
+                for (Enumeration f=model.getPeriods().elements();f.hasMoreElements();) {
+                    ExamPeriod period = (ExamPeriod)f.nextElement();
+                    if (!exam.isAvailable(period)) continue;
+                    if (exam.countStudentConflicts(period)>0) {
+                        if (iAssignments.contains(exam.getId()+":"+period.getIndex())) continue;
+                        if (exam.hasStudentConflictWithPreAssigned(period)) continue;
+                    }
+                    if (!exam.checkDistributionConstraints(period)) continue;
+                    ExamPlacement placement = new ExamPlacement(exam, period, null);
+                    if (best==null || best.getTimeCost()>placement.getTimeCost()) {
+                        Set rooms = exam.findBestAvailableRooms(period);
+                        if (rooms!=null)
+                            best = new ExamPlacement(exam, period, rooms);
+                    }
                 }
-                if (!exam.checkDistributionConstraints(period)) continue;
-                ExamPlacement placement = new ExamPlacement(exam, period, null);
-                if (best==null || best.getTimeCost()>placement.getTimeCost()) {
-                    Set rooms = exam.findBestAvailableRooms(period);
-                    if (rooms!=null)
-                        best = new ExamPlacement(exam, period, rooms);
-                }
+                if (best!=null && best.getTimeCost()<current.getTimeCost()) return new ExamSimpleNeighbour(best);
             }
-            if (best!=null && best.getTimeCost()<current.getTimeCost()) return new ExamSimpleNeighbour(best);
         }
+        iActive = false;
         return null;
     }
     
@@ -126,7 +135,12 @@ public class ExamConstruction implements NeighbourSelection {
      */
     public Neighbour selectNeighbour(Solution solution) {
         ExamModel model = (ExamModel)solution.getModel();
-        if (model.nrUnassignedVariables()<=iSkip.size()) return (iCheckLocalOptimality?checkLocalOptimality(model):null);
+        if (!iActive) {
+            iActive = true;
+            iProgress.setPhase("Construction ...", model.variables().size());
+        }
+        iProgress.setProgress(model.nrAssignedVariables());
+        if (model.nrUnassignedVariables()<=iSkip.size()) return checkLocalOptimality(model);
         Exam bestExam = null;
         for (Enumeration e=model.unassignedVariables().elements();e.hasMoreElements();) {
             Exam exam = (Exam)e.nextElement();
@@ -185,7 +199,7 @@ public class ExamConstruction implements NeighbourSelection {
         if (!iSkip.contains(bestExam)) {
             iSkip.add(bestExam); return selectNeighbour(solution);
         }
-        return (iCheckLocalOptimality?checkLocalOptimality(model):null);
+        return checkLocalOptimality(model);
     }
     
 }

@@ -13,6 +13,7 @@ import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solution.SolutionListener;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
@@ -62,6 +63,7 @@ public class ExamGreatDeluge implements NeighbourSelection, SolutionListener {
     private double iBound = 0.0;
     private double iCoolRate = 0.99999995;
     private long iIter;
+    private double iUpperBound;
     private double iUpperBoundRate = 1.05;
     private double iLowerBoundRate = 0.95;
     private int iMoves = 0;
@@ -70,6 +72,7 @@ public class ExamGreatDeluge implements NeighbourSelection, SolutionListener {
     private long iT0 = -1;
     private long iLastImprovingIter = 0;
     private double iBestValue = 0;
+    private Progress iProgress = null;
 
     private NeighbourSelection[] iNeighbours = null;
 
@@ -99,6 +102,8 @@ public class ExamGreatDeluge implements NeighbourSelection, SolutionListener {
         solver.currentSolution().addSolutionListener(this);
         for (int i=0;i<iNeighbours.length;i++)
             iNeighbours[i].init(solver);
+        solver.setUpdateProgress(false);
+        iProgress = Progress.getInstance(solver.currentSolution().getModel());
     }
     
     /** Print some information */ 
@@ -135,17 +140,24 @@ public class ExamGreatDeluge implements NeighbourSelection, SolutionListener {
             iIter = 0; iLastImprovingIter = 0;
             iT0 = System.currentTimeMillis();
             iBound = iUpperBoundRate * solution.getBestValue();
+            iUpperBound = iBound;
+            iNrIdle = 0;
+            iProgress.setPhase("Great deluge ["+(1+iNrIdle)+"]...");
         } else {
             iIter++; iBound *= iCoolRate;
         }
         if (iIter%100000==0) {
             info(solution);
         }
-        if (iBound<Math.pow(iLowerBoundRate,1+iNrIdle)*solution.getBestValue()) {
+        double lowerBound = Math.pow(iLowerBoundRate,1+iNrIdle)*solution.getBestValue(); 
+        if (iBound<lowerBound) {
             iNrIdle++;
             sLog.info(" -<["+iNrIdle+"]>- ");
             iBound = Math.max(solution.getBestValue()+2.0, Math.pow(iUpperBoundRate,iNrIdle) * solution.getBestValue());
+            iUpperBound = iBound;
+            iProgress.setPhase("Great deluge ["+(1+iNrIdle)+"]...");
         }
+        iProgress.setProgress(100-Math.round(100.0*(iBound-lowerBound)/(iUpperBound-lowerBound)));
     }
     
     /** 
