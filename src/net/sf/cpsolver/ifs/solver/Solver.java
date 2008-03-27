@@ -146,6 +146,8 @@ public class Solver {
     private Vector iSolverListeners = new FastVector(5);
     private int iSaveBestUnassigned = 0;
     
+    private boolean iUpdateProgress = true;
+    
     private Progress iProgress;
     
     /** Constructor.
@@ -301,6 +303,16 @@ public class Solver {
     public void init() {
     }
     
+    /** True, when solver should update progress (see {@link Progress}) */
+    private boolean isUpdateProgress() {
+        return iUpdateProgress;
+    }
+    
+    /** True, when solver should update progress (see {@link Progress}) */
+    public void setUpdateProgress(boolean updateProgress) {
+        iUpdateProgress = updateProgress;
+    }
+    
     /** Last solution (when solver finishes) */
     public Solution lastSolution() { return (iLastSolution==null?iCurrentSolution:iLastSolution); }
     /** Current solution (during the search) */
@@ -392,10 +404,12 @@ public class Solver {
                 onStart();
 
                 double startTime = JProf.currentTimeSec();
-                if (iCurrentSolution.getBestInfo()==null) {
-                    iProgress.setPhase("Searching for initial solution ...",iCurrentSolution.getModel().variables().size());
-                } else {
-                    iProgress.setPhase("Improving found solution ...");
+                if (isUpdateProgress()) {
+                    if (iCurrentSolution.getBestInfo()==null) {
+                        iProgress.setPhase("Searching for initial solution ...",iCurrentSolution.getModel().variables().size());
+                    } else {
+                        iProgress.setPhase("Improving found solution ...");
+                    }
                 }
                 long prog = 9999;
                 sLogger.info("Initial solution:"+ToolBox.dict2string(iCurrentSolution.getInfo(),1));
@@ -444,16 +458,18 @@ public class Solver {
                     } 
                     
                     // Increment progress bar
-                    if (iCurrentSolution.getBestInfo()!=null && iCurrentSolution.getModel().getBestUnassignedVariables()==0) {
-                        prog++;
-                        if (prog == 10000) {
-                            iProgress.setPhase("Improving found solution ...");
-                            prog=0;
-                        } else {
-                            iProgress.setProgress(prog/100);
+                    if (isUpdateProgress()) {
+                        if (iCurrentSolution.getBestInfo()!=null && iCurrentSolution.getModel().getBestUnassignedVariables()==0) {
+                            prog++;
+                            if (prog == 10000) {
+                                iProgress.setPhase("Improving found solution ...");
+                                prog=0;
+                            } else {
+                                iProgress.setProgress(prog/100);
+                            }
+                        } else if ((iCurrentSolution.getBestInfo()==null || iCurrentSolution.getModel().getBestUnassignedVariables()>0) && (iCurrentSolution.getModel().variables().size()-iCurrentSolution.getModel().nrUnassignedVariables())>iProgress.getProgress()) {
+                            iProgress.setProgress(iCurrentSolution.getModel().variables().size()-iCurrentSolution.getModel().nrUnassignedVariables());
                         }
-                    } else if ((iCurrentSolution.getBestInfo()==null || iCurrentSolution.getModel().getBestUnassignedVariables()>0) && (iCurrentSolution.getModel().variables().size()-iCurrentSolution.getModel().nrUnassignedVariables())>iProgress.getProgress()) {
-                        iProgress.setProgress(iCurrentSolution.getModel().variables().size()-iCurrentSolution.getModel().nrUnassignedVariables());
                     }
                     
                 }
