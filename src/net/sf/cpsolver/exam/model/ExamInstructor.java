@@ -122,8 +122,7 @@ public class ExamInstructor extends Constraint {
     /**
      * An exam was assigned, update instructor assignment table
      */
-    public void assigned(long iteration, Value value) {
-        super.assigned(iteration, value);
+    public void afterAssigned(long iteration, Value value) {
         ExamPlacement p = (ExamPlacement)value;
         iTable[p.getPeriod().getIndex()].add(value.variable());
         iDayTable[p.getPeriod().getDay()].add(value.variable());
@@ -132,8 +131,7 @@ public class ExamInstructor extends Constraint {
     /**
      * An exam was unassigned, update instructor assignment table
      */
-    public void unassigned(long iteration, Value value) {
-        super.unassigned(iteration, value);
+    public void afterUnassigned(long iteration, Value value) {
         ExamPlacement p = (ExamPlacement)value;
         iTable[p.getPeriod().getIndex()].remove(value.variable());
         iDayTable[p.getPeriod().getDay()].remove(value.variable());
