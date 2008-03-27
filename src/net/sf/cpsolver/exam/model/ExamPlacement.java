@@ -487,7 +487,7 @@ public class ExamPlacement extends Value {
     public boolean equals(Object o) {
         if (o==null || !(o instanceof ExamPlacement)) return false;
         ExamPlacement p = (ExamPlacement)o;
-        return p.variable().equals(variable()) && p.getPeriod()==getPeriod() && p.getRooms().equals(getRooms());
+        return p.variable().equals(variable()) && p.getPeriod().equals(getPeriod()) && p.getRooms().equals(getRooms());
     }
     
     /**
