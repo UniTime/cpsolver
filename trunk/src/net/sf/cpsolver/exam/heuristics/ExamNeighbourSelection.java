@@ -3,10 +3,12 @@ package net.sf.cpsolver.exam.heuristics;
 import org.apache.log4j.Logger;
 
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
+import net.sf.cpsolver.ifs.heuristics.StandardNeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.Progress;
 
 /**
  * Examination timetabling neighbour selection.
@@ -45,11 +47,13 @@ import net.sf.cpsolver.ifs.util.DataProperties;
 public class ExamNeighbourSelection implements NeighbourSelection {
     private static Logger sLog = Logger.getLogger(ExamNeighbourSelection.class); 
     private ExamConstruction iCon = null;
+    private StandardNeighbourSelection iStd = null;
     private ExamSimulatedAnnealing iSA = null;
     private ExamHillClimbing iHC = null;
     private ExamGreatDeluge iGD = null;
     private int iPhase = -1;
     private boolean iUseGD = false;
+    private Progress iProgress = null;
     
     /**
      * Constructor
@@ -57,6 +61,14 @@ public class ExamNeighbourSelection implements NeighbourSelection {
      */
     public ExamNeighbourSelection(DataProperties properties) {
         iCon = new ExamConstruction(properties);
+        try {
+            iStd = new StandardNeighbourSelection(properties);
+            iStd.setVariableSelection(new ExamUnassignedVariableSelection(properties));
+            iStd.setValueSelection(new ExamTabuSearch(properties));
+        } catch (Exception e) {
+            sLog.error("Unable to initialize standard selection, reason: "+e.getMessage(),e);
+            iStd = null;
+        }
         iSA = new ExamSimulatedAnnealing(properties);
         iHC = new ExamHillClimbing(properties);
         iGD = new ExamGreatDeluge(properties);
@@ -68,9 +80,11 @@ public class ExamNeighbourSelection implements NeighbourSelection {
      */
     public void init(Solver solver){
         iCon.init(solver);
+        iStd.init(solver);
         iSA.init(solver);
         iHC.init(solver);
         iGD.init(solver);
+        iProgress = Progress.getInstance(solver.currentSolution().getModel());
     }
 
     /**
@@ -90,9 +104,19 @@ public class ExamNeighbourSelection implements NeighbourSelection {
             case 0 : 
                 n = iCon.selectNeighbour(solution);
                 if (n!=null) return n;
+                if (solution.getModel().nrUnassignedVariables()>0) 
+                    iProgress.setPhase("Searching for initial solution...", solution.getModel().variables().size());
+                iPhase++;
+                sLog.info("***** cbs/tabu-search phase *****");
+            case 1 :
+                if (iStd!=null && solution.getModel().nrUnassignedVariables()>0) {
+                    iProgress.setProgress(solution.getModel().variables().size()-solution.getModel().getBestUnassignedVariables());
+                    n = iStd.selectNeighbour(solution);
+                    if (n!=null) return n;
+                }
                 iPhase++;
                 sLog.info("***** hill climbing phase *****");
-            case 1 :
+            case 2 :
                 n = iHC.selectNeighbour(solution);
                 if (n!=null) return n;
                 iPhase++;
