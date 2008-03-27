@@ -866,6 +866,21 @@ public class Exam extends Variable {
         return iCorrelatedExams.size();
     }
     
+    private int estimatedDomainSize() {
+        int periods = getPeriods().size();
+        int rooms = -1;
+        int split = 0;
+        while (rooms<split && split<=getMaxRooms()) {
+            rooms=0; split++;
+            for (Enumeration e=getRooms().elements();e.hasMoreElements();) {
+                ExamRoom room = (ExamRoom)e.nextElement();
+                int size = (hasAltSeating()?room.getAltSize():room.getSize());
+                if (size>=(getStudents().size()/split)) rooms++;
+            }
+        }
+        return periods * rooms / split;
+    }
+    
     /** 
      * An exam with more correlated exams is preferred ({@link Exam#nrStudentCorrelatedExams()}).
      * If it is the same, ratio number of students / number of available periods is used.
@@ -873,7 +888,9 @@ public class Exam extends Variable {
      */
     public int compareTo(Object o) {
         Exam e = (Exam)o;
-        int cmp = -Double.compare(nrStudentCorrelatedExams(),e.nrStudentCorrelatedExams());
+        int cmp = Double.compare(estimatedDomainSize(), e.estimatedDomainSize());
+        if (cmp!=0) return cmp;
+        cmp = -Double.compare(nrStudentCorrelatedExams(),e.nrStudentCorrelatedExams());
         if (cmp!=0) return cmp;
         cmp = -Double.compare(((double)getStudents().size())/getPeriods().size(),((double)e.getStudents().size())/e.getPeriods().size());
         if (cmp!=0) return cmp;
