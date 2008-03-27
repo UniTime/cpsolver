@@ -1,8 +1,11 @@
 package net.sf.cpsolver.exam.model;
 
+import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Set;
 
 import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.model.ConstraintListener;
 import net.sf.cpsolver.ifs.model.Value;
 
 /**
@@ -148,19 +151,38 @@ public class ExamRoom extends Constraint implements Comparable {
      * An exam was assigned, update room assignment table
      */
     public void assigned(long iteration, Value value) {
-        //super.assigned(iteration, value);
         ExamPlacement p = (ExamPlacement)value;
-        if (p.getRooms().contains(this)) {
-            if (iTable[p.getPeriod().getIndex()]!=null)
-                iTable[p.getPeriod().getIndex()].variable().unassign(iteration);
-            iTable[p.getPeriod().getIndex()] = p;
+        if (p.getRooms().contains(this) && iTable[p.getPeriod().getIndex()]!=null) {
+            if (iConstraintListeners!=null) {
+                HashSet confs = new HashSet();
+                confs.add(iTable[p.getPeriod().getIndex()]);
+                for (Enumeration e=iConstraintListeners.elements();e.hasMoreElements();)
+                    ((ConstraintListener)e.nextElement()).constraintAfterAssigned(iteration, this, value, confs);
+            }
+            iTable[p.getPeriod().getIndex()].variable().unassign(iteration);
         }
+    }
+    
+    /**
+     * An exam was assigned, update room assignment table
+     */
+    public void afterAssigned(long iteration, Value value) {
+        ExamPlacement p = (ExamPlacement)value;
+        if (p.getRooms().contains(this))
+            iTable[p.getPeriod().getIndex()] = p;
     }
     
     /**
      * An exam was unassigned, update room assignment table
      */
     public void unassigned(long iteration, Value value) {
+      //super.unassigned(iteration, value);
+    }
+
+    /**
+     * An exam was unassigned, update room assignment table
+     */
+    public void afterUnassigned(long iteration, Value value) {
         //super.unassigned(iteration, value);
         ExamPlacement p = (ExamPlacement)value;
         if (p.getRooms().contains(this)) {
