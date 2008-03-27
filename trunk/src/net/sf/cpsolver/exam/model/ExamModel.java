@@ -537,6 +537,7 @@ public class ExamModel extends Model {
     public void beforeUnassigned(long iteration, Value value) {
         super.beforeUnassigned(iteration, value);
         ExamPlacement placement = (ExamPlacement)value;
+        Exam exam = (Exam)placement.variable();
         iNrDirectConflicts -= placement.getNrDirectConflicts();
         iNrBackToBackConflicts -= placement.getNrBackToBackConflicts();
         iNrMoreThanTwoADayConflicts -= placement.getNrMoreThanTwoADayConflicts();
@@ -552,12 +553,19 @@ public class ExamModel extends Model {
         iNrInstructorMoreThanTwoADayConflicts -= placement.getNrInstructorMoreThanTwoADayConflicts();
         iNrInstructorDistanceBackToBackConflicts -= placement.getNrInstructorDistanceBackToBackConflicts();
         //iDistributionPenalty
+        for (Enumeration e=exam.getStudents().elements();e.hasMoreElements();) 
+            ((ExamStudent)e.nextElement()).afterUnassigned(iteration, value);
+        for (Enumeration e=exam.getInstructors().elements();e.hasMoreElements();) 
+            ((ExamInstructor)e.nextElement()).afterUnassigned(iteration, value);
+        for (Iterator i=placement.getRooms().iterator();i.hasNext();)
+            ((ExamRoom)i.next()).afterUnassigned(iteration, value);
     }
     
     /** Called after a value is assigned to its variable, optimization criteria are updated */
     public void afterAssigned(long iteration, Value value) {
         super.afterAssigned(iteration, value);
         ExamPlacement placement = (ExamPlacement)value;
+        Exam exam = (Exam)placement.variable();
         iNrDirectConflicts += placement.getNrDirectConflicts();
         iNrBackToBackConflicts += placement.getNrBackToBackConflicts();
         iNrMoreThanTwoADayConflicts += placement.getNrMoreThanTwoADayConflicts();
@@ -573,6 +581,12 @@ public class ExamModel extends Model {
         iNrInstructorMoreThanTwoADayConflicts += placement.getNrInstructorMoreThanTwoADayConflicts();
         iNrInstructorDistanceBackToBackConflicts += placement.getNrInstructorDistanceBackToBackConflicts();
         //iDistributionPenalty
+        for (Enumeration e=exam.getStudents().elements();e.hasMoreElements();) 
+            ((ExamStudent)e.nextElement()).afterAssigned(iteration, value);
+        for (Enumeration e=exam.getInstructors().elements();e.hasMoreElements();) 
+            ((ExamInstructor)e.nextElement()).afterAssigned(iteration, value);
+        for (Iterator i=placement.getRooms().iterator();i.hasNext();)
+            ((ExamRoom)i.next()).afterAssigned(iteration, value);
     }
 
     /**
