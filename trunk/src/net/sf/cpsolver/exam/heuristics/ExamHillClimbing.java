@@ -13,6 +13,7 @@ import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solution.SolutionListener;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
@@ -54,6 +55,8 @@ public class ExamHillClimbing implements NeighbourSelection, SolutionListener {
     private int iLastImprovingIter = 0;
     private double iBestValue = 0;
     private int iIter = 0;
+    private Progress iProgress = null;
+    private boolean iActive;
 
     /**
      * Constructor
@@ -75,6 +78,9 @@ public class ExamHillClimbing implements NeighbourSelection, SolutionListener {
         solver.currentSolution().addSolutionListener(this);
         for (int i=0;i<iNeighbours.length;i++)
             iNeighbours[i].init(solver);
+        solver.setUpdateProgress(false);
+        iProgress = Progress.getInstance(solver.currentSolution().getModel());
+        iActive = false;
     }
     
     /**
@@ -83,15 +89,21 @@ public class ExamHillClimbing implements NeighbourSelection, SolutionListener {
      * Return null when the given number of idle iterations is reached.
      */
     public Neighbour selectNeighbour(Solution solution) {
+        if (!iActive) {
+            iProgress.setPhase("Hill climbing...");
+            iActive = true;
+        }
         Model model = (Model)solution.getModel();
         while (true) {
             iIter ++;
+            iProgress.setProgress(Math.round(100.0*(iIter-iLastImprovingIter)/iMaxIdleIters));
             if (iIter-iLastImprovingIter>=iMaxIdleIters) break;
             NeighbourSelection ns = iNeighbours[ToolBox.random(iNeighbours.length)];
             Neighbour n = ns.selectNeighbour(solution);
             if (n!=null && n.value()<=0) return n;
         }
         iIter = 0; iLastImprovingIter = 0;
+        iActive=false;
         return null;
     }
     
