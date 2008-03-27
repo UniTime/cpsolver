@@ -866,19 +866,23 @@ public class Exam extends Variable {
         return iCorrelatedExams.size();
     }
     
+    private Integer iEstimatedDomainSize = null;
     private int estimatedDomainSize() {
-        int periods = getPeriods().size();
-        int rooms = -1;
-        int split = 0;
-        while (rooms<split && split<=getMaxRooms()) {
-            rooms=0; split++;
-            for (Enumeration e=getRooms().elements();e.hasMoreElements();) {
-                ExamRoom room = (ExamRoom)e.nextElement();
-                int size = (hasAltSeating()?room.getAltSize():room.getSize());
-                if (size>=(getStudents().size()/split)) rooms++;
+        if (iEstimatedDomainSize==null) {
+            int periods = getPeriods().size();
+            int rooms = -1;
+            int split = 0;
+            while (rooms<split && split<=getMaxRooms()) {
+                rooms=0; split++;
+                for (Enumeration e=getRooms().elements();e.hasMoreElements();) {
+                    ExamRoom room = (ExamRoom)e.nextElement();
+                    int size = (hasAltSeating()?room.getAltSize():room.getSize());
+                    if (size>=(getStudents().size()/split)) rooms++;
+                }
             }
+            iEstimatedDomainSize = new Integer(periods * rooms / split);
         }
-        return periods * rooms / split;
+        return iEstimatedDomainSize.intValue();
     }
     
     /** 
