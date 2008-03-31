@@ -8,7 +8,6 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.StringTokenizer;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
@@ -27,11 +26,11 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  * variables, rooms {@link ExamRoom} and students {@link ExamStudent}
  * as constraints. Assignment of an exam to time (modeled as non-overlapping 
  * periods {@link ExamPeriod}) and space (set of rooms) is modeled 
- * using values {@link ExamPlacement}.
- * <br><br>
- * Rooms are grouped into room groups {@link ExamRoomGroup} where
- * an exam can only be assigned into rooms from room groups 
- * that are associated with the exam.  
+ * using values {@link ExamPlacement}. In order to be able to model individual period and
+ * room preferences, period and room assignments are wrapped with
+ * {@link ExamPeriodPlacement} and {@link ExamRoomPlacement} classes respectively.
+ * Moreover, additional distribution constraint {@link ExamDistributionConstraint} can be defined 
+ * in the model.
  * <br><br>
  * The objective function consists of the following criteria:
  * <ul>
@@ -46,19 +45,31 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  *  is greater than Exams.BackToBackDistance, weighted by Exams.DistanceBackToBackConflictWeight).
  *  <li>More than two exams a day (a student is enrolled in three exams that are
  *  scheduled at the same day, weighted by Exams.MoreThanTwoADayWeight).
- *  <li>Period penalty (total of period penalties {@link Exam#getPeriodPenalty(ExamPeriod, Set)} of all exams,
- *  weighted by Exams.DirectConflictWeight).
- *  <li>Room size penalty (total of room size penalties {@link Exam#getRoomSizePenalty(Set)} of all exams,
+ *  <li>Period penalty (total of period penalties {@link ExamPlacement#getPeriodPenalty()} of all assigned exams,
+ *  weighted by Exams.PeriodWeight).
+ *  <li>Room size penalty (total of room size penalties {@link ExamPlacement#getRoomSizePenalty()} of all assigned exams,
  *  weighted by Exams.RoomSizeWeight).
- *  <li>Room split penalty (total of room split penalties {@link Exam#getRoomSplitPenalty(Set)}
- *  of all exams, weighted by Exams.RoomSplitWeight).
- *  <li>Non-original room penalty (total of non-original room penalties {@link Exam#getNotOriginalRoomPenalty(Set)}
- *  of all exams, weighted by Exams.NotOriginalRoomWeight).
+ *  <li>Room split penalty (total of room split penalties {@link ExamPlacement#getRoomSplitPenalty()}
+ *  of all assigned exams, weighted by Exams.RoomSplitWeight).
+ *  <li>Room penalty (total of room penalties {@link ExamPlacement#getRoomPenalty()} of all assigned exams,
+ *  weighted by Exams.RoomWeight).
+ *  <li>Distribution penalty (total of distribution constraint weights {@link ExamDistributionConstraint#getWeight()} of all 
+ *  soft distribution constraints that are not satisfied, i.e., {@link ExamDistributionConstraint#isSatisfied()} = false; 
+ *  weighted by Exams.DistributionWeight).
+ *  <li>Direct instructor conflicts (an instructor is enrolled in two exams that are scheduled at the same period, 
+ *  weighted by Exams.InstructorDirectConflictWeight)
+ *  <li>Back-to-Back instructor conflicts (an instructor is enrolled in two exams that are scheduled in consecutive 
+ *  periods, weighted by Exams.InstructorBackToBackConflictWeight).
+ *  If Exams.IsDayBreakBackToBack is false, there is no conflict between the last 
+ *  period and the first period of consecutive days. 
+ *  <li>Distance Back-to-Back instructor conflicts (same as Back-to-Back instructor conflict,
+ *  but the maximum distance between rooms in which both exam take place
+ *  is greater than Exams.BackToBackDistance, weighted by Exams.InstructorDistanceBackToBackConflictWeight).
  * </ul>
  * 
  * @version
  * ExamTT 1.1 (Examination Timetabling)<br>
- * Copyright (C) 2007 Tomas Muller<br>
+ * Copyright (C) 2008 Tomas Muller<br>
  * <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
  * <br>
@@ -87,20 +98,18 @@ public class ExamModel extends Model {
     private Vector iInstructors = new Vector();
 
     
-    private boolean iDayBreakBackToBack = true;
+    private boolean iDayBreakBackToBack = false;
     private double iDirectConflictWeight = 1000.0;
     private double iMoreThanTwoADayWeight = 100.0;
     private double iBackToBackConflictWeight = 10.0;
     private double iDistanceBackToBackConflictWeight = 25.0;
     private double iPeriodWeight = 1.0;
     private double iExamRotationWeight = 0.001;
-    private double iRoomSizeWeight = 0.001;
+    private double iRoomSizeWeight = 0.0001;
     private double iRoomSplitWeight = 10.0;
-    private double iNotOriginalRoomWeight = 1.0;
-    private double iRoomWeight = 1.0;
+    private double iRoomWeight = 0.1;
     private double iDistributionWeight = 1.0;
-    private int iBackToBackDistance = 67;
-    private int iPeriodProhibitedWeight = 99;
+    private int iBackToBackDistance = -1; //67
     private double iInstructorDirectConflictWeight = 1000.0;
     private double iInstructorMoreThanTwoADayWeight = 100.0;
     private double iInstructorBackToBackConflictWeight = 10.0;
@@ -116,14 +125,11 @@ public class ExamModel extends Model {
     private int iDistributionPenalty = 0;
     private int iPeriodPenalty = 0;
     private int iExamRotationPenalty = 0;
-    private int iNotOriginalRoomPenalty = 0;
     private int iNrInstructorDirectConflicts = 0;
     private int iNrInstructorBackToBackConflicts = 0;
     private int iNrInstructorDistanceBackToBackConflicts = 0;
     private int iNrInstructorMoreThanTwoADayConflicts = 0;
 
-    private Vector iRoomGroups = new Vector();
-    
     /**
      * Constructor
      * @param properties problem properties
@@ -144,9 +150,7 @@ public class ExamModel extends Model {
         iRoomSizeWeight = properties.getPropertyDouble("Exams.RoomSizeWeight", iRoomSizeWeight);
         iRoomWeight = properties.getPropertyDouble("Exams.RoomWeight", iRoomWeight);
         iRoomSplitWeight = properties.getPropertyDouble("Exams.RoomSplitWeight", iRoomSplitWeight);
-        iNotOriginalRoomWeight = properties.getPropertyDouble("Exams.NotOriginalRoomWeight", iNotOriginalRoomWeight);
         iBackToBackDistance = properties.getPropertyInt("Exams.BackToBackDistance", iBackToBackDistance);
-        iPeriodProhibitedWeight = properties.getPropertyInt("Exams.PeriodProhibitedWeight", iPeriodProhibitedWeight);
         iDistributionWeight = properties.getPropertyDouble("Exams.DistributionWeight", iDistributionWeight);
         iInstructorDirectConflictWeight = properties.getPropertyDouble("Exams.InstructorDirectConflictWeight", iInstructorDirectConflictWeight);
         iInstructorBackToBackConflictWeight = properties.getPropertyDouble("Exams.InstructorBackToBackConflictWeight", iInstructorBackToBackConflictWeight);
@@ -160,9 +164,9 @@ public class ExamModel extends Model {
     public void init() {
         for (Enumeration e=variables().elements();e.hasMoreElements();) {
             Exam exam = (Exam)e.nextElement();
-            for (Enumeration f=exam.getRooms().elements();f.hasMoreElements();) {
-                ExamRoom room = (ExamRoom)f.nextElement();
-                room.addVariable(exam);
+            for (Enumeration f=exam.getRoomPlacements().elements();f.hasMoreElements();) {
+                ExamRoomPlacement room = (ExamRoomPlacement)f.nextElement();
+                room.getRoom().addVariable(exam);
             }
         }
     }
@@ -185,14 +189,15 @@ public class ExamModel extends Model {
     
     /**
      * Add a period
+     * @param id period unique identifier
      * @param day day (e.g., 07/12/10)
      * @param time (e.g., 8:00am-10:00am)
      * @param length length of period in minutes
-     * @param weight penalization of using this period
+     * @param penalty period penalty
      */
-    public ExamPeriod addPeriod(Long id, String day, String time, int length, int weight) {
+    public ExamPeriod addPeriod(Long id, String day, String time, int length, int penalty) {
         ExamPeriod lastPeriod = (iPeriods.isEmpty()?null:(ExamPeriod)iPeriods.lastElement());
-        ExamPeriod p = new ExamPeriod(id, day, time, length, weight);
+        ExamPeriod p = new ExamPeriod(id, day, time, length, penalty);
         if (lastPeriod==null)
             p.setIndex(iPeriods.size(),0,0);
         else if (lastPeriod.getDayStr().equals(day)) {
@@ -227,7 +232,7 @@ public class ExamModel extends Model {
         return iPeriods;
     }
     
-    /** Period of given id */
+    /** Period of given unique id */
     public ExamPeriod getPeriod(Long id) {
         for (Enumeration e=iPeriods.elements();e.hasMoreElements();) {
             ExamPeriod period=(ExamPeriod)e.nextElement();
@@ -372,7 +377,7 @@ public class ExamModel extends Model {
         iDayBreakBackToBack = dayBreakBackToBack;
     }
     /**
-     * A weight for period penalty (used in {@link Exam#getPeriodPenalty(ExamPeriod, Set)}, 
+     * A weight for period penalty (used in {@link ExamPlacement#getPeriodPenalty()}, 
      * can be set by problem property Exams.PeriodWeight, or in the input xml file,
      * property periodWeight)
      * 
@@ -381,7 +386,7 @@ public class ExamModel extends Model {
         return iPeriodWeight;
     }
     /**
-     * A weight for period penalty (used in {@link Exam#getPeriodPenalty(ExamPeriod, Set)}, 
+     * A weight for period penalty (used in {@link ExamPlacement#getPeriodPenalty()}, 
      * can be set by problem property Exams.PeriodWeight, or in the input xml file,
      * property periodWeight)
      * 
@@ -390,7 +395,7 @@ public class ExamModel extends Model {
         iPeriodWeight = periodWeight;
     }
     /**
-     * A weight for exam rotation penalty (used in {@link Exam#getRotationPenalty(ExamPeriod)} 
+     * A weight for exam rotation penalty (used in {@link ExamPlacement#getRotationPenalty()} 
      * can be set by problem property Exams.RotationWeight, or in the input xml file,
      * property examRotationWeight)
      * 
@@ -399,7 +404,7 @@ public class ExamModel extends Model {
         return iExamRotationWeight;
     }
     /**
-     * A weight for period penalty (used in {@link Exam#getRotationPenalty(ExamPeriod)}, 
+     * A weight for period penalty (used in {@link ExamPlacement#getRotationPenalty()}, 
      * can be set by problem property Exams.RotationWeight, or in the input xml file,
      * property examRotationWeight)
      * 
@@ -408,7 +413,7 @@ public class ExamModel extends Model {
         iExamRotationWeight = examRotationWeight;
     }
     /**
-     * A weight for room size penalty (used in {@link Exam#getRoomSizePenalty(Set)}, 
+     * A weight for room size penalty (used in {@link ExamPlacement#getRoomSizePenalty()}, 
      * can be set by problem property Exams.RoomSizeWeight, or in the input xml file,
      * property roomSizeWeight)
      * 
@@ -417,7 +422,7 @@ public class ExamModel extends Model {
         return iRoomSizeWeight;
     }
     /**
-     * A weight for room size penalty (used in {@link Exam#getRoomSizePenalty(Set)}, 
+     * A weight for room size penalty (used in {@link ExamPlacement#getRoomSizePenalty()}, 
      * can be set by problem property Exams.RoomSizeWeight, or in the input xml file,
      * property roomSizeWeight)
      * 
@@ -444,7 +449,7 @@ public class ExamModel extends Model {
         iRoomWeight = roomWeight;
     }
     /**
-     * A weight for room split penalty (used in {@link Exam#getRoomSplitPenalty(Set)}, 
+     * A weight for room split penalty (used in {@link ExamPlacement#getRoomSplitPenalty()}, 
      * can be set by problem property Exams.RoomSplitWeight, or in the input xml file,
      * property roomSplitWeight)
      * 
@@ -453,7 +458,7 @@ public class ExamModel extends Model {
         return iRoomSplitWeight;
     }
     /**
-     * A weight for room split penalty (used in {@link Exam#getRoomSplitPenalty(Set)}, 
+     * A weight for room split penalty (used in {@link ExamPlacement#getRoomSplitPenalty()}, 
      * can be set by problem property Exams.RoomSplitWeight, or in the input xml file,
      * property roomSplitWeight)
      * 
@@ -462,24 +467,6 @@ public class ExamModel extends Model {
         iRoomSplitWeight = roomSplitWeight;
     }
 
-    /**
-     * A weight for using room that is not original (used in {@link Exam#getNotOriginalRoomPenalty(Set)}, 
-     * can be set by problem property Exams.NotOriginalRoomPenalty, or in the input xml file,
-     * property notOriginalRoomPenalty)
-     * 
-     */
-    public double getNotOriginalRoomWeight() {
-        return iNotOriginalRoomWeight;
-    }
-    /**
-     * A weight for using room that is not original (used in {@link Exam#getNotOriginalRoomPenalty(Set)}, 
-     * can be set by problem property Exams.NotOriginalRoomPenalty, or in the input xml file,
-     * property notOriginalRoomPenalty)
-     * 
-     */
-    public void setNotOriginalRoomWeight(double notOriginalRoomWeight) {
-        iNotOriginalRoomWeight = notOriginalRoomWeight;
-    }
     /**
      * Back-to-back distance (used in {@link ExamPlacement#getNrDistanceBackToBackConflicts()}, 
      * can be set by problem property Exams.BackToBackDistance, or in the input xml file,
@@ -495,24 +482,6 @@ public class ExamModel extends Model {
      */
     public void setBackToBackDistance(int backToBackDistance) {
         iBackToBackDistance = backToBackDistance;
-    }
-    /**
-     * A period with weight {@link ExamPeriod#getWeight()} equal or greater this weight is
-     * considered prohibited, for all exams that do not have this period pre-assigned. Set to
-     * -1 if there is no limit. Can be set by propery Exams.PeriodProhibitedWeight, or in the 
-     * input xml file, property periodProhibitedWeight).
-     */
-    public int getPeriodProhibitedWeight() {
-        return iPeriodProhibitedWeight;
-    }
-    /**
-     * A period with weight {@link ExamPeriod#getWeight()} equal or greater this weight is
-     * considered prohibited, for all exams that do not have this period pre-assigned. Set to
-     * -1 if there is no limit. Can be set by propery Exams.PeriodProhibitedWeight, or in the 
-     * input xml file, property periodProhibitedWeight).
-     */
-    public void setPeriodProhibitedWeight(int periodProhibitedWeight) {
-        iPeriodProhibitedWeight = periodProhibitedWeight;
     }
     /**
      * A weight of violated distribution soft constraints (see {@link ExamDistributionConstraint}, 
@@ -546,19 +515,17 @@ public class ExamModel extends Model {
         iRoomSplitPenalty -= placement.getRoomSplitPenalty();
         iPeriodPenalty -= placement.getPeriodPenalty();
         iExamRotationPenalty -= placement.getRotationPenalty();
-        iNotOriginalRoomPenalty -= placement.getNotOriginalRoomPenalty();
         iRoomPenalty -= placement.getRoomPenalty();
         iNrInstructorDirectConflicts -= placement.getNrInstructorDirectConflicts();
         iNrInstructorBackToBackConflicts -= placement.getNrInstructorBackToBackConflicts();
         iNrInstructorMoreThanTwoADayConflicts -= placement.getNrInstructorMoreThanTwoADayConflicts();
         iNrInstructorDistanceBackToBackConflicts -= placement.getNrInstructorDistanceBackToBackConflicts();
-        //iDistributionPenalty
         for (Enumeration e=exam.getStudents().elements();e.hasMoreElements();) 
             ((ExamStudent)e.nextElement()).afterUnassigned(iteration, value);
         for (Enumeration e=exam.getInstructors().elements();e.hasMoreElements();) 
             ((ExamInstructor)e.nextElement()).afterUnassigned(iteration, value);
-        for (Iterator i=placement.getRooms().iterator();i.hasNext();)
-            ((ExamRoom)i.next()).afterUnassigned(iteration, value);
+        for (Iterator i=placement.getRoomPlacements().iterator();i.hasNext();)
+            ((ExamRoomPlacement)i.next()).getRoom().afterUnassigned(iteration, value);
     }
     
     /** Called after a value is assigned to its variable, optimization criteria are updated */
@@ -574,19 +541,17 @@ public class ExamModel extends Model {
         iRoomSplitPenalty += placement.getRoomSplitPenalty();
         iPeriodPenalty += placement.getPeriodPenalty();
         iExamRotationPenalty += placement.getRotationPenalty();
-        iNotOriginalRoomPenalty += placement.getNotOriginalRoomPenalty();
         iRoomPenalty += placement.getRoomPenalty();
         iNrInstructorDirectConflicts += placement.getNrInstructorDirectConflicts();
         iNrInstructorBackToBackConflicts += placement.getNrInstructorBackToBackConflicts();
         iNrInstructorMoreThanTwoADayConflicts += placement.getNrInstructorMoreThanTwoADayConflicts();
         iNrInstructorDistanceBackToBackConflicts += placement.getNrInstructorDistanceBackToBackConflicts();
-        //iDistributionPenalty
         for (Enumeration e=exam.getStudents().elements();e.hasMoreElements();) 
             ((ExamStudent)e.nextElement()).afterAssigned(iteration, value);
         for (Enumeration e=exam.getInstructors().elements();e.hasMoreElements();) 
             ((ExamInstructor)e.nextElement()).afterAssigned(iteration, value);
-        for (Iterator i=placement.getRooms().iterator();i.hasNext();)
-            ((ExamRoom)i.next()).afterAssigned(iteration, value);
+        for (Iterator i=placement.getRoomPlacements().iterator();i.hasNext();)
+            ((ExamRoomPlacement)i.next()).getRoom().afterAssigned(iteration, value);
     }
 
     /**
@@ -603,14 +568,27 @@ public class ExamModel extends Model {
      *  is greater than Exams.BackToBackDistance, weighted by Exams.DistanceBackToBackConflictWeight).
      *  <li>More than two exams a day (a student is enrolled in three exams that are
      *  scheduled at the same day, weighted by Exams.MoreThanTwoADayWeight).
-     *  <li>Period penalty (total of period penalties {@link Exam#getPeriodPenalty(ExamPeriod, Set)} of all exams,
-     *  weighted by Exams.DirectConflictWeight).
-     *  <li>Room size penalty (total of room size penalties {@link Exam#getRoomSizePenalty(Set)} of all exams,
+     *  <li>Period penalty (total of period penalties {@link ExamPlacement#getPeriodPenalty()} of all assigned exams,
+     *  weighted by Exams.PeriodWeight).
+     *  <li>Room size penalty (total of room size penalties {@link ExamPlacement#getRoomSizePenalty()} of all assigned exams,
      *  weighted by Exams.RoomSizeWeight).
-     *  <li>Room split penalty (total of room split penalties {@link Exam#getRoomSplitPenalty(Set)}
-     *  of all exams, weighted by Exams.RoomSplitWeight).
-     *  <li>Non-original room penalty (total of non-original room penalties {@link Exam#getNotOriginalRoomPenalty(Set)}
-     *  of all exams, weighted by Exams.NotOriginalRoomWeight).
+     *  <li>Room split penalty (total of room split penalties {@link ExamPlacement#getRoomSplitPenalty()}
+     *  of all assigned exams, weighted by Exams.RoomSplitWeight).
+     *  <li>Room penalty (total of room penalties {@link ExamPlacement#getRoomPenalty()}
+     *  of all assigned exams, weighted by Exams.RoomWeight).
+     *  <li>Distribution penalty (total of room split penalties {@link ExamDistributionConstraint#getWeight()}
+     *  of all soft violated distribution constraints, weighted by Exams.DistributionWeight).
+     *  <li>Direct instructor conflicts (an instructor is enrolled in two exams that are 
+     *  scheduled at the same period, weighted by Exams.InstructorDirectConflictWeight)
+     *  <li>Back-to-Back instructor conflicts (an instructor is enrolled in two exams that
+     *  are scheduled in consecutive periods, weighted by Exams.InstructorBackToBackConflictWeight).
+     *  If Exams.IsDayBreakBackToBack is false, there is no conflict between the last 
+     *  period and the first period of consecutive days. 
+     *  <li>Distance Back-to-Back instructor conflicts (same as Back-to-Back instructor conflict,
+     *  but the maximum distance between rooms in which both exam take place
+     *  is greater than Exams.BackToBackDistance, weighted by Exams.InstructorDistanceBackToBackConflictWeight).
+     *  <li>More than two exams a day (an instructor is enrolled in three exams that are
+     *  scheduled at the same day, weighted by Exams.InstructorMoreThanTwoADayWeight).
      * </ul>
      * @return weighted sum of objective criteria
      */
@@ -623,13 +601,13 @@ public class ExamModel extends Model {
             getPeriodWeight()*getPeriodPenalty(false)+
             getRoomSizeWeight()*getRoomSizePenalty(false)+
             getRoomSplitWeight()*getRoomSplitPenalty(false)+
-            getNotOriginalRoomWeight()*getNotOriginalRoomPenalty(false)+
             getRoomWeight()*getRoomPenalty(false)+
             getDistributionWeight()*getDistributionPenalty(false)+
             getInstructorDirectConflictWeight()*getNrInstructorDirectConflicts(false)+
             getInstructorMoreThanTwoADayWeight()*getNrInstructorMoreThanTwoADayConflicts(false)+
             getInstructorBackToBackConflictWeight()*getNrInstructorBackToBackConflicts(false)+
-            getInstructorDistanceBackToBackConflictWeight()*getNrInstructorDistanceBackToBackConflicts(false);
+            getInstructorDistanceBackToBackConflictWeight()*getNrInstructorDistanceBackToBackConflicts(false)+
+            getExamRotationWeight()*getExamRotationPenalty(false);
     }
     
     /**
@@ -646,14 +624,27 @@ public class ExamModel extends Model {
      *  is greater than Exams.BackToBackDistance, weighted by Exams.DistanceBackToBackConflictWeight).
      *  <li>More than two exams a day (a student is enrolled in three exams that are
      *  scheduled at the same day, weighted by Exams.MoreThanTwoADayWeight).
-     *  <li>Period penalty (total of period penalties {@link Exam#getPeriodPenalty(ExamPeriod, Set)} of all exams,
-     *  weighted by Exams.DirectConflictWeight).
-     *  <li>Room size penalty (total of room size penalties {@link Exam#getRoomSizePenalty(Set)} of all exams,
+     *  <li>Period penalty (total of period penalties {@link ExamPlacement#getPeriodPenalty()} of all assigned exams,
+     *  weighted by Exams.PeriodWeight).
+     *  <li>Room size penalty (total of room size penalties {@link ExamPlacement#getRoomSizePenalty()} of all assigned exams,
      *  weighted by Exams.RoomSizeWeight).
-     *  <li>Room split penalty (total of room split penalties {@link Exam#getRoomSplitPenalty(Set)}
-     *  of all exams, weighted by Exams.RoomSplitWeight).
-     *  <li>Non-original room penalty (total of non-original room penalties {@link Exam#getNotOriginalRoomPenalty(Set)}
-     *  of all exams, weighted by Exams.NotOriginalRoomWeight).
+     *  <li>Room split penalty (total of room split penalties {@link ExamPlacement#getRoomSplitPenalty()}
+     *  of all assigned exams, weighted by Exams.RoomSplitWeight).
+     *  <li>Room penalty (total of room penalties {@link ExamPlacement#getRoomPenalty()}
+     *  of all assigned exams, weighted by Exams.RoomWeight).
+     *  <li>Distribution penalty (total of room split penalties {@link ExamDistributionConstraint#getWeight()}
+     *  of all soft violated distribution constraints, weighted by Exams.DistributionWeight).
+     *  <li>Direct instructor conflicts (an instructor is enrolled in two exams that are 
+     *  scheduled at the same period, weighted by Exams.InstructorDirectConflictWeight)
+     *  <li>Back-to-Back instructor conflicts (an instructor is enrolled in two exams that
+     *  are scheduled in consecutive periods, weighted by Exams.InstructorBackToBackConflictWeight).
+     *  If Exams.IsDayBreakBackToBack is false, there is no conflict between the last 
+     *  period and the first period of consecutive days. 
+     *  <li>Distance Back-to-Back instructor conflicts (same as Back-to-Back instructor conflict,
+     *  but the maximum distance between rooms in which both exam take place
+     *  is greater than Exams.BackToBackDistance, weighted by Exams.InstructorDistanceBackToBackConflictWeight).
+     *  <li>More than two exams a day (an instructor is enrolled in three exams that are
+     *  scheduled at the same day, weighted by Exams.InstructorMoreThanTwoADayWeight).
      * </ul>
      * @return an array of weighted objective criteria
      */
@@ -666,9 +657,13 @@ public class ExamModel extends Model {
                 getPeriodWeight()*getPeriodPenalty(false),
                 getRoomSizeWeight()*getRoomSizePenalty(false),
                 getRoomSplitWeight()*getRoomSplitPenalty(false),
-                getNotOriginalRoomWeight()*getNotOriginalRoomPenalty(false),
                 getRoomWeight()*getRoomPenalty(false),
-                getDistributionWeight()*getDistributionPenalty(false)
+                getDistributionWeight()*getDistributionPenalty(false),
+                getInstructorDirectConflictWeight()*getNrInstructorDirectConflicts(false),
+                getInstructorMoreThanTwoADayWeight()*getNrInstructorMoreThanTwoADayConflicts(false),
+                getInstructorBackToBackConflictWeight()*getNrInstructorBackToBackConflicts(false),
+                getInstructorDistanceBackToBackConflictWeight()*getNrInstructorDistanceBackToBackConflicts(false),
+                getExamRotationWeight()*getExamRotationPenalty(false)
         };
     }
     
@@ -682,11 +677,10 @@ public class ExamModel extends Model {
             "BTB:"+getNrBackToBackConflicts(false)+","+
             (getBackToBackDistance()<0?"":"dBTB:"+getNrDistanceBackToBackConflicts(false)+",")+
             "PP:"+getPeriodPenalty(false)+","+
-            "RP:"+getExamRotationPenalty(false)+","+
+            "@P:"+getExamRotationPenalty(false)+","+
             "RSz:"+getRoomSizePenalty(false)+","+
             "RSp:"+getRoomSplitPenalty(false)+","+
-            "ROg:"+getNotOriginalRoomPenalty(false)+","+
-            "RW:"+getRoomPenalty(false)+","+
+            "RP:"+getRoomPenalty(false)+","+
             "DP:"+getDistributionPenalty(false);
     }
 
@@ -946,25 +940,10 @@ public class ExamModel extends Model {
     }
 
     /**
-     * Return total non-original room penalty, i.e., the sum of {@link ExamPlacement#getNotOriginalRoomPenalty()} of all
-     * assigned placements.
-     * @param precise if false, the cached value is used
-     * @return total non-original room penalty
-     */
-    public int getNotOriginalRoomPenalty(boolean precise) {
-        if (!precise) return iNotOriginalRoomPenalty;
-        int penalty = 0;
-        for (Enumeration e=assignedVariables().elements();e.hasMoreElements();) {
-            penalty += ((ExamPlacement)((Exam)e.nextElement()).getAssignment()).getNotOriginalRoomPenalty();
-        }
-        return penalty;
-    }
-
-    /**
      * Return total room (weight) penalty, i.e., the sum of {@link ExamPlacement#getRoomPenalty()} of all
      * assigned placements.
      * @param precise if false, the cached value is used
-     * @return total non-original room penalty
+     * @return total room penalty
      */
     public int getRoomPenalty(boolean precise) {
         if (!precise) return iRoomPenalty;
@@ -979,7 +958,7 @@ public class ExamModel extends Model {
      * Return total distribution penalty, i.e., the sum of {@link ExamDistributionConstraint#getWeight()} of all
      * violated soft distribution constraints.
      * @param precise if false, the cached value is used
-     * @return total non-original room penalty
+     * @return total distribution penalty
      */
     public int getDistributionPenalty(boolean precise) {
         if (!precise) return iDistributionPenalty;
@@ -1026,9 +1005,6 @@ public class ExamModel extends Model {
         info.put("Exam Rotation Penalty",
                 getExamRotationPenalty(false)+" ("+
                 sDoubleFormat.format(getExamRotationWeight()*getExamRotationPenalty(false))+")");
-        info.put("Not-Original Room Penalty",
-                getNotOriginalRoomPenalty(false)+" ("+
-                sDoubleFormat.format(getNotOriginalRoomWeight()*getNotOriginalRoomPenalty(false))+")");
         info.put("Room Penalty",
                 getRoomPenalty(false)+" ("+
                 sDoubleFormat.format(getRoomWeight()*getRoomPenalty(false))+")");
@@ -1066,68 +1042,34 @@ public class ExamModel extends Model {
         info.put("Room Size Penalty [p]",String.valueOf(getRoomSizePenalty(true)));
         info.put("Room Split Penalty [p]",String.valueOf(getRoomSplitPenalty(true)));
         info.put("Period Penalty [p]",String.valueOf(getPeriodPenalty(true)));
-        info.put("Not-Original Room Penalty [p]",String.valueOf(getNotOriginalRoomPenalty(true)));
         info.put("Room Penalty [p]",String.valueOf(getRoomPenalty(true)));
         info.put("Distribution Penalty [p]",String.valueOf(getDistributionPenalty(true)));
         info.put("Number of Periods",String.valueOf(getPeriods().size()));
         info.put("Number of Exams",String.valueOf(variables().size()));
         info.put("Number of Rooms",String.valueOf(getRooms().size()));
-        String rgAllId = "A";
         int avail = 0, availAlt = 0;
-        for (Enumeration e=getRoomGroups().elements();e.hasMoreElements();) {
-            ExamRoomGroup rg = (ExamRoomGroup)e.nextElement();
-            if (rg.getRooms().isEmpty()) continue;
-            info.put("Number of Rooms (group "+rg.getId()+")",String.valueOf(rg.getRooms().size()));
-            if (rgAllId.equals(rg.getId())) {
-                for (Enumeration f=rg.getRooms().elements();f.hasMoreElements();) {
-                    ExamRoom room = (ExamRoom)f.nextElement();
-                    for (Enumeration g=getPeriods().elements();g.hasMoreElements();) {
-                        ExamPeriod period = (ExamPeriod)g.nextElement();
-                        if (room.isAvailable(period)) {
-                            avail+=room.getSize();
-                            availAlt+=room.getAltSize();
-                        }
-                    }
+        for (Enumeration e=getRooms().elements();e.hasMoreElements();) {
+            ExamRoom room = (ExamRoom)e.nextElement();
+            for (Enumeration g=getPeriods().elements();g.hasMoreElements();) {
+                ExamPeriod period = (ExamPeriod)g.nextElement();
+                if (room.isAvailable(period)) {
+                    avail+=room.getSize();
+                    availAlt+=room.getAltSize();
                 }
             }
-            info.put("Space in Rooms (Group "+rg.getId()+")",
-                    rg.getSpace()+
-                    " (min:"+rg.getMinSize()+", max:"+rg.getMaxSize()+
-                    ", avg:"+rg.getAvgSize()+", med:"+rg.getMedSize()+")");
-            info.put("Space in Rooms (Alternative, Group "+rg.getId()+")",
-                    rg.getAltSpace()+
-                    " (min:"+rg.getMinAltSize()+", max:"+rg.getMaxAltSize()+
-                    ", avg:"+rg.getAvgAltSize()+", med:"+rg.getMedAltSize()+")");
         }
         info.put("Number of Students",String.valueOf(getStudents().size()));
         int nrStudentExams = 0;
-        for (Enumeration e=getStudents().elements();e.hasMoreElements();) {
-            ExamStudent student = (ExamStudent)e.nextElement();
-            nrStudentExams += student.variables().size();
-        }
         info.put("Number of Student Exams",String.valueOf(nrStudentExams));
-        int nrAltExams = 0, nrSectionExams = 0, nrOrigRoomExams = 0, nrPreassignedTime = 0, nrPreassignedRoom = 0, nrSmallExams = 0;
-        double fill = 0;
+        int nrAltExams = 0, nrOrigRoomExams = 0, nrSmallExams = 0;
         double altRatio = ((double)avail)/availAlt;
         for (Enumeration e=variables().elements();e.hasMoreElements();) {
             Exam exam = (Exam)e.nextElement();
-            if (exam.getMaxRooms()>0)
-                fill += (exam.hasAltSeating()?altRatio:1.0)*exam.getStudents().size();
-            if (exam.isSectionExam()) nrSectionExams++;
             if (exam.hasAltSeating()) nrAltExams++;
-            if (exam.getOriginalRoom()!=null) nrOrigRoomExams++;
-            if (exam.hasPreAssignedPeriod()) nrPreassignedTime++;
-            if (exam.hasPreAssignedRooms()) nrPreassignedRoom++;
             if (exam.getMaxRooms()==0) nrSmallExams++;
         }
-        info.put("Estimated Schedule Infilling (Group "+rgAllId+")", sDoubleFormat.format(100.0*fill/avail)+"% ("+Math.round(fill)+" of "+avail+")");
         info.put("Number of Exams Requiring Alt Seating",String.valueOf(nrAltExams));
         info.put("Number of Small Exams (Exams W/O Room)",String.valueOf(nrSmallExams));
-        info.put("Number of Section Exams",String.valueOf(nrSectionExams));
-        info.put("Number of Course Exams",String.valueOf(variables().size()-nrSectionExams));
-        info.put("Number of Exams With Original Room",String.valueOf(nrOrigRoomExams));
-        info.put("Number of Exams With Pre-Assigned Time",String.valueOf(nrPreassignedTime));
-        info.put("Number of Exams With Pre-Assigned Room",String.valueOf(nrPreassignedRoom));
         int[] nbrMtgs = new int[11];
         for (int i=0;i<=10;i++) nbrMtgs[i]=0;
         for (Enumeration e=getStudents().elements();e.hasMoreElements();) {
@@ -1141,14 +1083,6 @@ public class ExamModel extends Model {
         return info;
     }
 
-    /**
-     * Problem room groups
-     * @return list of {@link ExamRoomGroup}
-     */
-    public Vector getRoomGroups() {
-        return iRoomGroups;
-    }
-    
     /**
      * Problem properties
      */
@@ -1186,7 +1120,7 @@ public class ExamModel extends Model {
     public Document save() {
         boolean saveInitial = getProperties().getPropertyBoolean("Xml.SaveInitial", true);
         boolean saveSolution = getProperties().getPropertyBoolean("Xml.SaveSolution", true);
-        boolean saveConflictTable = getProperties().getPropertyBoolean("Xml.SaveConflictTable", true);
+        boolean saveConflictTable = getProperties().getPropertyBoolean("Xml.SaveConflictTable", false);
         Document document = DocumentHelper.createDocument();
         document.addComment("Examination Timetable");
         if (nrAssignedVariables()>0) {
@@ -1217,10 +1151,8 @@ public class ExamModel extends Model {
         params.addElement("property").addAttribute("name", "examRotationWeight").addAttribute("value", String.valueOf(getExamRotationWeight()));
         params.addElement("property").addAttribute("name", "roomSizeWeight").addAttribute("value", String.valueOf(getRoomSizeWeight()));
         params.addElement("property").addAttribute("name", "roomSplitWeight").addAttribute("value", String.valueOf(getRoomSplitWeight()));
-        params.addElement("property").addAttribute("name", "notOriginalRoomWeight").addAttribute("value", String.valueOf(getNotOriginalRoomWeight()));
         params.addElement("property").addAttribute("name", "roomWeight").addAttribute("value", String.valueOf(getRoomWeight()));
         params.addElement("property").addAttribute("name", "distributionWeight").addAttribute("value", String.valueOf(getDistributionWeight()));
-        params.addElement("property").addAttribute("name", "periodProhibitedWeight").addAttribute("value", String.valueOf(getPeriodProhibitedWeight()));
         params.addElement("property").addAttribute("name", "instructorDirectConflictWeight").addAttribute("value", String.valueOf(getInstructorDirectConflictWeight()));
         params.addElement("property").addAttribute("name", "instructorMoreThanTwoADayWeight").addAttribute("value", String.valueOf(getInstructorMoreThanTwoADayWeight()));
         params.addElement("property").addAttribute("name", "instructorBackToBackConflictWeight").addAttribute("value", String.valueOf(getInstructorBackToBackConflictWeight()));
@@ -1233,7 +1165,7 @@ public class ExamModel extends Model {
                 addAttribute("length", String.valueOf(period.getLength())).
                 addAttribute("day", period.getDayStr()).
                 addAttribute("time", period.getTimeStr()).
-                addAttribute("weight", String.valueOf(period.getWeight()));
+                addAttribute("penalty", String.valueOf(period.getPenalty()));
         }
         Element rooms = root.addElement("rooms");
         for (Enumeration e=getRooms().elements();e.hasMoreElements();) {
@@ -1247,29 +1179,14 @@ public class ExamModel extends Model {
             if (room.getCoordX()>=0 && room.getCoordY()>=0)
                 r.addAttribute("coordinates", room.getCoordX()+","+room.getCoordY());
             String gr = "";
-            for (Enumeration f=getRoomGroups().elements();f.hasMoreElements();) {
-                ExamRoomGroup rg = (ExamRoomGroup)f.nextElement();
-                if (rg.getRooms().contains(room)) {
-                    if (gr.length()>0) gr+=",";
-                    gr+=rg.getId();
-                }
-            }
-            if (gr.length()>0)
-                r.addAttribute("groups", gr);
-            String available = "";
-            boolean allAvail = true;
             for (Enumeration f=getPeriods().elements();f.hasMoreElements();) {
                 ExamPeriod period = (ExamPeriod)f.nextElement();
-                available += room.isAvailable(period)?"1":"0";
-                if (!room.isAvailable(period)) allAvail=false;
-                if (room.getWeight(period)!=0)
-                    r.addElement("period").addAttribute("id", String.valueOf(period.getId())).addAttribute("weight", String.valueOf(room.getWeight(period)));
+                if (!room.isAvailable(period))
+                    r.addElement("period").addAttribute("id", String.valueOf(period.getId())).addAttribute("available", "false");
+                else if (room.getPenalty(period)!=0)
+                    r.addElement("period").addAttribute("id", String.valueOf(period.getId())).addAttribute("penalty", String.valueOf(room.getPenalty(period)));
             }
-            if (!allAvail)
-                r.addAttribute("available", available);
         }
-        int perProhW = getPeriodProhibitedWeight();
-        setPeriodProhibitedWeight(-1);
         Element exams = root.addElement("exams");
         for (Enumeration e=variables().elements();e.hasMoreElements();) {
             Exam exam = (Exam)e.nextElement();
@@ -1278,76 +1195,49 @@ public class ExamModel extends Model {
             if (exam.hasName())
                 ex.addAttribute("name", exam.getName());
             ex.addAttribute("length", String.valueOf(exam.getLength()));
-            ex.addAttribute("type", (exam.isSectionExam()?"section":"course"));
+            if (exam.getMinSize()!=0)
+                ex.addAttribute("minSize", String.valueOf(exam.getMinSize()));
             ex.addAttribute("alt", (exam.hasAltSeating()?"true":"false"));
             if (exam.getMaxRooms()!=getMaxRooms())
                 ex.addAttribute("maxRooms", String.valueOf(exam.getMaxRooms()));
             ex.addAttribute("enrl", String.valueOf(exam.getStudents().size()));
-            for (Enumeration f=exam.getCourseSections().elements();f.hasMoreElements();) {
-                ExamCourseSection cs = (ExamCourseSection)f.nextElement();
-                ex.addElement(cs.isSection()?"section":"course").addAttribute("id", String.valueOf(cs.getId())).addAttribute("name", cs.getName());
+            for (Enumeration f=exam.getOwners().elements();f.hasMoreElements();) {
+                ExamOwner owner = (ExamOwner)f.nextElement();
+                ex.addElement("owner").addAttribute("id", String.valueOf(owner.getId())).addAttribute("name", owner.getName());
             }
-            if (exam.getOriginalRoom()!=null)
-                ex.addElement("original-room").addAttribute("id", String.valueOf(exam.getOriginalRoom().getId()));
-            if (exam.hasPreAssignedPeriod() || !exam.getPreassignedRooms().isEmpty()) {
-                Element pre = ex.addElement("pre-assigned");
-                if (exam.hasPreAssignedPeriod())
-                    pre.addElement("period").addAttribute("id", String.valueOf(exam.getPreAssignedPeriod().getId()));
-                for (Iterator i=exam.getPreassignedRooms().iterator();i.hasNext();) {
-                    ExamRoom r = (ExamRoom)i.next();
-                    pre.addElement("room").addAttribute("id", String.valueOf(r.getId()));
-                }
+            for (Enumeration f=exam.getPeriodPlacements().elements();f.hasMoreElements();) {
+                ExamPeriodPlacement period = (ExamPeriodPlacement)f.nextElement();
+                Element pe = ex.addElement("period"). addAttribute("id", String.valueOf(period.getId()));
+                int penalty = period.getPenalty()-period.getPeriod().getPenalty();
+                if (penalty!=0)
+                    pe.addAttribute("penalty", String.valueOf(penalty));
             }
-            String available = "";
-            boolean allAvail = true;
-            for (Enumeration f=getPeriods().elements();f.hasMoreElements();) {
-                ExamPeriod period = (ExamPeriod)f.nextElement();
-                available += exam.isAvailable(period)?"1":"0";
-                if (!exam.isAvailable(period)) allAvail=false;
-                if (exam.getWeight(period)!=0)
-                    ex.addElement("period").addAttribute("id", String.valueOf(period.getId())).addAttribute("weight", String.valueOf(exam.getWeight(period)));
+            for (Iterator j=exam.getRoomPlacements().iterator();j.hasNext();) {
+                ExamRoomPlacement room = (ExamRoomPlacement)j.next();
+                Element re = ex.addElement("room").addAttribute("id", String.valueOf(room.getId()));
+                if (room.getPenalty()!=0) re.addAttribute("penalty", String.valueOf(room.getPenalty()));
+                if (room.getMaxPenalty()!=100) re.addAttribute("maxPenalty", String.valueOf(room.getMaxPenalty()));
             }
-            if (!allAvail)
-                ex.addAttribute("available", available);
             if (exam.hasAveragePeriod())
                 ex.addAttribute("average", String.valueOf(exam.getAveragePeriod()));
-            String rgs = "";
-            for (Enumeration f=exam.getRoomGroups().elements();f.hasMoreElements();) {
-                ExamRoomGroup rg = (ExamRoomGroup)f.nextElement();
-                if (rg.getRooms().isEmpty()) continue;
-                if (rgs.length()>0) rgs+=",";
-                rgs+=rg.getId();
-            }
-            if (rgs.length()>0) ex.addAttribute("groups", rgs);
             ExamPlacement p = (ExamPlacement)exam.getAssignment();
             if (p!=null && saveSolution) {
                 Element asg = ex.addElement("assignment");
                 asg.addElement("period").addAttribute("id", String.valueOf(p.getPeriod().getId()));
-                for (Iterator i=p.getRooms().iterator();i.hasNext();) {
-                    ExamRoom r = (ExamRoom)i.next();
+                for (Iterator i=p.getRoomPlacements().iterator();i.hasNext();) {
+                    ExamRoomPlacement r = (ExamRoomPlacement)i.next();
                     asg.addElement("room").addAttribute("id", String.valueOf(r.getId()));
                 }            }
             p = (ExamPlacement)exam.getInitialAssignment();
             if (p!=null && saveInitial) {
                 Element ini = ex.addElement("initial");
                 ini.addElement("period").addAttribute("id", String.valueOf(p.getPeriod().getId()));
-                for (Iterator i=p.getRooms().iterator();i.hasNext();) {
-                    ExamRoom r = (ExamRoom)i.next();
+                for (Iterator i=p.getRoomPlacements().iterator();i.hasNext();) {
+                    ExamRoomPlacement r = (ExamRoomPlacement)i.next();
                     ini.addElement("room").addAttribute("id", String.valueOf(r.getId()));
                 }
             }
-            if (exam.getRoomWeights()!=null) {
-                for (Iterator j=exam.getRoomWeights().entrySet().iterator();j.hasNext();) {
-                    Map.Entry entry = (Map.Entry)j.next();
-                    ExamRoom room = (ExamRoom)entry.getKey();
-                    int weight = ((Integer)entry.getValue()).intValue();
-                    Element re = ex.addElement("room").addAttribute("id", String.valueOf(room.getId()));
-                    if (weight!=0)
-                        re.addAttribute("weight", String.valueOf(weight));
-                }
-            }
         }
-        setPeriodProhibitedWeight(perProhW);
         Element students = root.addElement("students");
         for (Enumeration e=getStudents().elements();e.hasMoreElements();) {
             ExamStudent student = (ExamStudent)e.nextElement();
@@ -1356,9 +1246,9 @@ public class ExamModel extends Model {
             for (Enumeration f=student.variables().elements();f.hasMoreElements();) {
                 Exam ex = (Exam)f.nextElement();
                 Element x = s.addElement("exam").addAttribute("id", String.valueOf(ex.getId()));
-                for (Enumeration g=ex.getCourseSections(student).elements();g.hasMoreElements();) {
-                    ExamCourseSection cs = (ExamCourseSection)g.nextElement();
-                    x.addElement(cs.isSection()?"section":"course").addAttribute("id", String.valueOf(cs.getId()));
+                for (Enumeration g=ex.getOwners(student).elements();g.hasMoreElements();) {
+                    ExamOwner owner = (ExamOwner)g.nextElement();
+                    x.addElement("owner").addAttribute("id", String.valueOf(owner.getId()));
                 }
             }
             String available = "";
@@ -1380,9 +1270,9 @@ public class ExamModel extends Model {
             for (Enumeration f=instructor.variables().elements();f.hasMoreElements();) {
                 Exam ex = (Exam)f.nextElement();
                 Element x = i.addElement("exam").addAttribute("id", String.valueOf(ex.getId()));
-                for (Enumeration g=ex.getCourseSections(instructor).elements();g.hasMoreElements();) {
-                    ExamCourseSection cs = (ExamCourseSection)g.nextElement();
-                    x.addElement(cs.isSection()?"section":"course").addAttribute("id", String.valueOf(cs.getId()));
+                for (Enumeration g=ex.getOwners(instructor).elements();g.hasMoreElements();) {
+                    ExamOwner owner = (ExamOwner)g.nextElement();
+                    x.addElement("owner").addAttribute("id", String.valueOf(owner.getId()));
                 }
             }
             String available = "";
@@ -1487,8 +1377,6 @@ public class ExamModel extends Model {
                 else if ("examRotationWeight".equals(name)) setExamRotationWeight(Double.parseDouble(value));
                 else if ("roomSizeWeight".equals(name)) setRoomSizeWeight(Double.parseDouble(value));
                 else if ("roomSplitWeight".equals(name)) setRoomSplitWeight(Double.parseDouble(value));
-                else if ("notOriginalRoomWeight".equals(name)) setNotOriginalRoomWeight(Double.parseDouble(value));
-                else if ("periodProhibitedWeight".equals(name)) setPeriodProhibitedWeight(Integer.parseInt(value));
                 else if ("roomWeight".equals(name)) setRoomWeight(Double.parseDouble(value));
                 else if ("distributionWeight".equals(name)) setDistributionWeight(Double.parseDouble(value));
                 else if ("instructorDirectConflictWeight".equals(name)) setInstructorDirectConflictWeight(Double.parseDouble(value));
@@ -1499,10 +1387,9 @@ public class ExamModel extends Model {
             }
         for (Iterator i=root.element("periods").elementIterator("period");i.hasNext();) {
             Element e = (Element)i.next();
-            addPeriod(Long.valueOf(e.attributeValue("id")), e.attributeValue("day"), e.attributeValue("time"), Integer.parseInt(e.attributeValue("length")), Integer.parseInt(e.attributeValue("weight")));
+            addPeriod(Long.valueOf(e.attributeValue("id")), e.attributeValue("day"), e.attributeValue("time"), Integer.parseInt(e.attributeValue("length")), Integer.parseInt(e.attributeValue("penalty")));
         }
         Hashtable rooms = new Hashtable();
-        Hashtable roomGroups = new Hashtable();
         for (Iterator i=root.element("rooms").elementIterator("room");i.hasNext();) {
             Element e = (Element)i.next();
             String coords = e.attributeValue("coordinates");
@@ -1516,26 +1403,11 @@ public class ExamModel extends Model {
             addConstraint(room);
             getRooms().add(room);
             rooms.put(new Long(room.getId()),room);
-            String available = e.attributeValue("available");
-            if (available!=null)
-                for (Enumeration f=getPeriods().elements();f.hasMoreElements();) {
-                    ExamPeriod period = (ExamPeriod)f.nextElement();
-                    if (available.charAt(period.getIndex())=='0') room.setAvailable(period.getIndex(), false);
-                }
             for (Iterator j=e.elementIterator("period");j.hasNext();) {
                 Element pe = (Element)j.next();
-                room.setWeight(getPeriod(Long.valueOf(pe.attributeValue("id"))).getIndex(),Integer.parseInt(pe.attributeValue("weight")));
-            }
-            String rg = e.attributeValue("groups");
-            if (rg!=null) for (StringTokenizer stk=new StringTokenizer(rg,",");stk.hasMoreTokens();) {
-                String roomGroupId = (String)stk.nextToken();
-                ExamRoomGroup gr = (ExamRoomGroup)roomGroups.get(roomGroupId);
-                if (gr==null) {
-                    gr = new ExamRoomGroup(roomGroupId);
-                    getRoomGroups().add(gr);
-                    roomGroups.put(roomGroupId,gr);
-                }
-                gr.addRoom(room);
+                ExamPeriod period = getPeriod(Long.valueOf(pe.attributeValue("id"))); 
+                if ("false".equals(pe.attributeValue("available"))) room.setAvailable(period, false);
+                else room.setPenalty(period,Integer.parseInt(pe.attributeValue("penalty")));
             }
         }
         Vector assignments = new Vector();
@@ -1543,59 +1415,40 @@ public class ExamModel extends Model {
         Hashtable courseSections = new Hashtable();
         for (Iterator i=root.element("exams").elementIterator("exam");i.hasNext();) {
             Element e = (Element)i.next();
+            Vector periodPlacements = new Vector();
+            for (Iterator j=e.elementIterator("period");j.hasNext();) {
+                Element pe = (Element)j.next();
+                periodPlacements.add(new ExamPeriodPlacement(
+                        getPeriod(Long.valueOf(pe.attributeValue("id"))),
+                        Integer.parseInt(pe.attributeValue("penalty","0"))));
+            }
+            Vector roomPlacements = new Vector();
+            for (Iterator j=e.elementIterator("room");j.hasNext();) {
+                Element re = (Element)j.next();
+                ExamRoomPlacement room = new ExamRoomPlacement((ExamRoom)rooms.get(Long.valueOf(re.attributeValue("id"))),
+                        Integer.parseInt(re.attributeValue("penalty","0")),
+                        Integer.parseInt(re.attributeValue("maxPenalty","100")));
+                roomPlacements.add(room);
+            }
             Exam exam = new Exam(
                     Long.parseLong(e.attributeValue("id")),
                     e.attributeValue("name"),
                     Integer.parseInt(e.attributeValue("length")),
-                    "section".equals(e.attributeValue("type")),
                     "true".equals(e.attributeValue("alt")),
-                    (e.attribute("maxRooms")==null?getMaxRooms():Integer.parseInt(e.attributeValue("maxRooms"))));
+                    (e.attribute("maxRooms")==null?getMaxRooms():Integer.parseInt(e.attributeValue("maxRooms"))),
+                    Integer.parseInt(e.attributeValue("minSize","0")),
+                    periodPlacements, roomPlacements);
             exams.put(new Long(exam.getId()),exam);
-            if (e.element("original-room")!=null)
-                exam.setOriginalRoom((ExamRoom)rooms.get(Long.valueOf(e.element("original-room").attributeValue("id"))));
-            Element pre = e.element("pre-assigned");
-            if (pre!=null) {
-                Element per = pre.element("period");
-                if (per!=null && loadPreassignedTimes)
-                    exam.setPreAssignedPeriod(getPeriod(Long.valueOf(per.attributeValue("id"))));
-                if (loadPreassignedRooms)
-                    for (Iterator j=pre.elementIterator("room");j.hasNext();) {
-                        Long roomId = Long.valueOf(((Element)j.next()).attributeValue("id"));
-                        exam.getPreassignedRooms().add((ExamRoom)rooms.get(roomId));
-                    }
-            }
             addVariable(exam);
-            String available = e.attributeValue("available");
-            if (available!=null)
-                for (Enumeration f=getPeriods().elements();f.hasMoreElements();) {
-                    ExamPeriod period = (ExamPeriod)f.nextElement();
-                    if (available.charAt(period.getIndex())=='0') exam.setAvailable(period.getIndex(), false);
-                }
-            for (Iterator j=e.elementIterator("period");j.hasNext();) {
-                Element pe = (Element)j.next();
-                exam.setWeight(getPeriod(Long.valueOf(pe.attributeValue("id"))).getIndex(),Integer.parseInt(pe.attributeValue("weight")));
-            }
-            for (Iterator j=e.elementIterator("room");j.hasNext();) {
-                Element re = (Element)j.next();
-                if (exam.getRoomWeights()==null) exam.setRoomWeights(new Hashtable());
-                exam.getRoomWeights().put(rooms.get(Long.valueOf(re.attributeValue("id"))), Integer.valueOf(re.attributeValue("weight","0")));
-            }
-            if (e.attribute("average")!=null)
-                exam.setAveragePeriod(Integer.parseInt(e.attributeValue("average")));
-            String rgs = e.attributeValue("groups");
-            if (rgs!=null)
-                for (StringTokenizer s=new StringTokenizer(rgs,",");s.hasMoreTokens();) {
-                    exam.addRoomGroup((ExamRoomGroup)roomGroups.get(s.nextToken()));
-                }
+            if (e.attribute("average")!=null) exam.setAveragePeriod(Integer.parseInt(e.attributeValue("average")));
             Element asg = e.element("assignment");
             if (asg!=null && loadSolution) {
                 Element per = asg.element("period");
                 if (per!=null) {
-                    ExamPlacement p = new ExamPlacement(exam, getPeriod(Long.valueOf(per.attributeValue("id"))), new HashSet());
-                    for (Iterator j=asg.elementIterator("room");j.hasNext();) {
-                        Long roomId = Long.valueOf(((Element)j.next()).attributeValue("id"));
-                        p.getRooms().add((ExamRoom)rooms.get(roomId));
-                    }
+                    HashSet rp = new HashSet();
+                    for (Iterator j=asg.elementIterator("room");j.hasNext();)
+                        rp.add(exam.getRoomPlacement(Long.parseLong(((Element)j.next()).attributeValue("id"))));
+                    ExamPlacement p = new ExamPlacement(exam, exam.getPeriodPlacement(Long.valueOf(per.attributeValue("id"))), rp);
                     assignments.add(p);
                 }
             }
@@ -1603,25 +1456,18 @@ public class ExamModel extends Model {
             if (ini!=null && loadInitial) {
                 Element per = ini.element("period");
                 if (per!=null) {
-                    ExamPlacement p = new ExamPlacement(exam, getPeriod(Long.valueOf(per.attributeValue("id"))), new HashSet());
-                    for (Iterator j=ini.elementIterator("room");j.hasNext();) {
-                        Long roomId = Long.valueOf(((Element)j.next()).attributeValue("id"));
-                        p.getRooms().add((ExamRoom)rooms.get(roomId));
-                    }
+                    HashSet rp = new HashSet();
+                    for (Iterator j=ini.elementIterator("room");j.hasNext();)
+                        rp.add(exam.getRoomPlacement(Long.parseLong(((Element)j.next()).attributeValue("id"))));
+                    ExamPlacement p = new ExamPlacement(exam, exam.getPeriodPlacement(Long.valueOf(per.attributeValue("id"))), rp);
                     exam.setInitialAssignment(p);
                 }
             }
-            for (Iterator j=e.elementIterator("course");j.hasNext();) {
+            for (Iterator j=e.elementIterator("owner");j.hasNext();) {
                 Element f = (Element)j.next();
-                ExamCourseSection cs = new ExamCourseSection(exam, Long.parseLong(f.attributeValue("id")),f.attributeValue("name"), false);
-                exam.getCourseSections().add(cs);
-                courseSections.put(new Long(cs.getId()),cs);
-            }
-            for (Iterator j=e.elementIterator("section");j.hasNext();) {
-                Element f = (Element)j.next();
-                ExamCourseSection cs = new ExamCourseSection(exam, Long.parseLong(f.attributeValue("id")),f.attributeValue("name"), true);
-                exam.getCourseSections().add(cs);
-                courseSections.put(new Long(cs.getId()),cs);
+                ExamOwner owner = new ExamOwner(exam,Long.parseLong(f.attributeValue("id")),f.attributeValue("name"));
+                exam.getOwners().add(owner);
+                courseSections.put(new Long(owner.getId()),owner);
             }
         }
         for (Iterator i=root.element("students").elementIterator("student");i.hasNext();) {
@@ -1631,17 +1477,11 @@ public class ExamModel extends Model {
                 Element x = (Element)j.next();
                 Exam ex = (Exam)exams.get(Long.valueOf(x.attributeValue("id")));
                 student.addVariable(ex);
-                for (Iterator k=x.elementIterator("course");k.hasNext();) {
+                for (Iterator k=x.elementIterator("owner");k.hasNext();) {
                     Element f = (Element)k.next();
-                    ExamCourseSection cs = (ExamCourseSection)courseSections.get(Long.valueOf(f.attributeValue("id")));
-                    student.getCourseSections().add(cs);
-                    cs.getStudents().add(student);
-                }
-                for (Iterator k=x.elementIterator("section");k.hasNext();) {
-                    Element f = (Element)k.next();
-                    ExamCourseSection cs = (ExamCourseSection)courseSections.get(Long.valueOf(f.attributeValue("id")));
-                    student.getCourseSections().add(cs);
-                    cs.getStudents().add(student);
+                    ExamOwner owner = (ExamOwner)courseSections.get(Long.valueOf(f.attributeValue("id")));
+                    student.getOwners().add(owner);
+                    owner.getStudents().add(student);
                 }
             }
             String available = e.attributeValue("available");
@@ -1661,17 +1501,11 @@ public class ExamModel extends Model {
                     Element x = (Element)j.next();
                     Exam ex = (Exam)exams.get(Long.valueOf(x.attributeValue("id")));
                     instructor.addVariable(ex);
-                    for (Iterator k=x.elementIterator("course");k.hasNext();) {
+                    for (Iterator k=x.elementIterator("owner");k.hasNext();) {
                         Element f = (Element)k.next();
-                        ExamCourseSection cs = (ExamCourseSection)courseSections.get(Long.valueOf(f.attributeValue("id")));
-                        instructor.getCourseSections().add(cs);
-                        cs.getIntructors().add(instructor);
-                    }
-                    for (Iterator k=x.elementIterator("section");k.hasNext();) {
-                        Element f = (Element)k.next();
-                        ExamCourseSection cs = (ExamCourseSection)courseSections.get(Long.valueOf(f.attributeValue("id")));
-                        instructor.getCourseSections().add(cs);
-                        cs.getIntructors().add(instructor);
+                        ExamOwner owner = (ExamOwner)courseSections.get(Long.valueOf(f.attributeValue("id")));
+                        instructor.getOwners().add(owner);
+                        owner.getIntructors().add(instructor);
                     }
                 }
                 String available = e.attributeValue("available");
@@ -1717,42 +1551,6 @@ public class ExamModel extends Model {
                 exam.assign(0, placement);
             } else {
                 sLog.error("Unable to assign "+exam.getInitialAssignment().getName()+" to exam "+exam.getName());
-                sLog.error("Conflicts:"+ToolBox.dict2string(conflictConstraints(exam.getInitialAssignment()), 2));
-            }
-        }
-        for (Enumeration e=new Vector(unassignedVariables()).elements();e.hasMoreElements();) {
-            Exam exam = (Exam)e.nextElement();
-            if (!exam.hasPreAssignedPeriod()) continue;
-            ExamPlacement placement = null;
-            if (exam.hasPreAssignedRooms()) {
-                placement = new ExamPlacement(exam, exam.getPreAssignedPeriod(), new HashSet(exam.getPreassignedRooms()));
-            } else {
-                Set bestRooms = exam.findBestAvailableRooms(exam.getPreAssignedPeriod());
-                if (bestRooms==null) {
-                    sLog.error("Unable to assign "+exam.getPreAssignedPeriod()+" to exam "+exam.getName()+" -- no suitable room found.");
-                    continue;
-                }
-                placement = new ExamPlacement(exam, exam.getPreAssignedPeriod(), bestRooms);
-            }
-            Set conflicts = conflictValues(placement);
-            if (!conflicts.isEmpty()) {
-                for (Iterator i=conflictConstraints(placement).entrySet().iterator();i.hasNext();) {
-                    Map.Entry entry = (Map.Entry)i.next();
-                    Constraint constraint = (Constraint)entry.getKey();
-                    Set values = (Set)entry.getValue();
-                    if (constraint instanceof ExamStudent) {
-                        ((ExamStudent)constraint).setAllowDirectConflicts(true);
-                        exam.setAllowDirectConflicts(true);
-                        for (Iterator j=values.iterator();j.hasNext();)
-                            ((Exam)((ExamPlacement)j.next()).variable()).setAllowDirectConflicts(true);
-                    }
-                }
-                conflicts = conflictValues(placement);
-            }
-            if (conflicts.isEmpty()) {
-                exam.assign(0, placement);
-            } else {
-                sLog.error("Unable to assign "+placement.getName()+" to exam "+exam.getName());
                 sLog.error("Conflicts:"+ToolBox.dict2string(conflictConstraints(exam.getInitialAssignment()), 2));
             }
         }

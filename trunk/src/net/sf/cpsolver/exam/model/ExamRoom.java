@@ -14,7 +14,7 @@ import net.sf.cpsolver.ifs.model.Value;
  * 
  * @version
  * ExamTT 1.1 (Examination Timetabling)<br>
- * Copyright (C) 2007 Tomas Muller<br>
+ * Copyright (C) 2008 Tomas Muller<br>
  * <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
  * <br>
@@ -35,7 +35,7 @@ import net.sf.cpsolver.ifs.model.Value;
 public class ExamRoom extends Constraint implements Comparable {
     private ExamPlacement[] iTable;
     private boolean[] iAvailable;
-    private int[] iWeight;
+    private int[] iPenalty;
     private String iName;
     private int iSize, iAltSize;
     private int iCoordX, iCoordY;
@@ -58,11 +58,11 @@ public class ExamRoom extends Constraint implements Comparable {
         iSize = size; iAltSize = altSize;
         iTable = new ExamPlacement[model.getNrPeriods()];
         iAvailable = new boolean[model.getNrPeriods()];
-        iWeight = new int[model.getNrPeriods()];
+        iPenalty = new int[model.getNrPeriods()];
         for (int i=0;i<iTable.length;i++) {
             iTable[i]=null;
             iAvailable[i]=true;
-            iWeight[i]=0;
+            iPenalty[i]=0;
         }
     }
     
@@ -107,24 +107,28 @@ public class ExamRoom extends Constraint implements Comparable {
      * @return true if an exam can be scheduled into this room at the given period, false if otherwise
      */
     public boolean isAvailable(ExamPeriod period) { return iAvailable[period.getIndex()]; }
+    public boolean isAvailable(int period) { return iAvailable[period]; }
     /**
      * Set whether the room is available (for examination timetabling) during the given period
      * @param period a period
      * @param available true if an exam can be scheduled into this room at the given period, false if otherwise
      */
+    public void setAvailable(ExamPeriod period, boolean available) { iAvailable[period.getIndex()]=available; }
     public void setAvailable(int period, boolean available) { iAvailable[period]=available; }
     
-    /** Return room weight for given period */
-    public int getWeight(ExamPeriod period) { return iWeight[period.getIndex()]; }
-    /** Set room weight for given period */
-    public void setWeight(int period, int weight) { iWeight[period]=weight; }
+    /** Return room penalty for given period */
+    public int getPenalty(ExamPeriod period) { return iPenalty[period.getIndex()]; }
+    public int getPenalty(int period) { return iPenalty[period]; }
+    /** Set room penalty for given period */
+    public void setPenalty(ExamPeriod period, int penalty) { iPenalty[period.getIndex()]=penalty; }
+    public void setPenalty(int period, int penalty) { iPenalty[period]=penalty; }
     
     /**
      * Compute conflicts between the given assignment of an exam and all the current assignments (of this room)
      */
     public void computeConflicts(Value value, Set conflicts) {
         ExamPlacement p = (ExamPlacement)value;
-        if (!p.getRooms().contains(this)) return; 
+        if (!p.contains(this)) return; 
         if (iTable[p.getPeriod().getIndex()]!=null && !iTable[p.getPeriod().getIndex()].variable().equals(value.variable()))
             conflicts.add(iTable[p.getPeriod().getIndex()]);
     }
@@ -134,7 +138,7 @@ public class ExamRoom extends Constraint implements Comparable {
      */
     public boolean inConflict(Value value) {
         ExamPlacement p = (ExamPlacement)value;
-        if (!p.getRooms().contains(this)) return false; 
+        if (!p.contains(this)) return false; 
         return iTable[p.getPeriod().getIndex()]!=null && !iTable[p.getPeriod().getIndex()].variable().equals(value.variable());
     }
     
@@ -144,7 +148,7 @@ public class ExamRoom extends Constraint implements Comparable {
     public boolean isConsistent(Value value1, Value value2) {
         ExamPlacement p1 = (ExamPlacement)value1;
         ExamPlacement p2 = (ExamPlacement)value2;
-        return (p1.getPeriod()!=p2.getPeriod() || !p1.getRooms().contains(this) || !p2.getRooms().contains(this));
+        return (p1.getPeriod()!=p2.getPeriod() || !p1.contains(this) || !p2.contains(this));
     }
     
     /**
@@ -152,7 +156,7 @@ public class ExamRoom extends Constraint implements Comparable {
      */
     public void assigned(long iteration, Value value) {
         ExamPlacement p = (ExamPlacement)value;
-        if (p.getRooms().contains(this) && iTable[p.getPeriod().getIndex()]!=null) {
+        if (p.contains(this) && iTable[p.getPeriod().getIndex()]!=null) {
             if (iConstraintListeners!=null) {
                 HashSet confs = new HashSet();
                 confs.add(iTable[p.getPeriod().getIndex()]);
@@ -168,7 +172,7 @@ public class ExamRoom extends Constraint implements Comparable {
      */
     public void afterAssigned(long iteration, Value value) {
         ExamPlacement p = (ExamPlacement)value;
-        if (p.getRooms().contains(this))
+        if (p.contains(this))
             iTable[p.getPeriod().getIndex()] = p;
     }
     
@@ -185,7 +189,7 @@ public class ExamRoom extends Constraint implements Comparable {
     public void afterUnassigned(long iteration, Value value) {
         //super.unassigned(iteration, value);
         ExamPlacement p = (ExamPlacement)value;
-        if (p.getRooms().contains(this)) {
+        if (p.contains(this)) {
             iTable[p.getPeriod().getIndex()] = null;
         }
     }

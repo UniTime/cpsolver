@@ -3,7 +3,7 @@ package net.sf.cpsolver.exam.reports;
 import java.util.Comparator;
 
 import net.sf.cpsolver.exam.model.Exam;
-import net.sf.cpsolver.exam.model.ExamRoom;
+import net.sf.cpsolver.exam.model.ExamRoomPlacement;
 
 /**
  * Compare two rooms by size. Either normal seating size or 
@@ -13,7 +13,7 @@ import net.sf.cpsolver.exam.model.ExamRoom;
  * 
  * @version
  * ExamTT 1.1 (Examination Timetabling)<br>
- * Copyright (C) 2007 Tomas Muller<br>
+ * Copyright (C) 2008 Tomas Muller<br>
  * <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
  * <br>
@@ -48,10 +48,10 @@ public class ExamRoomComparator implements Comparator {
      * Compare two rooms based on their normal/alternative seating size
      */
     public int compare(Object o1, Object o2) {
-        ExamRoom r1 = (ExamRoom)o1;
-        ExamRoom r2 = (ExamRoom)o2;
-        int cmp = (iAsc?1:-1)*Double.compare(iExam.hasAltSeating()?r1.getAltSize():r1.getSize(),iExam.hasAltSeating()?r2.getAltSize():r2.getSize());
+        ExamRoomPlacement r1 = (ExamRoomPlacement)o1;
+        ExamRoomPlacement r2 = (ExamRoomPlacement)o2;
+        int cmp = (iAsc?1:-1)*Double.compare(r1.getSize(iExam.hasAltSeating()),r2.getSize(iExam.hasAltSeating()));
         if (cmp!=0) return cmp;
-        return r1.compareTo(r2);
+        return r1.getRoom().compareTo(r2.getRoom());
     }
 }

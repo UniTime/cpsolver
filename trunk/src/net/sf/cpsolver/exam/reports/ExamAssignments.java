@@ -7,7 +7,7 @@ import java.util.Vector;
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPlacement;
-import net.sf.cpsolver.exam.model.ExamRoom;
+import net.sf.cpsolver.exam.model.ExamRoomPlacement;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.CSVFile.CSVField;
 
@@ -22,7 +22,7 @@ import net.sf.cpsolver.ifs.util.CSVFile.CSVField;
  * 
  * @version
  * ExamTT 1.1 (Examination Timetabling)<br>
- * Copyright (C) 2007 Tomas Muller<br>
+ * Copyright (C) 2008 Tomas Muller<br>
  * <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
  * <br>
@@ -85,10 +85,10 @@ public class ExamAssignments {
                 fields.addElement(new CSVField(placement.getPeriod().getTimeStr()));
                 String rooms = "";
                 String roomSizes = "";
-                for (Iterator i=placement.getRooms().iterator();i.hasNext();) {
-                    ExamRoom room = (ExamRoom)i.next();
-                    rooms += room.getName();
-                    roomSizes += (exam.hasAltSeating()?room.getAltSize():room.getSize());
+                for (Iterator i=placement.getRoomPlacements().iterator();i.hasNext();) {
+                    ExamRoomPlacement room = (ExamRoomPlacement)i.next();
+                    rooms += room.getRoom().getName();
+                    roomSizes += room.getSize(exam.hasAltSeating());
                     if (i.hasNext()) {
                         rooms+=", ";
                         roomSizes+=", ";

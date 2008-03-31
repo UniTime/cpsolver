@@ -14,7 +14,7 @@ import net.sf.cpsolver.ifs.model.Value;
  * 
  * @version
  * ExamTT 1.1 (Examination Timetabling)<br>
- * Copyright (C) 2007 Tomas Muller<br>
+ * Copyright (C) 2008 Tomas Muller<br>
  * <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
  * <br>
@@ -37,7 +37,7 @@ public class ExamInstructor extends Constraint {
     private HashSet[] iDayTable;
     private String iName;
     private boolean iAllowDirectConflicts = true;
-    private Vector iCourseSections = new Vector();
+    private Vector iOwners = new Vector();
     private boolean[] iAvailable = null;
 
     public ExamInstructor(ExamModel model, long id, String name) {
@@ -183,10 +183,10 @@ public class ExamInstructor extends Constraint {
     
     /**
      * Courses and/or sections that this instructor is enrolled to
-     * @return list of {@link ExamCourseSection} 
+     * @return list of {@link ExamOwner} 
      */
-    public Vector getCourseSections() {
-        return iCourseSections;
+    public Vector getOwners() {
+        return iOwners;
     }
     
     public boolean isHard() {

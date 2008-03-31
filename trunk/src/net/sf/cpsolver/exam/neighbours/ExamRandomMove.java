@@ -4,7 +4,7 @@ import java.util.Set;
 
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamModel;
-import net.sf.cpsolver.exam.model.ExamPeriod;
+import net.sf.cpsolver.exam.model.ExamPeriodPlacement;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
@@ -15,12 +15,12 @@ import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
  * A period is selected randomly for a randomly selected exam. Rooms 
- * are computed using {@link Exam#findBestAvailableRooms(ExamPeriod)}. 
+ * are computed using {@link Exam#findBestAvailableRooms(ExamPeriodPlacement)}. 
  * <br><br>
  * 
  * @version
  * ExamTT 1.1 (Examination Timetabling)<br>
- * Copyright (C) 2007 Tomas Muller<br>
+ * Copyright (C) 2008 Tomas Muller<br>
  * <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
  * <br>
@@ -58,15 +58,15 @@ public class ExamRandomMove implements NeighbourSelection {
     
     /**
      * Select an exam randomly,
-     * select an available period randomly (from {@link Exam#getPeriods()}), 
-     * select rooms using {@link Exam#findBestAvailableRooms(ExamPeriod)}.
+     * select an available period randomly (from {@link Exam#getPeriodPlacements()}), 
+     * select rooms using {@link Exam#findBestAvailableRooms(ExamPeriodPlacement)}.
      */
     public Neighbour selectNeighbour(Solution solution) {
         ExamModel model = (ExamModel)solution.getModel();
         Exam exam = (Exam)ToolBox.random(model.variables());
-        int px = ToolBox.random(exam.getPeriods().size());
-        for (int p=0;p<exam.getPeriods().size();p++) {
-            ExamPeriod period = (ExamPeriod)exam.getPeriods().elementAt((p+px)%exam.getPeriods().size());
+        int px = ToolBox.random(exam.getPeriodPlacements().size());
+        for (int p=0;p<exam.getPeriodPlacements().size();p++) {
+            ExamPeriodPlacement period = (ExamPeriodPlacement)exam.getPeriodPlacements().elementAt((p+px)%exam.getPeriodPlacements().size());
             if (iCheckStudentConflicts && exam.countStudentConflicts(period)>0) continue;
             if (iCheckDistributionConstraints && !exam.checkDistributionConstraints(period)) continue;
             Set rooms = exam.findBestAvailableRooms(period);

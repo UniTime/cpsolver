@@ -6,7 +6,7 @@ import java.util.Set;
 
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamModel;
-import net.sf.cpsolver.exam.model.ExamPeriod;
+import net.sf.cpsolver.exam.model.ExamPeriodPlacement;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.neighbours.ExamSimpleNeighbour;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
@@ -27,7 +27,7 @@ import org.apache.log4j.Logger;
  * <li>The best period that does not break any hard constraint and
  * for which there is a room assignment available is selected together with 
  * the set the best available rooms for the exam in the best period
- * (computed using {@link Exam#findBestAvailableRooms(ExamPeriod)}).
+ * (computed using {@link Exam#findBestAvailableRooms(ExamPeriodPlacement)}).
  * </ul>
  * <br><br>
  * If problem property ExamConstruction.CheckLocalOptimality is true,
@@ -40,7 +40,7 @@ import org.apache.log4j.Logger;
  * 
  * @version
  * ExamTT 1.1 (Examination Timetabling)<br>
- * Copyright (C) 2007 Tomas Muller<br>
+ * Copyright (C) 2008 Tomas Muller<br>
  * <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
  * <br>
@@ -87,7 +87,7 @@ public class ExamConstruction implements NeighbourSelection {
     /**
      * Find a new assignment of one of the assigned exams that improves
      * the time cost {@link ExamPlacement#getTimeCost()} and for which 
-     * there is a set of available rooms {@link Exam#findBestAvailableRooms(ExamPeriod)}.
+     * there is a set of available rooms {@link Exam#findBestAvailableRooms(ExamPeriodPlacement)}.
      * Return null, if there is no such assignment (the problem is considered
      * locally optimal).
      */
@@ -96,22 +96,18 @@ public class ExamConstruction implements NeighbourSelection {
             for (Enumeration e=model.assignedVariables().elements();e.hasMoreElements();) {
                 Exam exam = (Exam)e.nextElement();
                 ExamPlacement current = (ExamPlacement)exam.getAssignment(); 
-                if (exam.hasPreAssignedPeriod()) continue;
                 if (current.getTimeCost()<=0) continue;
                 ExamPlacement best = null;
-                for (Enumeration f=model.getPeriods().elements();f.hasMoreElements();) {
-                    ExamPeriod period = (ExamPeriod)f.nextElement();
-                    if (!exam.isAvailable(period)) continue;
+                for (Enumeration f=exam.getPeriodPlacements().elements();f.hasMoreElements();) {
+                    ExamPeriodPlacement period = (ExamPeriodPlacement)f.nextElement();
                     if (exam.countStudentConflicts(period)>0) {
                         if (iAssignments.contains(exam.getId()+":"+period.getIndex())) continue;
-                        if (exam.hasStudentConflictWithPreAssigned(period)) continue;
                     }
                     if (!exam.checkDistributionConstraints(period)) continue;
                     ExamPlacement placement = new ExamPlacement(exam, period, null);
                     if (best==null || best.getTimeCost()>placement.getTimeCost()) {
                         Set rooms = exam.findBestAvailableRooms(period);
-                        if (rooms!=null)
-                            best = new ExamPlacement(exam, period, rooms);
+                        if (rooms!=null) best = new ExamPlacement(exam, period, rooms);
                     }
                 }
                 if (best!=null && best.getTimeCost()<current.getTimeCost()) return new ExamSimpleNeighbour(best);
@@ -129,7 +125,7 @@ public class ExamConstruction implements NeighbourSelection {
      * <li>The best period that does not break any hard constraint and
      * for which there is a room assignment available is selected together with 
      * the set the best available rooms for the exam in the best period
-     * (computed using {@link Exam#findBestAvailableRooms(ExamPeriod)}).
+     * (computed using {@link Exam#findBestAvailableRooms(ExamPeriodPlacement)}).
      * </ul>
      * Return null when done (all variables are assigned and the problem is locally optimal).
      */
@@ -150,12 +146,10 @@ public class ExamConstruction implements NeighbourSelection {
         }
         if (sLog.isDebugEnabled()) sLog.debug("  -- "+bestExam+" (id:"+bestExam.getId()+")");
         ExamPlacement best = null;
-        for (Enumeration e=model.getPeriods().elements();e.hasMoreElements();) {
-            ExamPeriod period = (ExamPeriod)e.nextElement();
-            if (!bestExam.isAvailable(period)) continue;
+        for (Enumeration e=bestExam.getPeriodPlacements().elements();e.hasMoreElements();) {
+            ExamPeriodPlacement period = (ExamPeriodPlacement)e.nextElement();
             if (bestExam.countStudentConflicts(period)>0) {
                 if (iAssignments.contains(bestExam.getId()+":"+period.getIndex())) continue;
-                if (bestExam.hasStudentConflictWithPreAssigned(period)) continue;
             }
             if (!bestExam.checkDistributionConstraints(period)) continue;
             ExamPlacement placement = new ExamPlacement(bestExam, period, null);
@@ -175,9 +169,8 @@ public class ExamConstruction implements NeighbourSelection {
             iAssignments.add(bestExam.getId()+":"+best.getPeriod().getIndex());
             return new ExamSimpleNeighbour(best);
         } else {
-            for (Enumeration e=model.getPeriods().elements();e.hasMoreElements();) {
-                ExamPeriod period = (ExamPeriod)e.nextElement();
-                if (!bestExam.isAvailable(period)) continue;
+            for (Enumeration e=bestExam.getPeriodPlacements().elements();e.hasMoreElements();) {
+                ExamPeriodPlacement period = (ExamPeriodPlacement)e.nextElement();
                 ExamPlacement placement = new ExamPlacement(bestExam, period, null);
                 if (best==null || best.getTimeCost()>placement.getTimeCost()) {
                     Set rooms = bestExam.findBestAvailableRooms(period);

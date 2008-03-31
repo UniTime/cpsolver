@@ -22,7 +22,7 @@ import net.sf.cpsolver.ifs.util.CSVFile.CSVField;
  * 
  * @version
  * ExamTT 1.1 (Examination Timetabling)<br>
- * Copyright (C) 2007 Tomas Muller<br>
+ * Copyright (C) 2008 Tomas Muller<br>
  * <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
  * <br>
@@ -97,7 +97,7 @@ public class ExamPeriodUsage {
             line.add(new CSVField(period.getIndex()+1));
             line.add(new CSVField(period.getDayStr()));
             line.add(new CSVField(period.getTimeStr()));
-            line.add(new CSVField(period.getWeight()));
+            line.add(new CSVField(period.getPenalty()));
             line.add(new CSVField(nrExams));
             line.add(new CSVField(nrStudents));
             for (int i=0;i<sLimits.length;i++)
