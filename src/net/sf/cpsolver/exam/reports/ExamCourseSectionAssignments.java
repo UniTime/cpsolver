@@ -5,10 +5,10 @@ import java.util.Iterator;
 import java.util.Vector;
 
 import net.sf.cpsolver.exam.model.Exam;
-import net.sf.cpsolver.exam.model.ExamCourseSection;
 import net.sf.cpsolver.exam.model.ExamModel;
+import net.sf.cpsolver.exam.model.ExamOwner;
 import net.sf.cpsolver.exam.model.ExamPlacement;
-import net.sf.cpsolver.exam.model.ExamRoom;
+import net.sf.cpsolver.exam.model.ExamRoomPlacement;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.CSVFile.CSVField;
 
@@ -24,7 +24,7 @@ import net.sf.cpsolver.ifs.util.CSVFile.CSVField;
  * 
  * @version
  * ExamTT 1.1 (Examination Timetabling)<br>
- * Copyright (C) 2007 Tomas Muller<br>
+ * Copyright (C) 2008 Tomas Muller<br>
  * <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
  * <br>
@@ -71,11 +71,11 @@ public class ExamCourseSectionAssignments {
         for (Enumeration e=iModel.variables().elements();e.hasMoreElements();) {
             Exam exam = (Exam)e.nextElement();
             ExamPlacement placement = (ExamPlacement)exam.getAssignment();
-            for (Enumeration f=exam.getCourseSections().elements();f.hasMoreElements();) {
-                ExamCourseSection cs = (ExamCourseSection)f.nextElement();
+            for (Enumeration f=exam.getOwners().elements();f.hasMoreElements();) {
+                ExamOwner owner = (ExamOwner)f.nextElement();
                 Vector fields = new Vector();
-                fields.addElement(new CSVField(cs.getName()));
-                fields.addElement(new CSVField(cs.getStudents().size()));
+                fields.addElement(new CSVField(owner.getName()));
+                fields.addElement(new CSVField(owner.getStudents().size()));
                 fields.addElement(new CSVField(exam.hasAltSeating()?"Yes":"No"));
                 if (placement==null) {
                     fields.addElement(new CSVField(""));
@@ -89,10 +89,10 @@ public class ExamCourseSectionAssignments {
                     fields.addElement(new CSVField(placement.getPeriod().getTimeStr()));
                     String rooms = "";
                     String roomSizes = "";
-                    for (Iterator i=placement.getRooms().iterator();i.hasNext();) {
-                        ExamRoom room = (ExamRoom)i.next();
+                    for (Iterator i=placement.getRoomPlacements().iterator();i.hasNext();) {
+                        ExamRoomPlacement room = (ExamRoomPlacement)i.next();
                         rooms += room.getName();
-                        roomSizes += (exam.hasAltSeating()?room.getAltSize():room.getSize());
+                        roomSizes += room.getSize(exam.hasAltSeating());
                         if (i.hasNext()) {
                             rooms+=", ";
                             roomSizes+=", ";

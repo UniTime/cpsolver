@@ -23,7 +23,7 @@ import net.sf.cpsolver.ifs.model.Value;
  * 
  * @version
  * ExamTT 1.1 (Examination Timetabling)<br>
- * Copyright (C) 2007 Tomas Muller<br>
+ * Copyright (C) 2008 Tomas Muller<br>
  * <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
  * <br>
@@ -218,10 +218,10 @@ public class ExamDistributionConstraint extends Constraint {
         case sDistDifferentPeriod :
             return first.getPeriod().getIndex()!=second.getPeriod().getIndex();
         case sDistSameRoom :
-            return first.getRooms().containsAll(second.getRooms()) || second.getRooms().containsAll(first.getRooms());
+            return first.getRoomPlacements().containsAll(second.getRoomPlacements()) || second.getRoomPlacements().containsAll(first.getRoomPlacements());
         case sDistDifferentRoom :
-            for (Iterator i=first.getRooms().iterator();i.hasNext();) 
-                if (second.getRooms().contains(i.next())) return false;
+            for (Iterator i=first.getRoomPlacements().iterator();i.hasNext();) 
+                if (second.getRoomPlacements().contains(i.next())) return false;
             return true;
         default :
             return false;
@@ -303,8 +303,8 @@ public class ExamDistributionConstraint extends Constraint {
                 ExamPlacement placement = (p!=null && exam.equals(p.variable())?p:(ExamPlacement)exam.getAssignment());
                 if (placement==null) continue;
                 if (rooms==null)
-                    rooms = placement.getRooms();
-                else if (!rooms.containsAll(placement.getRooms()) || !placement.getRooms().containsAll(rooms))
+                    rooms = placement.getRoomPlacements();
+                else if (!rooms.containsAll(placement.getRoomPlacements()) || !placement.getRoomPlacements().containsAll(rooms))
                     return false;
             }
             return true;
@@ -314,8 +314,8 @@ public class ExamDistributionConstraint extends Constraint {
                 Exam exam = (Exam)e.nextElement();
                 ExamPlacement placement = (p!=null && exam.equals(p.variable())?p:(ExamPlacement)exam.getAssignment());
                 if (placement==null) continue;
-                for (Iterator i=placement.getRooms().iterator();i.hasNext();) {
-                    ExamRoom room = (ExamRoom)i.next();
+                for (Iterator i=placement.getRoomPlacements().iterator();i.hasNext();) {
+                    ExamRoomPlacement room = (ExamRoomPlacement)i.next();
                     if (!allRooms.add(room)) return false;
                 }
             }

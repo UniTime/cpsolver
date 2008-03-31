@@ -4,20 +4,21 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Representation of a course or a section. This entity is not used
+ * Representation of a course or a section (or any other group of students that is 
+ * associated with an exam). This entity is not used
  * for examination timetabling, but it may be important for reports since
  * students are usually enrolled to sections and/or courses and an exam
  * can be offered for a set of courses/sections. 
  * <br><br>
  * The relations between course/section and exams, students and instructors are
- * bidirectional, see {@link Exam#getCourseSections()}, 
- * {@link ExamStudent#getCourseSections()}, and 
- * {@link ExamInstructor#getCourseSections()}. 
+ * bidirectional, see {@link Exam#getOwners()}, 
+ * {@link ExamStudent#getOwners()}, and 
+ * {@link ExamInstructor#getOwners()}. 
  * <br><br>
  * 
  * @version
  * ExamTT 1.1 (Examination Timetabling)<br>
- * Copyright (C) 2007 Tomas Muller<br>
+ * Copyright (C) 2008 Tomas Muller<br>
  * <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
  * <br>
@@ -35,10 +36,9 @@ import java.util.Set;
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
-public class ExamCourseSection {
+public class ExamOwner implements Comparable {
     private long iId;
     private String iName;
-    private boolean iSection;
     private Exam iExam;
     private HashSet iStudents = new HashSet();
     private HashSet iInstructors = new HashSet();
@@ -48,13 +48,11 @@ public class ExamCourseSection {
      * @param exam an exam for this course/section
      * @param id unique id
      * @param name course/section name
-     * @param section true if section, false if course
      */
-    public ExamCourseSection(Exam exam, long id, String name, boolean section) {
+    public ExamOwner(Exam exam, long id, String name) {
         iExam = exam;
         iId = id;
         iName = name;
-        iSection = section;
     }
     
     /**
@@ -69,13 +67,6 @@ public class ExamCourseSection {
      */
     public String getName() {
         return iName;
-    }
-    
-    /**
-     * True if this stands for a section, false if this stands for a course 
-     */
-    public boolean isSection() {
-        return iSection;
     }
 
     /**
@@ -106,5 +97,23 @@ public class ExamCourseSection {
      */
     public String toString() {
         return iName;
+    }
+    
+    /** Hash code */
+    public int hashCode() {
+        return (int)(iId ^ (iId >>> 32));
+    }
+    
+    /** Compare two exam owners for equality */
+    public boolean equals(Object o) {
+        if (o==null || !(o instanceof ExamOwner)) return false;
+        return getId() == ((ExamOwner)o).getId();
+    }
+    
+    /** Compare two exam owners by name */
+    public int compareTo(Object o) {
+        ExamOwner owner = (ExamOwner)o;
+        if (!getName().equals(owner.getName())) return getName().compareTo(owner.getName());
+        return Double.compare(getId(),owner.getId());
     }
 }

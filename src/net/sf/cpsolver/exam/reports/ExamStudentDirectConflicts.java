@@ -21,7 +21,7 @@ import net.sf.cpsolver.ifs.util.CSVFile.CSVField;
  * 
  * @version
  * ExamTT 1.1 (Examination Timetabling)<br>
- * Copyright (C) 2007 Tomas Muller<br>
+ * Copyright (C) 2008 Tomas Muller<br>
  * <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
  * <br>
@@ -71,7 +71,6 @@ public class ExamStudentDirectConflicts {
             Exam ex1 = (Exam)e.nextElement();
             ExamPlacement p1 = (ExamPlacement)ex1.getAssignment();
             if (p1==null) continue;
-            if (!iModel.isDayBreakBackToBack() && p1.getPeriod().getDay()!=p1.getPeriod().next().getDay()) continue;
             for (Enumeration f=iModel.variables().elements();f.hasMoreElements();) {
                 Exam ex2 = (Exam)f.nextElement();
                 if (ex1.getId()>=ex2.getId()) continue;

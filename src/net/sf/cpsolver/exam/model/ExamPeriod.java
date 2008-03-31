@@ -7,7 +7,7 @@ package net.sf.cpsolver.exam.model;
  * is to be assigned to one period that is available for the exam and that is of the same
  * of greater length than the exam.
  * <br><br>
- * A penalty weight ({@link ExamPeriod#getWeight()}) can be assigned to each period. It is used 
+ * A penalty weight ({@link ExamPeriod#getPenalty()}) can be assigned to each period. It is used 
  * to penalize unpopular examination times (e.g., evening or last-day).   
  * <br><br>
  * A list of periods is to be defined using {@link ExamModel#addPeriod(Long, String, String, int, int)}, inserting
@@ -41,7 +41,7 @@ public class ExamPeriod implements Comparable {
     private String iDayStr;
     private int iLength;
     private int iDay, iTime;
-    private int iWeight;
+    private int iPenalty;
     private ExamPeriod iPrev, iNext;
     
     /**
@@ -50,14 +50,14 @@ public class ExamPeriod implements Comparable {
      * @param day day (e.g., 07/12/10)
      * @param time (e.g., 8:00am-10:00am)
      * @param length length of period in minutes
-     * @param weight penalization of using this period
+     * @param penalty penalization of using this period
      */
-    public ExamPeriod(Long id, String day, String time, int length, int weight) {
+    public ExamPeriod(Long id, String day, String time, int length, int penalty) {
         iId = id;
         iDayStr = day;
         iTimeStr = time;
         iLength = length;
-        iWeight = weight;
+        iPenalty = penalty;
     }
     
     /** Period unique identifier */
@@ -114,8 +114,8 @@ public class ExamPeriod implements Comparable {
      * Period weight to be used to penalize unpopular periods
      * @return period weight
      */
-    public int getWeight() {
-        return iWeight;
+    public int getPenalty() {
+        return iPenalty;
     }
     /**
      * Previous period 
@@ -161,7 +161,7 @@ public class ExamPeriod implements Comparable {
      */
     public String toDebugString() {
         return getDayStr()+" "+getTimeStr()+
-        " (idx:"+getIndex()+", day:"+getDay()+", time:"+getTime()+", weight:"+getWeight()+
+        " (idx:"+getIndex()+", day:"+getDay()+", time:"+getTime()+", penalty:"+getPenalty()+
         (prev()==null?"":", prev:"+prev().getDayStr()+" "+prev().getTimeStr()+")")+
         (next()==null?"":", next:"+next().getDayStr()+" "+next().getTimeStr()+")");
     }
