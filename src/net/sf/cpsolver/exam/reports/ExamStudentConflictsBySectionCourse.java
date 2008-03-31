@@ -7,11 +7,11 @@ import java.util.Iterator;
 import java.util.Vector;
 
 import net.sf.cpsolver.exam.model.Exam;
-import net.sf.cpsolver.exam.model.ExamCourseSection;
 import net.sf.cpsolver.exam.model.ExamModel;
+import net.sf.cpsolver.exam.model.ExamOwner;
 import net.sf.cpsolver.exam.model.ExamPeriod;
 import net.sf.cpsolver.exam.model.ExamPlacement;
-import net.sf.cpsolver.exam.model.ExamRoom;
+import net.sf.cpsolver.exam.model.ExamRoomPlacement;
 import net.sf.cpsolver.exam.model.ExamStudent;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.CSVFile.CSVField;
@@ -28,7 +28,7 @@ import net.sf.cpsolver.ifs.util.CSVFile.CSVField;
  * 
  * @version
  * ExamTT 1.1 (Examination Timetabling)<br>
- * Copyright (C) 2007 Tomas Muller<br>
+ * Copyright (C) 2008 Tomas Muller<br>
  * <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
  * <br>
@@ -57,30 +57,22 @@ public class ExamStudentConflictsBySectionCourse {
         iModel = model;
     }
     
-    private Vector getCourseSections(Exam exam) {
-        if (!exam.getCourseSections().isEmpty()) return exam.getCourseSections();
-        ExamCourseSection cs = new ExamCourseSection(exam, exam.getId(), exam.getName(), exam.isSectionExam());
+    private Vector getOwners(Exam exam) {
+        if (!exam.getOwners().isEmpty()) return exam.getOwners();
+        ExamOwner cs = new ExamOwner(exam, exam.getId(), exam.getName());
         cs.getStudents().addAll(exam.getStudents());
         Vector ret = new Vector(1); ret.add(cs);
         return ret;
     }
     
-    private Vector getCourseSections(Exam exam, ExamStudent student) {
-        Vector ret = new Vector(exam.getCourseSections(student));
+    private Vector getOwners(Exam exam, ExamStudent student) {
+        Vector ret = new Vector(exam.getOwners(student));
         if (ret.isEmpty()) {
-            ExamCourseSection cs = new ExamCourseSection(exam, exam.getId(), exam.getName(), exam.isSectionExam());
+            ExamOwner cs = new ExamOwner(exam, exam.getId(), exam.getName());
             cs.getStudents().add(student);
             ret.add(cs);
         }
-        Collections.sort(ret,new Comparator() {
-            public int compare(Object o1, Object o2) {
-                ExamCourseSection cs1 = (ExamCourseSection)o1;
-                ExamCourseSection cs2 = (ExamCourseSection)o2;
-                int cmp = cs1.getName().compareTo(cs2.getName());
-                if (cmp!=0) return cmp;
-                return Double.compare(cs1.getId(),cs2.getId());
-            }
-        });
+        Collections.sort(ret);
         return ret;
     }
 
@@ -106,25 +98,17 @@ public class ExamStudentConflictsBySectionCourse {
         Vector courseSections = new Vector();
         for (Enumeration a=iModel.variables().elements();a.hasMoreElements();) {
             Exam exam =(Exam)a.nextElement();
-            courseSections.addAll(getCourseSections(exam));
+            courseSections.addAll(getOwners(exam));
         }
-        Collections.sort(courseSections,new Comparator() {
-            public int compare(Object o1, Object o2) {
-                ExamCourseSection cs1 = (ExamCourseSection)o1;
-                ExamCourseSection cs2 = (ExamCourseSection)o2;
-                int cmp = cs1.getName().compareTo(cs2.getName());
-                if (cmp!=0) return cmp;
-                return Double.compare(cs1.getId(),cs2.getId());
-            }
-        });
+        Collections.sort(courseSections);
         for (Enumeration a=courseSections.elements();a.hasMoreElements();) {
-            ExamCourseSection cs = (ExamCourseSection)a.nextElement();
+            ExamOwner cs = (ExamOwner)a.nextElement();
             Exam exam = cs.getExam();
             ExamPlacement placement = (ExamPlacement)exam.getAssignment();
             if (placement==null) continue;
             String roomsThisExam = "";
-            for (Iterator j=placement.getRooms().iterator();j.hasNext();) {
-                ExamRoom room = (ExamRoom)j.next();
+            for (Iterator j=placement.getRoomPlacements().iterator();j.hasNext();) {
+                ExamRoomPlacement room = (ExamRoomPlacement)j.next();
                 if (roomsThisExam.length()>0) roomsThisExam+=", ";
                 roomsThisExam+=room.getName();
             }
@@ -152,14 +136,14 @@ public class ExamStudentConflictsBySectionCourse {
                         ExamPlacement otherPlacement = (ExamPlacement)otherExam.getAssignment();
                         ExamPeriod otherPeriod = otherPlacement.getPeriod();
                         String roomsOtherExam = "";
-                        for (Iterator j=otherPlacement.getRooms().iterator();j.hasNext();) {
-                            ExamRoom room = (ExamRoom)j.next();
+                        for (Iterator j=otherPlacement.getRoomPlacements().iterator();j.hasNext();) {
+                            ExamRoomPlacement room = (ExamRoomPlacement)j.next();
                             if (roomsOtherExam.length()>0) roomsOtherExam+=", ";
                             roomsOtherExam+=room.getName();
                         }
                         boolean otherPrinted = false;
-                        for (Enumeration g=getCourseSections(otherExam,student).elements();g.hasMoreElements();){
-                            ExamCourseSection ocs = (ExamCourseSection)g.nextElement();
+                        for (Enumeration g=getOwners(otherExam,student).elements();g.hasMoreElements();){
+                            ExamOwner ocs = (ExamOwner)g.nextElement();
                             csv.addLine(new CSVField[] {
                                     new CSVField(csPrinted?"":cs.getName()),
                                     new CSVField(csPrinted?"":String.valueOf(1+period.getIndex())),
@@ -190,8 +174,8 @@ public class ExamStudentConflictsBySectionCourse {
                             Exam otherExam = (Exam)i.next();
                             ExamPlacement otherPlacement = (ExamPlacement)otherExam.getAssignment();
                             String roomsOtherExam = "";
-                            for (Iterator j=otherPlacement.getRooms().iterator();j.hasNext();) {
-                                ExamRoom room = (ExamRoom)j.next();
+                            for (Iterator j=otherPlacement.getRoomPlacements().iterator();j.hasNext();) {
+                                ExamRoomPlacement room = (ExamRoomPlacement)j.next();
                                 if (roomsOtherExam.length()>0) roomsOtherExam+=", ";
                                 roomsOtherExam+=room.getName();
                             }
@@ -201,8 +185,8 @@ public class ExamStudentConflictsBySectionCourse {
                                 if (dist>0) distStr = String.valueOf(dist);
                             }
                             boolean otherPrinted = false;
-                            for (Enumeration g=getCourseSections(otherExam,student).elements();g.hasMoreElements();){
-                                ExamCourseSection ocs = (ExamCourseSection)g.nextElement();
+                            for (Enumeration g=getOwners(otherExam,student).elements();g.hasMoreElements();){
+                                ExamOwner ocs = (ExamOwner)g.nextElement();
                                 csv.addLine(new CSVField[] {
                                         new CSVField(csPrinted?"":cs.getName()),
                                         new CSVField(csPrinted?"":String.valueOf(1+period.getIndex())),
@@ -231,14 +215,14 @@ public class ExamStudentConflictsBySectionCourse {
                         ExamPlacement otherPlacement = (ExamPlacement)otherExam.getAssignment();
                         ExamPeriod otherPeriod = otherPlacement.getPeriod();
                         String roomsOtherExam = "";
-                        for (Iterator j=otherPlacement.getRooms().iterator();j.hasNext();) {
-                            ExamRoom room = (ExamRoom)j.next();
+                        for (Iterator j=otherPlacement.getRoomPlacements().iterator();j.hasNext();) {
+                            ExamRoomPlacement room = (ExamRoomPlacement)j.next();
                             if (roomsOtherExam.length()>0) roomsOtherExam+=", ";
                             roomsOtherExam+=room.getName();
                         }
                         boolean otherPrinted = false;
-                        for (Enumeration g=getCourseSections(otherExam,student).elements();g.hasMoreElements();){
-                            ExamCourseSection ocs = (ExamCourseSection)g.nextElement();
+                        for (Enumeration g=getOwners(otherExam,student).elements();g.hasMoreElements();){
+                            ExamOwner ocs = (ExamOwner)g.nextElement();
                             csv.addLine(new CSVField[] {
                                     new CSVField(csPrinted?"":cs.getName()),
                                     new CSVField(csPrinted?"":String.valueOf(1+period.getIndex())),

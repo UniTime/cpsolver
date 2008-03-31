@@ -4,11 +4,11 @@ import java.util.Enumeration;
 import java.util.Iterator;
 
 import net.sf.cpsolver.exam.model.Exam;
-import net.sf.cpsolver.exam.model.ExamCourseSection;
 import net.sf.cpsolver.exam.model.ExamModel;
+import net.sf.cpsolver.exam.model.ExamOwner;
 import net.sf.cpsolver.exam.model.ExamPeriod;
 import net.sf.cpsolver.exam.model.ExamPlacement;
-import net.sf.cpsolver.exam.model.ExamRoom;
+import net.sf.cpsolver.exam.model.ExamRoomPlacement;
 import net.sf.cpsolver.exam.model.ExamStudent;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.CSVFile.CSVField;
@@ -25,7 +25,7 @@ import net.sf.cpsolver.ifs.util.CSVFile.CSVField;
  * 
  * @version
  * ExamTT 1.1 (Examination Timetabling)<br>
- * Copyright (C) 2007 Tomas Muller<br>
+ * Copyright (C) 2008 Tomas Muller<br>
  * <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
  * <br>
@@ -84,14 +84,14 @@ public class ExamStudentConflicts {
                         Exam exam = (Exam)i.next();
                         ExamPlacement placement = (ExamPlacement)exam.getAssignment();
                         String roomsThisExam = "";
-                        for (Iterator j=placement.getRooms().iterator();j.hasNext();) {
-                            ExamRoom room = (ExamRoom)j.next();
+                        for (Iterator j=placement.getRoomPlacements().iterator();j.hasNext();) {
+                            ExamRoomPlacement room = (ExamRoomPlacement)j.next();
                             if (roomsThisExam.length()>0) roomsThisExam+=", ";
                             roomsThisExam+=room.getName();
                         }
                         boolean first = true;
-                        for (Enumeration g=exam.getCourseSections(student).elements();g.hasMoreElements();){
-                            ExamCourseSection cs = (ExamCourseSection)g.nextElement();
+                        for (Enumeration g=exam.getOwners(student).elements();g.hasMoreElements();){
+                            ExamOwner cs = (ExamOwner)g.nextElement();
                             if (sections.length()>0) { 
                                 sections+="\n"; rooms+="\n";
                                 periods+="\n"; periodDays+="\n"; periodTimes+="\n";
@@ -100,7 +100,7 @@ public class ExamStudentConflicts {
                             if (first) rooms += roomsThisExam;
                             first = false;
                         }
-                        if (exam.getCourseSections(student).isEmpty()) {
+                        if (exam.getOwners(student).isEmpty()) {
                             sections += exam.getName();
                             rooms += roomsThisExam;
                         }
@@ -128,14 +128,14 @@ public class ExamStudentConflicts {
                                 String periods = String.valueOf(period.getIndex()+1);
                                 String periodDays = period.getDayStr();
                                 String periodTimes = period.getTimeStr();
-                                for (Iterator k=placement.getRooms().iterator();k.hasNext();) {
-                                    ExamRoom room = (ExamRoom)k.next();
+                                for (Iterator k=placement.getRoomPlacements().iterator();k.hasNext();) {
+                                    ExamRoomPlacement room = (ExamRoomPlacement)k.next();
                                     if (roomsThisExam.length()>0) roomsThisExam+=", ";
                                     roomsThisExam+=room.getName();
                                 }
                                 boolean first = true;
-                                for (Enumeration g=ex1.getCourseSections(student).elements();g.hasMoreElements();){
-                                    ExamCourseSection cs = (ExamCourseSection)g.nextElement();
+                                for (Enumeration g=ex1.getOwners(student).elements();g.hasMoreElements();){
+                                    ExamOwner cs = (ExamOwner)g.nextElement();
                                     if (sections.length()>0) {
                                         sections+="\n"; rooms+="\n";
                                         periods+="\n"; periodDays+="\n"; periodTimes+="\n";
@@ -144,20 +144,20 @@ public class ExamStudentConflicts {
                                     if (first) rooms += roomsThisExam;
                                     first = false;
                                 }
-                                if (ex1.getCourseSections(student).isEmpty()) {
+                                if (ex1.getOwners(student).isEmpty()) {
                                     sections += ex1.getName();
                                     rooms += roomsThisExam;
                                 }
                                 placement = (ExamPlacement)ex2.getAssignment();
                                 roomsThisExam = "";
-                                for (Iterator k=placement.getRooms().iterator();k.hasNext();) {
-                                    ExamRoom room = (ExamRoom)k.next();
+                                for (Iterator k=placement.getRoomPlacements().iterator();k.hasNext();) {
+                                    ExamRoomPlacement room = (ExamRoomPlacement)k.next();
                                     if (roomsThisExam.length()>0) roomsThisExam+=", ";
                                     roomsThisExam+=room.getName();
                                 }
                                 first = true;
-                                for (Enumeration g=ex2.getCourseSections(student).elements();g.hasMoreElements();){
-                                    ExamCourseSection cs = (ExamCourseSection)g.nextElement();
+                                for (Enumeration g=ex2.getOwners(student).elements();g.hasMoreElements();){
+                                    ExamOwner cs = (ExamOwner)g.nextElement();
                                     sections+="\n"; rooms+="\n"; periods+="\n"; periodDays+="\n"; periodTimes+="\n";
                                     sections += cs.getName();
                                     if (first) {
@@ -168,7 +168,7 @@ public class ExamStudentConflicts {
                                     }
                                     first = false;
                                 }
-                                if (ex2.getCourseSections(student).isEmpty()) {
+                                if (ex2.getOwners(student).isEmpty()) {
                                     sections+="\n"; rooms+="\n"; periods+="\n"; periodDays+="\n"; periodTimes+="\n";
                                     sections += ex2.getName();
                                     rooms += roomsThisExam;
@@ -208,14 +208,14 @@ public class ExamStudentConflicts {
                             Exam exam = (Exam)i.next();
                             ExamPlacement placement = (ExamPlacement)exam.getAssignment();
                             String roomsThisExam = "";
-                            for (Iterator k=placement.getRooms().iterator();k.hasNext();) {
-                                ExamRoom room = (ExamRoom)k.next();
+                            for (Iterator k=placement.getRoomPlacements().iterator();k.hasNext();) {
+                                ExamRoomPlacement room = (ExamRoomPlacement)k.next();
                                 if (roomsThisExam.length()>0) roomsThisExam+=", ";
                                 roomsThisExam+=room.getName();
                             }
                             boolean first = true;
-                            for (Enumeration g=exam.getCourseSections(student).elements();g.hasMoreElements();){
-                                ExamCourseSection cs = (ExamCourseSection)g.nextElement();
+                            for (Enumeration g=exam.getOwners(student).elements();g.hasMoreElements();){
+                                ExamOwner cs = (ExamOwner)g.nextElement();
                                 if (sections.length()>0) {
                                     sections+="\n"; rooms+="\n";
                                     periods+="\n"; periodDays+="\n"; periodTimes+="\n";
@@ -229,7 +229,7 @@ public class ExamStudentConflicts {
                                 }
                                 first = false;
                             }
-                            if (exam.getCourseSections(student).isEmpty()) {
+                            if (exam.getOwners(student).isEmpty()) {
                                 if (sections.length()>0) {
                                     sections+="\n"; rooms+="\n";
                                     periods+="\n"; periodDays+="\n"; periodTimes+="\n";

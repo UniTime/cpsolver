@@ -2,6 +2,7 @@ package net.sf.cpsolver.exam.model;
 
 import java.text.DecimalFormat;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -10,13 +11,12 @@ import net.sf.cpsolver.ifs.model.Value;
 /**
  * Representation of an exam placement (problem value), i.e., assignment of an exam to period and room(s).
  * Each placement has defined a period and a set of rooms. The exam as well as the rooms have to be available
- * during the given period (see {@link Exam#isAvailable(ExamPeriod, Set)}). The total size of rooms 
- * have to be equal or greater than the number of students enrolled in the exam, using either
+ * during the given period (see {@link Exam#getPeriodPlacements()} and {@link Exam#getRoomPlacements()}). 
+ * The total size of rooms have to be equal or greater than the number of students enrolled in the exam 
+ * {@link Exam#getSize()}, using either
  * {@link ExamRoom#getSize()} or {@link ExamRoom#getAltSize()}, depending on {@link Exam#hasAltSeating()}.
  * Also, the number of rooms has to be smaller or equal to {@link Exam#getMaxRooms()}. If 
  * {@link Exam#getMaxRooms()} is zero, the exam is only to be assigned to period (the set of rooms is empty).
- * If the exam has a period or a set of room pre-assigned ({@link Exam#getPreAssignedPeriod()}, 
- * {@link Exam#getPreassignedRooms()}), the pre-assigned period and/or set of rooms has to be used. 
  * <br><br>
  * The cost of an assignment consists of the following criteria:
  * <ul>
@@ -27,13 +27,18 @@ import net.sf.cpsolver.ifs.model.Value;
  *  <li> Period penalty {@link ExamPlacement#getPeriodPenalty()}, weighted by {@link ExamModel#getPeriodWeight()}
  *  <li> Room size penalty {@link ExamPlacement#getRoomSizePenalty()}, weighted by {@link ExamModel#getRoomSizeWeight()}
  *  <li> Room split penalty {@link ExamPlacement#getRoomSplitPenalty()}, weighted by {@link ExamModel#getRoomSplitWeight()}
- *  <li> Non-original room penalty {@link ExamPlacement#getNotOriginalRoomPenalty()}, weighted by {@link ExamModel#getNotOriginalRoomWeight()}
+ *  <li> Room penalty {@link ExamPlacement#getRoomPenalty()}, weighted by {@link ExamModel#getRoomWeight()}
+ *  <li> Exam rotation penalty {@link ExamPlacement#getRotationPenalty()}, weighted by {@link ExamModel#getExamRotationWeight()}
+ *  <li> Direct instructor conflicts {@link ExamPlacement#getNrInstructorDirectConflicts()}, weighted by {@link ExamModel#getInstructorDirectConflictWeight()}
+ *  <li> More than two exams a day instructor conflicts {@link ExamPlacement#getNrInstructorMoreThanTwoADayConflicts()}, weighted by {@link ExamModel#getInstructorMoreThanTwoADayWeight()}
+ *  <li> Back-to-back instructor conflicts {@link ExamPlacement#getNrInstructorBackToBackConflicts()}, weighted by {@link ExamModel#getInstructorBackToBackConflictWeight()}
+ *  <li> Distance back-to-back instructor conflicts {@link ExamPlacement#getNrInstructorDistanceBackToBackConflicts()}, weighted by {@link ExamModel#getInstructorDistanceBackToBackConflictWeight()}
  * </ul>
  * <br><br>
  * 
  * @version
  * ExamTT 1.1 (Examination Timetabling)<br>
- * Copyright (C) 2007 Tomas Muller<br>
+ * Copyright (C) 2008 Tomas Muller<br>
  * <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
  * <br>
@@ -52,31 +57,56 @@ import net.sf.cpsolver.ifs.model.Value;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 public class ExamPlacement extends Value {
-    private ExamPeriod iPeriod;
-    private Set iRooms;
+    private ExamPeriodPlacement iPeriodPlacement;
+    private Set iRoomPlacements;
+    private int iSize;
+    private int iRoomPenalty;
+    
     private int iHashCode;
     
     /**
      * Constructor
      * @param exam an exam
-     * @param period a period that is available for an exam (see {@link Exam#isAvailable(ExamPeriod, Set)}
-     * @param rooms a set of rooms of enough size (it is empty when {@link Exam#getMaxRooms()} is zero)
+     * @param periodPlacement period placement
+     * @param roomPlacements a set of room placements {@link ExamRoomPlacement}
      */
-    public ExamPlacement(Exam exam, ExamPeriod period, Set rooms) {
+    public ExamPlacement(Exam exam, ExamPeriodPlacement periodPlacement, Set roomPlacements) {
         super(exam);
-        iPeriod = period;
-        iRooms = rooms;
+        iPeriodPlacement = periodPlacement;
+        if (roomPlacements==null)
+            iRoomPlacements = new HashSet();
+        else
+            iRoomPlacements = roomPlacements;
+        iSize = 0;
+        iRoomPenalty = 0;
+        for (Iterator i=iRoomPlacements.iterator();i.hasNext();) {
+            ExamRoomPlacement r = (ExamRoomPlacement)i.next();
+            iSize += r.getSize(exam.hasAltSeating());
+            iRoomPenalty += r.getPenalty(periodPlacement.getPeriod());
+        }
         iHashCode = getName().hashCode();
     }
     
     /**
      * Assigned period
      */
-    public ExamPeriod getPeriod() { return iPeriod; }
+    public ExamPeriod getPeriod() { return iPeriodPlacement.getPeriod(); }
+    
+    /**
+     * Assigned period placement
+     */
+    public ExamPeriodPlacement getPeriodPlacement() { return iPeriodPlacement; }
+    
     /**
      * Assigned rooms (it is empty when {@link Exam#getMaxRooms()} is zero)
+     * @return list of {@link ExamRoomPlacement}
      */
-    public Set getRooms() { return iRooms; }
+    public Set getRoomPlacements() { return iRoomPlacements; }
+    
+    /**
+     * Overall size of assigned rooms
+     */
+    public int getSize() { return iSize; }
     
     /**
      * Number of direct student conflicts, i.e., number of cases when this exam
@@ -133,12 +163,12 @@ public class ExamPlacement extends Value {
      * Method {@link ExamRoom#getDistance(ExamRoom)} is used to get a distance between two rooms.
      */
     public int getDistance(ExamPlacement other) {
-        if (getRooms().isEmpty() || other.getRooms().isEmpty()) return 0;
+        if (getRoomPlacements().isEmpty() || other.getRoomPlacements().isEmpty()) return 0;
         int maxDistance = 0;
-        for (Iterator i1=getRooms().iterator();i1.hasNext();) {
-            ExamRoom r1 = (ExamRoom)i1.next();
-            for (Iterator i2=other.getRooms().iterator();i2.hasNext();) {
-                ExamRoom r2 = (ExamRoom)i2.next();
+        for (Iterator i1=getRoomPlacements().iterator();i1.hasNext();) {
+            ExamRoomPlacement r1 = (ExamRoomPlacement)i1.next();
+            for (Iterator i2=other.getRoomPlacements().iterator();i2.hasNext();) {
+                ExamRoomPlacement r2 = (ExamRoomPlacement)i2.next();
                 maxDistance = Math.max(maxDistance, r1.getDistance(r2));
             }
         }
@@ -304,73 +334,47 @@ public class ExamPlacement extends Value {
         return penalty;
     }
     
-    private Integer iRoomSizePenalty = null;
     /**
      * Cost for using room(s) that are too big
      * @return difference between total room size (computed using either {@link ExamRoom#getSize()} or 
-     * {@link ExamRoom#getAltSize()} based on {@link Exam#hasAltSeating()}) and the number of students
+     * {@link ExamRoom#getAltSize()} based on {@link Exam#hasAltSeating()}) and the number of students {@link Exam#getSize()}
      */
     public int getRoomSizePenalty() {
-        if (iRoomSizePenalty==null)
-            iRoomSizePenalty = new Integer(((Exam)variable()).getRoomSizePenalty(getRooms()));
-        return iRoomSizePenalty.intValue();
+        Exam exam = (Exam)variable();
+        int diff = getSize()-exam.getSize();
+        return (diff<0?0:diff);
     }
     
-    private Integer iRoomSplitPenalty = null;
     /**
      * Cost for using more than one room.
      * @return penalty (1 for 2 rooms, 2 for 3 rooms, 4 for 4 rooms, etc.)
      */
     public int getRoomSplitPenalty() {
-        if (iRoomSplitPenalty==null)
-            iRoomSplitPenalty = new Integer(((Exam)variable()).getRoomSplitPenalty(getRooms()));
-        return iRoomSplitPenalty.intValue();
-    }
-    
-    private Integer iNotOriginalRoomPenalty = null;
-    /**
-     * Cost for using room(s) different from the original room
-     * @return 1 if there is an original room and it is of enough capacity, 
-     * but the given set of rooms is not composed of the original room; zero otherwise
-     */
-    public int getNotOriginalRoomPenalty() {
-        if (iNotOriginalRoomPenalty==null) 
-            iNotOriginalRoomPenalty = new Integer(((Exam)variable()).getNotOriginalRoomPenalty(getRooms()));
-        return iNotOriginalRoomPenalty.intValue();
+        return (iRoomPlacements.size()<=1?0:1 << (iRoomPlacements.size()-2));
     }
 
-    private Integer iPeriodPenalty = null;
     /**
-     * Cost for using a period
-     * @return {@link ExamPeriod#getWeight()}
+     * Cost for using a period, i.e., {@link ExamPeriodPlacement#getPenalty()}
      */
     public int getPeriodPenalty() {
-        if (iPeriodPenalty==null) 
-            iPeriodPenalty = new Integer(((Exam)variable()).getPeriodPenalty(getPeriod(),getRooms()));
-        return iPeriodPenalty.intValue();
+        return iPeriodPlacement.getPenalty();
     }
     
     
-    private Integer iRotationPenalty = null;
     /**
      * Rotation penalty (an exam that has been in later period last times tries to be in an earlier period)
-     * @return  {@link Exam#getRotationPenalty(ExamPeriod)}
      */
     public int getRotationPenalty() {
-        if (iRotationPenalty==null) 
-            iRotationPenalty = new Integer(((Exam)variable()).getRotationPenalty(getPeriod()));
-        return iRotationPenalty.intValue();
+        Exam exam = (Exam)variable();
+        if (exam.getAveragePeriod()<0) return 0;
+        return getPeriod().getIndex()*exam.getAveragePeriod();
     }
     
-    private Integer iRoomPenalty = null;
     /**
-     * Room weight (penalty for using given rooms) 
-     * @return {@link Exam#getRoomWeight(Set)}
+     * Room penalty (penalty for using given rooms), i.e., sum of {@link ExamRoomPlacement#getPenalty(ExamPeriod)} of assigned rooms 
      */
     public int getRoomPenalty() {
-        if (iRoomPenalty==null)
-            iRoomPenalty = new Integer(((Exam)variable()).getRoomWeight(getRooms()));
-        return iRoomPenalty.intValue();
+        return iRoomPenalty;
     }
 
 
@@ -385,7 +389,12 @@ public class ExamPlacement extends Value {
      *  <li> Period penalty {@link ExamPlacement#getPeriodPenalty()}, weighted by {@link ExamModel#getPeriodWeight()}
      *  <li> Room size penalty {@link ExamPlacement#getRoomSizePenalty()}, weighted by {@link ExamModel#getRoomSizeWeight()}
      *  <li> Room split penalty {@link ExamPlacement#getRoomSplitPenalty()}, weighted by {@link ExamModel#getRoomSplitWeight()}
-     *  <li> Non-original room penalty {@link ExamPlacement#getNotOriginalRoomPenalty()}, weighted by {@link ExamModel#getNotOriginalRoomWeight()}
+     *  <li> Room penalty {@link ExamPlacement#getRoomPenalty()}, weighted by {@link ExamModel#getRoomWeight()}
+     *  <li> Exam rotation penalty {@link ExamPlacement#getRotationPenalty()}, weighted by {@link ExamModel#getExamRotationWeight()}
+     *  <li> Direct instructor conflicts {@link ExamPlacement#getNrInstructorDirectConflicts()}, weighted by {@link ExamModel#getInstructorDirectConflictWeight()}
+     *  <li> More than two exams a day instructor conflicts {@link ExamPlacement#getNrInstructorMoreThanTwoADayConflicts()}, weighted by {@link ExamModel#getInstructorMoreThanTwoADayWeight()}
+     *  <li> Back-to-back instructor conflicts {@link ExamPlacement#getNrInstructorBackToBackConflicts()}, weighted by {@link ExamModel#getInstructorBackToBackConflictWeight()}
+     *  <li> Distance back-to-back instructor conflicts {@link ExamPlacement#getNrInstructorDistanceBackToBackConflicts()}, weighted by {@link ExamModel#getInstructorDistanceBackToBackConflictWeight()}
      * </ul>
      */
     public double toDouble() {
@@ -399,7 +408,6 @@ public class ExamPlacement extends Value {
             model.getPeriodWeight()*getPeriodPenalty()+ 
             model.getRoomSizeWeight()*getRoomSizePenalty()+
             model.getRoomSplitWeight()*getRoomSplitPenalty()+
-            model.getNotOriginalRoomWeight()*getNotOriginalRoomPenalty()+
             model.getExamRotationWeight()*getRotationPenalty()+
             model.getRoomWeight()*getRoomPenalty()+
             model.getInstructorDirectConflictWeight()*getNrInstructorDirectConflicts()+
@@ -416,6 +424,11 @@ public class ExamPlacement extends Value {
      *  <li> More than two exams a day student conflicts {@link ExamPlacement#getNrMoreThanTwoADayConflicts()}, weighted by {@link ExamModel#getMoreThanTwoADayWeight()}
      *  <li> Back-to-back student conflicts {@link ExamPlacement#getNrBackToBackConflicts()}, weighted by {@link ExamModel#getBackToBackConflictWeight()}
      *  <li> Period penalty {@link ExamPlacement#getPeriodPenalty()}, weighted by {@link ExamModel#getPeriodWeight()}
+     *  <li> Exam rotation penalty {@link ExamPlacement#getRotationPenalty()}, weighted by {@link ExamModel#getExamRotationWeight()}
+     *  <li> Direct instructor conflicts {@link ExamPlacement#getNrInstructorDirectConflicts()}, weighted by {@link ExamModel#getInstructorDirectConflictWeight()}
+     *  <li> More than two exams a day instructor conflicts {@link ExamPlacement#getNrInstructorMoreThanTwoADayConflicts()}, weighted by {@link ExamModel#getInstructorMoreThanTwoADayWeight()}
+     *  <li> Back-to-back instructor conflicts {@link ExamPlacement#getNrInstructorBackToBackConflicts()}, weighted by {@link ExamModel#getInstructorBackToBackConflictWeight()}
+     *  <li> Distance back-to-back instructor conflicts {@link ExamPlacement#getNrInstructorDistanceBackToBackConflicts()}, weighted by {@link ExamModel#getInstructorDistanceBackToBackConflictWeight()}
      * </ul>
      */
     public double getTimeCost() {
@@ -429,8 +442,7 @@ public class ExamPlacement extends Value {
             model.getExamRotationWeight()*getRotationPenalty()+
             model.getInstructorDirectConflictWeight()*getNrInstructorDirectConflicts()+
             model.getInstructorMoreThanTwoADayWeight()*getNrInstructorMoreThanTwoADayConflicts()+
-            model.getInstructorBackToBackConflictWeight()*getNrInstructorBackToBackConflicts()+
-            model.getInstructorDistanceBackToBackConflictWeight()*getNrInstructorDistanceBackToBackConflicts();
+            model.getInstructorBackToBackConflictWeight()*getNrInstructorBackToBackConflicts();
     }
     
     /**
@@ -438,9 +450,10 @@ public class ExamPlacement extends Value {
      * The room cost of an assignment consists of the following criteria:
      * <ul>
      *  <li> Distance back-to-back student conflicts {@link ExamPlacement#getNrDistanceBackToBackConflicts()}, weighted by {@link ExamModel#getDistanceBackToBackConflictWeight()}
+     *  <li> Distance back-to-back instructor conflicts {@link ExamPlacement#getNrInstructorDistanceBackToBackConflicts()}, weighted by {@link ExamModel#getInstructorDistanceBackToBackConflictWeight()}
      *  <li> Room size penalty {@link ExamPlacement#getRoomSizePenalty()}, weighted by {@link ExamModel#getRoomSizeWeight()}
      *  <li> Room split penalty {@link ExamPlacement#getRoomSplitPenalty()}, weighted by {@link ExamModel#getRoomSplitWeight()}
-     *  <li> Non-original room penalty {@link ExamPlacement#getNotOriginalRoomPenalty()}, weighted by {@link ExamModel#getNotOriginalRoomWeight()}
+     *  <li> Room penalty {@link ExamPlacement#getRoomPenalty()}, weighted by {@link ExamModel#getRoomWeight()}
      * </ul>
      */
     public double getRoomCost() {
@@ -450,15 +463,28 @@ public class ExamPlacement extends Value {
             model.getDistanceBackToBackConflictWeight()*getNrDistanceBackToBackConflicts()+
             model.getRoomSizeWeight()*getRoomSizePenalty()+
             model.getRoomSplitWeight()*getRoomSplitPenalty()+
-            model.getNotOriginalRoomWeight()*getNotOriginalRoomPenalty()+
-            model.getRoomWeight()*getRoomPenalty();
+            model.getRoomWeight()*getRoomPenalty()+
+            model.getInstructorDistanceBackToBackConflictWeight()*getNrInstructorDistanceBackToBackConflicts();
+    }
+    
+    /**
+     * Room names separated with the given delimiter
+     */
+    public String getRoomName(String delim) {
+        String roomName = "";
+        for (Iterator i=getRoomPlacements().iterator();i.hasNext();) {
+            ExamRoomPlacement r = (ExamRoomPlacement)i.next();
+            roomName += r.getRoom().getName();
+            if (i.hasNext()) roomName += delim;
+        }
+        return roomName;
     }
     
     /**
      * Assignment name (period / room(s))
      */
     public String getName() {
-        return getPeriod()+"/"+getRooms();
+        return getPeriod()+"/"+getRoomName(",");
     }
     
     /**
@@ -473,11 +499,12 @@ public class ExamPlacement extends Value {
             "DC:"+getNrDirectConflicts()+","+
             "M2D:"+getNrMoreThanTwoADayConflicts()+","+
             "BTB:"+getNrBackToBackConflicts()+","+
-            "dBTB:"+getNrDistanceBackToBackConflicts()+","+
+            (model.getBackToBackDistance()<0?"":"dBTB:"+getNrDistanceBackToBackConflicts()+",")+
             "PP:"+getPeriodPenalty()+","+
+            "@P:"+getRotationPenalty()+","+
             "RSz:"+getRoomSizePenalty()+","+
             "RSp:"+getRoomSplitPenalty()+","+
-            "ROg:"+getNotOriginalRoomPenalty()+
+            "RP:"+getRoomPenalty()+
             ")";
     }
     
@@ -487,7 +514,7 @@ public class ExamPlacement extends Value {
     public boolean equals(Object o) {
         if (o==null || !(o instanceof ExamPlacement)) return false;
         ExamPlacement p = (ExamPlacement)o;
-        return p.variable().equals(variable()) && p.getPeriod().equals(getPeriod()) && p.getRooms().equals(getRooms());
+        return p.variable().equals(variable()) && p.getPeriod().equals(getPeriod()) && p.getRoomPlacements().equals(getRoomPlacements());
     }
     
     /**
@@ -495,5 +522,12 @@ public class ExamPlacement extends Value {
      */
     public int hashCode() {
         return iHashCode;
+    }
+    
+    /**
+     * True if given room is between {@link ExamPlacement#getRoomPlacements()}
+     */
+    public boolean contains(ExamRoom room) {
+        return getRoomPlacements().contains(new ExamRoomPlacement(room));
     }
 }

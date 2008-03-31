@@ -8,7 +8,7 @@ import java.util.Vector;
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPlacement;
-import net.sf.cpsolver.exam.model.ExamRoom;
+import net.sf.cpsolver.exam.model.ExamRoomPlacement;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.CSVFile.CSVField;
 
@@ -75,7 +75,7 @@ public class ExamRoomSplit {
         for (Enumeration e=iModel.variables().elements();e.hasMoreElements();) {
             Exam exam = (Exam)e.nextElement();
             ExamPlacement placement = (ExamPlacement)exam.getAssignment();
-            if (placement==null || placement.getRooms().size()<=1) continue;
+            if (placement==null || placement.getRoomPlacements().size()<=1) continue;
             Vector fields = new Vector();
             fields.add(new CSVField(exam.getName()));
             fields.add(new CSVField(exam.getStudents().size()));
@@ -83,11 +83,11 @@ public class ExamRoomSplit {
             fields.add(new CSVField(placement.getPeriod().getDayStr()));
             fields.add(new CSVField(placement.getPeriod().getTimeStr()));
             TreeSet rooms = new TreeSet(new ExamRoomComparator(exam,false));
-            rooms.addAll(placement.getRooms());
+            rooms.addAll(placement.getRoomPlacements());
             for (Iterator i=rooms.iterator();i.hasNext();) {
-                ExamRoom room = (ExamRoom)i.next();
+                ExamRoomPlacement room = (ExamRoomPlacement)i.next();
                 fields.add(new CSVField(room.getName()));
-                fields.add(new CSVField(exam.hasAltSeating()?room.getAltSize():room.getSize()));
+                fields.add(new CSVField(room.getSize(exam.hasAltSeating())));
             }
             csv.addLine(fields);
         }

@@ -4,7 +4,7 @@ import java.util.Set;
 
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamModel;
-import net.sf.cpsolver.exam.model.ExamPeriod;
+import net.sf.cpsolver.exam.model.ExamPeriodPlacement;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
@@ -15,12 +15,12 @@ import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
  * A new set of rooms is selected for a randomly selected exam. Rooms 
- * are selected using {@link Exam#findRoomsRandom(ExamPeriod)}. 
+ * are selected using {@link Exam#findRoomsRandom(ExamPeriodPlacement)}. 
  * <br><br>
  * 
  * @version
  * ExamTT 1.1 (Examination Timetabling)<br>
- * Copyright (C) 2007 Tomas Muller<br>
+ * Copyright (C) 2008 Tomas Muller<br>
  * <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  * Lazenska 391, 76314 Zlin, Czech Republic<br>
  * <br>
@@ -58,14 +58,14 @@ public class ExamRoomMove implements NeighbourSelection {
     
     /**
      * Select an exam randomly,
-     * select an available period randomly (if it is not assigned, from {@link Exam#getPeriods()}), 
-     * select rooms using {@link Exam#findRoomsRandom(ExamPeriod)}
+     * select an available period randomly (if it is not assigned, from {@link Exam#getPeriodPlacements()}), 
+     * select rooms using {@link Exam#findRoomsRandom(ExamPeriodPlacement)}
      */
     public Neighbour selectNeighbour(Solution solution) {
         ExamModel model = (ExamModel)solution.getModel();
         Exam exam = (Exam)ToolBox.random(model.variables());
         ExamPlacement placement = (ExamPlacement)exam.getAssignment();
-        ExamPeriod period = (placement!=null?placement.getPeriod():(ExamPeriod)ToolBox.random(exam.getPeriods()));
+        ExamPeriodPlacement period = (placement!=null?placement.getPeriodPlacement():(ExamPeriodPlacement)ToolBox.random(exam.getPeriodPlacements()));
         if (iCheckStudentConflicts && placement==null && exam.countStudentConflicts(period)>0) return null;
         if (iCheckDistributionConstraints && placement==null && !exam.checkDistributionConstraints(period)) return null;
         Set rooms = exam.findRoomsRandom(period);
