@@ -121,6 +121,7 @@ public class ExamModel extends Model {
     private int iNrMoreThanTwoADayConflicts = 0;
     private int iRoomSizePenalty = 0;
     private int iRoomSplitPenalty = 0;
+    private int iRoomSplitPenalties[] = new int[] {0,0,0,0,0,0,0,0,0,0,0};
     private int iRoomPenalty = 0;
     private int iDistributionPenalty = 0;
     private int iPeriodPenalty = 0;
@@ -169,6 +170,7 @@ public class ExamModel extends Model {
                 room.getRoom().addVariable(exam);
             }
         }
+        iLimits = null; iMaxDistributionPenalty = null;
     }
     
     /**
@@ -513,6 +515,7 @@ public class ExamModel extends Model {
         iRoomSizePenalty -= placement.getRoomSizePenalty();
         iNrDistanceBackToBackConflicts -= placement.getNrDistanceBackToBackConflicts();
         iRoomSplitPenalty -= placement.getRoomSplitPenalty();
+        iRoomSplitPenalties[placement.getRoomPlacements().size()]--;
         iPeriodPenalty -= placement.getPeriodPenalty();
         iExamRotationPenalty -= placement.getRotationPenalty();
         iRoomPenalty -= placement.getRoomPenalty();
@@ -539,6 +542,7 @@ public class ExamModel extends Model {
         iRoomSizePenalty += placement.getRoomSizePenalty();
         iNrDistanceBackToBackConflicts += placement.getNrDistanceBackToBackConflicts();
         iRoomSplitPenalty += placement.getRoomSplitPenalty();
+        iRoomSplitPenalties[placement.getRoomPlacements().size()]++;
         iPeriodPenalty += placement.getPeriodPenalty();
         iExamRotationPenalty += placement.getRotationPenalty();
         iRoomPenalty += placement.getRoomPenalty();
@@ -975,54 +979,109 @@ public class ExamModel extends Model {
     protected void addDistributionPenalty(int inc) {
         iDistributionPenalty += inc;
     }
+    
+    private Integer iMaxDistributionPenalty = null;
+    private int getMaxDistributionPenalty() {
+        if (iMaxDistributionPenalty==null) {
+            int maxDistributionPenalty = 0;
+            for (Enumeration e=getDistributionConstraints().elements();e.hasMoreElements();) {
+                ExamDistributionConstraint dc = (ExamDistributionConstraint)e.nextElement();
+                if (dc.isHard()) continue;
+                maxDistributionPenalty += dc.getWeight();
+            }
+            iMaxDistributionPenalty = new Integer(maxDistributionPenalty);
+        }
+        return iMaxDistributionPenalty.intValue();
+    }
+    
+    private int[] iLimits = null;
+    private int getMinPenalty(ExamRoom r) {
+        boolean av = false; int min = Integer.MAX_VALUE;
+        for (Enumeration e=getPeriods().elements();e.hasMoreElements();) {
+            ExamPeriod p = (ExamPeriod)e.nextElement();
+            if (r.isAvailable(p)) {
+                av=true;
+                min = Math.min(min, r.getPenalty(p));
+            }
+        }
+        return min;
+    }
+    private int getMaxPenalty(ExamRoom r) {
+        boolean av = false; int max = Integer.MIN_VALUE;
+        for (Enumeration e=getPeriods().elements();e.hasMoreElements();) {
+            ExamPeriod p = (ExamPeriod)e.nextElement();
+            if (r.isAvailable(p)) {
+                av=true;
+                max = Math.max(max, r.getPenalty(p));
+            }
+        }
+        return max;
+    }
+    private int[] getLimits() {
+        if (iLimits==null) {
+            int minPeriodPenalty = 0, maxPeriodPenalty = 0;
+            int minRoomPenalty = 0, maxRoomPenalty = 0;
+            for (Enumeration e=variables().elements();e.hasMoreElements();) {
+                Exam exam = (Exam)e.nextElement();
+                if (!exam.getPeriodPlacements().isEmpty()) {
+                    int minPenalty = Integer.MAX_VALUE, maxPenalty = Integer.MIN_VALUE;
+                    for (Enumeration f=exam.getPeriodPlacements().elements();f.hasMoreElements();) {
+                        ExamPeriodPlacement periodPlacement = (ExamPeriodPlacement)f.nextElement();
+                        minPenalty = Math.min(minPenalty, periodPlacement.getPenalty());
+                        maxPenalty = Math.max(minPenalty, periodPlacement.getPenalty());
+                    }
+                    minPeriodPenalty += minPenalty;
+                    maxPeriodPenalty += maxPenalty;
+                }
+                if (!exam.getRoomPlacements().isEmpty()) {
+                    int minPenalty = Integer.MAX_VALUE, maxPenalty = Integer.MIN_VALUE;
+                    for (Enumeration f=exam.getRoomPlacements().elements();f.hasMoreElements();) {
+                        ExamRoomPlacement roomPlacement = (ExamRoomPlacement)f.nextElement();
+                        minPenalty = Math.min(minPenalty, roomPlacement.getPenalty()+getMinPenalty(roomPlacement.getRoom()));
+                        maxPenalty = Math.max(minPenalty, roomPlacement.getPenalty()+getMaxPenalty(roomPlacement.getRoom()));
+                    }
+                    minRoomPenalty += minPenalty;
+                    maxRoomPenalty += maxPenalty;
+                }
+            }
+            iLimits = new int[] {minPeriodPenalty,maxPeriodPenalty,minRoomPenalty,maxRoomPenalty};
+        }
+        return iLimits;
+    }
 
     /**
      * Info table
      */
     public Hashtable getInfo() {
         Hashtable info = super.getInfo();
-        info.put("Direct Conflicts",
-                getNrDirectConflicts(false)+" ("+
-                sDoubleFormat.format(getDirectConflictWeight()*getNrDirectConflicts(false))+")");
-        info.put("More Than 2 A Day Conflicts",
-                getNrMoreThanTwoADayConflicts(false)+" ("+
-                sDoubleFormat.format(getMoreThanTwoADayWeight()*getNrMoreThanTwoADayConflicts(false))+")");
-        info.put("Back-To-Back Conflicts",
-                getNrBackToBackConflicts(false)+" ("+
-                sDoubleFormat.format(getBackToBackConflictWeight()*getNrBackToBackConflicts(false))+")");
-        info.put("Distance Back-To-Back Conflicts",
-                getNrDistanceBackToBackConflicts(false)+" ("+
-                sDoubleFormat.format(getDistanceBackToBackConflictWeight()*getNrDistanceBackToBackConflicts(false))+")");
-        info.put("Room Size Penalty",
-                getRoomSizePenalty(false)+" ("+
-                sDoubleFormat.format(getRoomSizeWeight()*getRoomSizePenalty(false))+")");
-        info.put("Room Split Penalty",
-                getRoomSplitPenalty(false)+" ("+
-                sDoubleFormat.format(getRoomSplitWeight()*getRoomSplitPenalty(false))+")");
-        info.put("Period Penalty",
-                getPeriodPenalty(false)+" ("+
-                sDoubleFormat.format(getPeriodWeight()*getPeriodPenalty(false))+")");
-        info.put("Exam Rotation Penalty",
-                getExamRotationPenalty(false)+" ("+
-                sDoubleFormat.format(getExamRotationWeight()*getExamRotationPenalty(false))+")");
-        info.put("Room Penalty",
-                getRoomPenalty(false)+" ("+
-                sDoubleFormat.format(getRoomWeight()*getRoomPenalty(false))+")");
-        info.put("Distribution Penalty",
-                getDistributionPenalty(false)+" ("+
-                sDoubleFormat.format(getDistributionWeight()*getRoomPenalty(false))+")");
-        info.put("Instructor Direct Conflicts",
-                getNrInstructorDirectConflicts(false)+" ("+
-                sDoubleFormat.format(getInstructorDirectConflictWeight()*getNrInstructorDirectConflicts(false))+")");
-        info.put("Instructor More Than 2 A Day Conflicts",
-                getNrInstructorMoreThanTwoADayConflicts(false)+" ("+
-                sDoubleFormat.format(getInstructorMoreThanTwoADayWeight()*getNrInstructorMoreThanTwoADayConflicts(false))+")");
-        info.put("Instructor Back-To-Back Conflicts",
-                getNrInstructorBackToBackConflicts(false)+" ("+
-                sDoubleFormat.format(getInstructorBackToBackConflictWeight()*getNrInstructorBackToBackConflicts(false))+")");
-        info.put("Instructor Distance Back-To-Back Conflicts",
-                getNrInstructorDistanceBackToBackConflicts(false)+" ("+
-                sDoubleFormat.format(getInstructorDistanceBackToBackConflictWeight()*getNrInstructorDistanceBackToBackConflicts(false))+")");
+        info.put("Direct Conflicts",String.valueOf(getNrDirectConflicts(false)));
+        info.put("More Than 2 A Day Conflicts",String.valueOf(getNrMoreThanTwoADayConflicts(false)));
+        info.put("Back-To-Back Conflicts",String.valueOf(getNrBackToBackConflicts(false)));
+        if (getNrInstructorDirectConflicts(false)>0)
+            info.put("Instructor Direct Conflicts",String.valueOf(getNrInstructorDirectConflicts(false)));
+        if (getNrInstructorMoreThanTwoADayConflicts(false)>0)
+            info.put("Instructor More Than 2 A Day Conflicts",String.valueOf(getNrInstructorMoreThanTwoADayConflicts(false)));
+        if (getNrInstructorBackToBackConflicts(false)>0)
+            info.put("Instructor Back-To-Back Conflicts",String.valueOf(getNrInstructorBackToBackConflicts(false)));
+        if (getBackToBackDistance()>=0 && getNrDistanceBackToBackConflicts(false)>0)
+            info.put("Distance Back-To-Back Conflicts",String.valueOf(getNrDistanceBackToBackConflicts(false)));
+        if (getBackToBackDistance()>=0 && getNrInstructorDistanceBackToBackConflicts(false)>0)
+            info.put("Instructor Distance Back-To-Back Conflicts",String.valueOf(getNrInstructorDistanceBackToBackConflicts(false)));
+        info.put("Room Size Penalty", sDoubleFormat.format(((double)getRoomSizePenalty(false))/assignedVariables().size()));
+        if (getRoomSplitPenalty(false)>0) {
+            String split = "";
+            for (int i=2;i<getMaxRooms();i++)
+                if (iRoomSplitPenalties[i]>0) {
+                    if (split.length()>0) split+=", ";
+                    split+=iRoomSplitPenalties[i]+"&times;"+i;
+                }
+            info.put("Room Split Penalty", getRoomSplitPenalty(false)+" ("+split+")");
+        }
+        info.put("Period Penalty", getPerc(getPeriodPenalty(false), getLimits()[0], getLimits()[1])+"% ("+getPeriodPenalty(false)+")");
+        info.put("Room Penalty", getPerc(getRoomPenalty(false), getLimits()[2], getLimits()[3])+"% ("+getRoomPenalty(false)+")");
+        info.put("Distribution Penalty", getPerc(getDistributionPenalty(false), 0, getMaxDistributionPenalty())+"% ("+getDistributionPenalty(false)+")");
+        if (getExamRotationPenalty(false)>0) 
+            info.put("Exam Rotation Penalty",String.valueOf(getExamRotationPenalty(false)));
         return info;
     }
     
