@@ -25,7 +25,7 @@ package net.sf.cpsolver.exam.model;
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
-public class ExamPeriodPlacement {
+public class ExamPeriodPlacement implements Comparable {
     private ExamPeriod iPeriod;
     private int iPenalty;
     
@@ -52,4 +52,28 @@ public class ExamPeriodPlacement {
      * @return given penalty plus global period penalty {@link ExamPeriod#getPenalty()}    
      */
     public int getPenalty() { return iPenalty + iPeriod.getPenalty(); }
+    
+    /**
+     * Hash code
+     */
+    public int hashCode() {
+        return getPeriod().hashCode();
+    }
+    
+    /** Compare two room placements for equality */
+    public boolean equals(Object o) {
+        if (o==null) return false;
+        if (o instanceof ExamPeriodPlacement) {
+            return getPeriod().equals(((ExamPeriodPlacement)o).getPeriod());
+        } else if (o instanceof ExamPeriod) {
+            return getPeriod().equals(o);
+        }
+        return false;
+    }
+
+    /** Compare two period placements */
+    public int compareTo(Object o) {
+        if (o==null || !(o instanceof ExamPeriodPlacement)) return -1;
+        return getPeriod().compareTo(((ExamPeriodPlacement)o).getPeriod());
+    }
 }
