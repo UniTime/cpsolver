@@ -184,6 +184,7 @@ public class Exam extends Variable {
                 values.addElement(new ExamPlacement(this, periodPlacement, new HashSet()));
             }
         } else {
+            if (true) throw new RuntimeException("What the hack?");
             if (getRoomPlacements().isEmpty()) {
                 sLog.error("  Exam "+getName()+" has no rooms.");
                 setValues(new Vector(0));
@@ -192,7 +193,7 @@ public class Exam extends Variable {
             for (Enumeration e=getPeriodPlacements().elements();e.hasMoreElements();) {
                 ExamPeriodPlacement periodPlacement = (ExamPeriodPlacement)e.nextElement();
                 TreeSet roomSets = new TreeSet();
-                genRoomSets(periodPlacement.getPeriod(), roomSets, 0, getMaxRooms(), new HashSet(), 0, 0);
+                genRoomSets(periodPlacement.getPeriod(), Math.min(100,iRoomPlacements.size()), roomSets, 0, getMaxRooms(), new HashSet(), 0, 0);
                 for (Iterator i=roomSets.iterator();i.hasNext();) {
                     RoomSet roomSet = (RoomSet)i.next();
                     values.addElement(new ExamPlacement(this, periodPlacement, roomSet.rooms()));
@@ -204,14 +205,14 @@ public class Exam extends Variable {
         return !values.isEmpty();
     }
     
-    private void genRoomSets(ExamPeriod period, TreeSet roomSets, int roomIdx, int maxRooms, Set roomsSoFar, int sizeSoFar, int penaltySoFar) {
+    private void genRoomSets(ExamPeriod period, int maxRoomSets, TreeSet roomSets, int roomIdx, int maxRooms, Set roomsSoFar, int sizeSoFar, int penaltySoFar) {
         ExamModel model = (ExamModel)getModel();
         if (sizeSoFar>=getSize()) {
             double penalty = 
                 model.getRoomSplitWeight() * (1 << (roomsSoFar.size()-2)) +
                 model.getRoomSizeWeight() * (sizeSoFar-getSize()) +
                 model.getRoomWeight() * penaltySoFar;
-            if (roomSets.size()>=iRoomPlacements.size()) {
+            if (roomSets.size()>=maxRoomSets) {
                 RoomSet last = (RoomSet)roomSets.last();
                 if (penalty<last.penalty()) {
                     roomSets.remove(last);
@@ -235,13 +236,17 @@ public class Exam extends Variable {
             if (!room.isAvailable(period)) continue;
             roomsSoFar.add(room);
             genRoomSets(
-                    period, roomSets, roomIdx+1, maxRooms-1, 
+                    period, maxRoomSets, roomSets, roomIdx+1, maxRooms-1, 
                     roomsSoFar, sizeSoFar+room.getSize(hasAltSeating()), penaltySoFar + room.getPenalty(period));
             roomsSoFar.remove(room);
             sizeBound -= room.getSize(hasAltSeating());
             if (roomIdx+maxRooms<iRoomPlacements.size())
                 sizeBound += ((ExamRoomPlacement)iRoomPlacements.elementAt(roomIdx+maxRooms)).getSize(hasAltSeating());
             roomIdx++;
+            if (roomSets.size()==maxRoomSets) {
+                RoomSet last = (RoomSet)roomSets.last();
+                if (last.rooms().size()<roomsSoFar.size()+1) return;
+            }
         }
     }
     
@@ -255,7 +260,9 @@ public class Exam extends Variable {
         public Set rooms() { return iRooms; }
         public double penalty() { return iPenalty; }
         public int compareTo(Set rooms, double penalty) {
-            int cmp = Double.compare(penalty(), penalty);
+            int cmp = Double.compare(iRooms.size(), rooms.size());
+            if (cmp!=0) return cmp;
+            cmp = Double.compare(penalty(), penalty);
             if (cmp!=0) return cmp;
             return rooms().toString().compareTo(rooms.toString());
         }
@@ -470,8 +477,8 @@ public class Exam extends Variable {
         if (getMaxRooms()==0) return new HashSet();
         loop: for (int nrRooms=1;nrRooms<=getMaxRooms();nrRooms++) {
             HashSet rooms = new HashSet(); int size = 0;
-            while (rooms.size()<nrRooms && size<getStudents().size()) {
-                int minSize = (getStudents().size()-size)/(nrRooms-rooms.size());
+            while (rooms.size()<nrRooms && size<getSize()) {
+                int minSize = (getSize()-size)/(nrRooms-rooms.size());
                 ExamRoomPlacement best = null; int bestSize = 0, bestPenalty = 0;
                 for (Enumeration e=getRoomPlacements().elements();e.hasMoreElements();) {
                     ExamRoomPlacement room = (ExamRoomPlacement)e.nextElement();
@@ -491,7 +498,7 @@ public class Exam extends Variable {
                 if (best==null) continue loop;
                 rooms.add(best); size+=bestSize;
             }
-            if (size>=getStudents().size()) return rooms;
+            if (size>=getSize()) return rooms;
         }
         return null;
     }
@@ -505,28 +512,45 @@ public class Exam extends Variable {
      * @return randomly computed set of available rooms for the exam in the given period, null if there is no valid assignment
      */
     public Set findRoomsRandom(ExamPeriodPlacement period) {
+        return findRoomsRandom(period,true);
+    }
+    
+    /**
+     * Randomly find a set of available rooms for the exam in the given period. First of all, it tries to find the minimal
+     * number of rooms that cover the size of the exam. Among these, a set of rooms of 
+     * total smallest size is preferred.
+     * All necessary checks are made (availability of rooms, room penalties, room sizes etc.). 
+     * @param period given period.
+     * @param checkConflicts if false, room and distribution conflicts are not checked 
+     * @return randomly computed set of available rooms for the exam in the given period, null if there is no valid assignment
+     */
+    public Set findRoomsRandom(ExamPeriodPlacement period, boolean checkConflicts) {
         if (getMaxRooms()==0) return new HashSet();
-        int exSize = getStudents().size();
-        HashSet rooms = new HashSet(); int size = 0; int minSize = Integer.MAX_VALUE;
-        loop: while (true) {
-            int rx = ToolBox.random(getRoomPlacements().size()); 
+        HashSet rooms = new HashSet(); int size = 0;
+        loop: while (rooms.size()<getMaxRooms()) {
+            int rx = ToolBox.random(getRoomPlacements().size());
+            int minSize = (getSize()-size+(getMaxRooms()-rooms.size()-1)) / (getMaxRooms()-rooms.size());
             for (int r=0;r<getRoomPlacements().size();r++) {
                 ExamRoomPlacement room = (ExamRoomPlacement)getRoomPlacements().elementAt((r+rx)%getRoomPlacements().size());
-                if (!room.isAvailable(period.getPeriod())) continue;
-                if (room.getRoom().getPlacement(period.getPeriod())!=null) continue;
-                if (rooms.contains(room)) continue;
-                if (!checkDistributionConstraints(room)) continue;
                 int s = room.getSize(hasAltSeating());
-                if (size+s>=exSize && size+s-exSize<minSize) {
-                    rooms.add(room); return rooms;
+                if (s<minSize) continue;
+                if (!room.isAvailable(period.getPeriod())) continue;
+                if (checkConflicts && room.getRoom().getPlacement(period.getPeriod())!=null) continue;
+                if (rooms.contains(room)) continue;
+                if (checkConflicts && !checkDistributionConstraints(room)) continue;
+                size += s; rooms.add(room);
+                if (size>=getSize()) {
+                    for (Iterator j=rooms.iterator();j.hasNext();) {
+                        ExamRoomPlacement rp = (ExamRoomPlacement)j.next();
+                        if (size-rp.getSize(hasAltSeating())>=getSize()) { j.remove(); size-=rp.getSize(hasAltSeating()); }
+                    }
+                    return rooms;
                 }
-                if (rooms.size()+1<getMaxRooms()) {
-                    minSize = Math.min(minSize, s);
-                    rooms.add(room); continue loop;
-                }
+                continue loop;
             }
-            return null;
+            break;
         }
+        return null;
     }
     
     private HashSet iCorrelatedExams = null;
@@ -557,7 +581,7 @@ public class Exam extends Variable {
                 rooms=0; split++;
                 for (Enumeration e=getRoomPlacements().elements();e.hasMoreElements();) {
                     ExamRoomPlacement room = (ExamRoomPlacement)e.nextElement();
-                    if (room.getSize(hasAltSeating())>=(getStudents().size()/split)) rooms++;
+                    if (room.getSize(hasAltSeating())>=(getSize()/split)) rooms++;
                 }
             }
             iEstimatedDomainSize = new Integer(periods * rooms / split);
@@ -576,7 +600,7 @@ public class Exam extends Variable {
         if (cmp!=0) return cmp;
         cmp = -Double.compare(nrStudentCorrelatedExams(),e.nrStudentCorrelatedExams());
         if (cmp!=0) return cmp;
-        cmp = -Double.compare(((double)getStudents().size())/getPeriodPlacements().size(),((double)e.getStudents().size())/e.getPeriodPlacements().size());
+        cmp = -Double.compare(((double)getSize())/getPeriodPlacements().size(),((double)e.getSize())/e.getPeriodPlacements().size());
         if (cmp!=0) return cmp;
         return super.compareTo(o);
     }
@@ -664,7 +688,7 @@ public class Exam extends Variable {
      * @return exam id  (periods: number of periods, rooms: number of rooms, student: number of students, maxRooms: max rooms[, alt if alternate seating is required]) 
      */
     public String toString() {
-        return getName()+" (periods:"+getPeriodPlacements().size()+", rooms:"+getRoomPlacements().size()+", student:"+getStudents().size()+" ,maxRooms:"+getMaxRooms()+(hasAltSeating()?", alt":"")+")";
+        return getName()+" (periods:"+getPeriodPlacements().size()+", rooms:"+getRoomPlacements().size()+", size:"+getSize()+" ,maxRooms:"+getMaxRooms()+(hasAltSeating()?", alt":"")+")";
     }
     
     /** Exam name */
@@ -777,5 +801,10 @@ public class Exam extends Variable {
             if (roomPlacement.getRoom().equals(room)) return roomPlacement;
         }
         return null;
+    }
+ 
+    /** Return true if there are some values in the domain of this variable */
+    public boolean hasValues() {
+        return !getPeriodPlacements().isEmpty() && (getMaxRooms()==0 || !getRoomPlacements().isEmpty());
     }
 }
