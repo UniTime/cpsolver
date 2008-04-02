@@ -126,6 +126,10 @@ public class ExamRoomPlacement implements Comparable {
         return getRoom().hashCode();
     }
     
+    public String toString() {
+        return getRoom().toString()+(getPenalty()==0?"":"/"+getPenalty());
+    }
+    
     /** Compare two room placements for equality */
     public boolean equals(Object o) {
         if (o==null) return false;
