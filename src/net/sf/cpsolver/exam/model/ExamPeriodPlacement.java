@@ -60,6 +60,10 @@ public class ExamPeriodPlacement implements Comparable {
         return getPeriod().hashCode();
     }
     
+    public String toString() {
+        return getPeriod().toString()+(getPenalty()==0?"":"/"+getPenalty());
+    }
+    
     /** Compare two room placements for equality */
     public boolean equals(Object o) {
         if (o==null) return false;
