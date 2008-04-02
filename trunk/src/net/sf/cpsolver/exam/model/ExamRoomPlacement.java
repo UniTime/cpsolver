@@ -25,7 +25,7 @@ package net.sf.cpsolver.exam.model;
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
-public class ExamRoomPlacement {
+public class ExamRoomPlacement implements Comparable {
     private ExamRoom iRoom;
     private int iPenalty = 0;
     private int iMaxPenalty = 100;
@@ -135,5 +135,11 @@ public class ExamRoomPlacement {
             return getRoom().equals(o);
         }
         return false;
+    }
+    
+    /** Compare two room placements */
+    public int compareTo(Object o) {
+        if (o==null || !(o instanceof ExamRoomPlacement)) return -1;
+        return getRoom().compareTo(((ExamRoomPlacement)o).getRoom());
     }
 }
