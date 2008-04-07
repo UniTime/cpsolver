@@ -114,6 +114,8 @@ public class ExamModel extends Model {
     private double iInstructorMoreThanTwoADayWeight = 100.0;
     private double iInstructorBackToBackConflictWeight = 10.0;
     private double iInstructorDistanceBackToBackConflictWeight = 25.0;
+    private boolean iMPP = false;
+    private double iPerturbationWeight = 0.01;
 
     private int iNrDirectConflicts = 0;
     private int iNrBackToBackConflicts = 0;
@@ -126,6 +128,7 @@ public class ExamModel extends Model {
     private int iDistributionPenalty = 0;
     private int iPeriodPenalty = 0;
     private int iExamRotationPenalty = 0;
+    private int iPerturbationPenalty = 0;
     private int iNrInstructorDirectConflicts = 0;
     private int iNrInstructorBackToBackConflicts = 0;
     private int iNrInstructorDistanceBackToBackConflicts = 0;
@@ -157,6 +160,8 @@ public class ExamModel extends Model {
         iInstructorBackToBackConflictWeight = properties.getPropertyDouble("Exams.InstructorBackToBackConflictWeight", iInstructorBackToBackConflictWeight);
         iInstructorDistanceBackToBackConflictWeight = properties.getPropertyDouble("Exams.InstructorDistanceBackToBackConflictWeight", iInstructorDistanceBackToBackConflictWeight);
         iInstructorMoreThanTwoADayWeight = properties.getPropertyDouble("Exams.InstructorMoreThanTwoADayWeight", iInstructorMoreThanTwoADayWeight);
+        iMPP = properties.getPropertyBoolean("General.MPP", iMPP);
+        iPerturbationWeight = properties.getPropertyDouble("Exams.PerturbationWeight", iPerturbationWeight);
     }
     
     /**
@@ -503,6 +508,25 @@ public class ExamModel extends Model {
         iDistributionWeight = distributionWeight;
     }
     
+    /**
+     * A weight of perturbations (see {@link ExamPlacement#getPerturbationPenalty()}), i.e., 
+     * a penalty for an assignment of an exam to a place different from the initial one. 
+     * Can by set by problem property Exams.PerturbationWeight, or in the input xml file, property perturbationWeight)
+     */
+    public double getPerturbationWeight() {
+        return iPerturbationWeight;
+    }
+    
+    /**
+     * A weight of perturbations (see {@link ExamPlacement#getPerturbationPenalty()}), i.e., 
+     * a penalty for an assignment of an exam to a place different from the initial one. 
+     * Can by set by problem property Exams.PerturbationWeight, or in the input xml file, property perturbationWeight)
+     */
+    public void setPerturbationWeight(double perturbationWeight) {
+        iPerturbationWeight = perturbationWeight;
+    }
+
+    
     
     /** Called before a value is unassigned from its variable, optimization criteria are updated */
     public void beforeUnassigned(long iteration, Value value) {
@@ -523,6 +547,7 @@ public class ExamModel extends Model {
         iNrInstructorBackToBackConflicts -= placement.getNrInstructorBackToBackConflicts();
         iNrInstructorMoreThanTwoADayConflicts -= placement.getNrInstructorMoreThanTwoADayConflicts();
         iNrInstructorDistanceBackToBackConflicts -= placement.getNrInstructorDistanceBackToBackConflicts();
+        iPerturbationPenalty -= placement.getPerturbationPenalty();
         for (Enumeration e=exam.getStudents().elements();e.hasMoreElements();) 
             ((ExamStudent)e.nextElement()).afterUnassigned(iteration, value);
         for (Enumeration e=exam.getInstructors().elements();e.hasMoreElements();) 
@@ -550,6 +575,7 @@ public class ExamModel extends Model {
         iNrInstructorBackToBackConflicts += placement.getNrInstructorBackToBackConflicts();
         iNrInstructorMoreThanTwoADayConflicts += placement.getNrInstructorMoreThanTwoADayConflicts();
         iNrInstructorDistanceBackToBackConflicts += placement.getNrInstructorDistanceBackToBackConflicts();
+        iPerturbationPenalty += placement.getPerturbationPenalty();
         for (Enumeration e=exam.getStudents().elements();e.hasMoreElements();) 
             ((ExamStudent)e.nextElement()).afterAssigned(iteration, value);
         for (Enumeration e=exam.getInstructors().elements();e.hasMoreElements();) 
@@ -593,6 +619,8 @@ public class ExamModel extends Model {
      *  is greater than Exams.BackToBackDistance, weighted by Exams.InstructorDistanceBackToBackConflictWeight).
      *  <li>More than two exams a day (an instructor is enrolled in three exams that are
      *  scheduled at the same day, weighted by Exams.InstructorMoreThanTwoADayWeight).
+     *  <li>Perturbation penalty (total of period penalties {@link ExamPlacement#getPerturbationPenalty()} of all assigned exams,
+     *  weighted by Exams.PerturbationWeight).
      * </ul>
      * @return weighted sum of objective criteria
      */
@@ -611,7 +639,8 @@ public class ExamModel extends Model {
             getInstructorMoreThanTwoADayWeight()*getNrInstructorMoreThanTwoADayConflicts(false)+
             getInstructorBackToBackConflictWeight()*getNrInstructorBackToBackConflicts(false)+
             getInstructorDistanceBackToBackConflictWeight()*getNrInstructorDistanceBackToBackConflicts(false)+
-            getExamRotationWeight()*getExamRotationPenalty(false);
+            getExamRotationWeight()*getExamRotationPenalty(false)+
+            getPerturbationWeight()*getPerturbationPenalty(false);
     }
     
     /**
@@ -649,6 +678,8 @@ public class ExamModel extends Model {
      *  is greater than Exams.BackToBackDistance, weighted by Exams.InstructorDistanceBackToBackConflictWeight).
      *  <li>More than two exams a day (an instructor is enrolled in three exams that are
      *  scheduled at the same day, weighted by Exams.InstructorMoreThanTwoADayWeight).
+     *  <li>Perturbation penalty (total of period penalties {@link ExamPlacement#getPerturbationPenalty()} of all assigned exams,
+     *  weighted by Exams.PerturbationWeight).
      * </ul>
      * @return an array of weighted objective criteria
      */
@@ -667,7 +698,8 @@ public class ExamModel extends Model {
                 getInstructorMoreThanTwoADayWeight()*getNrInstructorMoreThanTwoADayConflicts(false),
                 getInstructorBackToBackConflictWeight()*getNrInstructorBackToBackConflicts(false),
                 getInstructorDistanceBackToBackConflictWeight()*getNrInstructorDistanceBackToBackConflicts(false),
-                getExamRotationWeight()*getExamRotationPenalty(false)
+                getExamRotationWeight()*getExamRotationPenalty(false),
+                getPerturbationWeight()*getPerturbationPenalty(false)
         };
     }
     
@@ -685,7 +717,8 @@ public class ExamModel extends Model {
             "RSz:"+getRoomSizePenalty(false)+","+
             "RSp:"+getRoomSplitPenalty(false)+","+
             "RP:"+getRoomPenalty(false)+","+
-            "DP:"+getDistributionPenalty(false);
+            "DP:"+getDistributionPenalty(false)+
+            (isMPP()?",IP:"+getPerturbationPenalty(false):"");
     }
 
     /**
@@ -1048,6 +1081,21 @@ public class ExamModel extends Model {
         }
         return iLimits;
     }
+    
+    /**
+     * Return total perturbation penalty, i.e., the sum of {@link ExamPlacement#getPerturbationPenalty()} of all
+     * assigned placements.
+     * @param precise if false, the cached value is used
+     * @return total period penalty
+     */
+    public int getPerturbationPenalty(boolean precise) {
+        if (!precise) return iPerturbationPenalty;
+        int penalty = 0;
+        for (Enumeration e=assignedVariables().elements();e.hasMoreElements();) {
+            penalty += ((ExamPlacement)((Exam)e.nextElement()).getAssignment()).getPerturbationPenalty();
+        }
+        return penalty;
+    }
 
     /**
      * Info table
@@ -1082,6 +1130,8 @@ public class ExamModel extends Model {
         info.put("Distribution Penalty", getPerc(getDistributionPenalty(false), 0, getMaxDistributionPenalty())+"% ("+getDistributionPenalty(false)+")");
         if (getExamRotationPenalty(false)>0) 
             info.put("Exam Rotation Penalty",String.valueOf(getExamRotationPenalty(false)));
+        if (isMPP())
+            info.put("Perturbation Penalty", sDoubleFormat.format(((double)getPerturbationPenalty(false))/nrAssignedVariables()));
         return info;
     }
     
@@ -1103,6 +1153,7 @@ public class ExamModel extends Model {
         info.put("Period Penalty [p]",String.valueOf(getPeriodPenalty(true)));
         info.put("Room Penalty [p]",String.valueOf(getRoomPenalty(true)));
         info.put("Distribution Penalty [p]",String.valueOf(getDistributionPenalty(true)));
+        info.put("Perturbation Penalty [p]", String.valueOf(getPerturbationPenalty(false)));
         info.put("Number of Periods",String.valueOf(getPeriods().size()));
         info.put("Number of Exams",String.valueOf(variables().size()));
         info.put("Number of Rooms",String.valueOf(getRooms().size()));
@@ -1216,6 +1267,7 @@ public class ExamModel extends Model {
         params.addElement("property").addAttribute("name", "instructorMoreThanTwoADayWeight").addAttribute("value", String.valueOf(getInstructorMoreThanTwoADayWeight()));
         params.addElement("property").addAttribute("name", "instructorBackToBackConflictWeight").addAttribute("value", String.valueOf(getInstructorBackToBackConflictWeight()));
         params.addElement("property").addAttribute("name", "instructorDistanceBackToBackConflictWeight").addAttribute("value", String.valueOf(getInstructorDistanceBackToBackConflictWeight()));
+        params.addElement("property").addAttribute("name", "perturbationWeight").addAttribute("value", String.valueOf(getPerturbationWeight()));
         Element periods = root.addElement("periods");
         for (Enumeration e=getPeriods().elements();e.hasMoreElements();) {
             ExamPeriod period = (ExamPeriod)e.nextElement();
@@ -1442,6 +1494,7 @@ public class ExamModel extends Model {
                 else if ("instructorMoreThanTwoADayWeight".equals(name)) setInstructorMoreThanTwoADayWeight(Double.parseDouble(value));
                 else if ("instructorBackToBackConflictWeight".equals(name)) setInstructorBackToBackConflictWeight(Double.parseDouble(value));
                 else if ("instructorDistanceBackToBackConflictWeight".equals(name)) setInstructorDistanceBackToBackConflictWeight(Double.parseDouble(value));
+                else if ("perturbationWeight".equals(name)) setPerturbationWeight(Double.parseDouble(value));
                 else getProperties().setProperty(name, value);
             }
         for (Iterator i=root.element("periods").elementIterator("period");i.hasNext();) {
@@ -1615,4 +1668,6 @@ public class ExamModel extends Model {
         }
         return true;
     }
+    
+    public boolean isMPP() { return iMPP;}
 }
