@@ -209,7 +209,7 @@ public class Exam extends Variable {
         ExamModel model = (ExamModel)getModel();
         if (sizeSoFar>=getSize()) {
             double penalty = 
-                model.getRoomSplitWeight() * (1 << (roomsSoFar.size()-2)) +
+                model.getRoomSplitWeight() * (roomsSoFar.size()-1) * (roomsSoFar.size()-1) +
                 model.getRoomSizeWeight() * (sizeSoFar-getSize()) +
                 model.getRoomWeight() * penaltySoFar;
             if (roomSets.size()>=maxRoomSets) {
@@ -471,6 +471,7 @@ public class Exam extends Variable {
      * total smallest size is preferred. If the original room is available and of enough size, it is returned. 
      * All necessary checks are made (avaiability of rooms, room penalties, room sizes etc.).
      * @param period given period.
+     * @param checkConflicts if false, room and distribution conflicts are not checked 
      * @return best available rooms for the exam in the given period, null if there is no valid assignment
      */
     public Set findBestAvailableRooms(ExamPeriodPlacement period) {
