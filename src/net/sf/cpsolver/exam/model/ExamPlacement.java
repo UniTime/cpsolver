@@ -346,11 +346,11 @@ public class ExamPlacement extends Value {
     }
     
     /**
-     * Cost for using more than one room.
-     * @return penalty (1 for 2 rooms, 2 for 3 rooms, 4 for 4 rooms, etc.)
+     * Cost for using more than one room (nrSplits^2).
+     * @return penalty (1 for 2 rooms, 4 for 3 rooms, 9 for 4 rooms, etc.)
      */
     public int getRoomSplitPenalty() {
-        return (iRoomPlacements.size()<=1?0:1 << (iRoomPlacements.size()-2));
+        return (iRoomPlacements.size()<=1?0:(iRoomPlacements.size()-1)*(iRoomPlacements.size()-1));
     }
 
     /**
@@ -375,6 +375,19 @@ public class ExamPlacement extends Value {
      */
     public int getRoomPenalty() {
         return iRoomPenalty;
+    }
+    
+    /**
+     * Perturbation penalty, i.e., penalty for using a different assignment than initial. 
+     * Only applicable when {@link ExamModel@isMPP()} is true (minimal perturbation problem).
+     * @return |period index - initial period index | * exam size 
+     */
+    public int getPerturbationPenalty() {
+        Exam exam = (Exam)variable();
+        if (!((ExamModel)exam.getModel()).isMPP()) return 0;
+        ExamPlacement initial = (ExamPlacement)exam.getInitialAssignment();
+        if (initial==null) return 0;
+        return Math.abs(initial.getPeriod().getIndex()-getPeriod().getIndex())*exam.getSize();
     }
 
 
