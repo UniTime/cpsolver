@@ -471,7 +471,6 @@ public class Exam extends Variable {
      * total smallest size is preferred. If the original room is available and of enough size, it is returned. 
      * All necessary checks are made (avaiability of rooms, room penalties, room sizes etc.).
      * @param period given period.
-     * @param checkConflicts if false, room and distribution conflicts are not checked 
      * @return best available rooms for the exam in the given period, null if there is no valid assignment
      */
     public Set findBestAvailableRooms(ExamPeriodPlacement period) {

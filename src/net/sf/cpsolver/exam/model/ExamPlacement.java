@@ -379,7 +379,7 @@ public class ExamPlacement extends Value {
     
     /**
      * Perturbation penalty, i.e., penalty for using a different assignment than initial. 
-     * Only applicable when {@link ExamModel@isMPP()} is true (minimal perturbation problem).
+     * Only applicable when {@link ExamModel#isMPP()} is true (minimal perturbation problem).
      * @return |period index - initial period index | * exam size 
      */
     public int getPerturbationPenalty() {
