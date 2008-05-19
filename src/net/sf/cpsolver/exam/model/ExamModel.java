@@ -1061,7 +1061,7 @@ public class ExamModel extends Model {
                     for (Enumeration f=exam.getPeriodPlacements().elements();f.hasMoreElements();) {
                         ExamPeriodPlacement periodPlacement = (ExamPeriodPlacement)f.nextElement();
                         minPenalty = Math.min(minPenalty, periodPlacement.getPenalty());
-                        maxPenalty = Math.max(minPenalty, periodPlacement.getPenalty());
+                        maxPenalty = Math.max(maxPenalty, periodPlacement.getPenalty());
                     }
                     minPeriodPenalty += minPenalty;
                     maxPeriodPenalty += maxPenalty;
@@ -1071,7 +1071,7 @@ public class ExamModel extends Model {
                     for (Enumeration f=exam.getRoomPlacements().elements();f.hasMoreElements();) {
                         ExamRoomPlacement roomPlacement = (ExamRoomPlacement)f.nextElement();
                         minPenalty = Math.min(minPenalty, roomPlacement.getPenalty()+getMinPenalty(roomPlacement.getRoom()));
-                        maxPenalty = Math.max(minPenalty, roomPlacement.getPenalty()+getMaxPenalty(roomPlacement.getRoom()));
+                        maxPenalty = Math.max(maxPenalty, roomPlacement.getPenalty()+getMaxPenalty(roomPlacement.getRoom()));
                     }
                     minRoomPenalty += minPenalty;
                     maxRoomPenalty += maxPenalty;
@@ -1115,7 +1115,8 @@ public class ExamModel extends Model {
             info.put("Distance Back-To-Back Conflicts",String.valueOf(getNrDistanceBackToBackConflicts(false)));
         if (getBackToBackDistance()>=0 && getNrInstructorDistanceBackToBackConflicts(false)>0)
             info.put("Instructor Distance Back-To-Back Conflicts",String.valueOf(getNrInstructorDistanceBackToBackConflicts(false)));
-        info.put("Room Size Penalty", sDoubleFormat.format(((double)getRoomSizePenalty(false))/assignedVariables().size()));
+        if (nrAssignedVariables()>0 && getRoomSizePenalty(false)>0)
+            info.put("Room Size Penalty", sDoubleFormat.format(((double)getRoomSizePenalty(false))/nrAssignedVariables()));
         if (getRoomSplitPenalty(false)>0) {
             String split = "";
             for (int i=2;i<getMaxRooms();i++)
