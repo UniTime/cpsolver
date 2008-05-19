@@ -57,18 +57,28 @@ public class ExamHillClimbing implements NeighbourSelection, SolutionListener {
     private int iIter = 0;
     private Progress iProgress = null;
     private boolean iActive;
+    private String iName = "Hill climbing";
 
     /**
      * Constructor
      * @param properties problem properties (use HillClimber.MaxIdle to set maximum number of idle iterations)
      */
     public ExamHillClimbing(DataProperties properties) {
+        this(properties, "Hill Climbing");
+    }
+    
+    /**
+     * Constructor
+     * @param properties problem properties (use HillClimber.MaxIdle to set maximum number of idle iterations)
+     */
+    public ExamHillClimbing(DataProperties properties, String name) {
         iMaxIdleIters = properties.getPropertyInt("HillClimber.MaxIdle", iMaxIdleIters);
         iNeighbours = new NeighbourSelection[] {
                 new ExamRandomMove(properties),
                 new ExamRoomMove(properties),
                 new ExamTimeMove(properties)
         };
+        iName = name;
     }
     
     /**
@@ -90,7 +100,7 @@ public class ExamHillClimbing implements NeighbourSelection, SolutionListener {
      */
     public Neighbour selectNeighbour(Solution solution) {
         if (!iActive) {
-            iProgress.setPhase("Hill climbing...");
+            iProgress.setPhase(iName+"...");
             iActive = true;
         }
         Model model = (Model)solution.getModel();
