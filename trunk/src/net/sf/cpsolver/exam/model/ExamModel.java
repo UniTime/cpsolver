@@ -18,6 +18,7 @@ import org.dom4j.Element;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Value;
+import net.sf.cpsolver.ifs.util.Callback;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
@@ -1230,6 +1231,7 @@ public class ExamModel extends Model {
      */
     public Document save() {
         boolean saveInitial = getProperties().getPropertyBoolean("Xml.SaveInitial", true);
+        boolean saveBest = getProperties().getPropertyBoolean("Xml.SaveBest", true);
         boolean saveSolution = getProperties().getPropertyBoolean("Xml.SaveSolution", true);
         boolean saveConflictTable = getProperties().getPropertyBoolean("Xml.SaveConflictTable", false);
         Document document = DocumentHelper.createDocument();
@@ -1349,6 +1351,15 @@ public class ExamModel extends Model {
                     ini.addElement("room").addAttribute("id", String.valueOf(r.getId()));
                 }
             }
+            p = (ExamPlacement)exam.getBestAssignment();
+            if (p!=null && saveInitial) {
+                Element ini = ex.addElement("best");
+                ini.addElement("period").addAttribute("id", String.valueOf(p.getPeriod().getId()));
+                for (Iterator i=p.getRoomPlacements().iterator();i.hasNext();) {
+                    ExamRoomPlacement r = (ExamRoomPlacement)i.next();
+                    ini.addElement("room").addAttribute("id", String.valueOf(r.getId()));
+                }
+            }
         }
         Element students = root.addElement("students");
         for (Enumeration e=getStudents().elements();e.hasMoreElements();) {
@@ -1461,7 +1472,15 @@ public class ExamModel extends Model {
      * Load model (including its solution) from XML.
      */
     public boolean load(Document document) {
+        return load(document);
+    }
+
+    /**
+     * Load model (including its solution) from XML.
+     */
+public boolean load(Document document, Callback saveBest) {
         boolean loadInitial = getProperties().getPropertyBoolean("Xml.LoadInitial", true);
+        boolean loadBest = getProperties().getPropertyBoolean("Xml.LoadBest", true);
         boolean loadSolution = getProperties().getPropertyBoolean("Xml.LoadSolution", true);
         boolean loadPreassignedTimes = getProperties().getPropertyBoolean("Xml.LoadPreassignedTimes", true);
         boolean loadPreassignedRooms = getProperties().getPropertyBoolean("Xml.LoadPreassignedRooms", true);
@@ -1576,6 +1595,17 @@ public class ExamModel extends Model {
                     exam.setInitialAssignment(p);
                 }
             }
+            Element best = e.element("best");
+            if (best!=null && loadBest) {
+                Element per = best.element("period");
+                if (per!=null) {
+                    HashSet rp = new HashSet();
+                    for (Iterator j=best.elementIterator("room");j.hasNext();)
+                        rp.add(exam.getRoomPlacement(Long.parseLong(((Element)j.next()).attributeValue("id"))));
+                    ExamPlacement p = new ExamPlacement(exam, exam.getPeriodPlacement(Long.valueOf(per.attributeValue("id"))), rp);
+                    exam.setBestAssignment(p);
+                }
+            }
             for (Iterator j=e.elementIterator("owner");j.hasNext();) {
                 Element f = (Element)j.next();
                 ExamOwner owner = new ExamOwner(exam,Long.parseLong(f.attributeValue("id")),f.attributeValue("name"));
@@ -1642,6 +1672,19 @@ public class ExamModel extends Model {
                 getDistributionConstraints().add(dc);
             }
         init();
+        if (loadBest && saveBest!=null) {
+            for (Enumeration e=variables().elements();e.hasMoreElements();) {
+                Exam exam = (Exam)e.nextElement();
+                ExamPlacement placement = (ExamPlacement)exam.getBestAssignment();
+                if (placement==null) continue;
+                exam.assign(0,placement);
+            }
+            saveBest.execute();
+            for (Enumeration e=variables().elements();e.hasMoreElements();) {
+                Exam exam = (Exam)e.nextElement();
+                if (exam.getAssignment()!=null) exam.unassign(0);
+            }
+        }
         for (Enumeration e=assignments.elements();e.hasMoreElements();) {
             ExamPlacement placement = (ExamPlacement)e.nextElement();
             Exam exam = (Exam)placement.variable();
