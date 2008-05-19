@@ -331,7 +331,7 @@ public class ExamDistributionConstraint extends Constraint {
         super.assigned(iteration, value);
         if (!isHard() && iIsSatisfied!=isSatisfied()) {
             iIsSatisfied = !iIsSatisfied;
-            ((ExamModel)value.variable().getModel()).addDistributionPenalty(iIsSatisfied?getWeight():-getWeight());
+            ((ExamModel)value.variable().getModel()).addDistributionPenalty(iIsSatisfied?-getWeight():getWeight());
         }
     }
     
@@ -339,7 +339,7 @@ public class ExamDistributionConstraint extends Constraint {
         super.unassigned(iteration, value);
         if (!isHard() && iIsSatisfied!=isSatisfied()) {
             iIsSatisfied = !iIsSatisfied;
-            ((ExamModel)value.variable().getModel()).addDistributionPenalty(iIsSatisfied?getWeight():-getWeight());
+            ((ExamModel)value.variable().getModel()).addDistributionPenalty(iIsSatisfied?-getWeight():getWeight());
         }
     }
 }
