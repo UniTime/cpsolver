@@ -7,6 +7,8 @@ import net.sf.cpsolver.ifs.heuristics.StandardNeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
+import net.sf.cpsolver.ifs.termination.TerminationCondition;
+import net.sf.cpsolver.ifs.util.Callback;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.Progress;
 
@@ -21,6 +23,8 @@ import net.sf.cpsolver.ifs.util.Progress;
  * <ul>
  *      <li>Or greate deluge phase (when Exam.GreatDeluge is true,{@link ExamGreatDeluge} until timeout is reached)
  * </ul>
+ * <li>At the end (when {@link TerminationCondition#canContinue(Solution)} is false), the search is finished with one sweep 
+ * of final phase ({@link ExamHillClimbing} until the given number if idle iterations).
  * </ul>
  * <br><br>
  * 
@@ -44,16 +48,20 @@ import net.sf.cpsolver.ifs.util.Progress;
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
-public class ExamNeighbourSelection implements NeighbourSelection {
+public class ExamNeighbourSelection implements NeighbourSelection, TerminationCondition {
     private static Logger sLog = Logger.getLogger(ExamNeighbourSelection.class); 
     private ExamConstruction iCon = null;
     private StandardNeighbourSelection iStd = null;
     private ExamSimulatedAnnealing iSA = null;
     private ExamHillClimbing iHC = null;
+    private ExamHillClimbing iFin = null;
     private ExamGreatDeluge iGD = null;
     private int iPhase = -1;
     private boolean iUseGD = false;
     private Progress iProgress = null;
+    private Callback iFinalPhaseFinished = null;
+    private boolean iCanContinue = true;
+    private TerminationCondition iTerm = null;
     
     /**
      * Constructor
@@ -70,7 +78,8 @@ public class ExamNeighbourSelection implements NeighbourSelection {
             iStd = null;
         }
         iSA = new ExamSimulatedAnnealing(properties);
-        iHC = new ExamHillClimbing(properties);
+        iHC = new ExamHillClimbing(properties,"Hill Climbing");
+        iFin = new ExamHillClimbing(properties,"Finalization");
         iGD = new ExamGreatDeluge(properties);
         iUseGD = properties.getPropertyBoolean("Exam.GreatDeluge", iUseGD);
     }
@@ -83,7 +92,13 @@ public class ExamNeighbourSelection implements NeighbourSelection {
         iStd.init(solver);
         iSA.init(solver);
         iHC.init(solver);
+        iFin.init(solver);
         iGD.init(solver);
+        if (iTerm==null) {
+            iTerm = solver.getTerminationCondition();
+            solver.setTerminalCondition(this);
+        }
+        iCanContinue = true;
         iProgress = Progress.getInstance(solver.currentSolution().getModel());
     }
 
@@ -95,8 +110,9 @@ public class ExamNeighbourSelection implements NeighbourSelection {
      * <li>Simulated annealing phase ({@link ExamSimulatedAnnealing} until timeout is reached)
      * </ul>
      */
-    public Neighbour selectNeighbour(Solution solution) {
+    public synchronized Neighbour selectNeighbour(Solution solution) {
         Neighbour n = null;
+        if (!isFinalPhase() && !iTerm.canContinue(solution)) setFinalPhase(null);
         switch (iPhase) {
             case -1 :
                 iPhase++;
@@ -121,13 +137,39 @@ public class ExamNeighbourSelection implements NeighbourSelection {
                 if (n!=null) return n;
                 iPhase++;
                 sLog.info("***** "+(iUseGD?"great deluge":"simulated annealing")+" phase *****");
-            default :
+            case 3 :
                 if (iUseGD)
                     return iGD.selectNeighbour(solution);
                 else
                     return iSA.selectNeighbour(solution);
+            case 9999 :
+                n = iFin.selectNeighbour(solution);
+                if (n!=null) return n;
+                iPhase = -1;
+                if (iFinalPhaseFinished!=null) iFinalPhaseFinished.execute();
+                iCanContinue = false;
+            default :
+                return null;
         }
     }
     
-
+    /** Set final phase
+     * @param finalPhaseFinished to be called when the final phase is finished 
+     **/
+    public synchronized void setFinalPhase(Callback finalPhaseFinished) {
+        sLog.info("***** final phase *****");
+        iFinalPhaseFinished = finalPhaseFinished;
+        iPhase = 9999;
+    }
+    
+    /** Is final phase */
+    public boolean isFinalPhase() {
+        return iPhase == 9999;
+    }
+    
+    /** Termination condition (i.e., has final phase finished)*/
+    public boolean canContinue(Solution currentSolution) {
+        return iCanContinue;
+    }
+    
 }
