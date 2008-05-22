@@ -144,7 +144,6 @@ public class ExamConstruction implements NeighbourSelection {
             if (bestExam==null || exam.compareTo(bestExam)<0)
                 bestExam = exam;
         }
-        if (sLog.isDebugEnabled()) sLog.debug("  -- "+bestExam+" (id:"+bestExam.getId()+")");
         ExamPlacement best = null;
         for (Enumeration e=bestExam.getPeriodPlacements().elements();e.hasMoreElements();) {
             ExamPeriodPlacement period = (ExamPeriodPlacement)e.nextElement();
@@ -159,13 +158,7 @@ public class ExamConstruction implements NeighbourSelection {
                     best = new ExamPlacement(bestExam, period, rooms);
             }
         }
-        if (sLog.isDebugEnabled()) sLog.debug("    -- "+best);
         if (best!=null) {
-            if (sLog.isDebugEnabled()) { 
-                Set conf = bestExam.getStudentConflicts(best.getPeriod());
-                if (!conf.isEmpty())
-                    sLog.debug("      -- conflicts with "+conf);
-            }
             iAssignments.add(bestExam.getId()+":"+best.getPeriod().getIndex());
             return new ExamSimpleNeighbour(best);
         } else {
@@ -179,11 +172,6 @@ public class ExamConstruction implements NeighbourSelection {
                 }
             }
             if (best!=null) {
-                if (sLog.isDebugEnabled()) {
-                    Set conf = bestExam.getStudentConflicts(best.getPeriod());
-                    if (!conf.isEmpty())
-                        sLog.debug("        -- allow all student conflicts between "+bestExam+" and "+conf);
-                }
                 bestExam.allowAllStudentConflicts(best.getPeriod());
                 iAssignments.add(bestExam.getId()+":"+best.getPeriod().getIndex());
                 return new ExamSimpleNeighbour(best);
