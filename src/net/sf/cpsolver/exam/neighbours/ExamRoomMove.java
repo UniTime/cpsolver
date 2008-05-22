@@ -1,11 +1,13 @@
 package net.sf.cpsolver.exam.neighbours;
 
 import java.util.Set;
+import java.util.Vector;
 
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPeriodPlacement;
 import net.sf.cpsolver.exam.model.ExamPlacement;
+import net.sf.cpsolver.exam.model.ExamRoomPlacement;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
@@ -14,8 +16,10 @@ import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
- * A new set of rooms is selected for a randomly selected exam. Rooms 
- * are selected using {@link Exam#findRoomsRandom(ExamPeriodPlacement)}. 
+ * Try to swap a room between two exams. An exam is selected randomly, a different (available) 
+ * room is randomly selected for the exam -- the exam is assigned into the new room (if the room is
+ * used, it tries to swap the rooms between the selected exam and the one that is using it).
+ * If an exam is assigned into two or more rooms, only one room is swapped at a time. 
  * <br><br>
  * 
  * @version
@@ -64,11 +68,27 @@ public class ExamRoomMove implements NeighbourSelection {
     public Neighbour selectNeighbour(Solution solution) {
         ExamModel model = (ExamModel)solution.getModel();
         Exam exam = (Exam)ToolBox.random(model.variables());
+        if (exam.getMaxRooms()<=0) return null;
         ExamPlacement placement = (ExamPlacement)exam.getAssignment();
         ExamPeriodPlacement period = (placement!=null?placement.getPeriodPlacement():(ExamPeriodPlacement)ToolBox.random(exam.getPeriodPlacements()));
         if (iCheckStudentConflicts && placement==null && exam.countStudentConflicts(period)>0) return null;
         if (iCheckDistributionConstraints && placement==null && !exam.checkDistributionConstraints(period)) return null;
-        Set rooms = exam.findRoomsRandom(period);
+        Set rooms = (placement!=null?placement.getRoomPlacements():exam.findBestAvailableRooms(period));
+        if (rooms==null || rooms.isEmpty()) return null;
+        if (placement==null)
+            placement = new ExamPlacement(exam, period, rooms);
+        Vector roomVect = new Vector(rooms);
+        int rx = ToolBox.random(roomVect.size());
+        for (int r=0;r<roomVect.size();r++) {
+            ExamRoomPlacement current = (ExamRoomPlacement)roomVect.elementAt((r+rx)%roomVect.size());
+            int mx = ToolBox.random(exam.getRoomPlacements().size());
+            for (int m=0;m<exam.getRoomPlacements().size();m++) {
+                ExamRoomPlacement swap = (ExamRoomPlacement)exam.getRoomPlacements().elementAt((m+mx)%exam.getRoomPlacements().size());
+                ExamRoomSwapNeighbour n = new ExamRoomSwapNeighbour(placement, current, swap);
+                if (n.canDo()) return n;
+            }
+        }
+        rooms = exam.findRoomsRandom(period);
         if (rooms==null) return null;
         return new ExamSimpleNeighbour(new ExamPlacement(exam, period, rooms));
     }
