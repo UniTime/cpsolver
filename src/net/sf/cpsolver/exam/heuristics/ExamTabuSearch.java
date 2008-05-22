@@ -235,7 +235,7 @@ public class ExamTabuSearch implements NeighbourSelection, ValueSelection {
             Set rooms = exam.findBestAvailableRooms(period);
             if (rooms==null) rooms = exam.findRoomsRandom(period, false);
             if (rooms==null) {
-                System.out.println("Exam "+exam.getName()+" has no rooms for period "+period);
+                sLog.info("Exam "+exam.getName()+" has no rooms for period "+period);
                 continue;
             }
             ExamPlacement value = new ExamPlacement(exam, period, rooms); 
