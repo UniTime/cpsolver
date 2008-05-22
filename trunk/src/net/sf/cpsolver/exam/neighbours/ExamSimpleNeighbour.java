@@ -38,7 +38,6 @@ public class ExamSimpleNeighbour extends SimpleNeighbour {
     private static boolean sCheck = false;
     private double iValue = 0;
     private double iDx;
-    private double[] iDxM;
     
     public ExamSimpleNeighbour(ExamPlacement placement) {
         super(placement.variable(),placement);
@@ -58,21 +57,20 @@ public class ExamSimpleNeighbour extends SimpleNeighbour {
         if (sCheck) {
             int before = getVariable().getModel().nrUnassignedVariables();
             double beforeVal = getVariable().getModel().getTotalValue();
-            double[] beforeValM = ((ExamModel)getVariable().getModel()).getTotalMultiValue(); 
+            double[] beforeValM = ((ExamModel)getVariable().getModel()).getTotalMultiValue();
             String n = toString();
             getVariable().assign(iteration, getValue());
             int after = getVariable().getModel().nrUnassignedVariables();
             double afterVal = getVariable().getModel().getTotalValue();
             double[] afterValM = ((ExamModel)getVariable().getModel()).getTotalMultiValue();
-            if (after>before) {
+            /*if (after>before) {
                 sLog.error("-- assignment mischmatch (delta:"+(after-before)+")");
                 sLog.error("  -- neighbour: "+n);
-            }
+            }*/
             if (Math.abs(afterVal-beforeVal-iDx)>=0.0000001) {
-                sLog.error("-- value mischmatch (delta:"+(afterVal-beforeVal)+")");
+                sLog.error("-- value mischmatch (delta:"+(afterVal-beforeVal)+", value:"+iDx+")");
                 sLog.error("  -- neighbour: "+n);
-                sLog.error("  -- solution: "+toString(afterValM, beforeValM));
-                sLog.error("  -- value:    "+toString(iDxM));
+                sLog.error("  -- solution:  "+toString(afterValM, beforeValM));
             }
         } else {
             getVariable().assign(iteration, getValue());
