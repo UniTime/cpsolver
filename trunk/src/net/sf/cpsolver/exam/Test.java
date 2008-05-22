@@ -38,7 +38,7 @@ import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
- * An examination timetabling test program. The follwoing steps are performed:
+ * An examination timetabling test program. The following steps are performed:
  * <ul>
  *  <li>Input properties are loaded
  *  <li>Input problem is loaded (General.Input property)
@@ -155,7 +155,8 @@ public class Test {
                 (new XMLWriter(fos,OutputFormat.createPrettyPrint())).write(((ExamModel)solution.getModel()).save());
                 fos.flush();fos.close();
                 
-                createReports((ExamModel)solution.getModel(),outFile.getParentFile(), outFile.getName().substring(0,outFile.getName().lastIndexOf('.')));
+                if ("true".equals(System.getProperty("reports","false")))
+                    createReports((ExamModel)solution.getModel(),outFile.getParentFile(), outFile.getName().substring(0,outFile.getName().lastIndexOf('.')));
                 
             } catch (Exception e) {
                 e.printStackTrace();
