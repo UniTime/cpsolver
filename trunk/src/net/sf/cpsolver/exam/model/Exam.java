@@ -450,6 +450,34 @@ public class Exam extends Variable {
         return true;
     }
     
+    /** 
+     * Check all soft distribution constraint that this exam is involved in 
+     * @param room a room to be assigned to this exam
+     * @return sum of penalties of violated distribution constraints
+     */
+    public int getDistributionConstraintPenalty(ExamRoomPlacement room) {
+        int penalty = 0;
+        for (Enumeration e=iDistConstraints.elements();e.hasMoreElements();) {
+            ExamDistributionConstraint dc = (ExamDistributionConstraint)e.nextElement();
+            if (dc.isHard()) continue;
+            for (Enumeration f=dc.variables().elements();f.hasMoreElements();) {
+                Exam exam = (Exam)f.nextElement();
+                if (exam.equals(this)) continue;
+                ExamPlacement placement = (ExamPlacement)exam.getAssignment();
+                if (placement==null) continue;
+                switch (dc.getType()) {
+                    case ExamDistributionConstraint.sDistSameRoom :
+                        if (!placement.getRoomPlacements().contains(room)) penalty+=dc.getWeight();
+                        break;
+                    case ExamDistributionConstraint.sDistDifferentRoom :
+                        if (placement.getRoomPlacements().contains(room)) penalty+=dc.getWeight();
+                        break;
+                }
+            }
+        }
+        return penalty;
+    }
+    
     /**
      * Maximal number of rooms that can be assigned to the exam 
      * @return maximal number of rooms that can be assigned to the exam
@@ -469,17 +497,21 @@ public class Exam extends Variable {
      * Find best available rooms for the exam in the given period. First of all, it tries to find the minimal
      * number of rooms that cover the size of the exam. Among these, a set of rooms of 
      * total smallest size is preferred. If the original room is available and of enough size, it is returned. 
-     * All necessary checks are made (avaiability of rooms, room penalties, room sizes etc.).
+     * All necessary checks are made (availability of rooms, room penalties, room sizes etc.).
      * @param period given period.
      * @return best available rooms for the exam in the given period, null if there is no valid assignment
      */
     public Set findBestAvailableRooms(ExamPeriodPlacement period) {
         if (getMaxRooms()==0) return new HashSet();
+        double sw = ((ExamModel)getModel()).getRoomSizeWeight();
+        double dw = ((ExamModel)getModel()).getRoomSplitDistanceWeight();
+        double pw = ((ExamModel)getModel()).getRoomWeight();
+        double cw = ((ExamModel)getModel()).getDistributionWeight();
         loop: for (int nrRooms=1;nrRooms<=getMaxRooms();nrRooms++) {
             HashSet rooms = new HashSet(); int size = 0;
             while (rooms.size()<nrRooms && size<getSize()) {
                 int minSize = (getSize()-size)/(nrRooms-rooms.size());
-                ExamRoomPlacement best = null; int bestSize = 0, bestPenalty = 0;
+                ExamRoomPlacement best = null; double bestWeight = 0; int bestSize = 0;
                 for (Enumeration e=getRoomPlacements().elements();e.hasMoreElements();) {
                     ExamRoomPlacement room = (ExamRoomPlacement)e.nextElement();
                     if (!room.isAvailable(period.getPeriod())) continue;
@@ -489,10 +521,19 @@ public class Exam extends Variable {
                     int s = room.getSize(hasAltSeating());
                     if (s<minSize) break;
                     int p = room.getPenalty(period.getPeriod());
-                    if (best==null || bestPenalty>p || (bestPenalty==p && bestSize>s)) {
+                    double w = pw * p + sw * (s-minSize) + cw * getDistributionConstraintPenalty(room);
+                    double d = 0;
+                    if (!rooms.isEmpty()) {
+                        for (Iterator i=rooms.iterator();i.hasNext();) {
+                            ExamRoomPlacement r = (ExamRoomPlacement)i.next();
+                            d += r.getDistance(room);
+                        }
+                        w += d / rooms.size();
+                    }
+                    if (best==null || bestWeight>w) {
                         best = room;
                         bestSize = s;
-                        bestPenalty = p;
+                        bestWeight = w;
                     }
                 }
                 if (best==null) continue loop;
