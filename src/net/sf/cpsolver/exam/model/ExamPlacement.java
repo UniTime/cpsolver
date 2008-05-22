@@ -61,6 +61,7 @@ public class ExamPlacement extends Value {
     private Set iRoomPlacements;
     private int iSize;
     private int iRoomPenalty;
+    private double iRoomSplitDistance;
     
     private int iHashCode;
     
@@ -79,10 +80,21 @@ public class ExamPlacement extends Value {
             iRoomPlacements = roomPlacements;
         iSize = 0;
         iRoomPenalty = 0;
+        iRoomSplitDistance = 0.0;
         for (Iterator i=iRoomPlacements.iterator();i.hasNext();) {
             ExamRoomPlacement r = (ExamRoomPlacement)i.next();
             iSize += r.getSize(exam.hasAltSeating());
             iRoomPenalty += r.getPenalty(periodPlacement.getPeriod());
+            if (iRoomPlacements.size()>1) {
+                for (Iterator j=iRoomPlacements.iterator();j.hasNext();) {
+                    ExamRoomPlacement w = (ExamRoomPlacement)j.next();
+                    if (r.getRoom().getId()<w.getRoom().getId())
+                        iRoomSplitDistance += r.getRoom().getDistance(w.getRoom());
+                }
+            }
+        }
+        if (iRoomPlacements.size()>2) {
+            iRoomSplitDistance /= iRoomPlacements.size()*(iRoomPlacements.size()-1)/2;
         }
         iHashCode = getName().hashCode();
     }
@@ -367,7 +379,19 @@ public class ExamPlacement extends Value {
     public int getRotationPenalty() {
         Exam exam = (Exam)variable();
         if (exam.getAveragePeriod()<0) return 0;
-        return getPeriod().getIndex()*exam.getAveragePeriod();
+        return (1+getPeriod().getIndex())*(1+exam.getAveragePeriod());
+    }
+    
+    /**
+     * Front load penalty (large exam is discouraged to be placed on or after a certain period)
+     * @return zero if not large exam or if before {@link ExamModel#getLargePeriod()}, one otherwise 
+     */
+    public int getLargePenalty() {
+        Exam exam = (Exam)variable();
+        ExamModel model = (ExamModel)exam.getModel();
+        if (model.getLargeSize()<0 || exam.getSize()<model.getLargeSize()) return 0;
+        int periodIdx = (int)Math.round(model.getPeriods().size() * model.getLargePeriod());
+        return (getPeriod().getIndex()<periodIdx?0:1);
     }
     
     /**
@@ -389,7 +413,58 @@ public class ExamPlacement extends Value {
         if (initial==null) return 0;
         return Math.abs(initial.getPeriod().getIndex()-getPeriod().getIndex())*exam.getSize();
     }
+    
+    /**
+     * Room split distance penalty, i.e., average distance between two rooms of this placement 
+     */
+    public double getRoomSplitDistancePenalty() {
+        return iRoomSplitDistance;
+    }
+    
+    /**
+     * Distribution penalty, i.e., sum weights of violated distribution constraints 
+     */
+    public double getDistributionPenalty() {
+        int penalty = 0;
+        for (Enumeration e=((Exam)variable()).getDistributionConstraints().elements();e.hasMoreElements();) {
+            ExamDistributionConstraint dc = (ExamDistributionConstraint)e.nextElement();
+            if (dc.isHard()) continue;
+            boolean sat = dc.isSatisfied(this); 
+            if (sat!=dc.isSatisfied())
+                penalty += (sat?-dc.getWeight():dc.getWeight());
+        }
+        return penalty;
+    }
+    
+    /**
+     * Room related distribution penalty, i.e., sum weights of violated distribution constraints 
+     */
+    public double getRoomDistributionPenalty() {
+        int penalty = 0;
+        for (Enumeration e=((Exam)variable()).getDistributionConstraints().elements();e.hasMoreElements();) {
+            ExamDistributionConstraint dc = (ExamDistributionConstraint)e.nextElement();
+            if (dc.isHard() || !dc.isRoomRelated()) continue;
+            boolean sat = dc.isSatisfied(this); 
+            if (sat!=dc.isSatisfied())
+                penalty += (sat?-dc.getWeight():dc.getWeight());
+        }
+        return penalty;
+    }
 
+    /**
+     * Period related distribution penalty, i.e., sum weights of violated distribution constraints 
+     */
+    public double getPeriodDistributionPenalty() {
+        int penalty = 0;
+        for (Enumeration e=((Exam)variable()).getDistributionConstraints().elements();e.hasMoreElements();) {
+            ExamDistributionConstraint dc = (ExamDistributionConstraint)e.nextElement();
+            if (dc.isHard() || !dc.isPeriodRelated()) continue;
+            boolean sat = dc.isSatisfied(this); 
+            if (sat!=dc.isSatisfied())
+                penalty += (sat?-dc.getWeight():dc.getWeight());
+        }
+        return penalty;
+    }
 
     /**
      * Overall cost of using this placement. 
@@ -402,12 +477,14 @@ public class ExamPlacement extends Value {
      *  <li> Period penalty {@link ExamPlacement#getPeriodPenalty()}, weighted by {@link ExamModel#getPeriodWeight()}
      *  <li> Room size penalty {@link ExamPlacement#getRoomSizePenalty()}, weighted by {@link ExamModel#getRoomSizeWeight()}
      *  <li> Room split penalty {@link ExamPlacement#getRoomSplitPenalty()}, weighted by {@link ExamModel#getRoomSplitWeight()}
+     *  <li> Room split distance penalty {@link ExamPlacement#getRoomSplitDistancePenalty()}, weighted by {@link ExamModel#getRoomSplitDistanceWeight()}
      *  <li> Room penalty {@link ExamPlacement#getRoomPenalty()}, weighted by {@link ExamModel#getRoomWeight()}
      *  <li> Exam rotation penalty {@link ExamPlacement#getRotationPenalty()}, weighted by {@link ExamModel#getExamRotationWeight()}
      *  <li> Direct instructor conflicts {@link ExamPlacement#getNrInstructorDirectConflicts()}, weighted by {@link ExamModel#getInstructorDirectConflictWeight()}
      *  <li> More than two exams a day instructor conflicts {@link ExamPlacement#getNrInstructorMoreThanTwoADayConflicts()}, weighted by {@link ExamModel#getInstructorMoreThanTwoADayWeight()}
      *  <li> Back-to-back instructor conflicts {@link ExamPlacement#getNrInstructorBackToBackConflicts()}, weighted by {@link ExamModel#getInstructorBackToBackConflictWeight()}
      *  <li> Distance back-to-back instructor conflicts {@link ExamPlacement#getNrInstructorDistanceBackToBackConflicts()}, weighted by {@link ExamModel#getInstructorDistanceBackToBackConflictWeight()}
+     *  <li> Front load penalty {@link ExamPlacement#getLargePenalty()}, weighted by {@link ExamModel#getLargeWeight()}
      * </ul>
      */
     public double toDouble() {
@@ -426,7 +503,11 @@ public class ExamPlacement extends Value {
             model.getInstructorDirectConflictWeight()*getNrInstructorDirectConflicts()+
             model.getInstructorMoreThanTwoADayWeight()*getNrInstructorMoreThanTwoADayConflicts()+
             model.getInstructorBackToBackConflictWeight()*getNrInstructorBackToBackConflicts()+
-            model.getInstructorDistanceBackToBackConflictWeight()*getNrInstructorDistanceBackToBackConflicts();
+            model.getInstructorDistanceBackToBackConflictWeight()*getNrInstructorDistanceBackToBackConflicts()+
+            model.getRoomSplitDistanceWeight()*getRoomSplitDistancePenalty()+
+            model.getPerturbationWeight()*getPerturbationPenalty()+
+            model.getDistributionWeight()*getDistributionPenalty()+
+            model.getLargeWeight()*getLargePenalty();
     }
     
     /**
@@ -442,6 +523,7 @@ public class ExamPlacement extends Value {
      *  <li> More than two exams a day instructor conflicts {@link ExamPlacement#getNrInstructorMoreThanTwoADayConflicts()}, weighted by {@link ExamModel#getInstructorMoreThanTwoADayWeight()}
      *  <li> Back-to-back instructor conflicts {@link ExamPlacement#getNrInstructorBackToBackConflicts()}, weighted by {@link ExamModel#getInstructorBackToBackConflictWeight()}
      *  <li> Distance back-to-back instructor conflicts {@link ExamPlacement#getNrInstructorDistanceBackToBackConflicts()}, weighted by {@link ExamModel#getInstructorDistanceBackToBackConflictWeight()}
+     *  <li> Front load penalty {@link ExamPlacement#getLargePenalty()}, weighted by {@link ExamModel#getLargeWeight()}
      * </ul>
      */
     public double getTimeCost() {
@@ -455,7 +537,9 @@ public class ExamPlacement extends Value {
             model.getExamRotationWeight()*getRotationPenalty()+
             model.getInstructorDirectConflictWeight()*getNrInstructorDirectConflicts()+
             model.getInstructorMoreThanTwoADayWeight()*getNrInstructorMoreThanTwoADayConflicts()+
-            model.getInstructorBackToBackConflictWeight()*getNrInstructorBackToBackConflicts();
+            model.getInstructorBackToBackConflictWeight()*getNrInstructorBackToBackConflicts()+
+            model.getDistributionWeight()*getPeriodDistributionPenalty()+
+            model.getLargeWeight()*getLargePenalty();
     }
     
     /**
@@ -466,6 +550,7 @@ public class ExamPlacement extends Value {
      *  <li> Distance back-to-back instructor conflicts {@link ExamPlacement#getNrInstructorDistanceBackToBackConflicts()}, weighted by {@link ExamModel#getInstructorDistanceBackToBackConflictWeight()}
      *  <li> Room size penalty {@link ExamPlacement#getRoomSizePenalty()}, weighted by {@link ExamModel#getRoomSizeWeight()}
      *  <li> Room split penalty {@link ExamPlacement#getRoomSplitPenalty()}, weighted by {@link ExamModel#getRoomSplitWeight()}
+     *  <li> Room split distance penalty {@link ExamPlacement#getRoomSplitDistancePenalty()}, weighted by {@link ExamModel#getRoomSplitDistanceWeight()}
      *  <li> Room penalty {@link ExamPlacement#getRoomPenalty()}, weighted by {@link ExamModel#getRoomWeight()}
      * </ul>
      */
@@ -477,7 +562,9 @@ public class ExamPlacement extends Value {
             model.getRoomSizeWeight()*getRoomSizePenalty()+
             model.getRoomSplitWeight()*getRoomSplitPenalty()+
             model.getRoomWeight()*getRoomPenalty()+
-            model.getInstructorDistanceBackToBackConflictWeight()*getNrInstructorDistanceBackToBackConflicts();
+            model.getInstructorDistanceBackToBackConflictWeight()*getNrInstructorDistanceBackToBackConflicts()+
+            model.getRoomSplitDistanceWeight()*getRoomSizePenalty()+
+            model.getDistributionWeight()*getRoomDistributionPenalty();
     }
     
     /**
@@ -517,7 +604,9 @@ public class ExamPlacement extends Value {
             "@P:"+getRotationPenalty()+","+
             "RSz:"+getRoomSizePenalty()+","+
             "RSp:"+getRoomSplitPenalty()+","+
+            "RD:"+df.format(getRoomSplitDistancePenalty())+","+
             "RP:"+getRoomPenalty()+
+            (model.isMPP()?",IP:"+getPerturbationPenalty():"")+
             ")";
     }
     
