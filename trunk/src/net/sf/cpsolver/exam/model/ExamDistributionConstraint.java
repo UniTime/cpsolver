@@ -342,4 +342,14 @@ public class ExamDistributionConstraint extends Constraint {
             ((ExamModel)value.variable().getModel()).addDistributionPenalty(iIsSatisfied?-getWeight():getWeight());
         }
     }
+    
+    /** True if the constraint is related to rooms */
+    public boolean isRoomRelated() {
+        return iType==sDistSameRoom || iType==sDistDifferentRoom;
+    }
+
+    /** True if the constraint is related to periods */
+    public boolean isPeriodRelated() {
+        return !isRoomRelated();
+    }
 }
