@@ -15,6 +15,7 @@ import org.apache.log4j.Logger;
 
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Model;
+import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
@@ -847,5 +848,18 @@ public class Exam extends Variable {
     /** Return true if there are some values in the domain of this variable */
     public boolean hasValues() {
         return !getPeriodPlacements().isEmpty() && (getMaxRooms()==0 || !getRoomPlacements().isEmpty());
+    }
+    
+    public void assign(long iteration, Value value) {
+        if (getMaxRooms()>0) {
+            ExamPlacement placement = (ExamPlacement)value;
+            int size = 0;
+            for (Iterator i=placement.getRoomPlacements().iterator();i.hasNext();) {
+                ExamRoomPlacement room = (ExamRoomPlacement)i.next();
+                size += room.getSize(hasAltSeating());
+            }
+            if (size<getSize()) throw new RuntimeException("Selected room(s) are two small "+size+"<"+getSize()+" ("+value+")");
+        }
+        super.assign(iteration, value);
     }
 }
