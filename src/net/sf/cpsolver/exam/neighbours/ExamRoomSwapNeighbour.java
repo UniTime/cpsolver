@@ -47,7 +47,7 @@ public class ExamRoomSwapNeighbour extends Neighbour {
         if (!swap.isAvailable(placement.getPeriod())) return; //room not available
         if (!exam.checkDistributionConstraints(swap)) return; //a distribution constraint is violated
         int size = 0;
-        for (Iterator i=exam.getRoomPlacements().iterator();i.hasNext();)
+        for (Iterator i=placement.getRoomPlacements().iterator();i.hasNext();)
             size += ((ExamRoomPlacement)i.next()).getSize(exam.hasAltSeating()); 
         size -= current.getSize(exam.hasAltSeating());
         size += swap.getSize(exam.hasAltSeating());
