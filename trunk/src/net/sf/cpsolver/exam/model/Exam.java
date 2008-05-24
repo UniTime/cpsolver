@@ -17,6 +17,7 @@ import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
+import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
@@ -858,7 +859,9 @@ public class Exam extends Variable {
                 ExamRoomPlacement room = (ExamRoomPlacement)i.next();
                 size += room.getSize(hasAltSeating());
             }
-            if (size<getSize()) throw new RuntimeException("Selected room(s) are two small "+size+"<"+getSize()+" ("+value+")");
+            if (size<getSize()) {
+                Progress.getInstance(getModel()).warn("Selected room(s) are two small "+size+"<"+getSize()+" ("+getName()+" "+placement.getName()+")");
+            }
         }
         super.assign(iteration, value);
     }
