@@ -61,7 +61,7 @@ public class RoomConstraint extends Constraint {
     
     private RoomSharingModel iRoomSharingModel = null;
     
-    private Integer iType = null;
+    private Long iType = null;
     
     /** Constructor
      */
@@ -454,6 +454,6 @@ public class RoomConstraint extends Constraint {
     public boolean getIgnoreTooFar() { return iIgnoreTooFar; }
     public boolean getConstraint() { return iConstraint; }
     
-    public Integer getType() { return iType; }
-    public void setType(Integer type) { iType = type; }
+    public Long getType() { return iType; }
+    public void setType(Long type) { iType = type; }
 }
