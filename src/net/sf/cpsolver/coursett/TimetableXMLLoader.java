@@ -291,7 +291,7 @@ public class TimetableXMLLoader extends TimetableLoader {
                     			Integer.parseInt(roomEl.attributeValue("capacity")), sharingModel, posX, posY, ignoreTooFar, !fake)
                     );
             if (roomEl.attributeValue("type")!=null)
-                constraint.setType(Integer.valueOf(roomEl.attributeValue("type")));
+                constraint.setType(Long.valueOf(roomEl.attributeValue("type")));
             getModel().addConstraint(constraint);
             roomConstraints.put(roomEl.attributeValue("id"), constraint);
         }
@@ -302,7 +302,7 @@ public class TimetableXMLLoader extends TimetableLoader {
                 Element instructorEl = (Element)i.next();
                 InstructorConstraint instructorConstraint = new InstructorConstraint(Long.valueOf(instructorEl.attributeValue("id")), instructorEl.attributeValue("puid"), (instructorEl.attributeValue("name")!=null?instructorEl.attributeValue("name"):"i"+instructorEl.attributeValue("id")), "true".equals(instructorEl.attributeValue("ignDist")));
                 if (instructorEl.attributeValue("type")!=null)
-                    instructorConstraint.setType(Integer.valueOf(instructorEl.attributeValue("type")));
+                    instructorConstraint.setType(Long.valueOf(instructorEl.attributeValue("type")));
                 instructorConstraints.put(instructorEl.attributeValue("id"), instructorConstraint);
                 
                 getModel().addConstraint(instructorConstraint);

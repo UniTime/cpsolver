@@ -60,7 +60,7 @@ public class InstructorConstraint extends Constraint {
     private String iPuid;
     private Vector[] iAvailable = null;
     private boolean iIgnoreDistances = false;
-    private Integer iType = null;
+    private Long iType = null;
     
     
     /** Constructor
@@ -487,6 +487,6 @@ public class InstructorConstraint extends Constraint {
         return iIgnoreDistances;
     }
 
-    public Integer getType() { return iType; }
-    public void setType(Integer type) { iType = type; }
+    public Long getType() { return iType; }
+    public void setType(Long type) { iType = type; }
 }
