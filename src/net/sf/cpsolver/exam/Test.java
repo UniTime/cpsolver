@@ -3,8 +3,11 @@ package net.sf.cpsolver.exam;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.text.DecimalFormat;
+import java.util.Enumeration;
 
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.FileAppender;
@@ -16,7 +19,15 @@ import org.dom4j.io.OutputFormat;
 import org.dom4j.io.SAXReader;
 import org.dom4j.io.XMLWriter;
 
+import net.sf.cpsolver.exam.model.Exam;
+import net.sf.cpsolver.exam.model.ExamDistributionConstraint;
+import net.sf.cpsolver.exam.model.ExamInstructor;
 import net.sf.cpsolver.exam.model.ExamModel;
+import net.sf.cpsolver.exam.model.ExamPeriod;
+import net.sf.cpsolver.exam.model.ExamPeriodPlacement;
+import net.sf.cpsolver.exam.model.ExamRoom;
+import net.sf.cpsolver.exam.model.ExamRoomPlacement;
+import net.sf.cpsolver.exam.model.ExamStudent;
 import net.sf.cpsolver.exam.reports.ExamAssignments;
 import net.sf.cpsolver.exam.reports.ExamCourseSectionAssignments;
 import net.sf.cpsolver.exam.reports.ExamInstructorConflicts;
@@ -158,9 +169,137 @@ public class Test {
                 if ("true".equals(System.getProperty("reports","false")))
                     createReports((ExamModel)solution.getModel(),outFile.getParentFile(), outFile.getName().substring(0,outFile.getName().lastIndexOf('.')));
                 
+                String baseName =  new File(iSolver.getProperties().getProperty("General.Input")).getName();
+                if (baseName.indexOf('.')>0) baseName = baseName.substring(0, baseName.lastIndexOf('.'));
+                addCSVLine(new File(outFile.getParentFile(),baseName+".csv"), outFile.getName(), solution);
+                
             } catch (Exception e) {
                 e.printStackTrace();
             }
+        }
+    }
+    
+    private static int getMinPenalty(ExamRoom r) {
+        boolean av = false; int min = Integer.MAX_VALUE;
+        for (Enumeration e=((ExamModel)r.getModel()).getPeriods().elements();e.hasMoreElements();) {
+            ExamPeriod p = (ExamPeriod)e.nextElement();
+            if (r.isAvailable(p)) {
+                av=true;
+                min = Math.min(min, r.getPenalty(p));
+            }
+        }
+        return min;
+    }
+    private static int getMaxPenalty(ExamRoom r) {
+        boolean av = false; int max = Integer.MIN_VALUE;
+        for (Enumeration e=((ExamModel)r.getModel()).getPeriods().elements();e.hasMoreElements();) {
+            ExamPeriod p = (ExamPeriod)e.nextElement();
+            if (r.isAvailable(p)) {
+                av=true;
+                max = Math.max(max, r.getPenalty(p));
+            }
+        }
+        return max;
+    }
+
+    private static void addCSVLine(File file, String instance, Solution solution) {
+        try {
+            ExamModel model = (ExamModel)solution.getModel();
+            boolean ex = file.exists();
+            PrintWriter pw = new PrintWriter(new FileWriter(file,true));
+            if (!ex) {
+                pw.println("SEED,"+
+                		"DC,sM2D,BTB,"+(model.getBackToBackDistance()<0?"":"dBTB,")+
+                		"iDC,iM2D,iBTB,"+(model.getBackToBackDistance()<0?"":"diBTB,")+
+                		"PP,@P,RSz,RSp,RD,RP,DP,"+
+                        (model.getLargeSize()>=0?",LP":"")+
+                        (model.isMPP()?",IP":"")+",INSTANCE");
+                int minPeriodPenalty = 0, maxPeriodPenalty = 0;
+                int minRoomPenalty = 0, maxRoomPenalty = 0;
+                int nrLargeExams = 0;
+                for (Enumeration e=model.variables().elements();e.hasMoreElements();) {
+                    Exam exam = (Exam)e.nextElement();
+                    if (model.getLargeSize()>=0 && exam.getSize()>=model.getLargeSize()) nrLargeExams++;
+                    if (!exam.getPeriodPlacements().isEmpty()) {
+                        int minPenalty = Integer.MAX_VALUE, maxPenalty = Integer.MIN_VALUE;
+                        for (Enumeration f=exam.getPeriodPlacements().elements();f.hasMoreElements();) {
+                            ExamPeriodPlacement periodPlacement = (ExamPeriodPlacement)f.nextElement();
+                            minPenalty = Math.min(minPenalty, periodPlacement.getPenalty());
+                            maxPenalty = Math.max(maxPenalty, periodPlacement.getPenalty());
+                        }
+                        minPeriodPenalty += minPenalty;
+                        maxPeriodPenalty += maxPenalty;
+                    }
+                    if (!exam.getRoomPlacements().isEmpty()) {
+                        int minPenalty = Integer.MAX_VALUE, maxPenalty = Integer.MIN_VALUE;
+                        for (Enumeration f=exam.getRoomPlacements().elements();f.hasMoreElements();) {
+                            ExamRoomPlacement roomPlacement = (ExamRoomPlacement)f.nextElement();
+                            minPenalty = Math.min(minPenalty, roomPlacement.getPenalty()+getMinPenalty(roomPlacement.getRoom()));
+                            maxPenalty = Math.max(maxPenalty, roomPlacement.getPenalty()+getMaxPenalty(roomPlacement.getRoom()));
+                        }
+                        minRoomPenalty += minPenalty;
+                        maxRoomPenalty += maxPenalty;
+                    }
+                }
+                int maxDistributionPenalty = 0;
+                for (Enumeration e=model.getDistributionConstraints().elements();e.hasMoreElements();) {
+                    ExamDistributionConstraint dc = (ExamDistributionConstraint)e.nextElement();
+                    if (dc.isHard()) continue;
+                    maxDistributionPenalty += dc.getWeight();
+                }
+                int nrStudentExams = 0;
+                for (Enumeration e=model.getStudents().elements();e.hasMoreElements();) {
+                    ExamStudent student = (ExamStudent)e.nextElement();
+                    nrStudentExams+=student.variables().size();
+                }
+                int nrInstructorExams = 0;
+                for (Enumeration e=model.getInstructors().elements();e.hasMoreElements();) {
+                    ExamInstructor instructor = (ExamInstructor)e.nextElement();
+                    nrInstructorExams+=instructor.variables().size();
+                }
+                pw.println("MIN,"+
+                        "#EX,#RM,#PER,"+(model.getBackToBackDistance()<0?"":",")+
+                        "#STD,#STDX,,"+(model.getBackToBackDistance()<0?"":",")+
+                        minPeriodPenalty+",#INS,#INSX,,,"+minRoomPenalty+",0,"+
+                        (model.getLargeSize()>=0?",0":"")+
+                        (model.isMPP()?",":""));
+                pw.println("MAX,"+
+                        model.variables().size()+","+
+                        model.getRooms().size()+","+
+                        model.getPeriods().size()+","+
+                        (model.getBackToBackDistance()<0?"":",")+
+                        model.getStudents().size()+","+
+                        nrStudentExams+",,"+(model.getBackToBackDistance()<0?"":",")+
+                        maxPeriodPenalty+","+
+                        model.getInstructors().size()+","+
+                        nrInstructorExams+",,,"+maxRoomPenalty+","+maxDistributionPenalty+","+
+                        (model.getLargeSize()>=0?","+nrLargeExams:"")+
+                        (model.isMPP()?",":""));
+            }
+            DecimalFormat df = new DecimalFormat("0.00");
+            pw.println(
+                    ToolBox.getSeed()+","+
+                    model.getNrDirectConflicts(false)+","+
+                    model.getNrMoreThanTwoADayConflicts(false)+","+
+                    model.getNrBackToBackConflicts(false)+","+
+                    (model.getBackToBackDistance()<0?"":model.getNrDistanceBackToBackConflicts(false)+",")+
+                    model.getNrInstructorDirectConflicts(false)+","+
+                    model.getNrInstructorMoreThanTwoADayConflicts(false)+","+
+                    model.getNrInstructorBackToBackConflicts(false)+","+
+                    (model.getBackToBackDistance()<0?"":model.getNrInstructorDistanceBackToBackConflicts(false)+",")+
+                    model.getPeriodPenalty(false)+","+
+                    model.getExamRotationPenalty(false)+","+
+                    df.format(((double)model.getRoomSizePenalty(false))/model.nrAssignedVariables())+","+
+                    model.getRoomSplitPenalty(false)+","+
+                    df.format(model.getRoomSplitDistancePenalty(false)/model.getNrRoomSplits(false))+","+
+                    model.getRoomPenalty(false)+","+
+                    model.getDistributionPenalty(false)+
+                    (model.getLargeSize()>=0?","+model.getLargePenalty(false):"")+
+                    (model.isMPP()?","+df.format(((double)model.getPerturbationPenalty(false))/model.nrAssignedVariables()):"")+
+                    ","+instance);
+            pw.flush(); pw.close();
+        } catch (Exception e) {
+            sLog.error("Unable to add CSV line to "+file, e);
         }
     }
 
@@ -186,6 +325,8 @@ public class Test {
             if (args.length>=2) {
                 inputFile = new File(args[1]);
             }
+            ToolBox.setSeed(cfg.getPropertyLong("General.Seed", Math.round(Long.MAX_VALUE * Math.random())));
+            
             cfg.setProperty("General.Input", inputFile.toString());
             
             String outName = inputFile.getName();
