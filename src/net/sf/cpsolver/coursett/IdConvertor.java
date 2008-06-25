@@ -111,8 +111,7 @@ public class IdConvertor {
 	public void load() {
 		try {
 			if (iFile==null) iFile = (String)System.getProperty("IdConvertor.File","idconv.xml");
-			if (iFile==null || !(new File(iFile)).getParentFile().exists()) return;
-			if (!(new File(iFile).exists())) return;
+			if (iFile==null || !(new File(iFile)).exists()) return;
 			Document document = (new SAXReader()).read(iFile);
 			Element root = document.getRootElement();
 			synchronized (iConversion) {
