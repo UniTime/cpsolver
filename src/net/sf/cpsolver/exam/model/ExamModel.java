@@ -16,6 +16,7 @@ import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
 import org.dom4j.Element;
 
+import net.sf.cpsolver.coursett.IdConvertor;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Value;
@@ -1248,14 +1249,14 @@ public class ExamModel extends Model {
         info.put("Direct Conflicts",String.valueOf(getNrDirectConflicts(false)));
         info.put("More Than 2 A Day Conflicts",String.valueOf(getNrMoreThanTwoADayConflicts(false)));
         info.put("Back-To-Back Conflicts",String.valueOf(getNrBackToBackConflicts(false)));
+        if (getBackToBackDistance()>=0 && getNrDistanceBackToBackConflicts(false)>0)
+            info.put("Distance Back-To-Back Conflicts",String.valueOf(getNrDistanceBackToBackConflicts(false)));
         if (getNrInstructorDirectConflicts(false)>0)
             info.put("Instructor Direct Conflicts",String.valueOf(getNrInstructorDirectConflicts(false)));
         if (getNrInstructorMoreThanTwoADayConflicts(false)>0)
             info.put("Instructor More Than 2 A Day Conflicts",String.valueOf(getNrInstructorMoreThanTwoADayConflicts(false)));
         if (getNrInstructorBackToBackConflicts(false)>0)
             info.put("Instructor Back-To-Back Conflicts",String.valueOf(getNrInstructorBackToBackConflicts(false)));
-        if (getBackToBackDistance()>=0 && getNrDistanceBackToBackConflicts(false)>0)
-            info.put("Distance Back-To-Back Conflicts",String.valueOf(getNrDistanceBackToBackConflicts(false)));
         if (getBackToBackDistance()>=0 && getNrInstructorDistanceBackToBackConflicts(false)>0)
             info.put("Instructor Distance Back-To-Back Conflicts",String.valueOf(getNrInstructorDistanceBackToBackConflicts(false)));
         if (nrAssignedVariables()>0 && getRoomSizePenalty(false)>0)
@@ -1377,6 +1378,10 @@ public class ExamModel extends Model {
      */
     public Vector getDistributionConstraints() { return iDistributionConstraints;}
     
+    private String getId(boolean anonymize, String type, String id) {
+        return (anonymize?IdConvertor.getInstance().convert(type, id):id);
+    }
+    
     /**
      * Save model (including its solution) into XML.
      */
@@ -1386,11 +1391,12 @@ public class ExamModel extends Model {
         boolean saveSolution = getProperties().getPropertyBoolean("Xml.SaveSolution", true);
         boolean saveConflictTable = getProperties().getPropertyBoolean("Xml.SaveConflictTable", false);
         boolean saveParams = getProperties().getPropertyBoolean("Xml.SaveParameters",true);
+        boolean anonymize = getProperties().getPropertyBoolean("Xml.Anonymize", false);
         Document document = DocumentHelper.createDocument();
         document.addComment("Examination Timetable");
         if (nrAssignedVariables()>0) {
             StringBuffer comments = new StringBuffer("Solution Info:\n");
-            Dictionary solutionInfo=getExtendedInfo();
+            Dictionary solutionInfo=(getProperties().getPropertyBoolean("Xml.ExtendedInfo",false)?getExtendedInfo():getInfo());
             for (Enumeration e=ToolBox.sortEnumeration(solutionInfo.keys());e.hasMoreElements();) {
                 String key = (String)e.nextElement();
                 Object value = solutionInfo.get(key);
@@ -1400,7 +1406,7 @@ public class ExamModel extends Model {
         }
         Element root = document.addElement("examtt");
         root.addAttribute("version","1.0");
-        root.addAttribute("initiative", getProperties().getProperty("Data.Initiative"));
+        root.addAttribute("campus", getProperties().getProperty("Data.Initiative"));
         root.addAttribute("term", getProperties().getProperty("Data.Term"));
         root.addAttribute("year", getProperties().getProperty("Data.Year"));
         root.addAttribute("created", String.valueOf(new Date()));
@@ -1433,7 +1439,7 @@ public class ExamModel extends Model {
         for (Enumeration e=getPeriods().elements();e.hasMoreElements();) {
             ExamPeriod period = (ExamPeriod)e.nextElement();
             periods.addElement("period").
-                addAttribute("id", String.valueOf(period.getId())).
+                addAttribute("id", getId(anonymize,"period",String.valueOf(period.getId()))).
                 addAttribute("length", String.valueOf(period.getLength())).
                 addAttribute("day", period.getDayStr()).
                 addAttribute("time", period.getTimeStr()).
@@ -1443,8 +1449,8 @@ public class ExamModel extends Model {
         for (Enumeration e=getRooms().elements();e.hasMoreElements();) {
             ExamRoom room = (ExamRoom)e.nextElement();
             Element r = rooms.addElement("room");
-            r.addAttribute("id", String.valueOf(room.getId()));
-            if (room.hasName())
+            r.addAttribute("id", getId(anonymize,"room",String.valueOf(room.getId())));
+            if (!anonymize && room.hasName())
                 r.addAttribute("name", room.getName());
             r.addAttribute("size", String.valueOf(room.getSize()));
             r.addAttribute("alt", String.valueOf(room.getAltSize()));
@@ -1454,17 +1460,17 @@ public class ExamModel extends Model {
             for (Enumeration f=getPeriods().elements();f.hasMoreElements();) {
                 ExamPeriod period = (ExamPeriod)f.nextElement();
                 if (!room.isAvailable(period))
-                    r.addElement("period").addAttribute("id", String.valueOf(period.getId())).addAttribute("available", "false");
+                    r.addElement("period").addAttribute("id", getId(anonymize,"period",String.valueOf(period.getId()))).addAttribute("available", "false");
                 else if (room.getPenalty(period)!=0)
-                    r.addElement("period").addAttribute("id", String.valueOf(period.getId())).addAttribute("penalty", String.valueOf(room.getPenalty(period)));
+                    r.addElement("period").addAttribute("id", getId(anonymize,"period",String.valueOf(period.getId()))).addAttribute("penalty", String.valueOf(room.getPenalty(period)));
             }
         }
         Element exams = root.addElement("exams");
         for (Enumeration e=variables().elements();e.hasMoreElements();) {
             Exam exam = (Exam)e.nextElement();
             Element ex = exams.addElement("exam");
-            ex.addAttribute("id", String.valueOf(exam.getId()));
-            if (exam.hasName())
+            ex.addAttribute("id", getId(anonymize,"exam",String.valueOf(exam.getId())));
+            if (!anonymize && exam.hasName())
                 ex.addAttribute("name", exam.getName());
             ex.addAttribute("length", String.valueOf(exam.getLength()));
             if (exam.getMinSize()!=0)
@@ -1472,21 +1478,24 @@ public class ExamModel extends Model {
             ex.addAttribute("alt", (exam.hasAltSeating()?"true":"false"));
             if (exam.getMaxRooms()!=getMaxRooms())
                 ex.addAttribute("maxRooms", String.valueOf(exam.getMaxRooms()));
-            ex.addAttribute("enrl", String.valueOf(exam.getStudents().size()));
-            for (Enumeration f=exam.getOwners().elements();f.hasMoreElements();) {
-                ExamOwner owner = (ExamOwner)f.nextElement();
-                ex.addElement("owner").addAttribute("id", String.valueOf(owner.getId())).addAttribute("name", owner.getName());
-            }
+            if (!anonymize) ex.addAttribute("enrl", String.valueOf(exam.getStudents().size()));
+            if (!anonymize) 
+                for (Enumeration f=exam.getOwners().elements();f.hasMoreElements();) {
+                    ExamOwner owner = (ExamOwner)f.nextElement();
+                    Element o = ex.addElement("owner");
+                    o.addAttribute("id", getId(anonymize,"owner",String.valueOf(owner.getId())));
+                    o.addAttribute("name", owner.getName());
+                }
             for (Enumeration f=exam.getPeriodPlacements().elements();f.hasMoreElements();) {
                 ExamPeriodPlacement period = (ExamPeriodPlacement)f.nextElement();
-                Element pe = ex.addElement("period"). addAttribute("id", String.valueOf(period.getId()));
+                Element pe = ex.addElement("period").addAttribute("id", getId(anonymize,"period",String.valueOf(period.getId())));
                 int penalty = period.getPenalty()-period.getPeriod().getPenalty();
                 if (penalty!=0)
                     pe.addAttribute("penalty", String.valueOf(penalty));
             }
             for (Iterator j=exam.getRoomPlacements().iterator();j.hasNext();) {
                 ExamRoomPlacement room = (ExamRoomPlacement)j.next();
-                Element re = ex.addElement("room").addAttribute("id", String.valueOf(room.getId()));
+                Element re = ex.addElement("room").addAttribute("id", getId(anonymize,"room",String.valueOf(room.getId())));
                 if (room.getPenalty()!=0) re.addAttribute("penalty", String.valueOf(room.getPenalty()));
                 if (room.getMaxPenalty()!=100) re.addAttribute("maxPenalty", String.valueOf(room.getMaxPenalty()));
             }
@@ -1495,27 +1504,27 @@ public class ExamModel extends Model {
             ExamPlacement p = (ExamPlacement)exam.getAssignment();
             if (p!=null && saveSolution) {
                 Element asg = ex.addElement("assignment");
-                asg.addElement("period").addAttribute("id", String.valueOf(p.getPeriod().getId()));
+                asg.addElement("period").addAttribute("id", getId(anonymize,"period",String.valueOf(p.getPeriod().getId())));
                 for (Iterator i=p.getRoomPlacements().iterator();i.hasNext();) {
                     ExamRoomPlacement r = (ExamRoomPlacement)i.next();
-                    asg.addElement("room").addAttribute("id", String.valueOf(r.getId()));
+                    asg.addElement("room").addAttribute("id", getId(anonymize,"room",String.valueOf(r.getId())));
                 }            }
             p = (ExamPlacement)exam.getInitialAssignment();
             if (p!=null && saveInitial) {
                 Element ini = ex.addElement("initial");
-                ini.addElement("period").addAttribute("id", String.valueOf(p.getPeriod().getId()));
+                ini.addElement("period").addAttribute("id", getId(anonymize,"period",String.valueOf(p.getPeriod().getId())));
                 for (Iterator i=p.getRoomPlacements().iterator();i.hasNext();) {
                     ExamRoomPlacement r = (ExamRoomPlacement)i.next();
-                    ini.addElement("room").addAttribute("id", String.valueOf(r.getId()));
+                    ini.addElement("room").addAttribute("id", getId(anonymize,"room",String.valueOf(r.getId())));
                 }
             }
             p = (ExamPlacement)exam.getBestAssignment();
             if (p!=null && saveInitial) {
                 Element ini = ex.addElement("best");
-                ini.addElement("period").addAttribute("id", String.valueOf(p.getPeriod().getId()));
+                ini.addElement("period").addAttribute("id", getId(anonymize,"period",String.valueOf(p.getPeriod().getId())));
                 for (Iterator i=p.getRoomPlacements().iterator();i.hasNext();) {
                     ExamRoomPlacement r = (ExamRoomPlacement)i.next();
-                    ini.addElement("room").addAttribute("id", String.valueOf(r.getId()));
+                    ini.addElement("room").addAttribute("id", getId(anonymize,"room",String.valueOf(r.getId())));
                 }
             }
         }
@@ -1523,59 +1532,55 @@ public class ExamModel extends Model {
         for (Enumeration e=getStudents().elements();e.hasMoreElements();) {
             ExamStudent student = (ExamStudent)e.nextElement();
             Element s = students.addElement("student");
-            s.addAttribute("id", String.valueOf(student.getId()));
+            s.addAttribute("id", getId(anonymize,"student",String.valueOf(student.getId())));
             for (Enumeration f=student.variables().elements();f.hasMoreElements();) {
                 Exam ex = (Exam)f.nextElement();
-                Element x = s.addElement("exam").addAttribute("id", String.valueOf(ex.getId()));
-                for (Enumeration g=ex.getOwners(student).elements();g.hasMoreElements();) {
-                    ExamOwner owner = (ExamOwner)g.nextElement();
-                    x.addElement("owner").addAttribute("id", String.valueOf(owner.getId()));
-                }
+                Element x = s.addElement("exam").addAttribute("id", getId(anonymize,"exam",String.valueOf(ex.getId())));
+                if (!anonymize)
+                    for (Enumeration g=ex.getOwners(student).elements();g.hasMoreElements();) {
+                        ExamOwner owner = (ExamOwner)g.nextElement();
+                        x.addElement("owner").addAttribute("id", getId(anonymize,"owner",String.valueOf(owner.getId())));
+                    }
             }
-            String available = "";
-            boolean allAvail = true;
             for (Enumeration f=getPeriods().elements();f.hasMoreElements();) {
                 ExamPeriod period = (ExamPeriod)f.nextElement();
-                available += student.isAvailable(period)?"1":"0";
-                if (!student.isAvailable(period)) allAvail=false;
+                if (!student.isAvailable(period))
+                       s.addElement("period").addAttribute("id", getId(anonymize,"period",String.valueOf(period.getId()))).addAttribute("available", "false");
             }
-            if (!allAvail) s.addAttribute("available", available);
         }
         Element instructors = root.addElement("instructors");
         for (Enumeration e=getInstructors().elements();e.hasMoreElements();) {
             ExamInstructor instructor = (ExamInstructor)e.nextElement();
             Element i = instructors.addElement("instructor");
-            i.addAttribute("id", String.valueOf(instructor.getId()));
-            if (instructor.hasName())
+            i.addAttribute("id", getId(anonymize,"instructor",String.valueOf(instructor.getId())));
+            if (!anonymize && instructor.hasName())
                 i.addAttribute("name", instructor.getName());
             for (Enumeration f=instructor.variables().elements();f.hasMoreElements();) {
                 Exam ex = (Exam)f.nextElement();
-                Element x = i.addElement("exam").addAttribute("id", String.valueOf(ex.getId()));
-                for (Enumeration g=ex.getOwners(instructor).elements();g.hasMoreElements();) {
-                    ExamOwner owner = (ExamOwner)g.nextElement();
-                    x.addElement("owner").addAttribute("id", String.valueOf(owner.getId()));
-                }
+                Element x = i.addElement("exam").addAttribute("id", getId(anonymize,"exam",String.valueOf(ex.getId())));
+                if (!anonymize)
+                    for (Enumeration g=ex.getOwners(instructor).elements();g.hasMoreElements();) {
+                        ExamOwner owner = (ExamOwner)g.nextElement();
+                        x.addElement("owner").addAttribute("id", getId(anonymize,"owner",String.valueOf(owner.getId())));
+                    }
             }
-            String available = "";
-            boolean allAvail = true;
             for (Enumeration f=getPeriods().elements();f.hasMoreElements();) {
                 ExamPeriod period = (ExamPeriod)f.nextElement();
-                available += instructor.isAvailable(period)?"1":"0";
-                if (!instructor.isAvailable(period)) allAvail=false;
+                if (!instructor.isAvailable(period))
+                       i.addElement("period").addAttribute("id", getId(anonymize,"period",String.valueOf(period.getId()))).addAttribute("available", "false");
             }
-            if (!allAvail) i.addAttribute("available", available);
         }
         Element distConstraints = root.addElement("constraints");
         for (Enumeration e=getDistributionConstraints().elements();e.hasMoreElements();) {
             ExamDistributionConstraint distConstraint = (ExamDistributionConstraint)e.nextElement();
             Element dc = distConstraints.addElement(distConstraint.getTypeString());
-            dc.addAttribute("id", String.valueOf(distConstraint.getId()));
+            dc.addAttribute("id", getId(anonymize,"constraint",String.valueOf(distConstraint.getId())));
             if (!distConstraint.isHard()) {
                 dc.addAttribute("hard","false");
                 dc.addAttribute("weight", String.valueOf(distConstraint.getWeight()));
             }
             for (Enumeration f=distConstraint.variables().elements();f.hasMoreElements();) {
-                dc.addElement("exam").addAttribute("id", String.valueOf(((Exam)f.nextElement()).getId()));
+                dc.addElement("exam").addAttribute("id", getId(anonymize,"exam",String.valueOf(((Exam)f.nextElement()).getId())));
             }
         }
         if (saveConflictTable) {
@@ -1586,10 +1591,10 @@ public class ExamModel extends Model {
                     ExamPeriod period = (ExamPeriod)f.nextElement();
                     int nrExams = student.getExams(period).size();
                     if (nrExams>1) {
-                        Element dir = conflicts.addElement("direct").addAttribute("student", String.valueOf(student.getId()));
+                        Element dir = conflicts.addElement("direct").addAttribute("student", getId(anonymize,"student",String.valueOf(student.getId())));
                         for (Iterator i=student.getExams(period).iterator();i.hasNext();) {
                             Exam exam = (Exam)i.next();
-                            dir.addElement("exam").addAttribute("id",String.valueOf(exam.getId()));
+                            dir.addElement("exam").addAttribute("id", getId(anonymize,"exam",String.valueOf(exam.getId())));
                         }
                     }
                     if (nrExams>0) {
@@ -1598,9 +1603,9 @@ public class ExamModel extends Model {
                                 Exam ex1 = (Exam)i.next();
                                 for (Iterator j=student.getExams(period.next()).iterator();j.hasNext();) {
                                     Exam ex2 = (Exam)j.next();
-                                    Element btb = conflicts.addElement("back-to-back").addAttribute("student", String.valueOf(student.getId()));
-                                    btb.addElement("exam").addAttribute("id",String.valueOf(ex1.getId()));
-                                    btb.addElement("exam").addAttribute("id",String.valueOf(ex2.getId()));
+                                    Element btb = conflicts.addElement("back-to-back").addAttribute("student", getId(anonymize,"student",String.valueOf(student.getId())));
+                                    btb.addElement("exam").addAttribute("id",getId(anonymize,"exam",String.valueOf(ex1.getId())));
+                                    btb.addElement("exam").addAttribute("id",getId(anonymize,"exam",String.valueOf(ex2.getId())));
                                     if (getBackToBackDistance()>=0) {
                                         int dist = ((ExamPlacement)ex1.getAssignment()).getDistance((ExamPlacement)ex2.getAssignment());
                                         if (dist>0) btb.addAttribute("distance", String.valueOf(dist));
@@ -1612,10 +1617,10 @@ public class ExamModel extends Model {
                     if (period.next()==null || period.next().getDay()!=period.getDay()) {
                         int nrExamsADay = student.getExamsADay(period.getDay()).size();
                         if (nrExamsADay>2) {
-                            Element mt2 = conflicts.addElement("more-2-day").addAttribute("student", String.valueOf(student.getId()));
+                            Element mt2 = conflicts.addElement("more-2-day").addAttribute("student", getId(anonymize,"student",String.valueOf(student.getId())));
                             for (Iterator i=student.getExamsADay(period.getDay()).iterator();i.hasNext();) {
                                 Exam exam = (Exam)i.next();
-                                mt2.addElement("exam").addAttribute("id",String.valueOf(exam.getId()));
+                                mt2.addElement("exam").addAttribute("id",getId(anonymize,"exam",String.valueOf(exam.getId())));
                             }
                         }
                     }
@@ -1643,7 +1648,9 @@ public boolean load(Document document, Callback saveBest) {
         boolean loadParams = getProperties().getPropertyBoolean("Xml.LoadParameters",false);
         Element root=document.getRootElement();
         if (!"examtt".equals(root.getName())) return false;
-        if (root.attribute("initiative")!=null)
+        if (root.attribute("campus")!=null)
+            getProperties().setProperty("Data.Initiative", root.attributeValue("campus"));
+        else if (root.attribute("initiative")!=null)
             getProperties().setProperty("Data.Initiative", root.attributeValue("initiative"));
         if (root.attribute("term")!=null)
             getProperties().setProperty("Data.Term", root.attributeValue("term"));
@@ -1839,6 +1846,11 @@ public boolean load(Document document, Callback saveBest) {
                     ExamPeriod period = (ExamPeriod)f.nextElement();
                     if (available.charAt(period.getIndex())=='0') student.setAvailable(period.getIndex(), false);
                 }
+            for (Iterator j=e.elementIterator("period");j.hasNext();) {
+                Element pe = (Element)j.next();
+                ExamPeriod period = getPeriod(Long.valueOf(pe.attributeValue("id"))); 
+                if ("false".equals(pe.attributeValue("available"))) student.setAvailable(period.getIndex(), false);
+            }
             addConstraint(student);
             getStudents().add(student);
         }        
@@ -1863,6 +1875,11 @@ public boolean load(Document document, Callback saveBest) {
                         ExamPeriod period = (ExamPeriod)f.nextElement();
                         if (available.charAt(period.getIndex())=='0') instructor.setAvailable(period.getIndex(), false);
                     }
+                for (Iterator j=e.elementIterator("period");j.hasNext();) {
+                    Element pe = (Element)j.next();
+                    ExamPeriod period = getPeriod(Long.valueOf(pe.attributeValue("id"))); 
+                    if ("false".equals(pe.attributeValue("available"))) instructor.setAvailable(period.getIndex(), false);
+                }
                 addConstraint(instructor);
                 getInstructors().add(instructor);
             }
