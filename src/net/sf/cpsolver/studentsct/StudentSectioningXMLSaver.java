@@ -20,6 +20,7 @@ import net.sf.cpsolver.coursett.IdConvertor;
 import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.ifs.solver.Solver;
+import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.model.AcademicAreaCode;
 import net.sf.cpsolver.studentsct.model.Choice;
@@ -396,6 +397,10 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                     }
                 }
             }
+        }
+        
+        if (iShowNames) {
+            Progress.getInstance(getModel()).save(root);
         }
 
         FileOutputStream fos = null;
