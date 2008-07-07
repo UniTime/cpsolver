@@ -8,6 +8,7 @@ import net.sf.cpsolver.ifs.model.SimpleNeighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
 
@@ -68,6 +69,8 @@ public class StandardSelection implements NeighbourSelection {
     public void init(Solver solver) {
         iIteration = solver.currentSolution().getIteration();
         iNrIterations = solver.getProperties().getPropertyLong("Neighbour.StandardIterations", -1);
+        if (iNrIterations>0)
+            Progress.getInstance(solver.currentSolution().getModel()).setPhase("Ifs...", iNrIterations);
     }
     
     /**
@@ -77,8 +80,12 @@ public class StandardSelection implements NeighbourSelection {
      * or when a complete solution is found.
      */
     public Neighbour selectNeighbour(Solution solution) {
-        if (iNrIterations<0) iNrIterations = solution.getModel().unassignedVariables().size();
+        if (iNrIterations<0) {
+            iNrIterations = solution.getModel().unassignedVariables().size();
+            Progress.getInstance(solution.getModel()).setPhase("Ifs...", iNrIterations);
+        }
         if (solution.getModel().unassignedVariables().isEmpty() || solution.getIteration()>=iIteration+iNrIterations) return null;
+        Progress.getInstance(solution.getModel()).incProgress();
         for (int i=0;i<10;i++) {
             Request request = (Request)iVariableSelection.selectVariable(solution);
             Enrollment enrollment = (request==null?null:(Enrollment)iValueSelection.selectValue(solution, request));

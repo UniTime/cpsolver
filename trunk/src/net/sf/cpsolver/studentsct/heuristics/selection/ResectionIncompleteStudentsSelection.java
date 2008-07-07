@@ -4,7 +4,9 @@ import org.apache.log4j.Logger;
 
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
+import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.studentsct.heuristics.studentord.StudentOrder;
 import net.sf.cpsolver.studentsct.heuristics.studentord.StudentRandomOrder;
 import net.sf.cpsolver.studentsct.model.Student;
@@ -56,6 +58,11 @@ public class ResectionIncompleteStudentsSelection extends BranchBoundSelection {
         }
     }
     
+    public void init(Solver solver) {
+        init(solver, "Resection incomplete students...");
+    }
+
+    
     /**
      * Select neighbour. All students with an incomplete and non-empty schedule are taken, 
      * one by one in a random order. For each student a branch & bound search is employed. 
@@ -63,6 +70,7 @@ public class ResectionIncompleteStudentsSelection extends BranchBoundSelection {
     public Neighbour selectNeighbour(Solution solution) {
         while (iStudentsEnumeration.hasMoreElements()) {
             Student student = (Student)iStudentsEnumeration.nextElement();
+            Progress.getInstance(solution.getModel()).incProgress();
             if (student.nrAssignedRequests()==0 || student.isComplete()) continue;
             Neighbour neighbour = getSelection(student).select();
             if (neighbour!=null) return neighbour;

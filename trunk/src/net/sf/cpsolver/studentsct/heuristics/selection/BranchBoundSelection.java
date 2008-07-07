@@ -15,6 +15,7 @@ import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
 import net.sf.cpsolver.studentsct.heuristics.studentord.StudentChoiceRealFirstOrder;
@@ -95,7 +96,7 @@ public class BranchBoundSelection implements NeighbourSelection {
     /**
      * Initialize
      */
-    public void init(Solver solver) {
+    public void init(Solver solver, String name) {
         Vector students = iOrder.order(((StudentSectioningModel)solver.currentSolution().getModel()).getStudents());
         iStudentsEnumeration = students.elements();
         if (iDistanceConflict==null)
@@ -104,6 +105,11 @@ public class BranchBoundSelection implements NeighbourSelection {
                 if (ext instanceof DistanceConflict)
                     iDistanceConflict = (DistanceConflict)ext;
             }
+        Progress.getInstance(solver.currentSolution().getModel()).setPhase(name, students.size());
+    }
+    
+    public void init(Solver solver) {
+        init(solver, "Branch&bound...");
     }
     
     /** 
@@ -113,6 +119,7 @@ public class BranchBoundSelection implements NeighbourSelection {
     public Neighbour selectNeighbour(Solution solution) {
         while (iStudentsEnumeration.hasMoreElements()) {
             Student student = (Student)iStudentsEnumeration.nextElement();
+            Progress.getInstance(solution.getModel()).incProgress();
             Neighbour neighbour = getSelection(student).select();
             if (neighbour!=null) return neighbour;
         }
