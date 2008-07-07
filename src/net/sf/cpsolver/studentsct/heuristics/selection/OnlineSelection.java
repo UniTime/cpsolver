@@ -6,6 +6,7 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
+import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.studentsct.StudentPreferencePenalties;
 import net.sf.cpsolver.studentsct.model.Config;
@@ -79,6 +80,10 @@ public class OnlineSelection extends BranchBoundSelection {
         if (iUsePenalties || !iUseStudentPrefPenalties)
             iBranchBound = new BranchBoundSelection(properties);
         iMinimizePenalty=true;
+    }
+    
+    public void init(Solver solver) {
+        init(solver, "Online...");
     }
     
     /** Use student preference penalties */

@@ -8,6 +8,7 @@ import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.model.Request;
@@ -65,6 +66,7 @@ public class RandomUnassignmentSelection implements NeighbourSelection {
      */
     public void init(Solver solver) {
         iStudents = ((StudentSectioningModel)solver.currentSolution().getModel()).getStudents();
+        Progress.getInstance(solver.currentSolution().getModel()).setPhase("Random unassignment...", 1);
     }
     
     /**
@@ -76,6 +78,7 @@ public class RandomUnassignmentSelection implements NeighbourSelection {
             Student student = (Student)ToolBox.random(iStudents);
             return new UnassignStudentNeighbour(student);
         }
+        Progress.getInstance(solution.getModel()).incProgress();
         return null;
     }
     

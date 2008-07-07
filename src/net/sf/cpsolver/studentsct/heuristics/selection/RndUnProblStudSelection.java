@@ -8,6 +8,7 @@ import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.model.Student;
 
@@ -66,6 +67,7 @@ public class RndUnProblStudSelection extends RandomUnassignmentSelection {
     /** Initialization -- {@link ProblemStudentsProvider#getProblemStudents()} is called */
     public void init(Solver solver) {
         iProblemStudents = iProblemStudentsProvider.getProblemStudents();
+        Progress.getInstance(solver.currentSolution().getModel()).setPhase("Random unassignment of problematic students...", 1);
     }
     
     /**
@@ -78,6 +80,7 @@ public class RndUnProblStudSelection extends RandomUnassignmentSelection {
             iProblemStudents.remove(student);
             return new UnassignStudentNeighbour(student);
         }
+        Progress.getInstance(solution.getModel()).incProgress();
         return null;
     }
 }

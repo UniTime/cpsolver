@@ -9,6 +9,7 @@ import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.studentsct.heuristics.RandomizedBacktrackNeighbourSelection;
 import net.sf.cpsolver.studentsct.model.Request;
 
@@ -47,7 +48,7 @@ public class BacktrackSelection implements NeighbourSelection {
     public BacktrackSelection(DataProperties properties) {
     }
 
-    public void init(Solver solver) {
+    public void init(Solver solver, String name) {
         Vector unassigned = new Vector(solver.currentSolution().getModel().unassignedVariables());
         Collections.shuffle(unassigned);
         iRequestEnumeration = unassigned.elements();
@@ -59,11 +60,17 @@ public class BacktrackSelection implements NeighbourSelection {
                 throw new RuntimeException(e.getMessage(),e);
             }
         }
+        Progress.getInstance(solver.currentSolution().getModel()).setPhase(name, unassigned.size());
+    }
+    
+    public void init(Solver solver) {
+        init(solver, "Backtracking...");
     }
     
     public Neighbour selectNeighbour(Solution solution) {
         while (iRequestEnumeration.hasMoreElements()) {
             Request request = (Request)iRequestEnumeration.nextElement();
+            Progress.getInstance(solution.getModel()).incProgress();
             Neighbour n = iRBtNSel.selectNeighbour(solution, request);
             if (n!=null) return n;
         }
