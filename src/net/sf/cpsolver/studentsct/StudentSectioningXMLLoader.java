@@ -15,6 +15,7 @@ import org.dom4j.io.SAXReader;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.TimeLocation;
+import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.studentsct.filter.StudentFilter;
 import net.sf.cpsolver.studentsct.model.AcademicAreaCode;
 import net.sf.cpsolver.studentsct.model.Choice;
@@ -143,9 +144,12 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         Element root = document.getRootElement();
         sLogger.debug("Root element: "+root.getName());
         if (!"sectioning".equals(root.getName())) {
-            sLogger.error("Given XML file is not large lecture room timetabling problem.");
+            sLogger.error("Given XML file is not student sectioning problem.");
             return;
         }
+        
+        Progress.getInstance(getModel()).load(root, true);
+        Progress.getInstance(getModel()).message(Progress.MSGLEVEL_STAGE, "Restoring from backup ...");
         
         if (root.attributeValue("term")!=null)
             getModel().getProperties().setProperty("Data.Term", root.attributeValue("term"));
