@@ -13,6 +13,7 @@ import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.heuristics.studentord.StudentChoiceRealFirstOrder;
 import net.sf.cpsolver.studentsct.heuristics.studentord.StudentOrder;
@@ -97,6 +98,7 @@ public class SwapStudentSelection implements NeighbourSelection, ProblemStudents
         Vector students = iOrder.order(((StudentSectioningModel)solver.currentSolution().getModel()).getStudents());
         iStudentsEnumeration = students.elements();
         iProblemStudents.clear();
+        Progress.getInstance(solver.currentSolution().getModel()).setPhase("Student swap...", students.size());
     }
     
     /** 
@@ -115,6 +117,7 @@ public class SwapStudentSelection implements NeighbourSelection, ProblemStudents
         iStudent = null;
         while (iStudentsEnumeration.hasMoreElements()) {
             Student student = (Student)iStudentsEnumeration.nextElement();
+            Progress.getInstance(solution.getModel()).incProgress();
             if (student.isComplete() || student.nrAssignedRequests()==0) continue;
             Selection selection = getSelection(student);
             Neighbour neighbour = selection.select();
