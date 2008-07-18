@@ -128,6 +128,7 @@ public class ExamModel extends Model {
     private double iLargeWeight = 1.0;
 
     private int iNrDirectConflicts = 0;
+    private int iNrNADirectConflicts = 0;
     private int iNrBackToBackConflicts = 0;
     private int iNrDistanceBackToBackConflicts = 0;
     private int iNrMoreThanTwoADayConflicts = 0;
@@ -141,6 +142,7 @@ public class ExamModel extends Model {
     private int iExamRotationPenalty = 0;
     private int iPerturbationPenalty = 0;
     private int iNrInstructorDirectConflicts = 0;
+    private int iNrNAInstructorDirectConflicts = 0;
     private int iNrInstructorBackToBackConflicts = 0;
     private int iNrInstructorDistanceBackToBackConflicts = 0;
     private int iNrInstructorMoreThanTwoADayConflicts = 0;
@@ -616,6 +618,7 @@ public class ExamModel extends Model {
         ExamPlacement placement = (ExamPlacement)value;
         Exam exam = (Exam)placement.variable();
         iNrDirectConflicts -= placement.getNrDirectConflicts();
+        iNrNADirectConflicts -= placement.getNrNotAvailableConflicts();
         iNrBackToBackConflicts -= placement.getNrBackToBackConflicts();
         iNrMoreThanTwoADayConflicts -= placement.getNrMoreThanTwoADayConflicts();
         iRoomSizePenalty -= placement.getRoomSizePenalty();
@@ -626,6 +629,7 @@ public class ExamModel extends Model {
         iExamRotationPenalty -= placement.getRotationPenalty();
         iRoomPenalty -= placement.getRoomPenalty();
         iNrInstructorDirectConflicts -= placement.getNrInstructorDirectConflicts();
+        iNrNAInstructorDirectConflicts -= placement.getNrInstructorNotAvailableConflicts();
         iNrInstructorBackToBackConflicts -= placement.getNrInstructorBackToBackConflicts();
         iNrInstructorMoreThanTwoADayConflicts -= placement.getNrInstructorMoreThanTwoADayConflicts();
         iNrInstructorDistanceBackToBackConflicts -= placement.getNrInstructorDistanceBackToBackConflicts();
@@ -647,6 +651,7 @@ public class ExamModel extends Model {
         ExamPlacement placement = (ExamPlacement)value;
         Exam exam = (Exam)placement.variable();
         iNrDirectConflicts += placement.getNrDirectConflicts();
+        iNrNADirectConflicts += placement.getNrNotAvailableConflicts();
         iNrBackToBackConflicts += placement.getNrBackToBackConflicts();
         iNrMoreThanTwoADayConflicts += placement.getNrMoreThanTwoADayConflicts();
         iRoomSizePenalty += placement.getRoomSizePenalty();
@@ -657,6 +662,7 @@ public class ExamModel extends Model {
         iExamRotationPenalty += placement.getRotationPenalty();
         iRoomPenalty += placement.getRoomPenalty();
         iNrInstructorDirectConflicts += placement.getNrInstructorDirectConflicts();
+        iNrNAInstructorDirectConflicts += placement.getNrInstructorNotAvailableConflicts();
         iNrInstructorBackToBackConflicts += placement.getNrInstructorBackToBackConflicts();
         iNrInstructorMoreThanTwoADayConflicts += placement.getNrInstructorMoreThanTwoADayConflicts();
         iNrInstructorDistanceBackToBackConflicts += placement.getNrInstructorDistanceBackToBackConflicts();
@@ -1246,13 +1252,13 @@ public class ExamModel extends Model {
      */
     public Hashtable getInfo() {
         Hashtable info = super.getInfo();
-        info.put("Direct Conflicts",String.valueOf(getNrDirectConflicts(false)));
+        info.put("Direct Conflicts",getNrDirectConflicts(false)+(iNrNADirectConflicts>0?" ("+iNrNADirectConflicts+" N/A)":""));
         info.put("More Than 2 A Day Conflicts",String.valueOf(getNrMoreThanTwoADayConflicts(false)));
         info.put("Back-To-Back Conflicts",String.valueOf(getNrBackToBackConflicts(false)));
         if (getBackToBackDistance()>=0 && getNrDistanceBackToBackConflicts(false)>0)
             info.put("Distance Back-To-Back Conflicts",String.valueOf(getNrDistanceBackToBackConflicts(false)));
         if (getNrInstructorDirectConflicts(false)>0)
-            info.put("Instructor Direct Conflicts",String.valueOf(getNrInstructorDirectConflicts(false)));
+            info.put("Instructor Direct Conflicts",getNrInstructorDirectConflicts(false)+(iNrNAInstructorDirectConflicts>0?" ("+iNrNAInstructorDirectConflicts+" N/A)":""));
         if (getNrInstructorMoreThanTwoADayConflicts(false)>0)
             info.put("Instructor More Than 2 A Day Conflicts",String.valueOf(getNrInstructorMoreThanTwoADayConflicts(false)));
         if (getNrInstructorBackToBackConflicts(false)>0)
