@@ -78,6 +78,7 @@ public class Exam extends Variable {
     private int iMinSize = 0;
     private boolean iAltSeating = false;
     private int iAveragePeriod = -1;
+    private Integer iSize = null;
     
     private Vector iOwners = new Vector();
     private Vector iPeriodPlacements = null;
@@ -127,9 +128,23 @@ public class Exam extends Variable {
      * {@link Exam#hasAltSeating()}) must be equal or greater than this size.
      */
     public int getSize() {
-        return Math.max(iMinSize,getStudents().size());
+        return (iSize==null?Math.max(iMinSize,getStudents().size()):iSize.intValue());
     }
     
+    /**
+     * Override exam size with given value (revert to default when null)
+     */
+    public void setSizeOverride(Integer size) {
+        iSize = size;
+    }
+    
+    /**
+     * Override exam size with given value (revert to default when null)
+     */
+    public Integer getSizeOverride() {
+        return iSize;
+    }
+
     /**
      * Minimal exam size, see {@link Exam#getSize()} 
      */
