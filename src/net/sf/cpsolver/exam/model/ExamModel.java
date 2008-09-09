@@ -1479,6 +1479,8 @@ public class ExamModel extends Model {
             if (!anonymize && exam.hasName())
                 ex.addAttribute("name", exam.getName());
             ex.addAttribute("length", String.valueOf(exam.getLength()));
+            if (exam.getSizeOverride()!=null)
+                ex.addAttribute("size", exam.getSizeOverride().toString());
             if (exam.getMinSize()!=0)
                 ex.addAttribute("minSize", String.valueOf(exam.getMinSize()));
             ex.addAttribute("alt", (exam.hasAltSeating()?"true":"false"));
@@ -1789,6 +1791,8 @@ public boolean load(Document document, Callback saveBest) {
                     (e.attribute("maxRooms")==null?getMaxRooms():Integer.parseInt(e.attributeValue("maxRooms"))),
                     Integer.parseInt(e.attributeValue("minSize","0")),
                     periodPlacements, roomPlacements);
+            if (e.attributeValue("size")!=null)
+                exam.setSizeOverride(Integer.valueOf(e.attributeValue("size")));
             exams.put(new Long(exam.getId()),exam);
             addVariable(exam);
             if (e.attribute("average")!=null) exam.setAveragePeriod(Integer.parseInt(e.attributeValue("average")));
