@@ -161,7 +161,7 @@ public class ExamConstruction implements NeighbourSelection {
         if (best!=null) {
             iAssignments.add(bestExam.getId()+":"+best.getPeriod().getIndex());
             return new ExamSimpleNeighbour(best);
-        } else {
+        } /*else {
             for (Enumeration e=bestExam.getPeriodPlacements().elements();e.hasMoreElements();) {
                 ExamPeriodPlacement period = (ExamPeriodPlacement)e.nextElement();
                 ExamPlacement placement = new ExamPlacement(bestExam, period, null);
@@ -177,6 +177,7 @@ public class ExamConstruction implements NeighbourSelection {
                 return new ExamSimpleNeighbour(best);
             }
         }
+        */
         if (!iSkip.contains(bestExam)) {
             iSkip.add(bestExam); return selectNeighbour(solution);
         }
