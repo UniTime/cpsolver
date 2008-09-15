@@ -79,6 +79,7 @@ public class Exam extends Variable {
     private boolean iAltSeating = false;
     private int iAveragePeriod = -1;
     private Integer iSize = null;
+    private Integer iPrintOffset = null;
     
     private Vector iOwners = new Vector();
     private Vector iPeriodPlacements = null;
@@ -143,6 +144,20 @@ public class Exam extends Variable {
      */
     public Integer getSizeOverride() {
         return iSize;
+    }
+    
+    /**
+     * Print offset -- for reporting purposes
+     */
+    public Integer getPrintOffset() {
+        return iPrintOffset;
+    }
+    
+    /**
+     * Print offset -- for reporting purposes
+     */
+    public void setPrintOffset(Integer printOffset) {
+        iPrintOffset = printOffset;
     }
 
     /**
