@@ -99,7 +99,7 @@ public class ExamRoomPlacement implements Comparable {
      * @return {@link ExamRoomPlacement#getPenalty()} + {@link ExamRoom#getPenalty(ExamPeriod)}
      */
     public int getPenalty(ExamPeriod period) {
-        return iPenalty + iRoom.getPenalty(period);
+        return (iPenalty!=0?iPenalty:iRoom.getPenalty(period));
     }
 
     /**
