@@ -1205,8 +1205,8 @@ public class ExamModel extends Model {
                     int minPenalty = Integer.MAX_VALUE, maxPenalty = Integer.MIN_VALUE;
                     for (Enumeration f=exam.getRoomPlacements().elements();f.hasMoreElements();) {
                         ExamRoomPlacement roomPlacement = (ExamRoomPlacement)f.nextElement();
-                        minPenalty = Math.min(minPenalty, roomPlacement.getPenalty()+getMinPenalty(roomPlacement.getRoom()));
-                        maxPenalty = Math.max(maxPenalty, roomPlacement.getPenalty()+getMaxPenalty(roomPlacement.getRoom()));
+                        minPenalty = Math.min(minPenalty, (roomPlacement.getPenalty()!=0?roomPlacement.getPenalty():getMinPenalty(roomPlacement.getRoom())));
+                        maxPenalty = Math.max(maxPenalty, (roomPlacement.getPenalty()!=0?roomPlacement.getPenalty():getMaxPenalty(roomPlacement.getRoom())));
                     }
                     minRoomPenalty += minPenalty;
                     maxRoomPenalty += maxPenalty;
