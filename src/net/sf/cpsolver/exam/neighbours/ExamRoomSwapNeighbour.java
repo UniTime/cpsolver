@@ -57,6 +57,13 @@ public class ExamRoomSwapNeighbour extends Neighbour {
             Set newRooms = new HashSet(placement.getRoomPlacements());
             newRooms.remove(current);
             newRooms.add(swap);
+            for (Iterator i=newRooms.iterator();i.hasNext();) {
+                ExamRoomPlacement r = (ExamRoomPlacement)i.next();
+                if (r.equals(swap)) continue;
+                if (size - r.getSize(exam.hasAltSeating()) >= exam.getSize()) {
+                    i.remove(); size -= r.getSize(exam.hasAltSeating());
+                }
+            }
             iX1 = new ExamPlacement(exam, placement.getPeriodPlacement(), newRooms);
             iValue = iX1.toDouble() - (exam.getAssignment()==null?0.0:exam.getAssignment().toDouble());
         } else {
@@ -68,14 +75,30 @@ public class ExamRoomSwapNeighbour extends Neighbour {
             for (Iterator i=conflict.getRoomPlacements().iterator();i.hasNext();) {
                 xSize += ((ExamRoomPlacement)i.next()).getSize(x.hasAltSeating());
             }
-            if (xSize - swap.getSize(x.hasAltSeating()) + current.getSize(x.hasAltSeating()) < x.getSize()) return; //current room is too small for the conflicting exam
+            xSize -= swap.getSize(x.hasAltSeating());
+            xSize += current.getSize(x.hasAltSeating());
+            if (xSize < x.getSize()) return; //current room is too small for the conflicting exam
             Set newRooms = new HashSet(placement.getRoomPlacements());
             newRooms.remove(current);
             newRooms.add(swap);
+            for (Iterator i=newRooms.iterator();i.hasNext();) {
+                ExamRoomPlacement r = (ExamRoomPlacement)i.next();
+                if (r.equals(swap)) continue;
+                if (size - r.getSize(exam.hasAltSeating()) >= exam.getSize()) {
+                    i.remove(); size -= r.getSize(exam.hasAltSeating());
+                }
+            }
             iX1 = new ExamPlacement(exam, placement.getPeriodPlacement(), newRooms);
             Set xRooms = new HashSet(conflict.getRoomPlacements());
             xRooms.remove(x.getRoomPlacement(swap.getRoom()));
             xRooms.add(xNew);
+            for (Iterator i=xRooms.iterator();i.hasNext();) {
+                ExamRoomPlacement r = (ExamRoomPlacement)i.next();
+                if (r.equals(swap)) continue;
+                if (xSize - r.getSize(x.hasAltSeating()) >= x.getSize()) {
+                    i.remove(); xSize -= r.getSize(x.hasAltSeating());
+                }
+            }
             iX2 = new ExamPlacement(x, conflict.getPeriodPlacement(), xRooms);
             iValue = iX1.toDouble() - (exam.getAssignment()==null?0.0:exam.getAssignment().toDouble()) +
                      iX2.toDouble() - conflict.toDouble();
