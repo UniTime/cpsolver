@@ -438,7 +438,25 @@ public class ExamPlacement extends Value {
         if (!((ExamModel)exam.getModel()).isMPP()) return 0;
         ExamPlacement initial = (ExamPlacement)exam.getInitialAssignment();
         if (initial==null) return 0;
-        return Math.abs(initial.getPeriod().getIndex()-getPeriod().getIndex())*exam.getSize();
+        return Math.abs(initial.getPeriod().getIndex()-getPeriod().getIndex())*(1+exam.getSize());
+    }
+    
+    /**
+     * Room perturbation penalty, i.e., number of assigned rooms different from initial. 
+     * Only applicable when {@link ExamModel#isMPP()} is true (minimal perturbation problem).
+     * @return |period index - initial period index | * exam size 
+     */
+    public int getRoomPerturbationPenalty() {
+        Exam exam = (Exam)variable();
+        if (!((ExamModel)exam.getModel()).isMPP()) return 0;
+        ExamPlacement initial = (ExamPlacement)exam.getInitialAssignment();
+        if (initial==null) return 0;
+        int penalty = 0;
+        for (Iterator i=getRoomPlacements().iterator();i.hasNext();) {
+            ExamRoomPlacement rp = (ExamRoomPlacement)i.next();
+            if (!initial.getRoomPlacements().contains(rp)) penalty++;
+        }
+        return penalty;
     }
     
     /**
@@ -523,6 +541,8 @@ public class ExamPlacement extends Value {
             model.getBackToBackConflictWeight()*getNrBackToBackConflicts()+
             model.getDistanceBackToBackConflictWeight()*getNrDistanceBackToBackConflicts()+
             model.getPeriodWeight()*getPeriodPenalty()+ 
+            model.getPeriodSizeWeight()*getPeriodPenalty()*(exam.getSize()+1)+
+            model.getPeriodIndexWeight()*getPeriod().getIndex()+
             model.getRoomSizeWeight()*getRoomSizePenalty()+
             model.getRoomSplitWeight()*getRoomSplitPenalty()+
             model.getExamRotationWeight()*getRotationPenalty()+
@@ -533,6 +553,7 @@ public class ExamPlacement extends Value {
             model.getInstructorDistanceBackToBackConflictWeight()*getNrInstructorDistanceBackToBackConflicts()+
             model.getRoomSplitDistanceWeight()*getRoomSplitDistancePenalty()+
             model.getPerturbationWeight()*getPerturbationPenalty()+
+            model.getRoomPerturbationWeight()*getRoomPerturbationPenalty()+
             model.getDistributionWeight()*getDistributionPenalty()+
             model.getLargeWeight()*getLargePenalty();
     }
@@ -561,10 +582,13 @@ public class ExamPlacement extends Value {
             model.getBackToBackConflictWeight()*getNrBackToBackConflicts()+
             model.getMoreThanTwoADayWeight()*getNrMoreThanTwoADayConflicts()+
             model.getPeriodWeight()*getPeriodPenalty()+
+            model.getPeriodSizeWeight()*getPeriodPenalty()*(exam.getSize()+1)+
+            model.getPeriodIndexWeight()*getPeriod().getIndex()+
             model.getExamRotationWeight()*getRotationPenalty()+
             model.getInstructorDirectConflictWeight()*getNrInstructorDirectConflicts()+
             model.getInstructorMoreThanTwoADayWeight()*getNrInstructorMoreThanTwoADayConflicts()+
             model.getInstructorBackToBackConflictWeight()*getNrInstructorBackToBackConflicts()+
+            model.getPerturbationWeight()*getPerturbationPenalty()+
             model.getDistributionWeight()*getPeriodDistributionPenalty()+
             model.getLargeWeight()*getLargePenalty();
     }
@@ -591,7 +615,8 @@ public class ExamPlacement extends Value {
             model.getRoomWeight()*getRoomPenalty()+
             model.getInstructorDistanceBackToBackConflictWeight()*getNrInstructorDistanceBackToBackConflicts()+
             model.getRoomSplitDistanceWeight()*getRoomSizePenalty()+
-            model.getDistributionWeight()*getRoomDistributionPenalty();
+            model.getDistributionWeight()*getRoomDistributionPenalty()+
+            model.getRoomPerturbationWeight()*getRoomPerturbationPenalty();
     }
     
     /**
@@ -633,7 +658,7 @@ public class ExamPlacement extends Value {
             "RSp:"+getRoomSplitPenalty()+","+
             "RD:"+df.format(getRoomSplitDistancePenalty())+","+
             "RP:"+getRoomPenalty()+
-            (model.isMPP()?",IP:"+getPerturbationPenalty():"")+
+            (model.isMPP()?",IP:"+getPerturbationPenalty()+",IRP:"+getRoomPerturbationPenalty():"")+
             ")";
     }
     
