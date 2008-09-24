@@ -436,6 +436,9 @@ public class Solver {
                         }
                     if (neighbour==null) {
                     	sLogger.debug("No neighbour selected.");
+                    	synchronized (iCurrentSolution) { //still update the solution (increase iteration etc.)
+                    	    iCurrentSolution.update(JProf.currentTimeSec()-startTime);
+                    	}
                     	continue;
                     }
                 	
