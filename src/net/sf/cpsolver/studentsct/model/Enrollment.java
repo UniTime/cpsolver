@@ -138,6 +138,7 @@ public class Enrollment extends Value {
     
     /** Percent of sections that are initial */
     public double percentInitial() {
+    	if (!isCourseRequest()) return 0.0;
         if (getRequest().getInitialAssignment()==null) return 0.0;
         Enrollment inital = (Enrollment)getRequest().getInitialAssignment();
         int nrInitial = 0;
