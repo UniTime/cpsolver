@@ -76,7 +76,6 @@ public class MacPropagation extends Extension {
     /** Constructor */
     public MacPropagation(Solver solver, DataProperties properties) {
         super(solver, properties);
-        iProgress = Progress.getInstance(getModel());
         iJustForwardCheck = properties.getPropertyBoolean("MacPropagation.JustForwardCheck", false);
     }
     
@@ -152,6 +151,7 @@ public class MacPropagation extends Extension {
     /** Initialization. Enforce arc-consistency over the current (initial) solution. AC3 algorithm is used. */
     public boolean init(Solver solver) {
         boolean isOk = true;
+        iProgress = Progress.getInstance(getModel());
         iProgress.save();
         iProgress.setPhase("Initializing propagation:", 3 * getModel().variables().size());
         for (Enumeration i1 = getModel().variables().elements(); i1.hasMoreElements(); ) {

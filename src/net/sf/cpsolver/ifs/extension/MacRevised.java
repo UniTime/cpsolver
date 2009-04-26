@@ -46,7 +46,6 @@ public class MacRevised extends Extension {
     /** Constructor */
     public MacRevised(Solver solver, DataProperties properties) {
         super(solver, properties);
-        iProgress = Progress.getInstance(getModel());
         iDbt = properties.getPropertyBoolean("MacRevised.Dbt", false);
     }
     
@@ -229,6 +228,7 @@ public class MacRevised extends Extension {
     /** Initialization. Enforce arc-consistency over the current (initial) solution. AC3 algorithm is used. */
     public boolean init(Solver solver) {
         boolean isOk = true;
+        iProgress = Progress.getInstance(getModel());
         for (Enumeration e=getModel().constraints().elements();e.hasMoreElements();) {
             Constraint constraint = (Constraint)e.nextElement();
             sLogger.debug("Constraint "+constraint.getName());
