@@ -65,10 +65,12 @@ public class FinalSectioning implements Runnable {
 	private TimetableModel iModel = null;
 	private Progress iProgress = null;
 	public static double sEps = 0.0001;
+	private boolean iWeighStudents = false;
 	
 	public FinalSectioning(TimetableModel model) {
 		iModel = model;
 		iProgress = Progress.getInstance(iModel);
+		iWeighStudents = model.getProperties().getPropertyBoolean("General.WeightStudents", iWeighStudents);
 	}
 	
 	public void run() {
@@ -137,6 +139,13 @@ public class FinalSectioning implements Runnable {
     			lecturesToRecompute.add(m.secondLecture());
    				m.perform();
         	}
+    	} else if (!iWeighStudents) {
+    		while (true) {
+      		  Move m = findAwayMove(lecture);
+    		  if (m==null) break;
+    		  lecturesToRecompute.add(m.secondLecture());
+    		  m.perform();
+    		}
     	}
     	
     	Set conflictStudents = lecture.conflictStudents();
