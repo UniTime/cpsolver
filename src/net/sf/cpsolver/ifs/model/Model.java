@@ -323,7 +323,7 @@ public class Model {
             public int compare(Object o1, Object o2) {
                 Variable v1 = (Variable)o1;
                 Variable v2 = (Variable)o2;
-                return (v1!=null?v1.getName().compareTo(v2.getName()):(int)(v1.getId()-v2.getId()));
+                return (v1.getName()!=null?v1.getName().compareTo(v2.getName()):(int)(v1.getId()-v2.getId()));
             }
         });
         return "Model{\n    variables="+ToolBox.col2string(variables(),2)+
