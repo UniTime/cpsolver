@@ -360,9 +360,15 @@ public class TimetableXMLLoader extends TimetableLoader {
             		altConfigs = new FastVector();
             		alternativeConfigurations.put(offeringId, altConfigs);
             	}
-            	config = new Configuration(offeringId,configId,0);
-                altConfigs.add(config);
-            	config.setAltConfigurations(altConfigs);
+            	for (Enumeration e=altConfigs.elements();e.hasMoreElements();) {
+            		Configuration c = (Configuration)e.nextElement();
+            		if (c.getConfigId().equals(configId)) { config = c; break; }
+            	}
+            	if (config==null) {
+            		config = new Configuration(offeringId,configId,-1);
+            		altConfigs.add(config);
+            		config.setAltConfigurations(altConfigs);
+            	}
             }
             
             Long datePatternId = null;
