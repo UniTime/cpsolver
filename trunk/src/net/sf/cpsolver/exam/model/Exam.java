@@ -890,7 +890,7 @@ public class Exam extends Variable {
                 size += room.getSize(hasAltSeating());
             }
             if (size<getSize() && !placement.getRoomPlacements().isEmpty()) {
-                Progress.getInstance(getModel()).warn("Selected room(s) are two small "+size+"<"+getSize()+" ("+getName()+" "+placement.getName()+")");
+                Progress.getInstance(getModel()).warn("Selected room(s) are too small "+size+"<"+getSize()+" ("+getName()+" "+placement.getName()+")");
             }
         }
         super.assign(iteration, value);
