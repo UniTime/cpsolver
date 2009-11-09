@@ -139,21 +139,31 @@ public class ExamGreatDeluge implements NeighbourSelection, SolutionListener {
         if (iIter<0) {
             iIter = 0; iLastImprovingIter = 0;
             iT0 = System.currentTimeMillis();
-            iBound = iUpperBoundRate * solution.getBestValue();
+            iBound = (solution.getBestValue()>0.0?
+            		iUpperBoundRate * solution.getBestValue():
+            		solution.getBestValue() / iUpperBoundRate);
             iUpperBound = iBound;
             iNrIdle = 0;
             iProgress.setPhase("Great deluge ["+(1+iNrIdle)+"]...");
         } else {
-            iIter++; iBound *= iCoolRate;
+            iIter++;
+            if (solution.getBestValue()>=0.0)
+            	iBound *= iCoolRate;
+            else
+            	iBound /= iCoolRate;
         }
         if (iIter%100000==0) {
             info(solution);
         }
-        double lowerBound = Math.pow(iLowerBoundRate,1+iNrIdle)*solution.getBestValue(); 
+        double lowerBound = (solution.getBestValue()>=0.0?
+        		Math.pow(iLowerBoundRate,1+iNrIdle)*solution.getBestValue():
+       			solution.getBestValue()/Math.pow(iLowerBoundRate,1+iNrIdle)); 
         if (iBound<lowerBound) {
             iNrIdle++;
             sLog.info(" -<["+iNrIdle+"]>- ");
-            iBound = Math.max(solution.getBestValue()+2.0, Math.pow(iUpperBoundRate,iNrIdle) * solution.getBestValue());
+            iBound = Math.max(solution.getBestValue()+2.0, (solution.getBestValue()>=0.0?
+            		Math.pow(iUpperBoundRate,iNrIdle) * solution.getBestValue():
+            		solution.getBestValue() / Math.pow(iUpperBoundRate,iNrIdle)));
             iUpperBound = iBound;
             iProgress.setPhase("Great deluge ["+(1+iNrIdle)+"]...");
         }
