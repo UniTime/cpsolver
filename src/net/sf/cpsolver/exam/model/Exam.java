@@ -216,7 +216,6 @@ public class Exam extends Variable {
                 values.addElement(new ExamPlacement(this, periodPlacement, new HashSet()));
             }
         } else {
-            if (true) throw new RuntimeException("What the hack?");
             if (getRoomPlacements().isEmpty()) {
                 sLog.error("  Exam "+getName()+" has no rooms.");
                 setValues(new Vector(0));
