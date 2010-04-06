@@ -148,7 +148,7 @@ public class Section implements Assignment, Comparable {
 
     /** True, if this section overlaps with one of the given set of assignments in time and space */
     public boolean isOverlapping(Set assignments) {
-        if (getTime()==null) return false;
+        if (getTime()==null || assignments==null) return false;
         for (Iterator i=assignments.iterator();i.hasNext();) {
             Assignment assignment = (Assignment)i.next();
             if (assignment.getTime()==null) continue;
