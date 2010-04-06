@@ -138,4 +138,9 @@ public abstract class Request extends Variable implements Comparable {
     public void setWeight(double weight) {
         iWeight = weight;
     }
+    
+    /** Return true if request is assigned. */
+    public boolean isAssigned() {
+    	return getAssignment() != null;
+    }
 }

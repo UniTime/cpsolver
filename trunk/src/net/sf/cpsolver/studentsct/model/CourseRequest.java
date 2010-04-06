@@ -400,4 +400,9 @@ public class CourseRequest extends Request {
         }
         return iCachedBound.doubleValue();
     }
+    
+    /** Return true if request is assigned. */
+    public boolean isAssigned() {
+    	return getAssignment() != null && !((Enrollment)getAssignment()).getAssignments().isEmpty();
+    }
 }
