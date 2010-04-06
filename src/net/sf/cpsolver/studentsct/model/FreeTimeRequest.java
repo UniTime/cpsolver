@@ -66,6 +66,7 @@ public class FreeTimeRequest extends Request implements Assignment {
     /** True, if this assignment is overlapping in time and space with the given assignment. */
     public boolean isOverlapping(Assignment assignment) {
         if (getTime()==null || assignment.getTime()==null) return false;
+        if (assignment instanceof FreeTimeRequest) return false;
         return getTime().hasIntersection(assignment.getTime());
     }
     
@@ -75,6 +76,7 @@ public class FreeTimeRequest extends Request implements Assignment {
         for (Iterator i=assignments.iterator();i.hasNext();) {
             Assignment assignment = (Assignment)i.next();
             if (assignment.getTime()==null) continue;
+            if (assignment instanceof FreeTimeRequest) return false;
             if (getTime().hasIntersection(assignment.getTime())) return true;
         }
         return false;
