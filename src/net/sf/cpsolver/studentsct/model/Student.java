@@ -96,13 +96,13 @@ import java.util.Vector;
      * requests).  
      **/
     public boolean canAssign(Request request) {
-        if (request.getAssignment()!=null) return true;
+        if (request.isAssigned()) return true;
         int alt = 0;
         boolean found = false;
         for (Enumeration e=iRequests.elements();e.hasMoreElements();) {
             Request r  = (Request)e.nextElement();
             if (r.equals(request)) found = true;
-            boolean assigned = (r.getAssignment()!=null || r.equals(request));
+            boolean assigned = (r.isAssigned() || r.equals(request));
             boolean course = (r instanceof CourseRequest);
             boolean waitlist = (course && ((CourseRequest)r).isWaitlist());
             if (r.isAlternative()) {
@@ -125,7 +125,7 @@ import java.util.Vector;
             Request r  = (Request)e.nextElement();
             if (!(r instanceof CourseRequest)) continue; //ignore free times
             if (!r.isAlternative()) nrRequests++;
-            if (r.getAssignment()!=null) nrAssignedRequests++;
+            if (r.isAssigned()) nrAssignedRequests++;
         }
         return nrAssignedRequests==nrRequests;
     }
@@ -136,7 +136,7 @@ import java.util.Vector;
         for (Enumeration e=iRequests.elements();e.hasMoreElements();) {
             Request r  = (Request)e.nextElement();
             if (!(r instanceof CourseRequest)) continue; //ignore free times
-            if (r.getAssignment()!=null) nrAssignedRequests++;
+            if (r.isAssigned()) nrAssignedRequests++;
         }
         return nrAssignedRequests;
     }
