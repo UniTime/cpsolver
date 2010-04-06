@@ -371,6 +371,11 @@ public class BranchBoundSelection implements NeighbourSelection {
             return assigned;
         }
         
+        /** Returns true if the given request can be left unassigned */
+        protected boolean canLeaveUnassigned(Request request) {
+        	return true;
+        }
+        
         /** branch & bound search */
         public void backTrack(int idx) {
             if (sDebug) sLog.debug("backTrack("+getNrAssigned()+"/"+getValue()+","+idx+")");
@@ -379,24 +384,24 @@ public class BranchBoundSelection implements NeighbourSelection {
                 iTimeoutReached=true; return;
             }
             if (iMinimizePenalty) {
-                if (iBestAssignment!=null && (getNrAssignedBound(idx)<getBestNrAssigned() || (getNrAssignedBound(idx)==getBestNrAssigned() && getPenaltyBound(idx)>=iBestValue))) {
-                    if (sDebug) sLog.debug("  -- branch number of assigned "+getNrAssignedBound(idx)+"<"+getBestNrAssigned()+", or penalty "+getPenaltyBound(idx)+">="+iBestValue);
+                if (getBestAssignment()!=null && (getNrAssignedBound(idx)<getBestNrAssigned() || (getNrAssignedBound(idx)==getBestNrAssigned() && getPenaltyBound(idx)>=getBestValue()))) {
+                    if (sDebug) sLog.debug("  -- branch number of assigned "+getNrAssignedBound(idx)+"<"+getBestNrAssigned()+", or penalty "+getPenaltyBound(idx)+">="+getBestValue());
                     return;
                 }
                 if (idx==iAssignment.length) {
-                    if (iBestAssignment==null || (getNrAssigned()>getBestNrAssigned() || (getNrAssigned()==getBestNrAssigned() && getPenalty()<iBestValue))) {
+                    if (getBestAssignment()==null || (getNrAssigned()>getBestNrAssigned() || (getNrAssigned()==getBestNrAssigned() && getPenalty()<getBestValue()))) {
                         if (sDebug) sLog.debug("  -- best solution found "+getNrAssigned()+"/"+getPenalty());
                         saveBest();
                     }
                     return;
                 }
             } else {
-                if (iBestAssignment!=null && getBound(idx)>=iBestValue) {
-                    if (sDebug) sLog.debug("  -- branch "+getBound(idx)+" >= "+iBestValue);
+                if (getBestAssignment()!=null && getBound(idx)>=getBestValue()) {
+                    if (sDebug) sLog.debug("  -- branch "+getBound(idx)+" >= "+getBestValue());
                     return;
                 }
                 if (idx==iAssignment.length) {
-                    if (iBestAssignment==null || getValue()<iBestValue) {
+                    if (getBestAssignment()==null || getValue()<getBestValue()) {
                         if (sDebug) sLog.debug("  -- best solution found "+getNrAssigned()+"/"+getValue());
                         saveBest();
                     }
@@ -461,10 +466,10 @@ public class BranchBoundSelection implements NeighbourSelection {
                 backTrack(idx+1);
                 iAssignment[idx] = null;
             }
-            if (!hasNoConflictValue || request instanceof CourseRequest) backTrack(idx+1);
+            if (canLeaveUnassigned(request) && (!hasNoConflictValue || request instanceof CourseRequest)) backTrack(idx+1);
         }
     }    
-    
+        
     /** Branch & bound neighbour -- a schedule of a student */
     public static class BranchBoundNeighbour extends Neighbour {
         private double iValue;
