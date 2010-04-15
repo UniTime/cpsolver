@@ -210,12 +210,13 @@ public class StudentSectioningModel extends Model {
         super.afterUnassigned(iteration, value);
         Enrollment enrollment = (Enrollment)value;
         Student student = enrollment.getStudent();
-        if (iCompleteStudents.contains(student) && !student.isComplete())
+        if (iCompleteStudents.contains(student) && !student.isComplete()) {
             iCompleteStudents.remove(student);
+            if (student.isDummy()) iNrCompleteDummyStudents--;
+        }
         iTotalValue -= value.toDouble();
         if (student.isDummy()) {
             iNrAssignedDummyRequests--;
-            if (student.isComplete()) iNrCompleteDummyStudents--;
         }
     }
     
