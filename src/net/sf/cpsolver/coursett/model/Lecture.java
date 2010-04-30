@@ -51,7 +51,6 @@ import net.sf.cpsolver.ifs.util.FastVector;
  */
 
 public class Lecture extends Variable implements ConstantVariable {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(Lecture.class);
     private Long iClassId;
     private Long iSolverGroupId;
     private Long iSchedulingSubpartId;
@@ -582,7 +581,7 @@ public class Lecture extends Variable implements ConstantVariable {
     }
     
     public int maxAchievableClassLimit() {
-    	//if (iCacheMaxAchievableClassLimit!=null) return iCacheMaxAchievableClassLimit.intValue();
+    	if (iCacheMaxAchievableClassLimit!=null) return iCacheMaxAchievableClassLimit.intValue();
     	
     	int maxAchievableClassLimit = Math.min(maxClassLimit(),(int)Math.floor(maxRoomSize()/roomToLimitRatio()));
     	

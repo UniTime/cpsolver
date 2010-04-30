@@ -11,10 +11,8 @@ import net.sf.cpsolver.coursett.constraint.InstructorConstraint;
 import net.sf.cpsolver.coursett.constraint.JenrlConstraint;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
-import net.sf.cpsolver.ifs.extension.ConflictStatistics;
 import net.sf.cpsolver.ifs.extension.Extension;
 import net.sf.cpsolver.ifs.extension.MacPropagation;
-import net.sf.cpsolver.ifs.extension.ViolatedInitials;
 import net.sf.cpsolver.ifs.heuristics.VariableSelection;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Value;
@@ -91,7 +89,6 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 public class LectureSelection implements VariableSelection {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(LectureSelection.class);
     private double iRandomWalkProb;
     private double iDomainSizeWeight;
     private double iGoodValuesWeight;
@@ -122,9 +119,7 @@ public class LectureSelection implements VariableSelection {
     private boolean iMPP = false;
     private boolean iSwitchStudents = false;
     
-    private ConflictStatistics iStat = null;
     private MacPropagation iProp = null;
-    private ViolatedInitials iViolatedInitials = null;
 
     private int       iTabuSize                  = 0;
     private ArrayList iTabu                      = null;
@@ -213,12 +208,8 @@ public class LectureSelection implements VariableSelection {
     public void init(Solver solver) {
         for (Enumeration i=solver.getExtensions().elements();i.hasMoreElements();) {
             Extension extension = (Extension)i.nextElement();
-            if (extension instanceof ConflictStatistics) 
-                iStat = (ConflictStatistics) extension;
             if (extension instanceof MacPropagation)
                 iProp = (MacPropagation)extension;
-            if (extension instanceof ViolatedInitials)
-                iViolatedInitials = (ViolatedInitials)extension;
         }
     }
 
@@ -345,7 +336,6 @@ public class LectureSelection implements VariableSelection {
         	}
             
             if (iProp!=null && iUnassignWhenNotGood) {
-                int totalPoints = 0;
                 Vector noGoodVariables = new FastVector();
                 for (Iterator i1=ToolBox.subSet(unassignedVariables,iSelectionSubSetPart,iSelectionSubSetMinSize).iterator();i1.hasNext(); ){
                     Variable variable = (Variable) i1.next();

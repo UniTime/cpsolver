@@ -77,7 +77,6 @@ public class ExamSimulatedAnnealing implements NeighbourSelection, SolutionListe
     private long iReheatLength = 0;
     private long iRestoreBestLength = 0;
     private double iTemperature = 0.0;
-    private double iTempLengthCoef = 1.0;
     private double iReheatLengthCoef = 5.0;
     private double iRestoreBestLengthCoef = -1;
     private long iIter = 0;

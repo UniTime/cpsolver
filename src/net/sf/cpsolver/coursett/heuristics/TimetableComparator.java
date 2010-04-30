@@ -132,8 +132,6 @@ public class TimetableComparator implements SolutionComparator {
     }
     
     public double currentValue(TimetableModel tm, PerturbationsCounter cnt) {
-        int unassigned = tm.unassignedVariables().size();
-
         int tooBigCurr=0;
         if (iTooBigRoomWeight!=0.0) tooBigCurr = tm.countTooBigRooms();
         long uselessSlotsCur=0;
@@ -259,7 +257,6 @@ public class TimetableComparator implements SolutionComparator {
 
     public double bestValue(Solution currentSolution) {
     	TimetableModel tm = (TimetableModel)currentSolution.getModel();
-        int unassigned = tm.unassignedVariables().size();
 
         int tooBigBest=0;
         if (iTooBigRoomWeight!=0.0)

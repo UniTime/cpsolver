@@ -180,22 +180,20 @@ public class Test {
     }
     
     private static int getMinPenalty(ExamRoom r) {
-        boolean av = false; int min = Integer.MAX_VALUE;
+        int min = Integer.MAX_VALUE;
         for (Enumeration e=((ExamModel)r.getModel()).getPeriods().elements();e.hasMoreElements();) {
             ExamPeriod p = (ExamPeriod)e.nextElement();
             if (r.isAvailable(p)) {
-                av=true;
                 min = Math.min(min, r.getPenalty(p));
             }
         }
         return min;
     }
     private static int getMaxPenalty(ExamRoom r) {
-        boolean av = false; int max = Integer.MIN_VALUE;
+        int max = Integer.MIN_VALUE;
         for (Enumeration e=((ExamModel)r.getModel()).getPeriods().elements();e.hasMoreElements();) {
             ExamPeriod p = (ExamPeriod)e.nextElement();
             if (r.isAvailable(p)) {
-                av=true;
                 max = Math.max(max, r.getPenalty(p));
             }
         }

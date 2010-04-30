@@ -157,7 +157,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             getModel().getProperties().setProperty("Data.Year", root.attributeValue("year"));
         if (root.attributeValue("initiative")!=null)
             getModel().getProperties().setProperty("Data.Initiative", root.attributeValue("initiative"));
-        String version = root.attributeValue("version");
+        //String version = root.attributeValue("version");
         
         
         Hashtable offeringTable = new Hashtable();

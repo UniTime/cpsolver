@@ -11,7 +11,6 @@ import org.apache.log4j.Logger;
 import net.sf.cpsolver.ifs.constant.ConstantVariable;
 import net.sf.cpsolver.ifs.extension.ConflictStatistics;
 import net.sf.cpsolver.ifs.extension.Extension;
-import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
@@ -119,7 +118,6 @@ public class BacktrackNeighbourSelection extends StandardNeighbourSelection {
         iMaxItersReached = false;
         
         synchronized (solution) {
-            Model model = solution.getModel();
             if (sLog.isDebugEnabled()) sLog.debug("-- before BT ("+variable.getName()+"): nrAssigned="+iSolution.getModel().assignedVariables().size()+",  value="+iSolution.getModel().getTotalValue());
             
             Vector variables2resolve = new Vector(1); 

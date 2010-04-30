@@ -54,7 +54,6 @@ import net.sf.cpsolver.ifs.util.FastVector;
  */
 
 public class TimetableModel extends ConstantModel {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(TimetableModel.class);
     private static java.text.DecimalFormat sDoubleFormat = new java.text.DecimalFormat("0.00",new java.text.DecimalFormatSymbols(Locale.US));
     private long iGlobalRoomPreference = 0;
     private double iGlobalTimePreference = 0;
@@ -174,9 +173,6 @@ public class TimetableModel extends ConstantModel {
     	long studentConflicts = 0;
         for (Enumeration it1=iJenrlConstraints.elements();it1.hasMoreElements();) {
             JenrlConstraint jenrl = (JenrlConstraint)it1.nextElement();
-            Lecture a = (Lecture)jenrl.first();
-            Lecture b = (Lecture)jenrl.second();
-            //if (a.getAssignment()!=null && b.getAssignment()!=null && JenrlConstraint.isInConflict((Placement)a.getAssignment(),(Placement)b.getAssignment()))
             if (jenrl.isInConflict())
                 studentConflicts+=jenrl.getJenrl();
         }

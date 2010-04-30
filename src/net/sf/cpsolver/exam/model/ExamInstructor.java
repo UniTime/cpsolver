@@ -86,7 +86,6 @@ public class ExamInstructor extends Constraint {
     public void computeConflicts(Value value, Set conflicts) {
         if (isAllowDirectConflicts()) return;
         ExamPlacement p = (ExamPlacement)value;
-        Exam ex = (Exam)p.variable();
         for (Iterator i=iTable[p.getPeriod().getIndex()].iterator();i.hasNext();) {
             Exam exam = (Exam)i.next();
             conflicts.add(exam.getAssignment());
@@ -100,12 +99,7 @@ public class ExamInstructor extends Constraint {
     public boolean inConflict(Value value) {
         if (isAllowDirectConflicts()) return false;
         ExamPlacement p = (ExamPlacement)value;
-        Exam ex = (Exam)p.variable();
-        for (Iterator i=iTable[p.getPeriod().getIndex()].iterator();i.hasNext();) {
-            Exam exam = (Exam)i.next();
-            return true;
-        }
-        return false;
+        return !iTable[p.getPeriod().getIndex()].isEmpty();
     }
     
     /**

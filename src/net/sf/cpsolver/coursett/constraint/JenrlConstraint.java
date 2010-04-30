@@ -43,7 +43,6 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  */
 
 public class JenrlConstraint extends BinaryConstraint {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(JenrlConstraint.class);
     private double iJenrl = 0.0;
     private int iNrStrudents = 0;
     private boolean iAdded = false;
@@ -138,7 +137,6 @@ public class JenrlConstraint extends BinaryConstraint {
     public long jenrl(Variable variable, Value value) {
         Lecture anotherLecture = (Lecture)(first().equals(variable)?second():first());
         if (anotherLecture.getAssignment()==null) return 0;
-        Lecture lecture = (Lecture) variable;
         return (isInConflict((Placement)anotherLecture.getAssignment(),(Placement)value)?(long)Math.ceil(iJenrl):0);
     }
 

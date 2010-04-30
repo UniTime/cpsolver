@@ -1,6 +1,5 @@
 package net.sf.cpsolver.exam.reports;
 
-import java.text.DecimalFormat;
 import java.util.Enumeration;
 import java.util.Vector;
 
@@ -62,7 +61,6 @@ public class ExamNbrMeetingsPerDay {
             header.add(new CSVField(i==5?"5+":String.valueOf(i)));
         header.add(new CSVField("Back-To-Back"));
         csv.setHeader(header);
-        DecimalFormat df = new DecimalFormat("0.0");
         int[] nrExamsTotal = new int[6];
         for (int i=0;i<=5;i++) nrExamsTotal[i]=0;
         int btbTotal = 0;

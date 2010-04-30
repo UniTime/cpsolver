@@ -83,7 +83,7 @@ public class MinimizeNumberOfUsedRoomsConstraint extends Constraint implements W
 			for (Enumeration e=placement.getRoomLocations().elements();e.hasMoreElements();) {
 				RoomLocation r = (RoomLocation)e.nextElement();
 				if (assignedRooms.remove(r)) continue;
-				Integer usageThisRoom = (Integer)iUsedRooms.get(r);
+				//Integer usageThisRoom = (Integer)iUsedRooms.get(r);
 				if (!iUsedRooms.containsKey(r)) usage++; 
 			}
 			for (Iterator i=assignedRooms.iterator();i.hasNext();) {
@@ -226,7 +226,6 @@ public class MinimizeNumberOfUsedRoomsConstraint extends Constraint implements W
             Lecture lecture = (Lecture)e.nextElement();
             if (lecture.getNrRooms()==0) continue;
             Vector values = lecture.values();
-            Placement firstPlacement = (values.isEmpty()?null:(Placement)values.firstElement());
             for (Enumeration e2=lecture.values().elements();e2.hasMoreElements();) {
                 Placement p = (Placement)e2.nextElement();
                 int firstSlot = p.getTimeLocation().getStartSlot();

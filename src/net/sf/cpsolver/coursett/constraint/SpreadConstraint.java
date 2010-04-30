@@ -3,7 +3,6 @@ package net.sf.cpsolver.coursett.constraint;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Locale;
 import java.util.Set;
 import java.util.Vector;
 
@@ -42,9 +41,6 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  */
 
 public class SpreadConstraint extends Constraint implements WeakeningConstraint {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(DepartmentSpreadConstraint.class);
-    private static java.text.DecimalFormat sDoubleFormat = new java.text.DecimalFormat("0.00",new java.text.DecimalFormatSymbols(Locale.US));
-    private static java.text.DecimalFormat sIntFormat = new java.text.DecimalFormat("0",new java.text.DecimalFormatSymbols(Locale.US));
     private int iMaxCourses[][] = null;
     private int iCurrentPenalty = 0;
     private int iMaxAllowedPenalty = 0;
@@ -506,52 +502,6 @@ public class SpreadConstraint extends Constraint implements WeakeningConstraint 
             }
         }
         return penalty;
-    }
-        
-    private String fmt(double value) {
-        return sDoubleFormat.format(value);
-    }
-    
-    private String fmt(double[] values) {
-        if (values==null) return null;
-        StringBuffer sb = new StringBuffer("[");
-        for (int i=0;i<Math.min(5,values.length);i++)
-            sb.append(i==0?"":",").append(sDoubleFormat.format(values[i]));
-            sb.append("]");
-            return sb.toString();
-    }
-    
-    private String fmt(double[][] values) {
-        if (values==null) return null;
-        StringBuffer sb = new StringBuffer("[");
-        for (int i=0;i<values.length;i++) {
-            sb.append(i==0?"":",").append(fmt(values[i]));
-        }
-        sb.append("]");
-        return sb.toString();
-    }
-    
-    private String fmt(int value) {
-        return sIntFormat.format(value);
-    }
-    
-    private String fmt(int[] values) {
-        if (values==null) return null;
-        StringBuffer sb = new StringBuffer("[");
-        for (int i=0;i<Math.min(5,values.length);i++)
-            sb.append(i==0?"":",").append(sIntFormat.format(values[i]));
-            sb.append("]");
-            return sb.toString();
-    }
-    
-    private String fmt(int[][] values) {
-        if (values==null) return null;
-        StringBuffer sb = new StringBuffer("[");
-        for (int i=0;i<values.length;i++) {
-            sb.append(i==0?"":",").append(fmt(values[i]));
-        }
-        sb.append("]");
-        return sb.toString();
     }
     
     public int[][] getMaxCourses() { return iMaxCourses; }
