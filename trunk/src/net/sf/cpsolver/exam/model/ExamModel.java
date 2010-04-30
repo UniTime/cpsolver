@@ -1274,22 +1274,20 @@ public class ExamModel extends Model {
     
     private int[] iLimits = null;
     private int getMinPenalty(ExamRoom r) {
-        boolean av = false; int min = Integer.MAX_VALUE;
+        int min = Integer.MAX_VALUE;
         for (Enumeration e=getPeriods().elements();e.hasMoreElements();) {
             ExamPeriod p = (ExamPeriod)e.nextElement();
             if (r.isAvailable(p)) {
-                av=true;
                 min = Math.min(min, r.getPenalty(p));
             }
         }
         return min;
     }
     private int getMaxPenalty(ExamRoom r) {
-        boolean av = false; int max = Integer.MIN_VALUE;
+        int max = Integer.MIN_VALUE;
         for (Enumeration e=getPeriods().elements();e.hasMoreElements();) {
             ExamPeriod p = (ExamPeriod)e.nextElement();
             if (r.isAvailable(p)) {
-                av=true;
                 max = Math.max(max, r.getPenalty(p));
             }
         }
@@ -1468,8 +1466,7 @@ public class ExamModel extends Model {
             nrStudentExams+=student.getOwners().size();
         }
         info.put("Number of Student Exams",String.valueOf(nrStudentExams));
-        int nrAltExams = 0, nrOrigRoomExams = 0, nrSmallExams = 0;
-        double altRatio = ((double)avail)/availAlt;
+        int nrAltExams = 0, nrSmallExams = 0;
         for (Enumeration e=variables().elements();e.hasMoreElements();) {
             Exam exam = (Exam)e.nextElement();
             if (exam.hasAltSeating()) nrAltExams++;
@@ -1602,7 +1599,6 @@ public class ExamModel extends Model {
             r.addAttribute("alt", String.valueOf(room.getAltSize()));
             if (room.getCoordX()>=0 && room.getCoordY()>=0)
                 r.addAttribute("coordinates", room.getCoordX()+","+room.getCoordY());
-            String gr = "";
             for (Enumeration f=getPeriods().elements();f.hasMoreElements();) {
                 ExamPeriod period = (ExamPeriod)f.nextElement();
                 if (!room.isAvailable(period))
@@ -1669,7 +1665,7 @@ public class ExamModel extends Model {
                 }
             }
             p = (ExamPlacement)exam.getBestAssignment();
-            if (p!=null && saveInitial) {
+            if (p!=null && saveBest) {
                 Element ini = ex.addElement("best");
                 ini.addElement("period").addAttribute("id", getId(anonymize,"period",String.valueOf(p.getPeriod().getId())));
                 for (Iterator i=p.getRoomPlacements().iterator();i.hasNext();) {

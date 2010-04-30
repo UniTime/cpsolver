@@ -229,7 +229,6 @@ public class GetInfo {
                 line.addElement(new CSVFile.CSVField(key));
                 for (Enumeration e=infos.elements();e.hasMoreElements();) {
                     Object[] o = (Object[])e.nextElement();
-                    String prefix = (String)o[0];
                     Hashtable info = (Hashtable)o[1];
                     String value = (String)info.get(key);
                     line.addElement(new CSVFile.CSVField(value==null?"":value));

@@ -1,13 +1,10 @@
 package net.sf.cpsolver.exam.heuristics;
 
-import org.apache.log4j.Logger;
-
 import net.sf.cpsolver.exam.neighbours.ExamRandomMove;
 import net.sf.cpsolver.exam.neighbours.ExamRoomMove;
 import net.sf.cpsolver.exam.neighbours.ExamSimpleNeighbour;
 import net.sf.cpsolver.exam.neighbours.ExamTimeMove;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
-import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solution.SolutionListener;
@@ -49,7 +46,6 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 public class ExamHillClimbing implements NeighbourSelection, SolutionListener {
-    private static Logger sLog = Logger.getLogger(ExamHillClimbing.class);
     private NeighbourSelection[] iNeighbours = null;
     private int iMaxIdleIters = 25000;
     private int iLastImprovingIter = 0;
@@ -103,7 +99,6 @@ public class ExamHillClimbing implements NeighbourSelection, SolutionListener {
             iProgress.setPhase(iName+"...");
             iActive = true;
         }
-        Model model = (Model)solution.getModel();
         while (true) {
             iIter ++;
             iProgress.setProgress(Math.round(100.0*(iIter-iLastImprovingIter)/iMaxIdleIters));

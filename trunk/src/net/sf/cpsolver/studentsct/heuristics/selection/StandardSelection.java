@@ -48,7 +48,6 @@ import net.sf.cpsolver.studentsct.model.Request;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 public class StandardSelection implements NeighbourSelection {
-    private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(StandardSelection.class);
     private long iIteration = 0;
     private ValueSelection iValueSelection = null;
     private VariableSelection iVariableSelection = null;

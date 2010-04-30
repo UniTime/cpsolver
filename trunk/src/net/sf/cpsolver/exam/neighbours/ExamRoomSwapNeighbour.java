@@ -5,8 +5,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
-
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamRoomPlacement;
@@ -36,7 +34,6 @@ import net.sf.cpsolver.ifs.model.Neighbour;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 public class ExamRoomSwapNeighbour extends Neighbour {
-    private static Logger sLog = Logger.getLogger(ExamRoomSwapNeighbour.class);
     private double iValue = 0;
     private ExamPlacement iX1, iX2 = null;
     private ExamRoomPlacement iR1, iR2 = null;

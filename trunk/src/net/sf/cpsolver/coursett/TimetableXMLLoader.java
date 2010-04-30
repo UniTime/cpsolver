@@ -90,7 +90,6 @@ public class TimetableXMLLoader extends TimetableLoader {
     private boolean iDeptBalancing = true;
     private int iForcedPerturbances = 0;
     
-    private boolean iUseDistanceConstraints;
     private boolean iInteractiveMode = false;
     private File iInputFile;
     
@@ -102,7 +101,6 @@ public class TimetableXMLLoader extends TimetableLoader {
         iInputFile                 = new File(getModel().getProperties().getProperty("General.Input","."+File.separator+"solution.xml"));
         iForcedPerturbances        = getModel().getProperties().getPropertyInt("General.ForcedPerturbances",0);
         iDeptBalancing = getModel().getProperties().getPropertyBoolean("General.DeptBalancing",true);
-        iUseDistanceConstraints = getModel().getProperties().getPropertyBoolean("General.UseDistanceConstraints", true);
         iInteractiveMode = getModel().getProperties().getPropertyBoolean("General.InteractiveMode", iInteractiveMode);
     }
     
@@ -224,7 +222,7 @@ public class TimetableXMLLoader extends TimetableLoader {
         	getModel().getProperties().setProperty("General.SessionId", root.attributeValue("session"));
         if (root.attributeValue("solverGroup")!=null)
         	getModel().getProperties().setProperty("General.SolverGroupId", root.attributeValue("solverGroup"));
-        String version = root.attributeValue("version");
+        //String version = root.attributeValue("version");
         //boolean timePatternTransform = "1.0".equals(version) || "2.0".equals(version);
         
         Hashtable perts = new Hashtable();
@@ -337,8 +335,6 @@ public class TimetableXMLLoader extends TimetableLoader {
         }
         
         iProgress.setPhase("Creating variables ...",root.element("classes").elements("class").size());
-        
-        int nrClasses = root.element("classes").elements("class").size();
         
         Hashtable classElements = new Hashtable();
         Hashtable lectures = new Hashtable();
@@ -627,7 +623,6 @@ public class TimetableXMLLoader extends TimetableLoader {
         
         iProgress.setPhase("Loading students ...",root.element("students").elements("student").size());
         boolean initialSectioning = true;
-        Hashtable jenrlConstraints = new Hashtable();
         Hashtable students = new Hashtable();
         Hashtable offering2students = new Hashtable();
         for (Iterator i1=root.element("students").elementIterator("student");i1.hasNext();) {

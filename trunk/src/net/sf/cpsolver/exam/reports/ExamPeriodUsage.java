@@ -72,7 +72,6 @@ public class ExamPeriodUsage {
         header.add(new CSVField("AvgPeriod"));
         header.add(new CSVField("WgAvgPeriod"));
         csv.setHeader(header);
-        DecimalFormat df = new DecimalFormat("0.0");
         for (Enumeration e=iModel.getPeriods().elements();e.hasMoreElements();) {
             ExamPeriod period = (ExamPeriod)e.nextElement();
             int nrExams = 0;

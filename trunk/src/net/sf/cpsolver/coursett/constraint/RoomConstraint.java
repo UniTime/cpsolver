@@ -42,7 +42,6 @@ import net.sf.cpsolver.ifs.util.FastVector;
  */
 
 public class RoomConstraint extends Constraint {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(RoomConstraint.class);
     private Vector[] iResource;
     private Long iResourceId;
     private String iName;

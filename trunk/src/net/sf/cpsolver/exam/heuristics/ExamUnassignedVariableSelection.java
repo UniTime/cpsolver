@@ -1,9 +1,6 @@
 package net.sf.cpsolver.exam.heuristics;
 
 import java.util.Enumeration;
-import java.util.Vector;
-
-import org.apache.log4j.Logger;
 
 import net.sf.cpsolver.ifs.heuristics.VariableSelection;
 import net.sf.cpsolver.ifs.model.Model;
@@ -39,9 +36,6 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 public class ExamUnassignedVariableSelection implements VariableSelection {
-    private static Logger sLog = Logger.getLogger(ExamUnassignedVariableSelection.class);
-    private Vector iVariables = null;
-    private long iIteration = -1;
     private boolean iRandomSelection = true;
     
     /** Constructor */

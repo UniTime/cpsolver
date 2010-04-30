@@ -55,15 +55,15 @@ public class ExamSimpleNeighbour extends SimpleNeighbour {
     
     public void assign(long iteration) {
         if (sCheck) {
-            int before = getVariable().getModel().nrUnassignedVariables();
             double beforeVal = getVariable().getModel().getTotalValue();
             double[] beforeValM = ((ExamModel)getVariable().getModel()).getTotalMultiValue();
             String n = toString();
             getVariable().assign(iteration, getValue());
-            int after = getVariable().getModel().nrUnassignedVariables();
             double afterVal = getVariable().getModel().getTotalValue();
             double[] afterValM = ((ExamModel)getVariable().getModel()).getTotalMultiValue();
-            /*if (after>before) {
+            /*int before = getVariable().getModel().nrUnassignedVariables();
+            int after = getVariable().getModel().nrUnassignedVariables();
+            if (after>before) {
                 sLog.error("-- assignment mischmatch (delta:"+(after-before)+")");
                 sLog.error("  -- neighbour: "+n);
             }*/

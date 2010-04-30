@@ -166,7 +166,6 @@ public class DistanceConflict extends Extension implements ModelListener {
     public HashSet conflicts(Enrollment e1) {
         HashSet ret = new HashSet();
         if (!e1.isCourseRequest()) return ret;
-        int cnt = 0;
         for (Iterator i1=e1.getAssignments().iterator();i1.hasNext();) {
             Section s1 = (Section)i1.next();
             for (Iterator i2=e1.getAssignments().iterator();i2.hasNext();) {
@@ -187,7 +186,6 @@ public class DistanceConflict extends Extension implements ModelListener {
     public HashSet conflicts(Enrollment e1, Enrollment e2) {
         HashSet ret = new HashSet();
         if (!e1.isCourseRequest() || !e2.isCourseRequest() || !e1.getStudent().equals(e2.getStudent())) return ret;
-        int cnt = 0;
         for (Iterator i1=e1.getAssignments().iterator();i1.hasNext();) {
             Section s1 = (Section)i1.next();
             for (Iterator i2=e2.getAssignments().iterator();i2.hasNext();) {
