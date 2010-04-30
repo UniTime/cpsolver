@@ -85,7 +85,6 @@ public class TimetableXMLSaver extends TimetableSaver {
     private boolean iConvertIds = false;
     private boolean iShowNames = false;
     private File iOutputFolder = null;
-    private File iOutFile = null;
     private boolean iSaveBest = false;
     private boolean iSaveInitial = false;
     private boolean iSaveCurrent = false;
@@ -121,14 +120,6 @@ public class TimetableXMLSaver extends TimetableSaver {
     
     private String getId(String type, Number id) {
     	return getId(type, id.toString());
-    }
-    
-    private String getAvailableString(boolean[] availableArray) {
-    	if (availableArray==null) return null;
-    	StringBuffer sb = new StringBuffer();
-    	for (int i=0;i<availableArray.length;i++)
-    		sb.append(availableArray[i]?"1":"0");
-    	return sb.toString();
     }
     
     private static String bitset2string(BitSet b) {
@@ -375,7 +366,6 @@ public class TimetableXMLSaver extends TimetableSaver {
         
         
         Element grConstraintsEl = root.addElement("groupConstraints");
-        Hashtable grConv = new Hashtable();
         for (Enumeration e1=getModel().getGroupConstraints().elements();e1.hasMoreElements();) {
             net.sf.cpsolver.coursett.constraint.GroupConstraint gc = (net.sf.cpsolver.coursett.constraint.GroupConstraint)e1.nextElement();
             Element grEl = grConstraintsEl.addElement("constraint").addAttribute("id", getId("gr", String.valueOf(gc.getId())));
@@ -453,7 +443,6 @@ public class TimetableXMLSaver extends TimetableSaver {
         }
         
         Element studentsEl = root.addElement("students");
-        Hashtable studentConv = new Hashtable();
         for (Enumeration e1=ToolBox.sortEnumeration(students.keys());e1.hasMoreElements();) {
             Student student = (Student)e1.nextElement();
             Element stEl = studentsEl.addElement("student").addAttribute("id", getId("student", student.getId()));

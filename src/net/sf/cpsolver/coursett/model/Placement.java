@@ -346,7 +346,6 @@ public class Placement extends Value {
     	for (Iterator i=lecture.hardGroupSoftConstraints().iterator();i.hasNext();) {
     		GroupConstraint gc = (GroupConstraint)i.next();
     		if (gc.isSatisfied()) continue;
-    		int pref = gc.getCurrentPreference(this);
     		if (Constants.sPreferenceProhibited.equals(gc.getPrologPreference())) return true;
     		if (Constants.sPreferenceRequired.equals(gc.getPrologPreference())) return true;
     	}

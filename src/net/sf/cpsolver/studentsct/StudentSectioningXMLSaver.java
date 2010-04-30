@@ -81,7 +81,6 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
     private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(StudentSectioningXMLSaver.class);
     private static DecimalFormat[] sDF = {new DecimalFormat(""),new DecimalFormat("0"),new DecimalFormat("00"),new DecimalFormat("000"),new DecimalFormat("0000"),new DecimalFormat("00000"),new DecimalFormat("000000"),new DecimalFormat("0000000")};
     private static DecimalFormat sStudentWeightFormat = new DecimalFormat("0.0000");
-    private Solver iSolver = null; 
     private File iOutputFolder = null;
     
     private boolean iSaveBest = false;
@@ -316,13 +315,13 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                             requestEl.setText(tl.getLongName());
                     }
                     if (iSaveInitial && request.getInitialAssignment()!=null) {
-                        Element assignmentEl = requestEl.addElement("initial");
+                        requestEl.addElement("initial");
                     }
                     if (iSaveCurrent && request.getAssignment()!=null) {
-                        Element assignmentEl = requestEl.addElement("current");
+                        requestEl.addElement("current");
                     }
                     if (iSaveBest && request.getBestAssignment()!=null) {
-                        Element assignmentEl = requestEl.addElement("best");
+                        requestEl.addElement("best");
                     }
                 } else if (request instanceof CourseRequest) {
                     CourseRequest cr = (CourseRequest)request;

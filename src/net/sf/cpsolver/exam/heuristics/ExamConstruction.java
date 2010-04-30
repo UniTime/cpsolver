@@ -15,9 +15,6 @@ import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.Progress;
-
-
-import org.apache.log4j.Logger;
 /**
  * Initial solution construction heuristics.
  * <br><br>
@@ -59,7 +56,6 @@ import org.apache.log4j.Logger;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 public class ExamConstruction implements NeighbourSelection {
-    private static Logger sLog = Logger.getLogger(ExamConstruction.class);
     private HashSet iAssignments = new HashSet();
     private boolean iCheckLocalOptimality = false;
     private HashSet iSkip = new HashSet();

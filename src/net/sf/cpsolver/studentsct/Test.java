@@ -623,6 +623,7 @@ public class Test {
                             line = line.substring(20);
                             continue;
                         }
+                        /*
                         String instrSel = line.substring(8,10); //ZZ - Remove previous instructor selection
                         char reqPDiv = line.charAt(10); //P - Personal preference; C - Conflict resolution; 
                                                         //0 - (Zero) used by program only, for change requests to reschedule division
@@ -631,6 +632,7 @@ public class Test {
                         String reqSect = line.substring(13,15); //Contains designator for designator-required courses
                         String credit = line.substring(15,19);
                         char nameRaise = line.charAt(19); //N - Name raise
+                        */
                         char action =line.charAt(19); //A - Add; D - Drop; C - Change 
                         sLog.debug("    -- requesting "+subjectArea+" "+courseNbr+" (action:"+action+") ...");
                         Course course = null;
@@ -809,8 +811,6 @@ public class Test {
             sLog.info("Loading student infos from "+xml);
             Document document = (new SAXReader()).read(xml);
             Element root = document.getRootElement();
-            Hashtable requests = new Hashtable();
-            long reqId = 0;
             Hashtable studentTable = new Hashtable();
             for (Enumeration e=model.getStudents().elements();e.hasMoreElements();) {
                 Student student = (Student)e.nextElement();
@@ -978,7 +978,7 @@ public class Test {
                             rnd,
                             CombinedStudentFilter.OP_AND
                     );
-                StudentFilter onlineFilter = new ReverseStudentFilter(batchFilter);
+                //StudentFilter onlineFilter = new ReverseStudentFilter(batchFilter);
                 
                 model = new StudentSectioningModel(cfg);
                 StudentSectioningXMLLoader loader = new StudentSectioningXMLLoader(model);
@@ -1049,7 +1049,7 @@ public class Test {
                 cfg.setProperty("General.Output", logFile.getParentFile().getAbsolutePath());
             } else if (cfg.getProperty("General.Output")!=null) {
                 cfg.setProperty("General.Output", cfg.getProperty("General.Output",".")+File.separator+(sDateFormat.format(new Date())));
-                File logFile = new File(ToolBox.configureLogging(cfg.getProperty("General.Output","."), cfg, false, false));
+                ToolBox.configureLogging(cfg.getProperty("General.Output","."), cfg, false, false);
             } else {
                 ToolBox.configureLogging();
                 cfg.setProperty("General.Output", System.getProperty("user.home", ".")+File.separator+"Sectioning-Test"+File.separator+(sDateFormat.format(new Date())));

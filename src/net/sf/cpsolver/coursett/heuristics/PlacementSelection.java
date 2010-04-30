@@ -76,7 +76,7 @@ import net.sf.cpsolver.ifs.util.*;
 public class PlacementSelection implements ValueSelection {
     static final int NR_LEVELS = 3;
     private static final double PRECISION = 1.0;
-    private static final boolean USE_THRESHOLD = true;
+    private static boolean USE_THRESHOLD = true;
     private boolean iUseThreshold = USE_THRESHOLD;
     
     private double iGoodSelectionProb;
@@ -134,7 +134,6 @@ public class PlacementSelection implements ValueSelection {
 
     private ConflictStatistics iStat = null;
     private MacPropagation iProp = null;
-    private ViolatedInitials iViolatedInitials = null;
     private PerturbationsCounter iPerturbationsCounter = null;
     
     private boolean iRW = false;
@@ -150,8 +149,6 @@ public class PlacementSelection implements ValueSelection {
                 iStat = (ConflictStatistics) extension;
             if (extension instanceof MacPropagation)
                 iProp = (MacPropagation)extension;
-            if (extension instanceof ViolatedInitials)
-                iViolatedInitials = (ViolatedInitials)extension;
         }
         iPerturbationsCounter = solver.getPerturbationsCounter();
     }

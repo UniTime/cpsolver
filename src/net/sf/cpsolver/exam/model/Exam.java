@@ -208,7 +208,6 @@ public class Exam extends Variable {
             ExamRoomPlacement med = (ExamRoomPlacement)iRoomPlacements.elementAt(Math.min(50, iRoomPlacements.size()/2));
             setMaxRooms(Math.min(getMaxRooms(),1+getSize()/med.getSize(hasAltSeating())));
         }
-        ExamModel model = (ExamModel)getModel();
         Vector values = new Vector();
         if (getMaxRooms()==0) {
             for (Enumeration e=getPeriodPlacements().elements();e.hasMoreElements();) {
@@ -535,7 +534,7 @@ public class Exam extends Variable {
     public Set findBestAvailableRooms(ExamPeriodPlacement period) {
         if (getMaxRooms()==0) return new HashSet();
         double sw = ((ExamModel)getModel()).getRoomSizeWeight();
-        double dw = ((ExamModel)getModel()).getRoomSplitDistanceWeight();
+        //double dw = ((ExamModel)getModel()).getRoomSplitDistanceWeight();
         double pw = ((ExamModel)getModel()).getRoomWeight();
         double cw = ((ExamModel)getModel()).getDistributionWeight();
         loop: for (int nrRooms=1;nrRooms<=getMaxRooms();nrRooms++) {
@@ -633,7 +632,6 @@ public class Exam extends Variable {
     public int nrStudentCorrelatedExams() {
         if (iCorrelatedExams==null) { 
             iCorrelatedExams = new HashSet();
-            int weightedNrCorrelatedEvents = 0; 
             for (Enumeration e=getStudents().elements();e.hasMoreElements();) {
                 ExamStudent student = (ExamStudent)e.nextElement();
                 iCorrelatedExams.addAll(student.variables());
@@ -726,7 +724,6 @@ public class Exam extends Variable {
      */
     public HashSet getStudentConflicts(ExamPeriod period) {
         HashSet conf = new HashSet();
-        int inc = (getAssignment()!=null && ((ExamPlacement)getAssignment()).getPeriod().equals(period)?0:1);
         for (Enumeration e=getStudents().elements();e.hasMoreElements();) {
             ExamStudent s = (ExamStudent)e.nextElement();
             for (Iterator i=s.getExams(period).iterator();i.hasNext();) {

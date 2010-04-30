@@ -28,7 +28,9 @@ import java.util.Iterator;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 public class EnumerableHashSet extends HashSet implements EnumerableCollection {
-    /** Iterate the set */
+	private static final long serialVersionUID = -4754357100171982705L;
+
+	/** Iterate the set */
     public Enumeration elements() {
         return new Enumeration() {
             Iterator i=iterator();

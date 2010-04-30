@@ -1,9 +1,7 @@
 package net.sf.cpsolver.coursett.model;
 
-import java.text.SimpleDateFormat;
 import java.util.BitSet;
 import java.util.Enumeration;
-import java.util.Locale;
 
 import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.ifs.util.ToolBox;
@@ -33,7 +31,6 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  */
 
 public class TimeLocation {
-	private static SimpleDateFormat sDateFormatShort = new SimpleDateFormat("MM/dd", Locale.US);
     private int iStartSlot;
     
     private int iPreference;

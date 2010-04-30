@@ -11,7 +11,6 @@ import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimetableModel;
 import net.sf.cpsolver.ifs.heuristics.StandardNeighbourSelection;
-import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
@@ -103,7 +102,6 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
         iNrAssigned = solution.getModel().assignedVariables().size();
         
         synchronized (solution) {
-        	Model model = solution.getModel();
             //System.out.println("BEFORE BT ("+lecture.getName()+"): nrAssigned="+iSolution.getModel().assignedVariables().size()+",  value="+iCmp.currentValue(iSolution));
             
             Vector initialLectures = new Vector(1); 
@@ -168,7 +166,6 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
                     }
                 }
                 if (cur!=null) cur.variable().unassign(0);
-                Vector un = new Vector(lecture.getModel().unassignedVariables());
                 for (Iterator i=conflicts.iterator();!containException && i.hasNext();) {
                     Placement c = (Placement)i.next();
                     conflictsToResolve.put(c.variable(),c);

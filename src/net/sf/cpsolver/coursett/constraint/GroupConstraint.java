@@ -6,9 +6,6 @@ import java.util.Hashtable;
 import java.util.Set;
 import java.util.Vector;
 
-import org.apache.log4j.Logger;
-
-
 import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
@@ -62,7 +59,6 @@ import net.sf.cpsolver.ifs.util.FastVector;
  */
 
 public class GroupConstraint extends Constraint {
-	private static Logger sLogger = Logger.getLogger(GroupConstraint.class);
     private Long iId;
     private int iPreference;
     private String iType;
@@ -542,7 +538,7 @@ public class GroupConstraint extends Constraint {
     			t2 = p1.getTimeLocation(); t1 = p2.getTimeLocation();
     		}
     	}
-    	int f1 = -1, f2 = -1, e1 = -1, e2 = -1;
+    	int f1 = -1, f2 = -1, e1 = -1;
     	for (int i=0;i<Constants.DAY_CODES.length;i++) {
     		if ((t1.getDayCode()&Constants.DAY_CODES[i])!=0) {
     			if (f1<0) f1 = i;
@@ -550,7 +546,6 @@ public class GroupConstraint extends Constraint {
     		}
     		if ((t2.getDayCode()&Constants.DAY_CODES[i])!=0) {
     			if (f2<0) f2 = i;
-    			e2 = i;
     		}
     	}
     	return ((e1+1)%Constants.NR_DAYS_WEEK==f2);
@@ -573,7 +568,7 @@ public class GroupConstraint extends Constraint {
     			t2 = p1.getTimeLocation(); t1 = p2.getTimeLocation();
     		}
     	}
-    	int f1 = -1, f2 = -1, e1 = -1, e2 = -1;
+    	int f1 = -1, f2 = -1, e1 = -1;
     	for (int i=0;i<Constants.DAY_CODES.length;i++) {
     		if ((t1.getDayCode()&Constants.DAY_CODES[i])!=0) {
     			if (f1<0) f1 = i;
@@ -581,7 +576,6 @@ public class GroupConstraint extends Constraint {
     		}
     		if ((t2.getDayCode()&Constants.DAY_CODES[i])!=0) {
     			if (f2<0) f2 = i;
-    			e2 = i;
     		}
     	}
     	return ((e1+2)%Constants.NR_DAYS_WEEK==f2);
@@ -668,9 +662,7 @@ public class GroupConstraint extends Constraint {
         Placement [] res = new Placement[Constants.SLOTS_PER_DAY];
         for (int i=0;i<Constants.SLOTS_PER_DAY;i++) res[i]=null;
         
-        Vector unAssignedLectures = new Vector();
         int nrLectures=0;
-        String roomId = null;
         
         for (Enumeration e=variables().elements();e.hasMoreElements();) {
             Lecture lecture = (Lecture)e.nextElement();

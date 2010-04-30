@@ -180,7 +180,6 @@ public class MinimizeNumberOfUsedGroupsOfTime extends Constraint implements Weak
     	int overLimit = getOverLimit(value);
     	if (overLimit>0) {
     		Placement placement = (Placement) value;
-    		Lecture lecture = (Lecture)placement.variable();
     		TimeLocation time = placement.getTimeLocation();
     		
     		Vector adepts = new Vector();

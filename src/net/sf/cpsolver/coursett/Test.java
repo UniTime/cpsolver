@@ -26,10 +26,8 @@ import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.coursett.model.TimetableModel;
 import net.sf.cpsolver.coursett.model.Student;
-import net.sf.cpsolver.ifs.extension.ConflictStatistics;
 import net.sf.cpsolver.ifs.extension.Extension;
 import net.sf.cpsolver.ifs.extension.MacPropagation;
-import net.sf.cpsolver.ifs.extension.ViolatedInitials;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solution.SolutionListener;
@@ -84,9 +82,7 @@ public class Test implements SolutionListener {
     
     private PrintWriter iCSVFile = null;
     
-    private ConflictStatistics iStat = null;
     private MacPropagation iProp = null;
-    private ViolatedInitials iViolatedInitials = null;
     private int iLastNotified = -1;
  
     private boolean initialized = false;
@@ -257,12 +253,8 @@ public class Test implements SolutionListener {
     	if (!initialized) {
     	    for (Enumeration i=iSolver.getExtensions().elements();i.hasMoreElements();) {
     	        Extension extension = (Extension)i.nextElement();
-    	        if (extension instanceof ConflictStatistics)
-    	            iStat = (ConflictStatistics) extension;
     	        if (extension instanceof MacPropagation)
     	            iProp = (MacPropagation)extension;
-    	        if (extension instanceof ViolatedInitials)
-    	            iViolatedInitials = (ViolatedInitials)extension;
     	    }
     	}
         /*
@@ -451,14 +443,9 @@ public class Test implements SolutionListener {
         long nrJenrls = 0;
         int nrHalfHours = 0;
         int nrMeetings = 0;
-        int nrPairs = 0;
         int totalMinLimit = 0;
         int totalMaxLimit = 0;
         long nrReqRooms = 0;
-        int nrPairsNoSameClass = 0;
-        int nrStudentSharingPairs = 0;
-        int nrRoomSharingPairs = 0;
-        int nrInstructorSharingPairs = 0;
         int nrSingleValueVariables = 0;
         int nrSingleTimeVariables = 0;
         int nrSingleRoomVariables = 0;

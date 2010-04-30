@@ -80,7 +80,6 @@ public class ExamTabuSearch implements NeighbourSelection, ValueSelection {
     private long iFirstIteration = -1;
     private long iMaxIdleIterations = 10000;
 
-    private int iTabuSize = 20;
     private int iTabuMinSize = 0;
     private int iTabuMaxSize = 0;
     private TabuList iTabu = null;

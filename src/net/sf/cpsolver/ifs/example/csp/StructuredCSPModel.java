@@ -75,11 +75,8 @@ public class StructuredCSPModel extends Model {
                 allPairs[idx++]=new Variable[] {v1,v2};
             }
         }
-        idx = 0;
-        for (Enumeration i1=constraints.elements();i1.hasMoreElements();) {
-            CSPBinaryConstraint c = (CSPBinaryConstraint) i1.nextElement();
+        for (idx = 0; idx < constraints.size(); idx++) {
             swap(allPairs, idx, idx+(int)(rnd.nextDouble()*(numberOfAllPairs-idx)));
-                idx++;
         }
         idx = 0;
         for (Enumeration i1=constraints.elements();i1.hasMoreElements();) {
@@ -102,11 +99,8 @@ public class StructuredCSPModel extends Model {
                 allPairs[idx++]=new Variable[] {v1,v2};
             }
         }
-        idx = 0;
-        for (Enumeration i1=constraints.elements();i1.hasMoreElements();) {
-            CSPBinaryConstraint c = (CSPBinaryConstraint) i1.nextElement();
+        for (idx = 0; idx < constraints.size(); idx++) {
             swap(allPairs, idx, idx+(int)(rnd.nextDouble()*(numberOfAllPairs-idx)));
-                idx++;
         }
         idx = 0;
         for (Enumeration i1=constraints.elements();i1.hasMoreElements();) {
