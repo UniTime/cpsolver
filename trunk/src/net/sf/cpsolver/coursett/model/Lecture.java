@@ -512,7 +512,7 @@ public class Lecture extends Variable implements ConstantVariable {
             iSpreadConstraints.add(constraint);
         else if (constraint instanceof InstructorConstraint) {
         	InstructorConstraint ic = (InstructorConstraint)constraint;
-        	if (ic.getResourceId()!=null && ic.getResourceId().intValue()>0)
+        	if (ic.getResourceId()!=null && ic.getResourceId().longValue()>0)
         		iInstructorConstraints.add(ic);
         } else if (constraint instanceof ClassLimitConstraint)
         	iClassLimitConstraint = (ClassLimitConstraint)constraint;
