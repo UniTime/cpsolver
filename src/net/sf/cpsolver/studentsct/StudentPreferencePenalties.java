@@ -3,12 +3,10 @@ package net.sf.cpsolver.studentsct;
 import java.text.DecimalFormat;
 import java.util.Enumeration;
 import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.Vector;
+import java.util.List;
 
 import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.model.TimeLocation;
-import net.sf.cpsolver.coursett.model.TimeLocation.IntEnumeration;
 import net.sf.cpsolver.ifs.heuristics.RouletteWheelSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
 import net.sf.cpsolver.studentsct.model.Assignment;
@@ -24,17 +22,19 @@ import net.sf.cpsolver.studentsct.model.Student;
 import net.sf.cpsolver.studentsct.model.Subpart;
 
 /**
- * An attempt to empirically test the case when students can choose their sections (section times).
- * <br><br>
- * Each student has his/her own order of possible times of the week 
- * (selection of a day and an hour starting 7:30, 8:30, etc.) -- 
- * this order is computed using roulette wheel selection with the distribution of 
- * possible times defined in {@link StudentPreferencePenalties#sStudentRequestDistribution}.
- * <br><br>
- * A penalty for each section is computed proportionally based on this order 
- * (and the number of slots that falls into each time frame), 
- * the existing branch&bound selection is used to section each student one by one (in a random order).
- * <br><br>
+ * An attempt to empirically test the case when students can choose their
+ * sections (section times). <br>
+ * <br>
+ * Each student has his/her own order of possible times of the week (selection
+ * of a day and an hour starting 7:30, 8:30, etc.) -- this order is computed
+ * using roulette wheel selection with the distribution of possible times
+ * defined in {@link StudentPreferencePenalties#sStudentRequestDistribution}. <br>
+ * <br>
+ * A penalty for each section is computed proportionally based on this order
+ * (and the number of slots that falls into each time frame), the existing
+ * branch&bound selection is used to section each student one by one (in a
+ * random order). <br>
+ * <br>
  * Usage:<br>
  * <code>
  * for (Enumeration e=students.elements();e.hasMoreElements();) {<br>
@@ -49,28 +49,28 @@ import net.sf.cpsolver.studentsct.model.Subpart;
  * &nbsp;&nbsp;Neighbour neighbour = new BranchBoundSelection(config).getSelection(student).select();<br>
  * &nbsp;&nbsp;if (neighbour!=null) neighbour.assign(iteration++);<br>
  * };
- * </code>
- * <br><br>
- * 
- * @version
- * StudentSct 1.1 (Student Sectioning)<br>
- * Copyright (C) 2007 Tomas Muller<br>
- * <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
- * Lazenska 391, 76314 Zlin, Czech Republic<br>
+ * </code> <br>
  * <br>
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- * <br><br>
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- * <br><br>
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * 
+ * @version StudentSct 1.2 (Student Sectioning)<br>
+ *          Copyright (C) 2007 - 2010 Tomas Muller<br>
+ *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
+ *          Lazenska 391, 76314 Zlin, Czech Republic<br>
+ * <br>
+ *          This library is free software; you can redistribute it and/or modify
+ *          it under the terms of the GNU Lesser General Public License as
+ *          published by the Free Software Foundation; either version 2.1 of the
+ *          License, or (at your option) any later version. <br>
+ * <br>
+ *          This library is distributed in the hope that it will be useful, but
+ *          WITHOUT ANY WARRANTY; without even the implied warranty of
+ *          MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ *          Lesser General Public License for more details. <br>
+ * <br>
+ *          You should have received a copy of the GNU Lesser General Public
+ *          License along with this library; if not, write to the Free Software
+ *          Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ *          02110-1301 USA
  */
 public class StudentPreferencePenalties {
     private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(StudentPreferencePenalties.class);
@@ -80,276 +80,290 @@ public class StudentPreferencePenalties {
     public static int sDistTypePreference = 1;
     public static int sDistTypePreferenceQuadratic = 2;
     public static int sDistTypePreferenceReverse = 3;
-    
+
     public static int[][] sStudentRequestDistribution = new int[][] {
-        //morning, 7:30a, 8:30a, 9:30a, 10:30a, 11:30a, 12:30p, 1:30p, 2:30p, 3:30p, 4:30p, evening
-        {       1,     1,     4,     7,     10,     10,      5,     8,     8,     6,     3,      1 }, //Monday
-        {       1,     2,     4,     7,     10,     10,      5,     8,     8,     6,     3,      1 }, //Tuesday
-        {       1,     2,     4,     7,     10,     10,      5,     8,     8,     6,     3,      1 }, //Wednesday
-        {       1,     2,     4,     7,     10,     10,      5,     8,     8,     6,     3,      1 }, //Thursday
-        {       1,     2,     4,     7,     10,     10,      5,     4,     3,     2,     1,      1 }, //Friday
-        {       1,     1,     1,     1,      1,      1,      1,     1,     1,     1,     1,      1 }, //Saturday
-        {       1,     1,     1,     1,      1,      1,      1,     1,     1,     1,     1,      1 }  //Sunday
+    // morning, 7:30a, 8:30a, 9:30a, 10:30a, 11:30a, 12:30p, 1:30p, 2:30p,
+    // 3:30p, 4:30p, evening
+            { 1, 1, 4, 7, 10, 10, 5, 8, 8, 6, 3, 1 }, // Monday
+            { 1, 2, 4, 7, 10, 10, 5, 8, 8, 6, 3, 1 }, // Tuesday
+            { 1, 2, 4, 7, 10, 10, 5, 8, 8, 6, 3, 1 }, // Wednesday
+            { 1, 2, 4, 7, 10, 10, 5, 8, 8, 6, 3, 1 }, // Thursday
+            { 1, 2, 4, 7, 10, 10, 5, 4, 3, 2, 1, 1 }, // Friday
+            { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }, // Saturday
+            { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 } // Sunday
     };
-    private Hashtable iWeight = new Hashtable();
-    
-    /** 
-     * Constructor. 
-     * All possible times are ordered based on the distribution defined by
+    private Hashtable<String, Double> iWeight = new Hashtable<String, Double>();
+
+    /**
+     * Constructor. All possible times are ordered based on the distribution
+     * defined by {@link StudentPreferencePenalties#sStudentRequestDistribution}
+     * . The first time gets zero penalty, the second 1/nrTimes, the third
+     * 2/nrTimes etc. where nrTimes is the number of times in
      * {@link StudentPreferencePenalties#sStudentRequestDistribution}.
-     * The first time gets zero penalty, the second 1/nrTimes, the third 2/nrTimes etc. where 
-     * nrTimes is the number of times in {@link StudentPreferencePenalties#sStudentRequestDistribution}.
      */
     public StudentPreferencePenalties(int disributionType) {
-        RouletteWheelSelection roulette = new RouletteWheelSelection();
-        for (int d=0;d<sStudentRequestDistribution.length;d++)
-            for (int t=0;t<sStudentRequestDistribution[d].length;t++) {
-                if (disributionType==sDistTypeUniform) {
-                    roulette.add(new int[]{d,t}, 1);
-                } else if (disributionType==sDistTypePreference) {
-                    roulette.add(new int[]{d,t}, sStudentRequestDistribution[d][t]);
-                } else if (disributionType==sDistTypePreferenceQuadratic) {
-                    roulette.add(new int[]{d,t}, sStudentRequestDistribution[d][t]*sStudentRequestDistribution[d][t]);
-                } else if (disributionType==sDistTypePreferenceReverse) {
-                    roulette.add(new int[]{d,t}, 11-sStudentRequestDistribution[d][t]);
+        RouletteWheelSelection<int[]> roulette = new RouletteWheelSelection<int[]>();
+        for (int d = 0; d < sStudentRequestDistribution.length; d++)
+            for (int t = 0; t < sStudentRequestDistribution[d].length; t++) {
+                if (disributionType == sDistTypeUniform) {
+                    roulette.add(new int[] { d, t }, 1);
+                } else if (disributionType == sDistTypePreference) {
+                    roulette.add(new int[] { d, t }, sStudentRequestDistribution[d][t]);
+                } else if (disributionType == sDistTypePreferenceQuadratic) {
+                    roulette.add(new int[] { d, t }, sStudentRequestDistribution[d][t]
+                            * sStudentRequestDistribution[d][t]);
+                } else if (disributionType == sDistTypePreferenceReverse) {
+                    roulette.add(new int[] { d, t }, 11 - sStudentRequestDistribution[d][t]);
                 } else {
-                    roulette.add(new int[]{d,t}, 1);
+                    roulette.add(new int[] { d, t }, 1);
                 }
             }
         int idx = 0;
         while (roulette.hasMoreElements()) {
-            int[] dt = (int[])roulette.nextElement();
-            iWeight.put(dt[0]+"."+dt[1], new Double(((double)idx)/(roulette.size()-1)));
-            if (sDebug) sLog.debug("  -- "+(idx+1)+". preference is "+toString(dt[0],dt[1])+" (P:"+sDF.format(((double)idx)/(roulette.size()-1))+")");
+            int[] dt = roulette.nextElement();
+            iWeight.put(dt[0] + "." + dt[1], new Double(((double) idx) / (roulette.size() - 1)));
+            if (sDebug)
+                sLog.debug("  -- " + (idx + 1) + ". preference is " + toString(dt[0], dt[1]) + " (P:"
+                        + sDF.format(((double) idx) / (roulette.size() - 1)) + ")");
             idx++;
         }
     }
-    
-    /** Return day index in {@link StudentPreferencePenalties#sStudentRequestDistribution} for the given slot. */ 
+
+    /**
+     * Return day index in
+     * {@link StudentPreferencePenalties#sStudentRequestDistribution} for the
+     * given slot.
+     */
     public static int day(int slot) {
         return slot / Constants.SLOTS_PER_DAY;
     }
-    
-    /** Return time index in {@link StudentPreferencePenalties#sStudentRequestDistribution} for the given slot. */
+
+    /**
+     * Return time index in
+     * {@link StudentPreferencePenalties#sStudentRequestDistribution} for the
+     * given slot.
+     */
     public static int time(int slot) {
         int s = slot % Constants.SLOTS_PER_DAY;
-        int min =  (s * Constants.SLOT_LENGTH_MIN + Constants.FIRST_SLOT_TIME_MIN);
-        if (min<450) return 0; //morning
-        int idx = 1+(min-450)/60;
-        return (idx>11?11:idx); //11+ is evening
+        int min = (s * Constants.SLOT_LENGTH_MIN + Constants.FIRST_SLOT_TIME_MIN);
+        if (min < 450)
+            return 0; // morning
+        int idx = 1 + (min - 450) / 60;
+        return (idx > 11 ? 11 : idx); // 11+ is evening
     }
-    
-    /** Return time of the given day and time index of {@link StudentPreferencePenalties#sStudentRequestDistribution}. */
+
+    /**
+     * Return time of the given day and time index of
+     * {@link StudentPreferencePenalties#sStudentRequestDistribution}.
+     */
     public String toString(int day, int time) {
-        if (time==0) return Constants.DAY_NAMES_SHORT[day]+" morning";
-        if (time==11) return Constants.DAY_NAMES_SHORT[day]+" evening";
-        return Constants.DAY_NAMES_SHORT[day]+" "+(6+time)+":30";
+        if (time == 0)
+            return Constants.DAY_NAMES_SHORT[day] + " morning";
+        if (time == 11)
+            return Constants.DAY_NAMES_SHORT[day] + " evening";
+        return Constants.DAY_NAMES_SHORT[day] + " " + (6 + time) + ":30";
     }
-    
-    /** 
-     * Return penalty of the given time. It is comuted as average of the penalty for each time slot of the time. 
+
+    /**
+     * Return penalty of the given time. It is comuted as average of the penalty
+     * for each time slot of the time.
      **/
     public double getPenalty(TimeLocation time) {
         int nrSlots = 0;
         double penalty = 0.0;
-        for (IntEnumeration e=time.getSlots();e.hasMoreElements();) {
-            int slot = e.nextInt();
+        for (Enumeration<Integer> e = time.getSlots(); e.hasMoreElements();) {
+            int slot = e.nextElement();
             nrSlots++;
-            penalty += ((Double)iWeight.get(day(slot)+"."+time(slot))).doubleValue();
+            penalty += (iWeight.get(day(slot) + "." + time(slot))).doubleValue();
         }
-        return penalty/nrSlots;
+        return penalty / nrSlots;
     }
-    
+
     /**
-     * Return penalty of an assignment. It is a penalty of its time (see {@link Assignment#getTime()}) or zero
-     * if the time is null.
+     * Return penalty of an assignment. It is a penalty of its time (see
+     * {@link Assignment#getTime()}) or zero if the time is null.
      */
     public double getPenalty(Assignment assignment) {
-        return (assignment.getTime()==null?0.0:getPenalty(assignment.getTime()));
+        return (assignment.getTime() == null ? 0.0 : getPenalty(assignment.getTime()));
     }
-    
+
     /**
-     * Return penalty of an enrollment. It is an average penalty of all its assignments {@link Enrollment#getAssignments()}. 
+     * Return penalty of an enrollment. It is an average penalty of all its
+     * assignments {@link Enrollment#getAssignments()}.
      */
     public double getPenalty(Enrollment enrollment) {
         double penalty = 0;
-        for (Iterator i=enrollment.getAssignments().iterator();i.hasNext();) {
-            Section section = (Section)i.next();
+        for (Section section : enrollment.getSections()) {
             penalty += getPenalty(section);
         }
-        return penalty/enrollment.getAssignments().size();
+        return penalty / enrollment.getAssignments().size();
     }
-    
-    /** Minimal penalty of a course request */ 
+
+    /** Minimal penalty of a course request */
     public double getMinPenalty(Request request) {
         if (request instanceof CourseRequest)
-            return getMinPenalty((CourseRequest)request);
+            return getMinPenalty((CourseRequest) request);
         else if (request instanceof FreeTimeRequest)
-            return getPenalty(((FreeTimeRequest)request).getTime());
+            return getPenalty(((FreeTimeRequest) request).getTime());
         return 0;
     }
 
     /** Minimal penalty of a course request */
     public double getMinPenalty(CourseRequest request) {
         double min = Double.MAX_VALUE;
-        for (Enumeration e=request.getCourses().elements();e.hasMoreElements();) {
-            Course course = (Course)e.nextElement();
+        for (Course course : request.getCourses()) {
             min = Math.min(min, getMinPenalty(course.getOffering()));
         }
-        return (min==Double.MAX_VALUE?0.0:min);
+        return (min == Double.MAX_VALUE ? 0.0 : min);
     }
 
     /** Minimal penalty of an offering */
     public double getMinPenalty(Offering offering) {
         double min = Double.MAX_VALUE;
-        for (Enumeration e=offering.getConfigs().elements();e.hasMoreElements();) {
-            Config config = (Config)e.nextElement();
+        for (Config config : offering.getConfigs()) {
             min = Math.min(min, getMinPenalty(config));
         }
-        return (min==Double.MAX_VALUE?0.0:min);
+        return (min == Double.MAX_VALUE ? 0.0 : min);
     }
 
     /** Minimal penalty of a config */
     public double getMinPenalty(Config config) {
         double min = 0;
-        for (Enumeration e=config.getSubparts().elements();e.hasMoreElements();) {
-            Subpart subpart = (Subpart)e.nextElement();
+        for (Subpart subpart : config.getSubparts()) {
             min += getMinPenalty(subpart);
         }
-        return min/config.getSubparts().size();
+        return min / config.getSubparts().size();
     }
-    
+
     /** Minimal penalty of a subpart */
     public double getMinPenalty(Subpart subpart) {
         double min = Double.MAX_VALUE;
-        for (Enumeration e=subpart.getSections().elements();e.hasMoreElements();) {
-            Section section = (Section)e.nextElement();
+        for (Section section : subpart.getSections()) {
             min = Math.min(min, getPenalty(section));
         }
-        return (min==Double.MAX_VALUE?0.0:min);
+        return (min == Double.MAX_VALUE ? 0.0 : min);
     }
-    
-    /** Maximal penalty of a course request */ 
+
+    /** Maximal penalty of a course request */
     public double getMaxPenalty(Request request) {
         if (request instanceof CourseRequest)
-            return getMaxPenalty((CourseRequest)request);
+            return getMaxPenalty((CourseRequest) request);
         else if (request instanceof FreeTimeRequest)
-            return getPenalty(((FreeTimeRequest)request).getTime());
+            return getPenalty(((FreeTimeRequest) request).getTime());
         return 0;
     }
 
-    /** Maximal penalty of a course request */ 
+    /** Maximal penalty of a course request */
     public double getMaxPenalty(CourseRequest request) {
         double max = Double.MIN_VALUE;
-        for (Enumeration e=request.getCourses().elements();e.hasMoreElements();) {
-            Course course = (Course)e.nextElement();
+        for (Course course : request.getCourses()) {
             max = Math.max(max, getMaxPenalty(course.getOffering()));
         }
-        return (max==Double.MIN_VALUE?0.0:max);
+        return (max == Double.MIN_VALUE ? 0.0 : max);
     }
 
     /** Maximal penalty of an offering */
     public double getMaxPenalty(Offering offering) {
         double max = Double.MIN_VALUE;
-        for (Enumeration e=offering.getConfigs().elements();e.hasMoreElements();) {
-            Config config = (Config)e.nextElement();
+        for (Config config : offering.getConfigs()) {
             max = Math.max(max, getMaxPenalty(config));
         }
-        return (max==Double.MIN_VALUE?0.0:max);
+        return (max == Double.MIN_VALUE ? 0.0 : max);
     }
 
     /** Maximal penalty of a config */
     public double getMaxPenalty(Config config) {
         double max = 0;
-        for (Enumeration e=config.getSubparts().elements();e.hasMoreElements();) {
-            Subpart subpart = (Subpart)e.nextElement();
+        for (Subpart subpart : config.getSubparts()) {
             max += getMaxPenalty(subpart);
         }
-        return max/config.getSubparts().size();
+        return max / config.getSubparts().size();
     }
-    
+
     /** Maximal penalty of a subpart */
     public double getMaxPenalty(Subpart subpart) {
         double max = Double.MIN_VALUE;
-        for (Enumeration e=subpart.getSections().elements();e.hasMoreElements();) {
-            Section section = (Section)e.nextElement();
+        for (Section section : subpart.getSections()) {
             max = Math.max(max, getPenalty(section));
         }
-        return (max==Double.MIN_VALUE?0.0:max);
+        return (max == Double.MIN_VALUE ? 0.0 : max);
     }
-    
-    /** Minimal and maximal available enrollment penalty of a request */ 
+
+    /** Minimal and maximal available enrollment penalty of a request */
     public double[] getMinMaxAvailableEnrollmentPenalty(Request request) {
         if (request instanceof CourseRequest) {
-            return getMinMaxAvailableEnrollmentPenalty((CourseRequest)request);
+            return getMinMaxAvailableEnrollmentPenalty((CourseRequest) request);
         } else {
-            double pen = getPenalty(((FreeTimeRequest)request).getTime());
-            return new double[] {pen,pen};
+            double pen = getPenalty(((FreeTimeRequest) request).getTime());
+            return new double[] { pen, pen };
         }
     }
 
     /** Minimal and maximal available enrollment penalty of a request */
     public double[] getMinMaxAvailableEnrollmentPenalty(CourseRequest request) {
-        Vector enrollments = request.getAvaiableEnrollments();
-        if (enrollments.isEmpty()) return new double[] {0,0};
+        List<Enrollment> enrollments = request.getAvaiableEnrollments();
+        if (enrollments.isEmpty())
+            return new double[] { 0, 0 };
         double min = Double.MAX_VALUE, max = Double.MIN_VALUE;
-        for (Iterator i=enrollments.iterator();i.hasNext();) {
-            Enrollment enrollment = (Enrollment)i.next();
+        for (Enrollment enrollment : enrollments) {
             double penalty = getPenalty(enrollment);
             min = Math.min(min, penalty);
             max = Math.max(max, penalty);
         }
-        return new double[] {min, max};
+        return new double[] { min, max };
     }
 
-    /** Minimal and maximal available enrollment penalty of a request */ 
+    /** Minimal and maximal available enrollment penalty of a request */
     public double[] getMinMaxEnrollmentPenalty(Request request) {
         if (request instanceof CourseRequest) {
-            return getMinMaxEnrollmentPenalty((CourseRequest)request);
+            return getMinMaxEnrollmentPenalty((CourseRequest) request);
         } else {
-            double pen = getPenalty(((FreeTimeRequest)request).getTime());
-            return new double[] {pen,pen};
+            double pen = getPenalty(((FreeTimeRequest) request).getTime());
+            return new double[] { pen, pen };
         }
     }
 
     /** Minimal and maximal available enrollment penalty of a request */
     public double[] getMinMaxEnrollmentPenalty(CourseRequest request) {
-        Vector enrollments = request.values();
-        if (enrollments.isEmpty()) return new double[] {0,0};
+        List<Enrollment> enrollments = request.values();
+        if (enrollments.isEmpty())
+            return new double[] { 0, 0 };
         double min = Double.MAX_VALUE, max = Double.MIN_VALUE;
-        for (Enumeration e=enrollments.elements();e.hasMoreElements();) {
-            Enrollment enrollment = (Enrollment)e.nextElement();
+        for (Enrollment enrollment : enrollments) {
             double penalty = getPenalty(enrollment);
             min = Math.min(min, penalty);
             max = Math.max(max, penalty);
         }
-        return new double[] {min, max};
+        return new double[] { min, max };
     }
 
     /**
-     * Set the computed penalties to all sections of all requests of the given student
+     * Set the computed penalties to all sections of all requests of the given
+     * student
      */
     public static void setPenalties(Student student, int distributionType) {
-        if (sDebug) sLog.debug("Setting penalties for "+student);
+        if (sDebug)
+            sLog.debug("Setting penalties for " + student);
         StudentPreferencePenalties penalties = new StudentPreferencePenalties(distributionType);
-        for (Enumeration e=student.getRequests().elements();e.hasMoreElements();) {
-            Request request = (Request)e.nextElement();
-            if (!(request instanceof CourseRequest)) continue;
-            CourseRequest courseRequest = (CourseRequest)request;
-            if (sDebug) sLog.debug("-- "+courseRequest);
-            for (Enumeration f=courseRequest.getCourses().elements();f.hasMoreElements();) {
-                Course course = (Course)f.nextElement();
-                if (sDebug) sLog.debug("  -- "+course.getName());
-                for (Enumeration g=course.getOffering().getConfigs().elements();g.hasMoreElements();) {
-                    Config config = (Config)g.nextElement();
-                    if (sDebug) sLog.debug("    -- "+config.getName());
-                    for (Enumeration h=config.getSubparts().elements();h.hasMoreElements();) {
-                        Subpart subpart = (Subpart)h.nextElement();
-                        if (sDebug) sLog.debug("      -- "+subpart.getName());
-                        for (Enumeration i=subpart.getSections().elements();i.hasMoreElements();) {
-                            Section section = (Section)i.nextElement();
+        for (Request request : student.getRequests()) {
+            if (!(request instanceof CourseRequest))
+                continue;
+            CourseRequest courseRequest = (CourseRequest) request;
+            if (sDebug)
+                sLog.debug("-- " + courseRequest);
+            for (Course course : courseRequest.getCourses()) {
+                if (sDebug)
+                    sLog.debug("  -- " + course.getName());
+                for (Config config : course.getOffering().getConfigs()) {
+                    if (sDebug)
+                        sLog.debug("    -- " + config.getName());
+                    for (Subpart subpart : config.getSubparts()) {
+                        if (sDebug)
+                            sLog.debug("      -- " + subpart.getName());
+                        for (Section section : subpart.getSections()) {
                             section.setPenalty(penalties.getPenalty(section));
-                            if (sDebug) sLog.debug("        -- "+section);
+                            if (sDebug)
+                                sLog.debug("        -- " + section);
                         }
                     }
                 }
@@ -357,5 +371,5 @@ public class StudentPreferencePenalties {
             courseRequest.clearCache();
         }
     }
-    
+
 }
