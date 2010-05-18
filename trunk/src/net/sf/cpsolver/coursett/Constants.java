@@ -1,30 +1,30 @@
 package net.sf.cpsolver.coursett;
 
 /**
- * Course Timetabling common constants.
- * <br><br>
- * 
- * @version
- * CourseTT 1.1 (University Course Timetabling)<br>
- * Copyright (C) 2006 Tomas Muller<br>
- * <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
- * Lazenska 391, 76314 Zlin, Czech Republic<br>
+ * Course Timetabling common constants. <br>
  * <br>
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- * <br><br>
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- * <br><br>
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * 
+ * @version CourseTT 1.2 (University Course Timetabling)<br>
+ *          Copyright (C) 2006 - 2010 Tomas Muller<br>
+ *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
+ *          Lazenska 391, 76314 Zlin, Czech Republic<br>
+ * <br>
+ *          This library is free software; you can redistribute it and/or modify
+ *          it under the terms of the GNU Lesser General Public License as
+ *          published by the Free Software Foundation; either version 2.1 of the
+ *          License, or (at your option) any later version. <br>
+ * <br>
+ *          This library is distributed in the hope that it will be useful, but
+ *          WITHOUT ANY WARRANTY; without even the implied warranty of
+ *          MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ *          Lesser General Public License for more details. <br>
+ * <br>
+ *          You should have received a copy of the GNU Lesser General Public
+ *          License along with this library; if not, write to the Free Software
+ *          Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ *          02110-1301 USA
  */
-public class Constants  extends net.sf.cpsolver.ifs.Constants {
+public class Constants extends net.sf.cpsolver.ifs.Constants {
     /** Number of slots per day */
     public static final int SLOTS_PER_DAY = 288;
 
@@ -37,24 +37,22 @@ public class Constants  extends net.sf.cpsolver.ifs.Constants {
 
     /** Length of a single slot in minutes */
     public static int SLOT_LENGTH_MIN = 5;
-    
+
     /** Start time of the first slot in minutes (from midnight) */
     public static int FIRST_SLOT_TIME_MIN = 0;
-    
-    /** Number of slots per day */
-    public static int DAY_SLOTS_FIRST = (7*60 + 30)/5; // day starts at 7:30
 
     /** Number of slots per day */
-    public static int DAY_SLOTS_LAST = (17*60 + 30)/5 - 1; // day ends at 17:30
+    public static int DAY_SLOTS_FIRST = (7 * 60 + 30) / 5; // day starts at 7:30
+
+    /** Number of slots per day */
+    public static int DAY_SLOTS_LAST = (17 * 60 + 30) / 5 - 1; // day ends at
+                                                               // 17:30
 
     /** Number of slots per day w/o evening hours */
-    public static int SLOTS_PER_DAY_NO_EVENINGS = DAY_SLOTS_LAST-DAY_SLOTS_FIRST+1;
-    
+    public static int SLOTS_PER_DAY_NO_EVENINGS = DAY_SLOTS_LAST - DAY_SLOTS_FIRST + 1;
 
     /** Day names in short format M, T, W, Th, F, Sa, Su */
-    public static String DAY_NAMES_SHORT[] = new String[] {
-            "M", "T", "W", "Th", "F", "S", "Su"
-        };
+    public static String DAY_NAMES_SHORT[] = new String[] { "M", "T", "W", "Th", "F", "S", "Su" };
 
     /** Number of days */
     public static int NR_DAYS = DAY_CODES.length;
@@ -91,7 +89,7 @@ public class Constants  extends net.sf.cpsolver.ifs.Constants {
     public static final int sPreferenceLevelStronglyPreferred = -4;
     /** Preference level: neutral */
     public static final int sPreferenceLevelNeutral = 0;
-    
+
     /** Convert preference to preference level */
     public static int preference2preferenceLevel(String prologPref) {
         if (sPreferenceRequired.equals(prologPref))
@@ -108,20 +106,26 @@ public class Constants  extends net.sf.cpsolver.ifs.Constants {
             return sPreferenceLevelProhibited;
         return sPreferenceLevelNeutral;
     }
-    
+
     /** Convert preference level to preference */
     public static String preferenceLevel2preference(int intPref) {
-        if (intPref>=sPreferenceLevelProhibited/2) return sPreferenceProhibited;
-        if (intPref>=sPreferenceLevelStronglyDiscouraged) return sPreferenceStronglyDiscouraged;
-        if (intPref>sPreferenceLevelNeutral) return sPreferenceDiscouraged;
-        if (intPref<=sPreferenceLevelRequired/2) return sPreferenceRequired;
-        if (intPref<=sPreferenceLevelStronglyPreferred) return sPreferenceStronglyPreferred;
-        if (intPref<sPreferenceLevelNeutral) return sPreferencePreferred;
+        if (intPref >= sPreferenceLevelProhibited / 2)
+            return sPreferenceProhibited;
+        if (intPref >= sPreferenceLevelStronglyDiscouraged)
+            return sPreferenceStronglyDiscouraged;
+        if (intPref > sPreferenceLevelNeutral)
+            return sPreferenceDiscouraged;
+        if (intPref <= sPreferenceLevelRequired / 2)
+            return sPreferenceRequired;
+        if (intPref <= sPreferenceLevelStronglyPreferred)
+            return sPreferenceStronglyPreferred;
+        if (intPref < sPreferenceLevelNeutral)
+            return sPreferencePreferred;
         return sPreferenceNeutral;
     }
-    
-    /** Convert time (hour:minute) to time slot */ 
+
+    /** Convert time (hour:minute) to time slot */
     public static int time2slot(int hour, int min) {
-        return (hour*60+min-FIRST_SLOT_TIME_MIN)/SLOT_LENGTH_MIN;
+        return (hour * 60 + min - FIRST_SLOT_TIME_MIN) / SLOT_LENGTH_MIN;
     }
 }

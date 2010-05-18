@@ -1,10 +1,10 @@
 <project name="ifs" default="dist" basedir=".">
 <!--
-	IFS 1.1 (Iterative Forward Search)
-	CourseTT 1.1 (University Course Timetabling)
-	StudentSct 1.1 (Student Sectioning)
-	ExamTT 1.1 (Examination Timetabling)
-	Copyright (C) 2007 Tomas Muller
+	IFS 1.2 (Iterative Forward Search)
+	CourseTT 1.2 (University Course Timetabling)
+	StudentSct 1.2 (Student Sectioning)
+	ExamTT 1.2 (Examination Timetabling)
+	Copyright (C) 2007 - 2010 Tomas Muller
 	muller@unitime.org
 	Lazenska 391, 76314 Zlin, Czech Republic
 	
@@ -77,21 +77,21 @@
     </target>
 
     <target name="compile-java" depends="prepare">
-        <javac debug="true" destdir="${build.dir}" source="1.4" target="1.4">
+        <javac debug="true" destdir="${build.dir}" source="1.5" target="1.5">
             <src path="${build.dir}"/>
             <classpath refid="build.classpath"/>
         </javac>
     </target>
     
     <target name="compile-java-rel" depends="prepare">
-        <javac debug="false" optimize="true" destdir="${build.dir}" source="1.4" target="1.4">
+        <javac debug="false" optimize="true" destdir="${build.dir}" source="1.5" target="1.5">
             <src path="${build.dir}"/>
             <classpath refid="build.classpath"/>
         </javac>
     </target>
 
     <target name="compile-jar">
-        <jar destfile="${dist-lib.dir}/ifs-1.1.jar">
+        <jar destfile="${dist-lib.dir}/ifs-1.2.jar">
             <fileset dir="${build.dir}">
                 <include name="net/sf/cpsolver/ifs/**/*.class"/>
             </fileset>
@@ -100,10 +100,10 @@
         	</fileset>
         	<manifest>
         		<attribute name="Class-Path" value="log4j-1.2.8.jar dom4j-1.6.1.jar" /> 
-        		<attribute name="Ifs-Version" value="1.1_bld${build.number}"/>
+        		<attribute name="Ifs-Version" value="1.2_bld${build.number}"/>
         	</manifest>
         </jar>
-        <jar destfile="${dist-lib.dir}/coursett-1.1.jar">
+        <jar destfile="${dist-lib.dir}/coursett-1.2.jar">
             <fileset dir="${build.dir}">
                 <include name="net/sf/cpsolver/coursett/**/*.class"/>
             </fileset>
@@ -111,12 +111,12 @@
         		<include name="lgpl.txt"/>
         	</fileset>
         	<manifest>
-        		<attribute name="Class-Path" value="log4j-1.2.8.jar dom4j-1.6.1.jar ifs-1.1.jar" /> 
-        		<attribute name="CourseTT-Version" value="1.1_bld${build.number}"/>
+        		<attribute name="Class-Path" value="log4j-1.2.8.jar dom4j-1.6.1.jar ifs-1.2.jar" /> 
+        		<attribute name="CourseTT-Version" value="1.2_bld${build.number}"/>
         		<attribute name="Main-Class" value="net.sf.cpsolver.coursett.Test"/>
         	</manifest>
         </jar>
-        <jar destfile="${dist-lib.dir}/studentsct-1.1.jar">
+        <jar destfile="${dist-lib.dir}/studentsct-1.2.jar">
             <fileset dir="${build.dir}">
                 <include name="net/sf/cpsolver/studentsct/**/*.class"/>
             </fileset>
@@ -124,12 +124,12 @@
         		<include name="lgpl.txt"/>
         	</fileset>
         	<manifest>
-        		<attribute name="Class-Path" value="log4j-1.2.8.jar dom4j-1.6.1.jar ifs-1.1.jar coursett-1.1.jar" /> 
-        		<attribute name="StudentSct-Version" value="1.1_bld${build.number}"/>
+        		<attribute name="Class-Path" value="log4j-1.2.8.jar dom4j-1.6.1.jar ifs-1.2.jar coursett-1.2.jar" /> 
+        		<attribute name="StudentSct-Version" value="1.2_bld${build.number}"/>
         		<attribute name="Main-Class" value="net.sf.cpsolver.studentsct.Test"/>
         	</manifest>
         </jar>
-        <jar destfile="${dist-lib.dir}/examtt-1.1.jar">
+        <jar destfile="${dist-lib.dir}/examtt-1.2.jar">
             <fileset dir="${build.dir}">
                 <include name="net/sf/cpsolver/exam/**/*.class"/>
             </fileset>
@@ -137,12 +137,12 @@
         		<include name="lgpl.txt"/>
         	</fileset>
         	<manifest>
-        		<attribute name="Class-Path" value="log4j-1.2.8.jar dom4j-1.6.1.jar ifs-1.1.jar" /> 
-        		<attribute name="ExamTT-Version" value="1.1_bld${build.number}"/>
+        		<attribute name="Class-Path" value="log4j-1.2.8.jar dom4j-1.6.1.jar ifs-1.2.jar" /> 
+        		<attribute name="ExamTT-Version" value="1.2_bld${build.number}"/>
         		<attribute name="Main-Class" value="net.sf.cpsolver.exam.Test"/>
         	</manifest>
         </jar>
-        <jar destfile="${dist-lib.dir}/cpsolver-all-1.1.jar">
+        <jar destfile="${dist-lib.dir}/cpsolver-all-1.2.jar">
             <fileset dir="${build.dir}">
                 <include name="net/sf/cpsolver/**/*.class"/>
             </fileset>
@@ -151,10 +151,10 @@
         	</fileset>
         	<manifest>
         		<attribute name="Class-Path" value="log4j-1.2.8.jar dom4j-1.6.1.jar" /> 
-        		<attribute name="Ifs-Version" value="1.1_bld${build.number}"/>
-        		<attribute name="CourseTT-Version" value="1.1_bld${build.number}"/>
-        		<attribute name="StudentSct-Version" value="1.1_bld${build.number}"/>
-        		<attribute name="ExamTT-Version" value="1.1_bld${build.number}"/>
+        		<attribute name="Ifs-Version" value="1.2_bld${build.number}"/>
+        		<attribute name="CourseTT-Version" value="1.2_bld${build.number}"/>
+        		<attribute name="StudentSct-Version" value="1.2_bld${build.number}"/>
+        		<attribute name="ExamTT-Version" value="1.2_bld${build.number}"/>
         		<attribute name="Main-Class" value="net.sf.cpsolver.coursett.Test"/>
         	</manifest>
         </jar>
@@ -178,14 +178,14 @@
     <target name="doc">
         <delete dir="${dist.dir}/doc" failonerror="false"/>
         <mkdir dir="${dist.dir}/doc"/>
-    	<javadoc destdir="${dist.dir}/doc" author="true" version="true" use="true" windowtitle="Constraint Solver API Documentation -- CPSolver v1.1 build ${build.number}" source="1.4" linksource="true" breakiterator="true">
+    	<javadoc destdir="${dist.dir}/doc" author="true" version="true" use="true" windowtitle="Constraint Solver API Documentation -- CPSolver v1.2 build ${build.number}" source="1.5" linksource="true" breakiterator="true">
     		<doctitle><![CDATA[
     		<table border='0' style='font-size: 11pt;font-weight: normal;'><tr><td align='left'>
-    		IFS 1.1 (Iterative Forward Search)<br>
-    		CourseTT 1.1 (University Course Timetabling)<br>
-    		StudentSct 1.1 (Student Sectioning)<br>
-    		ExamTT 1.1 (Examination Timetabling)<br>
-    		Copyright (C) 2006 Tomas Muller<br>
+    		IFS 1.2 (Iterative Forward Search)<br>
+    		CourseTT 1.2 (University Course Timetabling)<br>
+    		StudentSct 1.2 (Student Sectioning)<br>
+    		ExamTT 1.2 (Examination Timetabling)<br>
+    		Copyright (C) 2006 - 2010 Tomas Muller<br>
     		<a href='mailto:muller@unitime.org'>muller@unitime.org</a><br>
     		Lazenska 391, 76314 Zlin, Czech Republic<br>
     		<br>
@@ -281,7 +281,7 @@
 				<include name="**/*.dll"/>
 			</fileset>
 		</copy>
-		<zip destfile="${dist.dir}/cpsolver-1.1_bld${build.number}.zip">
+		<zip destfile="${dist.dir}/cpsolver-1.2_bld${build.number}.zip">
 			<fileset dir="${dist.dir}">
 				<include name="bin/**/*"/>
 				<include name="doc/**/*"/>
@@ -308,7 +308,7 @@
 				<include name="**/*.dll"/>
 			</fileset>
 		</copy>
-		<zip destfile="${dist.dir}/cpsolver-1.1_bld${build.number}.zip">
+		<zip destfile="${dist.dir}/cpsolver-1.2_bld${build.number}.zip">
 			<fileset dir="${dist.dir}">
 				<include name="bin/**/*"/>
 				<include name="doc/**/*"/>
