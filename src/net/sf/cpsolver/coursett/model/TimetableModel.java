@@ -1,12 +1,12 @@
 package net.sf.cpsolver.coursett.model;
 
-
-import java.util.Enumeration;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.constraint.ClassLimitConstraint;
@@ -20,41 +20,38 @@ import net.sf.cpsolver.coursett.heuristics.TimetableComparator;
 import net.sf.cpsolver.coursett.heuristics.UniversalPerturbationsCounter;
 import net.sf.cpsolver.ifs.constant.ConstantModel;
 import net.sf.cpsolver.ifs.model.Constraint;
-import net.sf.cpsolver.ifs.model.Value;
-import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.perturbations.PerturbationsCounter;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.Counter;
 import net.sf.cpsolver.ifs.util.DataProperties;
-import net.sf.cpsolver.ifs.util.FastVector;
-
 
 /**
  * Timetable model.
  * 
- * @version
- * CourseTT 1.1 (University Course Timetabling)<br>
- * Copyright (C) 2006 Tomas Muller<br>
- * <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
- * Lazenska 391, 76314 Zlin, Czech Republic<br>
+ * @version CourseTT 1.2 (University Course Timetabling)<br>
+ *          Copyright (C) 2006 - 2010 Tomas Muller<br>
+ *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
+ *          Lazenska 391, 76314 Zlin, Czech Republic<br>
  * <br>
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- * <br><br>
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- * <br><br>
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *          This library is free software; you can redistribute it and/or modify
+ *          it under the terms of the GNU Lesser General Public License as
+ *          published by the Free Software Foundation; either version 2.1 of the
+ *          License, or (at your option) any later version. <br>
+ * <br>
+ *          This library is distributed in the hope that it will be useful, but
+ *          WITHOUT ANY WARRANTY; without even the implied warranty of
+ *          MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ *          Lesser General Public License for more details. <br>
+ * <br>
+ *          You should have received a copy of the GNU Lesser General Public
+ *          License along with this library; if not, write to the Free Software
+ *          Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ *          02110-1301 USA
  */
 
-public class TimetableModel extends ConstantModel {
-    private static java.text.DecimalFormat sDoubleFormat = new java.text.DecimalFormat("0.00",new java.text.DecimalFormatSymbols(Locale.US));
+public class TimetableModel extends ConstantModel<Lecture, Placement> {
+    private static java.text.DecimalFormat sDoubleFormat = new java.text.DecimalFormat("0.00",
+            new java.text.DecimalFormatSymbols(Locale.US));
     private long iGlobalRoomPreference = 0;
     private double iGlobalTimePreference = 0;
     private long iMinRoomPreference = 0;
@@ -72,267 +69,328 @@ public class TimetableModel extends ConstantModel {
     private Counter iViolatedHardStudentConflicts = new Counter();
     private Counter iViolatedDistanceStudentConflicts = new Counter();
     private Counter iCommittedStudentConflictsCounter = new Counter();
-    private FastVector iInstructorConstraints = new FastVector();
-    private FastVector iJenrlConstraints = new FastVector();
-    private FastVector iRoomConstraints = new FastVector();
-    private FastVector iDepartmentSpreadConstraints = new FastVector();
-    private FastVector iSpreadConstraints = new FastVector();
-    private FastVector iGroupConstraints = new FastVector();
-    private FastVector iClassLimitConstraints = new FastVector();
+    private List<InstructorConstraint> iInstructorConstraints = new ArrayList<InstructorConstraint>();
+    private List<JenrlConstraint> iJenrlConstraints = new ArrayList<JenrlConstraint>();
+    private List<RoomConstraint> iRoomConstraints = new ArrayList<RoomConstraint>();
+    private List<DepartmentSpreadConstraint> iDepartmentSpreadConstraints = new ArrayList<DepartmentSpreadConstraint>();
+    private List<SpreadConstraint> iSpreadConstraints = new ArrayList<SpreadConstraint>();
+    private List<GroupConstraint> iGroupConstraints = new ArrayList<GroupConstraint>();
+    private List<ClassLimitConstraint> iClassLimitConstraints = new ArrayList<ClassLimitConstraint>();
     private DataProperties iProperties = null;
     private TimetableComparator iCmp = null;
     private UniversalPerturbationsCounter iPertCnt = null;
     private int iYear = -1;
-    
-    private HashSet iAllStudents = new HashSet();
-    
+
+    private HashSet<Student> iAllStudents = new HashSet<Student>();
+
     /** Back-to-back classes: maximal distance for no prefernce */
-	private double iInstructorNoPreferenceLimit = 0.0;
+    private double iInstructorNoPreferenceLimit = 0.0;
     /** Back-to-back classes: maximal distance for discouraged prefernce */
-	private double iInstructorDiscouragedLimit = 5.0;
-    /** Back-to-back classes: maximal distance for strongly discouraged prefernce (everything above is prohibited) */
-	private double iInstructorProhibitedLimit = 20.0;
-	
-	private double iStudentDistanceLimit = 67.0;
-	private double iStudentDistanceLimit75min = 100.0;
-    
+    private double iInstructorDiscouragedLimit = 5.0;
+    /**
+     * Back-to-back classes: maximal distance for strongly discouraged prefernce
+     * (everything above is prohibited)
+     */
+    private double iInstructorProhibitedLimit = 20.0;
+
+    private double iStudentDistanceLimit = 67.0;
+    private double iStudentDistanceLimit75min = 100.0;
+
     public TimetableModel(DataProperties properties) {
         super();
         iProperties = properties;
-        iInstructorNoPreferenceLimit = iProperties.getPropertyDouble("Instructor.NoPreferenceLimit", iInstructorNoPreferenceLimit);
-        iInstructorDiscouragedLimit = iProperties.getPropertyDouble("Instructor.DiscouragedLimit",iInstructorDiscouragedLimit);
-        iInstructorProhibitedLimit = iProperties.getPropertyDouble("Instructor.ProhibitedLimit",iInstructorProhibitedLimit);
-        iStudentDistanceLimit = iProperties.getPropertyDouble("Student.DistanceLimit",iStudentDistanceLimit);
-        iStudentDistanceLimit75min = iProperties.getPropertyDouble("Student.DistanceLimit75min",iStudentDistanceLimit75min);
+        iInstructorNoPreferenceLimit = iProperties.getPropertyDouble("Instructor.NoPreferenceLimit",
+                iInstructorNoPreferenceLimit);
+        iInstructorDiscouragedLimit = iProperties.getPropertyDouble("Instructor.DiscouragedLimit",
+                iInstructorDiscouragedLimit);
+        iInstructorProhibitedLimit = iProperties.getPropertyDouble("Instructor.ProhibitedLimit",
+                iInstructorProhibitedLimit);
+        iStudentDistanceLimit = iProperties.getPropertyDouble("Student.DistanceLimit", iStudentDistanceLimit);
+        iStudentDistanceLimit75min = iProperties.getPropertyDouble("Student.DistanceLimit75min",
+                iStudentDistanceLimit75min);
         iCmp = new TimetableComparator(properties);
         iPertCnt = new UniversalPerturbationsCounter(properties);
-        if (properties.getPropertyBoolean("OnFlySectioning.Enabled", false)) addModelListener(new OnFlySectioning(this));
+        if (properties.getPropertyBoolean("OnFlySectioning.Enabled", false))
+            addModelListener(new OnFlySectioning(this));
     }
-    
+
     public double getInstructorNoPreferenceLimit() {
-    	return iInstructorNoPreferenceLimit;
+        return iInstructorNoPreferenceLimit;
     }
-    
+
     public double getInstructorDiscouragedLimit() {
-    	return iInstructorDiscouragedLimit;
+        return iInstructorDiscouragedLimit;
     }
-    
+
     public double getInstructorProhibitedLimit() {
-    	return iInstructorProhibitedLimit;
+        return iInstructorProhibitedLimit;
     }
-    
+
     public double getStudentDistanceLimit() {
-    	return iStudentDistanceLimit;
+        return iStudentDistanceLimit;
     }
-    
+
     public double getStudentDistanceLimit75min() {
-    	return iStudentDistanceLimit75min;
+        return iStudentDistanceLimit75min;
     }
-    
-    public boolean init(Solver solver) {
-    	iCmp = new TimetableComparator(solver.getProperties());
+
+    @Override
+    public boolean init(Solver<Lecture, Placement> solver) {
+        iCmp = new TimetableComparator(solver.getProperties());
         iPertCnt = new UniversalPerturbationsCounter(solver.getProperties());
-    	return super.init(solver);
+        return super.init(solver);
     }
-    
-    public void addVariable(Variable variable) {
-    	super.addVariable(variable);
-    	Lecture lecture = (Lecture)variable;
-    	if (lecture.isCommitted()) return;
-    	double[] minMaxTimePref = lecture.getMinMaxTimePreference();
-    	iMinTimePreference += minMaxTimePref[0];
-    	iMaxTimePreference += minMaxTimePref[1];
-    	int[] minMaxRoomPref = lecture.getMinMaxRoomPreference();
-    	iMinRoomPreference += minMaxRoomPref[0];
-    	iMaxRoomPreference += minMaxRoomPref[1];
+
+    @Override
+    public void addVariable(Lecture lecture) {
+        super.addVariable(lecture);
+        if (lecture.isCommitted())
+            return;
+        double[] minMaxTimePref = lecture.getMinMaxTimePreference();
+        iMinTimePreference += minMaxTimePref[0];
+        iMaxTimePreference += minMaxTimePref[1];
+        int[] minMaxRoomPref = lecture.getMinMaxRoomPreference();
+        iMinRoomPreference += minMaxRoomPref[0];
+        iMaxRoomPreference += minMaxRoomPref[1];
     }
-    
-    public void removeVariable(Variable variable) {
-    	super.removeVariable(variable);
-    	Lecture lecture = (Lecture)variable;
-    	if (lecture.isCommitted()) return;
-    	double[] minMaxTimePref = lecture.getMinMaxTimePreference();
-    	iMinTimePreference -= minMaxTimePref[0];
-    	iMaxTimePreference -= minMaxTimePref[1];
-    	int[] minMaxRoomPref = lecture.getMinMaxRoomPreference();
-    	iMinRoomPreference -= minMaxRoomPref[0];
-    	iMaxRoomPreference -= minMaxRoomPref[1];
+
+    @Override
+    public void removeVariable(Lecture lecture) {
+        super.removeVariable(lecture);
+        if (lecture.isCommitted())
+            return;
+        double[] minMaxTimePref = lecture.getMinMaxTimePreference();
+        iMinTimePreference -= minMaxTimePref[0];
+        iMaxTimePreference -= minMaxTimePref[1];
+        int[] minMaxRoomPref = lecture.getMinMaxRoomPreference();
+        iMinRoomPreference -= minMaxRoomPref[0];
+        iMaxRoomPreference -= minMaxRoomPref[1];
     }
-    
-    
-    public DataProperties getProperties() { return iProperties; }
+
+    public DataProperties getProperties() {
+        return iProperties;
+    }
 
     /** Overall room preference */
-    public long getGlobalRoomPreference() { return iGlobalRoomPreference; }
+    public long getGlobalRoomPreference() {
+        return iGlobalRoomPreference;
+    }
+
     /** Overall time preference */
-    public double getGlobalTimePreference() { return iGlobalTimePreference; }
+    public double getGlobalTimePreference() {
+        return iGlobalTimePreference;
+    }
+
     /** Number of student conflicts */
-    public long getViolatedStudentConflicts() { return iViolatedStudentConflicts.get(); }
+    public long getViolatedStudentConflicts() {
+        return iViolatedStudentConflicts.get();
+    }
+
     /** Number of student conflicts */
     public long countViolatedStudentConflicts() {
-    	long studentConflicts = 0;
-        for (Enumeration it1=iJenrlConstraints.elements();it1.hasMoreElements();) {
-            JenrlConstraint jenrl = (JenrlConstraint)it1.nextElement();
+        long studentConflicts = 0;
+        for (JenrlConstraint jenrl : iJenrlConstraints) {
             if (jenrl.isInConflict())
-                studentConflicts+=jenrl.getJenrl();
+                studentConflicts += jenrl.getJenrl();
         }
         return studentConflicts;
     }
+
     /** Number of student conflicts */
-    public Counter getViolatedStudentConflictsCounter() { return iViolatedStudentConflicts; }
-    public Counter getViolatedHardStudentConflictsCounter() { return iViolatedHardStudentConflicts; }
-    public Counter getViolatedDistanceStudentConflictsCounter() { return iViolatedDistanceStudentConflicts; }
-    
+    public Counter getViolatedStudentConflictsCounter() {
+        return iViolatedStudentConflicts;
+    }
+
+    public Counter getViolatedHardStudentConflictsCounter() {
+        return iViolatedHardStudentConflicts;
+    }
+
+    public Counter getViolatedDistanceStudentConflictsCounter() {
+        return iViolatedDistanceStudentConflicts;
+    }
+
     /** Overall group constraint preference */
-    public long getGlobalGroupConstraintPreference() { return iGlobalGroupConstraintPreference.get(); }
+    public long getGlobalGroupConstraintPreference() {
+        return iGlobalGroupConstraintPreference.get();
+    }
+
     /** Overall group constraint preference */
-    public Counter getGlobalGroupConstraintPreferenceCounter() { return iGlobalGroupConstraintPreference; }
+    public Counter getGlobalGroupConstraintPreferenceCounter() {
+        return iGlobalGroupConstraintPreference;
+    }
+
     /** Overall instructor distance (back-to-back) preference */
     public long getInstructorDistancePreference() {
         long pref = 0;
-        for (Enumeration it1=iInstructorConstraints.elements();it1.hasMoreElements();) {
-            InstructorConstraint constraint = (InstructorConstraint)it1.nextElement();
-            pref+=constraint.getPreference();
+        for (InstructorConstraint constraint : iInstructorConstraints) {
+            pref += constraint.getPreference();
         }
         return pref;
     }
+
     /** The worst instructor distance (back-to-back) preference */
     public long getInstructorWorstDistancePreference() {
         long pref = 0;
-        for (Enumeration it1=iInstructorConstraints.elements();it1.hasMoreElements();) {
-            InstructorConstraint constraint = (InstructorConstraint)it1.nextElement();
-            pref+=constraint.getWorstPreference();
+        for (InstructorConstraint constraint : iInstructorConstraints) {
+            pref += constraint.getWorstPreference();
         }
         return pref;
     }
+
     /** Overall number of useless time slots */
     public long getUselessSlots() {
         long uselessSlots = 0;
-        for (Enumeration it1=iRoomConstraints.elements();it1.hasMoreElements();) {
-            RoomConstraint constraint = (RoomConstraint)it1.nextElement();
-            uselessSlots+=((RoomConstraint)constraint).countUselessSlots();
+        for (RoomConstraint constraint : iRoomConstraints) {
+            uselessSlots += (constraint).countUselessSlots();
         }
         return uselessSlots;
     }
+
     /** Overall number of useless time slots */
     public long getUselessHalfHours() {
         long uselessSlots = 0;
-        for (Enumeration it1=iRoomConstraints.elements();it1.hasMoreElements();) {
-            RoomConstraint constraint = (RoomConstraint)it1.nextElement();
-            uselessSlots+=((RoomConstraint)constraint).countUselessSlotsHalfHours();
+        for (RoomConstraint constraint : iRoomConstraints) {
+            uselessSlots += (constraint).countUselessSlotsHalfHours();
         }
         return uselessSlots;
     }
+
     /** Overall number of useless time slots */
     public long getBrokenTimePatterns() {
         long uselessSlots = 0;
-        for (Enumeration it1=iRoomConstraints.elements();it1.hasMoreElements();) {
-            RoomConstraint constraint = (RoomConstraint)it1.nextElement();
-            uselessSlots+=((RoomConstraint)constraint).countUselessSlotsBrokenTimePatterns();
+        for (RoomConstraint constraint : iRoomConstraints) {
+            uselessSlots += (constraint).countUselessSlotsBrokenTimePatterns();
         }
         return uselessSlots;
     }
-    /** Overall number of student conflicts caused by distancies (back-to-back classes are too far)*/
+
+    /**
+     * Overall number of student conflicts caused by distancies (back-to-back
+     * classes are too far)
+     */
     public long getStudentDistanceConflicts() {
-    	/*
-    	if (iViolatedDistanceStudentConflicts.get()!=countStudentDistanceConflicts()) {
-    		System.err.println("TimetableModel.getStudentDistanceConflicts() is not working properly");
-    	}
-    	*/
-    	return iViolatedDistanceStudentConflicts.get();
+        /*
+         * if
+         * (iViolatedDistanceStudentConflicts.get()!=countStudentDistanceConflicts
+         * ()) {System.err.println(
+         * "TimetableModel.getStudentDistanceConflicts() is not working properly"
+         * ); }
+         */
+        return iViolatedDistanceStudentConflicts.get();
     }
+
     public long countStudentDistanceConflicts() {
         long nrConflicts = 0;
-        for (Enumeration it1=iJenrlConstraints.elements();it1.hasMoreElements();) {
-            JenrlConstraint jenrl = (JenrlConstraint)it1.nextElement();
-            if (jenrl.isInConflict() && 
-                    !((Placement)jenrl.first().getAssignment()).getTimeLocation().hasIntersection(((Placement)jenrl.second().getAssignment()).getTimeLocation()))
-                    nrConflicts += jenrl.getJenrl();
+        for (JenrlConstraint jenrl : iJenrlConstraints) {
+            if (jenrl.isInConflict()
+                    && !(jenrl.first().getAssignment()).getTimeLocation().hasIntersection(
+                            (jenrl.second().getAssignment()).getTimeLocation()))
+                nrConflicts += jenrl.getJenrl();
         }
         return nrConflicts;
     }
-    /** Overall hard student conflicts (student conflict between single section classes) */ 
+
+    /**
+     * Overall hard student conflicts (student conflict between single section
+     * classes)
+     */
     public long getHardStudentConflicts() {
-    	/*
-    	if (iViolatedHardStudentConflicts.get()!=countHardStudentConflicts()) {
-    		System.err.println("TimetableModel.getHardStudentConflicts() is not working properly");
-    	}
-    	*/
-    	return iViolatedHardStudentConflicts.get(); 
+        /*
+         * if (iViolatedHardStudentConflicts.get()!=countHardStudentConflicts())
+         * {System.err.println(
+         * "TimetableModel.getHardStudentConflicts() is not working properly");
+         * }
+         */
+        return iViolatedHardStudentConflicts.get();
     }
+
     public long countHardStudentConflicts() {
         long hardStudentConflicts = 0;
-        for (Enumeration it1=iJenrlConstraints.elements();it1.hasMoreElements();) {
-            JenrlConstraint jenrl = (JenrlConstraint)it1.nextElement();
+        for (JenrlConstraint jenrl : iJenrlConstraints) {
             if (jenrl.isInConflict()) {
-                Lecture l1 = (Lecture)jenrl.first();
-                Lecture l2 = (Lecture)jenrl.second();
+                Lecture l1 = jenrl.first();
+                Lecture l2 = jenrl.second();
                 if (l1.areStudentConflictsHard(l2))
-                    hardStudentConflicts+=jenrl.getJenrl();
+                    hardStudentConflicts += jenrl.getJenrl();
             }
         }
         return hardStudentConflicts;
     }
-    public Counter getCommittedStudentConflictsCounter() { return iCommittedStudentConflictsCounter; }
+
+    public Counter getCommittedStudentConflictsCounter() {
+        return iCommittedStudentConflictsCounter;
+    }
+
     public int getCommitedStudentConflicts() {
-    	/*
-    	if (iCommittedStudentConflictsCounter.get()!=countCommitedStudentConflicts()) {
-    		System.err.println("TimetableModel.getCommitedStudentConflicts() is not working properly");
-    	}
-    	*/
-    	return (int)iCommittedStudentConflictsCounter.get(); 
+        /*
+         * if
+         * (iCommittedStudentConflictsCounter.get()!=countCommitedStudentConflicts
+         * ()) {System.err.println(
+         * "TimetableModel.getCommitedStudentConflicts() is not working properly"
+         * ); }
+         */
+        return (int) iCommittedStudentConflictsCounter.get();
     }
+
     public int countCommitedStudentConflicts() {
-    	int commitedStudentConflicts = 0;
-    	for (Enumeration e=assignedVariables().elements();e.hasMoreElements();) {
-    		Lecture lecture = (Lecture)e.nextElement();
-    		commitedStudentConflicts+=lecture.getCommitedConflicts((Placement)lecture.getAssignment());
-    	}
-    	return commitedStudentConflicts;
+        int commitedStudentConflicts = 0;
+        for (Lecture lecture : assignedVariables()) {
+            commitedStudentConflicts += lecture.getCommitedConflicts(lecture.getAssignment());
+        }
+        return commitedStudentConflicts;
     }
-    
+
     /** When a value is assigned to a variable -- update gloval preferences */
-    public void afterAssigned(long iteration, Value value) {
-        super.afterAssigned(iteration, value);
-        if (value==null) return;
-        Placement placement = (Placement)value;
+    @Override
+    public void afterAssigned(long iteration, Placement placement) {
+        super.afterAssigned(iteration, placement);
+        if (placement == null)
+            return;
         iGlobalRoomPreference += placement.sumRoomPreference();
         iGlobalTimePreference += placement.getTimeLocation().getNormalizedPreference();
     }
+
     /** When a value is unassigned from a variable -- update gloval preferences */
-    public void afterUnassigned(long iteration, Value value) {
-        super.afterUnassigned(iteration, value);
-        if (value==null) return;
-        Placement placement = (Placement)value;
+    @Override
+    public void afterUnassigned(long iteration, Placement placement) {
+        super.afterUnassigned(iteration, placement);
+        if (placement == null)
+            return;
         iGlobalRoomPreference -= placement.sumRoomPreference();
         iGlobalTimePreference -= placement.getTimeLocation().getNormalizedPreference();
     }
 
-    /** Student final sectioning (switching students between sections of the same class in order to minimize overall number of student conflicts) */
+    /**
+     * Student final sectioning (switching students between sections of the same
+     * class in order to minimize overall number of student conflicts)
+     */
     public void switchStudents() {
-    	FinalSectioning sect = new FinalSectioning(this);
-    	sect.run();
+        FinalSectioning sect = new FinalSectioning(this);
+        sect.run();
     }
 
+    @Override
     public String toString() {
-        return "TimetableModel{"+
-        "\n  super="+super.toString()+
-        "\n  studentConflicts="+iViolatedStudentConflicts.get()+
-//        "\n  studentConflicts(violated room distance)="+iViolatedRoomDistanceStudentConflicts.get()+
-//        "\n  studentPreferences="+iRoomDistanceStudentPreference.get()+
-        "\n  roomPreferences="+iGlobalRoomPreference+
-        "\n  timePreferences="+iGlobalTimePreference+
-        "\n  groupConstraintPreferences="+iGlobalGroupConstraintPreference.get()+
-        "\n}";
+        return "TimetableModel{" + "\n  super=" + super.toString()
+                + "\n  studentConflicts="
+                + iViolatedStudentConflicts.get()
+                +
+                // "\n  studentConflicts(violated room distance)="+iViolatedRoomDistanceStudentConflicts.get()+
+                // "\n  studentPreferences="+iRoomDistanceStudentPreference.get()+
+                "\n  roomPreferences=" + iGlobalRoomPreference + "\n  timePreferences=" + iGlobalTimePreference
+                + "\n  groupConstraintPreferences=" + iGlobalGroupConstraintPreference.get() + "\n}";
     }
-    
-    /** Overall number of too big rooms (rooms with more than 3/2 seats than needed) */
+
+    /**
+     * Overall number of too big rooms (rooms with more than 3/2 seats than
+     * needed)
+     */
     public int countTooBigRooms() {
-        int tooBigRooms=0;
-        for (Enumeration it1=assignedVariables().elements();it1.hasMoreElements();) {
-            Lecture lecture = (Lecture)it1.nextElement();
-            if (lecture.getAssignment()==null) continue;
-            Placement placement = (Placement)lecture.getAssignment();
+        int tooBigRooms = 0;
+        for (Lecture lecture : assignedVariables()) {
+            if (lecture.getAssignment() == null)
+                continue;
+            Placement placement = lecture.getAssignment();
             tooBigRooms += placement.getTooBigRoomPreference();
         }
         return tooBigRooms;
@@ -340,68 +398,85 @@ public class TimetableModel extends ConstantModel {
 
     /** Overall departmental spread penalty */
     public int getDepartmentSpreadPenalty() {
-        if (iDepartmentSpreadConstraints.isEmpty()) return 0;
+        if (iDepartmentSpreadConstraints.isEmpty())
+            return 0;
         int penalty = 0;
-        for (Enumeration e=iDepartmentSpreadConstraints.elements();e.hasMoreElements();) {
-            DepartmentSpreadConstraint c = (DepartmentSpreadConstraint)e.nextElement();
-            penalty += ((DepartmentSpreadConstraint)c).getPenalty();
+        for (DepartmentSpreadConstraint c : iDepartmentSpreadConstraints) {
+            penalty += (c).getPenalty();
         }
         return penalty;
     }
-    
+
     /** Overall spread penalty */
     public int getSpreadPenalty() {
-        if (iSpreadConstraints.isEmpty()) return 0;
+        if (iSpreadConstraints.isEmpty())
+            return 0;
         int penalty = 0;
-        for (Enumeration e=iSpreadConstraints.elements();e.hasMoreElements();) {
-            SpreadConstraint c = (SpreadConstraint)e.nextElement();
-            penalty += ((SpreadConstraint)c).getPenalty();
+        for (SpreadConstraint c : iSpreadConstraints) {
+            penalty += (c).getPenalty();
         }
         return penalty;
     }
-    
-    public java.util.Hashtable getBounds() {
-        Hashtable ret = new Hashtable();
-        ret.put("Room preferences min", ""+iMinRoomPreference);
-        ret.put("Room preferences max", ""+iMaxRoomPreference);
-        ret.put("Time preferences min", ""+iMinTimePreference);
-        ret.put("Time preferences max", ""+iMaxTimePreference);
-        ret.put("Distribution preferences min", ""+iMinGroupConstraintPreference);
-        ret.put("Distribution preferences max", ""+iMaxGroupConstraintPreference);
-        if (getProperties().getPropertyBoolean("General.UseDistanceConstraints",false)) {
-            ret.put("Back-to-back instructor preferences max", ""+getInstructorWorstDistancePreference());
+
+    public Map<String, String> getBounds() {
+        Map<String, String> ret = new Hashtable<String, String>();
+        ret.put("Room preferences min", "" + iMinRoomPreference);
+        ret.put("Room preferences max", "" + iMaxRoomPreference);
+        ret.put("Time preferences min", "" + iMinTimePreference);
+        ret.put("Time preferences max", "" + iMaxTimePreference);
+        ret.put("Distribution preferences min", "" + iMinGroupConstraintPreference);
+        ret.put("Distribution preferences max", "" + iMaxGroupConstraintPreference);
+        if (getProperties().getPropertyBoolean("General.UseDistanceConstraints", false)) {
+            ret.put("Back-to-back instructor preferences max", "" + getInstructorWorstDistancePreference());
         }
-        ret.put("Too big rooms max", ""+(Constants.sPreferenceLevelStronglyDiscouraged*variables().size()));
-        ret.put("Useless half-hours", ""+(Constants.sPreferenceLevelStronglyDiscouraged*getRoomConstraints().size()*Constants.SLOTS_PER_DAY_NO_EVENINGS*Constants.NR_DAYS_WEEK));
+        ret.put("Too big rooms max", "" + (Constants.sPreferenceLevelStronglyDiscouraged * variables().size()));
+        ret.put("Useless half-hours", ""
+                + (Constants.sPreferenceLevelStronglyDiscouraged * getRoomConstraints().size()
+                        * Constants.SLOTS_PER_DAY_NO_EVENINGS * Constants.NR_DAYS_WEEK));
         return ret;
     }
-    
+
     /** Global info */
-    public java.util.Hashtable getInfo() {
-        Hashtable ret = super.getInfo();
+    @Override
+    public Map<String, String> getInfo() {
+        Map<String, String> ret = super.getInfo();
         ret.put("Memory usage", getMem());
-        ret.put("Room preferences", getPerc(iGlobalRoomPreference,iMinRoomPreference,iMaxRoomPreference)+"% ("+iGlobalRoomPreference+")");
-        ret.put("Time preferences", getPerc(iGlobalTimePreference,iMinTimePreference,iMaxTimePreference)+"% ("+sDoubleFormat.format(iGlobalTimePreference)+")");
-        ret.put("Distribution preferences", getPerc(iGlobalGroupConstraintPreference.get(),iMinGroupConstraintPreference,iMaxGroupConstraintPreference)+"% ("+iGlobalGroupConstraintPreference.get()+")");
-        int commitedStudentConflicts = getCommitedStudentConflicts(); 
-        ret.put("Student conflicts", (commitedStudentConflicts+getViolatedStudentConflicts())+" [committed:"+commitedStudentConflicts+", hard:"+getHardStudentConflicts()+"]");
-        if (getProperties().getPropertyBoolean("General.UseDistanceConstraints",false)) {
-        	ret.put("Student conflicts", (commitedStudentConflicts+getViolatedStudentConflicts())+" [committed:"+commitedStudentConflicts+", distance:"+getStudentDistanceConflicts()+", hard:"+getHardStudentConflicts()+"]");
-            ret.put("Back-to-back instructor preferences", getPerc(getInstructorDistancePreference(),0,getInstructorWorstDistancePreference())+"% ("+getInstructorDistancePreference()+")");
+        ret.put("Room preferences", getPerc(iGlobalRoomPreference, iMinRoomPreference, iMaxRoomPreference) + "% ("
+                + iGlobalRoomPreference + ")");
+        ret.put("Time preferences", getPerc(iGlobalTimePreference, iMinTimePreference, iMaxTimePreference) + "% ("
+                + sDoubleFormat.format(iGlobalTimePreference) + ")");
+        ret.put("Distribution preferences", getPerc(iGlobalGroupConstraintPreference.get(),
+                iMinGroupConstraintPreference, iMaxGroupConstraintPreference)
+                + "% (" + iGlobalGroupConstraintPreference.get() + ")");
+        int commitedStudentConflicts = getCommitedStudentConflicts();
+        ret.put("Student conflicts", (commitedStudentConflicts + getViolatedStudentConflicts()) + " [committed:"
+                + commitedStudentConflicts + ", hard:" + getHardStudentConflicts() + "]");
+        if (getProperties().getPropertyBoolean("General.UseDistanceConstraints", false)) {
+            ret.put("Student conflicts", (commitedStudentConflicts + getViolatedStudentConflicts()) + " [committed:"
+                    + commitedStudentConflicts + ", distance:" + getStudentDistanceConflicts() + ", hard:"
+                    + getHardStudentConflicts() + "]");
+            ret.put("Back-to-back instructor preferences", getPerc(getInstructorDistancePreference(), 0,
+                    getInstructorWorstDistancePreference())
+                    + "% (" + getInstructorDistancePreference() + ")");
         }
         if (getProperties().getPropertyBoolean("General.DeptBalancing", false)) {
-            ret.put("Department balancing penalty", sDoubleFormat.format(((double)getDepartmentSpreadPenalty())/12.0));
+            ret.put("Department balancing penalty", sDoubleFormat.format((getDepartmentSpreadPenalty()) / 12.0));
         }
-        ret.put("Same subpart balancing penalty", sDoubleFormat.format(((double)getSpreadPenalty())/12.0));
-        ret.put("Too big rooms", getPercRev(countTooBigRooms(),0,Constants.sPreferenceLevelStronglyDiscouraged*variables().size())+"% ("+countTooBigRooms()+")");
-        ret.put("Useless half-hours", getPercRev(getUselessSlots(),0,Constants.sPreferenceLevelStronglyDiscouraged*getRoomConstraints().size()*Constants.SLOTS_PER_DAY_NO_EVENINGS*Constants.NR_DAYS_WEEK)+"% ("+getUselessHalfHours()+" + "+getBrokenTimePatterns()+")");
+        ret.put("Same subpart balancing penalty", sDoubleFormat.format((getSpreadPenalty()) / 12.0));
+        ret.put("Too big rooms", getPercRev(countTooBigRooms(), 0, Constants.sPreferenceLevelStronglyDiscouraged
+                * variables().size())
+                + "% (" + countTooBigRooms() + ")");
+        ret.put("Useless half-hours", getPercRev(getUselessSlots(), 0, Constants.sPreferenceLevelStronglyDiscouraged
+                * getRoomConstraints().size() * Constants.SLOTS_PER_DAY_NO_EVENINGS * Constants.NR_DAYS_WEEK)
+                + "% (" + getUselessHalfHours() + " + " + getBrokenTimePatterns() + ")");
         return ret;
     }
-    
-    public java.util.Hashtable getInfo(Vector variables) {
-        Hashtable ret = super.getInfo(variables);
+
+    @Override
+    public Map<String, String> getInfo(List<Lecture> variables) {
+        Map<String, String> ret = super.getInfo(variables);
         ret.put("Memory usage", getMem());
-        
+
         int roomPref = 0, minRoomPref = 0, maxRoomPref = 0;
         double timePref = 0, minTimePref = 0, maxTimePref = 0;
         double grPref = 0, minGrPref = 0, maxGrPref = 0;
@@ -410,93 +485,102 @@ public class TimetableModel extends ConstantModel {
         int spreadPen = 0, deptSpreadPen = 0;
         int tooBigRooms = 0;
         int rcs = 0, uselessSlots = 0, uselessSlotsHH = 0, uselessSlotsBTP = 0;
-        
-        HashSet used = new HashSet();
-        
-        for (Enumeration e=variables.elements();e.hasMoreElements();) {
-        	Lecture lecture = (Lecture)e.nextElement();
-        	if (lecture.isCommitted()) continue;
-        	Placement placement = (Placement)lecture.getAssignment();
-        	
-        	int[] minMaxRoomPref = lecture.getMinMaxRoomPreference();
-        	minRoomPref += minMaxRoomPref[0];
-        	maxRoomPref += minMaxRoomPref[1];
-        	
-        	double[] minMaxTimePref = lecture.getMinMaxTimePreference();
-        	minTimePref += minMaxTimePref[0];
-        	maxTimePref += minMaxTimePref[1];
-        	
-        	if (placement!=null) {
-        		roomPref += placement.getRoomPreference();
-        		timePref += placement.getTimeLocation().getNormalizedPreference();
-        		tooBigRooms += placement.getTooBigRoomPreference();
-        	}
-        	
-        	for (Enumeration f=lecture.constraints().elements();f.hasMoreElements();) {
-        		Constraint c = (Constraint)f.nextElement();
-        		if (!used.add(c)) continue;
-        		
-        		if (c instanceof InstructorConstraint) {
-        			InstructorConstraint ic = (InstructorConstraint)c;
-        			instPref += ic.getPreference();
-        			worstInstrPref += ic.getWorstPreference();
-        		}
-        		
-        		if (c instanceof DepartmentSpreadConstraint) {
-        			DepartmentSpreadConstraint dsc = (DepartmentSpreadConstraint)c;
-        			deptSpreadPen += dsc.getPenalty();
-        		} else if (c instanceof SpreadConstraint) {
-        			SpreadConstraint sc = (SpreadConstraint)c;
-        			spreadPen += sc.getPenalty();
-        		}
-        		
-        		if (c instanceof GroupConstraint) {
-        			GroupConstraint gc = (GroupConstraint)c;
-        			if (gc.isHard()) continue;
-            		minGrPref += Math.min(gc.getPreference(),0);
-            		maxGrPref += Math.max(gc.getPreference(),0);
-            		grPref += gc.getCurrentPreference();
-        		}
-        		
-        		if (c instanceof JenrlConstraint) {
-        			JenrlConstraint jc = (JenrlConstraint)c;
-        			if (!jc.isInConflict() || !jc.isOfTheSameProblem()) continue;
-            		Lecture l1 = (Lecture)jc.first();
-            		Lecture l2 = (Lecture)jc.second();
-            		allSC += jc.getJenrl();
-            		if (l1.areStudentConflictsHard(l2))
-            			hardSC += jc.getJenrl();
-            		Placement p1 = (Placement)l1.getAssignment();
-            		Placement p2 = (Placement)l2.getAssignment();
-            		if (!p1.getTimeLocation().hasIntersection(p2.getTimeLocation()))
-            			distSC += jc.getJenrl();
-        		}
-        		
-        		if (c instanceof RoomConstraint) {
-        			RoomConstraint rc = (RoomConstraint)c;
-        			uselessSlots+=rc.countUselessSlots();
-        			uselessSlotsHH+=rc.countUselessSlotsHalfHours();
-        			uselessSlotsBTP+=rc.countUselessSlotsBrokenTimePatterns();
-        			rcs ++;
-        		}
-        	}
+
+        HashSet<Constraint<Lecture, Placement>> used = new HashSet<Constraint<Lecture, Placement>>();
+
+        for (Lecture lecture : variables) {
+            if (lecture.isCommitted())
+                continue;
+            Placement placement = lecture.getAssignment();
+
+            int[] minMaxRoomPref = lecture.getMinMaxRoomPreference();
+            minRoomPref += minMaxRoomPref[0];
+            maxRoomPref += minMaxRoomPref[1];
+
+            double[] minMaxTimePref = lecture.getMinMaxTimePreference();
+            minTimePref += minMaxTimePref[0];
+            maxTimePref += minMaxTimePref[1];
+
+            if (placement != null) {
+                roomPref += placement.getRoomPreference();
+                timePref += placement.getTimeLocation().getNormalizedPreference();
+                tooBigRooms += placement.getTooBigRoomPreference();
+            }
+
+            for (Constraint<Lecture, Placement> c : lecture.constraints()) {
+                if (!used.add(c))
+                    continue;
+
+                if (c instanceof InstructorConstraint) {
+                    InstructorConstraint ic = (InstructorConstraint) c;
+                    instPref += ic.getPreference();
+                    worstInstrPref += ic.getWorstPreference();
+                }
+
+                if (c instanceof DepartmentSpreadConstraint) {
+                    DepartmentSpreadConstraint dsc = (DepartmentSpreadConstraint) c;
+                    deptSpreadPen += dsc.getPenalty();
+                } else if (c instanceof SpreadConstraint) {
+                    SpreadConstraint sc = (SpreadConstraint) c;
+                    spreadPen += sc.getPenalty();
+                }
+
+                if (c instanceof GroupConstraint) {
+                    GroupConstraint gc = (GroupConstraint) c;
+                    if (gc.isHard())
+                        continue;
+                    minGrPref += Math.min(gc.getPreference(), 0);
+                    maxGrPref += Math.max(gc.getPreference(), 0);
+                    grPref += gc.getCurrentPreference();
+                }
+
+                if (c instanceof JenrlConstraint) {
+                    JenrlConstraint jc = (JenrlConstraint) c;
+                    if (!jc.isInConflict() || !jc.isOfTheSameProblem())
+                        continue;
+                    Lecture l1 = jc.first();
+                    Lecture l2 = jc.second();
+                    allSC += jc.getJenrl();
+                    if (l1.areStudentConflictsHard(l2))
+                        hardSC += jc.getJenrl();
+                    Placement p1 = l1.getAssignment();
+                    Placement p2 = l2.getAssignment();
+                    if (!p1.getTimeLocation().hasIntersection(p2.getTimeLocation()))
+                        distSC += jc.getJenrl();
+                }
+
+                if (c instanceof RoomConstraint) {
+                    RoomConstraint rc = (RoomConstraint) c;
+                    uselessSlots += rc.countUselessSlots();
+                    uselessSlotsHH += rc.countUselessSlotsHalfHours();
+                    uselessSlotsBTP += rc.countUselessSlotsBrokenTimePatterns();
+                    rcs++;
+                }
+            }
         }
-        
-        
-        ret.put("Room preferences", getPerc(roomPref,minRoomPref,maxRoomPref)+"% ("+roomPref+")");
-        ret.put("Time preferences", getPerc(timePref,minTimePref,maxTimePref)+"% ("+sDoubleFormat.format(timePref)+")");
-        ret.put("Distribution preferences", getPerc(grPref,minGrPref,maxGrPref)+"% ("+grPref+")");
-        ret.put("Student conflicts", allSC+" [committed:"+0+", hard:"+hardSC+"]");
-        if (getProperties().getPropertyBoolean("General.UseDistanceConstraints",false)) {
-        	ret.put("Student conflicts", allSC+" [committed:"+0+", distance:"+distSC+", hard:"+hardSC+"]");
-            ret.put("Back-to-back instructor preferences", getPerc(instPref,0,worstInstrPref)+"% ("+instPref+")");
+
+        ret.put("Room preferences", getPerc(roomPref, minRoomPref, maxRoomPref) + "% (" + roomPref + ")");
+        ret.put("Time preferences", getPerc(timePref, minTimePref, maxTimePref) + "% ("
+                + sDoubleFormat.format(timePref) + ")");
+        ret.put("Distribution preferences", getPerc(grPref, minGrPref, maxGrPref) + "% (" + grPref + ")");
+        ret.put("Student conflicts", allSC + " [committed:" + 0 + ", hard:" + hardSC + "]");
+        if (getProperties().getPropertyBoolean("General.UseDistanceConstraints", false)) {
+            ret
+                    .put("Student conflicts", allSC + " [committed:" + 0 + ", distance:" + distSC + ", hard:" + hardSC
+                            + "]");
+            ret.put("Back-to-back instructor preferences", getPerc(instPref, 0, worstInstrPref) + "% (" + instPref
+                    + ")");
         }
         if (getProperties().getPropertyBoolean("General.DeptBalancing", false)) {
-            ret.put("Department balancing penalty", sDoubleFormat.format(((double)deptSpreadPen)/12.0));
+            ret.put("Department balancing penalty", sDoubleFormat.format((deptSpreadPen) / 12.0));
         }
-        ret.put("Same subpart balancing penalty", sDoubleFormat.format(((double)spreadPen)/12.0));
-        ret.put("Too big rooms", getPercRev(tooBigRooms,0,Constants.sPreferenceLevelStronglyDiscouraged*variables.size())+"% ("+tooBigRooms+")");
-        ret.put("Useless half-hours", getPercRev(uselessSlots,0,Constants.sPreferenceLevelStronglyDiscouraged*rcs*Constants.SLOTS_PER_DAY_NO_EVENINGS*Constants.NR_DAYS_WEEK)+"% ("+uselessSlotsHH+" + "+uselessSlotsBTP+")");
+        ret.put("Same subpart balancing penalty", sDoubleFormat.format((spreadPen) / 12.0));
+        ret.put("Too big rooms", getPercRev(tooBigRooms, 0, Constants.sPreferenceLevelStronglyDiscouraged
+                * variables.size())
+                + "% (" + tooBigRooms + ")");
+        ret.put("Useless half-hours", getPercRev(uselessSlots, 0, Constants.sPreferenceLevelStronglyDiscouraged * rcs
+                * Constants.SLOTS_PER_DAY_NO_EVENINGS * Constants.NR_DAYS_WEEK)
+                + "% (" + uselessSlotsHH + " + " + uselessSlotsBTP + ")");
 
         return ret;
     }
@@ -510,26 +594,62 @@ public class TimetableModel extends ConstantModel {
     private long iBestHardStudentConflicts;
 
     /** Overall number of too big rooms of the best solution ever found */
-    public int bestTooBigRooms() { return iBestTooBigRooms; }
+    public int bestTooBigRooms() {
+        return iBestTooBigRooms;
+    }
+
     /** Overall number of useless slots of the best solution ever found */
-    public long bestUselessSlots() { return iBestUselessSlots;}
+    public long bestUselessSlots() {
+        return iBestUselessSlots;
+    }
+
     /** Overall time preference of the best solution ever found */
-    public double bestGlobalTimePreference() { return iBestGlobalTimePreference;}
+    public double bestGlobalTimePreference() {
+        return iBestGlobalTimePreference;
+    }
+
     /** Overall room preference of the best solution ever found */
-    public long bestGlobalRoomPreference() { return iBestGlobalRoomPreference;}
+    public long bestGlobalRoomPreference() {
+        return iBestGlobalRoomPreference;
+    }
+
     /** Overall group constraint preference of the best solution ever found */
-    public long bestGlobalGroupConstraintPreference() { return iBestGlobalGroupConstraintPreference;}
+    public long bestGlobalGroupConstraintPreference() {
+        return iBestGlobalGroupConstraintPreference;
+    }
+
     /** Overall number of student conflicts of the best solution ever found */
-    public long bestViolatedStudentConflicts() { return iBestViolatedStudentConflicts;}
-    /** Overall number of student conflicts between single section classes of the best solution ever found */
-    public long bestHardStudentConflicts() { return iBestHardStudentConflicts;}
+    public long bestViolatedStudentConflicts() {
+        return iBestViolatedStudentConflicts;
+    }
+
+    /**
+     * Overall number of student conflicts between single section classes of the
+     * best solution ever found
+     */
+    public long bestHardStudentConflicts() {
+        return iBestHardStudentConflicts;
+    }
+
     /** Overall instructor distance preference of the best solution ever found */
-    public long bestInstructorDistancePreference() { return iBestInstructorDistancePreference; }
+    public long bestInstructorDistancePreference() {
+        return iBestInstructorDistancePreference;
+    }
+
     /** Overall departmental spread penalty of the best solution ever found */
-    public int bestDepartmentSpreadPenalty() { return iBestDepartmentSpreadPenalty; }
-    public int bestSpreadPenalty() { return iBestSpreadPenalty; }
-    public int bestCommitedStudentConflicts() { return iBestCommitedStudentConflicts; }
-    
+    public int bestDepartmentSpreadPenalty() {
+        return iBestDepartmentSpreadPenalty;
+    }
+
+    public int bestSpreadPenalty() {
+        return iBestSpreadPenalty;
+    }
+
+    public int bestCommitedStudentConflicts() {
+        return iBestCommitedStudentConflicts;
+    }
+
+    @Override
     public void saveBest() {
         super.saveBest();
         iBestTooBigRooms = countTooBigRooms();
@@ -545,89 +665,130 @@ public class TimetableModel extends ConstantModel {
         iBestCommitedStudentConflicts = getCommitedStudentConflicts();
     }
 
-    public void addConstraint(Constraint constraint) {
+    @Override
+    public void addConstraint(Constraint<Lecture, Placement> constraint) {
         super.addConstraint(constraint);
         if (constraint instanceof InstructorConstraint) {
-            iInstructorConstraints.addElement(constraint);
+            iInstructorConstraints.add((InstructorConstraint) constraint);
         } else if (constraint instanceof JenrlConstraint) {
-            iJenrlConstraints.addElement(constraint);
+            iJenrlConstraints.add((JenrlConstraint) constraint);
         } else if (constraint instanceof RoomConstraint) {
-            iRoomConstraints.addElement(constraint);
+            iRoomConstraints.add((RoomConstraint) constraint);
         } else if (constraint instanceof DepartmentSpreadConstraint) {
-            iDepartmentSpreadConstraints.addElement(constraint);
+            iDepartmentSpreadConstraints.add((DepartmentSpreadConstraint) constraint);
         } else if (constraint instanceof SpreadConstraint) {
-            iSpreadConstraints.addElement(constraint);
+            iSpreadConstraints.add((SpreadConstraint) constraint);
         } else if (constraint instanceof ClassLimitConstraint) {
-        	iClassLimitConstraints.addElement(constraint);
+            iClassLimitConstraints.add((ClassLimitConstraint) constraint);
         } else if (constraint instanceof GroupConstraint) {
-            iGroupConstraints.addElement(constraint);
+            iGroupConstraints.add((GroupConstraint) constraint);
             if (!constraint.isHard()) {
-            	GroupConstraint gc = (GroupConstraint)constraint;
-            	iMinGroupConstraintPreference += Math.min(gc.getPreference(),0);
-            	iMaxGroupConstraintPreference += Math.max(gc.getPreference(),0);
+                GroupConstraint gc = (GroupConstraint) constraint;
+                iMinGroupConstraintPreference += Math.min(gc.getPreference(), 0);
+                iMaxGroupConstraintPreference += Math.max(gc.getPreference(), 0);
             }
         }
     }
-    public void removeConstraint(Constraint constraint) {
+
+    @Override
+    public void removeConstraint(Constraint<Lecture, Placement> constraint) {
         super.removeConstraint(constraint);
         if (constraint instanceof InstructorConstraint) {
-            iInstructorConstraints.removeElement(constraint);
+            iInstructorConstraints.remove(constraint);
         } else if (constraint instanceof JenrlConstraint) {
-            iJenrlConstraints.removeElement(constraint);
+            iJenrlConstraints.remove(constraint);
         } else if (constraint instanceof RoomConstraint) {
-            iRoomConstraints.removeElement(constraint);
+            iRoomConstraints.remove(constraint);
         } else if (constraint instanceof DepartmentSpreadConstraint) {
-            iDepartmentSpreadConstraints.removeElement(constraint);
+            iDepartmentSpreadConstraints.remove(constraint);
         } else if (constraint instanceof SpreadConstraint) {
-            iSpreadConstraints.removeElement(constraint);
+            iSpreadConstraints.remove(constraint);
         } else if (constraint instanceof ClassLimitConstraint) {
-        	iClassLimitConstraints.removeElement(constraint);
+            iClassLimitConstraints.remove(constraint);
         } else if (constraint instanceof GroupConstraint) {
-            iGroupConstraints.removeElement(constraint);
+            iGroupConstraints.remove(constraint);
         }
     }
 
     /** The list of all instructor constraints */
-    public Vector getInstructorConstraints() { return iInstructorConstraints; }
+    public List<InstructorConstraint> getInstructorConstraints() {
+        return iInstructorConstraints;
+    }
+
     /** The list of all group constraints */
-    public Vector getGroupConstraints() { return iGroupConstraints; }
+    public List<GroupConstraint> getGroupConstraints() {
+        return iGroupConstraints;
+    }
+
     /** The list of all jenrl constraints */
-    public Vector getJenrlConstraints() { return iJenrlConstraints; }
+    public List<JenrlConstraint> getJenrlConstraints() {
+        return iJenrlConstraints;
+    }
+
     /** The list of all room constraints */
-    public Vector getRoomConstraints() { return iRoomConstraints; }
+    public List<RoomConstraint> getRoomConstraints() {
+        return iRoomConstraints;
+    }
+
     /** The list of all departmental spread constraints */
-    public Vector getDepartmentSpreadConstraints() { return iDepartmentSpreadConstraints;  }
-    public Vector getSpreadConstraints() { return iSpreadConstraints;  }
-    public Vector getClassLimitConstraints() { return iClassLimitConstraints; }
+    public List<DepartmentSpreadConstraint> getDepartmentSpreadConstraints() {
+        return iDepartmentSpreadConstraints;
+    }
+
+    public List<SpreadConstraint> getSpreadConstraints() {
+        return iSpreadConstraints;
+    }
+
+    public List<ClassLimitConstraint> getClassLimitConstraints() {
+        return iClassLimitConstraints;
+    }
+
     /** Max capacity for too big rooms (3/2 of the number of students) */
+    @Override
     public double getTotalValue() {
-    	return iCmp.currentValue(this,iPertCnt);
+        return iCmp.currentValue(this, iPertCnt);
     }
-    public double getTotalValue(Vector variables) {
-    	return iCmp.currentValue(this,iPertCnt, variables);
+
+    @Override
+    public double getTotalValue(List<Lecture> variables) {
+        return iCmp.currentValue(this, iPertCnt, variables);
     }
-    
-    public int getYear() { return iYear; }
-    public void setYear(int year) { iYear=year; }
-    
-    public TimetableComparator getTimetableComparator() { return iCmp;}
-    public PerturbationsCounter getPerturbationsCounter() { return iPertCnt; }
-    
-    public Set getAllStudents() {
-    	return iAllStudents;
+
+    public int getYear() {
+        return iYear;
     }
+
+    public void setYear(int year) {
+        iYear = year;
+    }
+
+    public TimetableComparator getTimetableComparator() {
+        return iCmp;
+    }
+
+    public PerturbationsCounter<Lecture, Placement> getPerturbationsCounter() {
+        return iPertCnt;
+    }
+
+    public Set<Student> getAllStudents() {
+        return iAllStudents;
+    }
+
     public void addStudent(Student student) {
-    	iAllStudents.add(student);
+        iAllStudents.add(student);
     }
+
     public void removeStudent(Student student) {
-    	iAllStudents.remove(student);
+        iAllStudents.remove(student);
     }
-    
-    /** Returns amount of allocated memory.
+
+    /**
+     * Returns amount of allocated memory.
+     * 
      * @return amount of allocated memory to be written in the log
      */
     public static synchronized String getMem() {
         Runtime rt = Runtime.getRuntime();
-        return sDoubleFormat.format(((double)(rt.totalMemory()-rt.freeMemory()))/1048576)+"M";
+        return sDoubleFormat.format(((double) (rt.totalMemory() - rt.freeMemory())) / 1048576) + "M";
     }
 }

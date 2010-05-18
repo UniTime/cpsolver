@@ -16,33 +16,33 @@ import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
- * A new period is selected for a randomly selected exam. It tries to use the current
- * set of rooms, if it is possible (exam is assigned, rooms are available and
- * not used during the new period). Otherwise, rooms are selected using 
- * {@link Exam#findBestAvailableRooms(ExamPeriodPlacement)}. 
- * <br><br>
- * 
- * @version
- * ExamTT 1.1 (Examination Timetabling)<br>
- * Copyright (C) 2008 Tomas Muller<br>
- * <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
- * Lazenska 391, 76314 Zlin, Czech Republic<br>
+ * A new period is selected for a randomly selected exam. It tries to use the
+ * current set of rooms, if it is possible (exam is assigned, rooms are
+ * available and not used during the new period). Otherwise, rooms are selected
+ * using {@link Exam#findBestAvailableRooms(ExamPeriodPlacement)}. <br>
  * <br>
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- * <br><br>
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- * <br><br>
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * 
+ * @version ExamTT 1.2 (Examination Timetabling)<br>
+ *          Copyright (C) 2008 - 2010 Tomas Muller<br>
+ *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
+ *          Lazenska 391, 76314 Zlin, Czech Republic<br>
+ * <br>
+ *          This library is free software; you can redistribute it and/or modify
+ *          it under the terms of the GNU Lesser General Public License as
+ *          published by the Free Software Foundation; either version 2.1 of the
+ *          License, or (at your option) any later version. <br>
+ * <br>
+ *          This library is distributed in the hope that it will be useful, but
+ *          WITHOUT ANY WARRANTY; without even the implied warranty of
+ *          MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ *          Lesser General Public License for more details. <br>
+ * <br>
+ *          You should have received a copy of the GNU Lesser General Public
+ *          License along with this library; if not, write to the Free Software
+ *          Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ *          02110-1301 USA
  */
-public class ExamTimeMove implements NeighbourSelection {
+public class ExamTimeMove implements NeighbourSelection<Exam,ExamPlacement> {
     private boolean iCheckStudentConflicts = false;
     private boolean iCheckDistributionConstraints = true;
     
@@ -58,27 +58,27 @@ public class ExamTimeMove implements NeighbourSelection {
     /**
      * Initialization
      */
-    public void init(Solver solver) {}
+    public void init(Solver<Exam,ExamPlacement> solver) {}
     
     /**
      * Select an exam randomly,
      * select an available period randomly (if it is not assigned), 
      * use rooms if possible, select rooms using {@link Exam#findBestAvailableRooms(ExamPeriodPlacement)} if not (exam is unassigned, a room is not available or used).
      */
-    public Neighbour selectNeighbour(Solution solution) {
+    public Neighbour<Exam,ExamPlacement> selectNeighbour(Solution<Exam,ExamPlacement> solution) {
         ExamModel model = (ExamModel)solution.getModel();
-        Exam exam = (Exam)ToolBox.random(model.variables());
-        ExamPlacement placement = (ExamPlacement)exam.getAssignment();
+        Exam exam = ToolBox.random(model.variables());
+        ExamPlacement placement = exam.getAssignment();
         int px = ToolBox.random(exam.getPeriodPlacements().size());
         for (int p=0;p<exam.getPeriodPlacements().size();p++) {
-            ExamPeriodPlacement period = (ExamPeriodPlacement)exam.getPeriodPlacements().elementAt((p+px)%exam.getPeriodPlacements().size());
+            ExamPeriodPlacement period = exam.getPeriodPlacements().get((p+px)%exam.getPeriodPlacements().size());
             if (placement!=null && placement.getPeriod().equals(period)) continue;
             if (iCheckStudentConflicts && exam.countStudentConflicts(period)>0) continue;
             if (iCheckDistributionConstraints && !exam.checkDistributionConstraints(period)) continue;
             if (placement!=null) {
                 boolean ok = true;
-                for (Iterator i=placement.getRoomPlacements().iterator();i.hasNext();) {
-                    ExamRoomPlacement room = (ExamRoomPlacement)i.next();
+                for (Iterator<ExamRoomPlacement> i=placement.getRoomPlacements().iterator();i.hasNext();) {
+                    ExamRoomPlacement room = i.next();
                     if (!room.isAvailable(period.getPeriod()) || room.getRoom().getPlacement(period.getPeriod())!=null) {
                         ok = false; break;
                     }
@@ -86,7 +86,7 @@ public class ExamTimeMove implements NeighbourSelection {
                 if (ok)
                     return new ExamSimpleNeighbour(new ExamPlacement(exam, period, placement.getRoomPlacements()));
             }
-            Set rooms = exam.findBestAvailableRooms(period);
+            Set<ExamRoomPlacement> rooms = exam.findBestAvailableRooms(period);
             if (rooms==null) continue;
             return new ExamSimpleNeighbour(new ExamPlacement(exam, period, rooms));
         }

@@ -1,16 +1,25 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
 <html>
-<head><title>net.sf.cpsolver.ifs.dbt package</title></head>
-<body bgcolor="white">
-Random Binary CSP with uniform distribution.<br><br>
-A random CSP is defined by a four-tuple (n, d, p1, p2), where n denotes the number of variables and d denotes the 
-domain size of each variable, p1 and p2 are two probabilities. They are used to generate randomly the binary 
-constraints among the variables. p1 represents the probability that a constraint exists between two different 
-variables and p2 represents the probability that a pair of values in the domains of two variables connected by a 
-constraint are incompatible.
-<br><br>
-We use a so called model B of Random CSP (n, d, n1, n2) where n1 = p1*n*(n-1)/2 pairs of variables are randomly 
-and uniformly selected and binary constraints are posted between them. For each constraint, n2 = p1*d^2 randomly 
-and uniformly selected pairs of values are picked as incompatible.
-</body>
+	<head>
+		<title>net.sf.cpsolver.ifs.dbt package</title>
+	</head>
+	<body bgcolor="white">
+		Random Binary CSP with uniform distribution.
+		<br>
+		<br>
+		A random CSP is defined by a four-tuple (n, d, p1, p2), where n
+		denotes the number of variables and d denotes the domain size of each
+		variable, p1 and p2 are two probabilities. They are used to generate
+		randomly the binary constraints among the variables. p1 represents the
+		probability that a constraint exists between two different variables
+		and p2 represents the probability that a pair of values in the domains
+		of two variables connected by a constraint are incompatible.
+		<br>
+		<br>
+		We use a so called model B of Random CSP (n, d, n1, n2) where n1 =
+		p1*n*(n-1)/2 pairs of variables are randomly and uniformly selected
+		and binary constraints are posted between them. For each constraint,
+		n2 = p1*d^2 randomly and uniformly selected pairs of values are picked
+		as incompatible.
+	</body>
 </html>
