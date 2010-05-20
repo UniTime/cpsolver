@@ -422,7 +422,6 @@ public class FinalSectioning implements Runnable {
                             bestMoves.add(m);
                             bestDelta = delta;
                         } else if (delta == bestDelta) {
-                            bestMoves = new ArrayList<Move>();
                             bestMoves.add(m);
                         }
                     }
