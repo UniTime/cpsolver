@@ -3,6 +3,7 @@ package net.sf.cpsolver.studentsct.model;
 import java.util.ArrayList;
 import java.util.List;
 
+
 /**
  * Representation of a configuration of an offering. A configuration contains
  * id, name, an offering and a list of subparts. <br>

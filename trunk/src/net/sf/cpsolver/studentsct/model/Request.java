@@ -1,8 +1,7 @@
 package net.sf.cpsolver.studentsct.model;
 
-import java.util.List;
-
 import net.sf.cpsolver.ifs.model.Variable;
+import net.sf.cpsolver.ifs.util.List;
 
 /**
  * Representation of a request of a student for a course(s) or a free time. This

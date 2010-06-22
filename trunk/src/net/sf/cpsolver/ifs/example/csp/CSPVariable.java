@@ -1,6 +1,8 @@
 package net.sf.cpsolver.ifs.example.csp;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 import net.sf.cpsolver.ifs.model.Variable;
 

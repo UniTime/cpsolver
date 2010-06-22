@@ -1,6 +1,6 @@
 package net.sf.cpsolver.exam.heuristics;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 
 import net.sf.cpsolver.exam.model.Exam;
@@ -143,7 +143,7 @@ public class ExamHillClimbing implements NeighbourSelection<Exam, ExamPlacement>
     public void getInfo(Solution<Exam, ExamPlacement> solution, Map<String, String> info) {
     }
 
-    public void getInfo(Solution<Exam, ExamPlacement> solution, Map<String, String> info, List<Exam> variables) {
+    public void getInfo(Solution<Exam, ExamPlacement> solution, Map<String, String> info, Collection<Exam> variables) {
     }
 
     public void bestCleared(Solution<Exam, ExamPlacement> solution) {

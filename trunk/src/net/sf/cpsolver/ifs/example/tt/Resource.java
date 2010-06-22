@@ -1,8 +1,9 @@
 package net.sf.cpsolver.ifs.example.tt;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
 
-import net.sf.cpsolver.ifs.model.*;
+import net.sf.cpsolver.ifs.model.Constraint;
 
 /**
  * Resource constraint

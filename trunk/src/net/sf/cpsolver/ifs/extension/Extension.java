@@ -1,8 +1,12 @@
 package net.sf.cpsolver.ifs.extension;
 
-import net.sf.cpsolver.ifs.model.*;
-import net.sf.cpsolver.ifs.solver.*;
-import net.sf.cpsolver.ifs.util.*;
+import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.model.Model;
+import net.sf.cpsolver.ifs.model.ModelListener;
+import net.sf.cpsolver.ifs.model.Value;
+import net.sf.cpsolver.ifs.model.Variable;
+import net.sf.cpsolver.ifs.solver.Solver;
+import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
  * Generic extension of IFS solver. <br>

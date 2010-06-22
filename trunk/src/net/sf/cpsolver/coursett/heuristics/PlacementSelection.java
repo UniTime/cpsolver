@@ -1,16 +1,27 @@
 package net.sf.cpsolver.coursett.heuristics;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 
-import net.sf.cpsolver.coursett.constraint.*;
-import net.sf.cpsolver.coursett.model.*;
-import net.sf.cpsolver.ifs.extension.*;
-import net.sf.cpsolver.ifs.heuristics.*;
-import net.sf.cpsolver.ifs.model.*;
-import net.sf.cpsolver.ifs.perturbations.*;
-import net.sf.cpsolver.ifs.solution.*;
-import net.sf.cpsolver.ifs.solver.*;
-import net.sf.cpsolver.ifs.util.*;
+import net.sf.cpsolver.coursett.constraint.GroupConstraint;
+import net.sf.cpsolver.coursett.constraint.InstructorConstraint;
+import net.sf.cpsolver.coursett.constraint.JenrlConstraint;
+import net.sf.cpsolver.coursett.constraint.WeakeningConstraint;
+import net.sf.cpsolver.coursett.model.Lecture;
+import net.sf.cpsolver.coursett.model.Placement;
+import net.sf.cpsolver.coursett.model.TimetableModel;
+import net.sf.cpsolver.ifs.extension.ConflictStatistics;
+import net.sf.cpsolver.ifs.extension.Extension;
+import net.sf.cpsolver.ifs.extension.MacPropagation;
+import net.sf.cpsolver.ifs.heuristics.ValueSelection;
+import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.perturbations.PerturbationsCounter;
+import net.sf.cpsolver.ifs.solution.Solution;
+import net.sf.cpsolver.ifs.solver.Solver;
+import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
  * Placement (value) selection. <br>

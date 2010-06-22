@@ -1,11 +1,15 @@
 package net.sf.cpsolver.ifs.extension;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Map;
 
-import net.sf.cpsolver.ifs.model.*;
-import net.sf.cpsolver.ifs.solution.*;
-import net.sf.cpsolver.ifs.solver.*;
-import net.sf.cpsolver.ifs.util.*;
+import net.sf.cpsolver.ifs.model.Model;
+import net.sf.cpsolver.ifs.model.Value;
+import net.sf.cpsolver.ifs.model.Variable;
+import net.sf.cpsolver.ifs.solution.Solution;
+import net.sf.cpsolver.ifs.solution.SolutionListener;
+import net.sf.cpsolver.ifs.solver.Solver;
+import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
  * Go back to the best known solution when no better solution is found within
@@ -125,6 +129,6 @@ public class SearchIntensification<V extends Variable<V, T>, T extends Value<V, 
     public void getInfo(Solution<V, T> solution, Map<String, String> info) {
     }
 
-    public void getInfo(Solution<V, T> solution, Map<String, String> info, List<V> variables) {
+    public void getInfo(Solution<V, T> solution, Map<String, String> info, Collection<V> variables) {
     }
 }

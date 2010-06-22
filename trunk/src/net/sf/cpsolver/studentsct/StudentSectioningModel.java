@@ -1,17 +1,15 @@
 package net.sf.cpsolver.studentsct;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-
-import org.apache.log4j.Logger;
 
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.ConstraintListener;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.HashSet;
 import net.sf.cpsolver.studentsct.constraint.SectionLimit;
 import net.sf.cpsolver.studentsct.constraint.StudentConflict;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
@@ -23,6 +21,8 @@ import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Section;
 import net.sf.cpsolver.studentsct.model.Student;
 import net.sf.cpsolver.studentsct.model.Subpart;
+
+import org.apache.log4j.Logger;
 
 /**
  * Student sectioning model.
@@ -54,7 +54,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
     private static Logger sLog = Logger.getLogger(StudentSectioningModel.class);
     private List<Student> iStudents = new ArrayList<Student>();
     private List<Offering> iOfferings = new ArrayList<Offering>();
-    private Set<Student> iCompleteStudents = new HashSet<Student>();
+    private Set<Student> iCompleteStudents = new java.util.HashSet<Student>();
     private double iTotalValue = 0.0;
     private DataProperties iProperties;
     private DistanceConflict iDistanceConflict = null;
@@ -176,8 +176,8 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
      * Model info
      */
     @Override
-    public Map<String, String> getInfo() {
-        Map<String, String> info = super.getInfo();
+    public Hashtable<String, String> getInfo() {
+        Hashtable<String, String> info = super.getInfo();
         info.put("Students with complete schedule", sDoubleFormat.format(100.0 * nrComplete() / getStudents().size())
                 + "% (" + nrComplete() + "/" + getStudents().size() + ")");
         if (getDistanceConflict() != null)
@@ -486,8 +486,8 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
      * compute) is added to an ordinary {@link Model#getInfo()}.
      */
     @Override
-    public Map<String, String> getExtendedInfo() {
-        Map<String, String> info = getInfo();
+    public Hashtable<String, String> getExtendedInfo() {
+        Hashtable<String, String> info = getInfo();
         int nrLastLikeStudents = getNrLastLikeStudents(true);
         if (nrLastLikeStudents != 0 && nrLastLikeStudents != getStudents().size()) {
             int nrRealStudents = getStudents().size() - nrLastLikeStudents;

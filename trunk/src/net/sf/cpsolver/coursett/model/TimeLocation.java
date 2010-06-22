@@ -199,17 +199,17 @@ public class TimeLocation {
     }
 
     /** Used slots */
-    public Enumeration<Integer> getSlots() {
+    public IntEnumeration getSlots() {
         return new SlotsEnum();
     }
 
     /** Used start slots (for each meeting) */
-    public Enumeration<Integer> getStartSlots() {
+    public IntEnumeration getStartSlots() {
         return new StartSlotsEnum();
     }
 
     /** Days */
-    public Enumeration<Integer> getDays() {
+    public IntEnumeration getDays() {
         return new DaysEnum();
     }
 
@@ -300,7 +300,7 @@ public class TimeLocation {
         return iHashCode;
     }
 
-    private class StartSlotsEnum implements Enumeration<Integer> {
+    private class StartSlotsEnum implements IntEnumeration {
         int day = -1;
         boolean hasNext = false;
 
@@ -325,6 +325,11 @@ public class TimeLocation {
             int slot = (day * Constants.SLOTS_PER_DAY) + iStartSlot;
             hasNext = nextDay();
             return slot;
+        }
+        
+        @Deprecated
+        public Integer nextInt() {
+            return nextElement();
         }
     }
 
@@ -400,5 +405,10 @@ public class TimeLocation {
         if (card <= 7)
             return 1;
         return (5 + card) / 6;
+    }
+    
+    public interface IntEnumeration extends Enumeration<Integer> {
+        @Deprecated
+        public Integer nextInt();
     }
 }

@@ -1,10 +1,8 @@
 package net.sf.cpsolver.exam.heuristics;
 
 import java.text.DecimalFormat;
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
-
-import org.apache.log4j.Logger;
 
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamPlacement;
@@ -19,6 +17,8 @@ import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.ifs.util.ToolBox;
+
+import org.apache.log4j.Logger;
 
 /**
  * Greate deluge. In each iteration, one of the following three neighbourhoods
@@ -211,7 +211,7 @@ public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>,
     public void getInfo(Solution<Exam, ExamPlacement> solution, Map<String, String> info) {
     }
 
-    public void getInfo(Solution<Exam, ExamPlacement> solution, Map<String, String> info, List<Exam> variables) {
+    public void getInfo(Solution<Exam, ExamPlacement> solution, Map<String, String> info, Collection<Exam> variables) {
     }
 
     public void bestCleared(Solution<Exam, ExamPlacement> solution) {

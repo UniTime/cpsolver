@@ -1,6 +1,6 @@
 package net.sf.cpsolver.ifs.model;
 
-import java.util.*;
+import java.util.Set;
 
 /**
  * IFS constraint listener.

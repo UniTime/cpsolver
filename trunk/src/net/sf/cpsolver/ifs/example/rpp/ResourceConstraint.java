@@ -1,9 +1,9 @@
 package net.sf.cpsolver.ifs.example.rpp;
 
-import java.util.*;
+import java.util.Set;
 
-import net.sf.cpsolver.ifs.model.*;
-import net.sf.cpsolver.ifs.util.*;
+import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
  * Resource constraint (rectangular area where the rectangles are to be placed).

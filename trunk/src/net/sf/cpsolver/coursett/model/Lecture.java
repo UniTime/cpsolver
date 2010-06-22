@@ -1,12 +1,10 @@
 package net.sf.cpsolver.coursett.model;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -23,6 +21,8 @@ import net.sf.cpsolver.coursett.constraint.WeakeningConstraint;
 import net.sf.cpsolver.ifs.constant.ConstantVariable;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Variable;
+import net.sf.cpsolver.ifs.util.ArrayList;
+import net.sf.cpsolver.ifs.util.List;
 
 /**
  * Lecture (variable).
@@ -74,7 +74,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
 
     private Lecture iParent = null;
     private Hashtable<Long, List<Lecture>> iChildren = null;
-    private List<Lecture> iSameSubpartLectures = null;
+    private java.util.List<Lecture> iSameSubpartLectures = null;
     private Configuration iParentConfiguration = null;
 
     private Hashtable<Lecture, Set<Student>> iSameStudents = new Hashtable<Lecture, Set<Student>>(10);
@@ -110,13 +110,13 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
      *            initial placement
      */
     public Lecture(Long id, Long solverGroupId, Long schedulingSubpartId, String name,
-            List<TimeLocation> timeLocations, List<RoomLocation> roomLocations, int nrRooms,
+            java.util.List<TimeLocation> timeLocations, java.util.List<RoomLocation> roomLocations, int nrRooms,
             Placement initialPlacement, int minClassLimit, int maxClassLimit, double room2limitRatio) {
         super(initialPlacement);
         iClassId = id;
         iSchedulingSubpartId = schedulingSubpartId;
-        iTimeLocations = timeLocations;
-        iRoomLocations = roomLocations;
+        iTimeLocations = new ArrayList<TimeLocation>(timeLocations);
+        iRoomLocations = new ArrayList<RoomLocation>(roomLocations);
         iName = name;
         iMinClassLimit = minClassLimit;
         iMaxClassLimit = maxClassLimit;
@@ -240,12 +240,12 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
     }
 
     /** Set of lectures of the same class (only section is different) */
-    public void setSameSubpartLectures(List<Lecture> sameSubpartLectures) {
+    public void setSameSubpartLectures(java.util.List<Lecture> sameSubpartLectures) {
         iSameSubpartLectures = sameSubpartLectures;
     }
 
     /** Set of lectures of the same class (only section is different) */
-    public List<Lecture> sameSubpartLectures() {
+    public java.util.List<Lecture> sameSubpartLectures() {
         return iSameSubpartLectures;
     }
 
@@ -950,8 +950,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         return isSingleSection() && lecture.isSingleSection();
     }
 
-    public List<Lecture> sameStudentsLectures() {
-        // return (hasParent()?getParent().getChildren():sameSubpartLectures());
+    public java.util.List<Lecture> sameStudentsLectures() {
         return (hasParent() ? getParent().getChildren(getSchedulingSubpartId()) : sameSubpartLectures());
     }
 

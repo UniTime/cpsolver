@@ -1,8 +1,11 @@
 package net.sf.cpsolver.ifs.model;
 
-import java.util.*;
+import java.util.Hashtable;
+import java.util.Map;
 
-import net.sf.cpsolver.ifs.util.*;
+import net.sf.cpsolver.ifs.util.ArrayList;
+import net.sf.cpsolver.ifs.util.IdGenerator;
+import net.sf.cpsolver.ifs.util.List;
 
 /**
  * Generic variable. <br>
@@ -97,6 +100,11 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
     /** Sets the domain */
     protected void setValues(List<T> values) {
         iValues = values;
+    }
+
+    /** Sets the domain */
+    protected void setValues(java.util.List<T> values) {
+        iValues = new ArrayList<T>(values);
     }
 
     /** True, if the variable's domain is not empty */

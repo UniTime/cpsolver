@@ -1,27 +1,27 @@
 package net.sf.cpsolver.exam.model;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
 
+import net.sf.cpsolver.coursett.IdConvertor;
+import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.model.Model;
+import net.sf.cpsolver.ifs.util.ArrayList;
+import net.sf.cpsolver.ifs.util.Callback;
+import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.List;
+import net.sf.cpsolver.ifs.util.ToolBox;
+
 import org.apache.log4j.Logger;
 import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
 import org.dom4j.Element;
-
-import net.sf.cpsolver.coursett.IdConvertor;
-import net.sf.cpsolver.ifs.model.Constraint;
-import net.sf.cpsolver.ifs.model.Model;
-import net.sf.cpsolver.ifs.util.Callback;
-import net.sf.cpsolver.ifs.util.DataProperties;
-import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
  * Examination timetabling model. Exams {@link Exam} are modeled as variables,
@@ -1592,8 +1592,8 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * Info table
      */
     @Override
-    public Map<String, String> getInfo() {
-        Map<String, String> info = super.getInfo();
+    public Hashtable<String, String> getInfo() {
+        Hashtable<String, String> info = super.getInfo();
         info.put("Direct Conflicts", getNrDirectConflicts(false)
                 + (iNrNADirectConflicts > 0 ? " (" + iNrNADirectConflicts + " N/A)" : ""));
         info.put("More Than 2 A Day Conflicts", String.valueOf(getNrMoreThanTwoADayConflicts(false)));
@@ -1654,8 +1654,8 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * Extended info table
      */
     @Override
-    public Map<String, String> getExtendedInfo() {
-        Map<String, String> info = super.getExtendedInfo();
+    public Hashtable<String, String> getExtendedInfo() {
+        Hashtable<String, String> info = super.getExtendedInfo();
         info.put("Direct Conflicts [p]", String.valueOf(getNrDirectConflicts(true)));
         info.put("More Than 2 A Day Conflicts [p]", String.valueOf(getNrMoreThanTwoADayConflicts(true)));
         info.put("Back-To-Back Conflicts [p]", String.valueOf(getNrBackToBackConflicts(true)));

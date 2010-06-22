@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -25,9 +26,9 @@ import net.sf.cpsolver.coursett.heuristics.UniversalPerturbationsCounter;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomLocation;
+import net.sf.cpsolver.coursett.model.Student;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.coursett.model.TimetableModel;
-import net.sf.cpsolver.coursett.model.Student;
 import net.sf.cpsolver.ifs.extension.Extension;
 import net.sf.cpsolver.ifs.extension.MacPropagation;
 import net.sf.cpsolver.ifs.model.Constraint;
@@ -280,7 +281,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
     public void getInfo(Solution<Lecture, Placement> solution, Map<String, String> info) {
     }
 
-    public void getInfo(Solution<Lecture, Placement> solution, Map<String, String> info, List<Lecture> variables) {
+    public void getInfo(Solution<Lecture, Placement> solution, Map<String, String> info, Collection<Lecture> variables) {
     }
 
     public void solutionUpdated(Solution<Lecture, Placement> solution) {

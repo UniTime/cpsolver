@@ -72,10 +72,10 @@ public class CourseRequest extends Request {
      *            true if the student can be put on a waitlist (no alternative
      *            course request will be given instead)
      */
-    public CourseRequest(long id, int priority, boolean alternative, Student student, List<Course> courses,
+    public CourseRequest(long id, int priority, boolean alternative, Student student, java.util.List<Course> courses,
             boolean waitlist) {
         super(id, priority, alternative, student);
-        iCourses = courses;
+        iCourses = new ArrayList<Course>(courses);
         iWaitlist = waitlist;
     }
 
@@ -104,8 +104,8 @@ public class CourseRequest extends Request {
      * Return all possible enrollments.
      */
     @Override
-    public List<Enrollment> computeEnrollments() {
-        List<Enrollment> ret = new ArrayList<Enrollment>();
+    public net.sf.cpsolver.ifs.util.List<Enrollment> computeEnrollments() {
+        net.sf.cpsolver.ifs.util.List<Enrollment> ret = new net.sf.cpsolver.ifs.util.ArrayList<Enrollment>();
         int idx = 0;
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {

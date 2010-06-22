@@ -3,14 +3,14 @@ package net.sf.cpsolver.ifs.heuristics;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
-
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+
+import org.apache.log4j.Logger;
 
 /**
  * A round robin neighbour selection. Two or more {@link NeighbourSelection}

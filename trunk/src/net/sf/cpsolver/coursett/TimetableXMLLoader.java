@@ -15,10 +15,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import org.dom4j.Document;
-import org.dom4j.Element;
-import org.dom4j.io.SAXReader;
-
 import net.sf.cpsolver.coursett.constraint.ClassLimitConstraint;
 import net.sf.cpsolver.coursett.constraint.DepartmentSpreadConstraint;
 import net.sf.cpsolver.coursett.constraint.DiscouragedRoomConstraint;
@@ -43,6 +39,10 @@ import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.ifs.util.ToolBox;
+
+import org.dom4j.Document;
+import org.dom4j.Element;
+import org.dom4j.io.SAXReader;
 
 /**
  * This class loads the input model from XML file. <br>
@@ -255,7 +255,7 @@ public class TimetableXMLLoader extends TimetableLoader {
             Element sharingEl = roomEl.element("sharing");
             if (sharingEl != null) {
                 String pattern = sharingEl.element("pattern").getText();
-                List<?> depts = sharingEl.elements("department");
+                java.util.List<?> depts = sharingEl.elements("department");
                 Long departmentIds[] = new Long[depts.size()];
                 for (int j = 0; j < departmentIds.length; j++)
                     departmentIds[j] = Long.valueOf(((Element) depts.get(j)).attributeValue("id"));
