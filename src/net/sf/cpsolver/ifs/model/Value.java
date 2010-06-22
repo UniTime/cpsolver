@@ -1,8 +1,9 @@
 package net.sf.cpsolver.ifs.model;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
 
-import net.sf.cpsolver.ifs.util.*;
+import net.sf.cpsolver.ifs.util.IdGenerator;
 
 /**
  * Generic value. <br>

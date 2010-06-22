@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -22,15 +23,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.dom4j.Document;
-import org.dom4j.DocumentHelper;
-import org.dom4j.Element;
-import org.dom4j.io.OutputFormat;
-import org.dom4j.io.SAXReader;
-import org.dom4j.io.XMLWriter;
 
 import net.sf.cpsolver.ifs.heuristics.BacktrackNeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
@@ -67,6 +59,15 @@ import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Student;
 import net.sf.cpsolver.studentsct.report.CourseConflictTable;
 import net.sf.cpsolver.studentsct.report.DistanceConflictTable;
+
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.dom4j.Document;
+import org.dom4j.DocumentHelper;
+import org.dom4j.Element;
+import org.dom4j.io.OutputFormat;
+import org.dom4j.io.SAXReader;
+import org.dom4j.io.XMLWriter;
 
 /**
  * A main class for running of the student sectioning solver from command line. <br>
@@ -1271,7 +1272,7 @@ public class Test {
         public void getInfo(Solution<Request, Enrollment> solution, Map<String, String> info) {
         }
 
-        public void getInfo(Solution<Request, Enrollment> solution, Map<String, String> info, List<Request> variables) {
+        public void getInfo(Solution<Request, Enrollment> solution, Map<String, String> info, Collection<Request> variables) {
         }
 
         public void bestCleared(Solution<Request, Enrollment> solution) {

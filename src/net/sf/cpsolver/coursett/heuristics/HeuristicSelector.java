@@ -3,6 +3,7 @@ package net.sf.cpsolver.coursett.heuristics;
 import java.util.ArrayList;
 import java.util.List;
 
+
 /**
  * General hierarchical selection. <br>
  * <br>

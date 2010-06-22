@@ -1,8 +1,9 @@
 package net.sf.cpsolver.ifs.example.jobshop;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
-import net.sf.cpsolver.ifs.model.*;
+import net.sf.cpsolver.ifs.model.Variable;
 
 /**
  * Operation. <br>

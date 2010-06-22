@@ -1,8 +1,12 @@
 package net.sf.cpsolver.ifs.model;
 
-import java.util.*;
+import java.util.Set;
 
-import net.sf.cpsolver.ifs.util.*;
+import net.sf.cpsolver.ifs.util.ArrayList;
+import net.sf.cpsolver.ifs.util.Collection;
+import net.sf.cpsolver.ifs.util.HashSet;
+import net.sf.cpsolver.ifs.util.IdGenerator;
+import net.sf.cpsolver.ifs.util.List;
 
 /**
  * Generic constraint. <br>

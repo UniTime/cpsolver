@@ -6,8 +6,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
-
 import net.sf.cpsolver.ifs.constant.ConstantVariable;
 import net.sf.cpsolver.ifs.extension.ConflictStatistics;
 import net.sf.cpsolver.ifs.extension.Extension;
@@ -17,6 +15,8 @@ import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+
+import org.apache.log4j.Logger;
 
 /**
  * Backtracking-based neighbour selection. A best neighbour that is found by a

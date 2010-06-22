@@ -10,10 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.dom4j.Document;
-import org.dom4j.Element;
-import org.dom4j.io.SAXReader;
-
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.TimeLocation;
@@ -32,6 +28,10 @@ import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Section;
 import net.sf.cpsolver.studentsct.model.Student;
 import net.sf.cpsolver.studentsct.model.Subpart;
+
+import org.dom4j.Document;
+import org.dom4j.Element;
+import org.dom4j.io.SAXReader;
 
 /**
  * Load student sectioning model from an XML file.

@@ -1,12 +1,18 @@
 package net.sf.cpsolver.ifs.perturbations;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
-import net.sf.cpsolver.ifs.extension.*;
-import net.sf.cpsolver.ifs.model.*;
-import net.sf.cpsolver.ifs.solution.*;
-import net.sf.cpsolver.ifs.solver.*;
-import net.sf.cpsolver.ifs.util.*;
+import net.sf.cpsolver.ifs.extension.Extension;
+import net.sf.cpsolver.ifs.extension.ViolatedInitials;
+import net.sf.cpsolver.ifs.model.Model;
+import net.sf.cpsolver.ifs.model.Value;
+import net.sf.cpsolver.ifs.model.Variable;
+import net.sf.cpsolver.ifs.solution.Solution;
+import net.sf.cpsolver.ifs.solver.Solver;
+import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
  * Default computation of perturbation penalty (minimal perturbation problem). <br>
@@ -94,7 +100,7 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
         return penalty;
     }
 
-    public double getPerturbationPenalty(Model<V, T> model, List<V> variables) {
+    public double getPerturbationPenalty(Model<V, T> model, Collection<V> variables) {
         double penalty = 0.0;
         for (V variable : variables) {
             if (variable.getAssignment() != null && variable.getInitialAssignment() != null
@@ -181,7 +187,7 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
         return getPenalty(selectedValue, initialValue);
     }
 
-    public double getPerturbationPenalty(Model<V, T> model, T selectedValue, Set<T> conflicts) {
+    public double getPerturbationPenalty(Model<V, T> model, T selectedValue, Collection<T> conflicts) {
         double penalty = 0;
         Set<T> violations = (getViolatedInitials() == null ? null : getViolatedInitials().getViolatedInitials(
                 selectedValue));
@@ -212,7 +218,7 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
             info.put("Perturbations: Total penalty", sDoubleFormat.format(getPerturbationPenalty(model)));
     }
 
-    public void getInfo(Map<String, String> info, Model<V, T> model, List<V> variables) {
+    public void getInfo(Map<String, String> info, Model<V, T> model, Collection<V> variables) {
         if (model.variablesWithInitialValue().size() > 0)
             info.put("Perturbations: Total penalty", sDoubleFormat.format(getPerturbationPenalty(model, variables)));
     }

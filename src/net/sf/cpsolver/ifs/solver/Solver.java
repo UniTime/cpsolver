@@ -1,16 +1,35 @@
 package net.sf.cpsolver.ifs.solver;
 
-import java.io.*;
-import java.util.*;
-import java.lang.reflect.*;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.StringTokenizer;
 
-import net.sf.cpsolver.ifs.extension.*;
-import net.sf.cpsolver.ifs.heuristics.*;
-import net.sf.cpsolver.ifs.model.*;
-import net.sf.cpsolver.ifs.perturbations.*;
-import net.sf.cpsolver.ifs.solution.*;
-import net.sf.cpsolver.ifs.termination.*;
-import net.sf.cpsolver.ifs.util.*;
+import net.sf.cpsolver.ifs.extension.ConflictStatistics;
+import net.sf.cpsolver.ifs.extension.Extension;
+import net.sf.cpsolver.ifs.extension.MacPropagation;
+import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
+import net.sf.cpsolver.ifs.heuristics.StandardNeighbourSelection;
+import net.sf.cpsolver.ifs.heuristics.ValueSelection;
+import net.sf.cpsolver.ifs.heuristics.VariableSelection;
+import net.sf.cpsolver.ifs.model.Model;
+import net.sf.cpsolver.ifs.model.Neighbour;
+import net.sf.cpsolver.ifs.model.Value;
+import net.sf.cpsolver.ifs.model.Variable;
+import net.sf.cpsolver.ifs.perturbations.DefaultPerturbationsCounter;
+import net.sf.cpsolver.ifs.perturbations.PerturbationsCounter;
+import net.sf.cpsolver.ifs.solution.GeneralSolutionComparator;
+import net.sf.cpsolver.ifs.solution.Solution;
+import net.sf.cpsolver.ifs.solution.SolutionComparator;
+import net.sf.cpsolver.ifs.termination.GeneralTerminationCondition;
+import net.sf.cpsolver.ifs.termination.TerminationCondition;
+import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.JProf;
+import net.sf.cpsolver.ifs.util.Progress;
+import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
  * IFS Solver. <br>
@@ -293,7 +312,7 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
     }
 
     /** Returns list of all used extensions */
-    public List<? extends Extension<V, T>> getExtensions() {
+    public List<Extension<V, T>> getExtensions() {
         return iExtensions;
     }
 

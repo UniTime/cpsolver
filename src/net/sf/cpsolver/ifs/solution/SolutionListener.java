@@ -1,6 +1,6 @@
 package net.sf.cpsolver.ifs.solution;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 
 import net.sf.cpsolver.ifs.model.Value;
@@ -65,7 +65,7 @@ public interface SolutionListener<V extends Variable<V, T>, T extends Value<V, T
      * @param variables
      *            only variables from this set are included
      */
-    public void getInfo(Solution<V, T> solution, Map<String, String> info, List<V> variables);
+    public void getInfo(Solution<V, T> solution, Map<String, String> info, Collection<V> variables);
 
     /**
      * Called by the solution when method {@link Solution#clearBest()} is

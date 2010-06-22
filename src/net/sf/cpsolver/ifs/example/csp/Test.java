@@ -1,12 +1,22 @@
 package net.sf.cpsolver.ifs.example.csp;
 
-import java.io.*;
-import java.util.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.PrintWriter;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.Locale;
+import java.util.StringTokenizer;
 
-import net.sf.cpsolver.ifs.model.*;
-import net.sf.cpsolver.ifs.solution.*;
-import net.sf.cpsolver.ifs.solver.*;
-import net.sf.cpsolver.ifs.util.*;
+import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.solution.Solution;
+import net.sf.cpsolver.ifs.solver.Solver;
+import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.Progress;
+import net.sf.cpsolver.ifs.util.ProgressWriter;
+import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
  * Test of Structured CSP problems. It takes one argument -- property file with

@@ -7,7 +7,6 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 import net.sf.cpsolver.ifs.util.Progress;
 
@@ -463,7 +462,7 @@ public class InitialSectioning {
         }
     }
 
-    public static void initialSectioningCfg(Progress p, Long offeringId, String courseName, Set<Student> students,
+    public static void initialSectioningCfg(Progress p, Long offeringId, String courseName, Collection<Student> students,
             List<Configuration> configurations) {
         if (students == null || students.isEmpty())
             return;

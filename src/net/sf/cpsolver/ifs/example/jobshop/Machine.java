@@ -1,8 +1,8 @@
 package net.sf.cpsolver.ifs.example.jobshop;
 
-import java.util.*;
+import java.util.Set;
 
-import net.sf.cpsolver.ifs.model.*;
+import net.sf.cpsolver.ifs.model.Constraint;
 
 /**
  * Machine constraint. <br>

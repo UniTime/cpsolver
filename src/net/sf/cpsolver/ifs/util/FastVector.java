@@ -1,12 +1,12 @@
-package net.sf.cpsolver.ifs.model;
+package net.sf.cpsolver.ifs.util;
 
 import java.util.Collection;
-import java.util.Map;
+import java.util.Vector;
 
 /**
- * A class providing INFO table.
+ * Only used for backward compatibility.
  * 
- * @see Model
+ * Use {@link java.util.ArrayList} whenever possible as this class will go away in future.
  * 
  * @version IFS 1.2 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2010 Tomas Muller<br>
@@ -28,13 +28,20 @@ import java.util.Map;
  *          Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  *          02110-1301 USA
  */
-public interface InfoProvider<V extends Variable<V, ?>> {
-    /** Adds some information into the table with information about the solution */
-    public void getInfo(Map<String, String> info);
+@Deprecated
+public class FastVector<E> extends Vector<E> {
+    private static final long serialVersionUID = -3163198412759471953L;
 
-    /**
-     * Adds some information into the table with information about the solution,
-     * only consider variables from the given set
-     */
-    public void getInfo(Map<String, String> info, Collection<V> variables);
+    public FastVector() {
+        super();
+    }
+    
+    public FastVector(int initialCapacity) {
+        super(initialCapacity);
+    }
+    
+    public FastVector(Collection<? extends E> c) {
+        super(c);
+    }
+
 }

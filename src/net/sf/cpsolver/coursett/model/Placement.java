@@ -1,14 +1,13 @@
 package net.sf.cpsolver.coursett.model;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.constraint.GroupConstraint;
 import net.sf.cpsolver.coursett.constraint.InstructorConstraint;
 import net.sf.cpsolver.coursett.constraint.SpreadConstraint;
 import net.sf.cpsolver.coursett.preference.PreferenceCombination;
 import net.sf.cpsolver.ifs.model.Value;
+import net.sf.cpsolver.ifs.util.ArrayList;
+import net.sf.cpsolver.ifs.util.List;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
@@ -67,7 +66,7 @@ public class Placement extends Value<Lecture, Placement> {
         iHashCode = getName().hashCode();
     }
 
-    public Placement(Lecture lecture, TimeLocation timeLocation, List<RoomLocation> roomLocations) {
+    public Placement(Lecture lecture, TimeLocation timeLocation, java.util.List<RoomLocation> roomLocations) {
         super(lecture);
         iTimeLocation = timeLocation;
         iRoomLocation = (roomLocations.isEmpty() ? null : (RoomLocation) roomLocations.get(0));

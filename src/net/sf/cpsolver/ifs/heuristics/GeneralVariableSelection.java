@@ -1,12 +1,18 @@
 package net.sf.cpsolver.ifs.heuristics;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
-import net.sf.cpsolver.ifs.extension.*;
-import net.sf.cpsolver.ifs.model.*;
-import net.sf.cpsolver.ifs.solution.*;
-import net.sf.cpsolver.ifs.solver.*;
-import net.sf.cpsolver.ifs.util.*;
+import net.sf.cpsolver.ifs.extension.Extension;
+import net.sf.cpsolver.ifs.extension.MacPropagation;
+import net.sf.cpsolver.ifs.model.Value;
+import net.sf.cpsolver.ifs.model.Variable;
+import net.sf.cpsolver.ifs.solution.Solution;
+import net.sf.cpsolver.ifs.solver.Solver;
+import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
  * General implementation of variable selection criterion. <br>

@@ -1,10 +1,20 @@
 package net.sf.cpsolver.ifs.example.jobshop;
 
-import java.io.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
+import java.util.StringTokenizer;
 
-import net.sf.cpsolver.ifs.model.*;
-import net.sf.cpsolver.ifs.util.*;
+import net.sf.cpsolver.ifs.model.Model;
+import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
  * Job Shop model. <br>
@@ -175,8 +185,8 @@ public class JobShopModel extends Model<Operation, Location> {
 
     /** Get information table */
     @Override
-    public Map<String, String> getInfo() {
-        Map<String, String> ret = super.getInfo();
+    public Hashtable<String, String> getInfo() {
+        Hashtable<String, String> ret = super.getInfo();
         ret.put("Finishing time", String.valueOf(getFinishingTime()));
         return ret;
     }

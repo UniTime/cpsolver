@@ -1,8 +1,10 @@
 package net.sf.cpsolver.ifs.example.csp;
 
-import java.util.*;
+import java.util.Iterator;
+import java.util.Random;
 
-import net.sf.cpsolver.ifs.model.*;
+import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.model.Model;
 
 /**
  * Random Binary CSP with uniform distribution. <br>

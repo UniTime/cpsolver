@@ -1,12 +1,9 @@
-package net.sf.cpsolver.ifs.model;
-
-import java.util.Collection;
-import java.util.Map;
+package net.sf.cpsolver.ifs.util;
 
 /**
- * A class providing INFO table.
+ * Only used for backward compatibility.
  * 
- * @see Model
+ * Use {@link java.util.List} whenever possible as this interface will go away in future.
  * 
  * @version IFS 1.2 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2010 Tomas Muller<br>
@@ -28,13 +25,14 @@ import java.util.Map;
  *          Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  *          02110-1301 USA
  */
-public interface InfoProvider<V extends Variable<V, ?>> {
-    /** Adds some information into the table with information about the solution */
-    public void getInfo(Map<String, String> info);
+public interface List<E> extends java.util.List<E>, Collection<E> {
 
-    /**
-     * Adds some information into the table with information about the solution,
-     * only consider variables from the given set
-     */
-    public void getInfo(Map<String, String> info, Collection<V> variables);
+    @Deprecated
+    public void addElement(E e);
+    
+    @Deprecated
+    public E elementAt(int idx);
+    
+    @Deprecated
+    public E firstElement();
 }

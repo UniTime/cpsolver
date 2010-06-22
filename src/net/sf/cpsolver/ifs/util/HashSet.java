@@ -1,12 +1,12 @@
-package net.sf.cpsolver.ifs.model;
+package net.sf.cpsolver.ifs.util;
 
-import java.util.Collection;
-import java.util.Map;
+import java.util.Enumeration;
+import java.util.Iterator;
 
 /**
- * A class providing INFO table.
+ * Only used for backward compatibility.
  * 
- * @see Model
+ * Use {@link java.util.HashSet} whenever possible as this class will go away in future.
  * 
  * @version IFS 1.2 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2010 Tomas Muller<br>
@@ -28,13 +28,24 @@ import java.util.Map;
  *          Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  *          02110-1301 USA
  */
-public interface InfoProvider<V extends Variable<V, ?>> {
-    /** Adds some information into the table with information about the solution */
-    public void getInfo(Map<String, String> info);
+public class HashSet<E> extends java.util.HashSet<E> implements Collection<E> {
+    private static final long serialVersionUID = -598578098308528933L;
 
-    /**
-     * Adds some information into the table with information about the solution,
-     * only consider variables from the given set
-     */
-    public void getInfo(Map<String, String> info, Collection<V> variables);
+    @Override
+    @Deprecated
+    public Enumeration<E> elements() {
+        return new Enumeration<E>() {
+            Iterator<E> iterator = iterator();
+
+            @Override
+            public boolean hasMoreElements() {
+                return iterator.hasNext();
+            }
+            
+            @Override
+            public E nextElement() {
+                return iterator.next();
+            }
+        };
+    }
 }

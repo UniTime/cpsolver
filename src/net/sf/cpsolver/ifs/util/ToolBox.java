@@ -1,9 +1,29 @@
 package net.sf.cpsolver.ifs.util;
 
-import java.io.*;
-import java.util.*;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.Enumeration;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Random;
+import java.util.StringTokenizer;
+import java.util.TreeSet;
+import java.util.Vector;
 
-import org.apache.log4j.*;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
 
 /**
  * Several auxiliary static methods.
