@@ -1,8 +1,12 @@
 package net.sf.cpsolver.ifs.example.tt;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
-import net.sf.cpsolver.ifs.model.*;
+import net.sf.cpsolver.ifs.model.Variable;
 
 /**
  * Activity (variable). It encodes a name, length

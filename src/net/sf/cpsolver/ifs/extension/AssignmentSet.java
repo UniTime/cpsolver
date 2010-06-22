@@ -1,8 +1,12 @@
 package net.sf.cpsolver.ifs.extension;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
-import net.sf.cpsolver.ifs.model.*;
+import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.model.Value;
+import net.sf.cpsolver.ifs.model.Variable;
 
 /**
  * This class describing a set of assignment (used by CBS).

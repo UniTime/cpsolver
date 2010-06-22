@@ -1,25 +1,25 @@
 package net.sf.cpsolver.exam.model;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.Vector;
 
-import org.apache.log4j.Logger;
-
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Variable;
+import net.sf.cpsolver.ifs.util.ArrayList;
+import net.sf.cpsolver.ifs.util.List;
 import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.ifs.util.ToolBox;
+
+import org.apache.log4j.Logger;
 
 /**
  * Representation of an exam (problem variable). Each exam has defined a length
@@ -113,7 +113,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      *            into which an exam can be assigned
      */
     public Exam(long id, String name, int length, boolean altSeating, int maxRooms, int minSize,
-            List<ExamPeriodPlacement> periodPlacements, List<ExamRoomPlacement> roomPlacements) {
+            java.util.List<ExamPeriodPlacement> periodPlacements, java.util.List<ExamRoomPlacement> roomPlacements) {
         super();
         iId = id;
         iName = name;
@@ -121,13 +121,13 @@ public class Exam extends Variable<Exam, ExamPlacement> {
         iAltSeating = altSeating;
         iMaxRooms = maxRooms;
         iMinSize = minSize;
-        iPeriodPlacements = periodPlacements;
+        iPeriodPlacements = new ArrayList<ExamPeriodPlacement>(periodPlacements);
         Collections.sort(iPeriodPlacements, new Comparator<ExamPeriodPlacement>() {
             public int compare(ExamPeriodPlacement p1, ExamPeriodPlacement p2) {
                 return p1.getPeriod().compareTo(p2.getPeriod());
             }
         });
-        iRoomPlacements = roomPlacements;
+        iRoomPlacements = new ArrayList<ExamRoomPlacement>(roomPlacements);
         Collections.sort(iRoomPlacements, new Comparator<ExamRoomPlacement>() {
             public int compare(ExamRoomPlacement p1, ExamRoomPlacement p2) {
                 int cmp = -Double.compare(p1.getSize(hasAltSeating()), p2.getSize(hasAltSeating()));

@@ -1,12 +1,16 @@
 package net.sf.cpsolver.ifs.dbt;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
 
-import net.sf.cpsolver.ifs.extension.*;
-import net.sf.cpsolver.ifs.model.*;
+import net.sf.cpsolver.ifs.extension.MacPropagation;
+import net.sf.cpsolver.ifs.model.Neighbour;
+import net.sf.cpsolver.ifs.model.Value;
+import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.solution.Solution;
-import net.sf.cpsolver.ifs.solver.*;
-import net.sf.cpsolver.ifs.util.*;
+import net.sf.cpsolver.ifs.solver.Solver;
+import net.sf.cpsolver.ifs.solver.SolverListener;
+import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
  * Maintenance of arc consistency in dynamic backtracking. <br>

@@ -1,7 +1,7 @@
 package net.sf.cpsolver.coursett.heuristics;
 
+import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 
 import net.sf.cpsolver.coursett.constraint.DepartmentSpreadConstraint;
 import net.sf.cpsolver.coursett.constraint.GroupConstraint;
@@ -216,7 +216,7 @@ public class TimetableComparator implements SolutionComparator<Lecture, Placemen
         return prefCurr;
     }
 
-    public double currentValue(TimetableModel tm, PerturbationsCounter<Lecture, Placement> cnt, List<Lecture> variables) {
+    public double currentValue(TimetableModel tm, PerturbationsCounter<Lecture, Placement> cnt, Collection<Lecture> variables) {
         int unassigned = 0;
 
         int roomPref = 0;

@@ -1,6 +1,8 @@
 package net.sf.cpsolver.ifs.solver;
 
-import net.sf.cpsolver.ifs.model.*;
+import net.sf.cpsolver.ifs.model.Neighbour;
+import net.sf.cpsolver.ifs.model.Value;
+import net.sf.cpsolver.ifs.model.Variable;
 
 /**
  * IFS Solver Listener.

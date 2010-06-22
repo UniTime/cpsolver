@@ -1,8 +1,8 @@
 package net.sf.cpsolver.ifs.model;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
+import net.sf.cpsolver.ifs.util.Collection;
+import net.sf.cpsolver.ifs.util.HashSet;
+import net.sf.cpsolver.ifs.util.List;
 
 /**
  * Generic global constraint. <br>

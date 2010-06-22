@@ -1,8 +1,9 @@
 package net.sf.cpsolver.ifs.example.rpp;
 
-import java.util.*;
+import java.util.ArrayList;
 
-import net.sf.cpsolver.ifs.model.*;
+import net.sf.cpsolver.ifs.model.Variable;
+
 
 /**
  * Rectangle (variable). It encodes the name, width and height of the rectangle,

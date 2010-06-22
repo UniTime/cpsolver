@@ -3,6 +3,7 @@ package net.sf.cpsolver.studentsct.model;
 import java.util.ArrayList;
 import java.util.List;
 
+
 /**
  * Representation of a student. Each student contains id, and a list of
  * requests. <br>

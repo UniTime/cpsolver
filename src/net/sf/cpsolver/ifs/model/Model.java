@@ -1,9 +1,17 @@
 package net.sf.cpsolver.ifs.model;
 
-import java.util.*;
+import java.util.Comparator;
+import java.util.Hashtable;
+import java.util.Locale;
+import java.util.Set;
+import java.util.TreeSet;
 
-import net.sf.cpsolver.ifs.solver.*;
-import net.sf.cpsolver.ifs.util.*;
+import net.sf.cpsolver.ifs.solver.Solver;
+import net.sf.cpsolver.ifs.util.ArrayList;
+import net.sf.cpsolver.ifs.util.Collection;
+import net.sf.cpsolver.ifs.util.HashSet;
+import net.sf.cpsolver.ifs.util.List;
+import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
  * Generic model (definition of a problem). <br>
@@ -248,7 +256,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * which has an initial value but which are not assigned with this value.
      * Only variables from the given set are considered.
      */
-    public List<V> perturbVariables(Collection<V> variables) {
+    public List<V> perturbVariables(java.util.Collection<V> variables) {
         List<V> perturbances = new ArrayList<V>();
         for (V variable : variables) {
             if (variable.getInitialAssignment() == null)
@@ -381,8 +389,8 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * Returns information about the current solution. Information from all
      * model listeners and constraints is also included.
      */
-    public Map<String, String> getInfo() {
-        Map<String, String> ret = new Hashtable<String, String>();
+    public Hashtable<String, String> getInfo() {
+        Hashtable<String, String> ret = new Hashtable<String, String>();
         ret.put("Assigned variables", getPercRev(nrAssignedVariables(), 0, variables().size()) + "% ("
                 + nrAssignedVariables() + "/" + variables().size() + ")");
         int nrVarsWithInitialValue = variablesWithInitialValue().size();
@@ -401,7 +409,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * {@link Model#getInfo()}, but some more information (that is more
      * expensive to compute) might be added.
      */
-    public Map<String, String> getExtendedInfo() {
+    public Hashtable<String, String> getExtendedInfo() {
         return getInfo();
     }
 
@@ -410,8 +418,8 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * model listeners and constraints is also included. Only variables from the
      * given set are considered.
      */
-    public Map<String, String> getInfo(List<V> variables) {
-        Map<String, String> ret = new Hashtable<String, String>();
+    public Hashtable<String, String> getInfo(java.util.Collection<V> variables) {
+        Hashtable<String, String> ret = new Hashtable<String, String>();
         int assigned = 0, perturb = 0, nrVarsWithInitialValue = 0;
         for (V variable : variables) {
             if (variable.getAssignment() != null)
@@ -583,7 +591,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * i.e., {@link Value#toDouble()}. Only variables from the given set are
      * considered.
      **/
-    public double getTotalValue(List<V> variables) {
+    public double getTotalValue(java.util.Collection<V> variables) {
         double valCurrent = 0;
         for (V variable : variables) {
             if (variable.getAssignment() != null)
@@ -644,8 +652,8 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * value into the set of conflicting values in
      * {@link Constraint#computeConflicts(Value, Set)}.
      */
-    public Map<Constraint<V, T>, Set<T>> conflictConstraints(T value) {
-        Map<Constraint<V, T>, Set<T>> conflictConstraints = new Hashtable<Constraint<V, T>, Set<T>>();
+    public Hashtable<Constraint<V, T>, Set<T>> conflictConstraints(T value) {
+        Hashtable<Constraint<V, T>, Set<T>> conflictConstraints = new Hashtable<Constraint<V, T>, Set<T>>();
         for (Constraint<V, T> constraint : value.variable().hardConstraints()) {
             Set<T> conflicts = new HashSet<T>();
             constraint.computeConflicts(value, conflicts);

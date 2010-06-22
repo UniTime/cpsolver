@@ -2,7 +2,11 @@ package net.sf.cpsolver.ifs.util;
 
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.List;
 
 import org.dom4j.Element;
 
@@ -446,7 +450,7 @@ public class Progress {
             iLevel = Integer.parseInt(element.attributeValue("level", "0"));
             iMessage = element.attributeValue("msg");
             iDate = new Date(Long.parseLong(element.attributeValue("date", "0")));
-            List<?> tr = element.elements("trace");
+            java.util.List<?> tr = element.elements("trace");
             if (tr != null && !tr.isEmpty()) {
                 iStakTrace = new String[tr.size()];
                 for (int i = 0; i < tr.size(); i++)

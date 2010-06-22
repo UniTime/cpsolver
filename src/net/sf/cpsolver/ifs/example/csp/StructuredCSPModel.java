@@ -1,9 +1,13 @@
 package net.sf.cpsolver.ifs.example.csp;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Random;
 
-import net.sf.cpsolver.ifs.model.*;
-import net.sf.cpsolver.ifs.util.*;
+import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.model.Model;
+import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
  * Random Binary CSP with kernels. <br>
@@ -235,8 +239,8 @@ public class StructuredCSPModel extends Model<CSPVariable, CSPValue> {
 
     /** Return information table */
     @Override
-    public Map<String, String> getInfo() {
-        Map<String, String> ret = super.getInfo();
+    public Hashtable<String, String> getInfo() {
+        Hashtable<String, String> ret = super.getInfo();
         ret.put("Solution value", String.valueOf(getTotalValue()));
         return ret;
     }

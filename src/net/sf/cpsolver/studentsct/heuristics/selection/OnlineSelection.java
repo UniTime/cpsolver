@@ -3,8 +3,6 @@ package net.sf.cpsolver.studentsct.heuristics.selection;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
-
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.studentsct.StudentPreferencePenalties;
@@ -16,6 +14,8 @@ import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Section;
 import net.sf.cpsolver.studentsct.model.Student;
 import net.sf.cpsolver.studentsct.model.Subpart;
+
+import org.apache.log4j.Logger;
 
 /**
  * Section given student using branch & bound algorithm with no unassignments
