@@ -561,6 +561,10 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
     public boolean isIgnoreDistances() {
         return iIgnoreDistances;
     }
+    
+    public void setIgnoreDistances(boolean ignDist) {
+        iIgnoreDistances = ignDist;
+    }
 
     public Long getType() {
         return iType;
