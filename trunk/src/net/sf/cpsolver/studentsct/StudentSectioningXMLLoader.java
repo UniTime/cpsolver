@@ -117,6 +117,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             .getLogger(StudentSectioningXMLLoader.class);
 
     private File iInputFile;
+    private File iTimetableFile = null;
     private boolean iLoadBest = false;
     private boolean iLoadInitial = false;
     private boolean iLoadCurrent = false;
@@ -134,6 +135,8 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         super(model);
         iInputFile = new File(getModel().getProperties().getProperty("General.Input",
                 "." + File.separator + "solution.xml"));
+        if (getModel().getProperties().getProperty("General.InputTimetable") != null)
+            iTimetableFile = new File(getModel().getProperties().getProperty("General.InputTimetable"));
         iLoadBest = getModel().getProperties().getPropertyBoolean("Xml.LoadBest", true);
         iLoadInitial = getModel().getProperties().getPropertyBoolean("Xml.LoadInitial", true);
         iLoadCurrent = getModel().getProperties().getPropertyBoolean("Xml.LoadCurrent", true);
@@ -191,6 +194,66 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             sLogger.error("Given XML file is not student sectioning problem.");
             return;
         }
+        
+        Hashtable<Long, Placement> timetable = null;
+        if (iTimetableFile != null) {
+            sLogger.info("Reading timetable from " + iTimetableFile + " ...");
+            Document timetableDocument = (new SAXReader()).read(iTimetableFile);
+            Element timetableRoot = timetableDocument.getRootElement();
+            if (!"timetable".equals(timetableRoot.getName())) {
+                sLogger.error("Given XML file is not course timetabling problem.");
+                return;
+            }
+            timetable = new Hashtable<Long, Placement>();
+            Hashtable<Long, RoomLocation> rooms = new Hashtable<Long, RoomLocation>();
+            for (Iterator<?> i = timetableRoot.element("rooms").elementIterator("room"); i.hasNext();) {
+                Element roomEl = (Element)i.next();
+                Long roomId = Long.valueOf(roomEl.attributeValue("id"));
+                int posX = -1, posY = -1;
+                if (roomEl.attributeValue("location") != null) {
+                    String loc = roomEl.attributeValue("location");
+                    posX = Integer.parseInt(loc.substring(0, loc.indexOf(',')));
+                    posY = Integer.parseInt(loc.substring(loc.indexOf(',') + 1));
+                }
+                RoomLocation room = new RoomLocation(Long.valueOf(roomEl.attributeValue("id")), roomEl
+                        .attributeValue("name", "R" + roomEl.attributeValue("id")), roomEl
+                        .attributeValue("building") == null ? null : Long.valueOf(roomEl
+                        .attributeValue("building")), 0, Integer.parseInt(roomEl
+                        .attributeValue("capacity")), posX, posY, "true".equals(roomEl
+                        .attributeValue("ignoreTooFar")), null);
+                rooms.put(roomId, room);
+            }
+            for (Iterator<?> i = timetableRoot.element("classes").elementIterator("class"); i.hasNext();) {
+                Element classEl = (Element)i.next();
+                Long classId = Long.valueOf(classEl.attributeValue("id"));
+                TimeLocation time = null;
+                Element timeEl = null;
+                for (Iterator<?> j = classEl.elementIterator("time"); j.hasNext(); ) {
+                    Element e = (Element)j.next();
+                    if ("true".equals(e.attributeValue("solution", "false"))) { timeEl = e; break; }
+                }
+                if (timeEl != null) {
+                    time = new TimeLocation(Integer.parseInt(timeEl.attributeValue("days"), 2), Integer
+                            .parseInt(timeEl.attributeValue("start")), Integer.parseInt(timeEl
+                            .attributeValue("length")), 0, 0,
+                            classEl.attributeValue("datePattern") == null ? null : Long.valueOf(classEl
+                                    .attributeValue("datePattern")), classEl.attributeValue(
+                                    "datePatternName", ""), createBitSet(classEl.attributeValue("dates")),
+                            Integer.parseInt(timeEl.attributeValue("breakTime", "0")));
+                    if (timeEl.attributeValue("pattern") != null)
+                        time.setTimePatternId(Long.valueOf(timeEl.attributeValue("pattern")));
+                }
+                List<RoomLocation> room = new ArrayList<RoomLocation>();
+                for (Iterator<?> j = classEl.elementIterator("room"); j.hasNext();) {
+                    Element roomEl = (Element) j.next();
+                    if (!"true".equals(roomEl.attributeValue("solution", "false"))) continue;
+                    room.add(rooms.get(Long.valueOf(roomEl.attributeValue("id"))));
+                }
+                Placement placement = (time == null ? null : new Placement(null, time, room));
+                if (placement != null)
+                    timetable.put(classId, placement);
+            }
+        }
 
         Progress.getInstance(getModel()).load(root, true);
         Progress.getInstance(getModel()).message(Progress.MSGLEVEL_STAGE, "Restoring from backup ...");
@@ -240,37 +303,42 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                             Section parentSection = null;
                             if (sectionEl.attributeValue("parent") != null)
                                 parentSection = sectionTable.get(Long.valueOf(sectionEl.attributeValue("parent")));
-                            TimeLocation time = null;
-                            Element timeEl = sectionEl.element("time");
-                            if (timeEl != null) {
-                                time = new TimeLocation(Integer.parseInt(timeEl.attributeValue("days"), 2), Integer
-                                        .parseInt(timeEl.attributeValue("start")), Integer.parseInt(timeEl
-                                        .attributeValue("length")), 0, 0,
-                                        timeEl.attributeValue("datePattern") == null ? null : Long.valueOf(timeEl
-                                                .attributeValue("datePattern")), timeEl.attributeValue(
-                                                "datePatternName", ""), createBitSet(timeEl.attributeValue("dates")),
-                                        Integer.parseInt(timeEl.attributeValue("breakTime", "0")));
-                                if (timeEl.attributeValue("pattern") != null)
-                                    time.setTimePatternId(Long.valueOf(timeEl.attributeValue("pattern")));
-                            }
-                            List<RoomLocation> rooms = new ArrayList<RoomLocation>();
-                            for (Iterator<?> m = sectionEl.elementIterator("room"); m.hasNext();) {
-                                Element roomEl = (Element) m.next();
-                                int posX = -1, posY = -1;
-                                if (roomEl.attributeValue("location") != null) {
-                                    String loc = roomEl.attributeValue("location");
-                                    posX = Integer.parseInt(loc.substring(0, loc.indexOf(',')));
-                                    posY = Integer.parseInt(loc.substring(loc.indexOf(',') + 1));
+                            Placement placement = null;
+                            if (timetable != null) {
+                                placement = timetable.get(Long.parseLong(sectionEl.attributeValue("id")));
+                            } else {
+                                TimeLocation time = null;
+                                Element timeEl = sectionEl.element("time");
+                                if (timeEl != null) {
+                                    time = new TimeLocation(Integer.parseInt(timeEl.attributeValue("days"), 2), Integer
+                                            .parseInt(timeEl.attributeValue("start")), Integer.parseInt(timeEl
+                                            .attributeValue("length")), 0, 0,
+                                            timeEl.attributeValue("datePattern") == null ? null : Long.valueOf(timeEl
+                                                    .attributeValue("datePattern")), timeEl.attributeValue(
+                                                    "datePatternName", ""), createBitSet(timeEl.attributeValue("dates")),
+                                            Integer.parseInt(timeEl.attributeValue("breakTime", "0")));
+                                    if (timeEl.attributeValue("pattern") != null)
+                                        time.setTimePatternId(Long.valueOf(timeEl.attributeValue("pattern")));
                                 }
-                                RoomLocation room = new RoomLocation(Long.valueOf(roomEl.attributeValue("id")), roomEl
-                                        .attributeValue("name", "R" + roomEl.attributeValue("id")), roomEl
-                                        .attributeValue("building") == null ? null : Long.valueOf(roomEl
-                                        .attributeValue("building")), 0, Integer.parseInt(roomEl
-                                        .attributeValue("capacity")), posX, posY, "true".equals(roomEl
-                                        .attributeValue("ignoreTooFar")), null);
-                                rooms.add(room);
+                                List<RoomLocation> rooms = new ArrayList<RoomLocation>();
+                                for (Iterator<?> m = sectionEl.elementIterator("room"); m.hasNext();) {
+                                    Element roomEl = (Element) m.next();
+                                    int posX = -1, posY = -1;
+                                    if (roomEl.attributeValue("location") != null) {
+                                        String loc = roomEl.attributeValue("location");
+                                        posX = Integer.parseInt(loc.substring(0, loc.indexOf(',')));
+                                        posY = Integer.parseInt(loc.substring(loc.indexOf(',') + 1));
+                                    }
+                                    RoomLocation room = new RoomLocation(Long.valueOf(roomEl.attributeValue("id")), roomEl
+                                            .attributeValue("name", "R" + roomEl.attributeValue("id")), roomEl
+                                            .attributeValue("building") == null ? null : Long.valueOf(roomEl
+                                            .attributeValue("building")), 0, Integer.parseInt(roomEl
+                                            .attributeValue("capacity")), posX, posY, "true".equals(roomEl
+                                            .attributeValue("ignoreTooFar")), null);
+                                    rooms.add(room);
+                                }
+                                placement = (time == null ? null : new Placement(null, time, rooms));
                             }
-                            Placement placement = (time == null ? null : new Placement(null, time, rooms));
                             Section section = new Section(Long.parseLong(sectionEl.attributeValue("id")), Integer
                                     .parseInt(sectionEl.attributeValue("limit")), sectionEl.attributeValue("name", "S"
                                     + sectionEl.attributeValue("id")), subpart, placement, sectionEl
