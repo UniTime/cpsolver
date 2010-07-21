@@ -173,7 +173,7 @@ public class ExamInstructorConflicts {
                                 }
                                 String distStr = "";
                                 if (iModel.getBackToBackDistance() >= 0) {
-                                    int dist = (ex1.getAssignment()).getDistance(ex2.getAssignment());
+                                    double dist = (ex1.getAssignment()).getDistanceInMeters(ex2.getAssignment());
                                     if (dist > 0)
                                         distStr = String.valueOf(dist);
                                 }

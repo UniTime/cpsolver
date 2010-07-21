@@ -13,6 +13,7 @@ import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.coursett.model.TimetableModel;
 import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.util.DistanceMetric;
 
 /**
  * Instructor constraint. <br>
@@ -20,17 +21,17 @@ import net.sf.cpsolver.ifs.model.Constraint;
  * classes, there is the following reasoning:
  * <ul>
  * <li>if the distance is equal or below
- * {@link TimetableModel#getInstructorNoPreferenceLimit()} .. no preference
+ * {@link DistanceMetric#getInstructorNoPreferenceLimit()} .. no preference
  * <li>if the distance is above
- * {@link TimetableModel#getInstructorNoPreferenceLimit()} and below
- * {@link TimetableModel#getInstructorDiscouragedLimit()} .. constraint is
+ * {@link DistanceMetric#getInstructorNoPreferenceLimit()} and below
+ * {@link DistanceMetric#getInstructorDiscouragedLimit()} .. constraint is
  * discouraged (soft, preference = 1)
  * <li>if the distance is above
- * {@link TimetableModel#getInstructorDiscouragedLimit()} and below
- * {@link TimetableModel#getInstructorProhibitedLimit()} .. constraint is
+ * {@link DistanceMetric#getInstructorDiscouragedLimit()} and below
+ * {@link DistanceMetric#getInstructorProhibitedLimit()} .. constraint is
  * strongly discouraged (soft, preference = 2)
  * <li>if the distance is above
- * {@link TimetableModel#getInstructorProhibitedLimit()} .. constraint is
+ * {@link DistanceMetric#getInstructorProhibitedLimit()} .. constraint is
  * prohibited (hard)
  * </ul>
  * <br>
@@ -152,6 +153,10 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
         }
         return true;
     }
+    
+    private DistanceMetric getDistanceMetric() {
+        return ((TimetableModel)getModel()).getDistanceMetric();
+    }
 
     public boolean isAvailable(Lecture lecture, Placement placement) {
         if (iAvailable == null)
@@ -168,7 +173,6 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
             }
         }
         if (!iIgnoreDistances) {
-            TimetableModel m = (TimetableModel) getModel();
             for (Enumeration<Integer> e = placement.getTimeLocation().getStartSlots(); e.hasMoreElements();) {
                 int startSlot = e.nextElement();
                 int prevSlot = startSlot - 1;
@@ -178,7 +182,7 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
                             if (lecture.canShareRoom(p.variable()) && placement.sameRooms(p))
                                 continue;
                             if (placement.getTimeLocation().shareWeeks(p.getTimeLocation())
-                                    && Placement.getDistance(p, placement) > m.getInstructorProhibitedLimit())
+                                    && Placement.getDistanceInMeters(getDistanceMetric(), p, placement) > getDistanceMetric().getInstructorProhibitedLimit())
                                 return false;
                         }
                     }
@@ -190,7 +194,7 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
                             if (lecture.canShareRoom(p.variable()) && placement.sameRooms(p))
                                 continue;
                             if (placement.getTimeLocation().shareWeeks(p.getTimeLocation())
-                                    && Placement.getDistance(p, placement) > m.getInstructorProhibitedLimit())
+                                    && Placement.getDistanceInMeters(getDistanceMetric(), p, placement) > getDistanceMetric().getInstructorProhibitedLimit())
                                 return false;
                         }
                     }
@@ -214,13 +218,12 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
         int s2 = p2.getTimeLocation().getStartSlot() % Constants.SLOTS_PER_DAY;
         if (s1 + p1.getTimeLocation().getLength() != s2 && s2 + p2.getTimeLocation().getLength() != s1)
             return 0;
-        double distance = Placement.getDistance(p1, p2);
-        TimetableModel m = (TimetableModel) p1.variable().getModel();
-        if (distance <= m.getInstructorNoPreferenceLimit())
+        double distance = Placement.getDistanceInMeters(getDistanceMetric(), p1, p2);
+        if (distance <= getDistanceMetric().getInstructorNoPreferenceLimit())
             return Constants.sPreferenceLevelNeutral;
-        if (distance <= m.getInstructorDiscouragedLimit())
+        if (distance <= getDistanceMetric().getInstructorDiscouragedLimit())
             return Constants.sPreferenceLevelDiscouraged;
-        if (iIgnoreDistances || distance <= m.getInstructorProhibitedLimit())
+        if (iIgnoreDistances || distance <= getDistanceMetric().getInstructorProhibitedLimit())
             return Constants.sPreferenceLevelStronglyDiscouraged;
         return Constants.sPreferenceLevelProhibited;
     }
@@ -252,7 +255,6 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
             }
         }
         if (!iIgnoreDistances) {
-            TimetableModel m = (TimetableModel) getModel();
             for (Enumeration<Integer> e = placement.getTimeLocation().getStartSlots(); e.hasMoreElements();) {
                 int startSlot = e.nextElement();
                 int prevSlot = startSlot - 1;
@@ -261,7 +263,7 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
                     for (Placement c : conf) {
                         if (lecture.equals(c.variable()))
                             continue;
-                        if (Placement.getDistance(placement, c) > m.getInstructorProhibitedLimit()) {
+                        if (Placement.getDistanceInMeters(getDistanceMetric(), placement, c) > getDistanceMetric().getInstructorProhibitedLimit()) {
                             if (c.canShareRooms(placement) && c.sameRooms(placement))
                                 continue;
                             conflicts.add(c);
@@ -274,7 +276,7 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
                     for (Placement c : conf) {
                         if (lecture.equals(c.variable()))
                             continue;
-                        if (Placement.getDistance(placement, c) > m.getInstructorProhibitedLimit()) {
+                        if (Placement.getDistanceInMeters(getDistanceMetric(), placement, c) > getDistanceMetric().getInstructorProhibitedLimit()) {
                             if (c.canShareRooms(placement) && c.sameRooms(placement))
                                 continue;
                             conflicts.add(c);
@@ -300,7 +302,6 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
             }
         }
         if (!iIgnoreDistances) {
-            TimetableModel m = (TimetableModel) getModel();
             for (Enumeration<Integer> e = placement.getTimeLocation().getStartSlots(); e.hasMoreElements();) {
                 int startSlot = e.nextElement();
                 int prevSlot = startSlot - 1;
@@ -309,7 +310,7 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
                     for (Placement c : conf) {
                         if (lecture.equals(c.variable()))
                             continue;
-                        if (Placement.getDistance(placement, c) > m.getInstructorProhibitedLimit()) {
+                        if (Placement.getDistanceInMeters(getDistanceMetric(), placement, c) > getDistanceMetric().getInstructorProhibitedLimit()) {
                             if (c.canShareRooms(placement) && c.sameRooms(placement))
                                 continue;
                             return true;
@@ -322,7 +323,7 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
                     for (Placement c : conf) {
                         if (lecture.equals(c.variable()))
                             continue;
-                        if (Placement.getDistance(placement, c) > m.getInstructorProhibitedLimit()) {
+                        if (Placement.getDistanceInMeters(getDistanceMetric(), placement, c) > getDistanceMetric().getInstructorProhibitedLimit()) {
                             if (c.canShareRooms(placement) && c.sameRooms(placement))
                                 continue;
                             return true;
@@ -425,7 +426,6 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
         Lecture lecture = value.variable();
         Placement placement = value;
         int pref = 0;
-        TimetableModel m = (TimetableModel) getModel();
         HashSet<Placement> used = new HashSet<Placement>();
         for (Enumeration<Integer> e = placement.getTimeLocation().getStartSlots(); e.hasMoreElements();) {
             int startSlot = e.nextElement();
@@ -437,13 +437,13 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
                         continue;
                     if (!used.add(c))
                         continue;
-                    double dist = Placement.getDistance(placement, c);
-                    if (dist > m.getInstructorNoPreferenceLimit() && dist <= m.getInstructorDiscouragedLimit())
+                    double dist = Placement.getDistanceInMeters(getDistanceMetric(), placement, c);
+                    if (dist > getDistanceMetric().getInstructorNoPreferenceLimit() && dist <= getDistanceMetric().getInstructorDiscouragedLimit())
                         pref += Constants.sPreferenceLevelDiscouraged;
-                    if (dist > m.getInstructorDiscouragedLimit()
-                            && (dist <= m.getInstructorProhibitedLimit() || iIgnoreDistances))
+                    if (dist > getDistanceMetric().getInstructorDiscouragedLimit()
+                            && (dist <= getDistanceMetric().getInstructorProhibitedLimit() || iIgnoreDistances))
                         pref += Constants.sPreferenceLevelStronglyDiscouraged;
-                    if (!iIgnoreDistances && dist > m.getInstructorProhibitedLimit())
+                    if (!iIgnoreDistances && dist > getDistanceMetric().getInstructorProhibitedLimit())
                         pref += Constants.sPreferenceLevelProhibited;
                 }
             }
@@ -455,13 +455,13 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
                         continue;
                     if (!used.add(c))
                         continue;
-                    double dist = Placement.getDistance(placement, c);
-                    if (dist > m.getInstructorNoPreferenceLimit() && dist <= m.getInstructorDiscouragedLimit())
+                    double dist = Placement.getDistanceInMeters(getDistanceMetric(), placement, c);
+                    if (dist > getDistanceMetric().getInstructorNoPreferenceLimit() && dist <= getDistanceMetric().getInstructorDiscouragedLimit())
                         pref += Constants.sPreferenceLevelDiscouraged;
-                    if (dist > m.getInstructorDiscouragedLimit()
-                            && (dist <= m.getInstructorProhibitedLimit() || iIgnoreDistances))
+                    if (dist > getDistanceMetric().getInstructorDiscouragedLimit()
+                            && (dist <= getDistanceMetric().getInstructorProhibitedLimit() || iIgnoreDistances))
                         pref += Constants.sPreferenceLevelStronglyDiscouraged;
-                    if (!iIgnoreDistances && dist > m.getInstructorProhibitedLimit())
+                    if (!iIgnoreDistances && dist > getDistanceMetric().getInstructorProhibitedLimit())
                         pref = Constants.sPreferenceLevelProhibited;
                 }
             }
@@ -474,7 +474,6 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
         Placement placement = value;
         int pref = 0;
         HashSet<Placement> used = new HashSet<Placement>();
-        TimetableModel m = (TimetableModel) getModel();
         for (Enumeration<Integer> e = placement.getTimeLocation().getStartSlots(); e.hasMoreElements();) {
             int startSlot = e.nextElement();
             int prevSlot = startSlot - 1;
@@ -485,13 +484,13 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
                         continue;
                     if (!used.add(c))
                         continue;
-                    double dist = Placement.getDistance(placement, c);
-                    if (dist > m.getInstructorNoPreferenceLimit() && dist <= m.getInstructorDiscouragedLimit())
+                    double dist = Placement.getDistanceInMeters(getDistanceMetric(), placement, c);
+                    if (dist > getDistanceMetric().getInstructorNoPreferenceLimit() && dist <= getDistanceMetric().getInstructorDiscouragedLimit())
                         pref = Math.max(pref, Constants.sPreferenceLevelDiscouraged);
-                    if (dist > m.getInstructorDiscouragedLimit()
-                            && (dist <= m.getInstructorProhibitedLimit() || iIgnoreDistances))
+                    if (dist > getDistanceMetric().getInstructorDiscouragedLimit()
+                            && (dist <= getDistanceMetric().getInstructorProhibitedLimit() || iIgnoreDistances))
                         pref = Math.max(pref, Constants.sPreferenceLevelStronglyDiscouraged);
-                    if (!iIgnoreDistances && dist > m.getInstructorProhibitedLimit())
+                    if (!iIgnoreDistances && dist > getDistanceMetric().getInstructorProhibitedLimit())
                         pref = Math.max(pref, Constants.sPreferenceLevelProhibited);
                 }
             }
@@ -503,13 +502,13 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
                         continue;
                     if (!used.add(c))
                         continue;
-                    double dist = Placement.getDistance(placement, c);
-                    if (dist > m.getInstructorNoPreferenceLimit() && dist <= m.getInstructorDiscouragedLimit())
+                    double dist = Placement.getDistanceInMeters(getDistanceMetric(), placement, c);
+                    if (dist > getDistanceMetric().getInstructorNoPreferenceLimit() && dist <= getDistanceMetric().getInstructorDiscouragedLimit())
                         pref = Math.max(pref, Constants.sPreferenceLevelDiscouraged);
-                    if (dist > m.getInstructorDiscouragedLimit()
-                            && (dist <= m.getInstructorProhibitedLimit() || iIgnoreDistances))
+                    if (dist > getDistanceMetric().getInstructorDiscouragedLimit()
+                            && (dist <= getDistanceMetric().getInstructorProhibitedLimit() || iIgnoreDistances))
                         pref = Math.max(pref, Constants.sPreferenceLevelStronglyDiscouraged);
-                    if (!iIgnoreDistances && dist > m.getInstructorProhibitedLimit())
+                    if (!iIgnoreDistances && dist > getDistanceMetric().getInstructorProhibitedLimit())
                         pref = Math.max(pref, Constants.sPreferenceLevelProhibited);
                 }
             }
@@ -529,7 +528,6 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
     public int countPreference() {
         int pref = 0;
         HashSet<Placement> used = new HashSet<Placement>();
-        TimetableModel m = (TimetableModel) getModel();
         for (int slot = 1; slot < iResource.length; slot++) {
             if ((slot % Constants.SLOTS_PER_DAY) == 0)
                 continue;
@@ -538,10 +536,10 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
                 for (Placement prevPlacement : prevPlacements) {
                     if (!used.add(prevPlacement))
                         continue;
-                    double dist = Placement.getDistance(prevPlacement, placement);
-                    if (dist > m.getInstructorNoPreferenceLimit() && dist <= m.getInstructorDiscouragedLimit())
+                    double dist = Placement.getDistanceInMeters(getDistanceMetric(), prevPlacement, placement);
+                    if (dist > getDistanceMetric().getInstructorNoPreferenceLimit() && dist <= getDistanceMetric().getInstructorDiscouragedLimit())
                         pref += Constants.sPreferenceLevelDiscouraged;
-                    if (dist > m.getInstructorDiscouragedLimit())
+                    if (dist > getDistanceMetric().getInstructorDiscouragedLimit())
                         pref += Constants.sPreferenceLevelStronglyDiscouraged;
                 }
             }

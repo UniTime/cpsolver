@@ -14,6 +14,7 @@ import net.sf.cpsolver.coursett.model.Student;
 import net.sf.cpsolver.coursett.model.TimetableModel;
 import net.sf.cpsolver.ifs.perturbations.DefaultPerturbationsCounter;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.DistanceMetric;
 
 /**
  * Perturbation penalty computation. <br>
@@ -248,6 +249,7 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
     private double iDeltaRoomPreferenceWeight = 0.0;
     private double iDeltaTimePreferenceWeight = 0.0;
     private boolean iMPP = false;
+    private DistanceMetric iDistanceMetric = null;
 
     public UniversalPerturbationsCounter(DataProperties properties) {
         super(properties);
@@ -289,6 +291,7 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
                 iDeltaRoomPreferenceWeight);
         iDeltaTimePreferenceWeight = properties.getPropertyDouble("Perturbations.DeltaTimePreferenceWeight",
                 iDeltaTimePreferenceWeight);
+        iDistanceMetric = new DistanceMetric(properties);
     }
 
     @Override
@@ -332,21 +335,21 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
                 penalty += iDifferentHourWeight;
             if ((iTooFarForInstructorsWeight != 0.0 || iTooFarForStudentsWeight != 0.0)
                     && !initialPlacement.getTimeLocation().equals(assignedPlacement.getTimeLocation())) {
-                double distance = Placement.getDistance(initialPlacement, assignedPlacement);
+                double distance = Placement.getDistanceInMeters(iDistanceMetric, initialPlacement, assignedPlacement);
                 if (!lecture.getInstructorConstraints().isEmpty() && iTooFarForInstructorsWeight != 0.0) {
-                    if (distance > 0.0 && distance <= 5.0) {
+                    if (distance > iDistanceMetric.getInstructorNoPreferenceLimit() && distance <= iDistanceMetric.getInstructorDiscouragedLimit()) {
                         penalty += Constants.sPreferenceLevelDiscouraged * iTooFarForInstructorsWeight
                                 * lecture.getInstructorConstraints().size();
-                    } else if (distance > 5.0 && distance <= 20.0) {
+                    } else if (distance > iDistanceMetric.getInstructorDiscouragedLimit() && distance <= iDistanceMetric.getInstructorProhibitedLimit()) {
                         penalty += Constants.sPreferenceLevelStronglyDiscouraged * iTooFarForInstructorsWeight
                                 * lecture.getInstructorConstraints().size();
-                    } else if (distance > 20.0) {
+                    } else if (distance > iDistanceMetric.getInstructorProhibitedLimit()) {
                         penalty += Constants.sPreferenceLevelProhibited * iTooFarForInstructorsWeight
                                 * lecture.getInstructorConstraints().size();
                     }
                 }
                 if (iTooFarForStudentsWeight != 0.0
-                        && distance > ((TimetableModel) lecture.getModel()).getStudentDistanceLimit())
+                        && distance > iDistanceMetric.minutes2meters(10))
                     penalty += iTooFarForStudentsWeight * lecture.classLimit();
             }
             if (iDeltaStudentConflictsWeight != 0.0) {
@@ -451,20 +454,20 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
             if (initialPlacement.getTimeLocation().getStartSlot() != assignedPlacement.getTimeLocation().getStartSlot())
                 differentHour++;
             if (!initialPlacement.getTimeLocation().equals(assignedPlacement.getTimeLocation())) {
-                double distance = Placement.getDistance(initialPlacement, assignedPlacement);
+                double distance = Placement.getDistanceInMeters(iDistanceMetric, initialPlacement, assignedPlacement);
                 if (!lecture.getInstructorConstraints().isEmpty()) {
-                    if (distance > 0.0 && distance <= 5.0) {
+                    if (distance > iDistanceMetric.getInstructorNoPreferenceLimit() && distance <= iDistanceMetric.getInstructorDiscouragedLimit()) {
                         tooFarForInstructors += Constants.sPreferenceLevelDiscouraged
                                 * lecture.getInstructorConstraints().size();
-                    } else if (distance > 5.0 && distance <= 20.0) {
+                    } else if (distance > iDistanceMetric.getInstructorDiscouragedLimit() && distance <= iDistanceMetric.getInstructorProhibitedLimit()) {
                         tooFarForInstructors += Constants.sPreferenceLevelStronglyDiscouraged
                                 * lecture.getInstructorConstraints().size();
-                    } else if (distance > 20.0) {
+                    } else if (distance > iDistanceMetric.getInstructorProhibitedLimit()) {
                         tooFarForInstructors += Constants.sPreferenceLevelProhibited
                                 * lecture.getInstructorConstraints().size();
                     }
                 }
-                if (distance > ((TimetableModel) lecture.getModel()).getStudentDistanceLimit())
+                if (distance > iDistanceMetric.minutes2meters(10))
                     tooFarForStudents += lecture.classLimit();
             }
             deltaStudentConflicts += lecture.countStudentConflicts(assignedPlacement)
@@ -623,17 +626,17 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
             if (initialPlacement.getTimeLocation().getStartSlot() != assignedPlacement.getTimeLocation().getStartSlot())
                 differentHour++;
             if (!initialPlacement.getTimeLocation().equals(assignedPlacement.getTimeLocation())) {
-                double distance = Placement.getDistance(initialPlacement, assignedPlacement);
+                double distance = Placement.getDistanceInMeters(iDistanceMetric, initialPlacement, assignedPlacement);
                 if (!lecture.getInstructorConstraints().isEmpty()) {
-                    if (distance > 0.0 && distance <= 5.0) {
+                    if (distance > iDistanceMetric.getInstructorNoPreferenceLimit() && distance <= iDistanceMetric.getInstructorDiscouragedLimit()) {
                         tooFarForInstructors += Constants.sPreferenceLevelDiscouraged;
-                    } else if (distance > 5.0 && distance <= 20.0) {
+                    } else if (distance > iDistanceMetric.getInstructorDiscouragedLimit() && distance <= iDistanceMetric.getInstructorProhibitedLimit()) {
                         tooFarForInstructors += Constants.sPreferenceLevelStronglyDiscouraged;
-                    } else if (distance > 20.0) {
+                    } else if (distance > iDistanceMetric.getInstructorProhibitedLimit()) {
                         tooFarForInstructors += Constants.sPreferenceLevelProhibited;
                     }
                 }
-                if (distance > ((TimetableModel) lecture.getModel()).getStudentDistanceLimit())
+                if (distance > iDistanceMetric.minutes2meters(10))
                     tooFarForStudents += lecture.classLimit();
             }
             deltaStudentConflicts += lecture.countStudentConflicts(assignedPlacement)
@@ -761,17 +764,17 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
                 .getTimeLocation().getNormalizedPreference());
         int deltaInstructorDistancePreferences = 0;
 
-        double distance = Placement.getDistance(initialPlacement, assignedPlacement);
+        double distance = Placement.getDistanceInMeters(iDistanceMetric, initialPlacement, assignedPlacement);
         if (!lecture.getInstructorConstraints().isEmpty()) {
-            if (distance > 0.0 && distance <= 5.0) {
+            if (distance > iDistanceMetric.getInstructorNoPreferenceLimit() && distance <= iDistanceMetric.getInstructorDiscouragedLimit()) {
                 tooFarForInstructors += lecture.getInstructorConstraints().size();
-            } else if (distance > 5.0 && distance <= 20.0) {
+            } else if (distance > iDistanceMetric.getInstructorDiscouragedLimit() && distance <= iDistanceMetric.getInstructorProhibitedLimit()) {
                 tooFarForInstructors += 2 * lecture.getInstructorConstraints().size();
-            } else if (distance > 20.0) {
+            } else if (distance > iDistanceMetric.getInstructorProhibitedLimit()) {
                 tooFarForInstructors += 10 * lecture.getInstructorConstraints().size();
             }
         }
-        if (distance > ((TimetableModel) lecture.getModel()).getStudentDistanceLimit())
+        if (distance > iDistanceMetric.minutes2meters(10))
             tooFarForStudents = lecture.classLimit();
 
         Set<Student> newStudentConflictsVect = lecture.conflictStudents(assignedPlacement);

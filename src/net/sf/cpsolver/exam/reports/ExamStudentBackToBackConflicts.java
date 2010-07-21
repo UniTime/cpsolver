@@ -76,7 +76,7 @@ public class ExamStudentBackToBackConflicts {
                     continue;
                 String distStr = "";
                 if (iModel.getBackToBackDistance() >= 0) {
-                    int dist = p1.getDistance(p2);
+                    double dist = p1.getDistanceInMeters(p2);
                     if (dist > 0)
                         distStr = String.valueOf(dist);
                 }

@@ -586,7 +586,7 @@ public class FinalSectioning implements Runnable {
                     if (jenrl.isInConflict())
                         delta += jenrl.getJenrlWeight(firstStudent());
                 } else {
-                    if (JenrlConstraint.isInConflict(secondLecture().getAssignment(), lecture.getAssignment()))
+                    if (JenrlConstraint.isInConflict(secondLecture().getAssignment(), lecture.getAssignment(), iModel.getDistanceMetric()))
                         delta += firstStudent().getJenrlWeight(secondLecture(), lecture);
                 }
             }
@@ -599,7 +599,7 @@ public class FinalSectioning implements Runnable {
                         if (jenrl.isInConflict())
                             delta += jenrl.getJenrlWeight(secondStudent());
                     } else {
-                        if (JenrlConstraint.isInConflict(firstLecture().getAssignment(), lecture.getAssignment()))
+                        if (JenrlConstraint.isInConflict(firstLecture().getAssignment(), lecture.getAssignment(), iModel.getDistanceMetric()))
                             delta += secondStudent().getJenrlWeight(firstLecture(), lecture);
                     }
                 }
@@ -708,7 +708,7 @@ public class FinalSectioning implements Runnable {
         for (Lecture x : student.getLectures()) {
             if (x.getAssignment() == null)
                 continue;
-            if (JenrlConstraint.isInConflict(lecture.getAssignment(), x.getAssignment()))
+            if (JenrlConstraint.isInConflict(lecture.getAssignment(), x.getAssignment(), iModel.getDistanceMetric()))
                 test++;
         }
         test += student.countConflictPlacements(lecture.getAssignment());
@@ -908,7 +908,7 @@ public class FinalSectioning implements Runnable {
                         if (jenrl.isInConflict())
                             delta += jenrl.getJenrlWeight(firstStudent());
                     } else {
-                        if (JenrlConstraint.isInConflict(secondLecture.getAssignment(), lecture.getAssignment()))
+                        if (JenrlConstraint.isInConflict(secondLecture.getAssignment(), lecture.getAssignment(), iModel.getDistanceMetric()))
                             delta += firstStudent().getJenrlWeight(secondLecture, lecture);
                     }
                 }
@@ -937,7 +937,7 @@ public class FinalSectioning implements Runnable {
                             if (jenrl.isInConflict())
                                 delta += jenrl.getJenrlWeight(secondStudent());
                         } else {
-                            if (JenrlConstraint.isInConflict(firstLecture.getAssignment(), lecture.getAssignment()))
+                            if (JenrlConstraint.isInConflict(firstLecture.getAssignment(), lecture.getAssignment(), iModel.getDistanceMetric()))
                                 delta += secondStudent().getJenrlWeight(firstLecture, lecture);
                         }
                     }

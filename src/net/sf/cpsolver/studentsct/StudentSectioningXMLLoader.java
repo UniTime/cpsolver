@@ -209,11 +209,11 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             for (Iterator<?> i = timetableRoot.element("rooms").elementIterator("room"); i.hasNext();) {
                 Element roomEl = (Element)i.next();
                 Long roomId = Long.valueOf(roomEl.attributeValue("id"));
-                int posX = -1, posY = -1;
+                Double posX = null, posY = null;
                 if (roomEl.attributeValue("location") != null) {
                     String loc = roomEl.attributeValue("location");
-                    posX = Integer.parseInt(loc.substring(0, loc.indexOf(',')));
-                    posY = Integer.parseInt(loc.substring(loc.indexOf(',') + 1));
+                    posX = Double.valueOf(loc.substring(0, loc.indexOf(',')));
+                    posY = Double.valueOf(loc.substring(loc.indexOf(',') + 1));
                 }
                 RoomLocation room = new RoomLocation(Long.valueOf(roomEl.attributeValue("id")), roomEl
                         .attributeValue("name", "R" + roomEl.attributeValue("id")), roomEl
@@ -323,11 +323,11 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                                 List<RoomLocation> rooms = new ArrayList<RoomLocation>();
                                 for (Iterator<?> m = sectionEl.elementIterator("room"); m.hasNext();) {
                                     Element roomEl = (Element) m.next();
-                                    int posX = -1, posY = -1;
+                                    Double posX = null, posY = null;
                                     if (roomEl.attributeValue("location") != null) {
                                         String loc = roomEl.attributeValue("location");
-                                        posX = Integer.parseInt(loc.substring(0, loc.indexOf(',')));
-                                        posY = Integer.parseInt(loc.substring(loc.indexOf(',') + 1));
+                                        posX = Double.valueOf(loc.substring(0, loc.indexOf(',')));
+                                        posY = Double.valueOf(loc.substring(loc.indexOf(',') + 1));
                                     }
                                     RoomLocation room = new RoomLocation(Long.valueOf(roomEl.attributeValue("id")), roomEl
                                             .attributeValue("name", "R" + roomEl.attributeValue("id")), roomEl
