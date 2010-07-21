@@ -3,8 +3,8 @@ package net.sf.cpsolver.ifs.util;
 /**
  * Common class for computing distances and back-to-back instructor / student conflicts.
  * 
- * When property Distances.Eclipsoid is set, the distances are computed using the given (e.g., WGS84, see {@link Eclipsoid}).
- * In the legacy mode (when eclipsoid is not set), distances are computed using Euclidian distance and 1 unit is consideted 10 meters.
+ * When property Distances.Ellipsoid is set, the distances are computed using the given (e.g., WGS84, see {@link Ellipsoid}).
+ * In the legacy mode (when ellipsoid is not set), distances are computed using Euclidian distance and 1 unit is considered 10 meters.
  * <br><br>
  * For student back-to-back conflicts, Distances.Speed (in meters per minute) is considered and compared with the break time
  * of the earlier class.
@@ -34,7 +34,7 @@ package net.sf.cpsolver.ifs.util;
  *          02110-1301 USA
  */
 public class DistanceMetric {
-    public static enum Eclipsoid {
+    public static enum Ellipsoid {
         LEGACY ("Euclidean metric (1 unit equals to 10 meters)", "X-Coordinate", "Y-Coordinate", 0, 0, 0),
         WGS84 ("WGS-84 (GPS)", 6378137, 6356752.3142, 1.0 / 298.257223563),
         GRS80 ("GRS-80", 6378137, 6356752.3141, 1.0 / 298.257222101),
@@ -46,13 +46,13 @@ public class DistanceMetric {
         private double iA, iB, iF;
         private String iName, iFirstCoord, iSecondCoord;
         
-        Eclipsoid(String name, double a, double b) {
+        Ellipsoid(String name, double a, double b) {
             this(name, "Latitude", "Longitude", a, b, (a - b) / a);
         }
-        Eclipsoid(String name, double a, double b, double f) {
+        Ellipsoid(String name, double a, double b, double f) {
             this(name, "Latitude", "Longitude", a, b, f);
         }
-        Eclipsoid(String name, String xCoord, String yCoord, double a, double b, double f) {
+        Ellipsoid(String name, String xCoord, String yCoord, double a, double b, double f) {
             iName = name;
             iFirstCoord = xCoord; iSecondCoord = yCoord;
             iA = a; iB = b; iF = f;
@@ -73,8 +73,8 @@ public class DistanceMetric {
         public String getSecondCoordinateName() { return iSecondCoord; }
     }
     
-    /** Ecliposid parameters, default to WGS-84 */
-    private Eclipsoid iModel = Eclipsoid.WGS84;
+    /** Elliposid parameters, default to WGS-84 */
+    private Ellipsoid iModel = Ellipsoid.WGS84;
     /** Student speed in meters per minute (defaults to 1000 meters in 15 minutes) */
     private double iSpeed = 1000.0 / 15;
     /** Back-to-back classes: maximal distance for no preference */
@@ -93,35 +93,35 @@ public class DistanceMetric {
     public DistanceMetric() {
     }
     
-    /** With provided eclipsoid */
-    public DistanceMetric(Eclipsoid model) {
+    /** With provided ellipsoid */
+    public DistanceMetric(Ellipsoid model) {
         iModel = model;
-        if (iModel == Eclipsoid.LEGACY) {
+        if (iModel == Ellipsoid.LEGACY) {
             iSpeed = 100.0 / 15;
             iInstructorDiscouragedLimit = 5.0;
             iInstructorProhibitedLimit = 20.0;
         }
     }
 
-    /** With provided eclipsoid and student speed */
-    public DistanceMetric(Eclipsoid model, double speed) {
+    /** With provided ellipsoid and student speed */
+    public DistanceMetric(Ellipsoid model, double speed) {
         iModel = model;
         iSpeed = speed;
     }
     
     /** Configured using properties */
     public DistanceMetric(DataProperties properties) {
-        if (Eclipsoid.LEGACY.name().equals(properties.getProperty("Distances.Eclipsoid",Eclipsoid.LEGACY.name()))) {
+        if (Ellipsoid.LEGACY.name().equals(properties.getProperty("Distances.Ellipsoid",Ellipsoid.LEGACY.name()))) {
             //LEGACY MODE
-            iModel = Eclipsoid.LEGACY;
+            iModel = Ellipsoid.LEGACY;
             iSpeed = properties.getPropertyDouble("Student.DistanceLimit", 1000.0 / 15) / 10.0;
             iInstructorNoPreferenceLimit = properties.getPropertyDouble("Instructor.NoPreferenceLimit", 0.0);
             iInstructorDiscouragedLimit = properties.getPropertyDouble("Instructor.DiscouragedLimit", 5.0);
             iInstructorProhibitedLimit = properties.getPropertyDouble("Instructor.ProhibitedLimit", 20.0);
             iNullDistance = properties.getPropertyDouble("Distances.NullDistance", 1000.0);
         } else {
-            iModel = Eclipsoid.valueOf(properties.getProperty("Distances.Eclipsoid", Eclipsoid.WGS84.name()));
-            if (iModel == null) iModel = Eclipsoid.WGS84;
+            iModel = Ellipsoid.valueOf(properties.getProperty("Distances.Ellipsoid", Ellipsoid.WGS84.name()));
+            if (iModel == null) iModel = Ellipsoid.WGS84;
             iSpeed = properties.getPropertyDouble("Distances.Speed", properties.getPropertyDouble("Student.DistanceLimit", 1000.0 / 15));
             iInstructorNoPreferenceLimit = properties.getPropertyDouble("Instructor.NoPreferenceLimit", iInstructorNoPreferenceLimit);
             iInstructorDiscouragedLimit = properties.getPropertyDouble("Instructor.DiscouragedLimit", iInstructorDiscouragedLimit);
@@ -141,7 +141,7 @@ public class DistanceMetric {
             return iNullDistance;
         
         // legacy mode -- euclidian distance, 1 unit is 10 meters
-        if (iModel == Eclipsoid.LEGACY) {
+        if (iModel == Ellipsoid.LEGACY) {
             if (lat1 < 0 || lat2 < 0 || lon1 < 0 || lon2 < 0) return iNullDistance;
             double dx = lat1 - lat2;
             double dy = lon1 - lon2;
@@ -225,7 +225,7 @@ public class DistanceMetric {
     
     /** True if legacy mode is used (Euclidian distance where 1 unit is 10 meters) */
     public boolean isLegacy() {
-        return iModel == Eclipsoid.LEGACY;
+        return iModel == Ellipsoid.LEGACY;
     }
 
     /** Few tests */
