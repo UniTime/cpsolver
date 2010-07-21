@@ -1,6 +1,7 @@
 package net.sf.cpsolver.coursett.model;
 
 import net.sf.cpsolver.coursett.constraint.RoomConstraint;
+import net.sf.cpsolver.ifs.util.DistanceMetric;
 
 /**
  * Room part of placement. <br>
@@ -33,7 +34,7 @@ public class RoomLocation implements Comparable<RoomLocation> {
     private Long iId;
     private Long iBldgId;
     private int iRoomSize;
-    private int iPosX = 0, iPosY = 0;
+    private Double iPosX = null, iPosY = null;
     private RoomConstraint iRoomConstraint = null;
     private boolean iIgnoreTooFar = false;
 
@@ -55,7 +56,7 @@ public class RoomLocation implements Comparable<RoomLocation> {
      * @param y
      *            y-position of the building
      */
-    public RoomLocation(Long id, String name, Long bldgId, int preference, int size, int x, int y,
+    public RoomLocation(Long id, String name, Long bldgId, int preference, int size, Double x, Double y,
             boolean ignoreTooFar, RoomConstraint rc) {
         iId = id;
         iName = name;
@@ -98,18 +99,18 @@ public class RoomLocation implements Comparable<RoomLocation> {
     }
 
     /** Position of the building */
-    public void setCoordinates(int x, int y) {
+    public void setCoordinates(Double x, Double y) {
         iPosX = x;
         iPosY = y;
     }
 
     /** X-position of the building */
-    public int getPosX() {
+    public Double getPosX() {
         return iPosX;
     }
 
     /** Y-position of the building */
-    public int getPosY() {
+    public Double getPosY() {
         return iPosY;
     }
 
@@ -133,16 +134,24 @@ public class RoomLocation implements Comparable<RoomLocation> {
         return getId().equals(((RoomLocation) o).getId());
     }
 
-    public double getDistance(RoomLocation roomLocation) {
+    public double getDistanceInMeters(DistanceMetric m, RoomLocation roomLocation) {
         if (getId().equals(roomLocation.getId()))
             return 0.0;
         if (getIgnoreTooFar() || roomLocation.getIgnoreTooFar())
             return 0.0;
-        if (getPosX() < 0 || getPosY() < 0 || roomLocation.getPosX() < 0 || roomLocation.getPosY() < 0)
+        if (getPosX() == null || getPosY() == null || roomLocation.getPosX() == null || roomLocation.getPosY() == null)
             return 10000.0;
-        long x = getPosX() - roomLocation.getPosX();
-        long y = getPosY() - roomLocation.getPosY();
-        return Math.sqrt((x * x) + (y * y));
+        return m.getDistanceInMeters(getPosX(), getPosY(), roomLocation.getPosX(), roomLocation.getPosY());
+    }
+
+    public int getDistanceInMinutes(DistanceMetric m, RoomLocation roomLocation) {
+        if (getId().equals(roomLocation.getId()))
+            return 0;
+        if (getIgnoreTooFar() || roomLocation.getIgnoreTooFar())
+            return 0;
+        if (getPosX() == null || getPosY() == null || roomLocation.getPosX() == null || roomLocation.getPosY() == null)
+            return 60;
+        return m.getDistanceInMinutes(getPosX(), getPosY(), roomLocation.getPosX(), roomLocation.getPosY());
     }
 
     public int compareTo(RoomLocation o) {

@@ -8,6 +8,7 @@ import net.sf.cpsolver.coursett.model.Student;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.coursett.model.TimetableModel;
 import net.sf.cpsolver.ifs.model.BinaryConstraint;
+import net.sf.cpsolver.ifs.util.DistanceMetric;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
@@ -89,11 +90,7 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> {
      * Returns true if the given placements are overlapping or they are
      * back-to-back and too far for students.
      */
-    public static boolean isInConflict(Placement p1, Placement p2) {
-        return isInConflict(p1, p2, true);
-    }
-
-    public static boolean isInConflict(Placement p1, Placement p2, boolean useDistances) {
+    public static boolean isInConflict(Placement p1, Placement p2, DistanceMetric m) {
         if (p1 == null || p2 == null)
             return false;
         TimeLocation t1 = p1.getTimeLocation(), t2 = p2.getTimeLocation();
@@ -103,30 +100,16 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> {
             return false;
         if (t1.shareHours(t2))
             return true;
-        if (!useDistances)
+        if (m == null)
             return false;
         int s1 = t1.getStartSlot(), s2 = t2.getStartSlot();
         if (s1 + t1.getNrSlotsPerMeeting() != s2 && s2 + t2.getNrSlotsPerMeeting() != s1)
             return false;
-        double distance = Placement.getDistance(p1, p2);
-        TimetableModel m = (TimetableModel) p1.variable().getModel();
-        if (m == null) {
-            if (distance <= 67.0)
-                return false;
-            if (distance <= 100.0
-                    && ((t1.getLength() == 18 && s1 + t1.getLength() == s2) || (t2.getLength() == 18 && s2
-                            + t2.getLength() == s1)))
-                return false;
-            return true;
-        } else {
-            if (distance <= m.getStudentDistanceLimit())
-                return false;
-            if (distance <= m.getStudentDistanceLimit75min()
-                    && ((t1.getLength() == 18 && s1 + t1.getLength() == s2) || (t2.getLength() == 18 && s2
-                            + t2.getLength() == s1)))
-                return false;
-            return true;
-        }
+        int distance = Placement.getDistanceInMinutes(m, p1, p2);
+        if (s1 + t1.getLength() == s2)
+            return distance > t1.getBreakTime();
+        else
+            return distance > t2.getBreakTime();
     }
 
     @Override
@@ -138,7 +121,7 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> {
         // v2.getInitialAssignment()!=null &&
         // v1.getAssignment().equals(v1.getInitialAssignment()) &&
         // v2.getAssignment().equals(v2.getInitialAssignment())) return;
-        if (isInConflict(first().getAssignment(), second().getAssignment())) {
+        if (isInConflict(first().getAssignment(), second().getAssignment(), getDistanceMetric())) {
             iAdded = true;
             ((TimetableModel) getModel()).getViolatedStudentConflictsCounter().inc((long) Math.ceil(iJenrl));
             if (areStudentConflictsHard())
@@ -161,7 +144,11 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> {
         Lecture anotherLecture = (first().equals(variable) ? second() : first());
         if (anotherLecture.getAssignment() == null)
             return 0;
-        return (isInConflict(anotherLecture.getAssignment(), value) ? (long) Math.ceil(iJenrl) : 0);
+        return (isInConflict(anotherLecture.getAssignment(), value, getDistanceMetric()) ? (long) Math.ceil(iJenrl) : 0);
+    }
+    
+    private DistanceMetric getDistanceMetric() {
+        return ((TimetableModel)getModel()).getDistanceMetric();
     }
 
     /** True if the given two lectures overlap in time */
@@ -171,7 +158,7 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> {
 
     /** True if the given two lectures overlap in time */
     public boolean isInConflictPrecise() {
-        return isInConflict(first().getAssignment(), second().getAssignment());
+        return isInConflict(first().getAssignment(), second().getAssignment(), getDistanceMetric());
     }
 
     /**

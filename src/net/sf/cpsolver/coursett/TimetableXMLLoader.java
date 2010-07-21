@@ -267,11 +267,11 @@ public class TimetableXMLLoader extends TimetableLoader {
             boolean fake = false;
             if ("true".equals(roomEl.attributeValue("fake")))
                 fake = true;
-            int posX = -1, posY = -1;
+            Double posX = null, posY = null;
             if (roomEl.attributeValue("location") != null) {
                 String loc = roomEl.attributeValue("location");
-                posX = Integer.parseInt(loc.substring(0, loc.indexOf(',')));
-                posY = Integer.parseInt(loc.substring(loc.indexOf(',') + 1));
+                posX = Double.valueOf(loc.substring(0, loc.indexOf(',')));
+                posY = Double.valueOf(loc.substring(loc.indexOf(',') + 1));
             }
             boolean discouraged = "true".equals(roomEl.attributeValue("discouraged"));
             RoomConstraint constraint = (discouraged ? new DiscouragedRoomConstraint(
@@ -435,11 +435,11 @@ public class TimetableXMLLoader extends TimetableLoader {
                 boolean ignoreTooFar = false;
                 if ("true".equals(roomEl.attributeValue("ignoreTooFar")))
                     ignoreTooFar = true;
-                int posX = -1, posY = -1;
+                Double posX = null, posY = null;
                 if (roomEl.attributeValue("location") != null) {
                     String loc = roomEl.attributeValue("location");
-                    posX = Integer.parseInt(loc.substring(0, loc.indexOf(',')));
-                    posY = Integer.parseInt(loc.substring(loc.indexOf(',') + 1));
+                    posX = Double.valueOf(loc.substring(0, loc.indexOf(',')));
+                    posY = Double.valueOf(loc.substring(loc.indexOf(',') + 1));
                 }
                 RoomLocation rl = new RoomLocation(roomId, roomName, bldgId, Integer.parseInt(roomLocationEl
                         .attributeValue("pref")), Integer.parseInt(roomEl.attributeValue("capacity")), posX, posY,

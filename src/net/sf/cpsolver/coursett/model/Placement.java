@@ -7,6 +7,7 @@ import net.sf.cpsolver.coursett.constraint.SpreadConstraint;
 import net.sf.cpsolver.coursett.preference.PreferenceCombination;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.util.ArrayList;
+import net.sf.cpsolver.ifs.util.DistanceMetric;
 import net.sf.cpsolver.ifs.util.List;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
@@ -425,13 +426,13 @@ public class Placement extends Value<Lecture, Placement> {
     }
 
     /** Distance between two placements */
-    public static double getDistance(Placement p1, Placement p2) {
+    public static double getDistanceInMeters(DistanceMetric m, Placement p1, Placement p2) {
         if (p1.isMultiRoom()) {
             if (p2.isMultiRoom()) {
                 double dist = 0.0;
                 for (RoomLocation r1 : p1.getRoomLocations()) {
                     for (RoomLocation r2 : p2.getRoomLocations()) {
-                        dist = Math.max(dist, r1.getDistance(r2));
+                        dist = Math.max(dist, r1.getDistanceInMeters(m, r2));
                     }
                 }
                 return dist;
@@ -440,7 +441,7 @@ public class Placement extends Value<Lecture, Placement> {
                     return 0.0;
                 double dist = 0.0;
                 for (RoomLocation r1 : p1.getRoomLocations()) {
-                    dist = Math.max(dist, r1.getDistance(p2.getRoomLocation()));
+                    dist = Math.max(dist, r1.getDistanceInMeters(m, p2.getRoomLocation()));
                 }
                 return dist;
             }
@@ -449,13 +450,48 @@ public class Placement extends Value<Lecture, Placement> {
                 return 0.0;
             double dist = 0.0;
             for (RoomLocation r2 : p2.getRoomLocations()) {
-                dist = Math.max(dist, p1.getRoomLocation().getDistance(r2));
+                dist = Math.max(dist, p1.getRoomLocation().getDistanceInMeters(m, r2));
             }
             return dist;
         } else {
             if (p1.getRoomLocation() == null || p2.getRoomLocation() == null)
                 return 0.0;
-            return p1.getRoomLocation().getDistance(p2.getRoomLocation());
+            return p1.getRoomLocation().getDistanceInMeters(m, p2.getRoomLocation());
+        }
+    }
+    
+    /** Distance between two placements */
+    public static int getDistanceInMinutes(DistanceMetric m, Placement p1, Placement p2) {
+        if (p1.isMultiRoom()) {
+            if (p2.isMultiRoom()) {
+                int dist = 0;
+                for (RoomLocation r1 : p1.getRoomLocations()) {
+                    for (RoomLocation r2 : p2.getRoomLocations()) {
+                        dist = Math.max(dist, r1.getDistanceInMinutes(m, r2));
+                    }
+                }
+                return dist;
+            } else {
+                if (p2.getRoomLocation() == null)
+                    return 0;
+                int dist = 0;
+                for (RoomLocation r1 : p1.getRoomLocations()) {
+                    dist = Math.max(dist, r1.getDistanceInMinutes(m, p2.getRoomLocation()));
+                }
+                return dist;
+            }
+        } else if (p2.isMultiRoom()) {
+            if (p1.getRoomLocation() == null)
+                return 0;
+            int dist = 0;
+            for (RoomLocation r2 : p2.getRoomLocations()) {
+                dist = Math.max(dist, p1.getRoomLocation().getDistanceInMinutes(m, r2));
+            }
+            return dist;
+        } else {
+            if (p1.getRoomLocation() == null || p2.getRoomLocation() == null)
+                return 0;
+            return p1.getRoomLocation().getDistanceInMinutes(m, p2.getRoomLocation());
         }
     }
 

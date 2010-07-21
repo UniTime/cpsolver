@@ -114,7 +114,7 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
             if (iRoomPlacements.size() > 1) {
                 for (ExamRoomPlacement w : iRoomPlacements) {
                     if (r.getRoom().getId() < w.getRoom().getId())
-                        iRoomSplitDistance += r.getRoom().getDistance(w.getRoom());
+                        iRoomSplitDistance += r.getRoom().getDistanceInMeters(w.getRoom());
                 }
             }
         }
@@ -221,16 +221,16 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
     /**
      * Distance between two placements, i.e., maximal distance between a room of
      * this placement and a room of the given placement. Method
-     * {@link ExamRoom#getDistance(ExamRoom)} is used to get a distance between
+     * {@link ExamRoom#getDistanceInMeters(ExamRoom)} is used to get a distance between
      * two rooms.
      */
-    public int getDistance(ExamPlacement other) {
+    public double getDistanceInMeters(ExamPlacement other) {
         if (getRoomPlacements().isEmpty() || other.getRoomPlacements().isEmpty())
             return 0;
-        int maxDistance = 0;
+        double maxDistance = 0;
         for (ExamRoomPlacement r1 : getRoomPlacements()) {
             for (ExamRoomPlacement r2 : other.getRoomPlacements()) {
-                maxDistance = Math.max(maxDistance, r1.getDistance(r2));
+                maxDistance = Math.max(maxDistance, r1.getDistanceInMeters(r2));
             }
         }
         return maxDistance;
@@ -241,7 +241,7 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
      * when this exam is attended by a student that attends some other exam at
      * the previous {@link ExamPeriod#prev()} or following
      * {@link ExamPeriod#next()} period and the distance
-     * {@link ExamPlacement#getDistance(ExamPlacement)} between these two exams
+     * {@link ExamPlacement#getDistanceInMeters(ExamPlacement)} between these two exams
      * is greater than {@link ExamModel#getBackToBackDistance()}. Distance
      * back-to-back conflicts are only considered between consecutive periods
      * that are of the same day.
@@ -249,7 +249,7 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
     public int getNrDistanceBackToBackConflicts() {
         Exam exam = variable();
         ExamModel model = (ExamModel) exam.getModel();
-        int btbDist = model.getBackToBackDistance();
+        double btbDist = model.getBackToBackDistance();
         if (btbDist < 0)
             return 0;
         int penalty = 0;
@@ -259,7 +259,7 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
                     for (Exam x : s.getExams(getPeriod().prev())) {
                         if (x.equals(exam))
                             continue;
-                        if (getDistance(x.getAssignment()) > btbDist)
+                        if (getDistanceInMeters(x.getAssignment()) > btbDist)
                             penalty++;
                     }
                 }
@@ -269,7 +269,7 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
                     for (Exam x : s.getExams(getPeriod().next())) {
                         if (x.equals(exam))
                             continue;
-                        if (getDistance(x.getAssignment()) > btbDist)
+                        if (getDistanceInMeters(x.getAssignment()) > btbDist)
                             penalty++;
                     }
                 }
@@ -365,7 +365,7 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
      * cases when this exam is attended by an instructor that attends some other
      * exam at the previous {@link ExamPeriod#prev()} or following
      * {@link ExamPeriod#next()} period and the distance
-     * {@link ExamPlacement#getDistance(ExamPlacement)} between these two exams
+     * {@link ExamPlacement#getDistanceInMeters(ExamPlacement)} between these two exams
      * is greater than {@link ExamModel#getBackToBackDistance()}. Distance
      * back-to-back conflicts are only considered between consecutive periods
      * that are of the same day.
@@ -373,7 +373,7 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
     public int getNrInstructorDistanceBackToBackConflicts() {
         Exam exam = variable();
         ExamModel model = (ExamModel) exam.getModel();
-        int btbDist = model.getBackToBackDistance();
+        double btbDist = model.getBackToBackDistance();
         if (btbDist < 0)
             return 0;
         int penalty = 0;
@@ -383,7 +383,7 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
                     for (Exam x : s.getExams(getPeriod().prev())) {
                         if (x.equals(exam))
                             continue;
-                        if (getDistance(x.getAssignment()) > btbDist)
+                        if (getDistanceInMeters(x.getAssignment()) > btbDist)
                             penalty++;
                     }
                 }
@@ -393,7 +393,7 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
                     for (Exam x : s.getExams(getPeriod().next())) {
                         if (x.equals(exam))
                             continue;
-                        if (getDistance(x.getAssignment()) > btbDist)
+                        if (getDistanceInMeters(x.getAssignment()) > btbDist)
                             penalty++;
                     }
                 }

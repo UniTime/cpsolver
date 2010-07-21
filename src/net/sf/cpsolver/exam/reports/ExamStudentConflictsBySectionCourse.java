@@ -170,7 +170,7 @@ public class ExamStudentConflictsBySectionCourse {
                             }
                             String distStr = "";
                             if (iModel.getBackToBackDistance() >= 0) {
-                                int dist = placement.getDistance(otherPlacement);
+                                double dist = placement.getDistanceInMeters(otherPlacement);
                                 if (dist > 0)
                                     distStr = String.valueOf(dist);
                             }

@@ -24,6 +24,7 @@ import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.ArrayList;
 import net.sf.cpsolver.ifs.util.Counter;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.DistanceMetric;
 import net.sf.cpsolver.ifs.util.List;
 
 /**
@@ -83,56 +84,22 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
     private int iYear = -1;
 
     private HashSet<Student> iAllStudents = new HashSet<Student>();
+    
+    private DistanceMetric iDistanceMetric = null;
 
-    /** Back-to-back classes: maximal distance for no prefernce */
-    private double iInstructorNoPreferenceLimit = 0.0;
-    /** Back-to-back classes: maximal distance for discouraged prefernce */
-    private double iInstructorDiscouragedLimit = 5.0;
-    /**
-     * Back-to-back classes: maximal distance for strongly discouraged prefernce
-     * (everything above is prohibited)
-     */
-    private double iInstructorProhibitedLimit = 20.0;
-
-    private double iStudentDistanceLimit = 67.0;
-    private double iStudentDistanceLimit75min = 100.0;
 
     public TimetableModel(DataProperties properties) {
         super();
         iProperties = properties;
-        iInstructorNoPreferenceLimit = iProperties.getPropertyDouble("Instructor.NoPreferenceLimit",
-                iInstructorNoPreferenceLimit);
-        iInstructorDiscouragedLimit = iProperties.getPropertyDouble("Instructor.DiscouragedLimit",
-                iInstructorDiscouragedLimit);
-        iInstructorProhibitedLimit = iProperties.getPropertyDouble("Instructor.ProhibitedLimit",
-                iInstructorProhibitedLimit);
-        iStudentDistanceLimit = iProperties.getPropertyDouble("Student.DistanceLimit", iStudentDistanceLimit);
-        iStudentDistanceLimit75min = iProperties.getPropertyDouble("Student.DistanceLimit75min",
-                iStudentDistanceLimit75min);
+        iDistanceMetric = new DistanceMetric(properties);
         iCmp = new TimetableComparator(properties);
         iPertCnt = new UniversalPerturbationsCounter(properties);
         if (properties.getPropertyBoolean("OnFlySectioning.Enabled", false))
             addModelListener(new OnFlySectioning(this));
     }
 
-    public double getInstructorNoPreferenceLimit() {
-        return iInstructorNoPreferenceLimit;
-    }
-
-    public double getInstructorDiscouragedLimit() {
-        return iInstructorDiscouragedLimit;
-    }
-
-    public double getInstructorProhibitedLimit() {
-        return iInstructorProhibitedLimit;
-    }
-
-    public double getStudentDistanceLimit() {
-        return iStudentDistanceLimit;
-    }
-
-    public double getStudentDistanceLimit75min() {
-        return iStudentDistanceLimit75min;
+    public DistanceMetric getDistanceMetric() {
+        return iDistanceMetric;
     }
 
     @Override

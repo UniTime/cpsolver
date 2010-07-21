@@ -148,10 +148,10 @@ public class ExamRoomPlacement implements Comparable<ExamRoomPlacement> {
     /**
      * Room distance
      * 
-     * @return appropriate {@link ExamRoom#getDistance(ExamRoom)}
+     * @return appropriate {@link ExamRoom#getDistanceInMeters(ExamRoom)}
      */
-    public int getDistance(ExamRoomPlacement other) {
-        return getRoom().getDistance(other.getRoom());
+    public double getDistanceInMeters(ExamRoomPlacement other) {
+        return getRoom().getDistanceInMeters(other.getRoom());
     }
 
     /**
