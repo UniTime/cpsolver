@@ -1078,7 +1078,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                     return false;
             }
             if (sameStudents(getType())) {
-                if (JenrlConstraint.isInConflict(plc1, plc2))
+                if (JenrlConstraint.isInConflict(plc1, plc2, ((TimetableModel)getModel()).getDistanceMetric()))
                     return false;
             }
             if (sameInstructor(getType())) {
@@ -1089,9 +1089,9 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                     int s1 = t1.getStartSlot() % Constants.SLOTS_PER_DAY;
                     int s2 = t2.getStartSlot() % Constants.SLOTS_PER_DAY;
                     if (s1 + t1.getLength() == s2 || s2 + t2.getLength() == s1) { // back-to-back
-                        double distance = Placement.getDistance(plc1, plc2);
                         TimetableModel m = (TimetableModel) getModel();
-                        if (distance > m.getInstructorProhibitedLimit())
+                        double distance = Placement.getDistanceInMeters(m.getDistanceMetric(), plc1, plc2);
+                        if (distance > m.getDistanceMetric().getInstructorProhibitedLimit())
                             return false;
                     }
                 }

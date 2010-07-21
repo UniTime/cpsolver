@@ -22,6 +22,7 @@ import net.sf.cpsolver.ifs.constant.ConstantVariable;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.util.ArrayList;
+import net.sf.cpsolver.ifs.util.DistanceMetric;
 import net.sf.cpsolver.ifs.util.List;
 
 /**
@@ -540,6 +541,10 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         }
         return studentConflictsSum;
     }
+    
+    private DistanceMetric getDistanceMetric() {
+        return ((TimetableModel)getModel()).getDistanceMetric();
+    }
 
     /**
      * Number of student conflicts caused by the initial assignment of this
@@ -553,7 +558,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         for (JenrlConstraint jenrl : jenrlConstraints()) {
             Lecture another = jenrl.another(this);
             if (another.getInitialAssignment() != null)
-                if (JenrlConstraint.isInConflict(value, another.getInitialAssignment()))
+                if (JenrlConstraint.isInConflict(value, another.getInitialAssignment(), getDistanceMetric()))
                     studentConflictsSum += jenrl.getJenrl();
         }
         return studentConflictsSum;
@@ -571,7 +576,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         for (JenrlConstraint jenrl : jenrlConstraints()) {
             Lecture another = jenrl.another(this);
             if (another.getInitialAssignment() != null)
-                if (JenrlConstraint.isInConflict(value, another.getInitialAssignment()))
+                if (JenrlConstraint.isInConflict(value, another.getInitialAssignment(), getDistanceMetric()))
                     ret.put(another, jenrl.getJenrl());
         }
         return ret;
@@ -589,7 +594,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         for (JenrlConstraint jenrl : jenrlConstraints()) {
             Lecture another = jenrl.another(this);
             if (another.getInitialAssignment() != null)
-                if (JenrlConstraint.isInConflict(value, another.getInitialAssignment()))
+                if (JenrlConstraint.isInConflict(value, another.getInitialAssignment(), getDistanceMetric()))
                     ret.addAll(sameStudents(another));
         }
         return ret;

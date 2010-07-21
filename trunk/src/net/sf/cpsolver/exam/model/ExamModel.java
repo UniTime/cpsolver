@@ -15,6 +15,7 @@ import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.util.ArrayList;
 import net.sf.cpsolver.ifs.util.Callback;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.DistanceMetric;
 import net.sf.cpsolver.ifs.util.List;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
@@ -128,7 +129,7 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
     private double iRoomSplitWeight = 10.0;
     private double iRoomWeight = 0.1;
     private double iDistributionWeight = 1.0;
-    private int iBackToBackDistance = -1; // 67
+    private double iBackToBackDistance = -1; // 67
     private double iInstructorDirectConflictWeight = 1000.0;
     private double iInstructorMoreThanTwoADayWeight = 100.0;
     private double iInstructorBackToBackConflictWeight = 10.0;
@@ -166,6 +167,8 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
     private int iLargePenalty = 0;
     private double iRoomSplitDistancePenalty = 0;
     private int iNrLargeExams;
+    
+    private DistanceMetric iDistanceMetric = null;
 
     /**
      * Constructor
@@ -193,7 +196,7 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
         iRoomSizeWeight = properties.getPropertyDouble("Exams.RoomSizeWeight", iRoomSizeWeight);
         iRoomWeight = properties.getPropertyDouble("Exams.RoomWeight", iRoomWeight);
         iRoomSplitWeight = properties.getPropertyDouble("Exams.RoomSplitWeight", iRoomSplitWeight);
-        iBackToBackDistance = properties.getPropertyInt("Exams.BackToBackDistance", iBackToBackDistance);
+        iBackToBackDistance = properties.getPropertyDouble("Exams.BackToBackDistance", iBackToBackDistance);
         iDistributionWeight = properties.getPropertyDouble("Exams.DistributionWeight", iDistributionWeight);
         iInstructorDirectConflictWeight = properties.getPropertyDouble("Exams.InstructorDirectConflictWeight",
                 iInstructorDirectConflictWeight);
@@ -211,6 +214,11 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
         iLargeSize = properties.getPropertyInt("Exams.LargeSize", iLargeSize);
         iLargePeriod = properties.getPropertyDouble("Exams.LargePeriod", iLargePeriod);
         iLargeWeight = properties.getPropertyDouble("Exams.LargeWeight", iLargeWeight);
+        iDistanceMetric = new DistanceMetric(properties);
+    }
+    
+    public DistanceMetric getDistanceMetric() {
+        return iDistanceMetric;
     }
 
     /**
@@ -631,7 +639,7 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * problem property Exams.BackToBackDistance, or in the input xml file,
      * property backToBackDistance)
      */
-    public int getBackToBackDistance() {
+    public double getBackToBackDistance() {
         return iBackToBackDistance;
     }
 
@@ -641,7 +649,7 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * problem property Exams.BackToBackDistance, or in the input xml file,
      * property backToBackDistance)
      */
-    public void setBackToBackDistance(int backToBackDistance) {
+    public void setBackToBackDistance(double backToBackDistance) {
         iBackToBackDistance = backToBackDistance;
     }
 
@@ -1093,7 +1101,7 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * Return number of distance back-to-back student conflicts, i.e., the total
      * number of back-to-back student conflicts where the two exam take place in
      * rooms that are too far a part (i.e.,
-     * {@link ExamPlacement#getDistance(ExamPlacement)} is greater than
+     * {@link ExamPlacement#getDistanceInMeters(ExamPlacement)} is greater than
      * {@link ExamModel#getBackToBackDistance()}).
      * 
      * @param precise
@@ -1117,7 +1125,7 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
                         ExamPlacement p1 = x1.getAssignment();
                         for (Exam x2 : student.getExams(period.next())) {
                             ExamPlacement p2 = x2.getAssignment();
-                            if (p1.getDistance(p2) > getBackToBackDistance())
+                            if (p1.getDistanceInMeters(p2) > getBackToBackDistance())
                                 conflicts++;
                         }
                     }
@@ -1209,7 +1217,7 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * Return number of distance back-to-back instructor conflicts, i.e., the
      * total number of back-to-back instructor conflicts where the two exam take
      * place in rooms that are too far a part (i.e.,
-     * {@link ExamPlacement#getDistance(ExamPlacement)} is greater than
+     * {@link ExamPlacement#getDistanceInMeters(ExamPlacement)} is greater than
      * {@link ExamModel#getBackToBackDistance()}).
      * 
      * @param precise
@@ -1233,7 +1241,7 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
                         ExamPlacement p1 = x1.getAssignment();
                         for (Exam x2 : instructor.getExams(period.next())) {
                             ExamPlacement p2 = x2.getAssignment();
-                            if (p1.getDistance(p2) > getBackToBackDistance())
+                            if (p1.getDistanceInMeters(p2) > getBackToBackDistance())
                                 conflicts++;
                         }
                     }
@@ -1862,7 +1870,7 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
                 r.addAttribute("name", room.getName());
             r.addAttribute("size", String.valueOf(room.getSize()));
             r.addAttribute("alt", String.valueOf(room.getAltSize()));
-            if (room.getCoordX() >= 0 && room.getCoordY() >= 0)
+            if (room.getCoordX() != null && room.getCoordY() != null)
                 r.addAttribute("coordinates", room.getCoordX() + "," + room.getCoordY());
             for (ExamPeriod period : getPeriods()) {
                 if (!room.isAvailable(period))
@@ -2023,7 +2031,7 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
                                     btb.addElement("exam").addAttribute("id",
                                             getId(anonymize, "exam", String.valueOf(ex2.getId())));
                                     if (getBackToBackDistance() >= 0) {
-                                        int dist = (ex1.getAssignment()).getDistance(ex2.getAssignment());
+                                        double dist = (ex1.getAssignment()).getDistanceInMeters(ex2.getAssignment());
                                         if (dist > 0)
                                             btb.addAttribute("distance", String.valueOf(dist));
                                     }
@@ -2146,8 +2154,8 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
             String coords = e.attributeValue("coordinates");
             ExamRoom room = new ExamRoom(this, Long.parseLong(e.attributeValue("id")), e.attributeValue("name"),
                     Integer.parseInt(e.attributeValue("size")), Integer.parseInt(e.attributeValue("alt")),
-                    (coords == null ? -1 : Integer.parseInt(coords.substring(0, coords.indexOf(',')))),
-                    (coords == null ? -1 : Integer.parseInt(coords.substring(coords.indexOf(',') + 1))));
+                    (coords == null ? null : Double.valueOf(coords.substring(0, coords.indexOf(',')))),
+                    (coords == null ? null : Double.valueOf(coords.substring(coords.indexOf(',') + 1))));
             addConstraint(room);
             getRooms().add(room);
             rooms.put(new Long(room.getId()), room);

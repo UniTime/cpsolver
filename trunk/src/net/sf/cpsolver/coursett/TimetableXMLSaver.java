@@ -224,7 +224,7 @@ public class TimetableXMLSaver extends TimetableSaver {
                 roomEl.addAttribute("building", getId("bldg", roomConstraint.getBuildingId()));
             roomElements.put(getId("room", roomConstraint.getResourceId()), roomEl);
             roomEl.addAttribute("capacity", String.valueOf(roomConstraint.getCapacity()));
-            if (roomConstraint.getPosX() > 0 || roomConstraint.getPosY() > 0)
+            if (roomConstraint.getPosX() != null && roomConstraint.getPosY() != null)
                 roomEl.addAttribute("location", roomConstraint.getPosX() + "," + roomConstraint.getPosY());
             if (roomConstraint.getIgnoreTooFar())
                 roomEl.addAttribute("ignoreTooFar", "true");
@@ -350,7 +350,7 @@ public class TimetableXMLSaver extends TimetableSaver {
                     }
                     roomElements.put(getId("room", rl.getId()), roomEl);
                     roomEl.addAttribute("capacity", String.valueOf(rl.getRoomSize()));
-                    if (rl.getPosX() > 0 || rl.getPosY() > 0)
+                    if (rl.getPosX() != null && rl.getPosY() != null)
                         roomEl.addAttribute("location", rl.getPosX() + "," + rl.getPosY());
                     if (rl.getIgnoreTooFar())
                         roomEl.addAttribute("ignoreTooFar", "true");

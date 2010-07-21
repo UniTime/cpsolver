@@ -593,7 +593,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
                 } else if (jenrl.first().values().size() == 1 && jenrl.second().values().size() == 1) {
                     Placement p1 = jenrl.first().values().get(0);
                     Placement p2 = jenrl.second().values().get(0);
-                    if (JenrlConstraint.isInConflict(p1, p2)) {
+                    if (JenrlConstraint.isInConflict(p1, p2, ((TimetableModel)p1.variable().getModel()).getDistanceMetric())) {
                         nrInevitableStudentConflicts += jenrl.getJenrl();
                         pw.println("Inevitable " + jenrl.getJenrl()
                                 + (p1.getTimeLocation().hasIntersection(p2.getTimeLocation()) ? "" : " distance")
@@ -734,12 +734,10 @@ public class Test implements SolutionListener<Lecture, Placement> {
                 }
             }
             totalRoomSize += rc.getCapacity();
-            if (rc.getPosX() >= 0 && rc.getPosY() >= 0) {
+            if (rc.getPosX() != null && rc.getPosY() != null) {
                 for (RoomConstraint rc2 : model.getRoomConstraints()) {
-                    if (rc2.getResourceId().compareTo(rc.getResourceId()) > 0 && rc2.getPosX() >= 0
-                            && rc2.getPosY() >= 0) {
-                        double distance = Math.sqrt((rc2.getPosX() - rc.getPosX()) * (rc2.getPosX() - rc.getPosX())
-                                + (rc2.getPosY() - rc.getPosY()) * (rc2.getPosY() - rc.getPosY()));
+                    if (rc2.getResourceId().compareTo(rc.getResourceId()) > 0 && rc2.getPosX() != null && rc2.getPosY() != null) {
+                        double distance = ((TimetableModel)solution.getModel()).getDistanceMetric().getDistanceInMeters(rc.getPosX(), rc.getPosY(), rc2.getPosX(), rc2.getPosY());
                         totalRoomDistance += distance;
                         nrDistancePairs++;
                         maxRoomDistance = Math.max(maxRoomDistance, distance);

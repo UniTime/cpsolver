@@ -662,7 +662,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
                     double d = 0;
                     if (!rooms.isEmpty()) {
                         for (ExamRoomPlacement r : rooms) {
-                            d += r.getDistance(room);
+                            d += r.getDistanceInMeters(room);
                         }
                         w += d / rooms.size();
                     }

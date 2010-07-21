@@ -289,7 +289,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                                 if (iShowNames && rl.getName() != null)
                                     roomLocationEl.addAttribute("name", rl.getName());
                                 roomLocationEl.addAttribute("capacity", String.valueOf(rl.getRoomSize()));
-                                if (rl.getPosX() > 0 || rl.getPosY() > 0)
+                                if (rl.getPosX() != null && rl.getPosY() != null)
                                     roomLocationEl.addAttribute("location", rl.getPosX() + "," + rl.getPosY());
                                 if (rl.getIgnoreTooFar())
                                     roomLocationEl.addAttribute("ignoreTooFar", "true");

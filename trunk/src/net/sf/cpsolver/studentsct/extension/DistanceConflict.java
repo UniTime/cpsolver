@@ -13,6 +13,7 @@ import net.sf.cpsolver.ifs.extension.Extension;
 import net.sf.cpsolver.ifs.model.ModelListener;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.DistanceMetric;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
 import net.sf.cpsolver.studentsct.model.Enrollment;
@@ -23,9 +24,9 @@ import net.sf.cpsolver.studentsct.model.Student;
 /**
  * This extension computes student distant conflicts. Two sections that are
  * attended by the same student are considered in a distance conflict if they
- * are back-to-back taught in locations that are two far away. The allowed
- * distance is provided by method
- * {@link DistanceConflict#getAllowedDistance(TimeLocation)}.
+ * are back-to-back taught in locations that are two far away. This means that
+ * the (walking) distance in minutes between the two classes are longer than
+ * the break time of the earlier class. See {@link DistanceMetric} for more details.
  * 
  * @see TimeLocation
  * @see Placement
@@ -62,6 +63,7 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
     /** Debug flag */
     public static boolean sDebug = false;
     private Request iOldVariable = null;
+    private DistanceMetric iDistanceMetric = null;
 
     /**
      * Constructor. Beside of other thigs, this constructor also uses
@@ -77,6 +79,7 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
         super(solver, properties);
         if (solver != null)
             ((StudentSectioningModel) solver.currentSolution().getModel()).setDistanceConflict(this);
+        iDistanceMetric = new DistanceMetric(properties);
     }
 
     /**
@@ -113,12 +116,12 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
             return false;
         int a1 = t1.getStartSlot(), a2 = t2.getStartSlot();
         if (a1 + t1.getNrSlotsPerMeeting() == a2) {
-            double dist = Placement.getDistance(s1.getPlacement(), s2.getPlacement());
-            if (dist > getAllowedDistance(t1))
+            int dist = Placement.getDistanceInMinutes(iDistanceMetric, s1.getPlacement(), s2.getPlacement());
+            if (dist > t1.getBreakTime())
                 return true;
         } else if (a2 + t2.getNrSlotsPerMeeting() == a1) {
-            double dist = Placement.getDistance(s1.getPlacement(), s2.getPlacement());
-            if (dist > getAllowedDistance(t2))
+            int dist = Placement.getDistanceInMinutes(iDistanceMetric, s1.getPlacement(), s2.getPlacement());
+            if (dist > t2.getBreakTime())
                 return true;
         }
         return false;
@@ -218,20 +221,6 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
             }
         }
         return ret;
-    }
-
-    /**
-     * Allowed distance for the course that follows the given time assignment.
-     * 
-     * @param time
-     *            a time assignment of the first of two sections that are
-     *            back-to-back
-     * @return the maximal allowed distance
-     */
-    public double getAllowedDistance(TimeLocation time) {
-        if (time.getBreakTime() >= 15)
-            return 100.0;
-        return 67.0;
     }
 
     /**
@@ -466,7 +455,7 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
 
         /** The distance between conflicting sections */
         public double getDistance() {
-            return Placement.getDistance(getS1().getPlacement(), getS2().getPlacement());
+            return Placement.getDistanceInMeters(iDistanceMetric, getS1().getPlacement(), getS2().getPlacement());
         }
 
         @Override

@@ -5,6 +5,7 @@ import java.util.Set;
 
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.ConstraintListener;
+import net.sf.cpsolver.ifs.util.DistanceMetric;
 
 /**
  * A room. Only one exam can use a room at a time (period). <br>
@@ -36,7 +37,7 @@ public class ExamRoom extends Constraint<Exam, ExamPlacement> {
     private int[] iPenalty;
     private String iName;
     private int iSize, iAltSize;
-    private int iCoordX, iCoordY;
+    private Double iCoordX, iCoordY;
 
     /**
      * Constructor
@@ -55,7 +56,7 @@ public class ExamRoom extends Constraint<Exam, ExamPlacement> {
      * @param coordY
      *            y coordinate
      */
-    public ExamRoom(ExamModel model, long id, String name, int size, int altSize, int coordX, int coordY) {
+    public ExamRoom(ExamModel model, long id, String name, int size, int altSize, Double coordX, Double coordY) {
         super();
         iAssignedVariables = null;
         iId = id;
@@ -75,19 +76,14 @@ public class ExamRoom extends Constraint<Exam, ExamPlacement> {
     }
 
     /**
-     * Distance between two rooms. It is computed as Euclidean distance using
-     * the room coordinates, 1 unit equals to 10 meters.
+     * Distance between two rooms. See {@link DistanceMetric}
      * 
      * @param other
      *            another room
      * @return distance between this and the given room
      */
-    public int getDistance(ExamRoom other) {
-        if (getCoordX() < 0 || getCoordY() < 0 || other.getCoordX() < 0 || other.getCoordY() < 0)
-            return 10000;
-        int dx = getCoordX() - other.getCoordX();
-        int dy = getCoordY() - other.getCoordY();
-        return (int) Math.sqrt(dx * dx + dy * dy);
+    public double getDistanceInMeters(ExamRoom other) {
+        return ((ExamModel)getModel()).getDistanceMetric().getDistanceInMeters(getCoordX(), getCoordY(), other.getCoordX(), other.getCoordY());
     }
 
     /**
@@ -109,14 +105,14 @@ public class ExamRoom extends Constraint<Exam, ExamPlacement> {
     /**
      * X coordinate
      */
-    public int getCoordX() {
+    public Double getCoordX() {
         return iCoordX;
     }
 
     /**
      * Y coordinate
      */
-    public int getCoordY() {
+    public Double getCoordY() {
         return iCoordY;
     }
 

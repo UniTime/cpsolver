@@ -49,7 +49,7 @@ public class RoomConstraint extends Constraint<Lecture, Placement> {
     private List<Placement>[] iAvailable = null;
     private boolean iConstraint = true;
 
-    private int iPosX = 0, iPosY = 0;
+    private Double iPosX = null, iPosY = null;
     private boolean iIgnoreTooFar = false;
 
     private Integer iCacheUselessSlots = null;
@@ -65,7 +65,7 @@ public class RoomConstraint extends Constraint<Lecture, Placement> {
      */
     @SuppressWarnings("unchecked")
     public RoomConstraint(Long id, String name, Long buildingId, int capacity, RoomSharingModel roomSharingModel,
-            int x, int y, boolean ignoreTooFar, boolean constraint) {
+            Double x, Double y, boolean ignoreTooFar, boolean constraint) {
         iResourceId = id;
         iName = name;
         iResource = new List[Constants.SLOTS_PER_DAY * Constants.NR_DAYS];
@@ -496,18 +496,18 @@ public class RoomConstraint extends Constraint<Lecture, Placement> {
     }
 
     /** Position of the building */
-    public void setCoordinates(int x, int y) {
+    public void setCoordinates(Double x, Double y) {
         iPosX = x;
         iPosY = y;
     }
 
     /** X-position of the building */
-    public int getPosX() {
+    public Double getPosX() {
         return iPosX;
     }
 
     /** Y-position of the building */
-    public int getPosY() {
+    public Double getPosY() {
         return iPosY;
     }
 

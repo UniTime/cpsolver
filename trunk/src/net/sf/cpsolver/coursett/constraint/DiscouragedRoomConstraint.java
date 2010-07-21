@@ -41,7 +41,7 @@ public class DiscouragedRoomConstraint extends RoomConstraint {
     private long iUnassignment = 0;
 
     public DiscouragedRoomConstraint(DataProperties config, Long id, String name, Long buildingId, int capacity,
-            RoomSharingModel roomSharingModel, int x, int y, boolean ignoreTooFar, boolean constraint) {
+            RoomSharingModel roomSharingModel, Double x, Double y, boolean ignoreTooFar, boolean constraint) {
         super(id, name, buildingId, capacity, roomSharingModel, x, y, ignoreTooFar, constraint);
         iUnassignmentsToWeaken = config.getPropertyInt("DiscouragedRoom.Unassignments2Weaken", iUnassignmentsToWeaken);
     }
