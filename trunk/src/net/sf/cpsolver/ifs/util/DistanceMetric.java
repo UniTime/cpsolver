@@ -93,6 +93,16 @@ public class DistanceMetric {
     public DistanceMetric() {
     }
     
+    /** With provided eclipsoid */
+    public DistanceMetric(Eclipsoid model) {
+        iModel = model;
+        if (iModel == Eclipsoid.LEGACY) {
+            iSpeed = 100.0 / 15;
+            iInstructorDiscouragedLimit = 5.0;
+            iInstructorProhibitedLimit = 20.0;
+        }
+    }
+
     /** With provided eclipsoid and student speed */
     public DistanceMetric(Eclipsoid model, double speed) {
         iModel = model;
@@ -101,19 +111,23 @@ public class DistanceMetric {
     
     /** Configured using properties */
     public DistanceMetric(DataProperties properties) {
-        if (properties.getProperty("Distances.Eclipsoid") == null) {
+        if (Eclipsoid.LEGACY.name().equals(properties.getProperty("Distances.Eclipsoid",Eclipsoid.LEGACY.name()))) {
             //LEGACY MODE
             iModel = Eclipsoid.LEGACY;
-            iSpeed = properties.getPropertyDouble("Student.DistanceLimit", 100.0 / 15);
+            iSpeed = properties.getPropertyDouble("Student.DistanceLimit", 1000.0 / 15) / 10.0;
+            iInstructorNoPreferenceLimit = properties.getPropertyDouble("Instructor.NoPreferenceLimit", 0.0);
+            iInstructorDiscouragedLimit = properties.getPropertyDouble("Instructor.DiscouragedLimit", 5.0);
+            iInstructorProhibitedLimit = properties.getPropertyDouble("Instructor.ProhibitedLimit", 20.0);
+            iNullDistance = properties.getPropertyDouble("Distances.NullDistance", 1000.0);
         } else {
             iModel = Eclipsoid.valueOf(properties.getProperty("Distances.Eclipsoid", Eclipsoid.WGS84.name()));
             if (iModel == null) iModel = Eclipsoid.WGS84;
-            iSpeed = properties.getPropertyDouble("Distances.Speed", 1000.0 / 15);
+            iSpeed = properties.getPropertyDouble("Distances.Speed", properties.getPropertyDouble("Student.DistanceLimit", 1000.0 / 15));
+            iInstructorNoPreferenceLimit = properties.getPropertyDouble("Instructor.NoPreferenceLimit", iInstructorNoPreferenceLimit);
+            iInstructorDiscouragedLimit = properties.getPropertyDouble("Instructor.DiscouragedLimit", iInstructorDiscouragedLimit);
+            iInstructorProhibitedLimit = properties.getPropertyDouble("Instructor.ProhibitedLimit", iInstructorProhibitedLimit);
+            iNullDistance = properties.getPropertyDouble("Distances.NullDistance", iNullDistance);
         }
-        iNullDistance = properties.getPropertyDouble("Distances.NullDistance", iNullDistance);
-        iInstructorNoPreferenceLimit = properties.getPropertyDouble("Instructor.NoPreferenceLimit", iInstructorNoPreferenceLimit);
-        iInstructorDiscouragedLimit = properties.getPropertyDouble("Instructor.DiscouragedLimit", iInstructorDiscouragedLimit);
-        iInstructorProhibitedLimit = properties.getPropertyDouble("Instructor.ProhibitedLimit", iInstructorProhibitedLimit);
     }
 
     /** Degrees to radians */
@@ -207,6 +221,11 @@ public class DistanceMetric {
     /** Back-to-back classes in rooms within this limit have strongly discouraged preference, it is prohibited to exceed this limit. */
     public double getInstructorProhibitedLimit() {
         return iInstructorProhibitedLimit;
+    }
+    
+    /** True if legacy mode is used (Euclidian distance where 1 unit is 10 meters) */
+    public boolean isLegacy() {
+        return iModel == Eclipsoid.LEGACY;
     }
 
     /** Few tests */
