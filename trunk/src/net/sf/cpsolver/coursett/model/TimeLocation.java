@@ -96,6 +96,10 @@ public class TimeLocation {
         return iBreakTime;
     }
 
+    public void setBreakTime(int breakTime) {
+        iBreakTime = breakTime;
+    }
+
     private static int combine(int a, int b) {
         int ret = 0;
         for (int i = 0; i < 15; i++)

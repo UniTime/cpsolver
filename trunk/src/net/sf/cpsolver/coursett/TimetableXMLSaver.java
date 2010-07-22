@@ -363,8 +363,8 @@ public class TimetableXMLSaver extends TimetableSaver {
                         .toBinaryString(tl.getDayCode()))));
                 timeLocationEl.addAttribute("start", String.valueOf(tl.getStartSlot()));
                 timeLocationEl.addAttribute("length", String.valueOf(tl.getLength()));
+                timeLocationEl.addAttribute("breakTime", String.valueOf(tl.getBreakTime()));
                 if (iShowNames) {
-                    timeLocationEl.addAttribute("breakTime", String.valueOf(tl.getBreakTime()));
                     timeLocationEl.addAttribute("pref", String.valueOf(tl.getPreference()));
                     timeLocationEl.addAttribute("npref", String.valueOf(tl.getNormalizedPreference()));
                 } else {
