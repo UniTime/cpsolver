@@ -144,44 +144,6 @@ public class TimetableXMLLoader extends TimetableLoader {
         load(null);
     }
 
-    /*
-     * public static boolean match(TimePatternModel model, TimeLocation time) {
-     * if (model.getNrMeetings()!=time.getNrMeetings()) return false; if
-     * (model.getSlotsPerMtg()!=6*time.getLength()) return false; int matchTime
-     * = -1, matchDays = -1; for (int i=0;i<model.getNrDays();i++) { if
-     * (time.getDayCode()==model.getDayCode(i)) matchDays = i; } for (int
-     * i=0;i<model.getNrTimes();i++) { if
-     * (90+time.getStartSlot()*6==model.getStartSlot(i)) matchTime = i; } return
-     * matchTime>=0 && matchDays>=0; }
-     * 
-     * Vector iAllTimePatterns = null; Hashtable iClasses = new Hashtable();
-     * private TimeLocation transformTimePattern(Long classId, TimeLocation
-     * oldLocation) { if (iAllTimePatterns==null) { iAllTimePatterns =
-     * TimePattern
-     * .findAll(getModel().getProperties().getProperty("Data.Initiative"),
-     * getModel().getProperties().getProperty("Data.Term").substring(4), null);
-     * Collections.sort(iAllTimePatterns); } TimeLocation newLocation = new
-     * TimeLocation( oldLocation.getDayCode(), 90+oldLocation.getStartSlot()*6,
-     * oldLocation.getLength()*6, oldLocation.getPreference(),
-     * oldLocation.getNormalizedPreference(), oldLocation.getDatePatternId(),
-     * oldLocation.getDatePatternName(), oldLocation.getWeekCode(),
-     * oldLocation.getBreakTime());
-     * 
-     * if (classId!=null) { Class_ clazz = (Class_)iClasses.get(classId); if
-     * (clazz==null) { clazz = (new Class_DAO()).get(classId); if (clazz!=null)
-     * iClasses.put(classId, clazz); } if (clazz!=null) { for (Iterator
-     * i=clazz.effectiveTimePatterns().iterator();i.hasNext();) { TimePattern tp
-     * = (TimePattern)i.next(); if
-     * (LoadTimePreferences.match(tp.getTimePatternModel(),oldLocation)) {
-     * newLocation.setTimePatternId(tp.getUniqueId()); break; } } } } if
-     * (newLocation.getTimePatternId()==null) { for (Enumeration
-     * e=iAllTimePatterns.elements();e.hasMoreElements();) { TimePattern tp =
-     * (TimePattern)e.nextElement(); if
-     * (LoadTimePreferences.match(tp.getTimePatternModel(),oldLocation)) {
-     * newLocation.setTimePatternId(tp.getUniqueId()); break; } } } return
-     * newLocation; }
-     */
-
     private static BitSet createBitSet(String bitString) {
         BitSet ret = new BitSet(bitString.length());
         for (int i = 0; i < bitString.length(); i++)
@@ -465,8 +427,9 @@ public class TimetableXMLLoader extends TimetableLoader {
                         Double.parseDouble(timeLocationEl
                                 .attributeValue("npref", timeLocationEl.attributeValue("pref"))), datePatternId,
                         datePatternName, weekCode, Integer
-                                .parseInt(timeLocationEl.attributeValue("breakTime") == null ? "0" : timeLocationEl
+                                .parseInt(timeLocationEl.attributeValue("breakTime") == null ? "-1" : timeLocationEl
                                         .attributeValue("breakTime")));
+                if (tl.getBreakTime() < 0) tl.setBreakTime(tl.getLength() == 18 ? 15 : 10);
                 if (timeLocationEl.attributeValue("pattern") != null)
                     tl.setTimePatternId(Long.valueOf(timeLocationEl.attributeValue("pattern")));
                 /*
