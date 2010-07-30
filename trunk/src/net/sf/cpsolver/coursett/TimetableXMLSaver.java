@@ -195,7 +195,7 @@ public class TimetableXMLSaver extends TimetableSaver {
         }
 
         Element root = document.addElement("timetable");
-        root.addAttribute("version", "2.4");
+        root.addAttribute("version", "2.5");
         root.addAttribute("initiative", getModel().getProperties().getProperty("Data.Initiative"));
         root.addAttribute("term", getModel().getProperties().getProperty("Data.Term"));
         root.addAttribute("year", String.valueOf(getModel().getYear()));
@@ -485,7 +485,7 @@ public class TimetableXMLSaver extends TimetableSaver {
         }
 
         Hashtable<Student, List<String>> students = new Hashtable<Student, List<String>>();
-        for (Lecture lecture : getModel().variables()) {
+        for (Lecture lecture : vars) {
             for (Student student : lecture.students()) {
                 List<String> enrls = students.get(student);
                 if (enrls == null) {
@@ -500,6 +500,16 @@ public class TimetableXMLSaver extends TimetableSaver {
         for (Enumeration<Student> e1 = ToolBox.sortEnumeration(students.keys()); e1.hasMoreElements();) {
             Student student = e1.nextElement();
             Element stEl = studentsEl.addElement("student").addAttribute("id", getId("student", student.getId()));
+            if (iShowNames) {
+                if (student.getAcademicArea() != null)
+                    stEl.addAttribute("area", student.getAcademicArea());
+                if (student.getAcademicClassification() != null)
+                    stEl.addAttribute("classification", student.getAcademicClassification());
+                if (student.getMajor() != null)
+                    stEl.addAttribute("major", student.getMajor());
+                if (student.getCurriculum() != null)
+                    stEl.addAttribute("curriculum", student.getCurriculum());
+            }
             for (Map.Entry<Long, Double> entry : student.getOfferingsMap().entrySet()) {
                 Long offeringId = entry.getKey();
                 Double weight = entry.getValue();

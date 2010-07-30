@@ -368,6 +368,6 @@ public class TimetableComparator implements SolutionComparator<Lecture, Placemen
                         : iDeptSpreadPenaltyWeight * lecture.getDeptSpreadConstraint().getPenalty(placement))
                 + (iSpreadPenaltyWeight == 0.0 ? 0.0 : iSpreadPenaltyWeight * placement.getSpreadPenalty())
                 + (iCommitedStudentConflictWeight == 0.0 ? 0.0 : iCommitedStudentConflictWeight
-                        * lecture.getCommitedConflicts(placement));
+                        * (lecture.getCommitedConflicts(placement) + lecture.countCommittedStudentConflicts(placement)));
     }
 }

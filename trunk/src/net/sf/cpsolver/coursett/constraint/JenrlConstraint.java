@@ -73,15 +73,17 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> {
     public void unassigned(long iteration, Placement value) {
         super.unassigned(iteration, value);
         if (iAdded) {
-            ((TimetableModel) getModel()).getViolatedStudentConflictsCounter().dec((long) Math.ceil(iJenrl));
+            ((TimetableModel) getModel()).getViolatedStudentConflictsCounter().dec(Math.round(iJenrl));
             if (areStudentConflictsHard())
-                ((TimetableModel) getModel()).getViolatedHardStudentConflictsCounter().dec((long) Math.ceil(iJenrl));
+                ((TimetableModel) getModel()).getViolatedHardStudentConflictsCounter().dec(Math.round(iJenrl));
+            if (areStudentConflictsCommitted())
+                ((TimetableModel) getModel()).getViolatedCommitttedStudentConflictsCounter().dec(Math.round(iJenrl));
             iAdded = false;
             (first()).removeActiveJenrl(this);
             (second()).removeActiveJenrl(this);
         }
         if (iAddedDistance) {
-            ((TimetableModel) getModel()).getViolatedDistanceStudentConflictsCounter().dec((long) Math.ceil(iJenrl));
+            ((TimetableModel) getModel()).getViolatedDistanceStudentConflictsCounter().dec(Math.round(iJenrl));
             iAddedDistance = false;
         }
     }
@@ -123,12 +125,14 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> {
         // v2.getAssignment().equals(v2.getInitialAssignment())) return;
         if (isInConflict(first().getAssignment(), second().getAssignment(), getDistanceMetric())) {
             iAdded = true;
-            ((TimetableModel) getModel()).getViolatedStudentConflictsCounter().inc((long) Math.ceil(iJenrl));
+            ((TimetableModel) getModel()).getViolatedStudentConflictsCounter().inc(Math.round(iJenrl));
             if (areStudentConflictsHard())
-                ((TimetableModel) getModel()).getViolatedHardStudentConflictsCounter().inc((long) Math.ceil(iJenrl));
+                ((TimetableModel) getModel()).getViolatedHardStudentConflictsCounter().inc(Math.round(iJenrl));
+            if (areStudentConflictsCommitted())
+                ((TimetableModel) getModel()).getViolatedCommitttedStudentConflictsCounter().inc(Math.round(iJenrl));
             if (areStudentConflictsDistance()) {
                 ((TimetableModel) getModel()).getViolatedDistanceStudentConflictsCounter()
-                        .inc((long) Math.ceil(iJenrl));
+                        .inc(Math.round(iJenrl));
                 iAddedDistance = true;
             }
             (first()).addActiveJenrl(this);
@@ -144,7 +148,7 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> {
         Lecture anotherLecture = (first().equals(variable) ? second() : first());
         if (anotherLecture.getAssignment() == null)
             return 0;
-        return (isInConflict(anotherLecture.getAssignment(), value, getDistanceMetric()) ? (long) Math.ceil(iJenrl) : 0);
+        return (isInConflict(anotherLecture.getAssignment(), value, getDistanceMetric()) ? Math.round(iJenrl) : 0);
     }
     
     private DistanceMetric getDistanceMetric() {
@@ -167,22 +171,26 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> {
      */
     public void incJenrl(Student student) {
         if (iAdded) {
-            ((TimetableModel) getModel()).getViolatedStudentConflictsCounter().dec((long) Math.ceil(iJenrl));
+            ((TimetableModel) getModel()).getViolatedStudentConflictsCounter().dec(Math.round(iJenrl));
             if (areStudentConflictsHard())
-                ((TimetableModel) getModel()).getViolatedHardStudentConflictsCounter().dec((long) Math.ceil(iJenrl));
+                ((TimetableModel) getModel()).getViolatedHardStudentConflictsCounter().dec(Math.round(iJenrl));
+            if (areStudentConflictsCommitted())
+                ((TimetableModel) getModel()).getViolatedCommitttedStudentConflictsCounter().dec(Math.round(iJenrl));
             if (iAddedDistance)
                 ((TimetableModel) getModel()).getViolatedDistanceStudentConflictsCounter()
-                        .dec((long) Math.ceil(iJenrl));
+                        .dec(Math.round(iJenrl));
         }
         iJenrl += student.getJenrlWeight(first(), second());
         iNrStrudents++;
         if (iAdded) {
-            ((TimetableModel) getModel()).getViolatedStudentConflictsCounter().inc((long) Math.ceil(iJenrl));
+            ((TimetableModel) getModel()).getViolatedStudentConflictsCounter().inc(Math.round(iJenrl));
             if (areStudentConflictsHard())
-                ((TimetableModel) getModel()).getViolatedHardStudentConflictsCounter().inc((long) Math.ceil(iJenrl));
+                ((TimetableModel) getModel()).getViolatedHardStudentConflictsCounter().inc(Math.round(iJenrl));
+            if (areStudentConflictsCommitted())
+                ((TimetableModel) getModel()).getViolatedCommitttedStudentConflictsCounter().inc(Math.round(iJenrl));
             if (iAddedDistance)
                 ((TimetableModel) getModel()).getViolatedDistanceStudentConflictsCounter()
-                        .inc((long) Math.ceil(iJenrl));
+                        .inc(Math.round(iJenrl));
         }
     }
 
@@ -196,28 +204,32 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> {
      */
     public void decJenrl(Student student) {
         if (iAdded) {
-            ((TimetableModel) getModel()).getViolatedStudentConflictsCounter().dec((long) Math.ceil(iJenrl));
+            ((TimetableModel) getModel()).getViolatedStudentConflictsCounter().dec(Math.round(iJenrl));
             if (areStudentConflictsHard())
-                ((TimetableModel) getModel()).getViolatedHardStudentConflictsCounter().dec((long) Math.ceil(iJenrl));
+                ((TimetableModel) getModel()).getViolatedHardStudentConflictsCounter().dec(Math.round(iJenrl));
+            if (areStudentConflictsCommitted())
+                ((TimetableModel) getModel()).getViolatedCommitttedStudentConflictsCounter().dec(Math.round(iJenrl));
             if (iAddedDistance)
                 ((TimetableModel) getModel()).getViolatedDistanceStudentConflictsCounter()
-                        .dec((long) Math.ceil(iJenrl));
+                        .dec(Math.round(iJenrl));
         }
         iJenrl -= student.getJenrlWeight(first(), second());
         iNrStrudents--;
         if (iAdded) {
-            ((TimetableModel) getModel()).getViolatedStudentConflictsCounter().inc((long) Math.ceil(iJenrl));
+            ((TimetableModel) getModel()).getViolatedStudentConflictsCounter().inc(Math.round(iJenrl));
             if (areStudentConflictsHard())
-                ((TimetableModel) getModel()).getViolatedHardStudentConflictsCounter().inc((long) Math.ceil(iJenrl));
+                ((TimetableModel) getModel()).getViolatedHardStudentConflictsCounter().inc(Math.round(iJenrl));
+            if (areStudentConflictsCommitted())
+                ((TimetableModel) getModel()).getViolatedCommitttedStudentConflictsCounter().inc(Math.round(iJenrl));
             if (iAddedDistance)
                 ((TimetableModel) getModel()).getViolatedDistanceStudentConflictsCounter()
-                        .inc((long) Math.ceil(iJenrl));
+                        .inc(Math.round(iJenrl));
         }
     }
 
     /** Number of joined enrollments (during student final sectioning) */
     public long getJenrl() {
-        return (long) Math.ceil(iJenrl);
+        return Math.round(iJenrl);
     }
 
     public int getNrStudents() {
@@ -241,6 +253,10 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> {
     public boolean areStudentConflictsDistance() {
         return !(first().getAssignment()).getTimeLocation().hasIntersection(
                 (second().getAssignment()).getTimeLocation());
+    }
+
+    public boolean areStudentConflictsCommitted() {
+        return first().isCommitted() || second().isCommitted();
     }
 
     public boolean areStudentConflictsDistance(Placement value) {

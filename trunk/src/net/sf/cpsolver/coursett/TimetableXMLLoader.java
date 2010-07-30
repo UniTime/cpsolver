@@ -185,10 +185,18 @@ public class TimetableXMLLoader extends TimetableLoader {
             getModel().getProperties().setProperty("General.SessionId", root.attributeValue("session"));
         if (root.attributeValue("solverGroup") != null)
             getModel().getProperties().setProperty("General.SolverGroupId", root.attributeValue("solverGroup"));
-        // String version = root.attributeValue("version");
-        // boolean timePatternTransform = "1.0".equals(version) ||
-        // "2.0".equals(version);
-
+        String version = root.attributeValue("version");
+       
+        // Student sectioning considers the whole course (including committed classes), since 2.5
+        boolean sectionWholeCourse = true;
+        
+        if (version != null && version.indexOf('.') >= 0) {
+            int majorVersion = Integer.parseInt(version.substring(0, version.indexOf('.')));
+            int minorVersion = Integer.parseInt(version.substring(1 + version.indexOf('.')));
+            
+            sectionWholeCourse = (majorVersion == 2 && minorVersion >= 5) || majorVersion > 2;
+        }
+        
         Hashtable<Long, TimeLocation> perts = new Hashtable<Long, TimeLocation>();
         if (getModel().getProperties().getPropertyInt("MPP.TimePert", 0) > 0) {
             int nrChanges = getModel().getProperties().getPropertyInt("MPP.TimePert", 0);
@@ -518,7 +526,7 @@ public class TimetableXMLLoader extends TimetableLoader {
                 lecture.setDepartment(Long.valueOf(classEl.attributeValue("department")));
             if (classEl.attribute("scheduler") != null)
                 lecture.setScheduler(Long.valueOf(classEl.attributeValue("scheduler")));
-            if (!lecture.isCommitted() && classEl.attributeValue("subpart", classEl.attributeValue("course")) != null) {
+            if ((sectionWholeCourse || !lecture.isCommitted()) && classEl.attributeValue("subpart", classEl.attributeValue("course")) != null) {
                 Long subpartId = Long.valueOf(classEl.attributeValue("subpart", classEl.attributeValue("course")));
                 List<Lecture> sames = sameLectures.get(subpartId);
                 if (sames == null) {
@@ -554,6 +562,9 @@ public class TimetableXMLLoader extends TimetableLoader {
         for (Map.Entry<Lecture, String> entry : parents.entrySet()) {
             Lecture lecture = entry.getKey();
             Lecture parent = lectures.get(entry.getValue());
+            if (parent == null) {
+                System.out.println("Unknown parent class: " + entry.getValue());
+            }
             lecture.setParent(parent);
         }
 
@@ -618,6 +629,10 @@ public class TimetableXMLLoader extends TimetableLoader {
                 student = new Student(studentId);
                 students.put(studentId, student);
             }
+            student.setAcademicArea(studentEl.attributeValue("area"));
+            student.setAcademicClassification(studentEl.attributeValue("classification"));
+            student.setMajor(studentEl.attributeValue("major"));
+            student.setCurriculum(studentEl.attributeValue("curriculum"));
             for (Iterator<?> i2 = studentEl.elementIterator("offering"); i2.hasNext();) {
                 Element ofEl = (Element) i2.next();
                 Long offeringId = Long.valueOf(ofEl.attributeValue("id"));
@@ -633,8 +648,16 @@ public class TimetableXMLLoader extends TimetableLoader {
                 String classId = ((Element) i2.next()).attributeValue("id");
                 Lecture lecture = lectures.get(classId);
                 if (lecture.isCommitted()) {
-                    Placement placement = assignedPlacements.get(lecture);
-                    student.addCommitedPlacement(placement);
+                    if (sectionWholeCourse && (lecture.getParent() != null || lecture.getConfiguration() != null)) {
+                        // committed, but with course structure -- sectioning can be used
+                        student.addLecture(lecture);
+                        lecture.addStudent(student);
+                        lecturesThisStudent.add(lecture);
+                        initialSectioning = false;
+                    } else {
+                        Placement placement = assignedPlacements.get(lecture);
+                        student.addCommitedPlacement(placement);
+                    }
                 } else {
                     student.addLecture(lecture);
                     lecture.addStudent(student);
@@ -727,6 +750,30 @@ public class TimetableXMLLoader extends TimetableLoader {
             lecture.purgeInvalidValues(iInteractiveMode);
             iProgress.incProgress();
         }
+        
+        if (getModel().constantVariables().size() > 0) {
+            iProgress.setPhase("Assigning committed classes ...", assignedPlacements.size());
+            for (Map.Entry<Lecture, Placement> entry : assignedPlacements.entrySet()) {
+                Lecture lecture = entry.getKey();
+                Placement placement = entry.getValue();
+                if (!lecture.isCommitted()) { iProgress.incProgress(); continue; }
+                Map<Constraint<Lecture, Placement>, Set<Placement>> conflictConstraints = getModel().conflictConstraints(placement);
+                if (conflictConstraints.isEmpty()) {
+                    lecture.assign(0, placement);
+                } else {
+                    sLogger.warn("WARNING: Unable to assign " + lecture.getName() + " := " + placement.getName());
+                    sLogger.debug("  Reason:");
+                    for (Constraint<Lecture, Placement> c : conflictConstraints.keySet()) {
+                        Set<Placement> vals = conflictConstraints.get(c);
+                        for (Placement v : vals) {
+                            sLogger.debug("    " + v.variable().getName() + " = " + v.getName());
+                        }
+                        sLogger.debug("    in constraint " + c);
+                    }
+                }
+                iProgress.incProgress();
+            }
+        }
 
         if (currentSolution != null) {
             iProgress.setPhase("Creating best assignment ...", 2 * getModel().variables().size());
@@ -750,10 +797,10 @@ public class TimetableXMLLoader extends TimetableLoader {
         for (Map.Entry<Lecture, Placement> entry : assignedPlacements.entrySet()) {
             Lecture lecture = entry.getKey();
             Placement placement = entry.getValue();
-            Map<Constraint<Lecture, Placement>, Set<Placement>> conflictConstraints = getModel().conflictConstraints(
-                    placement);
+            if (lecture.isCommitted()) { iProgress.incProgress(); continue; }
+            Map<Constraint<Lecture, Placement>, Set<Placement>> conflictConstraints = getModel().conflictConstraints(placement);
             if (conflictConstraints.isEmpty()) {
-                if (!lecture.isCommitted() && !placement.isValid()) {
+                if (!placement.isValid()) {
                     sLogger.warn("WARNING: Lecture " + lecture.getName() + " does not contain assignment "
                             + placement.getLongName() + " in its domain (" + placement.getNotValidReason() + ").");
                 } else
@@ -804,7 +851,7 @@ public class TimetableXMLLoader extends TimetableLoader {
                     new Object[] { root });
         } catch (Exception e) {
         }
-
+        
         iProgress.setPhase("Done", 1);
         iProgress.incProgress();
 

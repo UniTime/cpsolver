@@ -509,7 +509,7 @@ public class InitialSectioning {
         if (students == null || students.isEmpty())
             return;
         for (Lecture lecture : lectures) {
-            if (lecture.classLimit() == 0)
+            if (lecture.classLimit() == 0 && !lecture.isCommitted())
                 p.warn("Class " + getClassLabel(lecture) + " has zero class limit.");
         }
 

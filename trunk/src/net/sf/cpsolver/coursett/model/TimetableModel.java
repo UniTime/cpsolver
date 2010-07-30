@@ -70,6 +70,7 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
     private Counter iViolatedStudentConflicts = new Counter();
     private Counter iViolatedHardStudentConflicts = new Counter();
     private Counter iViolatedDistanceStudentConflicts = new Counter();
+    private Counter iViolatedCommittedStudentConflicts = new Counter();
     private Counter iCommittedStudentConflictsCounter = new Counter();
     private List<InstructorConstraint> iInstructorConstraints = new ArrayList<InstructorConstraint>();
     private List<JenrlConstraint> iJenrlConstraints = new ArrayList<JenrlConstraint>();
@@ -171,6 +172,10 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
 
     public Counter getViolatedHardStudentConflictsCounter() {
         return iViolatedHardStudentConflicts;
+    }
+
+    public Counter getViolatedCommitttedStudentConflictsCounter() {
+        return iViolatedCommittedStudentConflicts;
     }
 
     public Counter getViolatedDistanceStudentConflictsCounter() {
@@ -297,14 +302,23 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
          * "TimetableModel.getCommitedStudentConflicts() is not working properly"
          * ); }
          */
-        return (int) iCommittedStudentConflictsCounter.get();
+        return (int)(iViolatedCommittedStudentConflicts.get() + iCommittedStudentConflictsCounter.get());
     }
 
-    public int countCommitedStudentConflicts() {
+    public int countCommitedStudentConflicts(boolean includeJenrl) {
         int commitedStudentConflicts = 0;
         for (Lecture lecture : assignedVariables()) {
             commitedStudentConflicts += lecture.getCommitedConflicts(lecture.getAssignment());
         }
+        for (Lecture lecture : constantVariables()) {
+            if (lecture.getAssignment() != null)
+                commitedStudentConflicts += lecture.getCommitedConflicts(lecture.getAssignment());
+        }
+        if (includeJenrl)
+            for (JenrlConstraint jenrl : iJenrlConstraints) {
+                if (jenrl.isInConflict() && jenrl.areStudentConflictsCommitted())
+                    commitedStudentConflicts += jenrl.getJenrl();
+            }
         return commitedStudentConflicts;
     }
 
@@ -416,13 +430,16 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
         ret.put("Distribution preferences", getPerc(iGlobalGroupConstraintPreference.get(),
                 iMinGroupConstraintPreference, iMaxGroupConstraintPreference)
                 + "% (" + iGlobalGroupConstraintPreference.get() + ")");
-        int commitedStudentConflicts = getCommitedStudentConflicts();
-        ret.put("Student conflicts", (commitedStudentConflicts + getViolatedStudentConflicts()) + " [committed:"
-                + commitedStudentConflicts + ", hard:" + getHardStudentConflicts() + "]");
+        int commitedStudentConflicts = (int)iCommittedStudentConflictsCounter.get();
+        ret.put("Student conflicts", (commitedStudentConflicts + getViolatedStudentConflicts()) + " [committed:" +
+                (iViolatedCommittedStudentConflicts.get() == 0 ? "" + iCommittedStudentConflictsCounter.get() : 
+                 iViolatedCommittedStudentConflicts.get() + (iCommittedStudentConflictsCounter.get() == 0 ? "" : " + " + iCommittedStudentConflictsCounter.get())) +
+                ", hard:" + getHardStudentConflicts() + "]");
         if (getProperties().getPropertyBoolean("General.UseDistanceConstraints", false)) {
-            ret.put("Student conflicts", (commitedStudentConflicts + getViolatedStudentConflicts()) + " [committed:"
-                    + commitedStudentConflicts + ", distance:" + getStudentDistanceConflicts() + ", hard:"
-                    + getHardStudentConflicts() + "]");
+            ret.put("Student conflicts", (commitedStudentConflicts + getViolatedStudentConflicts()) + " [committed:" +
+                    (iViolatedCommittedStudentConflicts.get() == 0 ? "" + iCommittedStudentConflictsCounter.get() : 
+                     iViolatedCommittedStudentConflicts.get() + (iCommittedStudentConflictsCounter.get() == 0 ? "" : " + " + iCommittedStudentConflictsCounter.get())) +
+                    ", distance:" + getStudentDistanceConflicts() + ", hard:" + getHardStudentConflicts() + "]");
             ret.put("Back-to-back instructor preferences", getPerc(getInstructorDistancePreference(), 0,
                     getInstructorWorstDistancePreference())
                     + "% (" + getInstructorDistancePreference() + ")");
