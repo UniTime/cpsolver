@@ -74,10 +74,15 @@ public class FinalSectioning implements Runnable {
 
     public void run() {
         iProgress.setStatus("Student Sectioning...");
-        Collection<Lecture> variables = iModel.variables();
+        Collection<Lecture> variables = new ArrayList<Lecture>(iModel.variables());
+        // include committed classes that have structure
+        for (Lecture lecture: iModel.constantVariables()) {
+            if (lecture.getParent() != null || (lecture.sameStudentsLectures()!= null && !lecture.sameStudentsLectures().isEmpty()))
+                variables.add(lecture);
+        }
         while (!variables.isEmpty()) {
             // sLogger.debug("Shifting students ...");
-            iProgress.setPhase("moving students ...", iModel.variables().size());
+            iProgress.setPhase("moving students ...", variables.size());
             HashSet<Lecture> lecturesToRecompute = new HashSet<Lecture>(variables.size());
 
             for (Lecture lecture : variables) {

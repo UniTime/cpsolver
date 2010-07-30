@@ -61,6 +61,10 @@ public class Configuration {
         }
         lectures.add(lecture);
     }
+    
+    public Hashtable<Long, Set<Lecture>> getTopLectures() {
+        return iTopLectures;
+    }
 
     public Enumeration<Long> getTopSubpartIds() {
         return iTopLectures.keys();

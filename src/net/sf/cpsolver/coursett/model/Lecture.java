@@ -508,6 +508,30 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         return studentConflictsSum;
     }
 
+    public int countCommittedStudentConflictsOfTheSameProblem(Placement value) {
+        int studentConflictsSum = 0;
+        for (JenrlConstraint jenrl : jenrlConstraints()) {
+            if (!jenrl.isOfTheSameProblem())
+                continue;
+            if (!jenrl.areStudentConflictsCommitted())
+                continue;
+            studentConflictsSum += jenrl.jenrl(this, value);
+        }
+        return studentConflictsSum;
+    }
+    
+    public int countCommittedStudentConflicts(Placement value) {
+        int studentConflictsSum = 0;
+        if (!isSingleSection())
+            return 0;
+        for (JenrlConstraint jenrl : jenrlConstraints()) {
+            if (!jenrl.areStudentConflictsCommitted())
+                continue;
+            studentConflictsSum += jenrl.jenrl(this, value);
+        }
+        return studentConflictsSum;
+    }
+
     public int countHardStudentConflictsOfTheSameProblem(Placement value) {
         int studentConflictsSum = 0;
         for (JenrlConstraint jenrl : jenrlConstraints()) {

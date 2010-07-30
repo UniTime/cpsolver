@@ -110,6 +110,7 @@ public class ClassLimitConstraint extends Constraint<Lecture, Placement> {
     public void computeAdepts(Collection<Placement> adepts, List<Lecture> variables, Placement value,
             Set<Placement> conflicts) {
         for (Lecture lecture : variables) {
+            if (lecture.isCommitted()) continue;
             Placement placement = lecture.getAssignment();
             if (placement != null && !placement.equals(value) && !conflicts.contains(placement)) {
                 adepts.add(placement);
@@ -125,7 +126,7 @@ public class ClassLimitConstraint extends Constraint<Lecture, Placement> {
     }
 
     public void addParentAdepts(Collection<Placement> adepts, Lecture parent, Placement value, Set<Placement> conflicts) {
-        if (parent == null)
+        if (parent == null || parent.isCommitted() || parent.minClassLimit() == parent.maxClassLimit())
             return;
         Placement placement = parent.getAssignment();
         if (placement != null && !placement.equals(value) && !conflicts.contains(placement)) {
