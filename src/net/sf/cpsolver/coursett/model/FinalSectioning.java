@@ -148,16 +148,16 @@ public class FinalSectioning implements Runnable {
                 Move m = findAwayMove(lecture);
                 if (m == null)
                     break;
-                lecturesToRecompute.add(m.secondLecture());
-                m.perform();
+                if (m.perform())
+                    lecturesToRecompute.add(m.secondLecture());
             }
         } else if (!iWeighStudents) {
             while (true) {
                 Move m = findAwayMove(lecture);
                 if (m == null)
                     break;
-                lecturesToRecompute.add(m.secondLecture());
-                m.perform();
+                if (m.perform())
+                    lecturesToRecompute.add(m.secondLecture());
             }
         }
 
@@ -172,8 +172,8 @@ public class FinalSectioning implements Runnable {
                     continue;
                 Move m = findMove(lecture, student);
                 if (m != null) {
-                    lecturesToRecompute.add(m.secondLecture());
-                    m.perform();
+                    if (m.perform())
+                        lecturesToRecompute.add(m.secondLecture());
                 }
             }
         } else {
@@ -197,8 +197,8 @@ public class FinalSectioning implements Runnable {
             MoveBetweenCfgs m = findMove(configuration, student);
 
             if (m != null) {
-                lecturesToRecompute.addAll(m.secondLectures());
-                m.perform();
+                if (m.perform())
+                    lecturesToRecompute.addAll(m.secondLectures());
             }
         }
     }
@@ -480,7 +480,8 @@ public class FinalSectioning implements Runnable {
             return iChildMoves;
         }
 
-        public void perform() {
+        public boolean perform() {
+            long conflicts = ((TimetableModel)firstLecture().getModel()).getViolatedStudentConflicts();
             for (Lecture lecture : firstStudent().getLectures()) {
                 if (lecture.equals(firstLecture()))
                     continue;
@@ -558,6 +559,7 @@ public class FinalSectioning implements Runnable {
                 }
             }
             // sLogger.debug("Solution after swap is "+iModel.getInfo()+".");
+            return (((TimetableModel)firstLecture().getModel()).getViolatedStudentConflicts() < conflicts);
         }
 
         public double getDelta() {
@@ -777,7 +779,8 @@ public class FinalSectioning implements Runnable {
             return iSecondLectures;
         }
 
-        public void perform() {
+        public boolean perform() {
+            long conflicts = ((TimetableModel)firstLectures().iterator().next().getModel()).getViolatedStudentConflicts();
             firstStudent().removeConfiguration(firstConfiguration());
             firstStudent().addConfiguration(secondConfiguration());
             for (Lecture lecture : firstStudent().getLectures()) {
@@ -886,6 +889,7 @@ public class FinalSectioning implements Runnable {
                     }
                 }
             }
+            return (((TimetableModel)firstLectures().iterator().next().getModel()).getViolatedStudentConflicts() < conflicts);
         }
 
         public double getDelta() {
