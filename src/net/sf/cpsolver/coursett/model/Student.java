@@ -41,6 +41,7 @@ public class Student implements Comparable<Student> {
     Hashtable<Long, Set<Lecture>> iCanNotEnrollSections = null;
     Hashtable<Student, Double> iDistanceCache = null;
     HashSet<Placement> iCommitedPlacements = null;
+    private String iAcademicArea = null, iAcademicClassification = null, iMajor = null, iCurriculum = null;
 
     public Student(Long studentId) {
         iStudentId = studentId;
@@ -256,5 +257,37 @@ public class Student implements Comparable<Student> {
 
     public double avg(double w1, double w2) {
         return Math.sqrt(w1 * w2);
+    }
+    
+    public String getAcademicArea() {
+        return iAcademicArea;
+    }
+    
+    public void setAcademicArea(String acadArea) {
+        iAcademicArea = acadArea;
+    }
+    
+    public String getAcademicClassification() {
+        return iAcademicClassification;
+    }
+    
+    public void setAcademicClassification(String acadClasf) {
+        iAcademicClassification = acadClasf;
+    }
+    
+    public String getMajor() {
+        return iMajor;
+    }
+    
+    public void setMajor(String major) {
+        iMajor = major;
+    }
+    
+    public String getCurriculum() {
+        return iCurriculum;
+    }
+    
+    public void setCurriculum(String curriculum) {
+        iCurriculum = curriculum;
     }
 }
