@@ -751,7 +751,7 @@ public class TimetableXMLLoader extends TimetableLoader {
             iProgress.incProgress();
         }
         
-        if (getModel().constantVariables().size() > 0) {
+        if (getModel().hasConstantVariables() && getModel().constantVariables().size() > 0) {
             iProgress.setPhase("Assigning committed classes ...", assignedPlacements.size());
             for (Map.Entry<Lecture, Placement> entry : assignedPlacements.entrySet()) {
                 Lecture lecture = entry.getKey();
