@@ -310,10 +310,11 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
         for (Lecture lecture : assignedVariables()) {
             commitedStudentConflicts += lecture.getCommitedConflicts(lecture.getAssignment());
         }
-        for (Lecture lecture : constantVariables()) {
-            if (lecture.getAssignment() != null)
-                commitedStudentConflicts += lecture.getCommitedConflicts(lecture.getAssignment());
-        }
+        if (hasConstantVariables())
+            for (Lecture lecture : constantVariables()) {
+                if (lecture.getAssignment() != null)
+                    commitedStudentConflicts += lecture.getCommitedConflicts(lecture.getAssignment());
+            }
         if (includeJenrl)
             for (JenrlConstraint jenrl : iJenrlConstraints) {
                 if (jenrl.isInConflict() && jenrl.areStudentConflictsCommitted())
