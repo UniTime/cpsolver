@@ -135,6 +135,15 @@ public class Choice {
     public String getInstructorNames() {
         return iInstructorNames;
     }
+    
+    /**
+     * Set instructor(s) id and name of the choice, can be null if the section has no
+     * instructor assigned
+     */
+    public void setInstructor(String instructorIds, String instructorNames) {
+        iInstructorIds = instructorIds;
+        iInstructorNames = instructorNames;
+    }
 
     /**
      * Choice id combined from instructionalType, time and instructorIds in the
