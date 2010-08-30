@@ -122,6 +122,11 @@ public class Section implements Assignment, Comparable<Section> {
     public String getName() {
         return iName;
     }
+    
+    /** Set section name */
+    public void setName(String name) {
+        iName = name;
+    }
 
     /** Scheduling subpart to which this section belongs */
     public Subpart getSubpart() {
@@ -145,6 +150,14 @@ public class Section implements Assignment, Comparable<Section> {
      */
     public Placement getPlacement() {
         return iPlacement;
+    }
+    
+    /**
+     * Set time/room placement of the section. This can be null, for arranged
+     * sections.
+     */
+    public void setPlacement(Placement placement) {
+        iPlacement = placement;
     }
 
     /** Time placement of the section. */
