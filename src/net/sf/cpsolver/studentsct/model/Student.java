@@ -3,6 +3,8 @@ package net.sf.cpsolver.studentsct.model;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.sf.cpsolver.coursett.model.TimeLocation;
+
 
 /**
  * Representation of a student. Each student contains id, and a list of
@@ -219,5 +221,34 @@ public class Student {
     @Override
     public int hashCode() {
         return (int) (iId ^ (iId >>> 32));
+    }
+    
+    /**
+     * Count number of free time slots overlapping with the given enrollment
+     */
+    public int countFreeTimeOverlaps(Enrollment enrollment) {
+        if (!enrollment.isCourseRequest()) return 0;
+        int ret = 0;
+        for (Section section: enrollment.getSections()) {
+            TimeLocation time = section.getTime();
+            if (time != null)
+                ret += countFreeTimeOverlaps(time);
+        }
+        return ret;
+    }
+    
+    /**
+     * Count number of free time slots overlapping with the given time
+     */
+    public int countFreeTimeOverlaps(TimeLocation time) {
+        int ret = 0;
+        for (Request r: iRequests) {
+            if (r instanceof FreeTimeRequest) {
+                TimeLocation freeTime = ((FreeTimeRequest)r).getTime();
+                if (time.hasIntersection(freeTime))
+                    ret += freeTime.nrSharedHours(time) * freeTime.nrSharedDays(time);
+            }
+        }
+        return ret;
     }
 }
