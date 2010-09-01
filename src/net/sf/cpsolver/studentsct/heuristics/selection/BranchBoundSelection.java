@@ -225,7 +225,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             int nrAssigned = 0;
             for (int i = 0; i < iBestAssignment.length; i++)
                 if (iBestAssignment[i] != null)
-                    nrAssigned++;
+                    nrAssigned += (iBestAssignment[i].isCourseRequest() ? 10 : 1);
             return nrAssigned;
         }
 
@@ -235,21 +235,22 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             int i = 0, alt = 0;
             for (Iterator<Request> e = iStudent.getRequests().iterator(); e.hasNext(); i++) {
                 Request r = e.next();
+                boolean cr = r instanceof CourseRequest;
                 if (i < idx) {
                     if (iAssignment[i] != null)
-                        bound++;
+                        bound += (cr ? 10 : 1);
                     if (r.isAlternative()) {
-                        if (iAssignment[i] != null || (r instanceof CourseRequest && ((CourseRequest) r).isWaitlist()))
+                        if (iAssignment[i] != null || (cr && ((CourseRequest) r).isWaitlist()))
                             alt--;
                     } else {
-                        if (r instanceof CourseRequest && !((CourseRequest) r).isWaitlist() && iAssignment[i] == null)
+                        if (cr && !((CourseRequest) r).isWaitlist() && iAssignment[i] == null)
                             alt++;
                     }
                 } else {
                     if (!r.isAlternative())
-                        bound++;
+                        bound += (cr ? 10 : 1);
                     else if (alt > 0) {
-                        bound++;
+                        bound += (cr ? 10 : 1);
                         alt--;
                     }
                 }
@@ -410,7 +411,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             int assigned = 0;
             for (int i = 0; i < iAssignment.length; i++)
                 if (iAssignment[i] != null)
-                    assigned++;
+                    assigned += (iAssignment[i].isCourseRequest() ? 10 : 1);
             return assigned;
         }
 
