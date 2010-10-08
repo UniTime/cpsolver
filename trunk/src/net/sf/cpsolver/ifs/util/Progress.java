@@ -77,6 +77,7 @@ public class Progress {
     private List<ProgressListener> iListeners = new ArrayList<ProgressListener>(5);
     private List<Object[]> iSave = new ArrayList<Object[]>(5);
     private List<Message> iLog = new ArrayList<Message>(1000);
+    private boolean iDisposed = false;
 
     private static Hashtable<Object, Progress> sInstances = new Hashtable<Object, Progress>();
 
@@ -113,6 +114,7 @@ public class Progress {
         Progress progress = sInstances.get(key);
         if (progress != null) {
             progress.iListeners.clear();
+            progress.iDisposed = true;
             sInstances.remove(key);
         }
     }
@@ -231,6 +233,7 @@ public class Progress {
 
     /** Prints a message */
     public void message(int level, String message, Throwable t) {
+        if (iDisposed) throw new RuntimeException("This solver is killed.");
         Message m = new Message(level, message, t);
         switch (level) {
             case MSGLEVEL_TRACE:
