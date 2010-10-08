@@ -1,9 +1,14 @@
 package net.sf.cpsolver.ifs.util;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadMXBean;
+
 /**
- * CPU time measurement. JAVA profiling extension is used. Java needs to be
+ * CPU time measurement. <s>JAVA profiling extension is used. Java needs to be
  * executed with -Xrunjprof. When the java is executed outside this profiler,
- * {@link System#currentTimeMillis()} is used.
+ * {@link System#currentTimeMillis()} is used.</s> Using {@link ThreadMXBean}
+ * to get the current thread CPU time, if supported. Using {@link System#nanoTime()} 
+ * otherwise.
  * 
  * @version IFS 1.2 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2010 Tomas Muller<br>
@@ -26,45 +31,38 @@ package net.sf.cpsolver.ifs.util;
  *          02110-1301 USA
  */
 public class JProf {
-    private static boolean sPrecise = true;
-
-    /** Current CPU time of this thread in seconds */
-    public static double currentTimeSec() {
-        return (sPrecise ? (getCurrentThreadCpuTime()) / 1e9 : (System.currentTimeMillis()) / 1e3);
-    }
-
-    /**
-     * Measurement is based on profiler extension (precise CPU time is
-     * returned). If false, {@link System#currentTimeMillis()} is used in
-     * {@link JProf#currentTimeSec()}.
-     */
-    public static boolean isPrecise() {
-        return sPrecise;
-    }
-
-    /**
-     * Current CPU time of this thread (will fail when jprof is not loaded). Use
-     * {@link JProf#currentTimeSec()}.
-     */
-    public static native long getCurrentThreadCpuTime();
-
+    /** Enable the thread CPU timing, if needed */
     static {
         try {
-            System.loadLibrary("jprof");
-            if (getCurrentThreadCpuTime() == 0l) {
-                int j = 0;
-                for (int i = 0; i < 10000000; i++)
-                    j += i;
-                if (getCurrentThreadCpuTime() == 0l) {
-                    sPrecise = false;
-                    org.apache.log4j.Logger.getLogger(JProf.class).warn(
-                            "Unable to mesure time in precise -- using System.currentTimeMillis().");
-                }
-            }
-        } catch (Throwable e) {
-            org.apache.log4j.Logger.getLogger(JProf.class).warn(
-                    "Unable to mesure time in precise -- using System.currentTimeMillis().");
-            sPrecise = false;
+            ThreadMXBean bean = ManagementFactory.getThreadMXBean();
+            if (bean.isCurrentThreadCpuTimeSupported() && !bean.isThreadCpuTimeEnabled())
+                bean.setThreadCpuTimeEnabled(true);
+        } catch (UnsupportedOperationException e) {}
+    }
+    
+    /** Current CPU (user) time of this thread in seconds */
+    public static double currentTimeSec() {
+        try {
+            ThreadMXBean bean = ManagementFactory.getThreadMXBean();
+            if (bean.isCurrentThreadCpuTimeSupported() && bean.isThreadCpuTimeEnabled())
+                return bean.getCurrentThreadUserTime() / 1e9;
+            else
+                return System.nanoTime() / 1e9;
+        } catch (UnsupportedOperationException e) {
+            return System.nanoTime() / 1e9;
+        }
+    }
+    
+    /** Current CPU (user) time of this thread in milliseconds */
+    public static long currentTimeMillis() {
+        try {
+            ThreadMXBean bean = ManagementFactory.getThreadMXBean();
+            if (bean.isCurrentThreadCpuTimeSupported() && bean.isThreadCpuTimeEnabled())
+                return bean.getCurrentThreadUserTime() / 1000000;
+            else
+                return System.currentTimeMillis();
+        } catch (UnsupportedOperationException e) {
+            return System.currentTimeMillis();
         }
     }
 }
