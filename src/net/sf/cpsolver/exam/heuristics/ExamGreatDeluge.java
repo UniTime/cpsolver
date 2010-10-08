@@ -15,6 +15,7 @@ import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solution.SolutionListener;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.JProf;
 import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
@@ -118,7 +119,7 @@ public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>,
     /** Print some information */
     protected void info(Solution<Exam, ExamPlacement> solution) {
         sLog.info("Iter=" + iIter / 1000 + "k, NonImpIter=" + sDF2.format((iIter - iLastImprovingIter) / 1000.0)
-                + "k, Speed=" + sDF2.format(1000.0 * iIter / (System.currentTimeMillis() - iT0)) + " it/s");
+                + "k, Speed=" + sDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s");
         sLog.info("Bound is " + sDF2.format(iBound) + ", " + "best value is " + sDF2.format(solution.getBestValue())
                 + " (" + sDF2.format(100.0 * iBound / solution.getBestValue()) + "%), " + "current value is "
                 + sDF2.format(solution.getModel().getTotalValue()) + " ("
@@ -150,7 +151,7 @@ public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>,
         if (iIter < 0) {
             iIter = 0;
             iLastImprovingIter = 0;
-            iT0 = System.currentTimeMillis();
+            iT0 = JProf.currentTimeMillis();
             iBound = (solution.getBestValue() > 0.0 ? iUpperBoundRate * solution.getBestValue() : solution
                     .getBestValue()
                     / iUpperBoundRate);

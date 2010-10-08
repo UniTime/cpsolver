@@ -6,6 +6,8 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.TreeSet;
 
+import net.sf.cpsolver.ifs.util.JProf;
+
 /**
  * A test class to demonstrate and compare different online sectioning
  * approaches. It assumes only a single course with just one instructional type
@@ -585,8 +587,8 @@ public class OnlineSectProof {
         }
         long nrCases = 0;
         System.out.println("N=" + sDF.format(Math.pow(sq.base(), sq.size())));
-        long t0 = System.currentTimeMillis();
-        long mark = System.currentTimeMillis();
+        long t0 = JProf.currentTimeMillis();
+        long mark = t0;
         long nc = 0, hc = 0;
         do {
             // System.out.println(sq+" (cat="+sq.cat()+", check="+sq.check()+")");
@@ -634,7 +636,7 @@ public class OnlineSectProof {
             }
             nc++;
             if ((nc % 1000000) == 0) {
-                mark = System.currentTimeMillis();
+                mark = JProf.currentTimeMillis();
                 double progress = sq.progress();
                 double exp = ((1.0 - progress) / progress) * (mark - t0);
                 System.out.println("  " + sDF.format(100.0 * progress) + "% done in "

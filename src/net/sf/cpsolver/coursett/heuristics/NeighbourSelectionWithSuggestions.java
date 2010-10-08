@@ -17,6 +17,7 @@ import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.JProf;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
@@ -115,7 +116,7 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
 
             Vector<Lecture> initialLectures = new Vector<Lecture>(1);
             initialLectures.add(lecture);
-            backtrack(System.currentTimeMillis(), initialLectures, new ArrayList<Lecture>(),
+            backtrack(JProf.currentTimeMillis(), initialLectures, new ArrayList<Lecture>(),
                     new Hashtable<Lecture, Placement>(), depth);
 
             // System.out.println("AFTER  BT ("+lecture.getName()+"): nrAssigned="+iSolution.getModel().assignedVariables().size()+",  value="+iCmp.currentValue(iSolution));
@@ -149,7 +150,7 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
         }
         if (depth <= 0)
             return;
-        if (iSuggestionTimeout > 0 && System.currentTimeMillis() - startTime > iSuggestionTimeout) {
+        if (iSuggestionTimeout > 0 && JProf.currentTimeMillis() - startTime > iSuggestionTimeout) {
             return;
         }
         for (Enumeration<Lecture> e1 = (initialLectures != null && !initialLectures.isEmpty() ? initialLectures
