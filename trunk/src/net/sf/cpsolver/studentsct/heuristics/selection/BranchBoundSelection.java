@@ -11,6 +11,7 @@ import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.JProf;
 import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
@@ -187,14 +188,14 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
          * selected student.
          */
         public BranchBoundNeighbour select() {
-            iT0 = System.currentTimeMillis();
+            iT0 = JProf.currentTimeMillis();
             iTimeoutReached = false;
             iAssignment = new Enrollment[iStudent.getRequests().size()];
             iBestAssignment = null;
             iBestValue = 0;
             iValues = new Hashtable<CourseRequest, List<Enrollment>>();
             backTrack(0);
-            iT1 = System.currentTimeMillis();
+            iT1 = JProf.currentTimeMillis();
             if (iBestAssignment == null)
                 return null;
             return new BranchBoundNeighbour(iBestValue, iBestAssignment);
@@ -424,7 +425,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         public void backTrack(int idx) {
             if (sDebug)
                 sLog.debug("backTrack(" + getNrAssigned() + "/" + getValue() + "," + idx + ")");
-            if (iTimeout > 0 && (System.currentTimeMillis() - iT0) > iTimeout) {
+            if (iTimeout > 0 && (JProf.currentTimeMillis() - iT0) > iTimeout) {
                 if (sDebug)
                     sLog.debug("  -- timeout reached");
                 iTimeoutReached = true;

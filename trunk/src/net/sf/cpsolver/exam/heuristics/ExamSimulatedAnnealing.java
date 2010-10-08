@@ -16,6 +16,7 @@ import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solution.SolutionListener;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.JProf;
 import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
@@ -175,7 +176,7 @@ public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlac
     protected void cool(Solution<Exam, ExamPlacement> solution) {
         iTemperature *= iCoolingRate;
         sLog.info("Iter=" + iIter / 1000 + "k, NonImpIter=" + sDF2.format((iIter - iLastImprovingIter) / 1000.0)
-                + "k, Speed=" + sDF2.format(1000.0 * iIter / (System.currentTimeMillis() - iT0)) + " it/s");
+                + "k, Speed=" + sDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s");
         sLog.info("Temperature decreased to " + sDF5.format(iTemperature) + " " + "(#moves=" + iMoves + ", rms(value)="
                 + sDF2.format(Math.sqrt(iAbsValue / iMoves)) + ", " + "accept=-"
                 + sDF2.format(100.0 * iAcceptIter[0] / iTemperatureLength) + "/"
@@ -195,7 +196,7 @@ public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlac
     protected void reheat(Solution<Exam, ExamPlacement> solution) {
         iTemperature *= iReheatRate;
         sLog.info("Iter=" + iIter / 1000 + "k, NonImpIter=" + sDF2.format((iIter - iLastImprovingIter) / 1000.0)
-                + "k, Speed=" + sDF2.format(1000.0 * iIter / (System.currentTimeMillis() - iT0)) + " it/s");
+                + "k, Speed=" + sDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s");
         sLog.info("Temperature increased to " + sDF5.format(iTemperature) + " "
                 + (prob(-1) < 1.0 ? "p(-1)=" + sDF2.format(100.0 * prob(-1)) + "%, " : "") + "p(+1)="
                 + sDF2.format(100.0 * prob(1)) + "%, " + "p(+10)=" + sDF5.format(100.0 * prob(10)) + "%, " + "p(+100)="
@@ -265,7 +266,7 @@ public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlac
      */
     protected void incIter(Solution<Exam, ExamPlacement> solution) {
         if (iT0 < 0)
-            iT0 = System.currentTimeMillis();
+            iT0 = JProf.currentTimeMillis();
         iIter++;
         if (iIter > iLastImprovingIter + iRestoreBestLength)
             restoreBest(solution);

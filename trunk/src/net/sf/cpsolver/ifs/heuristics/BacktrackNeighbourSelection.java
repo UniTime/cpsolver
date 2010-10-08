@@ -15,6 +15,7 @@ import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.JProf;
 
 import org.apache.log4j.Logger;
 
@@ -131,7 +132,7 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
         iBackTrackNeighbour = null;
         iValue = solution.getModel().getTotalValue();
         iNrAssigned = solution.getModel().assignedVariables().size();
-        iT0 = System.currentTimeMillis();
+        iT0 = JProf.currentTimeMillis();
         iNrIters = 0;
         iTimeoutReached = false;
         iMaxItersReached = false;
@@ -152,7 +153,7 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
                         + iSolution.getModel().getTotalValue());
         }
 
-        iT1 = System.currentTimeMillis();
+        iT1 = JProf.currentTimeMillis();
 
         if (sLog.isDebugEnabled())
             sLog.debug("-- selected neighbour: " + iBackTrackNeighbour);
@@ -249,7 +250,7 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
     protected void backtrack(List<V> variables2resolve, int idx, int depth) {
         if (sLog.isDebugEnabled())
             sLog.debug("  -- bt[" + depth + "]: " + idx + " of " + variables2resolve.size() + " " + variables2resolve);
-        if (!iTimeoutReached && iTimeout > 0 && System.currentTimeMillis() - iT0 > iTimeout)
+        if (!iTimeoutReached && iTimeout > 0 && JProf.currentTimeMillis() - iT0 > iTimeout)
             iTimeoutReached = true;
         if (!iMaxItersReached && iMaxIters > 0 && iNrIters++ > iMaxIters)
             iMaxItersReached = true;
