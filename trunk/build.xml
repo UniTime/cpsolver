@@ -233,7 +233,6 @@
 			<fileset dir="${src.dir}">
 				<include name="**/*.java"/>
 				<include name="**/*.html"/>
-				<include name="**/*.cc"/>
 			</fileset>
 		</copy>
         <replace file="${build.dir}/net/sf/cpsolver/ifs/Constants.java">
@@ -252,22 +251,7 @@
         </replace>
 	</target>
 	
-	<target name="jprof">
-		<exec executable="nmake">
-			<arg line="jprof.mak"/>
-		</exec>
-		<copy todir="${dist-lib.dir}" file="jprof.dll"/>
-		<delete>
-			<fileset dir=".">
-				<include name="*.dll"/>
-				<include name="*.exp"/>
-				<include name="*.lib"/>
-				<include name="*.obj"/>
-			</fileset>
-		</delete>
-	</target>
-	
-	<target name="dist" depends="clean,prepare,compile-java,compile-jar,copy-libs,src,doc,jprof,done">
+	<target name="dist" depends="clean,prepare,compile-java,compile-jar,copy-libs,src,doc,done">
         <delete dir="${dist.dir}/lib" failonerror="false"/>
         <mkdir dir="${dist.dir}/lib"/>
 		<copy todir="${dist.dir}/lib" overwrite="Yes" preservelastmodified="Yes">
@@ -294,30 +278,5 @@
 		</zip>
 	</target>
 
-	<target name="dist-nojprof" depends="clean,prepare,compile-java,compile-jar,copy-libs,src,doc,done">
-        <delete dir="${dist.dir}/lib" failonerror="false"/>
-        <mkdir dir="${dist.dir}/lib"/>
-		<copy todir="${dist.dir}/lib" overwrite="Yes" preservelastmodified="Yes">
-			<fileset dir="${lib.dir}">
-				<include name="**/*.jar"/>
-				<exclude name="servlet.jar"/>
-			</fileset>
-		</copy>
-		<copy todir="${dist-lib.dir}" overwrite="Yes" preservelastmodified="Yes">
-			<fileset dir="${lib.dir}">
-				<include name="**/*.dll"/>
-			</fileset>
-		</copy>
-		<zip destfile="${dist.dir}/cpsolver-1.2_bld${build.number}.zip">
-			<fileset dir="${dist.dir}">
-				<include name="bin/**/*"/>
-				<include name="doc/**/*"/>
-				<include name="src/**/*"/>
-				<include name="lib/**/*"/>
-			</fileset>
-        	<fileset dir="${base.dir}/..">
-        		<include name="lgpl.txt"/>
-        	</fileset>
-		</zip>
-	</target>
+	<target name="dist-nojprof" depends="dist"/>
 </project>
