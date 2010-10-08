@@ -40,12 +40,12 @@ public class JProf {
         } catch (UnsupportedOperationException e) {}
     }
     
-    /** Current CPU (user) time of this thread in seconds */
+    /** Current CPU time of this thread in seconds */
     public static double currentTimeSec() {
         try {
             ThreadMXBean bean = ManagementFactory.getThreadMXBean();
             if (bean.isCurrentThreadCpuTimeSupported() && bean.isThreadCpuTimeEnabled())
-                return bean.getCurrentThreadUserTime() / 1e9;
+                return bean.getCurrentThreadCpuTime() / 1e9;
             else
                 return System.nanoTime() / 1e9;
         } catch (UnsupportedOperationException e) {
@@ -53,12 +53,12 @@ public class JProf {
         }
     }
     
-    /** Current CPU (user) time of this thread in milliseconds */
+    /** Current CPU time of this thread in milliseconds */
     public static long currentTimeMillis() {
         try {
             ThreadMXBean bean = ManagementFactory.getThreadMXBean();
             if (bean.isCurrentThreadCpuTimeSupported() && bean.isThreadCpuTimeEnabled())
-                return bean.getCurrentThreadUserTime() / 1000000;
+                return bean.getCurrentThreadCpuTime() / 1000000;
             else
                 return System.currentTimeMillis();
         } catch (UnsupportedOperationException e) {
