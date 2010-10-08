@@ -11,6 +11,7 @@ import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.JProf;
 import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.heuristics.studentord.StudentChoiceRealFirstOrder;
@@ -189,12 +190,12 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
         public SwapStudentNeighbour select() {
             if (sDebug)
                 sLog.debug("select(S" + iStudent.getId() + ")");
-            iT0 = System.currentTimeMillis();
+            iT0 = JProf.currentTimeMillis();
             iTimeoutReached = false;
             iBestEnrollment = null;
             iProblemStudents = new HashSet<Student>();
             for (Request request : iStudent.getRequests()) {
-                if (iTimeout > 0 && (System.currentTimeMillis() - iT0) > iTimeout) {
+                if (iTimeout > 0 && (JProf.currentTimeMillis() - iT0) > iTimeout) {
                     if (!iTimeoutReached) {
                         if (sDebug)
                             sLog.debug("  -- timeout reached");
@@ -214,7 +215,7 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
                 } else
                     values = request.values();
                 for (Enrollment enrollment : values) {
-                    if (iTimeout > 0 && (System.currentTimeMillis() - iT0) > iTimeout) {
+                    if (iTimeout > 0 && (JProf.currentTimeMillis() - iT0) > iTimeout) {
                         if (!iTimeoutReached) {
                             if (sDebug)
                                 sLog.debug("  -- timeout reached");
@@ -255,7 +256,7 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
                     }
                 }
             }
-            iT1 = System.currentTimeMillis();
+            iT1 = JProf.currentTimeMillis();
             if (sDebug)
                 sLog.debug("  -- done, best enrollment is " + iBestEnrollment);
             if (iBestEnrollment == null) {
