@@ -59,6 +59,7 @@ import net.sf.cpsolver.ifs.util.Progress;
 public class ExamNeighbourSelection implements NeighbourSelection<Exam, ExamPlacement>,
         TerminationCondition<Exam, ExamPlacement> {
     private static Logger sLog = Logger.getLogger(ExamNeighbourSelection.class);
+    private ExamColoringConstruction iColor = null;
     private ExamConstruction iCon = null;
     private StandardNeighbourSelection<Exam, ExamPlacement> iStd = null;
     private ExamSimulatedAnnealing iSA = null;
@@ -79,6 +80,8 @@ public class ExamNeighbourSelection implements NeighbourSelection<Exam, ExamPlac
      *            problem properties
      */
     public ExamNeighbourSelection(DataProperties properties) {
+        if (properties.getPropertyBoolean("Exam.ColoringConstruction", true))
+            iColor = new ExamColoringConstruction(properties);
         iCon = new ExamConstruction(properties);
         try {
             iStd = new StandardNeighbourSelection<Exam, ExamPlacement>(properties);
@@ -99,6 +102,8 @@ public class ExamNeighbourSelection implements NeighbourSelection<Exam, ExamPlac
      * Initialization
      */
     public void init(Solver<Exam, ExamPlacement> solver) {
+        if (iColor != null)
+            iColor.init(solver);
         iCon.init(solver);
         iStd.init(solver);
         iSA.init(solver);
@@ -133,6 +138,10 @@ public class ExamNeighbourSelection implements NeighbourSelection<Exam, ExamPlac
             case -1:
                 iPhase++;
                 sLog.info("***** construction phase *****");
+                if (iColor != null) {
+                    n = iColor.selectNeighbour(solution);
+                    if (n != null) return n;
+                }
             case 0:
                 n = iCon.selectNeighbour(solution);
                 if (n != null)
