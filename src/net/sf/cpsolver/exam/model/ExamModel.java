@@ -2099,7 +2099,7 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
                 else if ("distanceBackToBackConflictWeight".equals(name))
                     setDistanceBackToBackConflictWeight(Double.parseDouble(value));
                 else if ("backToBackDistance".equals(name))
-                    setBackToBackDistance(Integer.parseInt(value));
+                    setBackToBackDistance(Double.parseDouble(value));
                 else if ("maxRooms".equals(name))
                     setMaxRooms(Integer.parseInt(value));
                 else if ("periodWeight".equals(name))
@@ -2192,11 +2192,15 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
         for (Iterator<?> i = root.element("exams").elementIterator("exam"); i.hasNext();) {
             Element e = (Element) i.next();
             ArrayList<ExamPeriodPlacement> periodPlacements = new ArrayList<ExamPeriodPlacement>();
+            for (ExamPeriod p: getPeriods()) {
+                periodPlacements.add(new ExamPeriodPlacement(p, 0));
+            }
+            /*
             for (Iterator<?> j = e.elementIterator("period"); j.hasNext();) {
                 Element pe = (Element) j.next();
                 periodPlacements.add(new ExamPeriodPlacement(getPeriod(Long.valueOf(pe.attributeValue("id"))), Integer
                         .parseInt(pe.attributeValue("penalty", "0"))));
-            }
+            }*/
             ArrayList<ExamRoomPlacement> roomPlacements = new ArrayList<ExamRoomPlacement>();
             for (Iterator<?> j = e.elementIterator("room"); j.hasNext();) {
                 Element re = (Element) j.next();
