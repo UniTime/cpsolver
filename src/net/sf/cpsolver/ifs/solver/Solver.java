@@ -680,5 +680,10 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
             iSolverThread = null;
         }
     }
+    
+    /** Return true if {@link Solver#stopSolver()} was called */
+    public boolean isStop() {
+        return iStop;
+    }
 
 }
