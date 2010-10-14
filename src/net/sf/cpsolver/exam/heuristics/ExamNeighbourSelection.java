@@ -80,7 +80,7 @@ public class ExamNeighbourSelection implements NeighbourSelection<Exam, ExamPlac
      *            problem properties
      */
     public ExamNeighbourSelection(DataProperties properties) {
-        if (properties.getPropertyBoolean("Exam.ColoringConstruction", true))
+        if (properties.getPropertyBoolean("Exam.ColoringConstruction", false))
             iColor = new ExamColoringConstruction(properties);
         iCon = new ExamConstruction(properties);
         try {
