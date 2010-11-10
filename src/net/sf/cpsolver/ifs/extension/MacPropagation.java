@@ -22,7 +22,7 @@ import net.sf.cpsolver.ifs.util.Progress;
  * MAC propagation. <br>
  * <br>
  * During the arc consistency maintenance, when a value is deleted from a
- * variable’s domain, the reason (forming an explanation) can be computed and
+ * variableï¿½s domain, the reason (forming an explanation) can be computed and
  * attached to the deleted value. Once a variable (say Vx with the assigned
  * value vx) is unassigned during the search, all deleted values which contain a
  * pair Vx = vx in their explanations need to be recomputed. Such value can be
@@ -38,7 +38,7 @@ import net.sf.cpsolver.ifs.util.Progress;
  * variables to unassigned variables are revised), computing explanations is
  * rather easy. A value vx is deleted from the domain of the variable Vx only if
  * there is a constraint which prohibits the assignment Vx=vx because of the
- * existing assignments (e.g., Vy = vy, … Vz = vz). An explanation for the
+ * existing assignments (e.g., Vy = vy, ï¿½ Vz = vz). An explanation for the
  * deletion of this value vx is then Vx != vx &#8592; (Vy = vy & ... Vz = vz),
  * where Vy = vy & ... Vz = vz are assignments contained in the prohibiting
  * constraint. In case of arc consistency, a value vx is deleted from the domain
@@ -60,7 +60,7 @@ import net.sf.cpsolver.ifs.util.Progress;
  * variable = value. It means that explanations of all values which were deleted
  * and which contain assignment variable = value in their explanations need to
  * be recomputed. This can be done via returning all these values into their
- * variables’ domains followed by arc consistency maintenance over their
+ * variablesï¿½ domains followed by arc consistency maintenance over their
  * variables. <br>
  * <br>
  * Parameters:
@@ -81,11 +81,11 @@ import net.sf.cpsolver.ifs.util.Progress;
  * @version IFS 1.2 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2010 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
- *          Lazenska 391, 76314 Zlin, Czech Republic<br>
+ *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>
  * <br>
  *          This library is free software; you can redistribute it and/or modify
  *          it under the terms of the GNU Lesser General Public License as
- *          published by the Free Software Foundation; either version 2.1 of the
+ *          published by the Free Software Foundation; either version 3 of the
  *          License, or (at your option) any later version. <br>
  * <br>
  *          This library is distributed in the hope that it will be useful, but
@@ -94,9 +94,7 @@ import net.sf.cpsolver.ifs.util.Progress;
  *          Lesser General Public License for more details. <br>
  * <br>
  *          You should have received a copy of the GNU Lesser General Public
- *          License along with this library; if not, write to the Free Software
- *          Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- *          02110-1301 USA
+ *          License along with this library; if not see <http://www.gnu.org/licenses/>.
  */
 public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> extends Extension<V, T> {
     private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(MacPropagation.class);

@@ -5,8 +5,7 @@
 	StudentSct 1.2 (Student Sectioning)
 	ExamTT 1.2 (Examination Timetabling)
 	Copyright (C) 2007 - 2010 Tomas Muller
-	muller@unitime.org
-	Lazenska 391, 76314 Zlin, Czech Republic
+	muller@unitime.org, http://muller.unitime.org
 	
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of the GNU Lesser General Public
@@ -19,8 +18,7 @@
 	Lesser General Public License for more details.
 
 	You should have received a copy of the GNU Lesser General Public
-	License along with this library; if not, write to the Free Software
-	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+	License along with this library; if not see <http://www.gnu.org/licenses/>.
 -->
     <property environment="env"/>
 
@@ -187,7 +185,7 @@
     		ExamTT 1.2 (Examination Timetabling)<br>
     		Copyright (C) 2006 - 2010 Tomas Muller<br>
     		<a href='mailto:muller@unitime.org'>muller@unitime.org</a><br>
-    		Lazenska 391, 76314 Zlin, Czech Republic<br>
+    		<a href='http://muller.unitime.org'>http://muller.unitime.org</a><br>
     		<br>
     		This library is free software; you can redistribute it and/or
     		modify it under the terms of the GNU Lesser General Public
@@ -200,8 +198,8 @@
     		Lesser General Public License for more details.
     		<br><br>
     		You should have received a copy of the GNU Lesser General Public
-    		License along with this library; if not, write to the Free Software
-    		Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    		License along with this library; if not see
+    		<a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
     		</td></tr></table>
    			]]></doctitle>
  	   	<group title="Iterative Forward Search" packages="net.sf.cpsolver.ifs*"/>
