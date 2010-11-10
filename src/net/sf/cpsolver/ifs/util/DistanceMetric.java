@@ -16,11 +16,11 @@ package net.sf.cpsolver.ifs.util;
  * @version IFS 1.2 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2010 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
- *          Lazenska 391, 76314 Zlin, Czech Republic<br>
+ *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>
  * <br>
  *          This library is free software; you can redistribute it and/or modify
  *          it under the terms of the GNU Lesser General Public License as
- *          published by the Free Software Foundation; either version 2.1 of the
+ *          published by the Free Software Foundation; either version 3 of the
  *          License, or (at your option) any later version. <br>
  * <br>
  *          This library is distributed in the hope that it will be useful, but
@@ -29,9 +29,7 @@ package net.sf.cpsolver.ifs.util;
  *          Lesser General Public License for more details. <br>
  * <br>
  *          You should have received a copy of the GNU Lesser General Public
- *          License along with this library; if not, write to the Free Software
- *          Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- *          02110-1301 USA
+ *          License along with this library; if not see <http://www.gnu.org/licenses/>.
  */
 public class DistanceMetric {
     public static enum Ellipsoid {
@@ -39,7 +37,7 @@ public class DistanceMetric {
         WGS84 ("WGS-84 (GPS)", 6378137, 6356752.3142, 1.0 / 298.257223563),
         GRS80 ("GRS-80", 6378137, 6356752.3141, 1.0 / 298.257222101),
         Airy1830 ("Airy (1830)", 6377563.396, 6356256.909, 1.0 / 299.3249646),
-        Intl1924 ("IntÕl 1924", 6378388, 6356911.946, 1.0 / 297),
+        Intl1924 ("Intï¿½l 1924", 6378388, 6356911.946, 1.0 / 297),
         Clarke1880 ("Clarke (1880)", 6378249.145, 6356514.86955, 1.0 / 293.465),
         GRS67 ("GRS-67", 6378160, 6356774.719, 1.0 / 298.25);
         
@@ -168,7 +166,7 @@ public class DistanceMetric {
           double sinAlpha = cosU1 * cosU2 * sinLambda / sinSigma;
           cosSqAlpha = 1 - sinAlpha*sinAlpha;
           cos2SigmaM = cosSigma - 2*sinU1*sinU2/cosSqAlpha;
-          if (Double.isNaN(cos2SigmaM)) cos2SigmaM = 0;  // equatorial line: cosSqAlpha=0 (¤6)
+          if (Double.isNaN(cos2SigmaM)) cos2SigmaM = 0;  // equatorial line: cosSqAlpha=0 (ï¿½6)
           double C = f/16*cosSqAlpha*(4+f*(4-3*cosSqAlpha));
           lambdaP = lambda;
           lambda = L + (1-C) * f * sinAlpha *
