@@ -1,14 +1,15 @@
 package net.sf.cpsolver.coursett.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.constraint.GroupConstraint;
 import net.sf.cpsolver.coursett.constraint.InstructorConstraint;
 import net.sf.cpsolver.coursett.constraint.SpreadConstraint;
 import net.sf.cpsolver.coursett.preference.PreferenceCombination;
 import net.sf.cpsolver.ifs.model.Value;
-import net.sf.cpsolver.ifs.util.ArrayList;
 import net.sf.cpsolver.ifs.util.DistanceMetric;
-import net.sf.cpsolver.ifs.util.List;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**

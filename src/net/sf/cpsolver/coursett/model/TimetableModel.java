@@ -1,8 +1,10 @@
 package net.sf.cpsolver.coursett.model;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -21,11 +23,9 @@ import net.sf.cpsolver.ifs.constant.ConstantModel;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.perturbations.PerturbationsCounter;
 import net.sf.cpsolver.ifs.solver.Solver;
-import net.sf.cpsolver.ifs.util.ArrayList;
 import net.sf.cpsolver.ifs.util.Counter;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.DistanceMetric;
-import net.sf.cpsolver.ifs.util.List;
 
 /**
  * Timetable model.

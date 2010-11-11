@@ -102,8 +102,8 @@ public class CourseRequest extends Request {
      * Return all possible enrollments.
      */
     @Override
-    public net.sf.cpsolver.ifs.util.List<Enrollment> computeEnrollments() {
-        net.sf.cpsolver.ifs.util.List<Enrollment> ret = new net.sf.cpsolver.ifs.util.ArrayList<Enrollment>();
+    public List<Enrollment> computeEnrollments() {
+        List<Enrollment> ret = new ArrayList<Enrollment>();
         int idx = 0;
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {

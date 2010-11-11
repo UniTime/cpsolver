@@ -1,16 +1,16 @@
 package net.sf.cpsolver.ifs.model;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
 
 import net.sf.cpsolver.ifs.solver.Solver;
-import net.sf.cpsolver.ifs.util.ArrayList;
-import net.sf.cpsolver.ifs.util.Collection;
-import net.sf.cpsolver.ifs.util.HashSet;
-import net.sf.cpsolver.ifs.util.List;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**

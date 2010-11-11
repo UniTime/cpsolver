@@ -1,6 +1,6 @@
 package net.sf.cpsolver.ifs.example.csp;
 
-import net.sf.cpsolver.ifs.model.*;
+import net.sf.cpsolver.ifs.model.Value;
 
 /**
  * CSP value.
