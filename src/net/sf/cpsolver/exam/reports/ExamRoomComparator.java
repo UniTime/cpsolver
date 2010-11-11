@@ -26,7 +26,8 @@ import net.sf.cpsolver.exam.model.ExamRoomPlacement;
  *          Lesser General Public License for more details. <br>
  * <br>
  *          You should have received a copy of the GNU Lesser General Public
- *          License along with this library; if not see <http://www.gnu.org/licenses/>.
+ *          License along with this library; if not see
+ *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class ExamRoomComparator implements Comparator<ExamRoomPlacement> {
     private boolean iAsc;
