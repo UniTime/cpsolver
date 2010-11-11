@@ -1,9 +1,9 @@
 package net.sf.cpsolver.coursett.model;
 
 import java.util.Collection;
-import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import net.sf.cpsolver.coursett.constraint.JenrlConstraint;
@@ -33,11 +33,11 @@ public class Student implements Comparable<Student> {
     private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(Student.class);
     public static boolean USE_DISTANCE_CACHE = false;
     Long iStudentId = null;
-    Hashtable<Long, Double> iOfferings = new Hashtable<Long, Double>();
+    HashMap<Long, Double> iOfferings = new HashMap<Long, Double>();
     Set<Lecture> iLectures = new HashSet<Lecture>();
     Set<Configuration> iConfigurations = new HashSet<Configuration>();
-    Hashtable<Long, Set<Lecture>> iCanNotEnrollSections = null;
-    Hashtable<Student, Double> iDistanceCache = null;
+    HashMap<Long, Set<Lecture>> iCanNotEnrollSections = null;
+    HashMap<Student, Double> iDistanceCache = null;
     HashSet<Placement> iCommitedPlacements = null;
     private String iAcademicArea = null, iAcademicClassification = null, iMajor = null, iCurriculum = null;
 
@@ -49,7 +49,7 @@ public class Student implements Comparable<Student> {
         iOfferings.put(offeringId, weight);
     }
 
-    public Hashtable<Long, Double> getOfferingsMap() {
+    public Map<Long, Double> getOfferingsMap() {
         return iOfferings;
     }
 
@@ -94,8 +94,7 @@ public class Student implements Comparable<Student> {
             }
         }
         if (lecture.hasAnyChildren()) {
-            for (Enumeration<Long> e = lecture.getChildrenSubpartIds(); e.hasMoreElements();) {
-                Long subpartId = e.nextElement();
+            for (Long subpartId: lecture.getChildrenSubpartIds()) {
                 boolean canEnrollChild = false;
                 for (Lecture childLecture : lecture.getChildren(subpartId)) {
                     if (canEnroll(canNotEnrollLectures, childLecture, false)) {
@@ -112,7 +111,7 @@ public class Student implements Comparable<Student> {
 
     public void addCanNotEnroll(Lecture lecture) {
         if (iCanNotEnrollSections == null)
-            iCanNotEnrollSections = new Hashtable<Long, Set<Lecture>>();
+            iCanNotEnrollSections = new HashMap<Long, Set<Lecture>>();
         if (lecture.getConfiguration() == null) {
             sLogger.warn("Student.addCanNotEnroll(" + lecture
                     + ") -- given lecture has no configuration associated with.");
@@ -130,7 +129,7 @@ public class Student implements Comparable<Student> {
         if (lectures == null || lectures.isEmpty())
             return;
         if (iCanNotEnrollSections == null)
-            iCanNotEnrollSections = new Hashtable<Long, Set<Lecture>>();
+            iCanNotEnrollSections = new HashMap<Long, Set<Lecture>>();
         Set<Lecture> canNotEnrollLectures = iCanNotEnrollSections.get(offeringId);
         if (canNotEnrollLectures == null) {
             canNotEnrollLectures = new HashSet<Lecture>();
@@ -139,7 +138,7 @@ public class Student implements Comparable<Student> {
         canNotEnrollLectures.addAll(lectures);
     }
 
-    public Hashtable<Long, Set<Lecture>> canNotEnrollSections() {
+    public Map<Long, Set<Lecture>> canNotEnrollSections() {
         return iCanNotEnrollSections;
     }
 
@@ -184,7 +183,7 @@ public class Student implements Comparable<Student> {
             dist = new Double(dif / all);
             if (USE_DISTANCE_CACHE) {
                 if (iDistanceCache == null)
-                    iDistanceCache = new Hashtable<Student, Double>();
+                    iDistanceCache = new HashMap<Student, Double>();
                 iDistanceCache.put(student, dist);
             }
         }

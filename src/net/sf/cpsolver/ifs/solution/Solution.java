@@ -2,9 +2,9 @@ package net.sf.cpsolver.ifs.solution;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Value;
@@ -49,7 +49,7 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
     private double iTime = 0.0;
 
     private boolean iBestComplete = false;
-    private Hashtable<String, String> iBestInfo = null;
+    private Map<String, String> iBestInfo = null;
     private long iBestIteration = -1;
     private double iBestTime = -1;
     private double iBestPerturbationsPenaly = -1.0;
@@ -112,8 +112,8 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
      * associated with the solution, time, iteration, speed and infos from all
      * solution listeners.
      */
-    public Hashtable<String, String> getInfo() {
-        Hashtable<String, String> ret = getModel().getInfo();
+    public Map<String, String> getInfo() {
+        Map<String, String> ret = getModel().getInfo();
         if (getPerturbationsCounter() != null)
             getPerturbationsCounter().getInfo(ret, getModel());
         ret.put("Time", sTimeFormat.format(getTime()) + " sec");
@@ -131,8 +131,8 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
      * Also extended model information is added (see
      * {@link Model#getExtendedInfo()}) into the resultant table.
      */
-    public Hashtable<String, String> getExtendedInfo() {
-        Hashtable<String, String> ret = getModel().getExtendedInfo();
+    public Map<String, String> getExtendedInfo() {
+        Map<String, String> ret = getModel().getExtendedInfo();
         if (getPerturbationsCounter() != null)
             getPerturbationsCounter().getInfo(ret, getModel());
         ret.put("Time", sTimeFormat.format(getTime()) + " sec");
@@ -149,8 +149,8 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
      * associated with the solution, time, iteration, speed and infos from all
      * solution listeners. Only variables from the given set are included.
      */
-    public Hashtable<String, String> getInfo(Collection<V> variables) {
-        Hashtable<String, String> ret = getModel().getInfo(variables);
+    public Map<String, String> getInfo(Collection<V> variables) {
+        Map<String, String> ret = getModel().getInfo(variables);
         if (getPerturbationsCounter() != null)
             getPerturbationsCounter().getInfo(ret, getModel(), variables);
         ret.put("Time", sTimeFormat.format(getTime()) + " sec");
@@ -163,7 +163,7 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
     }
 
     /** Info of the best ever found solution */
-    public Hashtable<String, String> getBestInfo() {
+    public Map<String, String> getBestInfo() {
         return iBestInfo;
     }
 

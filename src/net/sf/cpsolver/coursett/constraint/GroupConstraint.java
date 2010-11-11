@@ -1,9 +1,8 @@
 package net.sf.cpsolver.coursett.constraint;
 
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -214,8 +213,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
             super.addVariable(lecture);
         if (isChildrenNotOverlap(getType())) {
             if (lecture.getChildrenSubpartIds() != null) {
-                for (Enumeration<Long> e1 = lecture.getChildrenSubpartIds(); e1.hasMoreElements();) {
-                    Long subpartId = e1.nextElement();
+                for (Long subpartId: lecture.getChildrenSubpartIds()) {
                     for (Lecture ch : lecture.getChildren(subpartId)) {
                         if (!variables().contains(ch))
                             super.addVariable(ch);
@@ -231,8 +229,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
             super.removeVariable(lecture);
         if (isChildrenNotOverlap(getType())) {
             if (lecture.getChildrenSubpartIds() != null) {
-                for (Enumeration<Long> e1 = lecture.getChildrenSubpartIds(); e1.hasMoreElements();) {
-                    Long subpartId = e1.nextElement();
+                for (Long subpartId: lecture.getChildrenSubpartIds()) {
                     for (Lecture ch : lecture.getChildren(subpartId)) {
                         if (variables().contains(ch))
                             super.removeVariable(ch);
@@ -305,7 +302,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         if (!isSatisfiedPair(value1.variable(), value1, value2.variable(), value2))
             return false;
         if (isBackToBack(getType())) {
-            Hashtable<Lecture, Placement> assignments = new Hashtable<Lecture, Placement>();
+            HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
             assignments.put(value1.variable(), value1);
             assignments.put(value2.variable(), value2);
             if (!isSatisfiedSeq(assignments, false, null))
@@ -327,7 +324,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
             if (!isSatisfiedPair(v, v.getAssignment(), value.variable(), value))
                 conflicts.add(v.getAssignment());
         }
-        Hashtable<Lecture, Placement> assignments = new Hashtable<Lecture, Placement>();
+        HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
         assignments.put(value.variable(), value);
         if (!isSatisfiedSeq(assignments, true, conflicts))
             conflicts.add(value);
@@ -346,7 +343,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
             if (!isSatisfiedPair(v, v.getAssignment(), value.variable(), value))
                 return true;
         }
-        Hashtable<Lecture, Placement> assignments = new Hashtable<Lecture, Placement>();
+        HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
         assignments.put(value.variable(), value);
         return isSatisfiedSeq(assignments, true, null);
     }
@@ -414,7 +411,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                     return 0;
             }
             if (isBackToBack(getType())) {
-                Hashtable<Lecture, Placement> assignment = new Hashtable<Lecture, Placement>();
+                HashMap<Lecture, Placement> assignment = new HashMap<Lecture, Placement>();
                 assignment.put(placement.variable(), placement);
                 if (!isSatisfiedSeq(assignment, true, null))
                     return 0;
@@ -430,7 +427,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                     return iPreference;
             }
             if (isBackToBack(getType())) {
-                Hashtable<Lecture, Placement> assignments = new Hashtable<Lecture, Placement>();
+                HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
                 assignments.put(placement.variable(), placement);
                 if (!isSatisfiedSeq(assignments, true, null))
                     return iPreference;
@@ -860,7 +857,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         return false;
     }
 
-    private boolean isSatisfiedSeq(Hashtable<Lecture, Placement> assignments, boolean considerCurrentAssignments,
+    private boolean isSatisfiedSeq(HashMap<Lecture, Placement> assignments, boolean considerCurrentAssignments,
             Set<Placement> conflicts) {
         if (conflicts == null)
             return isSatisfiedSeqCheck(assignments, considerCurrentAssignments, conflicts);
@@ -874,7 +871,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         }
     }
 
-    private Set<Placement> isSatisfiedRecursive(int idx, Hashtable<Lecture, Placement> assignments,
+    private Set<Placement> isSatisfiedRecursive(int idx, HashMap<Lecture, Placement> assignments,
             boolean considerCurrentAssignments, Set<Placement> conflicts, Set<Placement> newConflicts,
             Set<Placement> bestConflicts) {
         if (idx == variables().size() && newConflicts.isEmpty())
@@ -907,7 +904,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         return bestConflicts;
     }
 
-    private boolean isSatisfiedSeqCheck(Hashtable<Lecture, Placement> assignments, boolean considerCurrentAssignments,
+    private boolean isSatisfiedSeqCheck(HashMap<Lecture, Placement> assignments, boolean considerCurrentAssignments,
             Set<Placement> conflicts) {
         int gapMin = getGapMin(getType());
         int gapMax = getGapMax(getType());
@@ -1026,8 +1023,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
 
             if (!overlap && lec1.getChildrenSubpartIds() != null && lec2.getChildrenSubpartIds() != null) {
                 // parents not overlap
-                for (Enumeration<Long> e1 = lec1.getChildrenSubpartIds(); e1.hasMoreElements();) {
-                    Long subpartId = e1.nextElement();
+                for (Long subpartId: lec1.getChildrenSubpartIds()) {
                     for (Lecture c1 : lec1.getChildren(subpartId)) {
                         if (c1.getAssignment() == null)
                             continue;

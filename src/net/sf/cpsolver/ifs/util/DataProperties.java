@@ -1,8 +1,7 @@
 package net.sf.cpsolver.ifs.util;
 
-import java.util.Dictionary;
 import java.util.Enumeration;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
@@ -385,8 +384,8 @@ public class DataProperties extends Properties {
     /**
      * Returns properties as dictionary.
      */
-    public Dictionary<String, String> toDict() {
-        Hashtable<String, String> ret = new Hashtable<String, String>();
+    public Map<String, String> toMap() {
+        HashMap<String, String> ret = new HashMap<String, String>();
         for (Enumeration<?> e = propertyNames(); e.hasMoreElements();) {
             String key = (String) e.nextElement();
             String prop = getProperty(key);

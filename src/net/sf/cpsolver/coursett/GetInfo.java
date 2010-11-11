@@ -5,9 +5,10 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.StringReader;
 import java.util.ArrayList;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeSet;
 
 import net.sf.cpsolver.coursett.model.Lecture;
@@ -48,7 +49,7 @@ import org.dom4j.io.SAXReader;
  */
 public class GetInfo {
 
-    public static Hashtable<String, String> getInfoOfASolution(File file) {
+    public static HashMap<String, String> getInfoOfASolution(File file) {
         try {
             DataProperties properties = new DataProperties();
             properties.setProperty("General.Input", file.getPath());
@@ -58,11 +59,11 @@ public class GetInfo {
             Test.saveOutputCSV(new Solution<Lecture, Placement>(loader.getModel()), newOutputFile);
             Progress.removeInstance(loader.getModel());
             System.out.println("  Reading " + newOutputFile + " ...");
-            Hashtable<String, String> info = getInfo(newOutputFile);
+            HashMap<String, String> info = getInfo(newOutputFile);
             File outputFile = new File(file.getParentFile(), "output.csv");
             if (outputFile.exists()) {
                 System.out.println("  Reading " + outputFile + " ...");
-                Hashtable<String, String> info2 = getInfo(outputFile);
+                HashMap<String, String> info2 = getInfo(outputFile);
                 if (info2.containsKey("000.002 Time [sec]"))
                     info.put("000.002 Time [sec]", info2.get("000.002 Time [sec]"));
             }
@@ -74,11 +75,11 @@ public class GetInfo {
         }
     }
 
-    public static Hashtable<String, String> getInfo(String comment) {
+    public static HashMap<String, String> getInfo(String comment) {
         try {
             BufferedReader reader = new BufferedReader(new StringReader(comment));
             String line = null;
-            Hashtable<String, String> info = new Hashtable<String, String>();
+            HashMap<String, String> info = new HashMap<String, String>();
             while ((line = reader.readLine()) != null) {
                 int idx = line.indexOf(':');
                 if (idx >= 0) {
@@ -112,11 +113,11 @@ public class GetInfo {
         }
     }
 
-    public static Hashtable<String, String> getInfo(File outputFile) {
+    public static HashMap<String, String> getInfo(File outputFile) {
         try {
             BufferedReader reader = new BufferedReader(new FileReader(outputFile));
             String line = null;
-            Hashtable<String, String> info = new Hashtable<String, String>();
+            HashMap<String, String> info = new HashMap<String, String>();
             while ((line = reader.readLine()) != null) {
                 int idx = line.indexOf(',');
                 if (idx >= 0) {
@@ -150,9 +151,9 @@ public class GetInfo {
         }
     }
 
-    public static Hashtable<String, String> getInfo(Element root) {
+    public static HashMap<String, String> getInfo(Element root) {
         try {
-            Hashtable<String, String> info = new Hashtable<String, String>();
+            HashMap<String, String> info = new HashMap<String, String>();
             for (Iterator<?> i = root.elementIterator("property"); i.hasNext();) {
                 Element property = (Element) i.next();
                 String key = property.attributeValue("name");
@@ -191,7 +192,7 @@ public class GetInfo {
             System.out.println("Reading " + infoFile + " ...");
             try {
                 Document document = (new SAXReader()).read(infoFile);
-                Hashtable<String, String> info = getInfo(document.getRootElement());
+                HashMap<String, String> info = getInfo(document.getRootElement());
                 if (info != null && !info.isEmpty()) {
                     infos.add(new Info(prefix, info));
                     return;
@@ -206,7 +207,7 @@ public class GetInfo {
              * File newOutputFile = new File(folder, "new-output.csv"); if
              * (newOutputFile.exists()) {
              * System.out.println("Reading "+newOutputFile+" ..."); try {
-             * Hashtable info = getInfo(newOutputFile); if (info!=null &&
+             * HashMap info = getInfo(newOutputFile); if (info!=null &&
              * !info.isEmpty()) { infos.addElement(new Object[]{prefix,info});
              * return; } } catch (Exception e) {
              * System.err.println("Error reading file "
@@ -214,7 +215,7 @@ public class GetInfo {
              */
             System.out.println("Reading " + solutionFile + " ...");
             try {
-                Hashtable<String, String> info = getInfoOfASolution(solutionFile);
+                HashMap<String, String> info = getInfoOfASolution(solutionFile);
                 if (info != null && !info.isEmpty()) {
                     infos.add(new Info(prefix, info));
                     return;
@@ -227,7 +228,7 @@ public class GetInfo {
         if (outputFile.exists()) {
             System.out.println("Reading " + outputFile + " ...");
             try {
-                Hashtable<String, String> info = getInfo(outputFile);
+                HashMap<String, String> info = getInfo(outputFile);
                 if (info != null && !info.isEmpty()) {
                     infos.add(new Info(prefix, info));
                     return;
@@ -263,7 +264,7 @@ public class GetInfo {
                 ArrayList<CSVFile.CSVField> line = new ArrayList<CSVFile.CSVField>();
                 line.add(new CSVFile.CSVField(key));
                 for (Info o : infos) {
-                    Hashtable<String, String> info = o.getInfo();
+                    Map<String, String> info = o.getInfo();
                     String value = info.get(key);
                     line.add(new CSVFile.CSVField(value == null ? "" : value));
                 }
@@ -290,9 +291,9 @@ public class GetInfo {
 
     public static class Info {
         private String iPrefix;
-        private Hashtable<String, String> iInfo;
+        private HashMap<String, String> iInfo;
 
-        public Info(String prefix, Hashtable<String, String> info) {
+        public Info(String prefix, HashMap<String, String> info) {
             iPrefix = prefix;
             iInfo = info;
         }
@@ -301,7 +302,7 @@ public class GetInfo {
             return iPrefix;
         }
 
-        public Hashtable<String, String> getInfo() {
+        public Map<String, String> getInfo() {
             return iInfo;
         }
     }

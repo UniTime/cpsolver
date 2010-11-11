@@ -2,9 +2,8 @@ package net.sf.cpsolver.coursett.model;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
@@ -322,7 +321,7 @@ public class InitialSectioning {
         private Configuration iConfiguration = null;
         private Double iDist = null;
         private double iMinSize = 0, iMaxSize = 0;
-        private Hashtable<Student, Double> iDistCache = new Hashtable<Student, Double>();
+        private HashMap<Student, Double> iDistCache = new HashMap<Student, Double>();
         private double iSize = 0.0;
 
         public Group(Lecture lecture) {
@@ -430,8 +429,7 @@ public class InitialSectioning {
             if (getLecture() != null) {
                 return student.canEnroll(getLecture());
             } else {
-                for (Enumeration<Long> e = getConfiguration().getTopSubpartIds(); e.hasMoreElements();) {
-                    Long subpartId = e.nextElement();
+                for (Long subpartId: getConfiguration().getTopSubpartIds()) {
                     boolean canEnrollThisSubpart = false;
                     for (Lecture lecture : getConfiguration().getTopLectures(subpartId)) {
                         if (student.canEnroll(lecture)) {
@@ -471,8 +469,7 @@ public class InitialSectioning {
             for (Student st : students) {
                 st.addConfiguration(cfg);
             }
-            for (Enumeration<Long> e = cfg.getTopSubpartIds(); e.hasMoreElements();) {
-                Long subpartId = e.nextElement();
+            for (Long subpartId: cfg.getTopSubpartIds()) {
                 initialSectioning(p, offeringId, courseName, students, cfg.getTopLectures(subpartId));
             }
         } else {
@@ -487,8 +484,7 @@ public class InitialSectioning {
                 for (Student st : group.getStudents()) {
                     st.addConfiguration(group.getConfiguration());
                 }
-                for (Enumeration<Long> e = group.getConfiguration().getTopSubpartIds(); e.hasMoreElements();) {
-                    Long subpartId = e.nextElement();
+                for (Long subpartId: group.getConfiguration().getTopSubpartIds()) {
                     initialSectioning(p, offeringId, courseName, group.getStudents(), group.getConfiguration()
                             .getTopLectures(subpartId));
                 }
@@ -523,8 +519,7 @@ public class InitialSectioning {
                 st.addLecture(lect);
             }
             if (lect.hasAnyChildren()) {
-                for (Enumeration<Long> e1 = lect.getChildrenSubpartIds(); e1.hasMoreElements();) {
-                    Long subpartId = e1.nextElement();
+                for (Long subpartId: lect.getChildrenSubpartIds()) {
                     List<Lecture> children = lect.getChildren(subpartId);
                     initialSectioning(p, offeringId, lect.getName(), students, children);
                 }
@@ -550,8 +545,7 @@ public class InitialSectioning {
                     st.addLecture(lect);
                 }
                 if (lect.hasAnyChildren()) {
-                    for (Enumeration<Long> e1 = lect.getChildrenSubpartIds(); e1.hasMoreElements();) {
-                        Long subpartId = e1.nextElement();
+                    for (Long subpartId: lect.getChildrenSubpartIds()) {
                         List<Lecture> children = lect.getChildren(subpartId);
                         initialSectioning(p, offeringId, lect.getName(), studentsThisSection, children);
                     }

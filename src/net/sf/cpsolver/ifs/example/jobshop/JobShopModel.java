@@ -8,7 +8,6 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -183,8 +182,8 @@ public class JobShopModel extends Model<Operation, Location> {
 
     /** Get information table */
     @Override
-    public Hashtable<String, String> getInfo() {
-        Hashtable<String, String> ret = super.getInfo();
+    public Map<String, String> getInfo() {
+        Map<String, String> ret = super.getInfo();
         ret.put("Finishing time", String.valueOf(getFinishingTime()));
         return ret;
     }

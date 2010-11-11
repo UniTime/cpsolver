@@ -4,7 +4,7 @@ import java.text.DecimalFormat;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -121,7 +121,7 @@ public class DistanceConflictTable {
                 new CSVFile.CSVField("NrStud"), new CSVFile.CSVField("StudWeight"), new CSVFile.CSVField("AvgDist"),
                 new CSVFile.CSVField("NoAlt"), new CSVFile.CSVField("Reason") });
         Set<Conflict> confs = iDC.computeAllConflicts();
-        Hashtable<Course, Hashtable<Course, Object[]>> distConfTable = new Hashtable<Course, Hashtable<Course, Object[]>>();
+        HashMap<Course, HashMap<Course, Object[]>> distConfTable = new HashMap<Course, HashMap<Course, Object[]>>();
         for (Conflict conflict : confs) {
             if (conflict.getStudent().isDummy() && !includeLastLikeStudents)
                 continue;
@@ -164,9 +164,9 @@ public class DistanceConflictTable {
                 s1 = s2;
                 s2 = y;
             }
-            Hashtable<Course, Object[]> firstCourseTable = distConfTable.get(c1);
+            HashMap<Course, Object[]> firstCourseTable = distConfTable.get(c1);
             if (firstCourseTable == null) {
-                firstCourseTable = new Hashtable<Course, Object[]>();
+                firstCourseTable = new HashMap<Course, Object[]>();
                 distConfTable.put(c1, firstCourseTable);
             }
             Object[] secondCourseTable = firstCourseTable.get(c2);
@@ -186,9 +186,9 @@ public class DistanceConflictTable {
             firstCourseTable.put(c2, new Object[] { new Double(nrStud), new Double(nrStudW), new Double(dist),
                     new Boolean(hard), expl });
         }
-        for (Map.Entry<Course, Hashtable<Course, Object[]>> entry : distConfTable.entrySet()) {
+        for (Map.Entry<Course, HashMap<Course, Object[]>> entry : distConfTable.entrySet()) {
             Course c1 = entry.getKey();
-            Hashtable<Course, Object[]> firstCourseTable = entry.getValue();
+            HashMap<Course, Object[]> firstCourseTable = entry.getValue();
             for (Map.Entry<Course, Object[]> entry2 : firstCourseTable.entrySet()) {
                 Course c2 = entry2.getKey();
                 Object[] secondCourseTable = entry2.getValue();

@@ -3,7 +3,7 @@ package net.sf.cpsolver.exam.heuristics;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -143,7 +143,7 @@ public class ExamColoringConstruction implements NeighbourSelection<Exam, ExamPl
         iSolution = solution;
         ExamModel model = (ExamModel)solution.getModel();
         // if (!model.assignedVariables().isEmpty()) return null;
-        final Hashtable<Exam, Vertex> vertices = new Hashtable<Exam, Vertex>();
+        final HashMap<Exam, Vertex> vertices = new HashMap<Exam, Vertex>();
         for (Exam x: model.variables()) {
             vertices.put(x, new Vertex(x));
         }
@@ -253,8 +253,8 @@ public class ExamColoringConstruction implements NeighbourSelection<Exam, ExamPl
         private Exam iExam;
         private List<Vertex> iNeighbors = new ArrayList<Vertex>();
         private int iColor = -1;
-        private Hashtable<Integer, ExamPeriodPlacement> iDomain = new Hashtable<Integer, ExamPeriodPlacement>();
-        private Hashtable<Integer, Vertex> iTaken = new Hashtable<Integer, Vertex>();
+        private HashMap<Integer, ExamPeriodPlacement> iDomain = new HashMap<Integer, ExamPeriodPlacement>();
+        private HashMap<Integer, Vertex> iTaken = new HashMap<Integer, Vertex>();
 
         public Vertex(Exam exam) {
             iExam = exam;

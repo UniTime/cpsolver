@@ -1,8 +1,9 @@
 package net.sf.cpsolver.studentsct.heuristics.selection;
 
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Enumeration;
-import java.util.Vector;
+import java.util.Iterator;
+import java.util.List;
 
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
@@ -42,15 +43,15 @@ import net.sf.cpsolver.studentsct.model.Request;
 
 public class BacktrackSelection implements NeighbourSelection<Request, Enrollment> {
     private RandomizedBacktrackNeighbourSelection iRBtNSel = null;
-    private Enumeration<Request> iRequestEnumeration = null;
+    private Iterator<Request> iRequestIterator = null;
 
     public BacktrackSelection(DataProperties properties) {
     }
 
     public void init(Solver<Request, Enrollment> solver, String name) {
-        Vector<Request> unassigned = new Vector<Request>(solver.currentSolution().getModel().unassignedVariables());
+        List<Request> unassigned = new ArrayList<Request>(solver.currentSolution().getModel().unassignedVariables());
         Collections.shuffle(unassigned);
-        iRequestEnumeration = unassigned.elements();
+        iRequestIterator = unassigned.iterator();
         if (iRBtNSel == null) {
             try {
                 iRBtNSel = new RandomizedBacktrackNeighbourSelection(solver.getProperties());
@@ -67,8 +68,8 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
     }
 
     public Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
-        while (iRequestEnumeration.hasMoreElements()) {
-            Request request = iRequestEnumeration.nextElement();
+        while (iRequestIterator.hasNext()) {
+            Request request = iRequestIterator.next();
             Progress.getInstance(solution.getModel()).incProgress();
             Neighbour<Request, Enrollment> n = iRBtNSel.selectNeighbour(solution, request);
             if (n != null)

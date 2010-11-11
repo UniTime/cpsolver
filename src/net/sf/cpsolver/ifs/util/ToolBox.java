@@ -8,10 +8,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +16,6 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
-import java.util.Vector;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -158,34 +154,6 @@ public class ToolBox {
         double var = x2 / n;
         double mean = x / n;
         return Math.sqrt(Math.abs(var - mean * mean));
-    }
-
-    /**
-     * Sort enumeration
-     * 
-     * @param e
-     *            an enumeration
-     * @return sorted enumeration
-     */
-    public static <E> Enumeration<E> sortEnumeration(Enumeration<E> e) {
-        return sortEnumeration(e, null);
-    }
-
-    /**
-     * Sort enumeration
-     * 
-     * @param e
-     *            an enumeration
-     * @param c
-     *            comparator of two objects in enumeration e
-     * @return sorted enumeration
-     */
-    public static <E> Enumeration<E> sortEnumeration(Enumeration<E> e, Comparator<? super E> c) {
-        Vector<E> v = new Vector<E>();
-        for (; e.hasMoreElements();)
-            v.addElement(e.nextElement());
-        Collections.sort(v, c);
-        return v.elements();
     }
 
     /** Merge source with target */

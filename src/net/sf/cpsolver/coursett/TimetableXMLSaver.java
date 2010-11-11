@@ -8,9 +8,8 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -206,7 +205,7 @@ public class TimetableXMLSaver extends TimetableSaver {
             root.addAttribute("solverGroup", getId("solverGroup", getModel().getProperties().getProperty(
                     "General.SolverGroupId")));
 
-        Hashtable<String, Element> roomElements = new Hashtable<String, Element>();
+        HashMap<String, Element> roomElements = new HashMap<String, Element>();
 
         Element roomsEl = root.addElement("rooms");
         for (RoomConstraint roomConstraint : getModel().getRoomConstraints()) {
@@ -248,13 +247,13 @@ public class TimetableXMLSaver extends TimetableSaver {
         Element instructorsEl = root.addElement("instructors");
 
         Element departmentsEl = root.addElement("departments");
-        Hashtable<Long, String> depts = new Hashtable<Long, String>();
+        HashMap<Long, String> depts = new HashMap<Long, String>();
 
         Element configsEl = (iShowNames ? root.addElement("configurations") : null);
         HashSet<Configuration> configs = new HashSet<Configuration>();
 
         Element classesEl = root.addElement("classes");
-        Hashtable<Long, Element> classElements = new Hashtable<Long, Element>();
+        HashMap<Long, Element> classElements = new HashMap<Long, Element>();
         List<Lecture> vars = new ArrayList<Lecture>(getModel().variables());
         if (getModel().hasConstantVariables())
             vars.addAll(getModel().constantVariables());
@@ -482,7 +481,7 @@ public class TimetableXMLSaver extends TimetableSaver {
             }
         }
 
-        Hashtable<Student, List<String>> students = new Hashtable<Student, List<String>>();
+        HashMap<Student, List<String>> students = new HashMap<Student, List<String>>();
         for (Lecture lecture : vars) {
             for (Student student : lecture.students()) {
                 List<String> enrls = students.get(student);
@@ -495,8 +494,7 @@ public class TimetableXMLSaver extends TimetableSaver {
         }
 
         Element studentsEl = root.addElement("students");
-        for (Enumeration<Student> e1 = ToolBox.sortEnumeration(students.keys()); e1.hasMoreElements();) {
-            Student student = e1.nextElement();
+        for (Student student: new TreeSet<Student>(students.keySet())) {
             Element stEl = studentsEl.addElement("student").addAttribute("id", getId("student", student.getId()));
             if (iShowNames) {
                 if (student.getAcademicArea() != null)
@@ -524,10 +522,9 @@ public class TimetableXMLSaver extends TimetableSaver {
                     stEl.addElement("class").addAttribute("id", classId);
                 }
             }
-            Hashtable<Long, Set<Lecture>> canNotEnroll = student.canNotEnrollSections();
+            Map<Long, Set<Lecture>> canNotEnroll = student.canNotEnrollSections();
             if (canNotEnroll != null) {
-                for (Enumeration<Set<Lecture>> e2 = canNotEnroll.elements(); e2.hasMoreElements();) {
-                    Set<Lecture> canNotEnrollLects = e2.nextElement();
+                for (Set<Lecture> canNotEnrollLects: canNotEnroll.values()) {
                     for (Iterator<Lecture> i3 = canNotEnrollLects.iterator(); i3.hasNext();) {
                         stEl.addElement("prohibited-class")
                                 .addAttribute("id", getId("class", (i3.next()).getClassId()));

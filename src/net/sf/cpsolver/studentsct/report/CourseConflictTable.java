@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -147,7 +147,7 @@ public class CourseConflictTable {
         csv.setHeader(new CSVFile.CSVField[] { new CSVFile.CSVField("UnasgnCrs"), new CSVFile.CSVField("ConflCrs"),
                 new CSVFile.CSVField("NrStud"), new CSVFile.CSVField("StudWeight"), new CSVFile.CSVField("NoAlt"),
                 new CSVFile.CSVField("Reason") });
-        Hashtable<Course, Hashtable<Course, Object[]>> unassignedCourseTable = new Hashtable<Course, Hashtable<Course, Object[]>>();
+        HashMap<Course, HashMap<Course, Object[]>> unassignedCourseTable = new HashMap<Course, HashMap<Course, Object[]>>();
         for (Request request : new ArrayList<Request>(getModel().unassignedVariables())) {
             if (request.getStudent().isDummy() && !includeLastLikeStudents)
                 continue;
@@ -168,9 +168,9 @@ public class CourseConflictTable {
 
                 if (availableValues.isEmpty()) {
                     Course course = courseRequest.getCourses().get(0);
-                    Hashtable<Course, Object[]> conflictCourseTable = unassignedCourseTable.get(course);
+                    HashMap<Course, Object[]> conflictCourseTable = unassignedCourseTable.get(course);
                     if (conflictCourseTable == null) {
-                        conflictCourseTable = new Hashtable<Course, Object[]>();
+                        conflictCourseTable = new HashMap<Course, Object[]>();
                         unassignedCourseTable.put(course, conflictCourseTable);
                     }
                     Object[] weight = conflictCourseTable.get(course);
@@ -203,9 +203,9 @@ public class CourseConflictTable {
                                 + courseRequest.getStudent() + ".");
                         continue;
                     }
-                    Hashtable<Course, Object[]> conflictCourseTable = unassignedCourseTable.get(course);
+                    HashMap<Course, Object[]> conflictCourseTable = unassignedCourseTable.get(course);
                     if (conflictCourseTable == null) {
-                        conflictCourseTable = new Hashtable<Course, Object[]>();
+                        conflictCourseTable = new HashMap<Course, Object[]>();
                         unassignedCourseTable.put(course, conflictCourseTable);
                     }
                     for (Enrollment conflict : conflicts) {
@@ -242,9 +242,9 @@ public class CourseConflictTable {
                 }
             }
         }
-        for (Map.Entry<Course, Hashtable<Course, Object[]>> entry : unassignedCourseTable.entrySet()) {
+        for (Map.Entry<Course, HashMap<Course, Object[]>> entry : unassignedCourseTable.entrySet()) {
             Course unassignedCourse = entry.getKey();
-            Hashtable<Course, Object[]> conflictCourseTable = entry.getValue();
+            HashMap<Course, Object[]> conflictCourseTable = entry.getValue();
             for (Map.Entry<Course, Object[]> entry2 : conflictCourseTable.entrySet()) {
                 Course conflictCourse = entry2.getKey();
                 Object[] weight = entry2.getValue();

@@ -3,7 +3,7 @@ package net.sf.cpsolver.ifs.extension;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -295,7 +295,7 @@ public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
      * which contains a value that was marked as good takes place
      */
     public void undoPropagate(V variable) {
-        Map<V, List<T>> undoVars = new Hashtable<V, List<T>>();
+        Map<V, List<T>> undoVars = new HashMap<V, List<T>>();
         while (!supportValues(variable).isEmpty()) {
             T value = supportValues(variable).iterator().next();
             Set<T> noGood = value.conflicts();

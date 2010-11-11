@@ -1,7 +1,7 @@
 package net.sf.cpsolver.ifs.model;
 
 import java.util.ArrayList;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -393,7 +393,7 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
      */
     public Map<V, List<Constraint<V, T>>> constraintVariables() {
         if (iConstraintVariables == null) {
-            iConstraintVariables = new Hashtable<V, List<Constraint<V, T>>>();
+            iConstraintVariables = new HashMap<V, List<Constraint<V, T>>>();
             for (Constraint<V, T> constraint : constraints()) {
                 for (V variable : constraint.variables()) {
                     if (!variable.equals(this)) {

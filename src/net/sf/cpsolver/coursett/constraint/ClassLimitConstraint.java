@@ -2,7 +2,6 @@ package net.sf.cpsolver.coursett.constraint;
 
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -114,8 +113,7 @@ public class ClassLimitConstraint extends Constraint<Lecture, Placement> {
                 adepts.add(placement);
             }
             if (lecture.hasAnyChildren()) {
-                for (Enumeration<Long> f = lecture.getChildrenSubpartIds(); f.hasMoreElements();) {
-                    Long subpartId = f.nextElement();
+                for (Long subpartId: lecture.getChildrenSubpartIds()) {
                     computeAdepts(adepts, lecture.getChildren(subpartId), value, conflicts);
                 }
             }

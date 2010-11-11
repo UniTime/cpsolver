@@ -2,8 +2,8 @@ package net.sf.cpsolver.studentsct;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import net.sf.cpsolver.ifs.model.Constraint;
@@ -174,8 +174,8 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
      * Model info
      */
     @Override
-    public Hashtable<String, String> getInfo() {
-        Hashtable<String, String> info = super.getInfo();
+    public Map<String, String> getInfo() {
+        Map<String, String> info = super.getInfo();
         info.put("Students with complete schedule", sDoubleFormat.format(100.0 * nrComplete() / getStudents().size())
                 + "% (" + nrComplete() + "/" + getStudents().size() + ")");
         if (getDistanceConflict() != null)
@@ -484,8 +484,8 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
      * compute) is added to an ordinary {@link Model#getInfo()}.
      */
     @Override
-    public Hashtable<String, String> getExtendedInfo() {
-        Hashtable<String, String> info = getInfo();
+    public Map<String, String> getExtendedInfo() {
+        Map<String, String> info = getInfo();
         int nrLastLikeStudents = getNrLastLikeStudents(true);
         if (nrLastLikeStudents != 0 && nrLastLikeStudents != getStudents().size()) {
             int nrRealStudents = getStudents().size() - nrLastLikeStudents;

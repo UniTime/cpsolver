@@ -3,7 +3,7 @@ package net.sf.cpsolver.ifs.extension;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -160,9 +160,9 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
     private double iAgeing = 1.0;
     private boolean iPrint = false;
 
-    private Map<Assignment<T>, List<Assignment<T>>> iAssignments = new Hashtable<Assignment<T>, List<Assignment<T>>>();
-    private Map<V, List<Assignment<T>>> iUnassignedVariables = new Hashtable<V, List<Assignment<T>>>();
-    private Map<Assignment<T>, List<Assignment<T>>> iNoGoods = new Hashtable<Assignment<T>, List<Assignment<T>>>();
+    private Map<Assignment<T>, List<Assignment<T>>> iAssignments = new HashMap<Assignment<T>, List<Assignment<T>>>();
+    private Map<V, List<Assignment<T>>> iUnassignedVariables = new HashMap<V, List<Assignment<T>>>();
+    private Map<Assignment<T>, List<Assignment<T>>> iNoGoods = new HashMap<Assignment<T>, List<Assignment<T>>>();
 
     public ConflictStatistics(Solver<V, T> solver, DataProperties properties) {
         super(solver, properties);

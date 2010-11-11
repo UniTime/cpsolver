@@ -3,7 +3,7 @@ package net.sf.cpsolver.exam.model;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -1598,8 +1598,8 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * Info table
      */
     @Override
-    public Hashtable<String, String> getInfo() {
-        Hashtable<String, String> info = super.getInfo();
+    public Map<String, String> getInfo() {
+        Map<String, String> info = super.getInfo();
         info.put("Direct Conflicts", getNrDirectConflicts(false)
                 + (iNrNADirectConflicts > 0 ? " (" + iNrNADirectConflicts + " N/A)" : ""));
         info.put("More Than 2 A Day Conflicts", String.valueOf(getNrMoreThanTwoADayConflicts(false)));
@@ -1660,8 +1660,8 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * Extended info table
      */
     @Override
-    public Hashtable<String, String> getExtendedInfo() {
-        Hashtable<String, String> info = super.getExtendedInfo();
+    public Map<String, String> getExtendedInfo() {
+        Map<String, String> info = super.getExtendedInfo();
         info.put("Direct Conflicts [p]", String.valueOf(getNrDirectConflicts(true)));
         info.put("More Than 2 A Day Conflicts [p]", String.valueOf(getNrMoreThanTwoADayConflicts(true)));
         info.put("Back-To-Back Conflicts [p]", String.valueOf(getNrBackToBackConflicts(true)));
@@ -2145,8 +2145,8 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
                     .parseInt(e.attributeValue("length")), Integer.parseInt(e.attributeValue("penalty") == null ? e
                     .attributeValue("weight", "0") : e.attributeValue("penalty")));
         }
-        Hashtable<Long, ExamRoom> rooms = new Hashtable<Long, ExamRoom>();
-        Hashtable<String, ArrayList<ExamRoom>> roomGroups = new Hashtable<String, ArrayList<ExamRoom>>();
+        HashMap<Long, ExamRoom> rooms = new HashMap<Long, ExamRoom>();
+        HashMap<String, ArrayList<ExamRoom>> roomGroups = new HashMap<String, ArrayList<ExamRoom>>();
         for (Iterator<?> i = root.element("rooms").elementIterator("room"); i.hasNext();) {
             Element e = (Element) i.next();
             String coords = e.attributeValue("coordinates");
@@ -2185,8 +2185,8 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
             }
         }
         ArrayList<ExamPlacement> assignments = new ArrayList<ExamPlacement>();
-        Hashtable<Long, Exam> exams = new Hashtable<Long, Exam>();
-        Hashtable<Long, ExamOwner> courseSections = new Hashtable<Long, ExamOwner>();
+        HashMap<Long, Exam> exams = new HashMap<Long, Exam>();
+        HashMap<Long, ExamOwner> courseSections = new HashMap<Long, ExamOwner>();
         for (Iterator<?> i = root.element("exams").elementIterator("exam"); i.hasNext();) {
             Element e = (Element) i.next();
             ArrayList<ExamPeriodPlacement> periodPlacements = new ArrayList<ExamPeriodPlacement>();
@@ -2209,7 +2209,7 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
             }
             String g = e.attributeValue("groups");
             if (g != null) {
-                Hashtable<ExamRoom, Integer> allRooms = new Hashtable<ExamRoom, Integer>();
+                HashMap<ExamRoom, Integer> allRooms = new HashMap<ExamRoom, Integer>();
                 for (StringTokenizer s = new StringTokenizer(g, ","); s.hasMoreTokens();) {
                     String gr = s.nextToken();
                     ArrayList<ExamRoom> roomsThisGrop = roomGroups.get(gr);
