@@ -1,9 +1,11 @@
 package net.sf.cpsolver.exam.model;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -12,11 +14,9 @@ import java.util.TreeSet;
 import net.sf.cpsolver.coursett.IdConvertor;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Model;
-import net.sf.cpsolver.ifs.util.ArrayList;
 import net.sf.cpsolver.ifs.util.Callback;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.DistanceMetric;
-import net.sf.cpsolver.ifs.util.List;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
 import org.apache.log4j.Logger;

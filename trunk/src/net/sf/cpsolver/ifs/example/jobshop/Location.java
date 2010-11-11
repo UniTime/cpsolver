@@ -1,6 +1,6 @@
 package net.sf.cpsolver.ifs.example.jobshop;
 
-import net.sf.cpsolver.ifs.model.*;
+import net.sf.cpsolver.ifs.model.Value;
 
 /**
  * Location of an operation. <br>

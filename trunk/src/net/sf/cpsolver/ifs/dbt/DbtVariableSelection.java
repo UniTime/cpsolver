@@ -1,11 +1,12 @@
 package net.sf.cpsolver.ifs.dbt;
 
-import net.sf.cpsolver.ifs.extension.*;
-import net.sf.cpsolver.ifs.heuristics.*;
-import net.sf.cpsolver.ifs.model.*;
-import net.sf.cpsolver.ifs.solution.*;
-import net.sf.cpsolver.ifs.solver.*;
-import net.sf.cpsolver.ifs.util.*;
+import net.sf.cpsolver.ifs.extension.Extension;
+import net.sf.cpsolver.ifs.heuristics.VariableSelection;
+import net.sf.cpsolver.ifs.model.Value;
+import net.sf.cpsolver.ifs.model.Variable;
+import net.sf.cpsolver.ifs.solution.Solution;
+import net.sf.cpsolver.ifs.solver.Solver;
+import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
  * Selection of a variable for dynamic backtracking. <br>

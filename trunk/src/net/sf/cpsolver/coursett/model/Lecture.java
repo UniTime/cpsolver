@@ -1,10 +1,12 @@
 package net.sf.cpsolver.coursett.model;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -21,9 +23,7 @@ import net.sf.cpsolver.coursett.constraint.WeakeningConstraint;
 import net.sf.cpsolver.ifs.constant.ConstantVariable;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Variable;
-import net.sf.cpsolver.ifs.util.ArrayList;
 import net.sf.cpsolver.ifs.util.DistanceMetric;
-import net.sf.cpsolver.ifs.util.List;
 
 /**
  * Lecture (variable).
