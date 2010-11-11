@@ -6,13 +6,10 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Enumeration;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeSet;
-
-import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
  * Process all solutions (files output.csv) in all subfolders of the given
@@ -38,11 +35,11 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  *          License along with this library; if not see <http://www.gnu.org/licenses/>.
  */
 public class GetMppInfo {
-    public static Hashtable<String, String> getInfo(File outputFile) {
+    public static HashMap<String, String> getInfo(File outputFile) {
         try {
             BufferedReader reader = new BufferedReader(new FileReader(outputFile));
             String line = null;
-            Hashtable<String, String> info = new Hashtable<String, String>();
+            HashMap<String, String> info = new HashMap<String, String>();
             while ((line = reader.readLine()) != null) {
                 int idx = line.indexOf(',');
                 if (idx >= 0) {
@@ -76,9 +73,9 @@ public class GetMppInfo {
         }
     }
 
-    public static void getInfos(File file, Hashtable<String, Hashtable<String, Hashtable<Integer, double[]>>> infos,
+    public static void getInfos(File file, HashMap<String, HashMap<String, HashMap<Integer, double[]>>> infos,
             String instance) {
-        Hashtable<String, String> info = getInfo(file);
+        HashMap<String, String> info = getInfo(file);
         if (info == null || info.isEmpty() || !info.containsKey("000.053 Given perturbations"))
             return;
         Integer pert = Integer.valueOf(info.get("000.053 Given perturbations"));
@@ -87,14 +84,14 @@ public class GetMppInfo {
             String value = entry.getValue();
             if (!key.startsWith("000.") || key.equals("000.053 Given perturbations"))
                 continue;
-            Hashtable<String, Hashtable<Integer, double[]>> keyTable = infos.get(key);
+            HashMap<String, HashMap<Integer, double[]>> keyTable = infos.get(key);
             if (keyTable == null) {
-                keyTable = new Hashtable<String, Hashtable<Integer, double[]>>();
+                keyTable = new HashMap<String, HashMap<Integer, double[]>>();
                 infos.put(key, keyTable);
             }
-            Hashtable<Integer, double[]> instanceTable = keyTable.get(instance);
+            HashMap<Integer, double[]> instanceTable = keyTable.get(instance);
             if (instanceTable == null) {
-                instanceTable = new Hashtable<Integer, double[]>();
+                instanceTable = new HashMap<Integer, double[]>();
                 keyTable.put(instance, instanceTable);
             }
             double[] pertTable = instanceTable.get(pert);
@@ -107,17 +104,15 @@ public class GetMppInfo {
         }
     }
 
-    public static void writeInfos(Hashtable<String, Hashtable<String, Hashtable<Integer, double[]>>> infos, File file)
+    public static void writeInfos(HashMap<String, HashMap<String, HashMap<Integer, double[]>>> infos, File file)
             throws IOException {
         PrintWriter out = new PrintWriter(new FileWriter(file));
-        for (Enumeration<String> e = ToolBox.sortEnumeration(infos.keys()); e.hasMoreElements();) {
-            String key = e.nextElement();
+        for (String key: new TreeSet<String>(infos.keySet())) {
             out.println(key);
-            Hashtable<String, Hashtable<Integer, double[]>> keyTable = infos.get(key);
+            HashMap<String, HashMap<Integer, double[]>> keyTable = infos.get(key);
             TreeSet<Integer> perts = new TreeSet<Integer>();
-            for (Enumeration<String> f = ToolBox.sortEnumeration(keyTable.keys()); f.hasMoreElements();) {
-                String instance = f.nextElement();
-                Hashtable<Integer, double[]> instanceTable = keyTable.get(instance);
+            for (String instance: new TreeSet<String>(keyTable.keySet())) {
+                HashMap<Integer, double[]> instanceTable = keyTable.get(instance);
                 perts.addAll(instanceTable.keySet());
             }
             out.print(",,");
@@ -128,9 +123,8 @@ public class GetMppInfo {
                     out.print(",");
             }
             out.println();
-            for (Enumeration<String> f = ToolBox.sortEnumeration(keyTable.keys()); f.hasMoreElements();) {
-                String instance = f.nextElement();
-                Hashtable<Integer, double[]> instanceTable = keyTable.get(instance);
+            for (String instance: new TreeSet<String>(keyTable.keySet())) {
+                HashMap<Integer, double[]> instanceTable = keyTable.get(instance);
                 perts.addAll(instanceTable.keySet());
                 out.print("," + instance + ",");
                 for (Iterator<Integer> i = perts.iterator(); i.hasNext();) {
@@ -157,7 +151,7 @@ public class GetMppInfo {
             if (args.length >= 2)
                 config = args[1];
             File[] instanceFolders = folder.listFiles();
-            Hashtable<String, Hashtable<String, Hashtable<Integer, double[]>>> infos = new Hashtable<String, Hashtable<String, Hashtable<Integer, double[]>>>();
+            HashMap<String, HashMap<String, HashMap<Integer, double[]>>> infos = new HashMap<String, HashMap<String, HashMap<Integer, double[]>>>();
             for (int i = 0; i < instanceFolders.length; i++) {
                 File instanceFolder = instanceFolders[i];
                 if (!instanceFolder.exists() || !instanceFolder.isDirectory()

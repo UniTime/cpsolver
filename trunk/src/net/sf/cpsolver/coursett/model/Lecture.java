@@ -2,9 +2,8 @@ package net.sf.cpsolver.coursett.model;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -72,15 +71,15 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
     private ClassLimitConstraint iClassLimitConstraint = null;
 
     private Lecture iParent = null;
-    private Hashtable<Long, List<Lecture>> iChildren = null;
+    private HashMap<Long, List<Lecture>> iChildren = null;
     private java.util.List<Lecture> iSameSubpartLectures = null;
     private Configuration iParentConfiguration = null;
 
-    private Hashtable<Lecture, Set<Student>> iSameStudents = new Hashtable<Lecture, Set<Student>>(10);
+    private HashMap<Lecture, Set<Student>> iSameStudents = new HashMap<Lecture, Set<Student>>(10);
     private Set<JenrlConstraint> iActiveJenrls = new HashSet<JenrlConstraint>();
     private List<JenrlConstraint> iJenrlConstraints = new ArrayList<JenrlConstraint>();
-    private Hashtable<Lecture, JenrlConstraint> iJenrlConstraintsHash = new Hashtable<Lecture, JenrlConstraint>();
-    private Hashtable<Placement, Integer> iCommitedConflicts = new Hashtable<Placement, Integer>();
+    private HashMap<Lecture, JenrlConstraint> iJenrlConstraintsHash = new HashMap<Lecture, JenrlConstraint>();
+    private HashMap<Placement, Integer> iCommitedConflicts = new HashMap<Placement, Integer>();
     private Set<GroupConstraint> iGroupConstraints = new HashSet<GroupConstraint>();
     private Set<GroupConstraint> iHardGroupSoftConstraints = new HashSet<GroupConstraint>();
     private Set<GroupConstraint> iCanShareRoomGroupConstraints = new HashSet<GroupConstraint>();
@@ -590,11 +589,11 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
      * Table of student conflicts caused by the initial assignment of this
      * lecture in format (another lecture, number)
      */
-    public Hashtable<Lecture, Long> getInitialStudentConflicts() {
+    public Map<Lecture, Long> getInitialStudentConflicts() {
         Placement value = getInitialAssignment();
         if (value == null)
             return null;
-        Hashtable<Lecture, Long> ret = new Hashtable<Lecture, Long>();
+        Map<Lecture, Long> ret = new HashMap<Lecture, Long>();
         for (JenrlConstraint jenrl : jenrlConstraints()) {
             Lecture another = jenrl.another(this);
             if (another.getInitialAssignment() != null)
@@ -722,8 +721,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
 
         if (hasAnyChildren()) {
 
-            for (Enumeration<Long> e1 = getChildrenSubpartIds(); e1.hasMoreElements();) {
-                Long subpartId = e1.nextElement();
+            for (Long subpartId: getChildrenSubpartIds()) {
                 int maxAchievableChildrenLimit = 0;
 
                 for (Lecture child : getChildren(subpartId)) {
@@ -758,8 +756,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         if (!hasAnyChildren())
             return classLimit;
 
-        for (Enumeration<Long> e1 = getChildrenSubpartIds(); e1.hasMoreElements();) {
-            Long subpartId = e1.nextElement();
+        for (Long subpartId: getChildrenSubpartIds()) {
             int childrenClassLimit = 0;
 
             for (Lecture child : getChildren(subpartId)) {
@@ -952,13 +949,13 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         return iChildren.get(subpartId);
     }
 
-    public Enumeration<Long> getChildrenSubpartIds() {
-        return (iChildren == null ? null : iChildren.keys());
+    public Set<Long> getChildrenSubpartIds() {
+        return (iChildren == null ? null : iChildren.keySet());
     }
 
     private void addChild(Lecture child) {
         if (iChildren == null)
-            iChildren = new Hashtable<Long, List<Lecture>>();
+            iChildren = new HashMap<Long, List<Lecture>>();
         List<Lecture> childrenThisSubpart = iChildren.get(child.getSchedulingSubpartId());
         if (childrenThisSubpart == null) {
             childrenThisSubpart = new ArrayList<Lecture>();

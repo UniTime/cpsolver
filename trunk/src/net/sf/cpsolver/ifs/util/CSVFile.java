@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -40,7 +40,7 @@ import java.util.Locale;
 
 public class CSVFile implements Serializable {
     private static final long serialVersionUID = 1L;
-    Hashtable<String, Integer> iHeaderMap = null;
+    HashMap<String, Integer> iHeaderMap = null;
     CSVLine iHeader = null;
     List<CSVLine> iLines = null;
     String iSeparator = ",";
@@ -85,7 +85,7 @@ public class CSVFile implements Serializable {
         try {
             reader = new BufferedReader(new FileReader(file));
             iHeader = new CSVLine(reader.readLine()); // read header
-            iHeaderMap = new Hashtable<String, Integer>();
+            iHeaderMap = new HashMap<String, Integer>();
             iLines = new ArrayList<CSVLine>();
             int idx = 0;
             for (Iterator<CSVField> i = iHeader.fields(); i.hasNext(); idx++) {

@@ -3,7 +3,7 @@ package net.sf.cpsolver.coursett;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -42,7 +42,7 @@ import org.dom4j.io.XMLWriter;
 public class IdConvertor {
     private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(IdConvertor.class);
     private static IdConvertor sInstance = null;
-    private Hashtable<String, Hashtable<String, String>> iConversion = new Hashtable<String, Hashtable<String, String>>();
+    private HashMap<String, HashMap<String, String>> iConversion = new HashMap<String, HashMap<String, String>>();
     private String iFile = null;
 
     /**
@@ -64,9 +64,9 @@ public class IdConvertor {
     /** Convert id of given type. */
     public String convert(String type, String id) {
         synchronized (iConversion) {
-            Hashtable<String, String> conversion = iConversion.get(type);
+            HashMap<String, String> conversion = iConversion.get(type);
             if (conversion == null) {
-                conversion = new Hashtable<String, String>();
+                conversion = new HashMap<String, String>();
                 iConversion.put(type, conversion);
             }
             String newId = conversion.get(id);
@@ -87,9 +87,9 @@ public class IdConvertor {
         Document document = DocumentHelper.createDocument();
         Element root = document.addElement("id-convertor");
         synchronized (iConversion) {
-            for (Map.Entry<String, Hashtable<String, String>> entry : iConversion.entrySet()) {
+            for (Map.Entry<String, HashMap<String, String>> entry : iConversion.entrySet()) {
                 String type = entry.getKey();
-                Hashtable<String, String> conversion = entry.getValue();
+                HashMap<String, String> conversion = entry.getValue();
                 Element convEl = root.addElement(type);
                 for (Map.Entry<String, String> idConv : conversion.entrySet()) {
                     convEl.addElement("conv").addAttribute("old", idConv.getKey()).addAttribute("new",
@@ -131,7 +131,7 @@ public class IdConvertor {
                 iConversion.clear();
                 for (Iterator<?> i = root.elementIterator(); i.hasNext();) {
                     Element convEl = (Element) i.next();
-                    Hashtable<String, String> conversion = new Hashtable<String, String>();
+                    HashMap<String, String> conversion = new HashMap<String, String>();
                     iConversion.put(convEl.getName(), conversion);
                     for (Iterator<?> j = convEl.elementIterator("conv"); j.hasNext();) {
                         Element e = (Element) j.next();

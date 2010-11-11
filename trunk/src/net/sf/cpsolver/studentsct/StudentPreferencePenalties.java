@@ -2,7 +2,7 @@ package net.sf.cpsolver.studentsct;
 
 import java.text.DecimalFormat;
 import java.util.Enumeration;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
 
 import net.sf.cpsolver.coursett.Constants;
@@ -90,7 +90,7 @@ public class StudentPreferencePenalties {
             { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }, // Saturday
             { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 } // Sunday
     };
-    private Hashtable<String, Double> iWeight = new Hashtable<String, Double>();
+    private HashMap<String, Double> iWeight = new HashMap<String, Double>();
 
     /**
      * Constructor. All possible times are ordered based on the distribution

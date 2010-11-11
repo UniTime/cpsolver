@@ -5,7 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -617,7 +617,7 @@ public class TimetableModel extends Model<Activity, Location> {
 
         Element resources = problem.element("Resources");
 
-        Hashtable<String, Resource> resTab = new Hashtable<String, Resource>();
+        HashMap<String, Resource> resTab = new HashMap<String, Resource>();
 
         Element resEl = resources.element("Classrooms");
         for (Iterator<?> i = resEl.elementIterator("Resource"); i.hasNext();) {
@@ -672,7 +672,7 @@ public class TimetableModel extends Model<Activity, Location> {
         }
 
         Element actEl = problem.element("Activities");
-        Hashtable<String, Activity> actTab = new Hashtable<String, Activity>();
+        HashMap<String, Activity> actTab = new HashMap<String, Activity>();
         for (Iterator<?> i = actEl.elementIterator("Activity"); i.hasNext();) {
             Element el = (Element) i.next();
             Activity a = new Activity(Integer.parseInt(el.elementText("Length")), el.attributeValue("id"), el

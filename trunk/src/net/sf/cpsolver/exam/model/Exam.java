@@ -5,13 +5,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.Vector;
 
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Model;
@@ -927,19 +927,19 @@ public class Exam extends Variable<Exam, ExamPlacement> {
         return iName != null && iName.length() > 0;
     }
 
-    private Hashtable<Exam, List<ExamStudent>> iJenrls = null;
+    private HashMap<Exam, List<ExamStudent>> iJenrls = null;
 
     /**
      * Joint enrollments
      * 
      * @return table {@link Exam} (an exam that has at least one student in
-     *         common with this exam) -> {@link Vector} (list of students in
+     *         common with this exam) -> {@link List} (list of students in
      *         common)
      */
-    public Hashtable<Exam, List<ExamStudent>> getJointEnrollments() {
+    public Map<Exam, List<ExamStudent>> getJointEnrollments() {
         if (iJenrls != null)
             return iJenrls;
-        iJenrls = new Hashtable<Exam, List<ExamStudent>>();
+        iJenrls = new HashMap<Exam, List<ExamStudent>>();
         for (ExamStudent student : getStudents()) {
             for (Exam other : student.variables()) {
                 if (other.equals(this))

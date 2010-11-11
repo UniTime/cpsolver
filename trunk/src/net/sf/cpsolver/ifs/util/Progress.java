@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
@@ -77,7 +77,7 @@ public class Progress {
     private List<Message> iLog = new ArrayList<Message>(1000);
     private boolean iDisposed = false;
 
-    private static Hashtable<Object, Progress> sInstances = new Hashtable<Object, Progress>();
+    private static HashMap<Object, Progress> sInstances = new HashMap<Object, Progress>();
 
     private Progress() {
     }

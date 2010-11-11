@@ -14,9 +14,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -418,7 +417,7 @@ public class Test {
         printInfo(solution, cfg.getPropertyBoolean("Test.CreateReports", true), false, cfg.getPropertyBoolean(
                 "Test.RunChecks", true));
 
-        Hashtable<String, String> extra = new Hashtable<String, String>();
+        HashMap<String, String> extra = new HashMap<String, String>();
         sLog.info("Overall penalty is " + getPerc(totalPenalty, minPenalty, maxPenalty) + "% ("
                 + sDF.format(totalPenalty) + "/" + sDF.format(minPenalty) + ".." + sDF.format(maxPenalty) + ")");
         extra.put("Overall penalty", getPerc(totalPenalty, minPenalty, maxPenalty) + "% (" + sDF.format(totalPenalty)
@@ -665,7 +664,7 @@ public class Test {
         try {
             Document document = (new SAXReader()).read(xml);
             Element root = document.getRootElement();
-            Hashtable<Course, List<Request>> requests = new Hashtable<Course, List<Request>>();
+            HashMap<Course, List<Request>> requests = new HashMap<Course, List<Request>>();
             long reqId = 0;
             for (Iterator<?> i = root.elementIterator("student"); i.hasNext();) {
                 Element studentEl = (Element) i.next();
@@ -748,7 +747,7 @@ public class Test {
             boolean lastLike = model.getProperties().getPropertyBoolean("Test.CrsReqIsLastLike", true);
             boolean shuffleIds = model.getProperties().getPropertyBoolean("Test.CrsReqShuffleStudentIds", true);
             boolean tryWithoutSuffix = model.getProperties().getPropertyBoolean("Test.CrsReqTryWithoutSuffix", false);
-            Hashtable<Long, Student> students = new Hashtable<Long, Student>();
+            HashMap<Long, Student> students = new HashMap<Long, Student>();
             long reqId = 0;
             for (StringTokenizer stk = new StringTokenizer(files, ";"); stk.hasMoreTokens();) {
                 String file = stk.nextToken();
@@ -868,10 +867,9 @@ public class Test {
                 }
                 in.close();
             }
-            Hashtable<Course, List<Request>> requests = new Hashtable<Course, List<Request>>();
+            HashMap<Course, List<Request>> requests = new HashMap<Course, List<Request>>();
             Set<Long> studentIds = new HashSet<Long>();
-            for (Enumeration<Student> e = students.elements(); e.hasMoreElements();) {
-                Student student = e.nextElement();
+            for (Student student: students.values()) {
                 if (!student.getRequests().isEmpty())
                     model.addStudent(student);
                 if (shuffleIds) {
@@ -952,8 +950,7 @@ public class Test {
                 }
             }
             int without = 0;
-            for (Enumeration<Student> e = students.elements(); e.hasMoreElements();) {
-                Student student = e.nextElement();
+            for (Student student: students.values()) {
                 if (student.getAcademicAreaClasiffications().isEmpty())
                     without++;
             }
@@ -990,7 +987,7 @@ public class Test {
             sLog.info("Loading student infos from " + xml);
             Document document = (new SAXReader()).read(xml);
             Element root = document.getRootElement();
-            Hashtable<Long, Student> studentTable = new Hashtable<Long, Student>();
+            HashMap<Long, Student> studentTable = new HashMap<Long, Student>();
             for (Student student : model.getStudents()) {
                 studentTable.put(new Long(student.getId()), student);
             }
@@ -1037,7 +1034,7 @@ public class Test {
     }
 
     /** Save solution info as XML */
-    public static void saveInfoToXML(Solution<Request, Enrollment> solution, Hashtable<String, String> extra, File file) {
+    public static void saveInfoToXML(Solution<Request, Enrollment> solution, HashMap<String, String> extra, File file) {
         FileOutputStream fos = null;
         try {
             Document document = DocumentHelper.createDocument();
@@ -1074,8 +1071,8 @@ public class Test {
     }
 
     private static void fixWeights(StudentSectioningModel model) {
-        Hashtable<Course, Integer> lastLike = new Hashtable<Course, Integer>();
-        Hashtable<Course, Integer> real = new Hashtable<Course, Integer>();
+        HashMap<Course, Integer> lastLike = new HashMap<Course, Integer>();
+        HashMap<Course, Integer> real = new HashMap<Course, Integer>();
         HashSet<Long> lastLikeIds = new HashSet<Long>();
         HashSet<Long> realIds = new HashSet<Long>();
         for (Student student : model.getStudents()) {

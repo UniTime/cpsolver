@@ -1,6 +1,6 @@
 package net.sf.cpsolver.studentsct.heuristics.selection;
 
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -169,7 +169,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         /** Best value */
         protected double iBestValue;
         /** Value cache */
-        protected Hashtable<CourseRequest, List<Enrollment>> iValues;
+        protected HashMap<CourseRequest, List<Enrollment>> iValues;
 
         /**
          * Constructor
@@ -191,7 +191,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             iAssignment = new Enrollment[iStudent.getRequests().size()];
             iBestAssignment = null;
             iBestValue = 0;
-            iValues = new Hashtable<CourseRequest, List<Enrollment>>();
+            iValues = new HashMap<CourseRequest, List<Enrollment>>();
             backTrack(0);
             iT1 = JProf.currentTimeMillis();
             if (iBestAssignment == null)

@@ -8,9 +8,8 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -924,7 +923,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
                 if (student.getCommitedPlacements() != null)
                     totalCommitedPlacements += student.getCommitedPlacements().size();
             }
-            Hashtable<Long, List<Lecture>> subs = new Hashtable<Long, List<Lecture>>();
+            HashMap<Long, List<Lecture>> subs = new HashMap<Long, List<Lecture>>();
             for (Lecture lecture : m.variables()) {
                 if (lecture.isCommitted())
                     continue;
@@ -954,8 +953,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
             w.println("000." + dx.format(bidx++) + " Distribution preferences min," + minGrPref);
             w.println("000." + dx.format(bidx++) + " Distribution preferences max," + maxGrPref);
             w.println("000." + dx.format(bidx++) + " Back-to-back instructor pref max," + worstInstrPref);
-            for (Enumeration<Long> e = ToolBox.sortEnumeration(subs.keys()); e.hasMoreElements();) {
-                Long scheduler = e.nextElement();
+            for (Long scheduler: new TreeSet<Long>(subs.keySet())) {
                 List<Lecture> vars = subs.get(scheduler);
                 idx = 001;
                 bidx = 101;

@@ -6,9 +6,8 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -195,7 +194,7 @@ public class TimetableXMLLoader extends TimetableLoader {
             sectionWholeCourse = (majorVersion == 2 && minorVersion >= 5) || majorVersion > 2;
         }
         
-        Hashtable<Long, TimeLocation> perts = new Hashtable<Long, TimeLocation>();
+        HashMap<Long, TimeLocation> perts = new HashMap<Long, TimeLocation>();
         if (getModel().getProperties().getPropertyInt("MPP.TimePert", 0) > 0) {
             int nrChanges = getModel().getProperties().getPropertyInt("MPP.TimePert", 0);
             int idx = 0;
@@ -210,9 +209,9 @@ public class TimetableXMLLoader extends TimetableLoader {
         }
 
         iProgress.setPhase("Creating rooms ...", root.element("rooms").elements("room").size());
-        Hashtable<String, Element> roomElements = new Hashtable<String, Element>();
-        Hashtable<String, RoomConstraint> roomConstraints = new Hashtable<String, RoomConstraint>();
-        Hashtable<Long, List<Lecture>> sameLectures = new Hashtable<Long, List<Lecture>>();
+        HashMap<String, Element> roomElements = new HashMap<String, Element>();
+        HashMap<String, RoomConstraint> roomConstraints = new HashMap<String, RoomConstraint>();
+        HashMap<Long, List<Lecture>> sameLectures = new HashMap<Long, List<Lecture>>();
         for (Iterator<?> i = root.element("rooms").elementIterator("room"); i.hasNext();) {
             Element roomEl = (Element) i.next();
             iProgress.incProgress();
@@ -260,7 +259,7 @@ public class TimetableXMLLoader extends TimetableLoader {
             roomConstraints.put(roomEl.attributeValue("id"), constraint);
         }
 
-        Hashtable<String, InstructorConstraint> instructorConstraints = new Hashtable<String, InstructorConstraint>();
+        HashMap<String, InstructorConstraint> instructorConstraints = new HashMap<String, InstructorConstraint>();
         if (root.element("instructors") != null) {
             for (Iterator<?> i = root.element("instructors").elementIterator("instructor"); i.hasNext();) {
                 Element instructorEl = (Element) i.next();
@@ -275,7 +274,7 @@ public class TimetableXMLLoader extends TimetableLoader {
                 getModel().addConstraint(instructorConstraint);
             }
         }
-        Hashtable<Long, String> depts = new Hashtable<Long, String>();
+        HashMap<Long, String> depts = new HashMap<Long, String>();
         if (root.element("departments") != null) {
             for (Iterator<?> i = root.element("departments").elementIterator("department"); i.hasNext();) {
                 Element deptEl = (Element) i.next();
@@ -284,8 +283,8 @@ public class TimetableXMLLoader extends TimetableLoader {
             }
         }
 
-        Hashtable<Long, Configuration> configs = new Hashtable<Long, Configuration>();
-        Hashtable<Long, List<Configuration>> alternativeConfigurations = new Hashtable<Long, List<Configuration>>();
+        HashMap<Long, Configuration> configs = new HashMap<Long, Configuration>();
+        HashMap<Long, List<Configuration>> alternativeConfigurations = new HashMap<Long, List<Configuration>>();
         if (root.element("configurations") != null) {
             for (Iterator<?> i = root.element("configurations").elementIterator("config"); i.hasNext();) {
                 Element configEl = (Element) i.next();
@@ -306,10 +305,10 @@ public class TimetableXMLLoader extends TimetableLoader {
 
         iProgress.setPhase("Creating variables ...", root.element("classes").elements("class").size());
 
-        Hashtable<String, Element> classElements = new Hashtable<String, Element>();
-        Hashtable<String, Lecture> lectures = new Hashtable<String, Lecture>();
-        Hashtable<Lecture, Placement> assignedPlacements = new Hashtable<Lecture, Placement>();
-        Hashtable<Lecture, String> parents = new Hashtable<Lecture, String>();
+        HashMap<String, Element> classElements = new HashMap<String, Element>();
+        HashMap<String, Lecture> lectures = new HashMap<String, Lecture>();
+        HashMap<Lecture, Placement> assignedPlacements = new HashMap<Lecture, Placement>();
+        HashMap<Lecture, String> parents = new HashMap<Lecture, String>();
         int ord = 0;
         for (Iterator<?> i1 = root.element("classes").elementIterator("class"); i1.hasNext();) {
             Element classEl = (Element) i1.next();
@@ -567,8 +566,8 @@ public class TimetableXMLLoader extends TimetableLoader {
         }
 
         iProgress.setPhase("Creating constraints ...", root.element("groupConstraints").elements("constraint").size());
-        Hashtable<String, Element> grConstraintElements = new Hashtable<String, Element>();
-        Hashtable<String, Constraint<Lecture, Placement>> groupConstraints = new Hashtable<String, Constraint<Lecture, Placement>>();
+        HashMap<String, Element> grConstraintElements = new HashMap<String, Element>();
+        HashMap<String, Constraint<Lecture, Placement>> groupConstraints = new HashMap<String, Constraint<Lecture, Placement>>();
         for (Iterator<?> i1 = root.element("groupConstraints").elementIterator("constraint"); i1.hasNext();) {
             Element grConstraintEl = (Element) i1.next();
             Constraint<Lecture, Placement> c = null;
@@ -616,8 +615,8 @@ public class TimetableXMLLoader extends TimetableLoader {
 
         iProgress.setPhase("Loading students ...", root.element("students").elements("student").size());
         boolean initialSectioning = true;
-        Hashtable<Long, Student> students = new Hashtable<Long, Student>();
-        Hashtable<Long, Set<Student>> offering2students = new Hashtable<Long, Set<Student>>();
+        HashMap<Long, Student> students = new HashMap<Long, Student>();
+        HashMap<Long, Set<Student>> offering2students = new HashMap<Long, Set<Student>>();
         for (Iterator<?> i1 = root.element("students").elementIterator("student"); i1.hasNext();) {
             Element studentEl = (Element) i1.next();
             List<Lecture> lecturesThisStudent = new ArrayList<Lecture>();
@@ -673,8 +672,7 @@ public class TimetableXMLLoader extends TimetableLoader {
             iProgress.incProgress();
         }
 
-        for (Enumeration<List<Lecture>> e1 = sameLectures.elements(); e1.hasMoreElements();) {
-            List<Lecture> sames = e1.nextElement();
+        for (List<Lecture> sames: sameLectures.values()) {
             for (Lecture lect : sames) {
                 lect.setSameSubpartLectures(sames);
             }
@@ -690,13 +688,12 @@ public class TimetableXMLLoader extends TimetableLoader {
                         studentsThisOffering, altConfigs);
                 iProgress.incProgress();
             }
-            for (Enumeration<Student> e = students.elements(); e.hasMoreElements();) {
-                e.nextElement().clearDistanceCache();
-            }
+            for (Student student: students.values())
+                student.clearDistanceCache();
         }
 
         iProgress.setPhase("Computing jenrl ...", students.size());
-        Hashtable<Lecture, Hashtable<Lecture, JenrlConstraint>> jenrls = new Hashtable<Lecture, Hashtable<Lecture, JenrlConstraint>>();
+        HashMap<Lecture, HashMap<Lecture, JenrlConstraint>> jenrls = new HashMap<Lecture, HashMap<Lecture, JenrlConstraint>>();
         for (Iterator<Student> i1 = students.values().iterator(); i1.hasNext();) {
             Student st = i1.next();
             for (Iterator<Lecture> i2 = st.getLectures().iterator(); i2.hasNext();) {
@@ -705,9 +702,9 @@ public class TimetableXMLLoader extends TimetableLoader {
                     Lecture l2 = i3.next();
                     if (l1.getId() >= l2.getId())
                         continue;
-                    Hashtable<Lecture, JenrlConstraint> x = jenrls.get(l1);
+                    HashMap<Lecture, JenrlConstraint> x = jenrls.get(l1);
                     if (x == null) {
-                        x = new Hashtable<Lecture, JenrlConstraint>();
+                        x = new HashMap<Lecture, JenrlConstraint>();
                         jenrls.put(l1, x);
                     }
                     JenrlConstraint jenrl = x.get(l2);
@@ -726,7 +723,7 @@ public class TimetableXMLLoader extends TimetableLoader {
 
         if (iDeptBalancing) {
             iProgress.setPhase("Creating dept. spread constraints ...", getModel().variables().size());
-            Hashtable<Long, DepartmentSpreadConstraint> depSpreadConstraints = new Hashtable<Long, DepartmentSpreadConstraint>();
+            HashMap<Long, DepartmentSpreadConstraint> depSpreadConstraints = new HashMap<Long, DepartmentSpreadConstraint>();
             for (Lecture lecture : getModel().variables()) {
                 if (lecture.getDepartment() == null)
                     continue;

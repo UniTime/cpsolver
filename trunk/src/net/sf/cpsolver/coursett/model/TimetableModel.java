@@ -3,7 +3,7 @@ package net.sf.cpsolver.coursett.model;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -400,7 +400,7 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
     }
 
     public Map<String, String> getBounds() {
-        Map<String, String> ret = new Hashtable<String, String>();
+        Map<String, String> ret = new HashMap<String, String>();
         ret.put("Room preferences min", "" + iMinRoomPreference);
         ret.put("Room preferences max", "" + iMaxRoomPreference);
         ret.put("Time preferences min", "" + iMinTimePreference);
@@ -419,8 +419,8 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
 
     /** Global info */
     @Override
-    public Hashtable<String, String> getInfo() {
-        Hashtable<String, String> ret = super.getInfo();
+    public Map<String, String> getInfo() {
+        Map<String, String> ret = super.getInfo();
         ret.put("Memory usage", getMem());
         ret.put("Room preferences", getPerc(iGlobalRoomPreference, iMinRoomPreference, iMaxRoomPreference) + "% ("
                 + iGlobalRoomPreference + ")");
@@ -457,8 +457,8 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
     }
 
     @Override
-    public Hashtable<String, String> getInfo(Collection<Lecture> variables) {
-        Hashtable<String, String> ret = super.getInfo(variables);
+    public Map<String, String> getInfo(Collection<Lecture> variables) {
+        Map<String, String> ret = super.getInfo(variables);
         ret.put("Memory usage", getMem());
 
         int roomPref = 0, minRoomPref = 0, maxRoomPref = 0;
