@@ -1,11 +1,12 @@
 package net.sf.cpsolver.ifs.constant;
 
 
+import java.util.ArrayList;
+import java.util.List;
+
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
-import net.sf.cpsolver.ifs.util.ArrayList;
-import net.sf.cpsolver.ifs.util.List;
 
 /**
  * Extension of the model with constant variables.

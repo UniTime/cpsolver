@@ -1,6 +1,6 @@
 package net.sf.cpsolver.ifs.example.rpp;
 
-import net.sf.cpsolver.ifs.model.*;
+import net.sf.cpsolver.ifs.model.Value;
 
 /**
  * Location (value, i.e., a single placement of the rectangle). Location encodes

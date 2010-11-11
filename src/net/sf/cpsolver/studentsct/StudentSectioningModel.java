@@ -1,6 +1,7 @@
 package net.sf.cpsolver.studentsct;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Set;
@@ -9,7 +10,6 @@ import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.ConstraintListener;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.util.DataProperties;
-import net.sf.cpsolver.ifs.util.HashSet;
 import net.sf.cpsolver.studentsct.constraint.SectionLimit;
 import net.sf.cpsolver.studentsct.constraint.StudentConflict;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
