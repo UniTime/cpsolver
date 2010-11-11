@@ -3,9 +3,8 @@ package net.sf.cpsolver.coursett.constraint;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -48,7 +47,7 @@ public class MinimizeNumberOfUsedRoomsConstraint extends Constraint<Lecture, Pla
     private int iUnassignmentsToWeaken = 250;
     private long iUnassignment = 0;
     private int iLimit = 1;
-    private Hashtable<RoomLocation, Set<Lecture>> iUsedRooms = new Hashtable<RoomLocation, Set<Lecture>>();
+    private HashMap<RoomLocation, Set<Lecture>> iUsedRooms = new HashMap<RoomLocation, Set<Lecture>>();
     boolean iEnabled = false;
 
     public MinimizeNumberOfUsedRoomsConstraint(DataProperties config) {
@@ -121,8 +120,7 @@ public class MinimizeNumberOfUsedRoomsConstraint extends Constraint<Lecture, Pla
         int overLimit = getOverLimit(placement);
         if (overLimit > 0) {
             List<List<Placement>> adepts = new ArrayList<List<Placement>>();
-            for (Enumeration<Set<Lecture>> e = iUsedRooms.elements(); e.hasMoreElements();) {
-                Set<Lecture> lects = e.nextElement();
+            for (Set<Lecture> lects: iUsedRooms.values()) {
                 List<Placement> placementsToUnassign = new ArrayList<Placement>();
                 boolean canUnassign = true;
                 for (Lecture l : lects) {

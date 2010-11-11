@@ -7,7 +7,7 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +39,7 @@ import org.apache.log4j.Logger;
 
 public class SoftCache<K, V> implements Map<K, V> {
     private static Logger sLogger = Logger.getLogger(SoftCache.class);
-    private Hashtable<K, Reference<V>> iCache = new Hashtable<K, Reference<V>>();
+    private HashMap<K, Reference<V>> iCache = new HashMap<K, Reference<V>>();
     private ReferenceQueue<V> iQueue = new ReferenceQueue<V>();
 
     public SoftCache() {

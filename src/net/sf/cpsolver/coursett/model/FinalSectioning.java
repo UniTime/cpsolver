@@ -2,7 +2,6 @@ package net.sf.cpsolver.coursett.model;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -372,8 +371,7 @@ public class FinalSectioning implements Runnable {
             return null;
         if (firstLecture.hasAnyChildren()) {
             if (secondStudent != null) {
-                for (Enumeration<Long> e = firstLecture.getChildrenSubpartIds(); e.hasMoreElements();) {
-                    Long subpartId = e.nextElement();
+                for (Long subpartId: firstLecture.getChildrenSubpartIds()) {
                     Lecture firstChildLecture = firstLecture.getChild(firstStudent, subpartId);
                     Lecture secondChildLecture = secondLecture.getChild(secondStudent, subpartId);
                     if (firstChildLecture == null || secondChildLecture == null)
@@ -397,8 +395,7 @@ public class FinalSectioning implements Runnable {
                         return null;
                 }
             } else {
-                for (Enumeration<Long> e1 = firstLecture.getChildrenSubpartIds(); e1.hasMoreElements();) {
-                    Long subpartId = e1.nextElement();
+                for (Long subpartId: firstLecture.getChildrenSubpartIds()) {
                     Lecture firstChildLecture = firstLecture.getChild(firstStudent, subpartId);
                     if (firstChildLecture == null || firstChildLecture.getAssignment() == null)
                         return null;
@@ -642,14 +639,12 @@ public class FinalSectioning implements Runnable {
             Student secondStudent) {
         MoveBetweenCfgs m = new MoveBetweenCfgs(firstConfig, firstStudent, secondConfig, secondStudent);
 
-        for (Enumeration<Long> e = firstConfig.getTopSubpartIds(); e.hasMoreElements();) {
-            Long subpartId = e.nextElement();
+        for (Long subpartId: firstConfig.getTopSubpartIds()) {
             if (!addLectures(firstStudent, secondStudent, m.firstLectures(), firstConfig.getTopLectures(subpartId)))
                 return null;
         }
 
-        for (Enumeration<Long> e = secondConfig.getTopSubpartIds(); e.hasMoreElements();) {
-            Long subpartId = e.nextElement();
+        for (Long subpartId: secondConfig.getTopSubpartIds()) {
             if (!addLectures(secondStudent, firstStudent, m.secondLectures(), secondConfig.getTopLectures(subpartId)))
                 return null;
         }
@@ -691,8 +686,7 @@ public class FinalSectioning implements Runnable {
             return false;
         studentLectures.add(lecture);
         if (lecture.getChildrenSubpartIds() != null) {
-            for (Enumeration<Long> e = lecture.getChildrenSubpartIds(); e.hasMoreElements();) {
-                Long subpartId = e.nextElement();
+            for (Long subpartId: lecture.getChildrenSubpartIds()) {
                 if (!addLectures(student, newStudent, studentLectures, lecture.getChildren(subpartId)))
                     return false;
             }
@@ -720,8 +714,7 @@ public class FinalSectioning implements Runnable {
         test += student.countConflictPlacements(lecture.getAssignment());
 
         if (lecture.getChildrenSubpartIds() != null) {
-            for (Enumeration<Long> e = lecture.getChildrenSubpartIds(); e.hasMoreElements();) {
-                Long subpartId = e.nextElement();
+            for (Long subpartId: lecture.getChildrenSubpartIds()) {
                 int bestTest = -1;
                 for (Lecture child : lecture.getChildren(subpartId)) {
                     int t = test(student, child);

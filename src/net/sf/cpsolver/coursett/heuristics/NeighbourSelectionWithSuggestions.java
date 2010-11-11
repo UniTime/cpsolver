@@ -2,12 +2,10 @@ package net.sf.cpsolver.coursett.heuristics;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Enumeration;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.Vector;
 
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
@@ -112,10 +110,10 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
         synchronized (solution) {
             // System.out.println("BEFORE BT ("+lecture.getName()+"): nrAssigned="+iSolution.getModel().assignedVariables().size()+",  value="+iCmp.currentValue(iSolution));
 
-            Vector<Lecture> initialLectures = new Vector<Lecture>(1);
+            List<Lecture> initialLectures = new ArrayList<Lecture>(1);
             initialLectures.add(lecture);
             backtrack(JProf.currentTimeMillis(), initialLectures, new ArrayList<Lecture>(),
-                    new Hashtable<Lecture, Placement>(), depth);
+                    new HashMap<Lecture, Placement>(), depth);
 
             // System.out.println("AFTER  BT ("+lecture.getName()+"): nrAssigned="+iSolution.getModel().assignedVariables().size()+",  value="+iCmp.currentValue(iSolution));
         }
@@ -134,8 +132,8 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
         return false;
     }
 
-    private void backtrack(long startTime, Vector<Lecture> initialLectures, List<Lecture> resolvedLectures,
-            Hashtable<Lecture, Placement> conflictsToResolve, int depth) {
+    private void backtrack(long startTime, List<Lecture> initialLectures, List<Lecture> resolvedLectures,
+            HashMap<Lecture, Placement> conflictsToResolve, int depth) {
         int nrUnassigned = conflictsToResolve.size();
         if ((initialLectures == null || initialLectures.isEmpty()) && nrUnassigned == 0) {
             if (iSolution.getModel().assignedVariables().size() > iNrAssigned
@@ -151,9 +149,7 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
         if (iSuggestionTimeout > 0 && JProf.currentTimeMillis() - startTime > iSuggestionTimeout) {
             return;
         }
-        for (Enumeration<Lecture> e1 = (initialLectures != null && !initialLectures.isEmpty() ? initialLectures
-                .elements() : conflictsToResolve.keys()); e1.hasMoreElements();) {
-            Lecture lecture = e1.nextElement();
+        for (Lecture lecture: (initialLectures != null && !initialLectures.isEmpty() ? initialLectures : conflictsToResolve.keySet())) {
             if (resolvedLectures.contains(lecture))
                 continue;
             resolvedLectures.add(lecture);

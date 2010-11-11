@@ -1,6 +1,6 @@
 package net.sf.cpsolver.coursett.model;
 
-import java.util.Hashtable;
+import java.util.HashMap;
 
 import net.sf.cpsolver.coursett.Constants;
 
@@ -28,7 +28,7 @@ import net.sf.cpsolver.coursett.Constants;
 public class RoomSharingModel {
     protected Long[][] iPreference = null;
     protected Long[] iDepartmentIds = null;
-    protected Hashtable<Long, Integer> iDepartmentIdx = null;
+    protected HashMap<Long, Integer> iDepartmentIdx = null;
 
     public static Long sFreeForAllPref = new Long(-1);
     public static Long sNotAvailablePref = new Long(-2);
@@ -44,7 +44,7 @@ public class RoomSharingModel {
     public RoomSharingModel(Long[] managerIds, String pattern) {
         iPreference = new Long[getNrDays()][getNrTimes()];
         iDepartmentIds = new Long[managerIds.length];
-        iDepartmentIdx = new Hashtable<Long, Integer>();
+        iDepartmentIdx = new HashMap<Long, Integer>();
         for (int i = 0; i < managerIds.length; i++) {
             iDepartmentIds[i] = managerIds[i];
             iDepartmentIdx.put(managerIds[i], i);

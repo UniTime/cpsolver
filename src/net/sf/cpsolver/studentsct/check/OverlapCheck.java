@@ -1,7 +1,6 @@
 package net.sf.cpsolver.studentsct.check;
 
-import java.util.Enumeration;
-import java.util.Hashtable;
+import java.util.HashMap;
 
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
@@ -68,7 +67,7 @@ public class OverlapCheck {
         sLog.info("Checking for overlaps...");
         boolean ret = true;
         for (Student student : getModel().getStudents()) {
-            Hashtable<TimeLocation, Assignment> times = new Hashtable<TimeLocation, Assignment>();
+            HashMap<TimeLocation, Assignment> times = new HashMap<TimeLocation, Assignment>();
             for (Request request : student.getRequests()) {
                 Enrollment enrollment = request.getAssignment();
                 if (enrollment == null)
@@ -76,8 +75,7 @@ public class OverlapCheck {
                 for (Assignment assignment : enrollment.getAssignments()) {
                     if (assignment.getTime() == null)
                         continue;
-                    for (Enumeration<TimeLocation> e = times.keys(); e.hasMoreElements();) {
-                        TimeLocation time = e.nextElement();
+                    for (TimeLocation time: times.keySet()) {
                         if (time.hasIntersection(assignment.getTime())) {
                             sLog.error("Student " + student + " assignment " + assignment + " overlaps with "
                                     + times.get(time));

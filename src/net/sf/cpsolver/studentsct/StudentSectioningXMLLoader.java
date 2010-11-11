@@ -4,7 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -193,7 +193,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             return;
         }
         
-        Hashtable<Long, Placement> timetable = null;
+        HashMap<Long, Placement> timetable = null;
         if (iTimetableFile != null) {
             sLogger.info("Reading timetable from " + iTimetableFile + " ...");
             Document timetableDocument = (new SAXReader()).read(iTimetableFile);
@@ -202,8 +202,8 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                 sLogger.error("Given XML file is not course timetabling problem.");
                 return;
             }
-            timetable = new Hashtable<Long, Placement>();
-            Hashtable<Long, RoomLocation> rooms = new Hashtable<Long, RoomLocation>();
+            timetable = new HashMap<Long, Placement>();
+            HashMap<Long, RoomLocation> rooms = new HashMap<Long, RoomLocation>();
             for (Iterator<?> i = timetableRoot.element("rooms").elementIterator("room"); i.hasNext();) {
                 Element roomEl = (Element)i.next();
                 Long roomId = Long.valueOf(roomEl.attributeValue("id"));
@@ -263,12 +263,12 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         if (root.attributeValue("initiative") != null)
             getModel().getProperties().setProperty("Data.Initiative", root.attributeValue("initiative"));
 
-        Hashtable<Long, Offering> offeringTable = new Hashtable<Long, Offering>();
-        Hashtable<Long, Course> courseTable = new Hashtable<Long, Course>();
+        HashMap<Long, Offering> offeringTable = new HashMap<Long, Offering>();
+        HashMap<Long, Course> courseTable = new HashMap<Long, Course>();
 
         if (iLoadOfferings && root.element("offerings") != null) {
-            Hashtable<Long, Subpart> subpartTable = new Hashtable<Long, Subpart>();
-            Hashtable<Long, Section> sectionTable = new Hashtable<Long, Section>();
+            HashMap<Long, Subpart> subpartTable = new HashMap<Long, Subpart>();
+            HashMap<Long, Section> sectionTable = new HashMap<Long, Section>();
             for (Iterator<?> i = root.element("offerings").elementIterator("offering"); i.hasNext();) {
                 Element offeringEl = (Element) i.next();
                 Offering offering = new Offering(Long.parseLong(offeringEl.attributeValue("id")), offeringEl

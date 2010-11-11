@@ -2,7 +2,7 @@ package net.sf.cpsolver.ifs.extension;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,7 +44,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  */
 public class ViolatedInitials<V extends Variable<V, T>, T extends Value<V, T>> extends Extension<V, T> {
     private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(ViolatedInitials.class);
-    private Map<T, Set<T>> iViolatedInitials = new Hashtable<T, Set<T>>();
+    private Map<T, Set<T>> iViolatedInitials = new HashMap<T, Set<T>>();
 
     public ViolatedInitials(Solver<V, T> solver, DataProperties properties) {
         super(solver, properties);

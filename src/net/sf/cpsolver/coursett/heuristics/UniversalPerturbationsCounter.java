@@ -1,6 +1,6 @@
 package net.sf.cpsolver.coursett.heuristics;
 
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -568,7 +568,7 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
     }
 
     public Map<String, Double> getCompactInfo(TimetableModel model, boolean includeZero, boolean weighted) {
-        Map<String, Double> info = new Hashtable<String, Double>();
+        Map<String, Double> info = new HashMap<String, Double>();
         if (!iMPP)
             return info;
         int perts = 0;
@@ -723,7 +723,7 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
 
     public Map<String, Double> getCompactInfo(TimetableModel model, Placement assignedPlacement, boolean includeZero,
             boolean weighted) {
-        Map<String, Double> info = new Hashtable<String, Double>();
+        Map<String, Double> info = new HashMap<String, Double>();
         if (!iMPP)
             return info;
         Lecture lecture = assignedPlacement.variable();

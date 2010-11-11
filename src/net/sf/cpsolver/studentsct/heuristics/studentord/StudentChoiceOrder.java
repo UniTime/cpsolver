@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
 
 import net.sf.cpsolver.ifs.util.DataProperties;
@@ -40,7 +40,7 @@ import net.sf.cpsolver.studentsct.model.Subpart;
  */
 public class StudentChoiceOrder implements StudentOrder, Comparator<Student> {
     private boolean iReverse = false;
-    private Hashtable<Config, Integer> iCache = new Hashtable<Config, Integer>();
+    private HashMap<Config, Integer> iCache = new HashMap<Config, Integer>();
 
     public StudentChoiceOrder(DataProperties config) {
         iReverse = config.getPropertyBoolean("StudentChoiceOrder.Reverse", iReverse);

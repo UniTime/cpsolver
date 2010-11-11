@@ -1,10 +1,10 @@
 package net.sf.cpsolver.coursett.model;
 
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -33,7 +33,7 @@ import java.util.Set;
 public class Configuration {
     private Long iConfigId = null;
     private Long iOfferingId = null;
-    private Hashtable<Long, Set<Lecture>> iTopLectures = new Hashtable<Long, Set<Lecture>>();
+    private HashMap<Long, Set<Lecture>> iTopLectures = new HashMap<Long, Set<Lecture>>();
     private List<Configuration> iAltConfigurations = null;
     private int iLimit = -1;
 
@@ -60,12 +60,12 @@ public class Configuration {
         lectures.add(lecture);
     }
     
-    public Hashtable<Long, Set<Lecture>> getTopLectures() {
+    public Map<Long, Set<Lecture>> getTopLectures() {
         return iTopLectures;
     }
 
-    public Enumeration<Long> getTopSubpartIds() {
-        return iTopLectures.keys();
+    public Set<Long> getTopSubpartIds() {
+        return iTopLectures.keySet();
     }
 
     public Set<Lecture> getTopLectures(Long subpartId) {
@@ -88,8 +88,7 @@ public class Configuration {
 
     public Set<Student> students() {
         Set<Student> students = new HashSet<Student>();
-        for (Enumeration<Set<Lecture>> e = iTopLectures.elements(); e.hasMoreElements();) {
-            Set<Lecture> lectures = e.nextElement();
+        for (Set<Lecture> lectures: iTopLectures.values()) {
             for (Lecture l : lectures) {
                 students.addAll(l.students());
             }

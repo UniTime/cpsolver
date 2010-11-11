@@ -1,8 +1,8 @@
 package net.sf.cpsolver.ifs.example.csp;
 
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import net.sf.cpsolver.ifs.model.Constraint;
@@ -237,8 +237,8 @@ public class StructuredCSPModel extends Model<CSPVariable, CSPValue> {
 
     /** Return information table */
     @Override
-    public Hashtable<String, String> getInfo() {
-        Hashtable<String, String> ret = super.getInfo();
+    public Map<String, String> getInfo() {
+        Map<String, String> ret = super.getInfo();
         ret.put("Solution value", String.valueOf(getTotalValue()));
         return ret;
     }

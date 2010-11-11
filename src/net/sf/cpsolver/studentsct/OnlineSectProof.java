@@ -2,7 +2,7 @@ package net.sf.cpsolver.studentsct;
 
 import java.text.DecimalFormat;
 import java.util.Comparator;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.TreeSet;
 
@@ -466,8 +466,8 @@ public class OnlineSectProof {
 
     /** Comparison of two categories */
     public static class CatCmp implements Comparator<String> {
-        Hashtable<String, Integer> iWorstCaseCat;
-        Hashtable<String, Counter> iTotalCat, iCountCat;
+        HashMap<String, Integer> iWorstCaseCat;
+        HashMap<String, Counter> iTotalCat, iCountCat;
 
         /**
          * Constructor
@@ -481,8 +481,8 @@ public class OnlineSectProof {
          *            (category, worst number of students that were not
          *            sectioned of a sequence from this category)
          */
-        public CatCmp(Hashtable<String, Counter> countCat, Hashtable<String, Counter> totalCat,
-                Hashtable<String, Integer> worstCaseCat) {
+        public CatCmp(HashMap<String, Counter> countCat, HashMap<String, Counter> totalCat,
+                HashMap<String, Integer> worstCaseCat) {
             iWorstCaseCat = worstCaseCat;
             iTotalCat = totalCat;
             iCountCat = countCat;
@@ -570,18 +570,18 @@ public class OnlineSectProof {
         TreeSet<String>[] worstCaseSq = new TreeSet[2 * sOnlineAlgs.length];
         int[] worstCase = new int[2 * sOnlineAlgs.length];
         int[] total = new int[2 * sOnlineAlgs.length];
-        Hashtable<String, String>[] worstCaseSqCat = new Hashtable[2 * sOnlineAlgs.length];
-        Hashtable<String, Integer>[] worstCaseCat = new Hashtable[2 * sOnlineAlgs.length];
-        Hashtable<String, Counter>[] totalCat = new Hashtable[2 * sOnlineAlgs.length];
-        Hashtable<String, Counter>[] countCat = new Hashtable[2 * sOnlineAlgs.length];
+        HashMap<String, String>[] worstCaseSqCat = new HashMap[2 * sOnlineAlgs.length];
+        HashMap<String, Integer>[] worstCaseCat = new HashMap[2 * sOnlineAlgs.length];
+        HashMap<String, Counter>[] totalCat = new HashMap[2 * sOnlineAlgs.length];
+        HashMap<String, Counter>[] countCat = new HashMap[2 * sOnlineAlgs.length];
         for (int i = 0; i < 2 * sOnlineAlgs.length; i++) {
             total[i] = 0;
             worstCase[i] = -1;
             worstCaseSq[i] = null;
-            worstCaseSqCat[i] = new Hashtable<String, String>();
-            worstCaseCat[i] = new Hashtable<String, Integer>();
-            totalCat[i] = new Hashtable<String, Counter>();
-            countCat[i] = new Hashtable<String, Counter>();
+            worstCaseSqCat[i] = new HashMap<String, String>();
+            worstCaseCat[i] = new HashMap<String, Integer>();
+            totalCat[i] = new HashMap<String, Counter>();
+            countCat[i] = new HashMap<String, Counter>();
         }
         long nrCases = 0;
         System.out.println("N=" + sDF.format(Math.pow(sq.base(), sq.size())));

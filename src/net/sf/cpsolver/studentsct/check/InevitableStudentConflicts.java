@@ -5,7 +5,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -114,7 +114,7 @@ public class InevitableStudentConflicts {
     /** Check model for inevitable student conflicts */
     public boolean check() {
         sLog.info("Checking for inevitable student conflicts...");
-        Hashtable<TreeSet<Object>, Object[]> noGoods = new Hashtable<TreeSet<Object>, Object[]>();
+        HashMap<TreeSet<Object>, Object[]> noGoods = new HashMap<TreeSet<Object>, Object[]>();
         long studentWithoutCompleteSchedule = 0;
         long inevitableRequests = 0;
         double inevitableRequestWeight = 0.0;
@@ -338,7 +338,7 @@ public class InevitableStudentConflicts {
     public static class StudentCheck {
         private List<Request> iRequests;
         private Enrollment[] iAssignment, iBestAssignment;
-        private Hashtable<Request, List<Enrollment>> iValues;
+        private HashMap<Request, List<Enrollment>> iValues;
         private int iBestNrAssigned = 0;
         private boolean iBestComplete = false;
 
@@ -361,7 +361,7 @@ public class InevitableStudentConflicts {
             iBestAssignment = null;
             iBestNrAssigned = 0;
             iBestComplete = false;
-            iValues = new Hashtable<Request, List<Enrollment>>();
+            iValues = new HashMap<Request, List<Enrollment>>();
             backTrack(0);
         }
 
