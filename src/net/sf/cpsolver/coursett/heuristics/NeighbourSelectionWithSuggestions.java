@@ -149,7 +149,7 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
         if (iSuggestionTimeout > 0 && JProf.currentTimeMillis() - startTime > iSuggestionTimeout) {
             return;
         }
-        for (Lecture lecture: (initialLectures != null && !initialLectures.isEmpty() ? initialLectures : conflictsToResolve.keySet())) {
+        for (Lecture lecture: initialLectures != null && !initialLectures.isEmpty() ? initialLectures : new ArrayList<Lecture>(conflictsToResolve.keySet())) {
             if (resolvedLectures.contains(lecture))
                 continue;
             resolvedLectures.add(lecture);
