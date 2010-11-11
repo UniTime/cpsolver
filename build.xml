@@ -75,14 +75,14 @@
     </target>
 
     <target name="compile-java" depends="prepare">
-        <javac debug="true" destdir="${build.dir}" source="1.5" target="1.5">
+        <javac debug="true" destdir="${build.dir}" source="1.5" target="1.5" includeantruntime="false">
             <src path="${build.dir}"/>
             <classpath refid="build.classpath"/>
         </javac>
     </target>
     
     <target name="compile-java-rel" depends="prepare">
-        <javac debug="false" optimize="true" destdir="${build.dir}" source="1.5" target="1.5">
+        <javac debug="false" optimize="true" destdir="${build.dir}" source="1.5" target="1.5" includeantruntime="false">
             <src path="${build.dir}"/>
             <classpath refid="build.classpath"/>
         </javac>
