@@ -329,6 +329,46 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         assignments.put(value.variable(), value);
         if (!isSatisfiedSeq(assignments, true, conflicts))
             conflicts.add(value);
+        
+        if (TYPE_MEET_WITH.equals(iType) && !conflicts.contains(value)) {
+            // Check the room size
+            int neededSize = 0;
+            for (Lecture lecture: variables())
+                neededSize += lecture.maxRoomUse();
+            if (neededSize > value.getRoomSize()) {
+                conflicts.add(value); // room is too small to fit all meet with classes
+                return;
+            }
+            for (Lecture lecture: variables()) {
+                if (lecture.equals(value.variable())) continue; // Skip this lecture
+                if (lecture.getAssignment() != null) { // Has assignment, check whether it is conflicting
+                    Placement other = lecture.getAssignment();
+                    if (other.sameRooms(value) && sameHours(value.getTimeLocation(), other.getTimeLocation()) &&
+                        sameDays(value.getTimeLocation(), other.getTimeLocation()))
+                        continue;
+                    conflicts.add(lecture.getAssignment());
+                }
+                // Look for a matching assignment
+                Placement sameAssignment = null;
+                for (Placement other: lecture.values()) {
+                    if (other.sameRooms(value) && sameHours(value.getTimeLocation(), other.getTimeLocation()) &&
+                            sameDays(value.getTimeLocation(), other.getTimeLocation())) {
+                        sameAssignment = other; break;
+                    }
+                }
+                // No matching assignment -> fail
+                if (sameAssignment == null) {
+                    conflicts.add(value); // other meet with class cannot be assigned with this value
+                    return;
+                }
+                // Propagate the new assignment over other hard constraints of the lecture
+                for (Constraint<Lecture, Placement> other: lecture.hardConstraints()) {
+                    if (!isHard() || other.equals(this)) continue;
+                    other.computeConflicts(sameAssignment, conflicts);
+                    if (conflicts.contains(value)) return;
+                }
+            }
+        }
     }
 
     @Override
@@ -450,6 +490,20 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
     @Override
     public void assigned(long iteration, Placement value) {
         super.assigned(iteration, value);
+        if (TYPE_MEET_WITH.equals(iType)) {
+            // assign meet with lectures together with this one
+            lectures: for (Lecture lecture: variables()) {
+                if (lecture.equals(value.variable())) continue; // skip this lecture
+                if (lecture.getAssignment() != null) continue; // there was no problem with current assignment
+                for (Placement other: lecture.values()) { // find matching assignment
+                    if (other.sameRooms(value) && sameHours(value.getTimeLocation(), other.getTimeLocation()) &&
+                            sameDays(value.getTimeLocation(), other.getTimeLocation())) {
+                        other.variable().assign(iteration, other); // assign, continue with the next lecture
+                        continue lectures;
+                    }
+                }
+            }
+        }
         if (iIsRequired || iIsProhibited)
             return;
         ((TimetableModel) getModel()).getGlobalGroupConstraintPreferenceCounter().dec(iLastPreference);
@@ -833,6 +887,11 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         }
         return true;
     }
+    
+    private static boolean sameDays(TimeLocation t1, TimeLocation t2) {
+        if (t1 == null || t2 == null) return false;
+        return sameDays(t1.getDaysArray(), t2.getDaysArray());
+    }
 
     private static boolean sameHours(int start1, int len1, int start2, int len2) {
         if (len1 > len2)
@@ -840,6 +899,11 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         start1 %= Constants.SLOTS_PER_DAY;
         start2 %= Constants.SLOTS_PER_DAY;
         return (start1 >= start2 && start1 + len1 <= start2 + len2);
+    }
+    
+    private static boolean sameHours(TimeLocation t1, TimeLocation t2) {
+        if (t1 == null || t2 == null) return false;
+        return sameHours(t1.getStartSlot(), t1.getLength(), t2.getStartSlot(), t2.getLength());
     }
 
     private static boolean canFill(int totalGap, int gapMin, int gapMax, List<Integer> lengths) {
