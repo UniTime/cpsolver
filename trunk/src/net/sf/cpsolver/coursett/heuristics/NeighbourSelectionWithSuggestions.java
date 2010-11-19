@@ -150,42 +150,37 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
         if (iSuggestionTimeout > 0 && JProf.currentTimeMillis() - startTime > iSuggestionTimeout) {
             return;
         }
+        
         for (Lecture lecture: initialLectures != null && !initialLectures.isEmpty() ? initialLectures : new ArrayList<Lecture>(conflictsToResolve.keySet())) {
             if (resolvedLectures.contains(lecture))
                 continue;
             resolvedLectures.add(lecture);
-            for (Placement placement : lecture.values()) {
+            placements: for (Placement placement : lecture.values()) {
                 if (placement.equals(lecture.getAssignment()))
                     continue;
                 if (placement.isHard())
                     continue;
                 Set<Placement> conflicts = iSolution.getModel().conflictValues(placement);
-                if (conflicts != null && (nrUnassigned + conflicts.size() > depth))
+                if (nrUnassigned + conflicts.size() > depth)
                     continue;
-                if (conflicts != null && conflicts.contains(placement))
+                if (conflicts.contains(placement))
                     continue;
                 if (containsCommited(conflicts))
                     continue;
-                boolean containException = false;
-                if (conflicts != null) {
-                    for (Iterator<Placement> i = conflicts.iterator(); !containException && i.hasNext();) {
-                        Placement c = i.next();
-                        if (resolvedLectures.contains((c.variable()).getClassId()))
-                            containException = true;
-                    }
+                for (Iterator<Placement> i = conflicts.iterator();i.hasNext();) {
+                    Placement c = i.next();
+                    if (resolvedLectures.contains(c.variable()))
+                        continue placements;
                 }
-                if (containException)
-                    continue;
                 Placement cur = lecture.getAssignment();
-                if (conflicts != null) {
-                    for (Iterator<Placement> i = conflicts.iterator(); !containException && i.hasNext();) {
-                        Placement c = i.next();
-                        c.variable().unassign(0);
-                    }
+                for (Iterator<Placement> i = conflicts.iterator(); i.hasNext();) {
+                    Placement c = i.next();
+                    c.variable().unassign(0);
                 }
                 if (cur != null)
-                    cur.variable().unassign(0);
-                for (Iterator<Placement> i = conflicts.iterator(); !containException && i.hasNext();) {
+                    lecture.unassign(0);
+                lecture.assign(0, placement);
+                for (Iterator<Placement> i = conflicts.iterator(); i.hasNext();) {
                     Placement c = i.next();
                     conflictsToResolve.put(c.variable(), c);
                 }
