@@ -13,6 +13,7 @@ import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.coursett.model.TimetableModel;
 import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.model.GlobalConstraint;
 
 /**
  * Group constraint. <br>
@@ -349,23 +350,36 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                     conflicts.add(lecture.getAssignment());
                 }
                 // Look for a matching assignment
-                Placement sameAssignment = null;
+                List<Placement> sameAssignments = new ArrayList<Placement>();
                 for (Placement other: lecture.values()) {
                     if (other.sameRooms(value) && sameHours(value.getTimeLocation(), other.getTimeLocation()) &&
                             sameDays(value.getTimeLocation(), other.getTimeLocation())) {
-                        sameAssignment = other; break;
+                        sameAssignments.add(other);
                     }
                 }
                 // No matching assignment -> fail
-                if (sameAssignment == null) {
+                if (sameAssignments.isEmpty()) {
                     conflicts.add(value); // other meet with class cannot be assigned with this value
                     return;
                 }
                 // Propagate the new assignment over other hard constraints of the lecture
-                for (Constraint<Lecture, Placement> other: lecture.hardConstraints()) {
-                    if (!isHard() || other.equals(this)) continue;
-                    other.computeConflicts(sameAssignment, conflicts);
-                    if (conflicts.contains(value)) return;
+                if (sameAssignments.size() == 1) {
+                    Placement sameAssignment = sameAssignments.get(0);
+                    for (Constraint<Lecture, Placement> other: lecture.hardConstraints()) {
+                        if (other.equals(this)) continue;
+                        other.computeConflicts(sameAssignment, conflicts);
+                        if (conflicts.contains(value)) return;
+                        if (conflicts.contains(sameAssignment)) {
+                            conflicts.add(value); return;
+                        }
+                    }
+                    for (GlobalConstraint<Lecture, Placement> other: getModel().globalConstraints()) {
+                        other.computeConflicts(sameAssignment, conflicts);
+                        if (conflicts.contains(value)) return;
+                        if (conflicts.contains(sameAssignment)) {
+                            conflicts.add(value); return;
+                        }
+                    }   
                 }
             }
         }
@@ -490,20 +504,6 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
     @Override
     public void assigned(long iteration, Placement value) {
         super.assigned(iteration, value);
-        if (TYPE_MEET_WITH.equals(iType)) {
-            // assign meet with lectures together with this one
-            lectures: for (Lecture lecture: variables()) {
-                if (lecture.equals(value.variable())) continue; // skip this lecture
-                if (lecture.getAssignment() != null) continue; // there was no problem with current assignment
-                for (Placement other: lecture.values()) { // find matching assignment
-                    if (other.sameRooms(value) && sameHours(value.getTimeLocation(), other.getTimeLocation()) &&
-                            sameDays(value.getTimeLocation(), other.getTimeLocation())) {
-                        other.variable().assign(iteration, other); // assign, continue with the next lecture
-                        continue lectures;
-                    }
-                }
-            }
-        }
         if (iIsRequired || iIsProhibited)
             return;
         ((TimetableModel) getModel()).getGlobalGroupConstraintPreferenceCounter().dec(iLastPreference);
@@ -1230,146 +1230,4 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         return true;
     }
 
-    /*
-     * public void getInfo(Dictionary info) { StringBuffer varNames = new
-     * StringBuffer(); for (Enumeration
-     * e=variables().elements();e.hasMoreElements();) { Variable variable =
-     * (Variable)e.nextElement(); varNames.append(varNames.length()>0?", ":"");
-     * varNames.append(variable.getName()); if (variable.getAssignment()!=null)
-     * varNames.append(" "+variable.getAssignment().getName()); }
-     * info.put("gc"+iId,
-     * iType).getDescription()+" (pref="+getDescription()+" ("
-     * +iIsRequired+"/"+iIsProhibited
-     * +"/"+iPreference+")"+", current="+getCurrentPreference
-     * ()+", vars=["+varNames+"])"); }
-     */
-
-    /*
-     * public static class GroupConstraintTypes { private static Vector
-     * sGroupConstraintTypes = null;
-     * 
-     * static { try { sGroupConstraintTypes = new Vector(); for (Iterator
-     * i=DistributionType.findAll().iterator();i.hasNext();) { DistributionType
-     * type = (DistributionType)i.next(); sGroupConstraintTypes.addElement(new
-     * GroupConstraintType
-     * (type.getRequirementId().intValue(),type.getReference()
-     * ,type.getLabel())); } } catch (Exception e) {
-     * sLogger.error(e.getMessage(),e); sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(1,"BTB","back-to-back"));
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(2,"BTB_TIME","back-to-back time"));
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(3,"SAME_TIME","same time"));
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(4,"SAME_DAYS","same days"));
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(5,"NHB(1)","1 hr between"));
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(6,"NHB(2)","2 hrs between"));
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(7,"NHB(3)","3 hrs between"));
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(8,"NHB(4)","4 hrs between"));
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(9,"NHB(5)","5 hrs between"));
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(10,"NHB(6)","6 hrs between"));
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(11,"NHB(7)","7 hrs between"));
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(12,"NHB(8)","8 hrs between"));
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(13,"DIFF_TIME","different time"));
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(14,"NHB(1.5)","1.5 hrs between"));
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(15,"NHB(4.5)","4.5 hrs between"));
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(16,"SAME_START","same start time"));
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(17,"SAME_ROOM","same room"));
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(18,"NHB_GTE(1)","greater than or equal to 1 hour between"
-     * )); sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(19,"NHB_LT(6)","less than 6 hours between")); } if
-     * (getGroupConstraintType("SAME_STUDENTS")==null)
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(20,"SAME_STUDENTS","same students")); if
-     * (getGroupConstraintType("SAME_INSTR")==null)
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(21,"SAME_INSTR","same instructor")); if
-     * (getGroupConstraintType("CAN_SHARE_ROOM")==null)
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(22,"CAN_SHARE_ROOM","can share rooms")); if
-     * (getGroupConstraintType("PRECEDENCE")==null)
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(24,"PRECEDENCE","precedence")); if
-     * (getGroupConstraintType("BTB_DAY")==null)
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(26,"BTB_DAY","back-to-back day")); if
-     * (getGroupConstraintType("MIN_GRUSE(10x1h)")==null)
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(27,"MIN_GRUSE(10x1h)","minimize use of 1h groups"));
-     * if (getGroupConstraintType("MIN_GRUSE(5x2h)")==null)
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(28,"MIN_GRUSE(5x2h)","minimize use of 2h groups"));
-     * if (getGroupConstraintType("MIN_GRUSE(3x3h)")==null)
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(29,"MIN_GRUSE(3x3h)","minimize use of 3h groups"));
-     * if (getGroupConstraintType("MIN_GRUSE(2x5h)")==null)
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(30,"MIN_GRUSE(2x5h)","minimize use of 5h groups"));
-     * if (getGroupConstraintType("MEET_WITH")==null)
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(31,"MEET_WITH","meet together")); if
-     * (getGroupConstraintType("NDB_GT_1")==null)
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(32,"NDB_GT_1",">1d btw")); if
-     * (getGroupConstraintType("CH_NOTOVERLAP")==null)
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(33,"NDB_GT_1","ch no overlap")); if
-     * (getGroupConstraintType("FOLLOWING_DAY")==null)
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(34,"FOLLOWING_DAY","following day")); if
-     * (getGroupConstraintType("EVERY_OTHER_DAY")==null)
-     * sGroupConstraintTypes.addElement(new
-     * GroupConstraintType(35,"EVERY_OTHER_DAY","every other day")); }
-     * 
-     * public static Enumeration elements() { return
-     * sGroupConstraintTypes.elements(); }
-     * 
-     * public static int size() { return sGroupConstraintTypes.size(); }
-     * 
-     * public static GroupConstraintType elementAt(int i) { return
-     * (GroupConstraintType) sGroupConstraintTypes.elementAt(i); }
-     * 
-     * public static GroupConstraintType getGroupConstraintType(int id) { for
-     * (Enumeration e=sGroupConstraintTypes.elements();e.hasMoreElements();) {
-     * GroupConstraintType gc = (GroupConstraintType)e.nextElement(); if
-     * (gc.getId()==id) return gc; } return null; }
-     * 
-     * public static GroupConstraintType getGroupConstraintType(String type) {
-     * for (Enumeration e=sGroupConstraintTypes.elements();e.hasMoreElements();)
-     * { GroupConstraintType gc = (GroupConstraintType)e.nextElement(); if
-     * (gc.getType().equalsIgnoreCase(type)) return gc; } return null; }
-     * 
-     * public static class GroupConstraintType implements Comparable { int iId;
-     * String iType; String iDescription;
-     * 
-     * private GroupConstraintType(int id, String type, String desc) { iId = id;
-     * iType = type; iDescription = desc; }
-     * 
-     * public int getId() { return iId; } public String getType() { return
-     * iType; } public String getDescription() { return iDescription; }
-     * 
-     * public boolean equals(Object o) { if (o==null || !(o instanceof
-     * GroupConstraintType)) return false; return getId() ==
-     * ((GroupConstraintType)o; }
-     * 
-     * public int compareTo(Object o) { if (o==null || !(o instanceof
-     * GroupConstraintType)) return 0; GroupConstraintType g =
-     * (GroupConstraintType)o; return getId() - ((GroupConstraintType)o; }
-     * 
-     * } }
-     */
 }
