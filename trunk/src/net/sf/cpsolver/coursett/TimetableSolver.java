@@ -68,6 +68,7 @@ public class TimetableSolver extends Solver<Lecture, Placement> {
         Progress progress = Progress.getInstance(currentSolution().getModel());
 
         TimetableModel model = (TimetableModel) iCurrentSolution.getModel();
+        iCurrentSolution.saveBest();
         progress.save();
         double solutionValue = 0.0, newSolutionValue = model.getTotalValue();
         do {
@@ -113,7 +114,7 @@ public class TimetableSolver extends Solver<Lecture, Placement> {
             NeighbourSelectionWithSuggestions ns = new NeighbourSelectionWithSuggestions(this);
             for (Lecture lecture : model.variables()) {
                 Neighbour<Lecture, Placement> n = ns.selectNeighbourWithSuggestions(iCurrentSolution, lecture, 2);
-                if (n != null)
+                if (n != null && n.value() <= 0.0)
                     n.assign(0);
                 iCurrentSolution.update(JProf.currentTimeSec() - startTime);
                 progress.incProgress();
