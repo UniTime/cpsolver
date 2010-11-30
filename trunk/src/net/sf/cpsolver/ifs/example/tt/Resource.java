@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.model.Model;
 
 /**
  * Resource constraint
@@ -47,9 +48,11 @@ public class Resource extends Constraint<Activity, Location> {
         iType = type;
     }
     
-    public void setModel(TimetableModel model) {
+    @Override
+    public void setModel(Model<Activity, Location> model) {
         super.setModel(model);
-        iResource = new Activity[model.getNrDays() * model.getNrHours()];
+        TimetableModel m = (TimetableModel)model;
+        iResource = new Activity[m.getNrDays() * m.getNrHours()];
         for (int i=0;i<iResource.length;i++)
                 iResource[i] = null;
     }
