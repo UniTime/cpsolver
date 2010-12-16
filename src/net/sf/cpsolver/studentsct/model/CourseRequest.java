@@ -11,6 +11,7 @@ import java.util.TreeSet;
 
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.ifs.util.ToolBox;
+import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.constraint.SectionLimit;
 
 /**
@@ -43,12 +44,7 @@ public class CourseRequest extends Request {
     private Set<Choice> iWaitlistedChoices = new HashSet<Choice>();
     private Set<Choice> iSelectedChoices = new HashSet<Choice>();
     private boolean iWaitlist = false;
-    private Double iCachedBound = null, iCachedMinPenalty = null, iCachedMaxPenalty = null;
-    /**
-     * Enrollment value: value * sAltValue ^ index, where index is zero for the
-     * first course, one for the second course etc.
-     */
-    public static double sAltValue = 0.5;
+    private Double iCachedMinPenalty = null, iCachedMaxPenalty = null;
     public static boolean sSameTimePrecise = false;
 
     /**
@@ -96,7 +92,7 @@ public class CourseRequest extends Request {
             return null;
         Config config = ((Section) sections.iterator().next()).getSubpart().getConfig();
         return new Enrollment(this,
-                Math.pow(sAltValue, iCourses.indexOf(config.getOffering().getCourse(getStudent()))), config, sections);
+                iCourses.indexOf(config.getOffering().getCourse(getStudent())), config, sections);
     }
 
     /**
@@ -108,7 +104,7 @@ public class CourseRequest extends Request {
         int idx = 0;
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
-                computeEnrollments(ret, Math.pow(sAltValue, idx), 0, config, new HashSet<Section>(), 0, false, false,
+                computeEnrollments(ret, idx, 0, config, new HashSet<Section>(), 0, false, false,
                         false, false, -1);
             }
             idx++;
@@ -125,7 +121,7 @@ public class CourseRequest extends Request {
         int idx = 0;
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
-                computeEnrollments(ret, Math.pow(sAltValue, idx), 0, config, new HashSet<Section>(), 0, false, false,
+                computeEnrollments(ret, idx, 0, config, new HashSet<Section>(), 0, false, false,
                         false, true, (limitEachConfig <= 0 ? limitEachConfig : ret.size() + limitEachConfig));
             }
             idx++;
@@ -160,8 +156,8 @@ public class CourseRequest extends Request {
      * 
      * @param enrollments
      *            list of enrollments to be returned
-     * @param value
-     *            value of the selected sections
+     * @param priority
+     *            zero for the course, one for the first alternative, two for the second alternative
      * @param penalty
      *            penalty of the selected sections
      * @param config
@@ -184,7 +180,7 @@ public class CourseRequest extends Request {
      *            when above zero, limit the number of selected enrollments to
      *            this limit
      */
-    private void computeEnrollments(Collection<Enrollment> enrollments, double value, double penalty, Config config,
+    private void computeEnrollments(Collection<Enrollment> enrollments, int priority, double penalty, Config config,
             HashSet<Section> sections, int idx, boolean avaiableOnly, boolean skipSameTime, boolean selectedOnly,
             boolean random, int limit) {
         if (limit > 0 && enrollments.size() >= limit)
@@ -207,7 +203,7 @@ public class CourseRequest extends Request {
                     }
                 }
             }
-            enrollments.add(new Enrollment(this, value, config, new HashSet<Assignment>(sections)));
+            enrollments.add(new Enrollment(this, priority, config, new HashSet<Assignment>(sections)));
         } else {
             Subpart subpart = config.getSubparts().get(idx);
             HashSet<TimeLocation> times = (skipSameTime ? new HashSet<TimeLocation>() : null);
@@ -234,7 +230,7 @@ public class CourseRequest extends Request {
                         && !isSelected(section) && !isWaitlisted(section))
                     continue;
                 sections.add(section);
-                computeEnrollments(enrollments, value, penalty + section.getPenalty(), config, sections, idx + 1,
+                computeEnrollments(enrollments, priority, penalty + section.getPenalty(), config, sections, idx + 1,
                         avaiableOnly, skipSameTime, selectedOnly, random, limit);
                 sections.remove(section);
             }
@@ -247,8 +243,7 @@ public class CourseRequest extends Request {
         int idx = 0;
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
-                computeEnrollments(ret, Math.pow(sAltValue, idx), 0, config, new HashSet<Section>(), 0, true, false,
-                        false, false, -1);
+                computeEnrollments(ret, idx, 0, config, new HashSet<Section>(), 0, true, false, false, false, -1);
             }
             idx++;
         }
@@ -271,8 +266,7 @@ public class CourseRequest extends Request {
             if (!course.getOffering().equals(firstChoice.getOffering()))
                 continue;
             for (Config config : course.getOffering().getConfigs()) {
-                computeEnrollments(enrollments, 1.0, 0, config, new HashSet<Section>(), 0, availableOnly, false, true,
-                        false, -1);
+                computeEnrollments(enrollments, 0, 0, config, new HashSet<Section>(), 0, availableOnly, false, true, false, -1);
             }
         }
         return enrollments;
@@ -290,8 +284,7 @@ public class CourseRequest extends Request {
         int idx = 0;
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
-                computeEnrollments(avaiableEnrollmentsSkipSameTime, Math.pow(sAltValue, idx), 0, config,
-                        new HashSet<Section>(), 0, true, true, false, false, -1);
+                computeEnrollments(avaiableEnrollmentsSkipSameTime, idx, 0, config, new HashSet<Section>(), 0, true, true, false, false, -1);
             }
             idx++;
         }
@@ -306,8 +299,7 @@ public class CourseRequest extends Request {
         int idx = 0;
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
-                computeEnrollments(ret, Math.pow(sAltValue, idx), 0, config, new HashSet<Section>(), 0, false, true,
-                        false, false, -1);
+                computeEnrollments(ret, idx, 0, config, new HashSet<Section>(), 0, false, true, false, false, -1);
             }
             idx++;
         }
@@ -455,7 +447,6 @@ public class CourseRequest extends Request {
     public void clearCache() {
         iCachedMaxPenalty = null;
         iCachedMinPenalty = null;
-        iCachedBound = null;
     }
 
     /**
@@ -464,6 +455,8 @@ public class CourseRequest extends Request {
      */
     @Override
     public double getBound() {
+        return ((StudentSectioningModel)getModel()).getBound(this);
+        /*
         if (iCachedBound == null) {
             iCachedBound = new Double(-Math.pow(Enrollment.sPriorityWeight, getPriority())
                     * (isAlternative() ? Enrollment.sAlterativeWeight : 1.0)
@@ -476,6 +469,7 @@ public class CourseRequest extends Request {
                     * Enrollment.normalizePenalty(getMinPenalty()));
         }
         return iCachedBound.doubleValue();
+        */
     }
 
     /** Return true if request is assigned. */
