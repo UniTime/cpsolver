@@ -21,6 +21,8 @@ import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Section;
 import net.sf.cpsolver.studentsct.model.Student;
 import net.sf.cpsolver.studentsct.model.Subpart;
+import net.sf.cpsolver.studentsct.weights.PriorityStudentWeights;
+import net.sf.cpsolver.studentsct.weights.StudentWeights;
 
 import org.apache.log4j.Logger;
 
@@ -58,6 +60,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
     private DataProperties iProperties;
     private DistanceConflict iDistanceConflict = null;
     private int iNrDummyStudents = 0, iNrDummyRequests = 0, iNrAssignedDummyRequests = 0, iNrCompleteDummyStudents = 0;
+    private StudentWeights iStudentWeights = null;
 
     /**
      * Constructor
@@ -65,11 +68,13 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
      * @param properties
      *            configuration
      */
+    @SuppressWarnings("unchecked")
     public StudentSectioningModel(DataProperties properties) {
         super();
         iAssignedVariables = new HashSet<Request>();
         iUnassignedVariables = new HashSet<Request>();
         iPerturbVariables = new HashSet<Request>();
+        iStudentWeights = new PriorityStudentWeights(properties);
         SectionLimit sectionLimit = new SectionLimit(properties);
         addGlobalConstraint(sectionLimit);
         sectionLimit.addConstraintListener(new ConstraintListener<Enrollment>() {
@@ -89,7 +94,28 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
                     Enrollment assigned, Set<Enrollment> unassigned) {
             }
         });
+        try {
+            Class<StudentWeights> studentWeightsClass = (Class<StudentWeights>)Class.forName(properties.getProperty("Student.WeightsClass", PriorityStudentWeights.class.getName()));
+            iStudentWeights = studentWeightsClass.getConstructor(DataProperties.class).newInstance(properties);
+        } catch (Exception e) {
+            sLog.error("Unable to create custom student weighting model (" + e.getMessage() + "), using default.", e);
+            iStudentWeights = new PriorityStudentWeights(properties);
+        }
         iProperties = properties;
+    }
+    
+    /**
+     * Return weight of the given enrollment
+     */
+    public double getWeight(Enrollment enrollment, double nrDistanceConflicts) {
+        return - iStudentWeights.getWeight(enrollment, nrDistanceConflicts);
+    }
+
+    /**
+     * Return lower bound for the given request
+     */
+    public double getBound(Request request) {
+        return - iStudentWeights.getBound(request);
     }
 
     /**

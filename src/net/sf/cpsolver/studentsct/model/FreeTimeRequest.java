@@ -7,6 +7,7 @@ import java.util.Set;
 
 import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.TimeLocation;
+import net.sf.cpsolver.studentsct.StudentSectioningModel;
 
 
 /**
@@ -107,7 +108,7 @@ public class FreeTimeRequest extends Request implements Assignment {
     public Enrollment createEnrollment() {
         HashSet<Assignment> assignments = new HashSet<Assignment>();
         assignments.add(this);
-        return new Enrollment(this, 1.0, null, assignments);
+        return new Enrollment(this, 0, null, assignments);
     }
 
     /**
@@ -154,7 +155,6 @@ public class FreeTimeRequest extends Request implements Assignment {
     /** Estimated bound for this request */
     @Override
     public double getBound() {
-        return -Math.pow(Enrollment.sPriorityWeight, getPriority())
-                * (isAlternative() ? Enrollment.sAlterativeWeight : 1.0);
+        return ((StudentSectioningModel)getModel()).getBound(this);
     }
 }

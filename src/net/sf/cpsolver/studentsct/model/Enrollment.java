@@ -44,36 +44,26 @@ public class Enrollment extends Value<Request, Enrollment> {
     private Config iConfig = null;
     private Set<? extends Assignment> iAssignments = null;
     private Double iCachedPenalty = null;
-    private Double iCachedDoubleValue = null;
-
-    public static double sPriorityWeight = 0.90;
-    public static double sAlterativeWeight = 1.0;
-    public static double sInitialWeight = 1.2;
-    public static double sSelectedWeight = 1.1;
-    public static double sWaitlistedWeight = 1.01;
-    public static double sMinWeight = 0.0001;
-    public static double sNormPenalty = 5.0;
-    public static double sDistConfWeight = 0.95;
+    private int iPriority = 0;
 
     /**
      * Constructor
      * 
      * @param request
      *            course / free time request
-     * @param value
-     *            value (1.0 for primary course, 0.5 for the first alternative,
-     *            etc.)
+     * @param priority
+     *            zero for the course, one for the first alternative, two for the second alternative
      * @param config
      *            selected configuration
      * @param assignments
      *            valid list of sections
      */
-    public Enrollment(Request request, double value, Config config, Set<? extends Assignment> assignments) {
+    public Enrollment(Request request, int priority, Config config, Set<? extends Assignment> assignments) {
         super(request);
         iRequest = request;
         iConfig = config;
         iAssignments = assignments;
-        iValue = value;
+        iPriority = priority;
     }
 
     /** Student */
@@ -209,22 +199,16 @@ public class Enrollment extends Value<Request, Enrollment> {
         return iCachedPenalty.doubleValue();
     }
 
-    /**
-     * Normalized enrollment penalty -- to be used in
-     * {@link Enrollment#toDouble()}
-     */
-    public static double normalizePenalty(double penalty) {
-        return sNormPenalty / (sNormPenalty + penalty);
-    }
-
     /** Enrollment value */
     @Override
     public double toDouble() {
-        return toDouble(nrDistanceConflicts());
+        return ((StudentSectioningModel)variable().getModel()).getWeight(this, nrDistanceConflicts());
     }
 
     /** Enrollment value */
     public double toDouble(double nrDistanceConflicts) {
+        return ((StudentSectioningModel)variable().getModel()).getWeight(this, nrDistanceConflicts);
+        /*
         if (iCachedDoubleValue == null) {
             iCachedDoubleValue = new Double(-iValue * Math.pow(sPriorityWeight, getRequest().getPriority())
                     * (getRequest().isAlternative() ? sAlterativeWeight : 1.0)
@@ -234,6 +218,7 @@ public class Enrollment extends Value<Request, Enrollment> {
                     (getStudent().isDummy() ? Student.sDummyStudentWeight : 1.0) * normalizePenalty(getPenalty()));
         }
         return iCachedDoubleValue.doubleValue() * Math.pow(sDistConfWeight, nrDistanceConflicts);
+        */
     }
 
     /** Enrollment name */
@@ -307,5 +292,13 @@ public class Enrollment extends Value<Request, Enrollment> {
             return dc.nrAllConflicts(this);
         } else
             return 0;
+    }
+    
+    /** 
+     * Return enrollment priority
+     * @return zero for the course, one for the first alternative, two for the second alternative
+     */
+    public int getPriority() {
+        return iPriority;
     }
 }
