@@ -258,9 +258,6 @@ public class Test {
                 cfg.getPropertyBoolean("Debug.BacktrackNeighbourSelection", false) ? Level.DEBUG : Level.INFO);
         if (cfg.getPropertyBoolean("Test.FixPriorities", false))
             fixPriorities(model);
-        if (cfg.getProperty("Student.DummyStudentWeight") != null)
-            Student.sDummyStudentWeight = cfg.getPropertyDouble("Student.DummyStudentWeight",
-                    Student.sDummyStudentWeight);
         return model;
     }
 
@@ -1288,7 +1285,8 @@ public class Test {
                     + "V:"
                     + sDF.format(m.getTotalValue())
                     + (m.getDistanceConflict() == null ? "" : ", DC:"
-                            + sDF.format(m.getDistanceConflict().getTotalNrConflicts())));
+                            + sDF.format(m.getDistanceConflict().getTotalNrConflicts())) 
+                    + ", %: " + sDF.format(-100.0 * m.getTotalValue() / m.getStudents().size()));
         }
 
         public void bestRestored(Solution<Request, Enrollment> solution) {

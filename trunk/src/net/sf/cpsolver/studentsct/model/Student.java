@@ -42,8 +42,6 @@ public class Student {
     private List<AcademicAreaCode> iMajors = new ArrayList<AcademicAreaCode>();
     private List<AcademicAreaCode> iMinors = new ArrayList<AcademicAreaCode>();
 
-    public static double sDummyStudentWeight = 0.5;
-
     /**
      * Constructor
      * 
