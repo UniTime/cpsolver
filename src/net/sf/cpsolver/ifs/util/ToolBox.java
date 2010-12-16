@@ -359,4 +359,12 @@ public class ToolBox {
                 iOut.write(b);
         }
     }
+    
+    public static <E> List<E> toList(E... obj) {
+        List<E> ret = new ArrayList<E>(obj == null ? 0 : obj.length);
+        if (obj != null)
+            for (E e: obj)
+                ret.add(e);
+        return ret;
+    }
 }
