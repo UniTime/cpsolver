@@ -13,6 +13,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.studentsct.constraint.SectionLimit;
 import net.sf.cpsolver.studentsct.constraint.StudentConflict;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
+import net.sf.cpsolver.studentsct.extension.TimeOverlapsCounter;
 import net.sf.cpsolver.studentsct.model.Config;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
 import net.sf.cpsolver.studentsct.model.Enrollment;
@@ -59,6 +60,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
     private double iTotalValue = 0.0;
     private DataProperties iProperties;
     private DistanceConflict iDistanceConflict = null;
+    private TimeOverlapsCounter iTimeOverlaps = null;
     private int iNrDummyStudents = 0, iNrDummyRequests = 0, iNrAssignedDummyRequests = 0, iNrCompleteDummyStudents = 0;
     private StudentWeights iStudentWeights = null;
 
@@ -107,8 +109,8 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
     /**
      * Return weight of the given enrollment
      */
-    public double getWeight(Enrollment enrollment, double nrDistanceConflicts) {
-        return - iStudentWeights.getWeight(enrollment, nrDistanceConflicts);
+    public double getWeight(Enrollment enrollment, int nrDistanceConflicts, int timeOverlappingConflicts) {
+        return - iStudentWeights.getWeight(enrollment, nrDistanceConflicts, timeOverlappingConflicts);
     }
 
     /**
@@ -207,6 +209,8 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
                 + "% (" + nrComplete() + "/" + getStudents().size() + ")");
         if (getDistanceConflict() != null)
             info.put("Student distance conflicts", sDoubleFormat.format(getDistanceConflict().getTotalNrConflicts()));
+        if (getTimeOverlaps() != null)
+            info.put("Time overlapping conflicts", sDoubleFormat.format(getTimeOverlaps().getTotalNrConflicts()));
         return info;
     }
 
@@ -228,7 +232,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         Student student = enrollment.getStudent();
         if (student.isComplete())
             iCompleteStudents.add(student);
-        iTotalValue += enrollment.toDouble();
+        iTotalValue += enrollment.getRequest().getWeight() * enrollment.toDouble();
         if (student.isDummy()) {
             iNrAssignedDummyRequests++;
             if (student.isComplete())
@@ -249,7 +253,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
             if (student.isDummy())
                 iNrCompleteDummyStudents--;
         }
-        iTotalValue -= enrollment.toDouble();
+        iTotalValue -= enrollment.getRequest().getWeight() * enrollment.toDouble();
         if (student.isDummy()) {
             iNrAssignedDummyRequests--;
         }
@@ -360,6 +364,20 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
      */
     public DistanceConflict getDistanceConflict() {
         return iDistanceConflict;
+    }
+
+    /**
+     * Set time overlaps extension
+     */
+    public void setTimeOverlaps(TimeOverlapsCounter toc) {
+        iTimeOverlaps = toc;
+    }
+
+    /**
+     * Return time overlaps extension
+     */
+    public TimeOverlapsCounter getTimeOverlaps() {
+        return iTimeOverlaps;
     }
 
     /**

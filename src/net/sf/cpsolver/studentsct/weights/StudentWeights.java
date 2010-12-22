@@ -38,7 +38,8 @@ public interface StudentWeights {
      * Return weight of the given enrollment 
      * @param enrollment given enrollment
      * @param nrDistanceConflicts number of distance conflicts
+     * @param timeOverlappingConflicts number of time overlapping conflicts
      * @return weight (higher weight means better value)
      */
-    public double getWeight(Enrollment enrollment, double nrDistanceConflicts);
+    public double getWeight(Enrollment enrollment, int nrDistanceConflicts, int timeOverlappingConflicts);
 }

@@ -15,10 +15,12 @@ import net.sf.cpsolver.ifs.util.JProf;
 import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
+import net.sf.cpsolver.studentsct.extension.TimeOverlapsCounter;
 import net.sf.cpsolver.studentsct.heuristics.studentord.StudentChoiceRealFirstOrder;
 import net.sf.cpsolver.studentsct.heuristics.studentord.StudentOrder;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
 import net.sf.cpsolver.studentsct.model.Enrollment;
+import net.sf.cpsolver.studentsct.model.FreeTimeRequest;
 import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Student;
 
@@ -81,6 +83,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
     private static Logger sLog = Logger.getLogger(BranchBoundSelection.class);
     protected int iTimeout = 10000;
     protected DistanceConflict iDistanceConflict = null;
+    protected TimeOverlapsCounter iTimeOverlaps = null;
     public static boolean sDebug = false;
     protected Iterator<Student> iStudentsEnumeration = null;
     protected boolean iMinimizePenalty = false;
@@ -121,6 +124,11 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             for (Extension<Request, Enrollment> ext : solver.getExtensions()) {
                 if (ext instanceof DistanceConflict)
                     iDistanceConflict = (DistanceConflict) ext;
+            }
+        if (iTimeOverlaps == null)
+            for (Extension<Request, Enrollment> ext : solver.getExtensions()) {
+                if (ext instanceof TimeOverlapsCounter)
+                    iTimeOverlaps = (TimeOverlapsCounter) ext;
             }
         Progress.getInstance(solver.currentSolution().getModel()).setPhase(name, students.size());
     }
@@ -262,14 +270,30 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
          * Number of distance conflicts of idx-th assignment of the current
          * schedule
          */
-        public double getNrDistanceConflicts(int idx) {
+        public int getNrDistanceConflicts(int idx) {
             if (iDistanceConflict == null || iAssignment[idx] == null)
                 return 0;
-            double nrDist = iDistanceConflict.nrConflicts(iAssignment[idx]);
+            int nrDist = iDistanceConflict.nrConflicts(iAssignment[idx]);
             for (int x = 0; x < idx; x++)
                 if (iAssignment[x] != null)
                     nrDist += iDistanceConflict.nrConflicts(iAssignment[x], iAssignment[idx]);
             return nrDist;
+        }
+        
+        /**
+         * Number of time overlapping conflicts of idx-th assignment of the current
+         * schedule
+         */
+        public int getNrTimeOverlappingConflicts(int idx) {
+            if (iTimeOverlaps == null || iAssignment[idx] == null)
+                return 0;
+            int nrOverlap = 0;
+            for (int x = 0; x < idx; x++)
+                if (iAssignment[x] != null)
+                    nrOverlap += iTimeOverlaps.nrConflicts(iAssignment[x], iAssignment[idx]);
+                else if (iStudent.getRequests().get(x) instanceof FreeTimeRequest)
+                    nrOverlap += iTimeOverlaps.nrConflicts(((FreeTimeRequest)iStudent.getRequests().get(x)).createEnrollment(), iAssignment[idx]);
+            return nrOverlap;
         }
 
         /** Bound for the current schedule */
@@ -280,7 +304,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                 Request r = e.next();
                 if (i < idx) {
                     if (iAssignment[i] != null)
-                        bound += iAssignment[i].toDouble(getNrDistanceConflicts(i));
+                        bound += iAssignment[i].toDouble(getNrDistanceConflicts(i), getNrTimeOverlappingConflicts(i));
                     if (r.isAlternative()) {
                         if (iAssignment[i] != null || (r instanceof CourseRequest && ((CourseRequest) r).isWaitlist()))
                             alt--;
@@ -305,7 +329,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             double value = 0.0;
             for (int i = 0; i < iAssignment.length; i++)
                 if (iAssignment[i] != null)
-                    value += iAssignment[i].toDouble(getNrDistanceConflicts(i));
+                    value += iAssignment[i].toDouble(getNrDistanceConflicts(i), getNrDistanceConflicts(i));
             return value;
         }
 

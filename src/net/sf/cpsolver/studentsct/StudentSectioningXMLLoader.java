@@ -296,6 +296,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                         Subpart subpart = new Subpart(Long.parseLong(subpartEl.attributeValue("id")), subpartEl
                                 .attributeValue("itype"), subpartEl.attributeValue("name", "P"
                                 + subpartEl.attributeValue("id")), config, parentSubpart);
+                        subpart.setAllowOverlap("true".equals(subpartEl.attributeValue("allowOverlap", "false")));
                         subpartTable.put(new Long(subpart.getId()), subpart);
                         for (Iterator<?> l = subpartEl.elementIterator("section"); l.hasNext();) {
                             Element sectionEl = (Element) l.next();
