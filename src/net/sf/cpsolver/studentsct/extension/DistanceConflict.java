@@ -57,7 +57,7 @@ import net.sf.cpsolver.studentsct.model.Student;
 public class DistanceConflict extends Extension<Request, Enrollment> implements ModelListener<Request, Enrollment> {
     private static Logger sLog = Logger.getLogger(DistanceConflict.class);
     private static DecimalFormat sDF = new DecimalFormat("0.000");
-    private double iTotalNrConflicts = 0;
+    private int iTotalNrConflicts = 0;
     private Set<Conflict> iAllConflicts = new HashSet<Conflict>();
     /** Debug flag */
     public static boolean sDebug = false;
@@ -129,21 +129,20 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
     /**
      * Return number of distance conflict of a (course) enrollment. It is the
      * number of pairs of assignments of the enrollment that are in a distance
-     * conflict, weighted by the request's weight (see
-     * {@link Request#getWeight()}).
+     * conflict.
      * 
      * @param e1
      *            an enrollment
      * @return number of distance conflicts
      */
-    public double nrConflicts(Enrollment e1) {
+    public int nrConflicts(Enrollment e1) {
         if (!e1.isCourseRequest())
             return 0;
-        double cnt = 0;
+        int cnt = 0;
         for (Section s1 : e1.getSections()) {
             for (Section s2 : e1.getSections()) {
                 if (s1.getId() < s2.getId() && inConflict(s1, s2))
-                    cnt += e1.getRequest().getWeight();
+                    cnt ++;
             }
         }
         return cnt;
@@ -152,9 +151,7 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
     /**
      * Return number of distance conflicts that are between two enrollments. It
      * is the number of pairs of assignments of these enrollments that are in a
-     * distance conflict, weighted by the average (see
-     * {@link DistanceConflict#avg(double, double)}) of the requests' weight
-     * (see {@link Request#getWeight()}).
+     * distance conflict.
      * 
      * @param e1
      *            an enrollment
@@ -162,14 +159,14 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
      *            an enrollment
      * @return number of distance conflict between given enrollments
      */
-    public double nrConflicts(Enrollment e1, Enrollment e2) {
+    public int nrConflicts(Enrollment e1, Enrollment e2) {
         if (!e1.isCourseRequest() || !e2.isCourseRequest() || !e1.getStudent().equals(e2.getStudent()))
             return 0;
-        double cnt = 0;
+        int cnt = 0;
         for (Section s1 : e1.getSections()) {
             for (Section s2 : e2.getSections()) {
                 if (inConflict(s1, s2))
-                    cnt += avg(e1.getRequest().getWeight(), e2.getRequest().getWeight());
+                    cnt ++;
             }
         }
         return cnt;
@@ -191,7 +188,7 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
         for (Section s1 : e1.getSections()) {
             for (Section s2 : e1.getSections()) {
                 if (s1.getId() < s2.getId() && inConflict(s1, s2))
-                    ret.add(new Conflict(e1.getRequest().getWeight(), e1.getStudent(), s1, s2));
+                    ret.add(new Conflict(e1.getStudent(), s1, s2));
             }
         }
         return ret;
@@ -215,8 +212,7 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
         for (Section s1 : e1.getSections()) {
             for (Section s2 : e2.getSections()) {
                 if (inConflict(s1, s2))
-                    ret.add(new Conflict(avg(e1.getRequest().getWeight(), e2.getRequest().getWeight()),
-                            e1.getStudent(), s1, s2));
+                    ret.add(new Conflict(e1.getStudent(), s1, s2));
             }
         }
         return ret;
@@ -226,10 +222,10 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
      * Total sum of all conflict of the given enrollment and other enrollments
      * that are assignmed to the same student.
      */
-    public double nrAllConflicts(Enrollment enrollment) {
+    public int nrAllConflicts(Enrollment enrollment) {
         if (!enrollment.isCourseRequest())
             return 0;
-        double cnt = nrConflicts(enrollment);
+        int cnt = nrConflicts(enrollment);
         for (Request request : enrollment.getStudent().getRequests()) {
             if (request.equals(enrollment.getRequest()) || request.getAssignment() == null
                     || request.equals(iOldVariable))
@@ -261,17 +257,13 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
      * {@link DistanceConflict#getTotalNrConflicts()}.
      */
     public void assigned(long iteration, Enrollment value) {
-        double inc = nrAllConflicts(value);
+        int inc = nrAllConflicts(value);
         iTotalNrConflicts += inc;
         if (sDebug) {
             sLog.debug("A:" + value);
             Set<Conflict> allConfs = computeAllConflicts();
-            double allConfWeight = 0.0;
-            for (Iterator<Conflict> i = allConfs.iterator(); i.hasNext();)
-                allConfWeight += (i.next()).getWeight();
-            if (Math.abs(iTotalNrConflicts - allConfWeight) > 0.0001) {
-                sLog.error("Different number of conflicts " + sDF.format(iTotalNrConflicts) + "!="
-                        + sDF.format(allConfWeight));
+            if (Math.abs(iTotalNrConflicts - allConfs.size()) > 0.0001) {
+                sLog.error("Different number of conflicts " + iTotalNrConflicts + "!=" + allConfs.size());
                 for (Iterator<Conflict> i = allConfs.iterator(); i.hasNext();) {
                     Conflict c = i.next();
                     if (!iAllConflicts.contains(c))
@@ -282,7 +274,7 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
                     if (!allConfs.contains(c))
                         sLog.debug("  -rem- " + c);
                 }
-                iTotalNrConflicts = allConfWeight;
+                iTotalNrConflicts = allConfs.size();
             }
             iAllConflicts = allConfs;
             if (inc != 0) {
@@ -302,7 +294,7 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
     public void unassigned(long iteration, Enrollment value) {
         if (value.variable().equals(iOldVariable))
             return;
-        double dec = nrAllConflicts(value);
+        int dec = nrAllConflicts(value);
         iTotalNrConflicts -= dec;
         if (sDebug) {
             sLog.debug("U:" + value);
@@ -316,7 +308,7 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
     }
 
     /** Actual number of all distance conflicts */
-    public double getTotalNrConflicts() {
+    public int getTotalNrConflicts() {
         return iTotalNrConflicts;
     }
 
@@ -324,8 +316,8 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
      * Compute the actual number of all distance conflicts. Should be equal to
      * {@link DistanceConflict#getTotalNrConflicts()}.
      */
-    public double countTotalNrConflicts() {
-        double total = 0;
+    public int countTotalNrConflicts() {
+        int total = 0;
         for (Request r1 : getModel().variables()) {
             if (r1.getAssignment() == null || !(r1 instanceof CourseRequest))
                 continue;
@@ -355,13 +347,6 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
             }
         }
         return ret;
-    }
-
-    /**
-     * Quadratic average of two weights.
-     */
-    public double avg(double w1, double w2) {
-        return Math.sqrt(w1 * w2);
     }
 
     /**
@@ -397,7 +382,6 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
 
     /** A representation of a distance conflict */
     public class Conflict {
-        private double iWeight;
         private Student iStudent;
         private Section iS1, iS2;
         private int iHashCode;
@@ -405,8 +389,6 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
         /**
          * Constructor
          * 
-         * @param weight
-         *            conflict weight
          * @param student
          *            related student
          * @param s1
@@ -414,8 +396,7 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
          * @param s2
          *            second conflicting section
          */
-        public Conflict(double weight, Student student, Section s1, Section s2) {
-            iWeight = weight;
+        public Conflict(Student student, Section s1, Section s2) {
             iStudent = student;
             if (s1.getId() < s2.getId()) {
                 iS1 = s1;
@@ -425,11 +406,6 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
                 iS2 = s1;
             }
             iHashCode = (iStudent.getId() + ":" + iS1.getId() + ":" + iS2.getId()).hashCode();
-        }
-
-        /** Conflict weight */
-        public double getWeight() {
-            return iWeight;
         }
 
         /** Related student */
@@ -468,7 +444,7 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
 
         @Override
         public String toString() {
-            return getStudent() + ": (w:" + sDF.format(getWeight()) + ",d:" + sDF.format(10.0 * getDistance()) + "m) "
+            return getStudent() + ": (d:" + sDF.format(10.0 * getDistance()) + "m) "
                     + getS1() + " -- " + getS2();
         }
     }
