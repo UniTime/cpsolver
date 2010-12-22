@@ -247,6 +247,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                         subpartEl.addAttribute("parent", getId("subpart", subpart.getParent().getId()));
                     if (iShowNames)
                         subpartEl.addAttribute("name", subpart.getName());
+                    if (subpart.isAllowOverlap())
+                        subpartEl.addAttribute("allowOverlap", "true");
                     for (Section section : subpart.getSections()) {
                         Element sectionEl = subpartEl.addElement("section");
                         sectionEl.addAttribute("id", getId("section", section.getId()));

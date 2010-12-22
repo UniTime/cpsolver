@@ -189,6 +189,7 @@ public class Section implements Assignment, Comparable<Section> {
      * space
      */
     public boolean isOverlapping(Assignment assignment) {
+        if (isAllowOverlap() || assignment.isAllowOverlap()) return false;
         if (getTime() == null || assignment.getTime() == null)
             return false;
         return getTime().hasIntersection(assignment.getTime());
@@ -199,9 +200,12 @@ public class Section implements Assignment, Comparable<Section> {
      * in time and space
      */
     public boolean isOverlapping(Set<? extends Assignment> assignments) {
+        if (isAllowOverlap()) return false;
         if (getTime() == null || assignments == null)
             return false;
         for (Assignment assignment : assignments) {
+            if (assignment.isAllowOverlap())
+                continue;
             if (assignment.getTime() == null)
                 continue;
             if (getTime().hasIntersection(assignment.getTime()))
@@ -387,6 +391,24 @@ public class Section implements Assignment, Comparable<Section> {
         double penalty = (getSpaceExpected() - available) / getLimit();
 
         return Math.max(-1.0, Math.min(1.0, penalty));
+    }
+
+    /**
+     * Return true if overlaps are allowed, but the number of overlapping slots should be minimized.
+     * This can be changed on the subpart, using {@link Subpart#setAllowOverlap(boolean)}.
+     **/
+    @Override
+    public boolean isAllowOverlap() {
+        return iSubpart.isAllowOverlap();
+    }
+    
+    /** Sections first, then by {@link FreeTimeRequest#getId()} */
+    public int compareById(Assignment a) {
+        if (a instanceof Section) {
+            return new Long(getId()).compareTo(((Section)a).getId());
+        } else {
+            return -1;
+        }
     }
 
 }

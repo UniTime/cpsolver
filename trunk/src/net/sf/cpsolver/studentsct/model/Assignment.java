@@ -64,4 +64,13 @@ public interface Assignment {
 
     /** Return the list of assigned enrollments that contains this assignment. */
     public Set<Enrollment> getEnrollments();
+    
+    /** Return true if overlaps are allowed, but the number of overlapping slots should be minimized. */
+    public boolean isAllowOverlap();
+    
+    /** Unique id */
+    public long getId();
+
+    /** Compare assignments by unique ids. */
+    public int compareById(Assignment a);
 }

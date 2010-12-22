@@ -79,6 +79,7 @@ public class FreeTimeRequest extends Request implements Assignment {
      * assignment.
      */
     public boolean isOverlapping(Assignment assignment) {
+        if (isAllowOverlap() || assignment.isAllowOverlap()) return false;
         if (getTime() == null || assignment.getTime() == null)
             return false;
         if (assignment instanceof FreeTimeRequest)
@@ -91,9 +92,13 @@ public class FreeTimeRequest extends Request implements Assignment {
      * set of assignments.
      */
     public boolean isOverlapping(Set<? extends Assignment> assignments) {
+        if (isAllowOverlap())
+            return false;
         if (getTime() == null)
             return false;
         for (Assignment assignment : assignments) {
+            if (assignment.isAllowOverlap())
+                continue;
             if (assignment.getTime() == null)
                 continue;
             if (assignment instanceof FreeTimeRequest)
@@ -144,7 +149,7 @@ public class FreeTimeRequest extends Request implements Assignment {
     @Override
     public String getName() {
         return (isAlternative() ? "A" : "") + (1 + getPriority() + (isAlternative() ? -getStudent().nrRequests() : 0))
-                + ". Free Time " + getTime().getLongName();
+                + ". Free Time " + getTime().getDayHeader() + " " + getTime().getStartTimeHeader() + " - " + getTime().getEndTimeHeader();
     }
 
     @Override
@@ -156,5 +161,20 @@ public class FreeTimeRequest extends Request implements Assignment {
     @Override
     public double getBound() {
         return ((StudentSectioningModel)getModel()).getBound(this);
+    }
+
+    /** Free time request generally allow overlaps. */
+    @Override
+    public boolean isAllowOverlap() {
+        return false;
+    }
+    
+    /** Sections first, then by {@link FreeTimeRequest#getId()} */
+    public int compareById(Assignment a) {
+        if (a instanceof FreeTimeRequest) {
+            return new Long(getId()).compareTo(((FreeTimeRequest)a).getId());
+        } else {
+            return 1;
+        }
     }
 }
