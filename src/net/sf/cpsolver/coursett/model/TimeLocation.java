@@ -175,7 +175,7 @@ public class TimeLocation {
                 && (anotherLocation.iStartSlot + anotherLocation.iLength > iStartSlot);
     }
 
-    /** number of overlapping days */
+    /** number of overlapping time slots (ignoring days) */
     public int nrSharedHours(TimeLocation anotherLocation) {
         int end = Math.min(iStartSlot + iLength, anotherLocation.iStartSlot + anotherLocation.iLength);
         int start = Math.max(iStartSlot, anotherLocation.iStartSlot);
