@@ -9,6 +9,7 @@ import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
+import net.sf.cpsolver.studentsct.extension.TimeOverlapsCounter;
 
 /**
  * Representation of an enrollment of a student into a course. A student needs
@@ -202,12 +203,12 @@ public class Enrollment extends Value<Request, Enrollment> {
     /** Enrollment value */
     @Override
     public double toDouble() {
-        return ((StudentSectioningModel)variable().getModel()).getWeight(this, nrDistanceConflicts());
+        return ((StudentSectioningModel)variable().getModel()).getWeight(this, nrDistanceConflicts(), nrTimeOverlappingConflicts());
     }
 
     /** Enrollment value */
-    public double toDouble(double nrDistanceConflicts) {
-        return ((StudentSectioningModel)variable().getModel()).getWeight(this, nrDistanceConflicts);
+    public double toDouble(int nrDistanceConflicts, int nrTimeOverlappingConflicts) {
+        return ((StudentSectioningModel)variable().getModel()).getWeight(this, nrDistanceConflicts, nrTimeOverlappingConflicts);
         /*
         if (iCachedDoubleValue == null) {
             iCachedDoubleValue = new Double(-iValue * Math.pow(sPriorityWeight, getRequest().getPriority())
@@ -282,7 +283,7 @@ public class Enrollment extends Value<Request, Enrollment> {
     }
 
     /** Number of distance conflicts, in which this enrollment is involved. */
-    public double nrDistanceConflicts() {
+    public int nrDistanceConflicts() {
         if (!isCourseRequest())
             return 0;
         if (getRequest().getModel() instanceof StudentSectioningModel) {
@@ -294,11 +295,33 @@ public class Enrollment extends Value<Request, Enrollment> {
             return 0;
     }
     
+    /** Number of time overlapping conflicts, in which this enrollment is involved. */
+    public int nrTimeOverlappingConflicts() {
+        if (getRequest().getModel() instanceof StudentSectioningModel) {
+            TimeOverlapsCounter toc = ((StudentSectioningModel) getRequest().getModel()).getTimeOverlaps();
+            if (toc == null)
+                return 0;
+            return toc.nrAllConflicts(this);
+        } else
+            return 0;
+    }
+
     /** 
      * Return enrollment priority
      * @return zero for the course, one for the first alternative, two for the second alternative
      */
     public int getPriority() {
         return iPriority;
+    }
+    
+    /**
+     * Return total number of slots of all sections in the enrollment.
+     */
+    public int getNrSlots() {
+        int ret = 0;
+        for (Assignment a: getAssignments()) {
+            if (a.getTime() != null) ret += a.getTime().getLength() * a.getTime().getNrMeetings();
+        }
+        return ret;
     }
 }

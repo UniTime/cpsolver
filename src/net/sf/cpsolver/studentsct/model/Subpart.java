@@ -37,6 +37,7 @@ public class Subpart implements Comparable<Subpart> {
     private List<Section> iSections = new ArrayList<Section>();
     private Config iConfig = null;
     private Subpart iParent = null;
+    private boolean iAllowOverlap = false;
 
     /**
      * Constructor
@@ -160,5 +161,15 @@ public class Subpart implements Comparable<Subpart> {
                 ret.add(s);
         }
         return ret;
+    }
+    
+    /** Return true if overlaps are allowed, but the number of overlapping slots should be minimized. */
+    public boolean isAllowOverlap() {
+        return iAllowOverlap;
+    }
+    
+    /** Set to true if overlaps are allowed, but the number of overlapping slots should be minimized (defaults to false). */
+    public void setAllowOverlap(boolean allowOverlap) {
+        iAllowOverlap = allowOverlap;
     }
 }

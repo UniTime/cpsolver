@@ -152,7 +152,9 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
                 + "V:"
                 + sDF.format(m.getTotalValue())
                 + (m.getDistanceConflict() == null ? "" : ", DC:"
-                        + sDF.format(m.getDistanceConflict().getTotalNrConflicts())));
+                        + sDF.format(m.getDistanceConflict().getTotalNrConflicts()))
+                + (m.getTimeOverlaps() == null ? "" : ", TOC:"
+                    + sDF.format(m.getTimeOverlaps().getTotalNrConflicts())));
     }
 
 }

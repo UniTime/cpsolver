@@ -1200,9 +1200,9 @@ public class Test {
             cfg.setProperty("Variable.Class", "net.sf.cpsolver.ifs.heuristics.GeneralVariableSelection");
             cfg.setProperty("Neighbour.Class", "net.sf.cpsolver.studentsct.heuristics.StudentSctNeighbourSelection");
             cfg.setProperty("General.SaveBestUnassigned", "-1");
-            cfg
-                    .setProperty("Extensions.Classes",
-                            "net.sf.cpsolver.ifs.extension.ConflictStatistics;net.sf.cpsolver.studentsct.extension.DistanceConflict");
+            cfg.setProperty("Extensions.Classes",
+                    "net.sf.cpsolver.ifs.extension.ConflictStatistics;net.sf.cpsolver.studentsct.extension.DistanceConflict" +
+                    ";net.sf.cpsolver.studentsct.extension.TimeOverlapsCounter");
             cfg.setProperty("Data.Initiative", "puWestLafayetteTrdtn");
             cfg.setProperty("Data.Term", "Fal");
             cfg.setProperty("Data.Year", "2007");
@@ -1283,9 +1283,11 @@ public class Test {
                     + (m.getNrLastLikeStudents(false) > 0 ? "DS:" + m.getNrCompleteLastLikeStudents(false) + "/"
                             + m.getNrLastLikeStudents(false) + ", " : "")
                     + "V:"
-                    + sDF.format(m.getTotalValue())
+                    + sDF.format(-m.getTotalValue())
                     + (m.getDistanceConflict() == null ? "" : ", DC:"
-                            + sDF.format(m.getDistanceConflict().getTotalNrConflicts())) 
+                            + m.getDistanceConflict().getTotalNrConflicts())
+                    + (m.getTimeOverlaps() == null ? "" : ", TOC:"
+                            + m.getTimeOverlaps().getTotalNrConflicts())
                     + ", %: " + sDF.format(-100.0 * m.getTotalValue() / m.getStudents().size()));
         }
 
