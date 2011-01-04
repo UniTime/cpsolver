@@ -62,6 +62,7 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
     /** Debug flag */
     public static boolean sDebug = false;
     private Request iOldVariable = null;
+    private Enrollment iUnassignedValue = null;
     private DistanceMetric iDistanceMetric = null;
 
     /**
@@ -355,8 +356,10 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
     @Override
     public void beforeAssigned(long iteration, Enrollment value) {
         if (value != null) {
-            if (value.variable().getAssignment() != null)
+            if (value.variable().getAssignment() != null) {
                 unassigned(iteration, value.variable().getAssignment());
+                iUnassignedValue = value.variable().getAssignment();
+            }
             iOldVariable = value.variable();
         }
     }
@@ -367,6 +370,7 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
     @Override
     public void afterAssigned(long iteration, Enrollment value) {
         iOldVariable = null;
+        iUnassignedValue = null;
         if (value != null)
             assigned(iteration, value);
     }
@@ -376,7 +380,7 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
      */
     @Override
     public void afterUnassigned(long iteration, Enrollment value) {
-        if (value != null)
+        if (value != null && !value.equals(iUnassignedValue))
             unassigned(iteration, value);
     }
 
