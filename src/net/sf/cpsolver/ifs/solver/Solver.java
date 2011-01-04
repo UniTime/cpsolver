@@ -509,11 +509,18 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
 
     /** Stop running solver */
     public void stopSolver() {
+        stopSolver(true);
+    }
+    
+    /** Stop running solver */
+    public void stopSolver(boolean join) {
         if (getSolverThread() != null) {
             iStop = true;
-            try {
-                getSolverThread().join();
-            } catch (InterruptedException ex) {
+            if (join) {
+                try {
+                    getSolverThread().join();
+                } catch (InterruptedException ex) {
+                }
             }
         }
     }
