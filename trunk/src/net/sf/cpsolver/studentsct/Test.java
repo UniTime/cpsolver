@@ -37,6 +37,7 @@ import net.sf.cpsolver.studentsct.check.InevitableStudentConflicts;
 import net.sf.cpsolver.studentsct.check.OverlapCheck;
 import net.sf.cpsolver.studentsct.check.SectionLimitCheck;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
+import net.sf.cpsolver.studentsct.extension.TimeOverlapsCounter;
 import net.sf.cpsolver.studentsct.filter.CombinedStudentFilter;
 import net.sf.cpsolver.studentsct.filter.FreshmanStudentFilter;
 import net.sf.cpsolver.studentsct.filter.RandomStudentFilter;
@@ -252,6 +253,8 @@ public class Test {
             BranchBoundSelection.sDebug = true;
         if (cfg.getPropertyBoolean("Debug.SwapStudentsSelection", false))
             SwapStudentSelection.sDebug = true;
+        if (cfg.getPropertyBoolean("Debug.TimeOverlaps", false))
+            TimeOverlapsCounter.sDebug = true;
         if (cfg.getProperty("CourseRequest.SameTimePrecise") != null)
             CourseRequest.sSameTimePrecise = cfg.getPropertyBoolean("CourseRequest.SameTimePrecise", false);
         Logger.getLogger(BacktrackNeighbourSelection.class).setLevel(
@@ -1260,6 +1263,9 @@ public class Test {
 
     public static class TestSolutionListener implements SolutionListener<Request, Enrollment> {
         public void solutionUpdated(Solution<Request, Enrollment> solution) {
+            StudentSectioningModel m = (StudentSectioningModel) solution.getModel();
+            if (m.getTimeOverlaps() != null && TimeOverlapsCounter.sDebug)
+                m.getTimeOverlaps().checkTotalNrConflicts();
         }
 
         public void getInfo(Solution<Request, Enrollment> solution, Map<String, String> info) {

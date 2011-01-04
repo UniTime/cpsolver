@@ -50,6 +50,7 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
     /** Debug flag */
     public static boolean sDebug = false;
     private Request iOldVariable = null;
+    private Enrollment iUnassignedValue = null;
 
     /**
      * Constructor. Beside of other things, this constructor also uses
@@ -73,6 +74,8 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
     @Override
     public boolean init(Solver<Request, Enrollment> solver) {
         iTotalNrConflicts = countTotalNrConflicts();
+        if (sDebug)
+            iAllConflicts = computeAllConflicts();
         return true;
     }
 
@@ -215,34 +218,8 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
                     inc -= c.getShare();
                 }
                 if (inc != 0) {
-                    sLog.error("Different numbers " + nrAllConflicts(value) + " != " + allConflicts(value));
+                    sLog.error("Different number of conflicts for the assigned value (difference: " + inc + ")!");
                 }
-            }
-
-            Set<Conflict> allConfs = computeAllConflicts();
-            int allConfShare = 0;
-            for (Conflict c: allConfs)
-                allConfShare += c.getShare();
-            
-            if (iTotalNrConflicts != allConfShare) {
-                sLog.error("Different number of conflicts " + iTotalNrConflicts + "!=" + allConfShare);
-                for (Conflict c: allConfs) {
-                    if (!iAllConflicts.contains(c))
-                        sLog.debug("  +add+ " + c);
-                }
-                for (Conflict c: iAllConflicts) {
-                    if (!allConfs.contains(c))
-                        sLog.debug("  -rem- " + c);
-                }
-                for (Conflict c: allConfs) {
-                    for (Conflict d: iAllConflicts) {
-                        if (c.equals(d) && c.getShare() != d.getShare()) {
-                            sLog.debug("  -dif- " + c + " (other: " + d.getShare() + ")");
-                        }
-                    }
-                }                
-                iTotalNrConflicts = allConfShare;
-                iAllConflicts = allConfs;
             }
         }
     }
@@ -265,34 +242,8 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
                     dec -= c.getShare();
                 }
                 if (dec != 0) {
-                    sLog.error("Different numbers " + nrAllConflicts(value) + " != " + allConflicts(value));
+                    sLog.error("Different number of conflicts for the unassigned value (difference: " + dec + ")!");
                 }
-            }
-            
-            Set<Conflict> allConfs = computeAllConflicts();
-            int allConfShare = 0;
-            for (Conflict c: allConfs)
-                allConfShare += c.getShare();
-            
-            if (iTotalNrConflicts != allConfShare) {
-                sLog.error("Different number of conflicts " + iTotalNrConflicts + "!=" + allConfShare);
-                for (Conflict c: allConfs) {
-                    if (!iAllConflicts.contains(c))
-                        sLog.debug("  +add+ " + c);
-                }
-                for (Conflict c: iAllConflicts) {
-                    if (!allConfs.contains(c))
-                        sLog.debug("  -rem- " + c);
-                }
-                for (Conflict c: allConfs) {
-                    for (Conflict d: iAllConflicts) {
-                        if (c.equals(d) && c.getShare() != d.getShare()) {
-                            sLog.debug("  -dif- " + c + " (other: " + d.getShare() + ")");
-                        }
-                    }
-                }                
-                iTotalNrConflicts = allConfShare;
-                iAllConflicts = allConfs;
             }
         }
     }
@@ -300,6 +251,34 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
     /** Actual number of all time overlapping conflicts */
     public int getTotalNrConflicts() {
         return iTotalNrConflicts;
+    }
+    
+    public void checkTotalNrConflicts() {
+        int total = countTotalNrConflicts();
+        if (total != iTotalNrConflicts) {
+            sLog.error("Number of conflicts does not match (actual: " + total + ", count: " + iTotalNrConflicts + ")!");
+            iTotalNrConflicts = total;
+            if (sDebug) {
+                Set<Conflict> conflicts = computeAllConflicts();
+                for (Conflict c: conflicts) {
+                    if (!iAllConflicts.contains(c))
+                        sLog.debug("  +add+ " + c);
+                }
+                for (Conflict c: iAllConflicts) {
+                    if (!conflicts.contains(c))
+                        sLog.debug("  -rem- " + c);
+                }
+                for (Conflict c: conflicts) {
+                    for (Conflict d: iAllConflicts) {
+                        if (c.equals(d) && c.getShare() != d.getShare()) {
+                            sLog.debug("  -dif- " + c + " (other: " + d.getShare() + ")");
+                        }
+                    }
+                }                
+                iAllConflicts = conflicts;
+                // getSolver().stopSolver(false);
+            }
+        }
     }
 
     /**
@@ -349,8 +328,10 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
     @Override
     public void beforeAssigned(long iteration, Enrollment value) {
         if (value != null) {
-            if (value.variable().getAssignment() != null)
+            if (value.variable().getAssignment() != null) {
+                iUnassignedValue = value.variable().getAssignment();
                 unassigned(iteration, value.variable().getAssignment());
+            }
             iOldVariable = value.variable();
         }
     }
@@ -361,6 +342,7 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
     @Override
     public void afterAssigned(long iteration, Enrollment value) {
         iOldVariable = null;
+        iUnassignedValue = null;
         if (value != null) {
             assigned(iteration, value);
         }
@@ -371,7 +353,7 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
      */
     @Override
     public void afterUnassigned(long iteration, Enrollment value) {
-        if (value != null) {
+        if (value != null && !value.equals(iUnassignedValue)) {
             unassigned(iteration, value);
         }
     }
