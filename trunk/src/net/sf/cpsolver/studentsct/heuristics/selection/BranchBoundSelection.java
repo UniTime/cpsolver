@@ -1,5 +1,6 @@
 package net.sf.cpsolver.studentsct.heuristics.selection;
 
+import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -81,6 +82,7 @@ import org.apache.log4j.Logger;
 
 public class BranchBoundSelection implements NeighbourSelection<Request, Enrollment> {
     private static Logger sLog = Logger.getLogger(BranchBoundSelection.class);
+    private static DecimalFormat sDF = new DecimalFormat("0.00");
     protected int iTimeout = 10000;
     protected DistanceConflict iDistanceConflict = null;
     protected TimeOverlapsCounter iTimeOverlaps = null;
@@ -205,7 +207,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             iT1 = JProf.currentTimeMillis();
             if (iBestAssignment == null)
                 return null;
-            return new BranchBoundNeighbour(iBestValue, iBestAssignment);
+            return new BranchBoundNeighbour(iStudent, iBestValue, iBestAssignment);
         }
 
         /** Was timeout reached */
@@ -559,6 +561,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
     public static class BranchBoundNeighbour extends Neighbour<Request, Enrollment> {
         private double iValue;
         private Enrollment[] iAssignment;
+        private Student iStudent;
 
         /**
          * Constructor
@@ -568,9 +571,10 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
          * @param assignment
          *            enrollments of student's requests
          */
-        public BranchBoundNeighbour(double value, Enrollment[] assignment) {
+        public BranchBoundNeighbour(Student student, double value, Enrollment[] assignment) {
             iValue = value;
             iAssignment = assignment;
+            iStudent = student;
         }
 
         @Override
@@ -582,10 +586,17 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         public Enrollment[] getAssignment() {
             return iAssignment;
         }
+        
+        /** Student */
+        public Student getStudent() {
+            return iStudent;
+        }
 
         /** Assign the schedule */
         @Override
         public void assign(long iteration) {
+            for (Request r: iStudent.getRequests())
+                if (r.getAssignment() != null) r.unassign(iteration);
             for (int i = 0; i < iAssignment.length; i++)
                 if (iAssignment[i] != null)
                     iAssignment[i].variable().assign(iteration, iAssignment[i]);
@@ -593,27 +604,16 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
 
         @Override
         public String toString() {
-            StringBuffer sb = new StringBuffer("B&B{");
-            Student student = null;
-            for (int i = 0; i < iAssignment.length; i++) {
-                if (iAssignment[i] != null) {
-                    student = iAssignment[i].getRequest().getStudent();
-                    sb.append(" " + student);
-                    sb.append(" (" + iValue + ")");
-                    break;
-                }
-            }
-            if (student != null) {
-                int idx = 0;
-                for (Iterator<Request> e = student.getRequests().iterator(); e.hasNext(); idx++) {
-                    Request request = e.next();
-                    sb.append("\n" + request);
-                    Enrollment enrollment = iAssignment[idx];
-                    if (enrollment == null)
-                        sb.append("  -- not assigned");
-                    else
-                        sb.append("  -- " + enrollment);
-                }
+            StringBuffer sb = new StringBuffer("B&B{ " + iStudent + " " + sDF.format(-value() * 100.0) + "%");
+            int idx = 0;
+            for (Iterator<Request> e = iStudent.getRequests().iterator(); e.hasNext(); idx++) {
+                Request request = e.next();
+                sb.append("\n  " + request);
+                Enrollment enrollment = iAssignment[idx];
+                if (enrollment == null)
+                    sb.append("  -- not assigned");
+                else
+                    sb.append("  -- " + enrollment);
             }
             sb.append("\n}");
             return sb.toString();
