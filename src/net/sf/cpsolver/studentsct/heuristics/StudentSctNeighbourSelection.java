@@ -9,6 +9,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.heuristics.selection.BacktrackSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
+import net.sf.cpsolver.studentsct.heuristics.selection.PriorityConstructionSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.RandomUnassignmentSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.ResectionIncompleteStudentsSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.ResectionUnassignedStudentsSelection;
@@ -77,9 +78,11 @@ import net.sf.cpsolver.studentsct.model.Request;
 public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<Request, Enrollment> {
     private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(StudentSctNeighbourSelection.class);
     private static DecimalFormat sDF = new DecimalFormat("0.000");
+    private boolean iUseConstruction = false;
 
     public StudentSctNeighbourSelection(DataProperties properties) throws Exception {
         super(properties);
+        iUseConstruction = properties.getPropertyBoolean("Sectioning.UsePriorityConstruction", iUseConstruction);
     }
 
     @Override
@@ -91,7 +94,9 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
     public void setup(Solver<Request, Enrollment> solver) {
         // Phase 1: section all students using incremental branch & bound (no
         // unassignments)
-        registerSelection(new BranchBoundSelection(solver.getProperties()));
+        registerSelection(iUseConstruction ?
+                new PriorityConstructionSelection(solver.getProperties()) :
+                new BranchBoundSelection(solver.getProperties()));
 
         // Phase 2: pick a student (one by one) with an incomplete schedule, try
         // to find an improvement
