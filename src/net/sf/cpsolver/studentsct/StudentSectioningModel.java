@@ -1,5 +1,6 @@
 package net.sf.cpsolver.studentsct;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -54,6 +55,7 @@ import org.apache.log4j.Logger;
  */
 public class StudentSectioningModel extends Model<Request, Enrollment> {
     private static Logger sLog = Logger.getLogger(StudentSectioningModel.class);
+    private static DecimalFormat sDF = new DecimalFormat("0.000");
     private List<Student> iStudents = new ArrayList<Student>();
     private List<Offering> iOfferings = new ArrayList<Offering>();
     private Set<Student> iCompleteStudents = new java.util.HashSet<Student>();
@@ -217,10 +219,24 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
     /**
      * Overall solution value
      */
-    @Override
-    public double getTotalValue() {
+    public double getTotalValue(boolean precise) {
+        if (precise) {
+            double total = 0;
+            for (Request r: assignedVariables())
+                total += r.getWeight() * r.getAssignment().toDouble();
+            return total;
+        }
         return iTotalValue;
     }
+    
+    /**
+     * Overall solution value
+     */
+    @Override
+    public double getTotalValue() {
+        return getTotalValue(false);
+    }
+
 
     /**
      * Called after an enrollment was assigned to a request. The list of
@@ -232,7 +248,9 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         Student student = enrollment.getStudent();
         if (student.isComplete())
             iCompleteStudents.add(student);
-        iTotalValue += enrollment.getRequest().getWeight() * enrollment.toDouble();
+        Double value = enrollment.toDouble();
+        enrollment.setExtra(value);
+        iTotalValue += enrollment.getRequest().getWeight() * value;
         if (student.isDummy()) {
             iNrAssignedDummyRequests++;
             if (student.isComplete())
@@ -253,7 +271,8 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
             if (student.isDummy())
                 iNrCompleteDummyStudents--;
         }
-        iTotalValue -= enrollment.getRequest().getWeight() * enrollment.toDouble();
+        Double value = (Double)enrollment.getExtra();
+        iTotalValue -= enrollment.getRequest().getWeight() * value;
         if (student.isDummy()) {
             iNrAssignedDummyRequests--;
         }
@@ -556,7 +575,22 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         info.put("Average number of requests", sDoubleFormat.format(avgNrRequests()));
         info.put("Unassigned request weight", sDoubleFormat.format(getUnassignedRequestWeight()) + " / "
                 + sDoubleFormat.format(getTotalRequestWeight()));
+        info.put("Total value [p]", sDoubleFormat.format(getTotalValue(true)));
         return info;
+    }
+    
+    @Override
+    public String toString() {
+        return   (getNrRealStudents(false) > 0 ? "RRq:" + getNrAssignedRealRequests(false) + "/" + getNrRealRequests(false) + ", " : "")
+                + (getNrLastLikeStudents(false) > 0 ? "DRq:" + getNrAssignedLastLikeRequests(false) + "/" + getNrLastLikeRequests(false) + ", " : "")
+                + (getNrRealStudents(false) > 0 ? "RS:" + getNrCompleteRealStudents(false) + "/" + getNrRealStudents(false) + ", " : "")
+                + (getNrLastLikeStudents(false) > 0 ? "DS:" + getNrCompleteLastLikeStudents(false) + "/" + getNrLastLikeStudents(false) + ", " : "")
+                + "V:"
+                + sDF.format(-getTotalValue())
+                + (getDistanceConflict() == null ? "" : ", DC:" + getDistanceConflict().getTotalNrConflicts())
+                + (getTimeOverlaps() == null ? "" : ", TOC:" + getTimeOverlaps().getTotalNrConflicts())
+                + ", %:" + sDF.format(-100.0 * getTotalValue() / getStudents().size());
+
     }
 
 }
