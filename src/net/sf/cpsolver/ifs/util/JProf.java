@@ -3,6 +3,8 @@ package net.sf.cpsolver.ifs.util;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 
+import org.apache.log4j.Logger;
+
 /**
  * CPU time measurement. <s>JAVA profiling extension is used. Java needs to be
  * executed with -Xrunjprof. When the java is executed outside this profiler,
@@ -30,24 +32,51 @@ import java.lang.management.ThreadMXBean;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class JProf {
-    /** Enable the thread CPU timing, if needed */
-    static {
-        try {
-            ThreadMXBean bean = ManagementFactory.getThreadMXBean();
-            if (bean.isCurrentThreadCpuTimeSupported() && !bean.isThreadCpuTimeEnabled())
-                bean.setThreadCpuTimeEnabled(true);
-        } catch (UnsupportedOperationException e) {}
+    private static Mode sMode = Mode.cpu;
+    private static enum Mode {
+        cpu, wall, user
+    }
+    private static boolean sInitialized = false;
+    
+    /** Enable / disable the thread CPU timing, if needed */
+    private static void init() {
+        if (sInitialized) return;
+        sMode = Mode.valueOf(System.getProperty("jprof", sMode.name()));
+        if (sMode != Mode.wall) {
+            try {
+                ThreadMXBean bean = ManagementFactory.getThreadMXBean();
+                if (!bean.isCurrentThreadCpuTimeSupported()) {
+                    Logger.getLogger(JProf.class).warn("Measuring " + sMode.name() + " time is not supported, falling back to wall time.");
+                    sMode = Mode.wall;
+                }
+                if (!bean.isThreadCpuTimeEnabled())
+                    bean.setThreadCpuTimeEnabled(true);
+            } catch (UnsupportedOperationException e) {
+                Logger.getLogger(JProf.class).error("Unable to measure " + sMode.name() + " time, falling back to wall time: " + e.getMessage());
+                sMode = Mode.wall;
+                sMode = Mode.wall;
+            }
+        }
+        Logger.getLogger(JProf.class).info("Using " + sMode.name() + " time.");
+        sInitialized = true;
     }
     
     /** Current CPU time of this thread in seconds */
     public static double currentTimeSec() {
+        init();
         try {
-            ThreadMXBean bean = ManagementFactory.getThreadMXBean();
-            if (bean.isCurrentThreadCpuTimeSupported() && bean.isThreadCpuTimeEnabled())
-                return bean.getCurrentThreadCpuTime() / 1e9;
-            else
-                return System.nanoTime() / 1e9;
+            switch (sMode) {
+                case cpu :
+                    return ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime() / 1e9;
+                case user :
+                    return ManagementFactory.getThreadMXBean().getCurrentThreadUserTime() / 1e9;
+                case wall :
+                default:
+                    return System.nanoTime() / 1e9;
+            }
         } catch (UnsupportedOperationException e) {
+            Logger.getLogger(JProf.class).error("Unable to measure " + sMode.name() + " time, falling back to wall time: " + e.getMessage());
+            sMode = Mode.wall;
             return System.nanoTime() / 1e9;
         }
     }
@@ -55,12 +84,18 @@ public class JProf {
     /** Current CPU time of this thread in milliseconds */
     public static long currentTimeMillis() {
         try {
-            ThreadMXBean bean = ManagementFactory.getThreadMXBean();
-            if (bean.isCurrentThreadCpuTimeSupported() && bean.isThreadCpuTimeEnabled())
-                return bean.getCurrentThreadCpuTime() / 1000000;
-            else
-                return System.currentTimeMillis();
+            switch (sMode) {
+                case cpu :
+                    return ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime() / 1000000;
+                case user :
+                    return ManagementFactory.getThreadMXBean().getCurrentThreadUserTime() / 1000000;
+                case wall :
+                default:
+                    return System.currentTimeMillis();
+            }
         } catch (UnsupportedOperationException e) {
+            Logger.getLogger(JProf.class).error("Unable to measure " + sMode.name() + " time, falling back to wall time: " + e.getMessage());
+            sMode = Mode.wall;
             return System.currentTimeMillis();
         }
     }
