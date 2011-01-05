@@ -6,7 +6,6 @@ import net.sf.cpsolver.ifs.heuristics.RoundRobinNeighbourSelection;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
-import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.heuristics.selection.BacktrackSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.PriorityConstructionSelection;
@@ -144,22 +143,7 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
     @Override
     public void changeSelection(Solution<Request, Enrollment> solution) {
         super.changeSelection(solution);
-        StudentSectioningModel m = (StudentSectioningModel) solution.getModel();
-        sLog.debug("**CURR** "
-                + (m.getNrRealStudents(false) > 0 ? "RRq:" + m.getNrAssignedRealRequests(false) + "/"
-                        + m.getNrRealRequests(false) + ", " : "")
-                + (m.getNrLastLikeStudents(false) > 0 ? "DRq:" + m.getNrAssignedLastLikeRequests(false) + "/"
-                        + m.getNrLastLikeRequests(false) + ", " : "")
-                + (m.getNrRealStudents(false) > 0 ? "RS:" + m.getNrCompleteRealStudents(false) + "/"
-                        + m.getNrRealStudents(false) + ", " : "")
-                + (m.getNrLastLikeStudents(false) > 0 ? "DS:" + m.getNrCompleteLastLikeStudents(false) + "/"
-                        + m.getNrLastLikeStudents(false) + ", " : "")
-                + "V:"
-                + sDF.format(m.getTotalValue())
-                + (m.getDistanceConflict() == null ? "" : ", DC:"
-                        + sDF.format(m.getDistanceConflict().getTotalNrConflicts()))
-                + (m.getTimeOverlaps() == null ? "" : ", TOC:"
-                    + sDF.format(m.getTimeOverlaps().getTotalNrConflicts())));
+        sLog.debug("**CURR** " + solution.getModel() + ", TM:" + sDF.format(solution.getTime() / 3600.0) + "h");
     }
 
 }

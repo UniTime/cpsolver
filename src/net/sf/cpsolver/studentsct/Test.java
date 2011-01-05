@@ -1278,23 +1278,7 @@ public class Test {
         }
 
         public void bestSaved(Solution<Request, Enrollment> solution) {
-            StudentSectioningModel m = (StudentSectioningModel) solution.getModel();
-            sLog.debug("**BEST** "
-                    + (m.getNrRealStudents(false) > 0 ? "RRq:" + m.getNrAssignedRealRequests(false) + "/"
-                            + m.getNrRealRequests(false) + ", " : "")
-                    + (m.getNrLastLikeStudents(false) > 0 ? "DRq:" + m.getNrAssignedLastLikeRequests(false) + "/"
-                            + m.getNrLastLikeRequests(false) + ", " : "")
-                    + (m.getNrRealStudents(false) > 0 ? "RS:" + m.getNrCompleteRealStudents(false) + "/"
-                            + m.getNrRealStudents(false) + ", " : "")
-                    + (m.getNrLastLikeStudents(false) > 0 ? "DS:" + m.getNrCompleteLastLikeStudents(false) + "/"
-                            + m.getNrLastLikeStudents(false) + ", " : "")
-                    + "V:"
-                    + sDF.format(-m.getTotalValue())
-                    + (m.getDistanceConflict() == null ? "" : ", DC:"
-                            + m.getDistanceConflict().getTotalNrConflicts())
-                    + (m.getTimeOverlaps() == null ? "" : ", TOC:"
-                            + m.getTimeOverlaps().getTotalNrConflicts())
-                    + ", %: " + sDF.format(-100.0 * m.getTotalValue() / m.getStudents().size()));
+            sLog.debug("**BEST** " + solution.getModel().toString() + ", TM:" + sDF.format(solution.getTime() / 3600.0) + "h");
         }
 
         public void bestRestored(Solution<Request, Enrollment> solution) {
