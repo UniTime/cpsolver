@@ -102,8 +102,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         iTimeout = properties.getPropertyInt("Neighbour.BranchAndBoundTimeout", iTimeout);
         iMinimizePenalty = properties.getPropertyBoolean("Neighbour.BranchAndBoundMinimizePenalty", iMinimizePenalty);
         if (iMinimizePenalty)
-            sLog
-                    .info("Overall penalty is going to be minimized (together with the maximization of the number of assigned requests and minimization of distance conflicts).");
+            sLog.info("Overall penalty is going to be minimized (together with the maximization of the number of assigned requests and minimization of distance conflicts).");
         if (properties.getProperty("Neighbour.BranchAndBoundOrder") != null) {
             try {
                 iOrder = (StudentOrder) Class.forName(properties.getProperty("Neighbour.BranchAndBoundOrder"))
@@ -202,6 +201,15 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             iAssignment = new Enrollment[iStudent.getRequests().size()];
             iBestAssignment = null;
             iBestValue = 0;
+            
+            int i = 0;
+            for (Request r: iStudent.getRequests())
+                iAssignment[i++] = r.getAssignment();
+            saveBest();
+            for (int j = 0; j < iAssignment.length; j++)
+                iAssignment[j] = null;
+            
+            
             iValues = new HashMap<CourseRequest, List<Enrollment>>();
             backTrack(0);
             iT1 = JProf.currentTimeMillis();
@@ -331,7 +339,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             double value = 0.0;
             for (int i = 0; i < iAssignment.length; i++)
                 if (iAssignment[i] != null)
-                    value += iAssignment[i].toDouble(getNrDistanceConflicts(i), getNrDistanceConflicts(i));
+                    value += iAssignment[i].toDouble(getNrDistanceConflicts(i), getNrTimeOverlappingConflicts(i));
             return value;
         }
 
