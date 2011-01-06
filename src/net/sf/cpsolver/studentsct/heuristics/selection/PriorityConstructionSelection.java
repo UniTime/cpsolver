@@ -53,6 +53,7 @@ public class PriorityConstructionSelection implements NeighbourSelection<Request
     private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(PriorityConstructionSelection.class);
     private static DecimalFormat sDF = new DecimalFormat("0.00");
     private int iCycle = 0;
+    private int iMaxCycles = 7;
     private boolean iImproved = false;
     private boolean iSkip = false;
     private BranchBoundSelection iBranchBoundSelection = null;
@@ -76,6 +77,7 @@ public class PriorityConstructionSelection implements NeighbourSelection<Request
                 sLog.error("Unable to set student order, reason:" + e.getMessage(), e);
             }
         }
+        iMaxCycles = properties.getPropertyInteger("Neighbour.PriorityConstructionCycles", iMaxCycles);
     }
     
     /**
@@ -83,7 +85,7 @@ public class PriorityConstructionSelection implements NeighbourSelection<Request
      */
     @Override
     public void init(Solver<Request, Enrollment> solver) {
-        iCycle = 0;
+        iCycle = 1;
         iImproved = false;
         iSkip = !solver.currentSolution().getModel().assignedVariables().isEmpty();
         if (iSkip) {
@@ -91,7 +93,7 @@ public class PriorityConstructionSelection implements NeighbourSelection<Request
         } else {
             iStudents = iOrder.order(((StudentSectioningModel) solver.currentSolution().getModel()).getStudents());
             iStudentsEnumeration = iStudents.iterator();
-            iBranchBoundSelection.init(solver, "Construction[1]...");
+            iBranchBoundSelection.init(solver, "Construction[" + iCycle + "]...");
         }
     }
     
@@ -102,6 +104,7 @@ public class PriorityConstructionSelection implements NeighbourSelection<Request
         while (iStudentsEnumeration.hasNext()) {
             Student student = iStudentsEnumeration.next();
             Progress.getInstance(solution.getModel()).incProgress();
+            /*
             if (student.nrRequests() < iCycle) {
                 // not enough requests -> nothing to improve -> skip
                 continue;
@@ -110,6 +113,7 @@ public class PriorityConstructionSelection implements NeighbourSelection<Request
                 // previous step cycle already did not improve the assignment -> skip
                 continue;
             }
+            */
             Neighbour<Request, Enrollment> neighbour = iBranchBoundSelection.getSelection(student).select();
             if (neighbour != null)
                 return neighbour;
@@ -120,9 +124,15 @@ public class PriorityConstructionSelection implements NeighbourSelection<Request
     /** Increment cycle */
     protected void nextCycle(Solution<Request, Enrollment> solution) {
         iCycle ++; iImproved = false;
-        sLog.debug("Assigning up to " + (iCycle + 1) + " requests...");
+        sLog.debug("Assigning up to " + iCycle + " requests...");
+        
+        StudentSectioningModel m = (StudentSectioningModel)solution.getModel();
+        double tv = m.getTotalValue(true);
+        sLog.debug("**CURR** " + solution.getModel().toString() + ", TM:" + sDF.format(solution.getTime() / 3600.0) + "h, " + 
+                "TV:" + sDF.format(-tv) + " (" + sDF.format(-100.0 * tv / m.getStudents().size()) + "%)");
+        
         iStudentsEnumeration = iStudents.iterator();
-        Progress.getInstance(solution.getModel()).setPhase("Construction[" + (iCycle + 1) + "]...", iStudents.size());
+        Progress.getInstance(solution.getModel()).setPhase("Construction[" + iCycle + "]...", iStudents.size());
     }
 
     /**
@@ -135,7 +145,7 @@ public class PriorityConstructionSelection implements NeighbourSelection<Request
             return iBranchBoundSelection.selectNeighbour(solution);
         Neighbour<Request, Enrollment> n = branchAndBound(solution);
         if (n == null) {
-            if (!iImproved) return null;
+            if (iCycle == iMaxCycles || !iImproved) return null;
             nextCycle(solution);
             n = branchAndBound(solution);
         }
@@ -160,9 +170,13 @@ public class PriorityConstructionSelection implements NeighbourSelection<Request
          */
         @Override
         public void assign(long iteration) {
+            if (iCycle >= iMaxCycles) {
+                iNeighbour.assign(iteration);
+                return;
+            }
             for (Request r: iNeighbour.getStudent().getRequests())
                 if (r.getAssignment() != null) r.unassign(iteration);
-            int n = iCycle + 1;
+            int n = iCycle;
             for (int i = 0; i < iNeighbour.getAssignment().length; i++) {
                 if (iNeighbour.getAssignment()[i] != null) {
                     iNeighbour.getAssignment()[i].variable().assign(iteration, iNeighbour.getAssignment()[i]);
@@ -181,7 +195,7 @@ public class PriorityConstructionSelection implements NeighbourSelection<Request
         
         @Override
         public String toString() {
-            int n = iCycle + 1;
+            int n = iCycle;
             StringBuffer sb = new StringBuffer("B&B[" + n + "]{ " + 
                     iNeighbour.getStudent() + " " + sDF.format(-value() * 100.0) + "%");
             int idx = 0;
