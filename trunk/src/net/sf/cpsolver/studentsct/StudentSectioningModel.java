@@ -272,7 +272,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
                 iNrCompleteDummyStudents--;
         }
         Double value = (Double)enrollment.getExtra();
-        iTotalValue -= enrollment.getRequest().getWeight() * value;
+        iTotalValue -= enrollment.getRequest().getWeight() * (value == null ? enrollment.toDouble() : value.doubleValue());
         if (student.isDummy()) {
             iNrAssignedDummyRequests--;
         }
