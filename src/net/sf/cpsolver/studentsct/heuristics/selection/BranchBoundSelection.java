@@ -532,6 +532,10 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                 values = iValues.get(courseRequest);
                 if (values == null) {
                     values = courseRequest.getAvaiableEnrollments();
+                    if (courseRequest.getAssignment() != null) {
+                        values.remove(courseRequest.getAssignment());
+                        values.add(0, courseRequest.getAssignment());
+                    }
                     iValues.put(courseRequest, values);
                 }
             } else {
