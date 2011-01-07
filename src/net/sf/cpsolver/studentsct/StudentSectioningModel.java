@@ -576,9 +576,25 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         info.put("Unassigned request weight", sDoubleFormat.format(getUnassignedRequestWeight()) + " / "
                 + sDoubleFormat.format(getTotalRequestWeight()));
         info.put("Total value [p]", sDoubleFormat.format(getTotalValue(true)));
+        int totalCR = 0, assignedCR = 0;
+        for (Request r: variables())
+            if (r instanceof CourseRequest) {
+                totalCR ++;
+                if (r.getAssignment() != null) assignedCR ++;
+            }
+        info.put("Assigned course requests", assignedCR + " / " + totalCR);
         return info;
     }
     
+    @Override
+    public void restoreBest() {
+        for (Request r: variables())
+            if (r.getAssignment() != null) r.unassign(0);
+        for (Student s: getStudents())
+            for (Request r: s.getRequests())
+                if (r.getBestAssignment() != null) r.assign(0, r.getBestAssignment());
+    }
+        
     @Override
     public String toString() {
         return   (getNrRealStudents(false) > 0 ? "RRq:" + getNrAssignedRealRequests(false) + "/" + getNrRealRequests(false) + ", " : "")
