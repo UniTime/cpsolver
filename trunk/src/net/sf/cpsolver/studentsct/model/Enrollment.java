@@ -66,6 +66,12 @@ public class Enrollment extends Value<Request, Enrollment> {
         iAssignments = assignments;
         iPriority = priority;
     }
+    
+    /** Use the other constructor instead */
+    @Deprecated
+    public Enrollment(Request request, double priority, Config config, Set<? extends Assignment> assignments) {
+        this(request, (int)priority, config, assignments);
+    }
 
     /** Student */
     public Student getStudent() {
@@ -203,23 +209,7 @@ public class Enrollment extends Value<Request, Enrollment> {
     /** Enrollment value */
     @Override
     public double toDouble() {
-        return ((StudentSectioningModel)variable().getModel()).getWeight(this, nrDistanceConflicts(), nrTimeOverlappingConflicts());
-    }
-
-    /** Enrollment value */
-    public double toDouble(int nrDistanceConflicts, int nrTimeOverlappingConflicts) {
-        return ((StudentSectioningModel)variable().getModel()).getWeight(this, nrDistanceConflicts, nrTimeOverlappingConflicts);
-        /*
-        if (iCachedDoubleValue == null) {
-            iCachedDoubleValue = new Double(-iValue * Math.pow(sPriorityWeight, getRequest().getPriority())
-                    * (getRequest().isAlternative() ? sAlterativeWeight : 1.0)
-                    * Math.pow(sInitialWeight, percentInitial()) * Math.pow(sSelectedWeight, percentSelected())
-                    * Math.pow(sWaitlistedWeight, percentWaitlisted()) *
-                    // Math.max(sMinWeight,getRequest().getWeight()) *
-                    (getStudent().isDummy() ? Student.sDummyStudentWeight : 1.0) * normalizePenalty(getPenalty()));
-        }
-        return iCachedDoubleValue.doubleValue() * Math.pow(sDistConfWeight, nrDistanceConflicts);
-        */
+        return ((StudentSectioningModel)variable().getModel()).getWeight(this, distanceConflicts(), timeOverlappingConflicts());
     }
 
     /** Enrollment name */
@@ -282,28 +272,27 @@ public class Enrollment extends Value<Request, Enrollment> {
         return true;
     }
 
-    /** Number of distance conflicts, in which this enrollment is involved. */
-    public int nrDistanceConflicts() {
+    /** Distance conflicts, in which this enrollment is involved. */
+    public Set<DistanceConflict.Conflict> distanceConflicts() {
         if (!isCourseRequest())
-            return 0;
+            return null;
         if (getRequest().getModel() instanceof StudentSectioningModel) {
             DistanceConflict dc = ((StudentSectioningModel) getRequest().getModel()).getDistanceConflict();
-            if (dc == null)
-                return 0;
-            return dc.nrAllConflicts(this);
+            if (dc == null) return null;
+            return dc.allConflicts(this);
         } else
-            return 0;
+            return null;
     }
-    
-    /** Number of time overlapping conflicts, in which this enrollment is involved. */
-    public int nrTimeOverlappingConflicts() {
+
+    /** Time overlapping conflicts, in which this enrollment is involved. */
+    public Set<TimeOverlapsCounter.Conflict> timeOverlappingConflicts() {
         if (getRequest().getModel() instanceof StudentSectioningModel) {
             TimeOverlapsCounter toc = ((StudentSectioningModel) getRequest().getModel()).getTimeOverlaps();
             if (toc == null)
-                return 0;
-            return toc.nrAllConflicts(this);
+                return null;
+            return toc.allConflicts(this);
         } else
-            return 0;
+            return null;
     }
 
     /** 

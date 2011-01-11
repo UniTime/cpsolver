@@ -248,7 +248,7 @@ public class OnlineSelection extends BranchBoundSelection {
         /** Assignment penalty */
         @Override
         protected double getAssignmentPenalty(int i) {
-            return iPenalties.getPenalty(iAssignment[i]) + iDistConfWeight * getNrDistanceConflicts(i);
+            return iPenalties.getPenalty(iAssignment[i]) + iDistConfWeight * getDistanceConflicts(i).size();
         }
 
         public boolean isAllowed(int idx, Enrollment enrollment) {
