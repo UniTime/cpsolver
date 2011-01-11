@@ -1,5 +1,9 @@
 package net.sf.cpsolver.studentsct.weights;
 
+import java.util.Set;
+
+import net.sf.cpsolver.studentsct.extension.DistanceConflict;
+import net.sf.cpsolver.studentsct.extension.TimeOverlapsCounter;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
 
@@ -35,11 +39,28 @@ public interface StudentWeights {
     public double getBound(Request request);
     
     /**
-     * Return weight of the given enrollment 
+     * Return base weight of the given enrollment 
      * @param enrollment given enrollment
-     * @param nrDistanceConflicts number of distance conflicts
-     * @param timeOverlappingConflicts number of time overlapping conflicts
      * @return weight (higher weight means better value)
      */
-    public double getWeight(Enrollment enrollment, int nrDistanceConflicts, int timeOverlappingConflicts);
+    public double getWeight(Enrollment enrollment);
+    
+    /**
+     * Return weight of the given enrollment 
+     * @param enrollment given enrollment
+     * @param distanceConflicts distance conflicts
+     * @param timeOverlappingConflicts time overlapping conflicts
+     * @return weight (higher weight means better value)
+     */
+    public double getWeight(Enrollment enrollment, Set<DistanceConflict.Conflict> distanceConflicts, Set<TimeOverlapsCounter.Conflict> timeOverlappingConflicts);
+    
+    /**
+     * Return weight of a distance conflict
+     */
+    public double getDistanceConflictWeight(DistanceConflict.Conflict distanceConflict);
+    
+    /**
+     * Return weight of a time overlapping conflict
+     */
+    public double getTimeOverlapConflictWeight(Enrollment enrollment, TimeOverlapsCounter.Conflict timeOverlap);
 }

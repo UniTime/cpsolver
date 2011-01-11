@@ -1,6 +1,5 @@
 package net.sf.cpsolver.studentsct.extension;
 
-import java.text.DecimalFormat;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -56,8 +55,6 @@ import net.sf.cpsolver.studentsct.model.Student;
 
 public class DistanceConflict extends Extension<Request, Enrollment> implements ModelListener<Request, Enrollment> {
     private static Logger sLog = Logger.getLogger(DistanceConflict.class);
-    private static DecimalFormat sDF = new DecimalFormat("0.000");
-    private int iTotalNrConflicts = 0;
     private Set<Conflict> iAllConflicts = new HashSet<Conflict>();
     /** Debug flag */
     public static boolean sDebug = false;
@@ -87,7 +84,10 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
      */
     @Override
     public boolean init(Solver<Request, Enrollment> solver) {
-        iTotalNrConflicts = countTotalNrConflicts();
+        StudentSectioningModel m = (StudentSectioningModel)solver.currentSolution().getModel();
+        iAllConflicts = computeAllConflicts();
+        for (Conflict c: iAllConflicts)
+            m.add(c);
         return true;
     }
 
@@ -189,7 +189,7 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
         for (Section s1 : e1.getSections()) {
             for (Section s2 : e1.getSections()) {
                 if (s1.getId() < s2.getId() && inConflict(s1, s2))
-                    ret.add(new Conflict(e1.getStudent(), s1, s2));
+                    ret.add(new Conflict(e1.getStudent(), e1, s1, e1, s2));
             }
         }
         return ret;
@@ -213,7 +213,7 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
         for (Section s1 : e1.getSections()) {
             for (Section s2 : e2.getSections()) {
                 if (inConflict(s1, s2))
-                    ret.add(new Conflict(e1.getStudent(), s1, s2));
+                    ret.add(new Conflict(e1.getStudent(), e1, s1, e2, s2));
             }
         }
         return ret;
@@ -258,30 +258,17 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
      * {@link DistanceConflict#getTotalNrConflicts()}.
      */
     public void assigned(long iteration, Enrollment value) {
-        int inc = nrAllConflicts(value);
-        iTotalNrConflicts += inc;
+        StudentSectioningModel m = (StudentSectioningModel)value.variable().getModel();
+        for (Conflict c: allConflicts(value)) {
+            if (iAllConflicts.add(c))
+                m.add(c);
+        }
         if (sDebug) {
-            sLog.debug("A:" + value);
-            Set<Conflict> allConfs = computeAllConflicts();
-            if (Math.abs(iTotalNrConflicts - allConfs.size()) > 0.0001) {
-                sLog.error("Different number of conflicts " + iTotalNrConflicts + "!=" + allConfs.size());
-                for (Iterator<Conflict> i = allConfs.iterator(); i.hasNext();) {
-                    Conflict c = i.next();
-                    if (!iAllConflicts.contains(c))
-                        sLog.debug("  +add+ " + c);
-                }
-                for (Iterator<Conflict> i = iAllConflicts.iterator(); i.hasNext();) {
-                    Conflict c = i.next();
-                    if (!allConfs.contains(c))
-                        sLog.debug("  -rem- " + c);
-                }
-                iTotalNrConflicts = allConfs.size();
-            }
-            iAllConflicts = allConfs;
+            sLog.debug("A:" + value.variable() + " := " + value);
+            int inc = nrConflicts(value);
             if (inc != 0) {
-                sLog.debug("-- DC+" + sDF.format(inc) + " A: " + value);
-                Set<Conflict> confs = allConflicts(value);
-                for (Iterator<Conflict> i = confs.iterator(); i.hasNext();)
+                sLog.debug("-- DC+" + inc + " A: " + value.variable() + " := " + value);
+                for (Iterator<Conflict> i = allConflicts(value).iterator(); i.hasNext();)
                     sLog.debug("  -- " + i.next());
             }
         }
@@ -295,12 +282,16 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
     public void unassigned(long iteration, Enrollment value) {
         if (value.variable().equals(iOldVariable))
             return;
-        int dec = nrAllConflicts(value);
-        iTotalNrConflicts -= dec;
+        StudentSectioningModel m = (StudentSectioningModel)value.variable().getModel();
+        for (Conflict c: allConflicts(value)) {
+            if (iAllConflicts.remove(c))
+                m.remove(c);
+        }
         if (sDebug) {
-            sLog.debug("U:" + value);
+            sLog.debug("U:" + value.variable() + " := " + value);
+            int dec = nrAllConflicts(value);
             if (dec != 0) {
-                sLog.debug("-- DC-" + sDF.format(dec) + " U: " + value);
+                sLog.debug("-- DC+" + dec + " U: " + value.variable() + " := " + value);
                 Set<Conflict> confs = allConflicts(value);
                 for (Iterator<Conflict> i = confs.iterator(); i.hasNext();)
                     sLog.debug("  -- " + i.next());
@@ -308,9 +299,27 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
         }
     }
 
+    /** Checks the counter counting all conflicts */
+    public void checkAllConflicts() {
+        Set<Conflict> allConfs = computeAllConflicts();
+        if (iAllConflicts.size() != allConfs.size()) {
+            sLog.error("Different number of conflicts " + iAllConflicts.size() + "!=" + allConfs.size());
+            for (Iterator<Conflict> i = allConfs.iterator(); i.hasNext();) {
+                Conflict c = i.next();
+                if (!iAllConflicts.contains(c))
+                    sLog.debug("  +add+ " + c);
+            }
+            for (Iterator<Conflict> i = iAllConflicts.iterator(); i.hasNext();) {
+                Conflict c = i.next();
+                if (!allConfs.contains(c))
+                    sLog.debug("  -rem- " + c);
+            }
+            iAllConflicts = allConfs;
+        }
+    }
     /** Actual number of all distance conflicts */
     public int getTotalNrConflicts() {
-        return iTotalNrConflicts;
+        return iAllConflicts.size();
     }
 
     /**
@@ -349,6 +358,13 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
         }
         return ret;
     }
+    
+    /**
+     * Return a set of all distance conflicts ({@link Conflict} objects).
+     */
+    public Set<Conflict> getAllConflicts() {
+        return iAllConflicts;
+    }
 
     /**
      * Called before a value is assigned to a variable.
@@ -385,9 +401,10 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
     }
 
     /** A representation of a distance conflict */
-    public class Conflict {
+    public static class Conflict {
         private Student iStudent;
         private Section iS1, iS2;
+        private Enrollment iE1, iE2;
         private int iHashCode;
 
         /**
@@ -400,14 +417,18 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
          * @param s2
          *            second conflicting section
          */
-        public Conflict(Student student, Section s1, Section s2) {
+        public Conflict(Student student, Enrollment e1, Section s1, Enrollment e2, Section s2) {
             iStudent = student;
             if (s1.getId() < s2.getId()) {
                 iS1 = s1;
                 iS2 = s2;
+                iE1 = e1;
+                iE2 = e2;
             } else {
                 iS1 = s2;
                 iS2 = s1;
+                iE1 = e2;
+                iE2 = e1;
             }
             iHashCode = (iStudent.getId() + ":" + iS1.getId() + ":" + iS2.getId()).hashCode();
         }
@@ -426,6 +447,26 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
         public Section getS2() {
             return iS2;
         }
+        
+        /** First request */
+        public Request getR1() {
+            return iE1.getRequest();
+        }
+        
+        /** Second request */
+        public Request getR2() {
+            return iE2.getRequest();
+        }
+        
+        /** First enrollment */
+        public Enrollment getE1() {
+            return iE1;
+        }
+
+        /** Second enrollment */
+        public Enrollment getE2() {
+            return iE2;
+        }
 
         @Override
         public int hashCode() {
@@ -433,23 +474,20 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
         }
 
         /** The distance between conflicting sections */
-        public double getDistance() {
-            return Placement.getDistanceInMeters(iDistanceMetric, getS1().getPlacement(), getS2().getPlacement());
+        public double getDistance(DistanceMetric dm) {
+            return Placement.getDistanceInMeters(dm, getS1().getPlacement(), getS2().getPlacement());
         }
 
         @Override
         public boolean equals(Object o) {
-            if (o == null || !(o instanceof Conflict))
-                return false;
+            if (o == null || !(o instanceof Conflict)) return false;
             Conflict c = (Conflict) o;
-            return getStudent().getId() == c.getStudent().getId() && getS1().getId() == c.getS1().getId()
-                    && getS2().getId() == c.getS2().getId();
+            return getStudent().equals(c.getStudent()) && getS1().equals(c.getS1()) && getS2().equals(c.getS2());
         }
 
         @Override
         public String toString() {
-            return getStudent() + ": (d:" + sDF.format(10.0 * getDistance()) + "m) "
-                    + getS1() + " -- " + getS2();
+            return getStudent() + ": " + getS1() + " -- " + getS2();
         }
     }
 }

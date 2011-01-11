@@ -1266,6 +1266,8 @@ public class Test {
             StudentSectioningModel m = (StudentSectioningModel) solution.getModel();
             if (m.getTimeOverlaps() != null && TimeOverlapsCounter.sDebug)
                 m.getTimeOverlaps().checkTotalNrConflicts();
+            if (m.getDistanceConflict() != null && DistanceConflict.sDebug)
+                m.getDistanceConflict().checkAllConflicts();
         }
 
         public void getInfo(Solution<Request, Enrollment> solution, Map<String, String> info) {

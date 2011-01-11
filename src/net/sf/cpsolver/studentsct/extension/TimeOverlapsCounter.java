@@ -76,6 +76,9 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
         iTotalNrConflicts = countTotalNrConflicts();
         if (sDebug)
             iAllConflicts = computeAllConflicts();
+        StudentSectioningModel m = (StudentSectioningModel)solver.currentSolution().getModel();
+        for (Conflict c: computeAllConflicts())
+            m.add(c);
         return true;
     }
 
@@ -155,7 +158,7 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
         for (Assignment s1 : e1.getAssignments()) {
             for (Assignment s2 : e2.getAssignments()) {
                 if (inConflict(s1, s2))
-                    ret.add(new Conflict(e1.getStudent(), s1, s2));
+                    ret.add(new Conflict(e1.getStudent(), share(s1, s2), e1, s1, e2, s2));
             }
         }
         return ret;
@@ -206,10 +209,14 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
      * {@link TimeOverlapsCounter#getTotalNrConflicts()}.
      */
     public void assigned(long iteration, Enrollment value) {
-        int inc = nrAllConflicts(value);
-        iTotalNrConflicts += inc;
+        StudentSectioningModel m = (StudentSectioningModel)value.variable().getModel();
+        for (Conflict c: allConflicts(value)) {
+            iTotalNrConflicts += c.getShare();
+            m.add(c);
+        }
         if (sDebug) {
             sLog.debug("A:" + value.variable() + " := " + value);
+            int inc = nrAllConflicts(value);
             if (inc != 0) {
                 sLog.debug("-- TOC+" + inc + " A: " + value.variable() + " := " + value);
                 for (Conflict c: allConflicts(value)) {
@@ -230,10 +237,14 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
      * {@link TimeOverlapsCounter#getTotalNrConflicts()}.
      */
     public void unassigned(long iteration, Enrollment value) {
-        int dec = nrAllConflicts(value);
-        iTotalNrConflicts -= dec;
+        StudentSectioningModel m = (StudentSectioningModel)value.variable().getModel();
+        for (Conflict c: allConflicts(value)) {
+            iTotalNrConflicts -= c.getShare();
+            m.remove(c);
+        }
         if (sDebug) {
             sLog.debug("U:" + value.variable() + " := " + value);
+            int dec = nrAllConflicts(value);
             if (dec != 0) {
                 sLog.debug("-- TOC-" + dec + " U: " + value.variable() + " := " + value);
                 for (Conflict c: allConflicts(value)) {
@@ -359,10 +370,11 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
     }
 
     /** A representation of a time overlapping conflict */
-    public class Conflict {
+    public static class Conflict {
         private int iShare;
         private Student iStudent;
         private Assignment iA1, iA2;
+        private Enrollment iE1, iE2;
         private int iHashCode;
 
         /**
@@ -375,17 +387,21 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
          * @param a2
          *            second conflicting section
          */
-        public Conflict(Student student, Assignment a1, Assignment a2) {
+        public Conflict(Student student, int share, Enrollment e1, Assignment a1, Enrollment e2, Assignment a2) {
             iStudent = student;
             if (a1.compareById(a2) < 0 ) {
                 iA1 = a1;
                 iA2 = a2;
+                iE1 = e1;
+                iE2 = e2;
             } else {
                 iA1 = a2;
                 iA2 = a1;
+                iE1 = e2;
+                iE2 = e1;
             }
             iHashCode = (iStudent.getId() + ":" + iA1.getId() + ":" + iA2.getId()).hashCode();
-            iShare = share(getS1(), getS2());
+            iShare = share;
         }
 
         /** Related student */
@@ -403,6 +419,26 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
             return iA2;
         }
 
+        /** First request */
+        public Request getR1() {
+            return iE1.getRequest();
+        }
+        
+        /** Second request */
+        public Request getR2() {
+            return iE2.getRequest();
+        }
+        
+        /** First enrollment */
+        public Enrollment getE1() {
+            return iE1;
+        }
+
+        /** Second enrollment */
+        public Enrollment getE2() {
+            return iE2;
+        }
+        
         @Override
         public int hashCode() {
             return iHashCode;
