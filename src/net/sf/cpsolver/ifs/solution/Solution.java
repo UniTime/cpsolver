@@ -117,7 +117,7 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
         Map<String, String> ret = getModel().getInfo();
         if (getPerturbationsCounter() != null)
             getPerturbationsCounter().getInfo(ret, getModel());
-        ret.put("Time", sTimeFormat.format(getTime()) + " sec");
+        ret.put("Time", sTimeFormat.format(getTime() / 60.0) + " min");
         ret.put("Iteration", String.valueOf(getIteration()));
         if (getTime() > 0)
             ret.put("Speed", sTimeFormat.format((getIteration()) / getTime()) + " it/s");
@@ -136,7 +136,7 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
         Map<String, String> ret = getModel().getExtendedInfo();
         if (getPerturbationsCounter() != null)
             getPerturbationsCounter().getInfo(ret, getModel());
-        ret.put("Time", sTimeFormat.format(getTime()) + " sec");
+        ret.put("Time", sTimeFormat.format(getTime() / 60.0) + " min");
         ret.put("Iteration", String.valueOf(getIteration()));
         if (getTime() > 0)
             ret.put("Speed", sTimeFormat.format((getIteration()) / getTime()) + " it/s");
