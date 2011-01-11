@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import net.sf.cpsolver.ifs.util.CSVFile;
+import net.sf.cpsolver.ifs.util.DistanceMetric;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict.Conflict;
@@ -71,6 +72,7 @@ public class DistanceConflictTable {
 
     private StudentSectioningModel iModel = null;
     private DistanceConflict iDC = null;
+    private DistanceMetric iDM = null;
 
     /**
      * Constructor
@@ -83,6 +85,7 @@ public class DistanceConflictTable {
         iDC = model.getDistanceConflict();
         if (iDC == null)
             iDC = new DistanceConflict(null, model.getProperties());
+        iDM = new DistanceMetric(model.getProperties());
     }
 
     /** Return student sectioning model */
@@ -172,7 +175,7 @@ public class DistanceConflictTable {
             }
             Object[] secondCourseTable = firstCourseTable.get(c2);
             double nrStud = (secondCourseTable == null ? 0.0 : ((Double) secondCourseTable[0]).doubleValue()) + 1.0;
-            double dist = (secondCourseTable == null ? 0.0 : ((Double) secondCourseTable[1]).doubleValue()) + (conflict.getDistance());
+            double dist = (secondCourseTable == null ? 0.0 : ((Double) secondCourseTable[1]).doubleValue()) + (conflict.getDistance(iDM));
             boolean hard = (secondCourseTable == null ? areInHardConfict(r1, r2) : ((Boolean) secondCourseTable[2]).booleanValue());
             HashSet<String> expl = (HashSet<String>) (secondCourseTable == null ? null : secondCourseTable[3]);
             if (expl == null)

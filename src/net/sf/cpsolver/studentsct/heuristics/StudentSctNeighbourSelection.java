@@ -1,11 +1,10 @@
 package net.sf.cpsolver.studentsct.heuristics;
 
-import java.text.DecimalFormat;
-
 import net.sf.cpsolver.ifs.heuristics.RoundRobinNeighbourSelection;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.heuristics.selection.BacktrackSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.PriorityConstructionSelection;
@@ -76,7 +75,6 @@ import net.sf.cpsolver.studentsct.model.Request;
 
 public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<Request, Enrollment> {
     private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(StudentSctNeighbourSelection.class);
-    private static DecimalFormat sDF = new DecimalFormat("0.000");
     private boolean iUseConstruction = false;
 
     public StudentSctNeighbourSelection(DataProperties properties) throws Exception {
@@ -143,7 +141,7 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
     @Override
     public void changeSelection(Solution<Request, Enrollment> solution) {
         super.changeSelection(solution);
-        sLog.debug("**CURR** " + solution.getModel() + ", TM:" + sDF.format(solution.getTime() / 3600.0) + "h");
+        sLog.debug("Current solution: " + ToolBox.dict2string(solution.getExtendedInfo(), 2));
     }
 
 }

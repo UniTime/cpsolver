@@ -13,6 +13,8 @@ import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solution.SolutionComparator;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.ToolBox;
+import net.sf.cpsolver.studentsct.extension.DistanceConflict;
+import net.sf.cpsolver.studentsct.extension.TimeOverlapsCounter;
 import net.sf.cpsolver.studentsct.model.Assignment;
 import net.sf.cpsolver.studentsct.model.Config;
 import net.sf.cpsolver.studentsct.model.Course;
@@ -55,10 +57,12 @@ import net.sf.cpsolver.studentsct.model.Subpart;
  */
 
 public class PriorityStudentWeights implements StudentWeights, SolutionComparator<Request, Enrollment> {
-    private static double iPriorityFactor = 0.501;
-    private static double iFirstAlternativeFactor = 0.501;
-    private static double iSecondAlternativeFactor = 0.251;
-    private static double iDistanceConflict = 0.990;
+    private double iPriorityFactor = 0.5010;
+    private double iFirstAlternativeFactor = 0.5010;
+    private double iSecondAlternativeFactor = 0.2510;
+    private double iDistanceConflict = 0.01000;
+    private double iTimeOverlapFactor = 0.5000;
+    private double iTimeOverlapMaxLimit = 0.5000;
     
     public PriorityStudentWeights(DataProperties config) {
         iPriorityFactor = config.getPropertyDouble("StudentWeights.Priority", iPriorityFactor);
@@ -68,9 +72,9 @@ public class PriorityStudentWeights implements StudentWeights, SolutionComparato
     }
     
     public double getWeight(Request request) {
-        double total = 1000.0;
+        double total = 10000.0;
         int nrReq = request.getStudent().nrRequests();
-        double remain = Math.floor(1000.0 * Math.pow(iPriorityFactor, nrReq) / nrReq);
+        double remain = Math.floor(10000.0 * Math.pow(iPriorityFactor, nrReq) / nrReq);
         for (int idx = 0; idx < request.getStudent().getRequests().size(); idx++) {
             Request r = request.getStudent().getRequests().get(idx);
             boolean last = (idx + 1 == request.getStudent().getRequests().size());
@@ -83,7 +87,7 @@ public class PriorityStudentWeights implements StudentWeights, SolutionComparato
             }
             if (r.equals(request)) {
                 w *= Math.floor(request.getWeight());
-                return w / 1000.0;
+                return w / 10000.0;
             }
         }
         return 0.0;
@@ -103,25 +107,58 @@ public class PriorityStudentWeights implements StudentWeights, SolutionComparato
         return getWeight(request);
     }
     
-    public double getWeight(Enrollment enrollment, double requestWeight, int nrDistanceConflicts, int timeOverlappingConflicts) {
-        double w = Math.ceil(1000.0 * requestWeight);
-        switch (enrollment.getPriority()) {
-            case 1: w = Math.ceil(w * iFirstAlternativeFactor); break;
-            case 2: w = Math.ceil(w * iSecondAlternativeFactor); break;
-        }
-        if (nrDistanceConflicts > 0)
-            w = Math.floor(w * Math.pow(iDistanceConflict, nrDistanceConflicts));
-        if (timeOverlappingConflicts > 0) {
-            double share = ((double)timeOverlappingConflicts) / enrollment.getNrSlots();
-            w *= Math.max(1.0 - share / 2.0, 0.5);
-        }
-        return w / 1000.0;
+    private double round(double value) {
+        return Math.ceil(10000 * value) / 10000.0;
     }
     
     @Override
-    public double getWeight(Enrollment enrollment, int nrDistanceConflicts, int timeOverlappingConflicts) {
-        return getWeight(enrollment, getCachedWeight(enrollment.getRequest()), nrDistanceConflicts, timeOverlappingConflicts);
+    public double getWeight(Enrollment enrollment) {
+        double base = getCachedWeight(enrollment.getRequest());
+        switch (enrollment.getPriority()) {
+            case 1: base *= iFirstAlternativeFactor; break;
+            case 2: base *= iSecondAlternativeFactor; break;
+        }
+        return round(base);
     }
+    
+    @Override
+    public double getDistanceConflictWeight(DistanceConflict.Conflict c) {
+        if (c.getR1().getPriority() < c.getR2().getPriority()) {
+            return round(getWeight(c.getE2()) * iDistanceConflict);
+        } else {
+            return round(getWeight(c.getE1()) * iDistanceConflict);
+        }
+    }
+    
+    @Override
+    public double getTimeOverlapConflictWeight(Enrollment e, TimeOverlapsCounter.Conflict c) {
+        double toc = Math.min(iTimeOverlapMaxLimit * c.getShare() / e.getNrSlots(), iTimeOverlapMaxLimit);
+        return round(getWeight(e) * toc);
+    }
+    
+    public double getWeight(Enrollment enrollment, Set<DistanceConflict.Conflict> distanceConflicts, Set<TimeOverlapsCounter.Conflict> timeOverlappingConflicts) {
+        double base = getWeight(enrollment);
+        double dc = 0.0;
+        if (distanceConflicts != null) {
+            for (DistanceConflict.Conflict c: distanceConflicts) {
+                Enrollment other = (c.getE1().equals(enrollment) ? c.getE2() : c.getE1());
+                if (other.getRequest().getPriority() <= enrollment.getRequest().getPriority())
+                    dc += base * iDistanceConflict;
+                else
+                    dc += getWeight(other) * iDistanceConflict;
+            }
+        }
+        double toc = 0.0;
+        if (timeOverlappingConflicts != null) {
+            for (TimeOverlapsCounter.Conflict c: timeOverlappingConflicts) {
+                toc += base * Math.min(iTimeOverlapFactor * c.getShare() / enrollment.getNrSlots(), iTimeOverlapMaxLimit);
+                Enrollment other = (c.getE1().equals(enrollment) ? c.getE2() : c.getE1());
+                toc += getWeight(other) * Math.min(iTimeOverlapFactor * c.getShare() / other.getNrSlots(), iTimeOverlapMaxLimit);
+            }
+        }
+        return round(base - dc - toc);
+    }
+    
     
     @Override
     public boolean isBetterThanBestSolution(Solution<Request, Enrollment> currentSolution) {
@@ -133,7 +170,7 @@ public class PriorityStudentWeights implements StudentWeights, SolutionComparato
      */
     public static void main(String[] args) {
         PriorityStudentWeights pw = new PriorityStudentWeights(new DataProperties());
-        DecimalFormat df = new DecimalFormat("0.000");
+        DecimalFormat df = new DecimalFormat("0.0000");
         Student s = new Student(0l);
         new CourseRequest(1l, 0, false, s, ToolBox.toList(
                 new Course(1, "A", "1", new Offering(0, "A")),
@@ -173,7 +210,7 @@ public class PriorityStudentWeights implements StudentWeights, SolutionComparato
                 Set<Assignment> sections = new HashSet<Assignment>();
                 sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
                 Enrollment e = new Enrollment(cr, i, cfg, sections);
-                w[i] = pw.getWeight(e, 0, 0);
+                w[i] = pw.getWeight(e, null, null);
             }
             System.out.println(cr + ": " + df.format(w[0]) + "  " + df.format(w[1]) + "  " + df.format(w[2]));
         }
@@ -187,7 +224,9 @@ public class PriorityStudentWeights implements StudentWeights, SolutionComparato
                 Set<Assignment> sections = new HashSet<Assignment>();
                 sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
                 Enrollment e = new Enrollment(cr, i, cfg, sections);
-                w[i] = pw.getWeight(e, 1, 0);
+                Set<DistanceConflict.Conflict> dc = new HashSet<DistanceConflict.Conflict>();
+                dc.add(new DistanceConflict.Conflict(s, e, (Section)sections.iterator().next(), e, (Section)sections.iterator().next()));
+                w[i] = pw.getWeight(e, dc, null);
             }
             System.out.println(cr + ": " + df.format(w[0]) + "  " + df.format(w[1]) + "  " + df.format(w[2]));
         }
@@ -201,7 +240,11 @@ public class PriorityStudentWeights implements StudentWeights, SolutionComparato
                 Set<Assignment> sections = new HashSet<Assignment>();
                 sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
                 Enrollment e = new Enrollment(cr, i, cfg, sections);
-                w[i] = pw.getWeight(e, 2, 0);
+                Set<DistanceConflict.Conflict> dc = new HashSet<DistanceConflict.Conflict>();
+                dc.add(new DistanceConflict.Conflict(s, e, (Section)sections.iterator().next(), e, (Section)sections.iterator().next()));
+                dc.add(new DistanceConflict.Conflict(s, e, (Section)sections.iterator().next(), e,
+                        new Section(1, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null)));
+                w[i] = pw.getWeight(e, dc, null);
             }
             System.out.println(cr + ": " + df.format(w[0]) + "  " + df.format(w[1]) + "  " + df.format(w[2]));
         }
@@ -215,7 +258,9 @@ public class PriorityStudentWeights implements StudentWeights, SolutionComparato
                 Set<Assignment> sections = new HashSet<Assignment>();
                 sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
                 Enrollment e = new Enrollment(cr, i, cfg, sections);
-                w[i] = pw.getWeight(e, 0, 3);
+                Set<TimeOverlapsCounter.Conflict> toc = new HashSet<TimeOverlapsCounter.Conflict>();
+                toc.add(new TimeOverlapsCounter.Conflict(s, 3, e, sections.iterator().next(), e, sections.iterator().next()));
+                w[i] = pw.getWeight(e, null, toc);
             }
             System.out.println(cr + ": " + df.format(w[0]) + "  " + df.format(w[1]) + "  " + df.format(w[2]));
         }
