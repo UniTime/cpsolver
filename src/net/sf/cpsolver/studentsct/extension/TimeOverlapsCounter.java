@@ -184,6 +184,40 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
     }
 
     /**
+     * Total sum of all free time conflict of the given enrollment.
+     */
+    public int nrFreeTimeConflicts(Enrollment enrollment) {
+        if (enrollment.getRequest() instanceof FreeTimeRequest) return 0;
+        int cnt = 0;
+        for (Request request : enrollment.getStudent().getRequests()) {
+            if (request instanceof FreeTimeRequest) {
+                FreeTimeRequest ft = (FreeTimeRequest)request;
+                for (Assignment section: enrollment.getAssignments())
+                    cnt += share(section, ft);
+            }
+        }
+        return cnt;
+    }
+    
+    /**
+     * Return a set of free time conflict of the given enrollment.
+     */
+    public Set<Conflict> freeTimeConflicts(Enrollment enrollment) {
+        Set<Conflict> ret = new HashSet<Conflict>();
+        if (enrollment.getRequest() instanceof FreeTimeRequest) return ret;
+        for (Request request : enrollment.getStudent().getRequests()) {
+            if (request instanceof FreeTimeRequest) {
+                FreeTimeRequest ft = (FreeTimeRequest)request;
+                for (Assignment section: enrollment.getAssignments()) {
+                    if (inConflict(section, ft))
+                        ret.add(new Conflict(enrollment.getStudent(), share(section, ft), enrollment, section, ft.createEnrollment(), ft));
+                }
+            }
+        }
+        return ret;
+    }
+
+    /**
      * The set of all conflicts ({@link Conflict} objects) of the given
      * enrollment and other enrollments that are assigned to the same student.
      */
