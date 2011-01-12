@@ -114,6 +114,20 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
     public double getWeight(Enrollment enrollment, Set<DistanceConflict.Conflict> distanceConflicts, Set<TimeOverlapsCounter.Conflict> timeOverlappingConflicts) {
         return - iStudentWeights.getWeight(enrollment, distanceConflicts, timeOverlappingConflicts);
     }
+    
+    /**
+     * Return student weighting model
+     */
+    public StudentWeights getStudentWeights() {
+        return iStudentWeights;
+    }
+
+    /**
+     * Set student weighting model
+     */
+    public void setStudentWeights(StudentWeights weights) {
+        iStudentWeights = weights;
+    }
 
     /**
      * Return lower bound for the given request
