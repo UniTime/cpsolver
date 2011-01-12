@@ -246,8 +246,17 @@ public class Enrollment extends Value<Request, Enrollment> {
 
     @Override
     public String toString() {
+        if (getAssignments().isEmpty()) return "not assigned";
+        Set<DistanceConflict.Conflict> dc = distanceConflicts();
+        Set<TimeOverlapsCounter.Conflict> toc = timeOverlappingConflicts();
+        int share = 0;
+        if (toc != null)
+            for (TimeOverlapsCounter.Conflict c: toc)
+                share += c.getShare();
         String ret = sDF.format(toDouble()) + "/" + sDF.format(getRequest().getBound())
-                + (getPenalty() == 0.0 ? "" : "/" + sDF.format(getPenalty()));
+                + (getPenalty() == 0.0 ? "" : "/" + sDF.format(getPenalty()))
+                + (dc == null || dc.isEmpty() ? "" : "/dc:" + dc.size())
+                + (share <= 0 ? "" : "/toc:" + share);
         if (getRequest() instanceof CourseRequest) {
             ret += " ";
             for (Iterator<? extends Assignment> i = getAssignments().iterator(); i.hasNext();) {
