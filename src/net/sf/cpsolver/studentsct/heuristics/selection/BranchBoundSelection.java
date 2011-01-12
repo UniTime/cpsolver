@@ -1,6 +1,8 @@
 package net.sf.cpsolver.studentsct.heuristics.selection;
 
 import java.text.DecimalFormat;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -314,6 +316,24 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                     overlaps.addAll(iTimeOverlaps.conflicts(((FreeTimeRequest)iStudent.getRequests().get(x)).createEnrollment(), iAssignment[idx]));
             return overlaps;
         }
+        
+        /**
+         * Weight of an assignment. Unlike {@link StudentSectioningModel#getWeight(Enrollment, Set, Set)}, only count this side of distance conflicts and time overlaps.
+         **/
+        protected double getWeight(Enrollment enrollment, Set<DistanceConflict.Conflict> distanceConflicts, Set<TimeOverlapsCounter.Conflict> timeOverlappingConflicts) {
+            double weight = - iModel.getStudentWeights().getWeight(enrollment);
+            if (distanceConflicts != null)
+                for (DistanceConflict.Conflict c: distanceConflicts) {
+                    Enrollment other = (c.getE1().equals(enrollment) ? c.getE2() : c.getE1());
+                    if (other.getRequest().getPriority() <= enrollment.getRequest().getPriority())
+                        weight += iModel.getStudentWeights().getDistanceConflictWeight(c);
+                }
+            if (timeOverlappingConflicts != null)
+                for (TimeOverlapsCounter.Conflict c: timeOverlappingConflicts) {
+                    weight += iModel.getStudentWeights().getTimeOverlapConflictWeight(enrollment, c);
+                }
+            return weight;
+        }
 
         /** Bound for the current schedule */
         public double getBound(int idx) {
@@ -323,7 +343,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                 Request r = e.next();
                 if (i < idx) {
                     if (iAssignment[i] != null)
-                        bound += iModel.getWeight(iAssignment[i], getDistanceConflicts(i), getTimeOverlappingConflicts(i));
+                        bound += getWeight(iAssignment[i], getDistanceConflicts(i), getTimeOverlappingConflicts(i));
                     if (r.isAlternative()) {
                         if (iAssignment[i] != null || (r instanceof CourseRequest && ((CourseRequest) r).isWaitlist()))
                             alt--;
@@ -348,7 +368,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             double value = 0.0;
             for (int i = 0; i < iAssignment.length; i++)
                 if (iAssignment[i] != null)
-                    value += iModel.getWeight(iAssignment[i], getDistanceConflicts(i), getTimeOverlappingConflicts(i));
+                    value += getWeight(iAssignment[i], getDistanceConflicts(i), getTimeOverlappingConflicts(i));
             return value;
         }
 
@@ -462,6 +482,34 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         protected boolean canLeaveUnassigned(Request request) {
             return true;
         }
+        
+        /** Returns list of available enrollments for a course request */
+        protected List<Enrollment> values(final CourseRequest request) {
+            List<Enrollment> values = request.getAvaiableEnrollments();
+            Collections.sort(values, new Comparator<Enrollment>() {
+                
+                private HashMap<Enrollment, Double> iValues = new HashMap<Enrollment, Double>();
+                
+                private Double value(Enrollment e) {
+                    Double value = iValues.get(e);
+                    if (value == null) {
+                        value = iModel.getStudentWeights().getWeight(e,
+                                        iModel.getDistanceConflict().conflicts(e),
+                                        iModel.getTimeOverlaps().freeTimeConflicts(e));
+                        iValues.put(e, value);       
+                    }
+                    return value;
+                }
+                
+                public int compare(Enrollment e1, Enrollment e2) {
+                    if (e1.equals(request.getAssignment())) return -1;
+                    if (e2.equals(request.getAssignment())) return -1;
+                    return value(e2).compareTo(value(e1));
+                }
+                
+            });
+            return values;
+        }
 
         /** branch & bound search */
         public void backTrack(int idx) {
@@ -540,11 +588,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                 }
                 values = iValues.get(courseRequest);
                 if (values == null) {
-                    values = courseRequest.getAvaiableEnrollments();
-                    if (courseRequest.getAssignment() != null) {
-                        values.remove(courseRequest.getAssignment());
-                        values.add(0, courseRequest.getAssignment());
-                    }
+                    values = values(courseRequest);
                     iValues.put(courseRequest, values);
                 }
             } else {
