@@ -63,18 +63,22 @@ public class PriorityStudentWeights implements StudentWeights, SolutionComparato
     private double iDistanceConflict = 0.01000;
     private double iTimeOverlapFactor = 0.5000;
     private double iTimeOverlapMaxLimit = 0.5000;
+    private boolean iLeftoverSpread = false;
     
     public PriorityStudentWeights(DataProperties config) {
         iPriorityFactor = config.getPropertyDouble("StudentWeights.Priority", iPriorityFactor);
         iFirstAlternativeFactor = config.getPropertyDouble("StudentWeights.FirstAlternative", iFirstAlternativeFactor);
         iSecondAlternativeFactor = config.getPropertyDouble("StudentWeights.SecondAlternative", iSecondAlternativeFactor);
         iDistanceConflict = config.getPropertyDouble("StudentWeights.DistanceConflict", iDistanceConflict);
+        iTimeOverlapFactor = config.getPropertyDouble("StudentWeights.TimeOverlapFactor", iTimeOverlapFactor);
+        iTimeOverlapMaxLimit = config.getPropertyDouble("StudentWeights.TimeOverlapMaxLimit", iTimeOverlapMaxLimit);
+        iLeftoverSpread = config.getPropertyBoolean("StudentWeights.LeftoverSpread", iLeftoverSpread);
     }
-    
+        
     public double getWeight(Request request) {
         double total = 10000.0;
         int nrReq = request.getStudent().nrRequests();
-        double remain = Math.floor(10000.0 * Math.pow(iPriorityFactor, nrReq) / nrReq);
+        double remain = (iLeftoverSpread ? Math.floor(10000.0 * Math.pow(iPriorityFactor, nrReq) / nrReq) : 0.0);
         for (int idx = 0; idx < request.getStudent().getRequests().size(); idx++) {
             Request r = request.getStudent().getRequests().get(idx);
             boolean last = (idx + 1 == request.getStudent().getRequests().size());
@@ -108,7 +112,7 @@ public class PriorityStudentWeights implements StudentWeights, SolutionComparato
     }
     
     private double round(double value) {
-        return Math.ceil(10000 * value) / 10000.0;
+        return Math.ceil(10000.0 * value) / 10000.0;
     }
     
     @Override
