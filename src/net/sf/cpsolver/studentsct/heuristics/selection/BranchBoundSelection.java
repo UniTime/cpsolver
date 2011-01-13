@@ -334,6 +334,11 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                 }
             return weight;
         }
+        
+        /** Return bound of a request */
+        protected double getBound(Request r) {
+            return r.getBound();
+        }
 
         /** Bound for the current schedule */
         public double getBound(int idx) {
@@ -353,9 +358,9 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                     }
                 } else {
                     if (!r.isAlternative())
-                        bound += r.getBound();
+                        bound += getBound(r);
                     else if (alt > 0) {
-                        bound += r.getBound();
+                        bound += getBound(r);
                         alt--;
                     }
                 }
