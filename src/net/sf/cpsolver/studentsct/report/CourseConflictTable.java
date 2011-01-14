@@ -15,6 +15,8 @@ import java.util.TreeSet;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
+import net.sf.cpsolver.studentsct.constraint.ConfigLimit;
+import net.sf.cpsolver.studentsct.constraint.CourseLimit;
 import net.sf.cpsolver.studentsct.constraint.SectionLimit;
 import net.sf.cpsolver.studentsct.model.Course;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
@@ -126,6 +128,16 @@ public class CourseConflictTable {
             if (conflict.getAssignments().contains(s1)
                     && SectionLimit.getEnrollmentWeight(s1, enrl.getRequest()) > s1.getLimit()) {
                 expl.add(s1.getSubpart().getName() + " n/a");
+            }
+        }
+        if (enrl.getConfig() != null && enrl.getConfig().equals(conflict.getConfig())) {
+            if (ConfigLimit.getEnrollmentWeight(enrl.getConfig(), enrl.getRequest()) > enrl.getConfig().getLimit()) {
+                expl.add(enrl.getConfig().getName() + " n/a");
+            }
+        }
+        if (enrl.getCourse() != null && enrl.getCourse().equals(conflict.getCourse())) {
+            if (CourseLimit.getEnrollmentWeight(enrl.getCourse(), enrl.getRequest()) > enrl.getCourse().getLimit()) {
+                expl.add(enrl.getCourse().getName() + " n/a");
             }
         }
         return expl;

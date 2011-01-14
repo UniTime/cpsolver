@@ -204,6 +204,6 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
 
     @Override
     public String toString() {
-        return "SectioningLimit";
+        return "SectionLimit";
     }
 }
