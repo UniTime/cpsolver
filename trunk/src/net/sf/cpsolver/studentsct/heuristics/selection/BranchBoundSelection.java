@@ -499,8 +499,8 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                     Double value = iValues.get(e);
                     if (value == null) {
                         value = iModel.getStudentWeights().getWeight(e,
-                                        iModel.getDistanceConflict().conflicts(e),
-                                        iModel.getTimeOverlaps().freeTimeConflicts(e));
+                                        (iModel.getDistanceConflict() == null ? null : iModel.getDistanceConflict().conflicts(e)),
+                                        (iModel.getTimeOverlaps() == null ? null : iModel.getTimeOverlaps().freeTimeConflicts(e)));
                         iValues.put(e, value);       
                     }
                     return value;
