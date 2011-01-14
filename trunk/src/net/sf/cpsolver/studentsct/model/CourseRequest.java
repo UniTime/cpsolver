@@ -12,6 +12,8 @@ import java.util.TreeSet;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
+import net.sf.cpsolver.studentsct.constraint.ConfigLimit;
+import net.sf.cpsolver.studentsct.constraint.CourseLimit;
 import net.sf.cpsolver.studentsct.constraint.SectionLimit;
 
 /**
@@ -91,8 +93,14 @@ public class CourseRequest extends Request {
         if (sections == null || sections.isEmpty())
             return null;
         Config config = ((Section) sections.iterator().next()).getSubpart().getConfig();
-        return new Enrollment(this,
-                iCourses.indexOf(config.getOffering().getCourse(getStudent())), config, sections);
+        Course course = null;
+        for (Course c: iCourses) {
+            if (c.getOffering().getConfigs().contains(config)) {
+                course = c;
+                break;
+            }
+        }
+        return new Enrollment(this, iCourses.indexOf(course), course, config, sections);
     }
 
     /**
@@ -104,7 +112,7 @@ public class CourseRequest extends Request {
         int idx = 0;
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
-                computeEnrollments(ret, idx, 0, config, new HashSet<Section>(), 0, false, false,
+                computeEnrollments(ret, idx, 0, course, config, new HashSet<Section>(), 0, false, false,
                         false, false, -1);
             }
             idx++;
@@ -121,7 +129,7 @@ public class CourseRequest extends Request {
         int idx = 0;
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
-                computeEnrollments(ret, idx, 0, config, new HashSet<Section>(), 0, false, false,
+                computeEnrollments(ret, idx, 0, course, config, new HashSet<Section>(), 0, false, false,
                         false, true, (limitEachConfig <= 0 ? limitEachConfig : ret.size() + limitEachConfig));
             }
             idx++;
@@ -160,8 +168,10 @@ public class CourseRequest extends Request {
      *            zero for the course, one for the first alternative, two for the second alternative
      * @param penalty
      *            penalty of the selected sections
+     * @param course
+     *            selected course
      * @param config
-     *            selected configurations
+     *            selected configuration
      * @param sections
      *            sections selected so far
      * @param idx
@@ -180,10 +190,14 @@ public class CourseRequest extends Request {
      *            when above zero, limit the number of selected enrollments to
      *            this limit
      */
-    private void computeEnrollments(Collection<Enrollment> enrollments, int priority, double penalty, Config config,
+    private void computeEnrollments(Collection<Enrollment> enrollments, int priority, double penalty, Course course, Config config,
             HashSet<Section> sections, int idx, boolean avaiableOnly, boolean skipSameTime, boolean selectedOnly,
             boolean random, int limit) {
         if (limit > 0 && enrollments.size() >= limit)
+            return;
+        if (avaiableOnly && config.getLimit() >= 0 && ConfigLimit.getEnrollmentWeight(config, this) > config.getLimit())
+            return;
+        if (avaiableOnly && course.getLimit() >= 0 && CourseLimit.getEnrollmentWeight(course, this) > course.getLimit())
             return;
         if (config.getSubparts().size() == idx) {
             if (skipSameTime && sSameTimePrecise) {
@@ -230,7 +244,7 @@ public class CourseRequest extends Request {
                         && !isSelected(section) && !isWaitlisted(section))
                     continue;
                 sections.add(section);
-                computeEnrollments(enrollments, priority, penalty + section.getPenalty(), config, sections, idx + 1,
+                computeEnrollments(enrollments, priority, penalty + section.getPenalty(), course, config, sections, idx + 1,
                         avaiableOnly, skipSameTime, selectedOnly, random, limit);
                 sections.remove(section);
             }
@@ -243,7 +257,7 @@ public class CourseRequest extends Request {
         int idx = 0;
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
-                computeEnrollments(ret, idx, 0, config, new HashSet<Section>(), 0, true, false, false, false, -1);
+                computeEnrollments(ret, idx, 0, course, config, new HashSet<Section>(), 0, true, false, false, false, -1);
             }
             idx++;
         }
@@ -266,7 +280,7 @@ public class CourseRequest extends Request {
             if (!course.getOffering().equals(firstChoice.getOffering()))
                 continue;
             for (Config config : course.getOffering().getConfigs()) {
-                computeEnrollments(enrollments, 0, 0, config, new HashSet<Section>(), 0, availableOnly, false, true, false, -1);
+                computeEnrollments(enrollments, 0, 0, course, config, new HashSet<Section>(), 0, availableOnly, false, true, false, -1);
             }
         }
         return enrollments;
@@ -284,7 +298,7 @@ public class CourseRequest extends Request {
         int idx = 0;
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
-                computeEnrollments(avaiableEnrollmentsSkipSameTime, idx, 0, config, new HashSet<Section>(), 0, true, true, false, false, -1);
+                computeEnrollments(avaiableEnrollmentsSkipSameTime, idx, 0, course, config, new HashSet<Section>(), 0, true, true, false, false, -1);
             }
             idx++;
         }
@@ -299,7 +313,7 @@ public class CourseRequest extends Request {
         int idx = 0;
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
-                computeEnrollments(ret, idx, 0, config, new HashSet<Section>(), 0, false, true, false, false, -1);
+                computeEnrollments(ret, idx, 0, course, config, new HashSet<Section>(), 0, false, true, false, false, -1);
             }
             idx++;
         }

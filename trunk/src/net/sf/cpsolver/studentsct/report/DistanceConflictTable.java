@@ -139,11 +139,11 @@ public class DistanceConflictTable {
                 if (enrollment == null || !enrollment.isCourseRequest())
                     continue;
                 if (c1 == null && enrollment.getAssignments().contains(s1)) {
-                    c1 = enrollment.getConfig().getOffering().getCourse(conflict.getStudent());
+                    c1 = enrollment.getCourse();
                     r1 = request;
                 }
                 if (c2 == null && enrollment.getAssignments().contains(s2)) {
-                    c2 = enrollment.getConfig().getOffering().getCourse(conflict.getStudent());
+                    c2 = enrollment.getCourse();
                     r2 = request;
                 }
             }

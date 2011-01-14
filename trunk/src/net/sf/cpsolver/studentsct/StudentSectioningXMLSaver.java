@@ -229,7 +229,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                     courseEl.addAttribute("subjectArea", course.getSubjectArea());
                 if (iShowNames)
                     courseEl.addAttribute("courseNbr", course.getCourseNumber());
-                if (iShowNames && course.getLimit() != 0)
+                if (iShowNames && course.getLimit() >= 0)
                     courseEl.addAttribute("limit", String.valueOf(course.getLimit()));
                 if (iShowNames && course.getProjected() != 0)
                     courseEl.addAttribute("projected", String.valueOf(course.getProjected()));
@@ -237,6 +237,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
             for (Config config : offering.getConfigs()) {
                 Element configEl = offeringEl.addElement("config");
                 configEl.addAttribute("id", getId("config", config.getId()));
+                if (config.getLimit() >= 0)
+                    configEl.addAttribute("limit", String.valueOf(config.getLimit()));
                 if (iShowNames)
                     configEl.addAttribute("name", config.getName());
                 for (Subpart subpart : config.getSubparts()) {

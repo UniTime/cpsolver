@@ -140,6 +140,10 @@ public abstract class Request extends Variable<Request, Enrollment> {
         for (Assignment a : enrollment.getAssignments()) {
             a.assigned(enrollment);
         }
+        if (enrollment.getConfig() != null)
+            enrollment.getConfig().assigned(enrollment);
+        if (enrollment.getCourse() != null)
+            enrollment.getCourse().assigned(enrollment);
     }
 
     /**
@@ -154,6 +158,10 @@ public abstract class Request extends Variable<Request, Enrollment> {
             for (Assignment a : enrollment.getAssignments()) {
                 a.unassigned(enrollment);
             }
+            if (enrollment.getConfig() != null)
+                enrollment.getConfig().unassigned(enrollment);
+            if (enrollment.getCourse() != null)
+                enrollment.getCourse().unassigned(enrollment);
         }
         super.unassign(iteration);
     }

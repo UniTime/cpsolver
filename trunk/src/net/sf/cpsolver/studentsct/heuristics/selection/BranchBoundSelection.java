@@ -281,12 +281,6 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             return bound;
         }
         
-        /** Use {@link Selection#getDistanceConflicts} instead */
-        @Deprecated
-        public int getNrDistanceConflicts(int idx) {
-            return getDistanceConflicts(idx).size();
-        }
-
         /**
          * Distance conflicts of idx-th assignment of the current
          * schedule

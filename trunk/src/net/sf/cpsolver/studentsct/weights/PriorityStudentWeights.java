@@ -210,7 +210,7 @@ public class PriorityStudentWeights implements StudentWeights, SolutionComparato
             CourseRequest cr = (CourseRequest)r;
             double[] w = new double[] {0.0, 0.0, 0.0};
             for (int i = 0; i < cr.getCourses().size(); i++) {
-                Config cfg = new Config(0l, "", cr.getCourses().get(i).getOffering());
+                Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
                 Set<Assignment> sections = new HashSet<Assignment>();
                 sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
                 Enrollment e = new Enrollment(cr, i, cfg, sections);
@@ -224,7 +224,7 @@ public class PriorityStudentWeights implements StudentWeights, SolutionComparato
             CourseRequest cr = (CourseRequest)r;
             double[] w = new double[] {0.0, 0.0, 0.0};
             for (int i = 0; i < cr.getCourses().size(); i++) {
-                Config cfg = new Config(0l, "", cr.getCourses().get(i).getOffering());
+                Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
                 Set<Assignment> sections = new HashSet<Assignment>();
                 sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
                 Enrollment e = new Enrollment(cr, i, cfg, sections);
@@ -240,7 +240,7 @@ public class PriorityStudentWeights implements StudentWeights, SolutionComparato
             CourseRequest cr = (CourseRequest)r;
             double[] w = new double[] {0.0, 0.0, 0.0};
             for (int i = 0; i < cr.getCourses().size(); i++) {
-                Config cfg = new Config(0l, "", cr.getCourses().get(i).getOffering());
+                Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
                 Set<Assignment> sections = new HashSet<Assignment>();
                 sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
                 Enrollment e = new Enrollment(cr, i, cfg, sections);
@@ -258,7 +258,7 @@ public class PriorityStudentWeights implements StudentWeights, SolutionComparato
             CourseRequest cr = (CourseRequest)r;
             double[] w = new double[] {0.0, 0.0, 0.0};
             for (int i = 0; i < cr.getCourses().size(); i++) {
-                Config cfg = new Config(0l, "", cr.getCourses().get(i).getOffering());
+                Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
                 Set<Assignment> sections = new HashSet<Assignment>();
                 sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
                 Enrollment e = new Enrollment(cr, i, cfg, sections);
