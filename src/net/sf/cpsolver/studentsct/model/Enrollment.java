@@ -43,10 +43,41 @@ public class Enrollment extends Value<Request, Enrollment> {
     private static DecimalFormat sDF = new DecimalFormat("0.000");
     private Request iRequest = null;
     private Config iConfig = null;
+    private Course iCourse = null;
     private Set<? extends Assignment> iAssignments = null;
     private Double iCachedPenalty = null;
     private int iPriority = 0;
 
+    /**
+     * Constructor
+     * 
+     * @param request
+     *            course / free time request
+     * @param priority
+     *            zero for the course, one for the first alternative, two for the second alternative
+     * @param course
+     *            selected course
+     * @param config
+     *            selected configuration
+     * @param assignments
+     *            valid list of sections
+     */
+    public Enrollment(Request request, int priority, Course course, Config config, Set<? extends Assignment> assignments) {
+        super(request);
+        iRequest = request;
+        iConfig = config;
+        iAssignments = assignments;
+        iPriority = priority;
+        iCourse = course;
+        if (iConfig != null && iCourse == null)
+            for (Course c: ((CourseRequest)iRequest).getCourses()) {
+                if (c.getOffering().getConfigs().contains(iConfig)) {
+                    iCourse = c;
+                    break;
+                }
+            }
+    }
+    
     /**
      * Constructor
      * 
@@ -60,19 +91,9 @@ public class Enrollment extends Value<Request, Enrollment> {
      *            valid list of sections
      */
     public Enrollment(Request request, int priority, Config config, Set<? extends Assignment> assignments) {
-        super(request);
-        iRequest = request;
-        iConfig = config;
-        iAssignments = assignments;
-        iPriority = priority;
+        this(request, priority, null, config, assignments);
     }
     
-    /** Use the other constructor instead */
-    @Deprecated
-    public Enrollment(Request request, double priority, Config config, Set<? extends Assignment> assignments) {
-        this(request, (int)priority, config, assignments);
-    }
-
     /** Student */
     public Student getStudent() {
         return iRequest.getStudent();
@@ -96,6 +117,11 @@ public class Enrollment extends Value<Request, Enrollment> {
     /** Config of the course request */
     public Config getConfig() {
         return iConfig;
+    }
+    
+    /** Course of the course request */
+    public Course getCourse() {
+        return iCourse;
     }
 
     /** List of assignments (selected sections) */

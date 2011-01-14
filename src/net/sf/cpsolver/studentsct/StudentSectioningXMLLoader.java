@@ -281,13 +281,15 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                     Course course = new Course(Long.parseLong(courseEl.attributeValue("id")), courseEl.attributeValue(
                             "subjectArea", ""), courseEl.attributeValue("courseNbr", "C"
                             + courseEl.attributeValue("id")), offering, Integer.parseInt(courseEl.attributeValue(
-                            "limit", "0")), Integer.parseInt(courseEl.attributeValue("projected", "0")));
+                            "limit", "-1")), Integer.parseInt(courseEl.attributeValue("projected", "0")));
                     courseTable.put(new Long(course.getId()), course);
                 }
                 for (Iterator<?> j = offeringEl.elementIterator("config"); j.hasNext();) {
                     Element configEl = (Element) j.next();
-                    Config config = new Config(Long.parseLong(configEl.attributeValue("id")), configEl.attributeValue(
-                            "name", "G" + configEl.attributeValue("id")), offering);
+                    Config config = new Config(Long.parseLong(configEl.attributeValue("id")),
+                            Integer.parseInt(configEl.attributeValue("limit", "-1")),
+                            configEl.attributeValue("name", "G" + configEl.attributeValue("id")),
+                            offering);
                     for (Iterator<?> k = configEl.elementIterator("subpart"); k.hasNext();) {
                         Element subpartEl = (Element) k.next();
                         Subpart parentSubpart = null;

@@ -11,6 +11,8 @@ import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.ConstraintListener;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.studentsct.constraint.ConfigLimit;
+import net.sf.cpsolver.studentsct.constraint.CourseLimit;
 import net.sf.cpsolver.studentsct.constraint.SectionLimit;
 import net.sf.cpsolver.studentsct.constraint.StudentConflict;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
@@ -81,6 +83,10 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         iStudentWeights = new PriorityStudentWeights(properties);
         SectionLimit sectionLimit = new SectionLimit(properties);
         addGlobalConstraint(sectionLimit);
+        ConfigLimit configLimit = new ConfigLimit(properties);
+        addGlobalConstraint(configLimit);
+        CourseLimit courseLimit = new CourseLimit(properties);
+        addGlobalConstraint(courseLimit);
         sectionLimit.addConstraintListener(new ConstraintListener<Enrollment>() {
             public void constraintBeforeAssigned(long iteration, Constraint<?, Enrollment> constraint,
                     Enrollment enrollment, Set<Enrollment> unassigned) {
@@ -227,6 +233,27 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
             info.put("Student distance conflicts", String.valueOf(getDistanceConflict().getTotalNrConflicts()));
         if (getTimeOverlaps() != null)
             info.put("Time overlapping conflicts", String.valueOf(getTimeOverlaps().getTotalNrConflicts()));
+        int nrLastLikeStudents = getNrLastLikeStudents(false);
+        if (nrLastLikeStudents != 0 && nrLastLikeStudents != getStudents().size()) {
+            int nrRealStudents = getStudents().size() - nrLastLikeStudents;
+            int nrLastLikeCompleteStudents = getNrCompleteLastLikeStudents(false);
+            int nrRealCompleteStudents = getCompleteStudents().size() - nrLastLikeCompleteStudents;
+            info.put("Last-like students with complete schedule", sDecimalFormat.format(100.0
+                    * nrLastLikeCompleteStudents / nrLastLikeStudents)
+                    + "% (" + nrLastLikeCompleteStudents + "/" + nrLastLikeStudents + ")");
+            info.put("Real students with complete schedule", sDecimalFormat.format(100.0 * nrRealCompleteStudents
+                    / nrRealStudents)
+                    + "% (" + nrRealCompleteStudents + "/" + nrRealStudents + ")");
+            int nrLastLikeRequests = getNrLastLikeRequests(false);
+            int nrRealRequests = variables().size() - nrLastLikeRequests;
+            int nrLastLikeAssignedRequests = getNrAssignedLastLikeRequests(false);
+            int nrRealAssignedRequests = assignedVariables().size() - nrLastLikeAssignedRequests;
+            info.put("Last-like assigned requests", sDecimalFormat.format(100.0 * nrLastLikeAssignedRequests
+                    / nrLastLikeRequests)
+                    + "% (" + nrLastLikeAssignedRequests + "/" + nrLastLikeRequests + ")");
+            info.put("Real assigned requests", sDecimalFormat.format(100.0 * nrRealAssignedRequests / nrRealRequests)
+                    + "% (" + nrRealAssignedRequests + "/" + nrRealRequests + ")");
+        }
         return info;
     }
 

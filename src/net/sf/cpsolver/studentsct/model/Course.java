@@ -1,5 +1,8 @@
 package net.sf.cpsolver.studentsct.model;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * Representation of a course offering. A course offering contains id, subject
  * area, course number and an instructional offering. <br>
@@ -35,6 +38,8 @@ public class Course {
     private String iCourseNumber = null;
     private Offering iOffering = null;
     private int iLimit = 0, iProjected = 0;
+    private double iEnrollmentWeight = 0.0;
+    private Set<Enrollment> iEnrollments = new HashSet<Enrollment>();
 
     /**
      * Constructor
@@ -70,7 +75,7 @@ public class Course {
      *            instructional offering which is offered under this course
      *            offering
      * @param limit
-     *            course offering limit
+     *            course offering limit (-1 for unlimited)
      * @param projected
      *            projected demand
      */
@@ -127,5 +132,35 @@ public class Course {
     /** Course offering projected number of students */
     public int getProjected() {
         return iProjected;
+    }
+    
+    /** Called when an enrollment with this course is assigned to a request */
+    public void assigned(Enrollment enrollment) {
+        iEnrollments.add(enrollment);
+        iEnrollmentWeight += enrollment.getRequest().getWeight();
+    }
+
+    /** Called when an enrollment with this course is unassigned from a request */
+    public void unassigned(Enrollment enrollment) {
+        iEnrollments.remove(enrollment);
+        iEnrollmentWeight -= enrollment.getRequest().getWeight();
+    }
+    
+    /**
+     * Enrollment weight -- weight of all requests that are enrolled into this course,
+     * excluding the given one. See
+     * {@link Request#getWeight()}.
+     */
+    public double getEnrollmentWeight(Request excludeRequest) {
+        double weight = iEnrollmentWeight;
+        if (excludeRequest != null && excludeRequest.getAssignment() != null
+                && iEnrollments.contains(excludeRequest.getAssignment()))
+            weight -= excludeRequest.getWeight();
+        return weight;
+    }
+    
+    /** Set of assigned enrollments */
+    public Set<Enrollment> getEnrollments() {
+        return iEnrollments;
     }
 }

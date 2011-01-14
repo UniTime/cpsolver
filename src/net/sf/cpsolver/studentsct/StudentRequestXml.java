@@ -115,7 +115,7 @@ public class StudentRequestXml {
                         if (enrollment == null)
                             continue;
                         Element crReqElement = requestScheduleElement.addElement("courseOffering");
-                        Course course = enrollment.getConfig().getOffering().getCourse(student);
+                        Course course = enrollment.getCourse();
                         crReqElement.addAttribute("subjectArea", course.getSubjectArea());
                         crReqElement.addAttribute("courseNumber", course.getCourseNumber());
                         for (Section section : enrollment.getSections()) {
