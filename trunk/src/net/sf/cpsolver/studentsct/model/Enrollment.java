@@ -10,6 +10,7 @@ import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
 import net.sf.cpsolver.studentsct.extension.TimeOverlapsCounter;
+import net.sf.cpsolver.studentsct.reservation.Reservation;
 
 /**
  * Representation of an enrollment of a student into a course. A student needs
@@ -47,6 +48,7 @@ public class Enrollment extends Value<Request, Enrollment> {
     private Set<? extends Assignment> iAssignments = null;
     private Double iCachedPenalty = null;
     private int iPriority = 0;
+    private Reservation iReservation = null;
 
     /**
      * Constructor
@@ -62,7 +64,7 @@ public class Enrollment extends Value<Request, Enrollment> {
      * @param assignments
      *            valid list of sections
      */
-    public Enrollment(Request request, int priority, Course course, Config config, Set<? extends Assignment> assignments) {
+    public Enrollment(Request request, int priority, Course course, Config config, Set<? extends Assignment> assignments, Reservation reservation) {
         super(request);
         iRequest = request;
         iConfig = config;
@@ -76,6 +78,7 @@ public class Enrollment extends Value<Request, Enrollment> {
                     break;
                 }
             }
+        iReservation = reservation;
     }
     
     /**
@@ -91,7 +94,29 @@ public class Enrollment extends Value<Request, Enrollment> {
      *            valid list of sections
      */
     public Enrollment(Request request, int priority, Config config, Set<? extends Assignment> assignments) {
-        this(request, priority, null, config, assignments);
+        this(request, priority, null, config, assignments, null);
+        guessReservation(true);
+    }
+    
+    /**
+     * Guess the reservation based on the enrollment
+     */
+    public void guessReservation(boolean onlyAvailable) {
+        if (iCourse != null) {
+            Reservation best = null;
+            for (Reservation reservation: iCourse.getOffering().getReservations()) {
+                if (reservation.isApplicable(iRequest.getStudent()) && reservation.isIncluded(this)) {
+                    if (onlyAvailable && reservation.getReservedAvailableSpace(iRequest) < iRequest.getWeight()) continue;
+                    if (best == null || best.getPriority() > reservation.getPriority()) {
+                        best = reservation;
+                    } else if (best.getPriority() == reservation.getPriority() &&
+                        best.getReservedAvailableSpace(iRequest) < reservation.getReservedAvailableSpace(iRequest)) {
+                        best = reservation;
+                    }
+                }
+            }
+            iReservation = best;
+        }
     }
     
     /** Student */
@@ -348,4 +373,14 @@ public class Enrollment extends Value<Request, Enrollment> {
         }
         return ret;
     }
+    
+    /**
+     * Return reservation used for this enrollment
+     */
+    public Reservation getReservation() { return iReservation; }
+    
+    /**
+     * Set reservation for this enrollment
+     */
+    public void setReservation(Reservation reservation) { iReservation = reservation; }
 }

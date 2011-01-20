@@ -5,6 +5,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import net.sf.cpsolver.studentsct.reservation.Reservation;
+
+
 
 /**
  * Representation of a configuration of an offering. A configuration contains
@@ -13,8 +16,6 @@ import java.util.Set;
  * Each instructional offering (see {@link Offering}) contains one or more
  * configurations. Each configuration contain one or more subparts. Each student
  * has to take a class of each subpart of one of the possible configurations.
- * Some restrictions might be defined using reservations (see
- * {@link net.sf.cpsolver.studentsct.constraint.Reservation}).
  * 
  * <br>
  * <br>
@@ -205,4 +206,114 @@ public class Config {
         return iMinEnrollmentWeight;
     }
     
+    /**
+     * Available space in the configuration that is not reserved by any config reservation
+     * @param excludeRequest excluding given request (if not null)
+     **/
+    public double getUnreservedSpace(Request excludeRequest) {
+        // configuration is unlimited -> there is unreserved space unless there is an unlimited reservation too 
+        // (in which case there is no unreserved space)
+        if (getLimit() < 0) {
+            // exclude reservations that are not directly set on this section
+            for (Reservation r: getConfigReservations()) {
+                if (r.getLimit() < 0) return 0.0;
+            }
+            return Double.MAX_VALUE;
+        }
+        
+        double available = getLimit() - getEnrollmentWeight(excludeRequest);
+        // exclude reservations that are not directly set on this section
+        for (Reservation r: getConfigReservations()) {
+            // unlimited reservation -> all the space is reserved
+            if (r.getLimit() < 0.0) return 0.0;
+            // compute space that can be potentially taken by this reservation
+            double reserved = r.getReservedAvailableSpace(excludeRequest);
+            // deduct the space from available space
+            available -= Math.max(0.0, reserved);
+        }
+        
+        return Math.max(0.0, available);
+    }
+    
+    /**
+     * Total space in the configuration that cannot be reserved by any config reservation
+     **/
+    public double getTotalUnreservedSpace() {
+        if (iTotalUnreservedSpace == null)
+            iTotalUnreservedSpace = getTotalUnreservedSpaceNoCache();
+        return iTotalUnreservedSpace;
+    }
+    private Double iTotalUnreservedSpace = null;
+    private double getTotalUnreservedSpaceNoCache() {
+        // configuration is unlimited -> there is unreserved space unless there is an unlimited reservation too 
+        // (in which case there is no unreserved space)
+        if (getLimit() < 0) {
+            // exclude reservations that are not directly set on this section
+            for (Reservation r: getConfigReservations()) {
+                if (r.getLimit() < 0) return 0.0;
+            }
+            return Double.MAX_VALUE;
+        }
+        
+        // we need to check all reservations linked with this section
+        double available = getLimit(), reserved = 0, exclusive = 0;
+        Set<Config> configs = new HashSet<Config>();
+        reservations: for (Reservation r: getConfigReservations()) {
+            // unlimited reservation -> no unreserved space
+            if (r.getLimit() < 0) return 0.0;
+            for (Config s: r.getConfigs()) {
+                if (s.equals(this)) continue;
+                if (s.getLimit() < 0) continue reservations;
+                if (configs.add(s))
+                    available += s.getLimit();
+            }
+            reserved += r.getLimit();
+            if (r.getConfigs().size() == 1)
+                exclusive += r.getLimit();
+        }
+        
+        return Math.min(available - reserved, getLimit() - exclusive);
+    }
+    
+    /**
+     * Get reservations for this configuration
+     */
+    public List<Reservation> getReservations() {
+        if (iReservations == null) {
+            iReservations = new ArrayList<Reservation>();
+            for (Reservation r: getOffering().getReservations()) {
+                if (r.getConfigs().isEmpty() || r.getConfigs().contains(this))
+                    iReservations.add(r);
+            }
+        }
+        return iReservations;
+    }
+    List<Reservation> iReservations = null;
+    
+    /**
+     * Get reservations that require this configuration
+     */
+    public List<Reservation> getConfigReservations() {
+        if (iConfigReservations == null) {
+            iConfigReservations = new ArrayList<Reservation>();
+            for (Reservation r: getOffering().getReservations()) {
+                if (!r.getConfigs().isEmpty() && r.getConfigs().contains(this))
+                    iConfigReservations.add(r);
+            }
+        }
+        return iConfigReservations;
+    }
+    List<Reservation> iConfigReservations = null;
+    
+    /**
+     * Clear reservation information that was cached on this configuration or below
+     */
+    public void clearReservationCache() {
+        for (Subpart s: getSubparts())
+            s.clearReservationCache();
+        iReservations = null;
+        iConfigReservations = null;
+        iTotalUnreservedSpace = null;
+    }
+
 }

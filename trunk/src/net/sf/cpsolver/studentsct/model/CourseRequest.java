@@ -15,6 +15,7 @@ import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.constraint.ConfigLimit;
 import net.sf.cpsolver.studentsct.constraint.CourseLimit;
 import net.sf.cpsolver.studentsct.constraint.SectionLimit;
+import net.sf.cpsolver.studentsct.reservation.Reservation;
 
 /**
  * Representation of a request of a student for one or more course. A student
@@ -100,7 +101,10 @@ public class CourseRequest extends Request {
                 break;
             }
         }
-        return new Enrollment(this, iCourses.indexOf(course), course, config, sections);
+        Enrollment ret = new Enrollment(this, iCourses.indexOf(course), course, config, sections, null);
+        ret.guessReservation(true);
+        return ret;
+        
     }
 
     /**
@@ -177,7 +181,7 @@ public class CourseRequest extends Request {
      * @param idx
      *            index of the subparts (a section of 0..idx-1 subparts has been
      *            already selected)
-     * @param avaiableOnly
+     * @param availableOnly
      *            only use available sections
      * @param skipSameTime
      *            for each possible times, pick only one section
@@ -189,16 +193,45 @@ public class CourseRequest extends Request {
      * @param limit
      *            when above zero, limit the number of selected enrollments to
      *            this limit
+     * @param reservations
+     *            list of applicable reservations
      */
     private void computeEnrollments(Collection<Enrollment> enrollments, int priority, double penalty, Course course, Config config,
-            HashSet<Section> sections, int idx, boolean avaiableOnly, boolean skipSameTime, boolean selectedOnly,
+            HashSet<Section> sections, int idx, boolean availableOnly, boolean skipSameTime, boolean selectedOnly,
             boolean random, int limit) {
         if (limit > 0 && enrollments.size() >= limit)
             return;
-        if (avaiableOnly && config.getLimit() >= 0 && ConfigLimit.getEnrollmentWeight(config, this) > config.getLimit())
-            return;
-        if (avaiableOnly && course.getLimit() >= 0 && CourseLimit.getEnrollmentWeight(course, this) > course.getLimit())
-            return;
+        if (idx == 0) { // run only once for each configuration
+            if (availableOnly && config.getLimit() >= 0 && ConfigLimit.getEnrollmentWeight(config, this) > config.getLimit())
+                return;
+            if (availableOnly && course.getLimit() >= 0 && CourseLimit.getEnrollmentWeight(course, this) > course.getLimit())
+                return;
+            if (config.getOffering().hasReservations()) {
+                boolean hasReservation = false, hasOtherReservation = false, hasConfigReservation = false;
+                for (Reservation r: config.getOffering().getReservations()) {
+                    if (availableOnly && r.getReservedAvailableSpace(this) < getWeight()) continue;
+                    if (!r.isApplicable(getStudent())) continue;
+                    if (r.getConfigs().isEmpty()) {
+                        hasReservation = true;
+                    } else if (r.getConfigs().contains(config)) {
+                        hasReservation = true;
+                        hasConfigReservation = true;
+                    } else {
+                        hasOtherReservation = true;
+                    }
+                }
+                if (!hasConfigReservation && config.getTotalUnreservedSpace() < getWeight())
+                    return;
+                if (!hasReservation && config.getOffering().getTotalUnreservedSpace() < getWeight())
+                    return;
+                if (hasOtherReservation && !hasReservation)
+                    return;
+                if (availableOnly && !hasReservation && config.getOffering().getUnreservedSpace(this) < getWeight())
+                    return;
+                if (availableOnly && !hasConfigReservation && config.getUnreservedSpace(this) < getWeight())
+                    return;
+            }
+        }
         if (config.getSubparts().size() == idx) {
             if (skipSameTime && sSameTimePrecise) {
                 boolean waitListedOrSelected = false;
@@ -217,7 +250,35 @@ public class CourseRequest extends Request {
                     }
                 }
             }
-            enrollments.add(new Enrollment(this, priority, config, new HashSet<Assignment>(sections)));
+            if (!config.getOffering().hasReservations()) {
+                enrollments.add(new Enrollment(this, priority, null, config, new HashSet<Assignment>(sections), null));
+            } else {
+                Enrollment e = new Enrollment(this, priority, null, config, new HashSet<Assignment>(sections), null);
+                boolean mustHaveReservation = config.getOffering().getTotalUnreservedSpace() < getWeight();
+                boolean mustHaveConfigReservation = config.getTotalUnreservedSpace() < getWeight();
+                boolean mustHaveSectionReservation = false;
+                for (Section s: sections) {
+                    if (s.getTotalUnreservedSpace() < getWeight()) {
+                        mustHaveSectionReservation = true;
+                        break;
+                    }
+                }
+                reservations: for (Reservation r: (availableOnly ? new TreeSet<Reservation>(config.getOffering().getReservations()) : config.getOffering().getReservations())) {
+                    if (!r.isApplicable(getStudent()) || !r.isIncluded(e)) continue;
+                    if (availableOnly && r.getReservedAvailableSpace(this) < getWeight()) continue;
+                    if (mustHaveConfigReservation && r.getConfigs().isEmpty()) continue;
+                    if (mustHaveSectionReservation)
+                        for (Section s: sections)
+                            if (r.getSections(s.getSubpart()) == null && s.getTotalUnreservedSpace() < getWeight()) continue reservations;
+                    enrollments.add(new Enrollment(this, priority, null, config, new HashSet<Assignment>(sections), r));
+                    if (availableOnly) return; // only one available reservation suffice (the best matching one)
+                }
+                // a case w/o reservation
+                if (!(mustHaveReservation || mustHaveConfigReservation || mustHaveSectionReservation) &&
+                    !(availableOnly && config.getOffering().getUnreservedSpace(this) < getWeight())) {
+                    enrollments.add(new Enrollment(this, 1 + priority, null, config, new HashSet<Assignment>(sections), null));
+                }
+            }
         } else {
             Subpart subpart = config.getSubparts().get(idx);
             HashSet<TimeLocation> times = (skipSameTime ? new HashSet<TimeLocation>() : null);
@@ -235,7 +296,7 @@ public class CourseRequest extends Request {
                     continue;
                 if (section.isOverlapping(sections))
                     continue;
-                if (avaiableOnly && section.getLimit() >= 0
+                if (availableOnly && section.getLimit() >= 0
                         && SectionLimit.getEnrollmentWeight(section, this) > section.getLimit())
                     continue;
                 if (selectedOnly && !isSelected(section))
@@ -243,9 +304,30 @@ public class CourseRequest extends Request {
                 if (skipSameTime && section.getTime() != null && !hasChildren && !times.add(section.getTime())
                         && !isSelected(section) && !isWaitlisted(section))
                     continue;
+                if (config.getOffering().hasReservations()) {
+                    boolean hasReservation = false, hasSectionReservation = false, hasOtherReservation = false;
+                    for (Reservation r: config.getReservations()) {
+                        if (availableOnly && r.getReservedAvailableSpace(this) < getWeight()) continue;
+                        if (!r.isApplicable(getStudent())) continue;
+                        if (r.getSections(subpart) == null) {
+                            hasReservation = true;
+                        } else if (r.getSections(subpart).contains(section)) {
+                            hasReservation = true;
+                            hasSectionReservation = true;
+                        } else {
+                            hasOtherReservation = true;
+                        }
+                    }
+                    if (!hasSectionReservation && section.getTotalUnreservedSpace() < getWeight())
+                        continue;
+                    if (hasOtherReservation && !hasReservation)
+                        continue;
+                    if (availableOnly && !hasSectionReservation && section.getUnreservedSpace(this) < getWeight())
+                        continue;
+                }
                 sections.add(section);
                 computeEnrollments(enrollments, priority, penalty + section.getPenalty(), course, config, sections, idx + 1,
-                        avaiableOnly, skipSameTime, selectedOnly, random, limit);
+                        availableOnly, skipSameTime, selectedOnly, random, limit);
                 sections.remove(section);
             }
         }
