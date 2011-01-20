@@ -144,6 +144,8 @@ public abstract class Request extends Variable<Request, Enrollment> {
             enrollment.getConfig().assigned(enrollment);
         if (enrollment.getCourse() != null)
             enrollment.getCourse().assigned(enrollment);
+        if (enrollment.getReservation() != null)
+            enrollment.getReservation().assigned(enrollment);
     }
 
     /**
@@ -162,6 +164,8 @@ public abstract class Request extends Variable<Request, Enrollment> {
                 enrollment.getConfig().unassigned(enrollment);
             if (enrollment.getCourse() != null)
                 enrollment.getCourse().unassigned(enrollment);
+            if (enrollment.getReservation() != null)
+                enrollment.getReservation().unassigned(enrollment);
         }
         super.unassign(iteration);
     }

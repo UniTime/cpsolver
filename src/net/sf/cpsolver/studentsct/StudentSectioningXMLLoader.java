@@ -28,6 +28,10 @@ import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Section;
 import net.sf.cpsolver.studentsct.model.Student;
 import net.sf.cpsolver.studentsct.model.Subpart;
+import net.sf.cpsolver.studentsct.reservation.CurriculumReservation;
+import net.sf.cpsolver.studentsct.reservation.GroupReservation;
+import net.sf.cpsolver.studentsct.reservation.IndividualReservation;
+import net.sf.cpsolver.studentsct.reservation.Reservation;
 
 import org.dom4j.Document;
 import org.dom4j.Element;
@@ -268,6 +272,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         HashMap<Long, Course> courseTable = new HashMap<Long, Course>();
 
         if (iLoadOfferings && root.element("offerings") != null) {
+            HashMap<Long, Config> configTable = new HashMap<Long, Config>();
             HashMap<Long, Subpart> subpartTable = new HashMap<Long, Subpart>();
             HashMap<Long, Section> sectionTable = new HashMap<Long, Section>();
             for (Iterator<?> i = root.element("offerings").elementIterator("offering"); i.hasNext();) {
@@ -290,6 +295,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                             Integer.parseInt(configEl.attributeValue("limit", "-1")),
                             configEl.attributeValue("name", "G" + configEl.attributeValue("id")),
                             offering);
+                    configTable.put(config.getId(), config);
                     for (Iterator<?> k = configEl.elementIterator("subpart"); k.hasNext();) {
                         Element subpartEl = (Element) k.next();
                         Subpart parentSubpart = null;
@@ -352,6 +358,53 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                         }
                     }
                 }
+                for (Iterator<?> j = offeringEl.elementIterator("reservation"); j.hasNext(); ) {
+                    Element reservationEl = (Element)j.next();
+                    Reservation r = null;
+                    if ("individual".equals(reservationEl.attributeValue("type"))) {
+                        Set<Long> studentIds = new HashSet<Long>();
+                        for (Iterator<?> k = reservationEl.elementIterator("student"); k.hasNext(); ) {
+                            Element studentEl = (Element)k.next();
+                            studentIds.add(Long.parseLong(studentEl.attributeValue("id")));
+                        }
+                        r = new IndividualReservation(Long.valueOf(reservationEl.attributeValue("id")), offering, studentIds);
+                    } else if ("group".equals(reservationEl.attributeValue("type"))) {
+                        Set<Long> studentIds = new HashSet<Long>();
+                        for (Iterator<?> k = reservationEl.elementIterator("student"); k.hasNext(); ) {
+                            Element studentEl = (Element)k.next();
+                            studentIds.add(Long.parseLong(studentEl.attributeValue("id")));
+                        }
+                        r = new GroupReservation(Long.valueOf(reservationEl.attributeValue("id")), offering, studentIds);
+                    } else if ("curriculum".equals(reservationEl.attributeValue("type"))) {
+                        List<String> classifications = new ArrayList<String>();
+                        for (Iterator<?> k = reservationEl.elementIterator("classification"); k.hasNext(); ) {
+                            Element clasfEl = (Element)k.next();
+                            classifications.add(clasfEl.attributeValue("code"));
+                        }
+                        List<String> majors = new ArrayList<String>();
+                        for (Iterator<?> k = reservationEl.elementIterator("major"); k.hasNext(); ) {
+                            Element majorEl = (Element)k.next();
+                            majors.add(majorEl.attributeValue("code"));
+                        }
+                        r = new CurriculumReservation(Long.valueOf(reservationEl.attributeValue("id")),
+                                Double.parseDouble(reservationEl.attributeValue("limit", "-1")),
+                                offering,
+                                reservationEl.attributeValue("area"),
+                                classifications, majors);
+                    }
+                    if (r == null) {
+                        sLogger.error("Unknown reservation type "+ reservationEl.attributeValue("type"));
+                        continue;
+                    }
+                    for (Iterator<?> k = reservationEl.elementIterator("config"); k.hasNext(); ) {
+                        Element configEl = (Element)k.next();
+                        r.addConfig(configTable.get(Long.parseLong(configEl.attributeValue("id"))));
+                    }
+                    for (Iterator<?> k = reservationEl.elementIterator("section"); k.hasNext(); ) {
+                        Element sectionEl = (Element)k.next();
+                        r.addSection(sectionTable.get(Long.parseLong(sectionEl.attributeValue("id"))));
+                    }
+                } 
             }
         } else {
             for (Offering offering : getModel().getOfferings()) {

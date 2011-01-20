@@ -1,10 +1,13 @@
-package net.sf.cpsolver.studentsct.constraint;
+package net.sf.cpsolver.studentsct.reservation;
 
-import net.sf.cpsolver.studentsct.model.Enrollment;
-import net.sf.cpsolver.studentsct.model.Section;
+import java.util.Collection;
+
+import net.sf.cpsolver.studentsct.model.Offering;
 
 /**
- * Abstract single section reservation.
+ * Group reservation. This is basically a {@link IndividualReservation}, but
+ * students cannot be assigned over the limit and the priority is lower than on
+ * individual reservations.
  * 
  * <br>
  * <br>
@@ -28,36 +31,43 @@ import net.sf.cpsolver.studentsct.model.Section;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public abstract class ReservationOnSection extends Reservation {
-    private Section iSection = null;
+public class GroupReservation extends IndividualReservation {
 
     /**
      * Constructor
-     * 
-     * @param section
-     *            section on which the reservation is set
+     * @param id unique id
+     * @param offering offering for which the reservation is
+     * @param studentIds one or more students
      */
-    public ReservationOnSection(Section section) {
-        super();
-        iSection = section;
+    public GroupReservation(long id, Offering offering, Long... studentIds) {
+        super(id, offering, studentIds);
     }
-
-    /** Return section on which the reservation is set */
-    public Section getSection() {
-        return iSection;
+    
+    /**
+     * Constructor
+     * @param id unique id
+     * @param offering offering for which the reservation is
+     * @param studentIds one or more students
+     */
+    public GroupReservation(long id, Offering offering, Collection<Long> studentIds) {
+        super(id, offering, studentIds);
     }
 
     /**
-     * True, if the enrollment contains the section on which this reservation is
-     * set. See {@link Reservation#isApplicable(Enrollment)} for details.
+     * Group reservations are of the second highest priority
      */
     @Override
-    public boolean isApplicable(Enrollment enrollment) {
-        return enrollment.getAssignments().contains(iSection);
+    public int getPriority() {
+        return 1;
     }
 
+    /**
+     * Group reservations can not be assigned over the limit.
+     */
     @Override
-    public String toString() {
-        return "Reservation on " + iSection.getLongName();
+    public boolean canAssignOverLimit() {
+        return true;
     }
+
+
 }

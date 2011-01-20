@@ -5,6 +5,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import net.sf.cpsolver.studentsct.reservation.Reservation;
+
 /**
  * Representation of a scheduling subpart. Each scheduling subpart contains id,
  * instructional type, name, instructional offering configuration, and a list of
@@ -172,4 +174,29 @@ public class Subpart implements Comparable<Subpart> {
     public void setAllowOverlap(boolean allowOverlap) {
         iAllowOverlap = allowOverlap;
     }
+    
+    /**
+     * Get reservations that require sections of this subpart
+     */
+    public List<Reservation> getSectionReservations() {
+        if (iSectionReservations == null) {
+            iSectionReservations = new ArrayList<Reservation>();
+            for (Reservation r: getConfig().getOffering().getReservations()) {
+                if (r.getSections(this) != null)
+                    iSectionReservations.add(r);
+            }
+        }
+        return iSectionReservations;
+    }
+    private List<Reservation> iSectionReservations = null;
+    
+    /**
+     * Clear reservation information that was cached on this subpart or below
+     */
+    public void clearReservationCache() {
+        for (Section s: getSections())
+            s.clearReservationCache();
+        iSectionReservations = null;
+    }
+    
 }

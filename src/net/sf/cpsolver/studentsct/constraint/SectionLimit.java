@@ -10,6 +10,7 @@ import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Section;
+import net.sf.cpsolver.studentsct.reservation.Reservation;
 
 /**
  * Section limit constraint. This global constraint ensures that a limit of each
@@ -21,6 +22,10 @@ import net.sf.cpsolver.studentsct.model.Section;
  * <br>
  * Sections with negative limit are considered unlimited, and therefore
  * completely ignored by this constraint.
+ * 
+ * <br>
+ * <br>
+ * This constraint also check section reservations.
  * 
  * <br>
  * <br>
@@ -93,6 +98,17 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
         return section.getEnrollmentWeight(request) + request.getWeight()
                 - Math.max(section.getMaxEnrollmentWeight(), request.getWeight()) + sNominalWeight;
     }
+    
+    /**
+     * True if the enrollment has reservation for this section.
+     * Everything else is checked in the {@link ReservationLimit} constraint.
+     **/
+    private boolean hasSectionReservation(Enrollment enrollment, Section section) {
+        Reservation reservation = enrollment.getReservation();
+        if (reservation == null) return false;
+        Set<Section> sections = reservation.getSections(section.getSubpart());
+        return sections != null && sections.contains(section);
+    }
 
     /**
      * A given enrollment is conflicting, if there is a section which limit
@@ -115,6 +131,76 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
 
         // for each section
         for (Section section : enrollment.getSections()) {
+            
+            // no reservation -- check the space in the unreserved space in the section
+            if (!hasSectionReservation(enrollment, section)) {
+                // section is fully reserved by section reservations
+                if (section.getTotalUnreservedSpace() < enrollment.getRequest().getWeight()) {
+                    conflicts.add(enrollment);
+                    return;
+                }
+                
+                double unreserved = section.getUnreservedSpace(enrollment.getRequest()); 
+                
+                if (unreserved < enrollment.getRequest().getWeight()) {
+                    // no unreserved space available -> cannot be assigned
+                    // try to unassign some other enrollments that also do not have reservation
+                    
+                    List<Enrollment> adepts = new ArrayList<Enrollment>(section.getEnrollments().size());
+                    for (Enrollment e : section.getEnrollments()) {
+                        if (e.getRequest().equals(enrollment.getRequest()))
+                            continue;
+                        if (hasSectionReservation(e, section))
+                            continue;
+                        if (conflicts.contains(e))
+                            unreserved += e.getRequest().getWeight();
+                        else
+                            adepts.add(e);
+                    }
+                    
+                    while (unreserved < enrollment.getRequest().getWeight()) {
+                        if (adepts.isEmpty()) {
+                            // no adepts -> enrollment cannot be assigned
+                            conflicts.add(enrollment);
+                            return;
+                        }
+                        
+                        // pick adept (prefer dummy students), decrease unreserved space,
+                        // make conflict
+                        List<Enrollment> best = new ArrayList<Enrollment>();
+                        boolean bestDummy = false;
+                        double bestValue = 0;
+                        for (Enrollment adept: adepts) {
+                            boolean dummy = adept.getStudent().isDummy();
+                            double value = adept.toDouble();
+                            
+                            if (iPreferDummyStudents && dummy != bestDummy) {
+                                if (dummy) {
+                                    best.clear();
+                                    bestDummy = dummy;
+                                    bestValue = value;
+                                }
+                                continue;
+                            }
+                            
+                            if (best.isEmpty() || value > bestValue) {
+                                if (best.isEmpty()) best.clear();
+                                best.add(adept);
+                                bestDummy = dummy;
+                                bestValue = value;
+                            } else if (bestValue == value) {
+                                best.add(adept);
+                            }
+                        }
+                        
+                        Enrollment conflict = ToolBox.random(best);
+                        adepts.remove(conflict);
+                        unreserved += conflict.getRequest().getWeight();
+                        conflicts.add(conflict);
+                    }
+                }
+                
+            }
 
             // unlimited section
             if (section.getLimit() < 0)
@@ -128,40 +214,71 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
                 continue;
 
             // above limit -> compute adepts (current assignments that are not
-            // yet conflicting)
-            // exclude all conflicts as well
-            List<Enrollment> dummyAdepts = new ArrayList<Enrollment>(section.getEnrollments().size());
+            // yet conflicting) exclude all conflicts as well
             List<Enrollment> adepts = new ArrayList<Enrollment>(section.getEnrollments().size());
             for (Enrollment e : section.getEnrollments()) {
                 if (e.getRequest().equals(enrollment.getRequest()))
                     continue;
                 if (conflicts.contains(e))
                     enrlWeight -= e.getRequest().getWeight();
-                else if (iPreferDummyStudents && e.getStudent().isDummy())
-                    dummyAdepts.add(e);
                 else
                     adepts.add(e);
             }
 
             // while above limit -> pick an adept and make it conflicting
             while (enrlWeight > section.getLimit()) {
-                // pick adept (prefer dummy students), decrease enrollment
-                // weight, make conflict
-                if (iPreferDummyStudents && !dummyAdepts.isEmpty()) {
-                    Enrollment conflict = ToolBox.random(dummyAdepts);
-                    dummyAdepts.remove(conflict);
-                    enrlWeight -= conflict.getRequest().getWeight();
-                    conflicts.add(conflict);
-                } else if (!adepts.isEmpty()) {
-                    Enrollment conflict = ToolBox.random(adepts);
-                    adepts.remove(conflict);
-                    enrlWeight -= conflict.getRequest().getWeight();
-                    conflicts.add(conflict);
-                } else {
+                if (adepts.isEmpty()) {
                     // no adepts -> enrollment cannot be assigned
                     conflicts.add(enrollment);
-                    break;
+                    return;
                 }
+                
+                // pick adept (prefer dummy students & students w/o reservation), decrease enrollment
+                // weight, make conflict
+                List<Enrollment> best = new ArrayList<Enrollment>();
+                boolean bestDummy = false;
+                double bestValue = 0;
+                boolean bestRes = false;
+                for (Enrollment adept: adepts) {
+                    boolean dummy = adept.getStudent().isDummy();
+                    double value = adept.toDouble();
+                    boolean res = hasSectionReservation(adept, section);
+                    
+                    if (iPreferDummyStudents && dummy != bestDummy) {
+                        if (dummy) {
+                            best.clear();
+                            bestDummy = dummy;
+                            bestValue = value;
+                            bestRes = res;
+                        }
+                        continue;
+                    }
+                    
+                    if (bestRes != res) {
+                        if (!res) {
+                            best.clear();
+                            bestDummy = dummy;
+                            bestValue = value;
+                            bestRes = res;
+                        }
+                        continue;
+                    }
+
+                    if (best.isEmpty() || value > bestValue) {
+                        if (best.isEmpty()) best.clear();
+                        best.add(adept);
+                        bestDummy = dummy;
+                        bestValue = value;
+                        bestRes = res;
+                    } else if (bestValue == value) {
+                        best.add(adept);
+                    }
+                }
+                
+                Enrollment conflict = ToolBox.random(best);
+                adepts.remove(conflict);
+                enrlWeight -= conflict.getRequest().getWeight();
+                conflicts.add(conflict);
             }
         }
     }
@@ -189,6 +306,12 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
             // unlimited section
             if (section.getLimit() < 0)
                 continue;
+            
+            // not have reservation -> check unreserved space
+            if (!hasSectionReservation(enrollment, section) && (
+                section.getTotalUnreservedSpace() < enrollment.getRequest().getWeight() ||
+                section.getUnreservedSpace(enrollment.getRequest()) < enrollment.getRequest().getWeight()))
+                return true;
 
             // new enrollment weight
             double enrlWeight = getEnrollmentWeight(section, enrollment.getRequest());

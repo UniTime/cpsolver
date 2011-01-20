@@ -9,6 +9,7 @@ import java.util.Set;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.TimeLocation;
+import net.sf.cpsolver.studentsct.reservation.Reservation;
 
 /**
  * Representation of a class. Each section contains id, name, scheduling
@@ -409,6 +410,115 @@ public class Section implements Assignment, Comparable<Section> {
         } else {
             return -1;
         }
+    }
+
+    /**
+     * Available space in the section that is not reserved by any section reservation
+     * @param excludeRequest excluding given request (if not null)
+     **/
+    public double getUnreservedSpace(Request excludeRequest) {
+        // section is unlimited -> there is unreserved space unless there is an unlimited reservation too 
+        // (in which case there is no unreserved space)
+        if (getLimit() < 0) {
+            // exclude reservations that are not directly set on this section
+            for (Reservation r: getSectionReservations()) {
+                if (r.getLimit() < 0) return 0.0;
+            }
+            return Double.MAX_VALUE;
+        }
+        
+        double available = getLimit() - getEnrollmentWeight(excludeRequest);
+        // exclude reservations that are not directly set on this section
+        for (Reservation r: getSectionReservations()) {
+            // unlimited reservation -> all the space is reserved
+            if (r.getLimit() < 0.0) return 0.0;
+            // compute space that can be potentially taken by this reservation
+            double reserved = r.getReservedAvailableSpace(excludeRequest);
+            // deduct the space from available space
+            available -= Math.max(0.0, reserved);
+        }
+        
+        return Math.max(0.0, available);
+    }
+    
+    /**
+     * Total space in the section that cannot be used by any section reservation
+     **/
+    public double getTotalUnreservedSpace() {
+        if (iTotalUnreservedSpace == null)
+            iTotalUnreservedSpace = getTotalUnreservedSpaceNoCache();
+        return iTotalUnreservedSpace;
+    }
+    private Double iTotalUnreservedSpace = null;
+    private double getTotalUnreservedSpaceNoCache() {
+        // section is unlimited -> there is unreserved space unless there is an unlimited reservation too 
+        // (in which case there is no unreserved space)
+        if (getLimit() < 0) {
+            // exclude reservations that are not directly set on this section
+            for (Reservation r: getSectionReservations()) {
+                if (r.getLimit() < 0) return 0.0;
+            }
+            return Double.MAX_VALUE;
+        }
+        
+        // we need to check all reservations linked with this section
+        double available = getLimit(), reserved = 0, exclusive = 0;
+        Set<Section> sections = new HashSet<Section>();
+        reservations: for (Reservation r: getSectionReservations()) {
+            // unlimited reservation -> no unreserved space
+            if (r.getLimit() < 0) return 0.0;
+            for (Section s: r.getSections(getSubpart())) {
+                if (s.equals(this)) continue;
+                if (s.getLimit() < 0) continue reservations;
+                if (sections.add(s))
+                    available += s.getLimit();
+            }
+            reserved += r.getLimit();
+            if (r.getSections(getSubpart()).size() == 1)
+                exclusive += r.getLimit();
+        }
+        
+        return Math.min(available - reserved, getLimit() - exclusive);
+    }
+    
+    
+    /**
+     * Get reservations for this section
+     */
+    public List<Reservation> getReservations() {
+        if (iReservations == null) {
+            iReservations = new ArrayList<Reservation>();
+            for (Reservation r: getSubpart().getConfig().getOffering().getReservations()) {
+                if (r.getSections(getSubpart()) == null || r.getSections(getSubpart()).contains(this))
+                    iReservations.add(r);
+            }
+        }
+        return iReservations;
+    }
+    private List<Reservation> iReservations = null;
+    
+    /**
+     * Get reservations that require this section
+     */
+    public List<Reservation> getSectionReservations() {
+        if (iSectionReservations == null) {
+            iSectionReservations = new ArrayList<Reservation>();
+            for (Reservation r: getSubpart().getSectionReservations()) {
+                if (r.getSections(getSubpart()).contains(this))
+                    iSectionReservations.add(r);
+            }
+        }
+        return iSectionReservations;
+    }
+    private List<Reservation> iSectionReservations = null;
+
+    /**
+     * Clear reservation information that was cached on this section
+     */
+    public void clearReservationCache() {
+        iReservations = null;
+        iSectionReservations = null;
+        iTotalUnreservedSpace = null;
     }
 
 }

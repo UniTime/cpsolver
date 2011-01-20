@@ -13,6 +13,7 @@ import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.studentsct.constraint.ConfigLimit;
 import net.sf.cpsolver.studentsct.constraint.CourseLimit;
+import net.sf.cpsolver.studentsct.constraint.ReservationLimit;
 import net.sf.cpsolver.studentsct.constraint.SectionLimit;
 import net.sf.cpsolver.studentsct.constraint.StudentConflict;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
@@ -87,6 +88,8 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         addGlobalConstraint(configLimit);
         CourseLimit courseLimit = new CourseLimit(properties);
         addGlobalConstraint(courseLimit);
+        ReservationLimit reservationLimit = new ReservationLimit(properties);
+        addGlobalConstraint(reservationLimit);
         sectionLimit.addConstraintListener(new ConstraintListener<Enrollment>() {
             public void constraintBeforeAssigned(long iteration, Constraint<?, Enrollment> constraint,
                     Enrollment enrollment, Set<Enrollment> unassigned) {
