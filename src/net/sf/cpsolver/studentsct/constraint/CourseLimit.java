@@ -125,38 +125,56 @@ public class CourseLimit extends GlobalConstraint<Request, Enrollment> {
         // above limit -> compute adepts (current assignments that are not
         // yet conflicting)
         // exclude all conflicts as well
-        List<Enrollment> dummyAdepts = new ArrayList<Enrollment>(course.getEnrollments().size());
         List<Enrollment> adepts = new ArrayList<Enrollment>(course.getEnrollments().size());
         for (Enrollment e : course.getEnrollments()) {
             if (e.getRequest().equals(enrollment.getRequest()))
                 continue;
             if (conflicts.contains(e))
                 enrlWeight -= e.getRequest().getWeight();
-            else if (iPreferDummyStudents && e.getStudent().isDummy())
-                dummyAdepts.add(e);
             else
                 adepts.add(e);
         }
 
         // while above limit -> pick an adept and make it conflicting
         while (enrlWeight > course.getLimit()) {
-            // pick adept (prefer dummy students), decrease enrollment
-            // weight, make conflict
-            if (iPreferDummyStudents && !dummyAdepts.isEmpty()) {
-                Enrollment conflict = ToolBox.random(dummyAdepts);
-                dummyAdepts.remove(conflict);
-                enrlWeight -= conflict.getRequest().getWeight();
-                conflicts.add(conflict);
-            } else if (!adepts.isEmpty()) {
-                Enrollment conflict = ToolBox.random(adepts);
-                adepts.remove(conflict);
-                enrlWeight -= conflict.getRequest().getWeight();
-                conflicts.add(conflict);
-            } else {
+            if (adepts.isEmpty()) {
                 // no adepts -> enrollment cannot be assigned
                 conflicts.add(enrollment);
                 break;
             }
+            
+            // pick adept (prefer dummy students), decrease unreserved space,
+            // make conflict
+            List<Enrollment> best = new ArrayList<Enrollment>();
+            boolean bestDummy = false;
+            double bestValue = 0;
+            for (Enrollment adept: adepts) {
+                boolean dummy = adept.getStudent().isDummy();
+                double value = adept.toDouble();
+                
+                if (iPreferDummyStudents && dummy != bestDummy) {
+                    if (dummy) {
+                        best.clear();
+                        bestDummy = dummy;
+                        bestValue = value;
+                    }
+                    continue;
+                }
+                
+                if (best.isEmpty() || value > bestValue) {
+                    if (best.isEmpty()) best.clear();
+                    best.add(adept);
+                    bestDummy = dummy;
+                    bestValue = value;
+                } else if (bestValue == value) {
+                    best.add(adept);
+                }
+            }
+            
+            Enrollment conflict = ToolBox.random(best);
+            adepts.remove(conflict);
+            enrlWeight -= conflict.getRequest().getWeight();
+            conflicts.add(conflict);
         }
     }
 

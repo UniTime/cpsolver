@@ -19,7 +19,7 @@ import net.sf.cpsolver.studentsct.model.Request;
  * 
  * <br>
  * <br>
- * Sections with negative limit are considered unlimited, and therefore
+ * Configurations with negative limit are considered unlimited, and therefore
  * completely ignored by this constraint.
  * 
  * <br>
@@ -117,6 +117,7 @@ public class ConfigLimit extends GlobalConstraint<Request, Enrollment> {
         // exclude free time requests
         if (config == null)
             return;
+        
 
         // unlimited config
         if (config.getLimit() < 0)
@@ -132,38 +133,70 @@ public class ConfigLimit extends GlobalConstraint<Request, Enrollment> {
         // above limit -> compute adepts (current assignments that are not
         // yet conflicting)
         // exclude all conflicts as well
-        List<Enrollment> dummyAdepts = new ArrayList<Enrollment>(config.getEnrollments().size());
         List<Enrollment> adepts = new ArrayList<Enrollment>(config.getEnrollments().size());
         for (Enrollment e : config.getEnrollments()) {
             if (e.getRequest().equals(enrollment.getRequest()))
                 continue;
             if (conflicts.contains(e))
                 enrlWeight -= e.getRequest().getWeight();
-            else if (iPreferDummyStudents && e.getStudent().isDummy())
-                dummyAdepts.add(e);
             else
                 adepts.add(e);
         }
 
         // while above limit -> pick an adept and make it conflicting
         while (enrlWeight > config.getLimit()) {
-            // pick adept (prefer dummy students), decrease enrollment
-            // weight, make conflict
-            if (iPreferDummyStudents && !dummyAdepts.isEmpty()) {
-                Enrollment conflict = ToolBox.random(dummyAdepts);
-                dummyAdepts.remove(conflict);
-                enrlWeight -= conflict.getRequest().getWeight();
-                conflicts.add(conflict);
-            } else if (!adepts.isEmpty()) {
-                Enrollment conflict = ToolBox.random(adepts);
-                adepts.remove(conflict);
-                enrlWeight -= conflict.getRequest().getWeight();
-                conflicts.add(conflict);
-            } else {
+            if (adepts.isEmpty()) {
                 // no adepts -> enrollment cannot be assigned
                 conflicts.add(enrollment);
-                break;
+                return;
             }
+            
+            // pick adept (prefer dummy students & students w/o reservation), decrease enrollment
+            // weight, make conflict
+            List<Enrollment> best = new ArrayList<Enrollment>();
+            boolean bestDummy = false;
+            double bestValue = 0;
+            boolean bestRes = false;
+            for (Enrollment adept: adepts) {
+                boolean dummy = adept.getStudent().isDummy();
+                double value = adept.toDouble();
+                boolean res = (adept.getReservation() != null);
+                
+                if (iPreferDummyStudents && dummy != bestDummy) {
+                    if (dummy) {
+                        best.clear();
+                        bestDummy = dummy;
+                        bestValue = value;
+                        bestRes = res;
+                    }
+                    continue;
+                }
+                
+                if (bestRes != res) {
+                    if (!res) {
+                        best.clear();
+                        bestDummy = dummy;
+                        bestValue = value;
+                        bestRes = res;
+                    }
+                    continue;
+                }
+
+                if (best.isEmpty() || value > bestValue) {
+                    if (best.isEmpty()) best.clear();
+                    best.add(adept);
+                    bestDummy = dummy;
+                    bestValue = value;
+                    bestRes = res;
+                } else if (bestValue == value) {
+                    best.add(adept);
+                }
+            }
+            
+            Enrollment conflict = ToolBox.random(best);
+            adepts.remove(conflict);
+            enrlWeight -= conflict.getRequest().getWeight();
+            conflicts.add(conflict);
         }
     }
 

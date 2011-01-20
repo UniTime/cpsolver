@@ -7,6 +7,7 @@ import java.text.DecimalFormat;
 import java.util.BitSet;
 import java.util.Date;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 
 import org.dom4j.Document;
@@ -32,6 +33,10 @@ import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Section;
 import net.sf.cpsolver.studentsct.model.Student;
 import net.sf.cpsolver.studentsct.model.Subpart;
+import net.sf.cpsolver.studentsct.reservation.CurriculumReservation;
+import net.sf.cpsolver.studentsct.reservation.GroupReservation;
+import net.sf.cpsolver.studentsct.reservation.IndividualReservation;
+import net.sf.cpsolver.studentsct.reservation.Reservation;
 
 /**
  * Save student sectioning solution into an XML file.
@@ -304,6 +309,38 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                             if (section.getSpaceExpected() != 0.0)
                                 sectionEl.addAttribute("expect", sStudentWeightFormat
                                         .format(section.getSpaceExpected()));
+                        }
+                    }
+                }
+            }
+            if (!offering.getReservations().isEmpty()) {
+                for (Reservation r: offering.getReservations()) {
+                    Element reservationEl = offeringEl.addElement("reservation");
+                    reservationEl.addAttribute("id", getId("reservation", r.getId()));
+                    if (r instanceof IndividualReservation) {
+                        reservationEl.addAttribute("type", "individual");
+                        for (Long studentId: ((IndividualReservation)r).getStudentIds())
+                            reservationEl.addElement("student").addAttribute("id", getId("student", studentId));
+                    } else if (r instanceof GroupReservation) {
+                        reservationEl.addAttribute("type", "group");
+                        for (Long studentId: ((GroupReservation)r).getStudentIds())
+                            reservationEl.addElement("student").addAttribute("id", getId("student", studentId));
+                    } else if (r instanceof CurriculumReservation) {
+                        reservationEl.addAttribute("type", "curriculum");
+                        CurriculumReservation cr = (CurriculumReservation)r;
+                        if (cr.getLimit() >= 0.0)
+                            reservationEl.addElement("limit", String.valueOf(cr.getLimit()));
+                        reservationEl.addElement("area", cr.getAcademicArea());
+                        for (String clasf: cr.getClassifications())
+                            reservationEl.addElement("classification").addAttribute("code", clasf);
+                        for (String major: cr.getMajors())
+                            reservationEl.addElement("major").addAttribute("code", major);
+                    }
+                    for (Config config: r.getConfigs())
+                        reservationEl.addElement("config").addAttribute("id", getId("config", config.getId()));
+                    for (Map.Entry<Subpart, Set<Section>> entry: r.getSections().entrySet()) {
+                        for (Section section: entry.getValue()) {
+                            reservationEl.addElement("section").addAttribute("id", getId("section", section.getId()));
                         }
                     }
                 }

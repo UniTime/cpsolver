@@ -5,6 +5,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import net.sf.cpsolver.studentsct.reservation.Reservation;
+
+
 /**
  * Representation of an instructional offering. An offering contains id, name,
  * the list of course offerings, and the list of possible configurations. See
@@ -37,6 +40,7 @@ public class Offering {
     private String iName = null;
     private List<Config> iConfigs = new ArrayList<Config>();
     private List<Course> iCourses = new ArrayList<Course>();
+    private List<Reservation> iReservations = new ArrayList<Reservation>();
 
     /**
      * Constructor
@@ -172,5 +176,85 @@ public class Offering {
     public String toString() {
         return iName;
     }
+    
+    /** Reservations associated with this offering */
+    public List<Reservation> getReservations() { return iReservations; }
+    
+    /** True if there are reservations for this offering */
+    public boolean hasReservations() { return !iReservations.isEmpty(); }
+    
+    /**
+     * Total space in the offering that is not reserved by any reservation 
+     **/
+    public double getTotalUnreservedSpace() {
+        if (iTotalUnreservedSpace == null)
+            iTotalUnreservedSpace = getTotalUnreservedSpaceNoCache();
+        return iTotalUnreservedSpace;
+    }
+    Double iTotalUnreservedSpace = null;
+    private double getTotalUnreservedSpaceNoCache() {
+        // compute overall available space
+        double available = 0.0;
+        for (Config config: getConfigs()) {
+            available += config.getLimit();
+            // offering is unlimited -> there is unreserved space unless there is an unlimited reservation too 
+            // (in which case there is no unreserved space)
+            if (config.getLimit() < 0) {
+                for (Reservation r: getReservations())
+                    if (r.getLimit() < 0) return 0.0;
+                return Double.MAX_VALUE;
+            }
+        }
+        
+        // compute maximal reserved space (out of the available space)
+        double reserved = 0;
+        for (Reservation r: getReservations()) {
+            // unlimited reservation -> no unreserved space
+            if (r.getLimit() < 0) return 0.0;
+            reserved += r.getLimit();
+        }
+        
+        return Math.max(0.0, available - reserved);
+    }
+
+    /**
+     * Available space in the offering that is not reserved by any reservation 
+     * @param excludeRequest excluding given request (if not null)
+     **/
+    public double getUnreservedSpace(Request excludeRequest) {
+        // compute available space
+        double available = 0.0;
+        for (Config config: getConfigs()) {
+            available += config.getLimit() - config.getEnrollmentWeight(excludeRequest);
+            // offering is unlimited -> there is unreserved space unless there is an unlimited reservation too 
+            // (in which case there is no unreserved space)
+            if (config.getLimit() < 0) {
+                for (Reservation r: getReservations())
+                    if (r.getLimit() < 0) return 0.0;
+                return Double.MAX_VALUE;
+            }
+        }
+        
+        // compute reserved space (out of the available space)
+        double reserved = 0;
+        for (Reservation r: getReservations()) {
+            // unlimited reservation -> no unreserved space
+            if (r.getLimit() < 0) return 0.0;
+            reserved += Math.max(0.0, r.getReservedAvailableSpace(excludeRequest));
+        }
+        
+        return Math.max(0.0, available - reserved);
+    }
+
+    
+    /**
+     * Clear reservation information that was cached on this offering or below
+     */
+    public void clearReservationCache() {
+        for (Config c: getConfigs())
+            c.clearReservationCache();
+        iTotalUnreservedSpace = null;
+    }
+
 
 }
