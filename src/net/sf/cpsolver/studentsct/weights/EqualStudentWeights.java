@@ -26,15 +26,8 @@ import net.sf.cpsolver.studentsct.model.Student;
 import net.sf.cpsolver.studentsct.model.Subpart;
 
 /**
- * New weighting model. It tries to obey the following principles:
- * <ul>
- *      <li> Total student weight is between zero and one (one means student got the best schedule)
- *      <li> Weight of the given priority course is higher than sum of the remaining weights the student can get
- *      <li> First alternative is better than the following course
- *      <li> Second alternative is better than the second following course
- *      <li> Distance conflicts are considered secondary (priorities should be maximized first)
- *      <li> If alternative sections are otherwise equal, use the better balanced one
- * </ul>
+ * Student weight is spread equally among student's course requests. Only alternatives have lower weight.
+ * The rest is inherited from {@link PriorityStudentWeights}.
  * 
  * @version StudentSct 1.2 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2010 Tomas Muller<br>
@@ -56,148 +49,36 @@ import net.sf.cpsolver.studentsct.model.Subpart;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class PriorityStudentWeights implements StudentWeights {
-    protected double iPriorityFactor = 0.5010;
-    protected double iFirstAlternativeFactor = 0.5010;
-    protected double iSecondAlternativeFactor = 0.2510;
-    protected double iDistanceConflict = 0.0100;
-    protected double iTimeOverlapFactor = 0.5000;
-    protected double iTimeOverlapMaxLimit = 0.5000;
-    protected boolean iLeftoverSpread = false;
-    protected double iBalancingFactor = 0.0050;
+public class EqualStudentWeights extends PriorityStudentWeights {
+    protected double iAlternativeRequestFactor = 0.1260;
     
-    public PriorityStudentWeights(DataProperties config) {
-        iPriorityFactor = config.getPropertyDouble("StudentWeights.Priority", iPriorityFactor);
-        iFirstAlternativeFactor = config.getPropertyDouble("StudentWeights.FirstAlternative", iFirstAlternativeFactor);
-        iSecondAlternativeFactor = config.getPropertyDouble("StudentWeights.SecondAlternative", iSecondAlternativeFactor);
-        iDistanceConflict = config.getPropertyDouble("StudentWeights.DistanceConflict", iDistanceConflict);
-        iTimeOverlapFactor = config.getPropertyDouble("StudentWeights.TimeOverlapFactor", iTimeOverlapFactor);
-        iTimeOverlapMaxLimit = config.getPropertyDouble("StudentWeights.TimeOverlapMaxLimit", iTimeOverlapMaxLimit);
-        iLeftoverSpread = config.getPropertyBoolean("StudentWeights.LeftoverSpread", iLeftoverSpread);
-        iBalancingFactor = config.getPropertyDouble("StudentWeights.BalancingFactor", iBalancingFactor);
-    }
-        
-    public double getWeight(Request request) {
-        double total = 10000.0;
-        int nrReq = request.getStudent().nrRequests();
-        double remain = (iLeftoverSpread ? Math.floor(10000.0 * Math.pow(iPriorityFactor, nrReq) / nrReq) : 0.0);
-        for (int idx = 0; idx < request.getStudent().getRequests().size(); idx++) {
-            Request r = request.getStudent().getRequests().get(idx);
-            boolean last = (idx + 1 == request.getStudent().getRequests().size());
-            boolean lastNotAlt = !r.isAlternative() && (last || request.getStudent().getRequests().get(1 + idx).isAlternative());
-            double w = Math.ceil(iPriorityFactor * total) + remain;
-            if (lastNotAlt || last) {
-                w = total;
-            } else {
-                total -= w;
-            }
-            if (r.equals(request)) {
-                w *= Math.floor(request.getWeight());
-                return w / 10000.0;
-            }
-        }
-        return 0.0;
-    }
-    
-    public double getCachedWeight(Request request) {
-        Double w = (Double)request.getExtra();
-        if (w == null) {
-            w = getWeight(request);
-            request.setExtra(w);
-        }
-        return w;
+    public EqualStudentWeights(DataProperties config) {
+        super(config);
+        iAlternativeRequestFactor = config.getPropertyDouble("StudentWeights.AlternativeRequestFactor", iAlternativeRequestFactor);
     }
 
     @Override
-    public double getBound(Request request) {
-        return getWeight(request);
-    }
-    
-    protected double round(double value) {
-        return Math.ceil(10000.0 * value) / 10000.0;
-    }
-    
-    @Override
-    public double getWeight(Enrollment enrollment) {
-        double weight = getCachedWeight(enrollment.getRequest());
-        switch (enrollment.getPriority()) {
-            case 1: weight *= iFirstAlternativeFactor; break;
-            case 2: weight *= iSecondAlternativeFactor; break;
-        }
-        if (enrollment.isCourseRequest() && iBalancingFactor != 0.0) {
-            double configUsed = enrollment.getConfig().getEnrollmentWeight(enrollment.getRequest()) + enrollment.getRequest().getWeight();
-            double disbalanced = 0;
-            double total = 0;
-            for (Section section: enrollment.getSections()) {
-                Subpart subpart = section.getSubpart();
-                if (subpart.getSections().size() <= 1) continue;
-                double used = section.getEnrollmentWeight(enrollment.getRequest()) + enrollment.getRequest().getWeight();
-                // sections have limits -> desired size is section limit x (total enrollment / total limit)
-                // unlimited sections -> desired size is total enrollment / number of sections
-                double desired = (subpart.getLimit() > 0
-                        ? section.getLimit() * (configUsed / subpart.getLimit())
-                        : configUsed / subpart.getSections().size());
-                if (used > desired)
-                    disbalanced += Math.min(enrollment.getRequest().getWeight(), used - desired) / enrollment.getRequest().getWeight();
-                else
-                    disbalanced -= Math.min(enrollment.getRequest().getWeight(), desired - used) / enrollment.getRequest().getWeight();
-                total ++;
-            }
-            if (disbalanced > 0)
-                weight *= (1.0 - disbalanced / total * iBalancingFactor);
-        }
+    public double getWeight(Request request) {
+        double weight = 1.0 / request.getStudent().nrRequests();
+        if (request.isAlternative())
+            weight *= iAlternativeRequestFactor;
         return round(weight);
     }
     
     @Override
-    public double getDistanceConflictWeight(DistanceConflict.Conflict c) {
-        if (c.getR1().getPriority() < c.getR2().getPriority()) {
-            return round(getWeight(c.getE2()) * iDistanceConflict);
-        } else {
-            return round(getWeight(c.getE1()) * iDistanceConflict);
-        }
-    }
-    
-    @Override
-    public double getTimeOverlapConflictWeight(Enrollment e, TimeOverlapsCounter.Conflict c) {
-        double toc = Math.min(iTimeOverlapMaxLimit * c.getShare() / e.getNrSlots(), iTimeOverlapMaxLimit);
-        return round(getWeight(e) * toc);
-    }
-    
-    public double getWeight(Enrollment enrollment, Set<DistanceConflict.Conflict> distanceConflicts, Set<TimeOverlapsCounter.Conflict> timeOverlappingConflicts) {
-        double base = getWeight(enrollment);
-        double dc = 0.0;
-        if (distanceConflicts != null) {
-            for (DistanceConflict.Conflict c: distanceConflicts) {
-                Enrollment other = (c.getE1().equals(enrollment) ? c.getE2() : c.getE1());
-                if (other.getRequest().getPriority() <= enrollment.getRequest().getPriority())
-                    dc += base * iDistanceConflict;
-                else
-                    dc += getWeight(other) * iDistanceConflict;
-            }
-        }
-        double toc = 0.0;
-        if (timeOverlappingConflicts != null) {
-            for (TimeOverlapsCounter.Conflict c: timeOverlappingConflicts) {
-                toc += base * Math.min(iTimeOverlapFactor * c.getShare() / enrollment.getNrSlots(), iTimeOverlapMaxLimit);
-                Enrollment other = (c.getE1().equals(enrollment) ? c.getE2() : c.getE1());
-                toc += getWeight(other) * Math.min(iTimeOverlapFactor * c.getShare() / other.getNrSlots(), iTimeOverlapMaxLimit);
-            }
-        }
-        return round(base - dc - toc);
-    }
-    
-    
-    @Override
     public boolean isBetterThanBestSolution(Solution<Request, Enrollment> currentSolution) {
-        return currentSolution.getBestInfo() == null || currentSolution.getModel().getTotalValue() < currentSolution.getBestValue();
+        if (currentSolution.getBestInfo() == null) return true;
+        int unassigned = currentSolution.getModel().nrUnassignedVariables();
+        if (currentSolution.getModel().getBestUnassignedVariables() != unassigned)
+            return currentSolution.getModel().getBestUnassignedVariables() > unassigned;
+        return currentSolution.getModel().getTotalValue() < currentSolution.getBestValue();
     }
     
     /**
      * Test case -- run to see the weights for a few courses
      */
     public static void main(String[] args) {
-        PriorityStudentWeights pw = new PriorityStudentWeights(new DataProperties());
+        EqualStudentWeights pw = new EqualStudentWeights(new DataProperties());
         DecimalFormat df = new DecimalFormat("0.0000");
         Student s = new Student(0l);
         new CourseRequest(1l, 0, false, s, ToolBox.toList(
@@ -292,7 +173,7 @@ public class PriorityStudentWeights implements StudentWeights {
             }
             System.out.println(cr + ": " + df.format(w[0]) + "  " + df.format(w[1]) + "  " + df.format(w[2]));
         }
-        
+
         System.out.println("Disbalanced sections (by 2 / 10 students):");
         for (Request r: s.getRequests()) {
             CourseRequest cr = (CourseRequest)r;

@@ -199,4 +199,22 @@ public class Subpart implements Comparable<Subpart> {
         iSectionReservations = null;
     }
     
+    /**
+     * Sum of the section limits (unlimited, if one or more sections are unlimited)
+     */
+    public Integer getLimit() {
+        if (iLimit == null)
+            iLimit = getLimitNoCache();
+        return iLimit;
+    }
+    private int getLimitNoCache() {
+        int limit = 0;
+        for (Section section: getSections()) {
+            if (section.getLimit() < 0) return -1;
+            limit += section.getLimit();
+        }
+        return limit;
+    }
+    private Integer iLimit = null; 
+    
 }

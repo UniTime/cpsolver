@@ -108,7 +108,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
             }
         });
         try {
-            Class<StudentWeights> studentWeightsClass = (Class<StudentWeights>)Class.forName(properties.getProperty("Student.WeightsClass", PriorityStudentWeights.class.getName()));
+            Class<StudentWeights> studentWeightsClass = (Class<StudentWeights>)Class.forName(properties.getProperty("StudentWeights.Class", PriorityStudentWeights.class.getName()));
             iStudentWeights = studentWeightsClass.getConstructor(DataProperties.class).newInstance(properties);
         } catch (Exception e) {
             sLog.error("Unable to create custom student weighting model (" + e.getMessage() + "), using default.", e);
@@ -300,7 +300,9 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         Student student = enrollment.getStudent();
         if (student.isComplete())
             iCompleteStudents.add(student);
-        iTotalValue -= enrollment.getRequest().getWeight() * iStudentWeights.getWeight(enrollment);
+        double value = enrollment.getRequest().getWeight() * iStudentWeights.getWeight(enrollment);
+        iTotalValue -= value;
+        enrollment.setExtra(value);
         if (student.isDummy()) {
             iNrAssignedDummyRequests++;
             if (student.isComplete())
@@ -321,7 +323,10 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
             if (student.isDummy())
                 iNrCompleteDummyStudents--;
         }
-        iTotalValue += enrollment.getRequest().getWeight() * iStudentWeights.getWeight(enrollment);
+        Double value = (Double)enrollment.getExtra();
+        if (value == null)
+            value = enrollment.getRequest().getWeight() * iStudentWeights.getWeight(enrollment);
+        iTotalValue += value;
         if (student.isDummy()) {
             iNrAssignedDummyRequests--;
         }
@@ -624,13 +629,14 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         info.put("Average number of requests", sDecimalFormat.format(avgNrRequests()));
         info.put("Unassigned request weight", sDecimalFormat.format(getUnassignedRequestWeight()) + " / "
                 + sDoubleFormat.format(getTotalRequestWeight()));
-        int totalCR = 0, assignedCR = 0;
+        double totalCR = 0, assignedCR = 0;
         for (Request r: variables())
             if (r instanceof CourseRequest) {
-                totalCR ++;
-                if (r.getAssignment() != null) assignedCR ++;
+                totalCR += r.getWeight();
+                if (r.getAssignment() != null)
+                    assignedCR += r.getWeight();
             }
-        info.put("Assigned course requests", assignedCR + " / " + totalCR);
+        info.put("Assigned course requests", (int)Math.round(assignedCR) + " / " + (int)Math.round(totalCR) + " (" + sDecimalFormat.format(100.0 * assignedCR / totalCR) + "%)");
         double total = 0;
         for (Request r: variables())
             if (r.getAssignment() != null)
@@ -655,6 +661,40 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         }
         info.put("Overall solution value [p]", sDecimalFormat.format(total - dc - toc) + " (dc:" + sDecimalFormat.format(dc) + ", toc:" + sDecimalFormat.format(toc) + ")");
         
+        double disbWeight = 0;
+        int disbSections = 0;
+        int disb10Sections = 0;
+        for (Offering offering: getOfferings()) {
+            for (Config config: offering.getConfigs()) {
+                double enrl = config.getEnrollmentWeight(null);
+                for (Subpart subpart: config.getSubparts()) {
+                    if (subpart.getSections().size() <= 1) continue;
+                    if (subpart.getLimit() > 0) {
+                        // sections have limits -> desired size is section limit x (total enrollment / total limit)
+                        double ratio = enrl / subpart.getLimit();
+                        for (Section section: subpart.getSections()) {
+                            double desired = ratio * section.getLimit();
+                            disbWeight += Math.abs(section.getEnrollmentWeight(null) - desired);
+                            disbSections ++;
+                            if (Math.abs(desired - section.getEnrollmentWeight(null)) >= Math.max(1.0, 0.1 * section.getLimit()))
+                                disb10Sections++;
+                        }
+                    } else {
+                        // unlimited sections -> desired size is total enrollment / number of sections
+                        for (Section section: subpart.getSections()) {
+                            double desired = enrl / subpart.getSections().size();
+                            disbWeight += Math.abs(section.getEnrollmentWeight(null) - desired);
+                            disbSections ++;
+                            if (Math.abs(desired - section.getEnrollmentWeight(null)) >= Math.max(1.0, 0.1 * desired))
+                                disb10Sections++;
+                        }
+                    }
+                }
+            }
+        }
+        info.put("Average disbalance", sDecimalFormat.format(disbWeight / disbSections) +
+                " (" + sDecimalFormat.format(100.0 * disbWeight / assignedCR) + "%)");
+        info.put("Sections disbalanced by 10% or more", disb10Sections + "(" + sDecimalFormat.format(100.0 * disb10Sections / disbSections) + "%)");
         return info;
     }
     
