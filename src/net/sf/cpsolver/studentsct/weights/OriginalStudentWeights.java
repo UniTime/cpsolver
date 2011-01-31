@@ -9,6 +9,7 @@ import java.util.Set;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.TimeLocation;
+import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
@@ -126,6 +127,15 @@ public class OriginalStudentWeights implements StudentWeights {
     @Override
     public double getTimeOverlapConflictWeight(Enrollment enrollment, TimeOverlapsCounter.Conflict timeOverlap) {
         return Math.min(0.5 * timeOverlap.getShare() / enrollment.getNrSlots(), 0.5) * getWeight(enrollment);
+    }
+    
+    @Override
+    public boolean isBetterThanBestSolution(Solution<Request, Enrollment> currentSolution) {
+        if (currentSolution.getBestInfo() == null) return true;
+        int unassigned = currentSolution.getModel().nrUnassignedVariables();
+        if (currentSolution.getModel().getBestUnassignedVariables() != unassigned)
+            return currentSolution.getModel().getBestUnassignedVariables() > unassigned;
+        return currentSolution.getModel().getTotalValue() < currentSolution.getBestValue();
     }
 
     /**
