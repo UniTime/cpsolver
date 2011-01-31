@@ -2,6 +2,7 @@ package net.sf.cpsolver.studentsct.weights;
 
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.solution.SolutionComparator;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
 import net.sf.cpsolver.studentsct.extension.TimeOverlapsCounter;
 import net.sf.cpsolver.studentsct.model.Enrollment;
@@ -30,7 +31,7 @@ import net.sf.cpsolver.studentsct.model.Request;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public interface StudentWeights {
+public interface StudentWeights extends SolutionComparator<Request, Enrollment> {
     /**
      * Return lower bound for the given request
      * @param request given request
@@ -63,4 +64,20 @@ public interface StudentWeights {
      * Return weight of a time overlapping conflict
      */
     public double getTimeOverlapConflictWeight(Enrollment enrollment, TimeOverlapsCounter.Conflict timeOverlap);
+    
+    /**
+     * Registered implementation
+     */
+    public static enum Implementation {
+        Priority(PriorityStudentWeights.class),
+        Equal(EqualStudentWeights.class),
+        Legacy(OriginalStudentWeights.class);
+        
+        private Class<? extends StudentWeights> iImplementation;
+        Implementation(Class<? extends StudentWeights> implementation) {
+            iImplementation = implementation;
+        }
+        
+        public Class<? extends StudentWeights> getImplementation() { return iImplementation; }
+    }
 }
