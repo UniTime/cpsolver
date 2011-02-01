@@ -202,7 +202,7 @@ public class Subpart implements Comparable<Subpart> {
     /**
      * Sum of the section limits (unlimited, if one or more sections are unlimited)
      */
-    public Integer getLimit() {
+    public int getLimit() {
         if (iLimit == null)
             iLimit = getLimitNoCache();
         return iLimit;
