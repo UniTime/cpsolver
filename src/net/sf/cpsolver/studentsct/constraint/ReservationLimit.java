@@ -142,6 +142,7 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
                         if (iPreferDummyStudents && dummy != bestDummy) {
                             if (dummy) {
                                 best.clear();
+                                best.add(adept);
                                 bestDummy = dummy;
                                 bestValue = value;
                             }
@@ -211,6 +212,7 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
                             if (iPreferDummyStudents && dummy != bestDummy) {
                                 if (dummy) {
                                     best.clear();
+                                    best.add(adept);
                                     bestDummy = dummy;
                                     bestValue = value;
                                 }
@@ -283,6 +285,7 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
                         if (iPreferDummyStudents && dummy != bestDummy) {
                             if (dummy) {
                                 best.clear();
+                                best.add(adept);
                                 bestDummy = dummy;
                                 bestValue = value;
                             }
