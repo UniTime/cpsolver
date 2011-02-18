@@ -7,6 +7,7 @@ import java.util.Set;
 import net.sf.cpsolver.ifs.model.GlobalConstraint;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.ToolBox;
+import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Section;
@@ -125,6 +126,11 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
      */
     @Override
     public void computeConflicts(Enrollment enrollment, Set<Enrollment> conflicts) {
+        // check reservation can assign over the limit
+        if (((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit() &&
+            enrollment.getReservation() != null && enrollment.getReservation().canAssignOverLimit())
+            return;
+
         // exclude free time requests
         if (!enrollment.isCourseRequest())
             return;
@@ -239,7 +245,7 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
                 List<Enrollment> best = new ArrayList<Enrollment>();
                 boolean bestDummy = false;
                 double bestValue = 0;
-                boolean bestRes = false;
+                boolean bestRes = true;
                 for (Enrollment adept: adepts) {
                     boolean dummy = adept.getStudent().isDummy();
                     double value = adept.toDouble();
@@ -259,6 +265,7 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
                     if (bestRes != res) {
                         if (!res) {
                             best.clear();
+                            best.add(adept);
                             bestDummy = dummy;
                             bestValue = value;
                             bestRes = res;
@@ -298,6 +305,11 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
      */
     @Override
     public boolean inConflict(Enrollment enrollment) {
+        // check reservation can assign over the limit
+        if (((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit() &&
+            enrollment.getReservation() != null && enrollment.getReservation().canAssignOverLimit())
+            return false;
+
         // exclude free time requests
         if (!enrollment.isCourseRequest())
             return false;

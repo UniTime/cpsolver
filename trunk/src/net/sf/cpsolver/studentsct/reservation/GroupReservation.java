@@ -7,7 +7,8 @@ import net.sf.cpsolver.studentsct.model.Offering;
 /**
  * Group reservation. This is basically a {@link IndividualReservation}, but
  * students cannot be assigned over the limit and the priority is lower than on
- * individual reservations.
+ * individual reservations. Also, a different limit than the number of students
+ * in the group can be provided.
  * 
  * <br>
  * <br>
@@ -32,25 +33,30 @@ import net.sf.cpsolver.studentsct.model.Offering;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class GroupReservation extends IndividualReservation {
+    private double iLimit;
 
     /**
      * Constructor
      * @param id unique id
+     * @param limit reservation limit (-1 for unlimited)
      * @param offering offering for which the reservation is
      * @param studentIds one or more students
      */
-    public GroupReservation(long id, Offering offering, Long... studentIds) {
+    public GroupReservation(long id, double limit, Offering offering, Long... studentIds) {
         super(id, offering, studentIds);
+        iLimit = limit;
     }
     
     /**
      * Constructor
      * @param id unique id
+     * @param limit reservation limit (-1 for unlimited)
      * @param offering offering for which the reservation is
      * @param studentIds one or more students
      */
-    public GroupReservation(long id, Offering offering, Collection<Long> studentIds) {
+    public GroupReservation(long id, double limit, Offering offering, Collection<Long> studentIds) {
         super(id, offering, studentIds);
+        iLimit = limit;
     }
 
     /**
@@ -66,8 +72,15 @@ public class GroupReservation extends IndividualReservation {
      */
     @Override
     public boolean canAssignOverLimit() {
-        return true;
+        return false;
     }
 
+    /**
+     * Reservation limit
+     */
+    @Override
+    public double getLimit() {
+        return iLimit;
+    }
 
 }
