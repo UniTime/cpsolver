@@ -28,6 +28,7 @@ import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Section;
 import net.sf.cpsolver.studentsct.model.Student;
 import net.sf.cpsolver.studentsct.model.Subpart;
+import net.sf.cpsolver.studentsct.reservation.CourseReservation;
 import net.sf.cpsolver.studentsct.reservation.CurriculumReservation;
 import net.sf.cpsolver.studentsct.reservation.GroupReservation;
 import net.sf.cpsolver.studentsct.reservation.IndividualReservation;
@@ -374,7 +375,9 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                             Element studentEl = (Element)k.next();
                             studentIds.add(Long.parseLong(studentEl.attributeValue("id")));
                         }
-                        r = new GroupReservation(Long.valueOf(reservationEl.attributeValue("id")), offering, studentIds);
+                        r = new GroupReservation(Long.valueOf(reservationEl.attributeValue("id")),
+                                Double.parseDouble(reservationEl.attributeValue("limit", "-1")),
+                                offering, studentIds);
                     } else if ("curriculum".equals(reservationEl.attributeValue("type"))) {
                         List<String> classifications = new ArrayList<String>();
                         for (Iterator<?> k = reservationEl.elementIterator("classification"); k.hasNext(); ) {
@@ -391,6 +394,12 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                                 offering,
                                 reservationEl.attributeValue("area"),
                                 classifications, majors);
+                    } else if ("course".equals(reservationEl.attributeValue("type"))) {
+                        long courseId = Long.parseLong(reservationEl.attributeValue("course"));
+                        for (Course course: offering.getCourses()) {
+                            if (course.getId() == courseId)
+                                r = new CourseReservation(Long.valueOf(reservationEl.attributeValue("id")), course);
+                        }
                     }
                     if (r == null) {
                         sLogger.error("Unknown reservation type "+ reservationEl.attributeValue("type"));

@@ -7,6 +7,7 @@ import java.util.Set;
 import net.sf.cpsolver.ifs.model.GlobalConstraint;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.ToolBox;
+import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.model.Config;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
@@ -168,6 +169,10 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
 
             // if not configuration reservation -> check configuration unavailable space
             if (!hasConfigReservation(enrollment)) {
+                // check reservation can assign over the limit
+                if (((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit() && reservation.canAssignOverLimit())
+                    return;
+
                 // check the total first (basically meaning that there will never be enough space in 
                 // the section for an enrollment w/o configuration reservation
                 if (config.getTotalUnreservedSpace() < enrollment.getRequest().getWeight()) {
@@ -349,13 +354,17 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
             if (reservation.getLimit() < 0)
                 return false;
             
-            // if not configuration reservation, check configuration unreserved space too
-            if (!hasConfigReservation(enrollment) &&
-                config.getUnreservedSpace(enrollment.getRequest()) < enrollment.getRequest().getWeight())
+            // check remaning space
+            if (reservation.getReservedAvailableSpace(enrollment.getRequest()) < enrollment.getRequest().getWeight())
+                return true;
+            
+            // check reservation can assign over the limit
+            if (((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit() && reservation.canAssignOverLimit())
                 return false;
             
-            // check remaining space
-            return reservation.getReservedAvailableSpace(enrollment.getRequest()) < enrollment.getRequest().getWeight();
+            // if not configuration reservation, check configuration unreserved space too
+            return (!hasConfigReservation(enrollment) &&
+                config.getUnreservedSpace(enrollment.getRequest()) < enrollment.getRequest().getWeight());
         } else {
             // check unreserved space;
             return config.getOffering().getTotalUnreservedSpace() < enrollment.getRequest().getWeight() || 

@@ -188,6 +188,11 @@ public abstract class Reservation implements Comparable<Reservation> {
         iUsed -= enrollment.getRequest().getWeight();
     }
     
+    /** Enrollments assigned using this reservation */
+    public Set<Enrollment> getEnrollments() {
+        return iEnrollments;
+    }
+    
     /** Used space */
     public double getUsedSpace() {
         return iUsed;
@@ -249,7 +254,7 @@ public abstract class Reservation implements Comparable<Reservation> {
                     continue;
                 sections.add(section);
                 boolean m = matching && (matchingSections == null || matchingSections.contains(section));
-                int[] x = nrChoices(config, idx, sections, m);
+                int[] x = nrChoices(config, 1 + idx, sections, m);
                 choicesThisSubpart += x[0];
                 matchingChoicesThisSubpart += x[1];
                 sections.remove(section);

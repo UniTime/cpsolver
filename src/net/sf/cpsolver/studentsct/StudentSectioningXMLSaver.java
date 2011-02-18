@@ -33,6 +33,7 @@ import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Section;
 import net.sf.cpsolver.studentsct.model.Student;
 import net.sf.cpsolver.studentsct.model.Subpart;
+import net.sf.cpsolver.studentsct.reservation.CourseReservation;
 import net.sf.cpsolver.studentsct.reservation.CurriculumReservation;
 import net.sf.cpsolver.studentsct.reservation.GroupReservation;
 import net.sf.cpsolver.studentsct.reservation.IndividualReservation;
@@ -317,24 +318,31 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                 for (Reservation r: offering.getReservations()) {
                     Element reservationEl = offeringEl.addElement("reservation");
                     reservationEl.addAttribute("id", getId("reservation", r.getId()));
-                    if (r instanceof IndividualReservation) {
+                    if (r instanceof GroupReservation) {
+                        GroupReservation gr = (GroupReservation)r;
+                        reservationEl.addAttribute("type", "group");
+                        for (Long studentId: gr.getStudentIds())
+                            reservationEl.addElement("student").addAttribute("id", getId("student", studentId));
+                        if (gr.getLimit() >= 0.0)
+                            reservationEl.addAttribute("limit", String.valueOf(gr.getLimit()));
+                    } else if (r instanceof IndividualReservation) {
                         reservationEl.addAttribute("type", "individual");
                         for (Long studentId: ((IndividualReservation)r).getStudentIds())
-                            reservationEl.addElement("student").addAttribute("id", getId("student", studentId));
-                    } else if (r instanceof GroupReservation) {
-                        reservationEl.addAttribute("type", "group");
-                        for (Long studentId: ((GroupReservation)r).getStudentIds())
                             reservationEl.addElement("student").addAttribute("id", getId("student", studentId));
                     } else if (r instanceof CurriculumReservation) {
                         reservationEl.addAttribute("type", "curriculum");
                         CurriculumReservation cr = (CurriculumReservation)r;
                         if (cr.getLimit() >= 0.0)
-                            reservationEl.addElement("limit", String.valueOf(cr.getLimit()));
-                        reservationEl.addElement("area", cr.getAcademicArea());
+                            reservationEl.addAttribute("limit", String.valueOf(cr.getLimit()));
+                        reservationEl.addAttribute("area", cr.getAcademicArea());
                         for (String clasf: cr.getClassifications())
                             reservationEl.addElement("classification").addAttribute("code", clasf);
                         for (String major: cr.getMajors())
                             reservationEl.addElement("major").addAttribute("code", major);
+                    } else if (r instanceof CourseReservation) {
+                        reservationEl.addAttribute("type", "course");
+                        CourseReservation cr = (CourseReservation)r;
+                        reservationEl.addAttribute("course", getId("course",cr.getCourse().getId()));
                     }
                     for (Config config: r.getConfigs())
                         reservationEl.addElement("config").addAttribute("id", getId("config", config.getId()));

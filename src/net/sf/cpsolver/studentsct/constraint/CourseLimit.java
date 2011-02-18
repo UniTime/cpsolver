@@ -7,6 +7,7 @@ import java.util.Set;
 import net.sf.cpsolver.ifs.model.GlobalConstraint;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.ToolBox;
+import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.model.Course;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
@@ -104,6 +105,11 @@ public class CourseLimit extends GlobalConstraint<Request, Enrollment> {
      */
     @Override
     public void computeConflicts(Enrollment enrollment, Set<Enrollment> conflicts) {
+        // check reservation can assign over the limit
+        if (((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit() &&
+            enrollment.getReservation() != null && enrollment.getReservation().canAssignOverLimit())
+            return;
+
         // enrollment's course
         Course course = enrollment.getCourse();
 
@@ -190,6 +196,11 @@ public class CourseLimit extends GlobalConstraint<Request, Enrollment> {
      */
     @Override
     public boolean inConflict(Enrollment enrollment) {
+        // check reservation can assign over the limit
+        if (((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit() &&
+            enrollment.getReservation() != null && enrollment.getReservation().canAssignOverLimit())
+            return false;
+
         // enrollment's course
         Course course = enrollment.getCourse();
 
