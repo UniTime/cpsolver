@@ -26,6 +26,7 @@ import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Section;
 import net.sf.cpsolver.studentsct.model.Student;
 import net.sf.cpsolver.studentsct.model.Subpart;
+import net.sf.cpsolver.studentsct.reservation.Reservation;
 import net.sf.cpsolver.studentsct.weights.PriorityStudentWeights;
 import net.sf.cpsolver.studentsct.weights.StudentWeights;
 
@@ -68,6 +69,8 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
     private TimeOverlapsCounter iTimeOverlaps = null;
     private int iNrDummyStudents = 0, iNrDummyRequests = 0, iNrAssignedDummyRequests = 0, iNrCompleteDummyStudents = 0;
     private StudentWeights iStudentWeights = null;
+    private boolean iReservationCanAssignOverTheLimit;
+
 
     /**
      * Constructor
@@ -78,6 +81,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
     @SuppressWarnings("unchecked")
     public StudentSectioningModel(DataProperties properties) {
         super();
+        iReservationCanAssignOverTheLimit =  properties.getPropertyBoolean("Reservation.CanAssignOverTheLimit", false);
         iAssignedVariables = new HashSet<Request>();
         iUnassignedVariables = new HashSet<Request>();
         iPerturbVariables = new HashSet<Request>();
@@ -115,6 +119,13 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
             iStudentWeights = new PriorityStudentWeights(properties);
         }
         iProperties = properties;
+    }
+    
+    /**
+     * Return true if reservation that has {@link Reservation#canAssignOverLimit()} can assign enrollments over the limit
+     */
+    public boolean getReservationCanAssignOverTheLimit() {
+        return iReservationCanAssignOverTheLimit;
     }
     
     /**
