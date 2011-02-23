@@ -86,31 +86,41 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         iUnassignedVariables = new HashSet<Request>();
         iPerturbVariables = new HashSet<Request>();
         iStudentWeights = new PriorityStudentWeights(properties);
-        SectionLimit sectionLimit = new SectionLimit(properties);
-        addGlobalConstraint(sectionLimit);
-        ConfigLimit configLimit = new ConfigLimit(properties);
-        addGlobalConstraint(configLimit);
-        CourseLimit courseLimit = new CourseLimit(properties);
-        addGlobalConstraint(courseLimit);
-        ReservationLimit reservationLimit = new ReservationLimit(properties);
-        addGlobalConstraint(reservationLimit);
-        sectionLimit.addConstraintListener(new ConstraintListener<Enrollment>() {
-            public void constraintBeforeAssigned(long iteration, Constraint<?, Enrollment> constraint,
-                    Enrollment enrollment, Set<Enrollment> unassigned) {
-                if (enrollment.getStudent().isDummy())
-                    for (Enrollment conflict : unassigned) {
-                        if (!conflict.getStudent().isDummy()) {
-                            sLog.warn("Enrolment of a real student " + conflict.getStudent() + " is unassigned "
-                                    + "\n  -- " + conflict + "\ndue to an enrollment of a dummy student "
-                                    + enrollment.getStudent() + " " + "\n  -- " + enrollment);
-                        }
+        if (properties.getPropertyBoolean("Sectioning.SectionLimit", true)) {
+            SectionLimit sectionLimit = new SectionLimit(properties);
+            addGlobalConstraint(sectionLimit);
+            if (properties.getPropertyBoolean("Sectioning.SectionLimit.Debug", false)) {
+                sectionLimit.addConstraintListener(new ConstraintListener<Enrollment>() {
+                    public void constraintBeforeAssigned(long iteration, Constraint<?, Enrollment> constraint,
+                            Enrollment enrollment, Set<Enrollment> unassigned) {
+                        if (enrollment.getStudent().isDummy())
+                            for (Enrollment conflict : unassigned) {
+                                if (!conflict.getStudent().isDummy()) {
+                                    sLog.warn("Enrolment of a real student " + conflict.getStudent() + " is unassigned "
+                                            + "\n  -- " + conflict + "\ndue to an enrollment of a dummy student "
+                                            + enrollment.getStudent() + " " + "\n  -- " + enrollment);
+                                }
+                            }
                     }
-            }
 
-            public void constraintAfterAssigned(long iteration, Constraint<?, Enrollment> constraint,
-                    Enrollment assigned, Set<Enrollment> unassigned) {
+                    public void constraintAfterAssigned(long iteration, Constraint<?, Enrollment> constraint,
+                            Enrollment assigned, Set<Enrollment> unassigned) {
+                    }
+                });
             }
-        });
+        }
+        if (properties.getPropertyBoolean("Sectioning.ConfigLimit", true)) {
+            ConfigLimit configLimit = new ConfigLimit(properties);
+            addGlobalConstraint(configLimit);
+        }
+        if (properties.getPropertyBoolean("Sectioning.CourseLimit", true)) {
+            CourseLimit courseLimit = new CourseLimit(properties);
+            addGlobalConstraint(courseLimit);
+        }
+        if (properties.getPropertyBoolean("Sectioning.ReservationLimit", true)) {
+            ReservationLimit reservationLimit = new ReservationLimit(properties);
+            addGlobalConstraint(reservationLimit);
+        }
         try {
             Class<StudentWeights> studentWeightsClass = (Class<StudentWeights>)Class.forName(properties.getProperty("StudentWeights.Class", PriorityStudentWeights.class.getName()));
             iStudentWeights = studentWeightsClass.getConstructor(DataProperties.class).newInstance(properties);
@@ -177,14 +187,14 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         iStudents.add(student);
         if (student.isDummy())
             iNrDummyStudents++;
-        StudentConflict conflict = new StudentConflict();
         for (Request request : student.getRequests()) {
-            conflict.addVariable(request);
             addVariable(request);
             if (student.isDummy())
                 iNrDummyRequests++;
         }
-        addConstraint(conflict);
+        if (getProperties().getPropertyBoolean("Sectioning.StudentConflict", true)) {
+            addConstraint(new StudentConflict(student));
+        }
         if (student.isComplete())
             iCompleteStudents.add(student);
     }

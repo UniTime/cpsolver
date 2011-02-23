@@ -5,6 +5,7 @@ import java.util.Set;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
+import net.sf.cpsolver.studentsct.model.Student;
 
 /**
  * This constraints ensures that a student is not enrolled into sections that
@@ -33,6 +34,16 @@ import net.sf.cpsolver.studentsct.model.Request;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class StudentConflict extends Constraint<Request, Enrollment> {
+    
+    /**
+     * Constructor
+     * @param student student for which the constraint is created
+     */
+    public StudentConflict(Student student) {
+        super();
+        for (Request request : student.getRequests())
+            addVariable(request);
+    }
 
     /**
      * A given enrollment is conflicting when the student is enrolled into

@@ -65,13 +65,10 @@ public class StudentSctBBTest extends Model<Request, Enrollment> {
      */
     public StudentSctBBTest(Student student) {
         iStudent = student;
-        StudentConflict conflict = new StudentConflict();
-        for (Request request : iStudent.getRequests()) {
-            conflict.addVariable(request);
+        for (Request request : iStudent.getRequests())
             addVariable(request);
-        }
         addGlobalConstraint(new SectionLimit(new DataProperties()));
-        addConstraint(conflict);
+        addConstraint(new StudentConflict(student));
     }
 
     /** Return the given student */
