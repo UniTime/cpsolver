@@ -216,12 +216,14 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
                     break;
                 }
             }
-            conflict.removeVariable(request);
+            if (conflict != null) 
+                conflict.removeVariable(request);
             removeVariable(request);
             if (student.isDummy())
                 iNrDummyRequests--;
         }
-        removeConstraint(conflict);
+        if (conflict != null) 
+            removeConstraint(conflict);
     }
 
     /**
