@@ -2,8 +2,10 @@ package net.sf.cpsolver.studentsct.model;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import net.sf.cpsolver.coursett.model.Placement;
@@ -48,6 +50,7 @@ public class Section implements Assignment, Comparable<Section> {
     private static DecimalFormat sDF = new DecimalFormat("0.000");
     private long iId = -1;
     private String iName = null;
+    private Map<Long, String> iNameByCourse = null;
     private Subpart iSubpart = null;
     private Section iParent = null;
     private Placement iPlacement = null;
@@ -295,7 +298,7 @@ public class Section implements Assignment, Comparable<Section> {
 
     /** Long name: subpart name + time long name + room names + instructor names */
     public String getLongName() {
-        return getSubpart().getName() + (getTime() == null ? "" : " " + getTime().getLongName())
+        return getSubpart().getName() + " " + getName() + " " + (getTime() == null ? "" : " " + getTime().getLongName())
                 + (getNrRooms() == 0 ? "" : " " + getPlacement().getRoomName(","))
                 + (getChoice().getInstructorNames() == null ? "" : " " + getChoice().getInstructorNames());
     }
@@ -520,5 +523,26 @@ public class Section implements Assignment, Comparable<Section> {
         iSectionReservations = null;
         iTotalUnreservedSpace = null;
     }
+    
+    /**
+     * Return course-dependent section name
+     */
+    public String getName(long courseId) {
+        if (iNameByCourse == null) return getName();
+        String name = iNameByCourse.get(courseId);
+        return (name == null ? getName() : name);
+    }
+    
+    /**
+     * Set course-dependent section name
+     */
+    public void setName(long courseId, String name) {
+        if (iNameByCourse == null) iNameByCourse = new HashMap<Long, String>();
+        iNameByCourse.put(courseId, name);
+    }
 
+    /**
+     * Return course-dependent section names
+     */
+    public Map<Long, String> getNameByCourse() { return iNameByCourse; }
 }

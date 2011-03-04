@@ -261,6 +261,9 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                         Element sectionEl = subpartEl.addElement("section");
                         sectionEl.addAttribute("id", getId("section", section.getId()));
                         sectionEl.addAttribute("limit", String.valueOf(section.getLimit()));
+                        if (section.getNameByCourse() != null)
+                            for (Map.Entry<Long, String> entry: section.getNameByCourse().entrySet())
+                                sectionEl.addElement("cname").addAttribute("id", entry.getKey().toString()).setText(entry.getValue());
                         if (section.getParent() != null)
                             sectionEl.addAttribute("parent", getId("section", section.getParent().getId()));
                         if (iShowNames && section.getChoice().getInstructorIds() != null)

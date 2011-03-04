@@ -356,6 +356,10 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                             sectionTable.put(new Long(section.getId()), section);
                             section.setSpaceHeld(Double.parseDouble(sectionEl.attributeValue("hold", "0.0")));
                             section.setSpaceExpected(Double.parseDouble(sectionEl.attributeValue("expect", "0.0")));
+                            for (Iterator<?> m = sectionEl.elementIterator("cname"); m.hasNext(); ) {
+                                Element cNameEl = (Element)m.next();
+                                section.setName(Long.parseLong(cNameEl.attributeValue("id")), cNameEl.getText());
+                            }
                         }
                     }
                 }
