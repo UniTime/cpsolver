@@ -40,6 +40,7 @@ public class Course {
     private int iLimit = 0, iProjected = 0;
     private double iEnrollmentWeight = 0.0;
     private Set<Enrollment> iEnrollments = new HashSet<Enrollment>();
+    private Set<CourseRequest> iRequests = new HashSet<CourseRequest>();
 
     /**
      * Constructor
@@ -162,5 +163,10 @@ public class Course {
     /** Set of assigned enrollments */
     public Set<Enrollment> getEnrollments() {
         return iEnrollments;
+    }
+    
+    /** Set of course requests requesting this course */
+    public Set<CourseRequest> getRequests() {
+        return iRequests;
     }
 }
