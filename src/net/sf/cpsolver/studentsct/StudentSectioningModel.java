@@ -19,6 +19,7 @@ import net.sf.cpsolver.studentsct.constraint.StudentConflict;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
 import net.sf.cpsolver.studentsct.extension.TimeOverlapsCounter;
 import net.sf.cpsolver.studentsct.model.Config;
+import net.sf.cpsolver.studentsct.model.Course;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Offering;
@@ -210,6 +211,10 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
             iCompleteStudents.remove(student);
         StudentConflict conflict = null;
         for (Request request : student.getRequests()) {
+            if (request instanceof CourseRequest) {
+                for (Course course: ((CourseRequest) request).getCourses())
+                    course.getRequests().remove(request);
+            }
             for (Constraint<Request, Enrollment> c : request.constraints()) {
                 if (c instanceof StudentConflict) {
                     conflict = (StudentConflict) c;

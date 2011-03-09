@@ -46,7 +46,7 @@ public class CourseRequest extends Request {
     private List<Course> iCourses = null;
     private Set<Choice> iWaitlistedChoices = new HashSet<Choice>();
     private Set<Choice> iSelectedChoices = new HashSet<Choice>();
-    private boolean iWaitlist = false;
+    private Long iWaitlist = null;
     private Double iCachedMinPenalty = null, iCachedMaxPenalty = null;
     public static boolean sSameTimePrecise = false;
 
@@ -67,13 +67,15 @@ public class CourseRequest extends Request {
      *            list of requested courses (in the correct order -- first is
      *            the requested course, second is the first alternative, etc.)
      * @param waitlist
-     *            true if the student can be put on a waitlist (no alternative
+     *            time stamp of the request if the student can be put on a wait-list (no alternative
      *            course request will be given instead)
      */
     public CourseRequest(long id, int priority, boolean alternative, Student student, java.util.List<Course> courses,
-            boolean waitlist) {
+            Long waitlist) {
         super(id, priority, alternative, student);
         iCourses = new ArrayList<Course>(courses);
+        for (Course course: iCourses)
+            course.getRequests().add(this);
         iWaitlist = waitlist;
     }
 
@@ -486,6 +488,13 @@ public class CourseRequest extends Request {
      * request will be given instead)
      */
     public boolean isWaitlist() {
+        return iWaitlist != null;
+    }
+    
+    /**
+     * Time stamp of the requests if the student can be put on a wait-list
+     */
+    public Long getWaitListTimeStamp() {
         return iWaitlist;
     }
 

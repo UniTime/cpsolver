@@ -707,8 +707,7 @@ public class Test {
                         } else {
                             List<Course> courses = new ArrayList<Course>(1);
                             courses.add(course);
-                            CourseRequest request = new CourseRequest(reqId++, priority++, false, student, courses,
-                                    false);
+                            CourseRequest request = new CourseRequest(reqId++, priority++, false, student, courses, null);
                             List<Request> requestsThisCourse = requests.get(course);
                             if (requestsThisCourse == null) {
                                 requestsThisCourse = new ArrayList<Request>();
@@ -840,8 +839,7 @@ public class Test {
                                 if (courseRequest == null) {
                                     List<Course> courses = new ArrayList<Course>(1);
                                     courses.add(course);
-                                    courseRequest = new CourseRequest(reqId++, student.getRequests().size(), false,
-                                            student, courses, false);
+                                    courseRequest = new CourseRequest(reqId++, student.getRequests().size(), false, student, courses, null);
                                 } else {
                                     sLog.warn("      -- request for course " + course + " is already present");
                                 }
