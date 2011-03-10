@@ -481,12 +481,15 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                         courses.add(courseTable.get(Long.valueOf(requestEl.attributeValue("course"))));
                         for (Iterator<?> k = requestEl.elementIterator("alternative"); k.hasNext();)
                             courses.add(courseTable.get(Long.valueOf(((Element) k.next()).attributeValue("course"))));
-                        Long waitList = null;
-                        if (requestEl.attributeValue("waitlist") != null)
-                            waitList = Long.valueOf(requestEl.attributeValue("waitlist"));
-                        CourseRequest courseRequest = new CourseRequest(Long.parseLong(requestEl.attributeValue("id")),
-                                Integer.parseInt(requestEl.attributeValue("priority")), "true".equals(requestEl
-                                        .attributeValue("alternative")), student, courses, waitList);
+                        Long timeStamp = null;
+                        if (requestEl.attributeValue("timeStamp") != null)
+                            timeStamp = Long.valueOf(requestEl.attributeValue("timeStamp"));
+                        CourseRequest courseRequest = new CourseRequest(
+                                Long.parseLong(requestEl.attributeValue("id")),
+                                Integer.parseInt(requestEl.attributeValue("priority")),
+                                "true".equals(requestEl.attributeValue("alternative")), 
+                                student, courses,
+                                "true".equals(requestEl.attributeValue("waitlist", "false")), timeStamp);
                         if (requestEl.attributeValue("weight") != null)
                             courseRequest.setWeight(Double.parseDouble(requestEl.attributeValue("weight")));
                         for (Iterator<?> k = requestEl.elementIterator("waitlisted"); k.hasNext();) {
