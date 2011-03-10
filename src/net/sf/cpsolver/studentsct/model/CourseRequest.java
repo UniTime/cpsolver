@@ -46,7 +46,8 @@ public class CourseRequest extends Request {
     private List<Course> iCourses = null;
     private Set<Choice> iWaitlistedChoices = new HashSet<Choice>();
     private Set<Choice> iSelectedChoices = new HashSet<Choice>();
-    private Long iWaitlist = null;
+    private boolean iWaitlist = false;
+    private Long iTimeStamp = null;
     private Double iCachedMinPenalty = null, iCachedMaxPenalty = null;
     public static boolean sSameTimePrecise = false;
 
@@ -71,12 +72,13 @@ public class CourseRequest extends Request {
      *            course request will be given instead)
      */
     public CourseRequest(long id, int priority, boolean alternative, Student student, java.util.List<Course> courses,
-            Long waitlist) {
+            boolean waitlist, Long timeStamp) {
         super(id, priority, alternative, student);
         iCourses = new ArrayList<Course>(courses);
         for (Course course: iCourses)
             course.getRequests().add(this);
         iWaitlist = waitlist;
+        iTimeStamp = timeStamp;
     }
 
     /**
@@ -205,7 +207,7 @@ public class CourseRequest extends Request {
             return;
         if (idx == 0) { // run only once for each configuration
             boolean canOverLimit = false;
-            if (availableOnly && ((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit()) {
+            if (availableOnly && (getModel() == null || ((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit())) {
                 for (Reservation r: config.getOffering().getReservations()) {
                     if (!r.canAssignOverLimit() || !r.isApplicable(getStudent())) continue;
                     if (!r.getConfigs().isEmpty() && !r.getConfigs().contains(config)) continue;
@@ -277,7 +279,7 @@ public class CourseRequest extends Request {
                     }
                 }
                 boolean canOverLimit = false;
-                if (availableOnly && ((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit()) {
+                if (availableOnly &&  (getModel() == null || ((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit())) {
                     for (Reservation r: config.getOffering().getReservations()) {
                         if (!r.canAssignOverLimit() || !r.isApplicable(getStudent()) || !r.isIncluded(e)) continue;
                         if (r.getReservedAvailableSpace(this) < getWeight()) continue;
@@ -326,7 +328,7 @@ public class CourseRequest extends Request {
                         && !isSelected(section) && !isWaitlisted(section))
                     continue;
                 boolean canOverLimit = false;
-                if (availableOnly && ((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit()) {
+                if (availableOnly && (getModel() == null || ((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit())) {
                     for (Reservation r: config.getReservations()) {
                         if (!r.canAssignOverLimit() || !r.isApplicable(getStudent())) continue;
                         if (r.getSections(subpart) != null && !r.getSections(subpart).contains(section)) continue;
@@ -488,14 +490,22 @@ public class CourseRequest extends Request {
      * request will be given instead)
      */
     public boolean isWaitlist() {
-        return iWaitlist != null;
+        return iWaitlist;
     }
     
     /**
-     * Time stamp of the requests if the student can be put on a wait-list
+     * True if the student can be put on a wait-list (no alternative course
+     * request will be given instead)
      */
-    public Long getWaitListTimeStamp() {
-        return iWaitlist;
+    public void setWaitlist(boolean waitlist) {
+        iWaitlist = waitlist;
+    }
+    
+    /**
+     * Time stamp of the request
+     */
+    public Long getTimeStamp() {
+        return iTimeStamp;
     }
 
     @Override

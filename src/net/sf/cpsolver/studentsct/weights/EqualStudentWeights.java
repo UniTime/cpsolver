@@ -84,31 +84,27 @@ public class EqualStudentWeights extends PriorityStudentWeights {
         new CourseRequest(1l, 0, false, s, ToolBox.toList(
                 new Course(1, "A", "1", new Offering(0, "A")),
                 new Course(1, "A", "2", new Offering(0, "A")),
-                new Course(1, "A", "3", new Offering(0, "A"))), null);
+                new Course(1, "A", "3", new Offering(0, "A"))), false, null);
         new CourseRequest(2l, 1, false, s, ToolBox.toList(
                 new Course(1, "B", "1", new Offering(0, "B")),
                 new Course(1, "B", "2", new Offering(0, "B")),
-                new Course(1, "B", "3", new Offering(0, "B"))), null);
+                new Course(1, "B", "3", new Offering(0, "B"))), false, null);
         new CourseRequest(3l, 2, false, s, ToolBox.toList(
                 new Course(1, "C", "1", new Offering(0, "C")),
                 new Course(1, "C", "2", new Offering(0, "C")),
-                new Course(1, "C", "3", new Offering(0, "C"))), null);
-        new CourseRequest(4l, 3, false, s, ToolBox.toList(
-                new Course(1, "D", "1", new Offering(0, "D")),
-                new Course(1, "D", "2", new Offering(0, "D")),
-                new Course(1, "D", "3", new Offering(0, "D"))), null);
+                new Course(1, "C", "3", new Offering(0, "C"))), false, null);
         new CourseRequest(5l, 4, false, s, ToolBox.toList(
                 new Course(1, "E", "1", new Offering(0, "E")),
                 new Course(1, "E", "2", new Offering(0, "E")),
-                new Course(1, "E", "3", new Offering(0, "E"))), null);
+                new Course(1, "E", "3", new Offering(0, "E"))), false, null);
         new CourseRequest(6l, 5, true, s, ToolBox.toList(
                 new Course(1, "F", "1", new Offering(0, "F")),
                 new Course(1, "F", "2", new Offering(0, "F")),
-                new Course(1, "F", "3", new Offering(0, "F"))), null);
+                new Course(1, "F", "3", new Offering(0, "F"))), false, null);
         new CourseRequest(7l, 6, true, s, ToolBox.toList(
                 new Course(1, "G", "1", new Offering(0, "G")),
                 new Course(1, "G", "2", new Offering(0, "G")),
-                new Course(1, "G", "3", new Offering(0, "G"))), null);
+                new Course(1, "G", "3", new Offering(0, "G"))), false, null);
         
         Placement p = new Placement(null, new TimeLocation(1, 90, 12, 0, 0, null, null, new BitSet(), 10), new ArrayList<RoomLocation>());
         for (Request r: s.getRequests()) {
