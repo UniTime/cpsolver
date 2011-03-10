@@ -216,7 +216,7 @@ public class InevitableStudentConflicts {
                     Course course = (Course) x;
                     List<Course> courses = new ArrayList<Course>(1);
                     courses.add(course);
-                    CourseRequest cr = new CourseRequest(-1, 0, false, new Student(-1), courses, null);
+                    CourseRequest cr = new CourseRequest(-1, 0, false, new Student(-1), courses, false, null);
                     String field = course.getName();
                     int idx = 0;
                     for (Iterator<Enrollment> k = cr.getEnrollmentsSkipSameTime().iterator(); k.hasNext();) {
