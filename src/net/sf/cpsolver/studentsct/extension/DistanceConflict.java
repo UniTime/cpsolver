@@ -1,12 +1,15 @@
 package net.sf.cpsolver.studentsct.extension;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
 
 import net.sf.cpsolver.coursett.model.Placement;
+import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.ifs.extension.Extension;
 import net.sf.cpsolver.ifs.model.ModelListener;
@@ -95,7 +98,62 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
     public String toString() {
         return "DistanceConstraint";
     }
+    
+    
+    private Map<Long, Map<Long, Integer>> iDistanceCache = new HashMap<Long, Map<Long,Integer>>();
+    protected int getDistanceInMinutes(RoomLocation r1, RoomLocation r2) {
+        if (r1.getId().compareTo(r2.getId()) > 0) return getDistanceInMinutes(r2, r1);
+        if (r1.getId().equals(r2.getId()) || r1.getIgnoreTooFar() || r2.getIgnoreTooFar())
+            return 0;
+        if (r1.getPosX() == null || r1.getPosY() == null || r2.getPosX() == null || r2.getPosY() == null)
+            return 60;
+        Map<Long, Integer> other2distance = iDistanceCache.get(r1.getId());
+        if (other2distance == null) {
+            other2distance = new HashMap<Long, Integer>();
+            iDistanceCache.put(r1.getId(), other2distance);
+        }
+        Integer distance = other2distance.get(r2.getId());
+        if (distance == null) {
+            distance = iDistanceMetric.getDistanceInMinutes(r1.getPosX(), r1.getPosY(), r2.getPosX(), r2.getPosY());
+            other2distance.put(r2.getId(), distance);
+        }
+        return distance;
+    }
 
+    protected int getDistanceInMinutes(Placement p1, Placement p2) {
+        if (p1.isMultiRoom()) {
+            if (p2.isMultiRoom()) {
+                int dist = 0;
+                for (RoomLocation r1 : p1.getRoomLocations()) {
+                    for (RoomLocation r2 : p2.getRoomLocations()) {
+                        dist = Math.max(dist, getDistanceInMinutes(r1, r2));
+                    }
+                }
+                return dist;
+            } else {
+                if (p2.getRoomLocation() == null)
+                    return 0;
+                int dist = 0;
+                for (RoomLocation r1 : p1.getRoomLocations()) {
+                    dist = Math.max(dist, getDistanceInMinutes(r1, p2.getRoomLocation()));
+                }
+                return dist;
+            }
+        } else if (p2.isMultiRoom()) {
+            if (p1.getRoomLocation() == null)
+                return 0;
+            int dist = 0;
+            for (RoomLocation r2 : p2.getRoomLocations()) {
+                dist = Math.max(dist, getDistanceInMinutes(p1.getRoomLocation(), r2));
+            }
+            return dist;
+        } else {
+            if (p1.getRoomLocation() == null || p2.getRoomLocation() == null)
+                return 0;
+            return getDistanceInMinutes(p1.getRoomLocation(), p2.getRoomLocation());
+        }
+    }
+    
     /**
      * Return true if the given two sections are in distance conflict. This
      * means that the sections are back-to-back and that they are placed in
@@ -116,11 +174,11 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
             return false;
         int a1 = t1.getStartSlot(), a2 = t2.getStartSlot();
         if (a1 + t1.getNrSlotsPerMeeting() == a2) {
-            int dist = Placement.getDistanceInMinutes(iDistanceMetric, s1.getPlacement(), s2.getPlacement());
+            int dist = getDistanceInMinutes(s1.getPlacement(), s2.getPlacement());
             if (dist > t1.getBreakTime())
                 return true;
         } else if (a2 + t2.getNrSlotsPerMeeting() == a1) {
-            int dist = Placement.getDistanceInMinutes(iDistanceMetric, s1.getPlacement(), s2.getPlacement());
+            int dist = getDistanceInMinutes(s1.getPlacement(), s2.getPlacement());
             if (dist > t2.getBreakTime())
                 return true;
         }
