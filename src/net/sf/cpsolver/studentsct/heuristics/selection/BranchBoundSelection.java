@@ -9,7 +9,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import net.sf.cpsolver.ifs.extension.Extension;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
@@ -122,23 +121,18 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
      * Initialize
      */
     public void init(Solver<Request, Enrollment> solver, String name) {
-        List<Student> students = iOrder.order(((StudentSectioningModel) solver.currentSolution().getModel())
-                .getStudents());
-        iStudentsEnumeration = students.iterator();
-        if (iDistanceConflict == null)
-            for (Extension<Request, Enrollment> ext : solver.getExtensions()) {
-                if (ext instanceof DistanceConflict)
-                    iDistanceConflict = (DistanceConflict) ext;
-            }
-        if (iTimeOverlaps == null)
-            for (Extension<Request, Enrollment> ext : solver.getExtensions()) {
-                if (ext instanceof TimeOverlapsCounter)
-                    iTimeOverlaps = (TimeOverlapsCounter) ext;
-            }
-        iModel = (StudentSectioningModel)solver.currentSolution().getModel();
-        Progress.getInstance(solver.currentSolution().getModel()).setPhase(name, students.size());
+        setModel((StudentSectioningModel) solver.currentSolution().getModel());
+        Progress.getInstance(solver.currentSolution().getModel()).setPhase(name, iModel.getStudents().size());
     }
-
+    
+    public void setModel(StudentSectioningModel model) {
+        iModel = model;
+        List<Student> students = iOrder.order(iModel.getStudents());
+        iStudentsEnumeration = students.iterator();   
+        iTimeOverlaps = model.getTimeOverlaps();
+        iDistanceConflict = model.getDistanceConflict();
+    }
+    
     public void init(Solver<Request, Enrollment> solver) {
         init(solver, "Branch&bound...");
     }
