@@ -410,8 +410,8 @@ public class CourseRequest extends Request {
      * the sections with the same time (of each subpart, {@link Section}
      * comparator is used)
      */
-    public TreeSet<Enrollment> getAvaiableEnrollmentsSkipSameTime() {
-        TreeSet<Enrollment> avaiableEnrollmentsSkipSameTime = new TreeSet<Enrollment>();
+    public List<Enrollment> getAvaiableEnrollmentsSkipSameTime() {
+        List<Enrollment> avaiableEnrollmentsSkipSameTime = new ArrayList<Enrollment>();
         if (getInitialAssignment() != null)
             avaiableEnrollmentsSkipSameTime.add(getInitialAssignment());
         int idx = 0;
