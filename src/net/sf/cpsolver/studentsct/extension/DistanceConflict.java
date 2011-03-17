@@ -299,7 +299,7 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
      * enrollment and other enrollments that are assignmed to the same student.
      */
     public Set<Conflict> allConflicts(Enrollment enrollment) {
-        Set<Conflict> ret = new HashSet<Conflict>();
+        Set<Conflict> ret = conflicts(enrollment);
         if (!enrollment.isCourseRequest())
             return ret;
         for (Request request : enrollment.getStudent().getRequests()) {
