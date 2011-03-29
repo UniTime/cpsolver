@@ -76,6 +76,13 @@ public class CurriculumReservation extends Reservation {
     }
 
     /**
+     * Set reservation limit (-1 for unlimited)
+     */
+    public void setLimit(double limit) {
+        iLimit = limit;
+    }
+
+    /**
      * Reservation priority (lower than individual and group reservations)
      */
     @Override
