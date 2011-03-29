@@ -86,6 +86,7 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
     public void init(Solver<Request, Enrollment> solver) {
         super.init(solver);
         setup(solver);
+        solver.setUpdateProgress(false);
     }
 
     public void setup(Solver<Request, Enrollment> solver) {
