@@ -188,16 +188,20 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         iStudents.add(student);
         if (student.isDummy())
             iNrDummyStudents++;
-        for (Request request : student.getRequests()) {
+        for (Request request : student.getRequests())
             addVariable(request);
-            if (student.isDummy())
-                iNrDummyRequests++;
-        }
         if (getProperties().getPropertyBoolean("Sectioning.StudentConflict", true)) {
             addConstraint(new StudentConflict(student));
         }
         if (student.isComplete())
             iCompleteStudents.add(student);
+    }
+    
+    @Override
+    public void addVariable(Request request) {
+        super.addVariable(request);
+        if (request.getStudent().isDummy())
+            iNrDummyRequests++;
     }
 
     /**
@@ -211,10 +215,6 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
             iCompleteStudents.remove(student);
         StudentConflict conflict = null;
         for (Request request : student.getRequests()) {
-            if (request instanceof CourseRequest) {
-                for (Course course: ((CourseRequest) request).getCourses())
-                    course.getRequests().remove(request);
-            }
             for (Constraint<Request, Enrollment> c : request.constraints()) {
                 if (c instanceof StudentConflict) {
                     conflict = (StudentConflict) c;
@@ -224,12 +224,23 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
             if (conflict != null) 
                 conflict.removeVariable(request);
             removeVariable(request);
-            if (student.isDummy())
-                iNrDummyRequests--;
         }
         if (conflict != null) 
             removeConstraint(conflict);
     }
+    
+    @Override
+    public void removeVariable(Request request) {
+        super.removeVariable(request);
+        if (request instanceof CourseRequest) {
+            CourseRequest cr = (CourseRequest)request;
+            for (Course course: cr.getCourses())
+                course.getRequests().remove(request);
+        }
+        if (request.getStudent().isDummy())
+            iNrDummyRequests--;
+    }
+
 
     /**
      * List of offerings
@@ -269,7 +280,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
             int nrRealStudents = getStudents().size() - nrLastLikeStudents;
             int nrLastLikeCompleteStudents = getNrCompleteLastLikeStudents(false);
             int nrRealCompleteStudents = getCompleteStudents().size() - nrLastLikeCompleteStudents;
-            info.put("Last-like students with complete schedule", sDecimalFormat.format(100.0
+            info.put("Projected students with complete schedule", sDecimalFormat.format(100.0
                     * nrLastLikeCompleteStudents / nrLastLikeStudents)
                     + "% (" + nrLastLikeCompleteStudents + "/" + nrLastLikeStudents + ")");
             info.put("Real students with complete schedule", sDecimalFormat.format(100.0 * nrRealCompleteStudents
@@ -279,7 +290,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
             int nrRealRequests = variables().size() - nrLastLikeRequests;
             int nrLastLikeAssignedRequests = getNrAssignedLastLikeRequests(false);
             int nrRealAssignedRequests = assignedVariables().size() - nrLastLikeAssignedRequests;
-            info.put("Last-like assigned requests", sDecimalFormat.format(100.0 * nrLastLikeAssignedRequests
+            info.put("Projected assigned requests", sDecimalFormat.format(100.0 * nrLastLikeAssignedRequests
                     / nrLastLikeRequests)
                     + "% (" + nrLastLikeAssignedRequests + "/" + nrLastLikeRequests + ")");
             info.put("Real assigned requests", sDecimalFormat.format(100.0 * nrRealAssignedRequests / nrRealRequests)
@@ -566,7 +577,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
     }
 
     /**
-     * Number of requests from last-like ({@link Student#isDummy()} equals true)
+     * Number of requests from projected ({@link Student#isDummy()} equals true)
      * students.
      */
     public int getNrLastLikeRequests(boolean precise) {
@@ -596,7 +607,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
     }
 
     /**
-     * Number of requests from last-like ({@link Student#isDummy()} equals true)
+     * Number of requests from projected ({@link Student#isDummy()} equals true)
      * students that are assigned.
      */
     public int getNrAssignedLastLikeRequests(boolean precise) {
@@ -637,7 +648,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
             int nrRealStudents = getStudents().size() - nrLastLikeStudents;
             int nrLastLikeCompleteStudents = getNrCompleteLastLikeStudents(true);
             int nrRealCompleteStudents = getCompleteStudents().size() - nrLastLikeCompleteStudents;
-            info.put("Last-like students with complete schedule", sDecimalFormat.format(100.0
+            info.put("Projected students with complete schedule", sDecimalFormat.format(100.0
                     * nrLastLikeCompleteStudents / nrLastLikeStudents)
                     + "% (" + nrLastLikeCompleteStudents + "/" + nrLastLikeStudents + ")");
             info.put("Real students with complete schedule", sDecimalFormat.format(100.0 * nrRealCompleteStudents
@@ -647,7 +658,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
             int nrRealRequests = variables().size() - nrLastLikeRequests;
             int nrLastLikeAssignedRequests = getNrAssignedLastLikeRequests(true);
             int nrRealAssignedRequests = assignedVariables().size() - nrLastLikeAssignedRequests;
-            info.put("Last-like assigned requests", sDecimalFormat.format(100.0 * nrLastLikeAssignedRequests
+            info.put("Projected assigned requests", sDecimalFormat.format(100.0 * nrLastLikeAssignedRequests
                     / nrLastLikeRequests)
                     + "% (" + nrLastLikeAssignedRequests + "/" + nrLastLikeRequests + ")");
             info.put("Real assigned requests", sDecimalFormat.format(100.0 * nrRealAssignedRequests / nrRealRequests)
