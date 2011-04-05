@@ -100,6 +100,8 @@ public class RoundRobinNeighbourSelection<V extends Variable<V, T>, T extends Va
     public void changeSelection(Solution<V, T> solution) {
         iSelectionIdx = (1 + iSelectionIdx) % iSelections.size();
         sLogger.debug("Phase changed to " + (iSelectionIdx + 1));
+        if (solution.getBestInfo() == null || iSolver.getSolutionComparator().isBetterThanBestSolution(solution))
+            solution.saveBest();
         iSelections.get(iSelectionIdx).init(iSolver);
     }
 }
