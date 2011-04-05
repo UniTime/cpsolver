@@ -256,5 +256,15 @@ public class Offering {
         iTotalUnreservedSpace = null;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || !(o instanceof Offering)) return false;
+        return getId() == ((Offering)o).getId();
+    }
+    
+    @Override
+    public int hashCode() {
+        return (int) (iId ^ (iId >>> 32));
+    }
 
 }
