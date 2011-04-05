@@ -603,7 +603,7 @@ public class CourseRequest extends Request {
      */
     @Override
     public double getBound() {
-        return ((StudentSectioningModel)getModel()).getBound(this);
+        return - getWeight() * ((StudentSectioningModel)getModel()).getStudentWeights().getBound(this);
         /*
         if (iCachedBound == null) {
             iCachedBound = new Double(-Math.pow(Enrollment.sPriorityWeight, getPriority())
@@ -624,5 +624,10 @@ public class CourseRequest extends Request {
     @Override
     public boolean isAssigned() {
         return getAssignment() != null && !(getAssignment()).getAssignments().isEmpty();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return super.equals(o) && (o instanceof CourseRequest);
     }
 }

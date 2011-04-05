@@ -160,7 +160,7 @@ public class FreeTimeRequest extends Request implements Assignment {
     /** Estimated bound for this request */
     @Override
     public double getBound() {
-        return ((StudentSectioningModel)getModel()).getBound(this);
+        return - getWeight() * ((StudentSectioningModel)getModel()).getStudentWeights().getBound(this);
     }
 
     /** Free time request generally allow overlaps. */
@@ -177,4 +177,16 @@ public class FreeTimeRequest extends Request implements Assignment {
             return 1;
         }
     }
+    
+    @Override
+    public int hashCode() {
+        return super.hashCode() ^ getTime().hashCode();
+    }
+
+    
+    @Override
+    public boolean equals(Object o) {
+        return super.equals(o) && (o instanceof CourseRequest) && getTime().equals(((FreeTimeRequest)o).getTime());
+    }
+
 }
