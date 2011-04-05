@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Set;
 
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
+import net.sf.cpsolver.ifs.model.GlobalConstraint;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
@@ -420,6 +421,22 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             else
                 iBestValue = getValue();
         }
+        
+        /** True if the enrollment is conflicting */
+        public boolean inConflict(int idx, Enrollment enrollment) {
+            /*
+            for (Constraint<Request, Enrollment> constraint : enrollment.variable().hardConstraints())
+                if (!(constraint instanceof StudentConflict) && constraint.inConflict(enrollment))
+                    return true;
+            */
+            for (GlobalConstraint<Request, Enrollment> constraint : enrollment.variable().getModel().globalConstraints())
+                if (constraint.inConflict(enrollment))
+                    return true;
+            for (int i = 0; i < iAssignment.length; i++)
+                if (iAssignment[i] != null && i != idx && iAssignment[i].isOverlapping(enrollment))
+                    return true;
+            return false;
+        }
 
         /** First conflicting enrollment */
         public Enrollment firstConflict(int idx, Enrollment enrollment) {
@@ -433,9 +450,9 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                 }
             }
             for (int i = 0; i < iAssignment.length; i++) {
-                if (iAssignment[i] == null)
+                if (iAssignment[i] == null || i == idx)
                     continue;
-                if (!iAssignment[i].isConsistent(enrollment))
+                if (iAssignment[i].isOverlapping(enrollment))
                     return iAssignment[i];
             }
             return null;
@@ -566,7 +583,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                     if (values != null && !values.isEmpty()) {
                         boolean hasNoConflictValue = false;
                         for (Enrollment enrollment : values) {
-                            if (firstConflict(idx, enrollment) != null)
+                            if (inConflict(idx, enrollment))
                                 continue;
                             hasNoConflictValue = true;
                             if (sDebug)
@@ -599,11 +616,14 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             for (Enrollment enrollment : values) {
                 if (sDebug)
                     sLog.debug("    -- enrollment: " + enrollment);
-                Enrollment conflict = firstConflict(idx, enrollment);
-                if (conflict != null) {
-                    if (sDebug)
+                if (sDebug) {
+                    Enrollment conflict = firstConflict(idx, enrollment);
+                    if (conflict != null) {
                         sLog.debug("        -- in conflict with: " + conflict);
-                    continue;
+                        continue;
+                    }
+                } else {
+                    if (inConflict(idx, enrollment)) continue;
                 }
                 hasNoConflictValue = true;
                 iAssignment[idx] = enrollment;
