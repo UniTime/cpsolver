@@ -1200,7 +1200,7 @@ public class Test {
             cfg.setProperty("Value.WeightNrAssignments", "0.0");
             cfg.setProperty("Variable.Class", "net.sf.cpsolver.ifs.heuristics.GeneralVariableSelection");
             cfg.setProperty("Neighbour.Class", "net.sf.cpsolver.studentsct.heuristics.StudentSctNeighbourSelection");
-            cfg.setProperty("General.SaveBestUnassigned", "-1");
+            cfg.setProperty("General.SaveBestUnassigned", "0");
             cfg.setProperty("Extensions.Classes",
                     "net.sf.cpsolver.ifs.extension.ConflictStatistics;net.sf.cpsolver.studentsct.extension.DistanceConflict" +
                     ";net.sf.cpsolver.studentsct.extension.TimeOverlapsCounter");
