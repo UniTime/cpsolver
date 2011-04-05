@@ -264,9 +264,21 @@ public class Enrollment extends Value<Request, Enrollment> {
     /** Enrollment value */
     @Override
     public double toDouble() {
-        return ((StudentSectioningModel)variable().getModel()).getWeight(this, distanceConflicts(), timeOverlappingConflicts());
+        return toDouble(true);
     }
-
+    
+    /** Enrollment value
+     * @param precise if false, distance conflicts and time overlaps are ignored (i.e., much faster, but less precise computation)
+     **/
+    public double toDouble(boolean precise) {
+        if (precise)
+            return - getRequest().getWeight() * ((StudentSectioningModel)variable().getModel()).getStudentWeights().getWeight(this, distanceConflicts(), timeOverlappingConflicts());
+        else {
+            if (getExtra() != null) return - (Double) getExtra();
+            return - getRequest().getWeight() * ((StudentSectioningModel)variable().getModel()).getStudentWeights().getWeight(this);
+        }
+    }
+    
     /** Enrollment name */
     @Override
     public String getName() {
