@@ -315,5 +315,15 @@ public class Config {
         iConfigReservations = null;
         iTotalUnreservedSpace = null;
     }
-
+    
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || !(o instanceof Config)) return false;
+        return getId() == ((Config)o).getId();
+    }
+    
+    @Override
+    public int hashCode() {
+        return new Long(getId()).hashCode();
+    }
 }

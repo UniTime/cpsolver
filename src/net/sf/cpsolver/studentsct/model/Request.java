@@ -193,4 +193,16 @@ public abstract class Request extends Variable<Request, Enrollment> {
     public boolean isAssigned() {
         return getAssignment() != null;
     }
+    
+    @Override
+    public int hashCode() {
+        return (int) (iId ^ (iId >>> 32) ^ getStudent().getId() ^ (getStudent().getId() >>> 32));
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || !(o instanceof Request)) return false;
+        return getId() == ((Request)o).getId() && getStudent().getId() == ((Request)o).getStudent().getId();
+    }
+
 }
