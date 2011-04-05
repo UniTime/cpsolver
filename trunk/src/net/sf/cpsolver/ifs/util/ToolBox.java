@@ -54,10 +54,19 @@ public class ToolBox {
 
     /** Returns random element from the given set of elements */
     public static <E> E random(Collection<E> set) {
-        if (set == null || set.isEmpty())
-            return null;
-        List<E> v = (set instanceof List<?> ? (List<E>) set : new ArrayList<E>(set));
-        return v.get(random(v.size()));
+        switch (set == null ? 0 : set.size()) {
+            case 0:
+                return null;
+            case 1:
+                return set.iterator().next();
+            case 2:
+                Iterator<E> i = set.iterator();
+                if (sRandom.nextBoolean()) i.next();
+                return i.next();
+            default:
+                List<E> v = (set instanceof List<?> ? (List<E>) set : new ArrayList<E>(set));
+                return v.get(random(v.size()));
+        }
     }
 
     /**
