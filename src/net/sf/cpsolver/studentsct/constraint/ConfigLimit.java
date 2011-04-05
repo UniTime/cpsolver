@@ -165,7 +165,7 @@ public class ConfigLimit extends GlobalConstraint<Request, Enrollment> {
             boolean bestRes = true;
             for (Enrollment adept: adepts) {
                 boolean dummy = adept.getStudent().isDummy();
-                double value = adept.toDouble();
+                double value = adept.toDouble(false);
                 boolean res = (adept.getReservation() != null);
                 
                 if (iPreferDummyStudents && dummy != bestDummy) {

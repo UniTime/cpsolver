@@ -156,7 +156,7 @@ public class CourseLimit extends GlobalConstraint<Request, Enrollment> {
             double bestValue = 0;
             for (Enrollment adept: adepts) {
                 boolean dummy = adept.getStudent().isDummy();
-                double value = adept.toDouble();
+                double value = adept.toDouble(false);
                 
                 if (iPreferDummyStudents && dummy != bestDummy) {
                     if (dummy) {
