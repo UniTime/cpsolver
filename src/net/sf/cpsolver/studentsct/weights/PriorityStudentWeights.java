@@ -92,7 +92,6 @@ public class PriorityStudentWeights implements StudentWeights {
                 total -= w;
             }
             if (r.equals(request)) {
-                w *= Math.floor(request.getWeight());
                 return w / 10000.0;
             }
         }
@@ -110,7 +109,7 @@ public class PriorityStudentWeights implements StudentWeights {
 
     @Override
     public double getBound(Request request) {
-        return getWeight(request);
+        return getCachedWeight(request);
     }
     
     protected double round(double value) {
