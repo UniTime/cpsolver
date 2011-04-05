@@ -169,4 +169,15 @@ public class Course {
     public Set<CourseRequest> getRequests() {
         return iRequests;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || !(o instanceof Course)) return false;
+        return getId() == ((Course)o).getId();
+    }
+    
+    @Override
+    public int hashCode() {
+        return (int) (iId ^ (iId >>> 32));
+    }
 }

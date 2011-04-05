@@ -545,4 +545,15 @@ public class Section implements Assignment, Comparable<Section> {
      * Return course-dependent section names
      */
     public Map<Long, String> getNameByCourse() { return iNameByCourse; }
+    
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || !(o instanceof Section)) return false;
+        return getId() == ((Section)o).getId();
+    }
+    
+    @Override
+    public int hashCode() {
+        return (int) (iId ^ (iId >>> 32));
+    }
 }

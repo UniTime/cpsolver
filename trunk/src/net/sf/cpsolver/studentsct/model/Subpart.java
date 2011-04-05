@@ -217,4 +217,14 @@ public class Subpart implements Comparable<Subpart> {
     }
     private Integer iLimit = null; 
     
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || !(o instanceof Subpart)) return false;
+        return getId() == ((Subpart)o).getId();
+    }
+    
+    @Override
+    public int hashCode() {
+        return (int) (iId ^ (iId >>> 32));
+    }
 }
