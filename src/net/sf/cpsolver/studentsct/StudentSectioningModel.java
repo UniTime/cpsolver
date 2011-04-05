@@ -140,13 +140,6 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
     }
     
     /**
-     * Return weight of the given enrollment
-     */
-    public double getWeight(Enrollment enrollment, Set<DistanceConflict.Conflict> distanceConflicts, Set<TimeOverlapsCounter.Conflict> timeOverlappingConflicts) {
-        return - iStudentWeights.getWeight(enrollment, distanceConflicts, timeOverlappingConflicts);
-    }
-    
-    /**
      * Return student weighting model
      */
     public StudentWeights getStudentWeights() {
@@ -158,13 +151,6 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
      */
     public void setStudentWeights(StudentWeights weights) {
         iStudentWeights = weights;
-    }
-
-    /**
-     * Return lower bound for the given request
-     */
-    public double getBound(Request request) {
-        return - iStudentWeights.getBound(request);
     }
 
     /**
@@ -269,32 +255,36 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
     @Override
     public Map<String, String> getInfo() {
         Map<String, String> info = super.getInfo();
-        info.put("Students with complete schedule", sDoubleFormat.format(100.0 * nrComplete() / getStudents().size())
-                + "% (" + nrComplete() + "/" + getStudents().size() + ")");
-        if (getDistanceConflict() != null)
+        if (!getStudents().isEmpty())
+            info.put("Students with complete schedule", sDoubleFormat.format(100.0 * nrComplete() / getStudents().size())
+                    + "% (" + nrComplete() + "/" + getStudents().size() + ")");
+        if (getDistanceConflict() != null && getDistanceConflict().getTotalNrConflicts() != 0)
             info.put("Student distance conflicts", String.valueOf(getDistanceConflict().getTotalNrConflicts()));
-        if (getTimeOverlaps() != null)
+        if (getTimeOverlaps() != null && getTimeOverlaps().getTotalNrConflicts() != 0)
             info.put("Time overlapping conflicts", String.valueOf(getTimeOverlaps().getTotalNrConflicts()));
         int nrLastLikeStudents = getNrLastLikeStudents(false);
         if (nrLastLikeStudents != 0 && nrLastLikeStudents != getStudents().size()) {
             int nrRealStudents = getStudents().size() - nrLastLikeStudents;
             int nrLastLikeCompleteStudents = getNrCompleteLastLikeStudents(false);
             int nrRealCompleteStudents = getCompleteStudents().size() - nrLastLikeCompleteStudents;
-            info.put("Projected students with complete schedule", sDecimalFormat.format(100.0
-                    * nrLastLikeCompleteStudents / nrLastLikeStudents)
-                    + "% (" + nrLastLikeCompleteStudents + "/" + nrLastLikeStudents + ")");
-            info.put("Real students with complete schedule", sDecimalFormat.format(100.0 * nrRealCompleteStudents
-                    / nrRealStudents)
-                    + "% (" + nrRealCompleteStudents + "/" + nrRealStudents + ")");
+            if (nrLastLikeStudents > 0)
+                info.put("Projected students with complete schedule", sDecimalFormat.format(100.0
+                        * nrLastLikeCompleteStudents / nrLastLikeStudents)
+                        + "% (" + nrLastLikeCompleteStudents + "/" + nrLastLikeStudents + ")");
+            if (nrRealStudents > 0)
+                info.put("Real students with complete schedule", sDecimalFormat.format(100.0 * nrRealCompleteStudents
+                        / nrRealStudents)
+                        + "% (" + nrRealCompleteStudents + "/" + nrRealStudents + ")");
             int nrLastLikeRequests = getNrLastLikeRequests(false);
             int nrRealRequests = variables().size() - nrLastLikeRequests;
             int nrLastLikeAssignedRequests = getNrAssignedLastLikeRequests(false);
             int nrRealAssignedRequests = assignedVariables().size() - nrLastLikeAssignedRequests;
-            info.put("Projected assigned requests", sDecimalFormat.format(100.0 * nrLastLikeAssignedRequests
-                    / nrLastLikeRequests)
-                    + "% (" + nrLastLikeAssignedRequests + "/" + nrLastLikeRequests + ")");
-            info.put("Real assigned requests", sDecimalFormat.format(100.0 * nrRealAssignedRequests / nrRealRequests)
-                    + "% (" + nrRealAssignedRequests + "/" + nrRealRequests + ")");
+            if (nrLastLikeRequests > 0)
+                info.put("Projected assigned requests", sDecimalFormat.format(100.0 * nrLastLikeAssignedRequests / nrLastLikeRequests)
+                        + "% (" + nrLastLikeAssignedRequests + "/" + nrLastLikeRequests + ")");
+            if (nrRealRequests > 0)
+                info.put("Real assigned requests", sDecimalFormat.format(100.0 * nrRealAssignedRequests / nrRealRequests)
+                        + "% (" + nrRealAssignedRequests + "/" + nrRealRequests + ")");
         }
         return info;
     }
@@ -366,6 +356,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         if (value == null)
             value = enrollment.getRequest().getWeight() * iStudentWeights.getWeight(enrollment);
         iTotalValue += value;
+        enrollment.setExtra(null);
         if (student.isDummy()) {
             iNrAssignedDummyRequests--;
         }
@@ -664,31 +655,46 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
             info.put("Real assigned requests", sDecimalFormat.format(100.0 * nrRealAssignedRequests / nrRealRequests)
                     + "% (" + nrRealAssignedRequests + "/" + nrRealRequests + ")");
         }
-        info.put("Average unassigned priority", sDecimalFormat.format(avgUnassignPriority()));
-        info.put("Average number of requests", sDecimalFormat.format(avgNrRequests()));
-        info.put("Unassigned request weight", sDecimalFormat.format(getUnassignedRequestWeight()) + " / "
-                + sDoubleFormat.format(getTotalRequestWeight()));
-        double totalCR = 0, assignedCR = 0;
+        // info.put("Average unassigned priority", sDecimalFormat.format(avgUnassignPriority()));
+        // info.put("Average number of requests", sDecimalFormat.format(avgNrRequests()));
+        double totalCR = 0, assignedCR = 0, totalDummyCR = 0, assignedDummyCR = 0;
+        int cnt = 0;
         for (Request r: variables())
             if (r instanceof CourseRequest) {
                 totalCR += r.getWeight();
-                if (r.getAssignment() != null)
+                if (r.getStudent().isDummy())
+                    totalDummyCR += r.getWeight();
+                if (r.getAssignment() != null) {
                     assignedCR += r.getWeight();
+                    cnt ++;
+                    if (r.getStudent().isDummy())
+                        assignedDummyCR += r.getWeight();
+                }
             }
-        info.put("Assigned course requests", (int)Math.round(assignedCR) + " / " + (int)Math.round(totalCR) + " (" + sDecimalFormat.format(100.0 * assignedCR / totalCR) + "%)");
+        if (totalCR > 0.0) {
+            info.put("Assigned course requests", sDecimalFormat.format(100.0 * assignedCR / totalCR) + "% (" + (int)Math.round(assignedCR) + "/" + (int)Math.round(totalCR) + ")");
+            if (totalDummyCR != totalCR) {
+                if (totalDummyCR > 0.0)
+                    info.put("Projected assigned course requests", sDecimalFormat.format(100.0 * assignedDummyCR / totalDummyCR) + "% (" + (int)Math.round(assignedDummyCR) + "/" + (int)Math.round(totalDummyCR) + ")");
+                info.put("Real assigned course requests", sDecimalFormat.format(100.0 * (assignedCR - assignedDummyCR) / (totalCR - totalDummyCR)) +
+                        "% (" + (int)Math.round(assignedCR - assignedDummyCR) + "/" + (int)Math.round(totalCR - totalDummyCR) + ")");
+            }
+        }
+        
         double total = 0;
         for (Request r: variables())
             if (r.getAssignment() != null)
                 total += r.getWeight() * iStudentWeights.getWeight(r.getAssignment());
         double dc = 0;
-        if (getDistanceConflict() != null) {
+        if (getDistanceConflict() != null && getDistanceConflict().getTotalNrConflicts() != 0) {
             Set<DistanceConflict.Conflict> conf = getDistanceConflict().computeAllConflicts();
             for (DistanceConflict.Conflict c: conf)
                 dc += avg(c.getR1().getWeight(), c.getR2().getWeight()) * iStudentWeights.getDistanceConflictWeight(c);
-            info.put("Student distance conflicts [p]", conf.size() + " (weighted: " + sDecimalFormat.format(dc) + ")");
+            if (!conf.isEmpty())
+                info.put("Student distance conflicts", conf.size() + " (weighted: " + sDecimalFormat.format(dc) + ")");
         }
         double toc = 0;
-        if (getTimeOverlaps() != null) {
+        if (getTimeOverlaps() != null && getTimeOverlaps().getTotalNrConflicts() != 0) {
             Set<TimeOverlapsCounter.Conflict> conf = getTimeOverlaps().computeAllConflicts();
             int share = 0;
             for (TimeOverlapsCounter.Conflict c: conf) {
@@ -696,9 +702,13 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
                 toc += c.getR2().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(c.getE2(), c);
                 share += c.getShare();
             }
-            info.put("Time overlapping conflicts [p]", share + " (average: " + sDecimalFormat.format(5.0 * share / getStudents().size()) + " min, weighted: " + sDoubleFormat.format(toc) + ")");
+            if (toc != 0.0)
+                info.put("Time overlapping conflicts", share + " (average: " + sDecimalFormat.format(5.0 * share / getStudents().size()) + " min, weighted: " + sDoubleFormat.format(toc) + ")");
         }
-        info.put("Overall solution value [p]", sDecimalFormat.format(total - dc - toc) + " (dc:" + sDecimalFormat.format(dc) + ", toc:" + sDecimalFormat.format(toc) + ")");
+        info.put("Overall solution value", sDecimalFormat.format(total - dc - toc) + (dc == 0.0 && toc == 0.0 ? "" :
+            " (" + (dc != 0.0 ? "distance: " + sDecimalFormat.format(dc): "") + (dc != 0.0 && toc != 0.0 ? ", " : "") + 
+            (toc != 0.0 ? "overlap: " + sDecimalFormat.format(toc) : "") + ")")
+            );
         
         double disbWeight = 0;
         int disbSections = 0;
@@ -731,9 +741,11 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
                 }
             }
         }
-        info.put("Average disbalance", sDecimalFormat.format(disbWeight / disbSections) +
-                " (" + sDecimalFormat.format(100.0 * disbWeight / assignedCR) + "%)");
-        info.put("Sections disbalanced by 10% or more", disb10Sections + "(" + sDecimalFormat.format(100.0 * disb10Sections / disbSections) + "%)");
+        if (disbSections != 0) {
+            info.put("Average disbalance", sDecimalFormat.format(disbWeight / disbSections) +
+                    " (" + sDecimalFormat.format(assignedCR == 0 ? 0.0 : 100.0 * disbWeight / assignedCR) + "%)");
+            info.put("Sections disbalanced by 10% or more", disb10Sections + " (" + sDecimalFormat.format(disbSections == 0 ? 0.0 : 100.0 * disb10Sections / disbSections) + "%)");
+        }
         return info;
     }
     
