@@ -65,6 +65,8 @@ public class PriorityStudentWeights implements StudentWeights {
     protected double iTimeOverlapMaxLimit = 0.5000;
     protected boolean iLeftoverSpread = false;
     protected double iBalancingFactor = 0.0050;
+    protected double iAlternativeRequestFactor = 0.1260;
+    protected double iProjectedStudentWeight = 0.0100;
     
     public PriorityStudentWeights(DataProperties config) {
         iPriorityFactor = config.getPropertyDouble("StudentWeights.Priority", iPriorityFactor);
@@ -75,9 +77,17 @@ public class PriorityStudentWeights implements StudentWeights {
         iTimeOverlapMaxLimit = config.getPropertyDouble("StudentWeights.TimeOverlapMaxLimit", iTimeOverlapMaxLimit);
         iLeftoverSpread = config.getPropertyBoolean("StudentWeights.LeftoverSpread", iLeftoverSpread);
         iBalancingFactor = config.getPropertyDouble("StudentWeights.BalancingFactor", iBalancingFactor);
+        iAlternativeRequestFactor = config.getPropertyDouble("StudentWeights.AlternativeRequestFactor", iAlternativeRequestFactor);
+        iProjectedStudentWeight = config.getPropertyDouble("StudentWeights.ProjectedStudentWeight", iProjectedStudentWeight);
     }
         
     public double getWeight(Request request) {
+        if (request.getStudent().isDummy() && iProjectedStudentWeight >= 0.0) {
+            double weight = iProjectedStudentWeight;
+            if (request.isAlternative())
+                weight *= iAlternativeRequestFactor;
+            return weight;
+        }
         double total = 10000.0;
         int nrReq = request.getStudent().nrRequests();
         double remain = (iLeftoverSpread ? Math.floor(10000.0 * Math.pow(iPriorityFactor, nrReq) / nrReq) : 0.0);

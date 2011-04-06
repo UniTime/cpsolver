@@ -50,15 +50,19 @@ import net.sf.cpsolver.studentsct.model.Subpart;
  */
 
 public class EqualStudentWeights extends PriorityStudentWeights {
-    protected double iAlternativeRequestFactor = 0.1260;
     
     public EqualStudentWeights(DataProperties config) {
         super(config);
-        iAlternativeRequestFactor = config.getPropertyDouble("StudentWeights.AlternativeRequestFactor", iAlternativeRequestFactor);
     }
 
     @Override
     public double getWeight(Request request) {
+        if (request.getStudent().isDummy() && iProjectedStudentWeight >= 0.0) {
+            double weight = iProjectedStudentWeight;
+            if (request.isAlternative())
+                weight *= iAlternativeRequestFactor;
+            return weight;
+        }
         double weight = 1.0 / request.getStudent().nrRequests();
         if (request.isAlternative())
             weight *= iAlternativeRequestFactor;
