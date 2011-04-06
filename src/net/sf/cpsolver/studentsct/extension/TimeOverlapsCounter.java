@@ -366,6 +366,13 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
         }
         return ret;
     }
+    
+    /**
+     * Return a set of all time overlapping conflicts ({@link Conflict} objects).
+     */
+    public Set<Conflict> getAllConflicts() {
+        return iAllConflicts;
+    }
 
     /**
      * Called before a value is assigned to a variable.
