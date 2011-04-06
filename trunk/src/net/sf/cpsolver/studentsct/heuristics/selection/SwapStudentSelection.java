@@ -193,7 +193,10 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
             iTimeoutReached = false;
             iBestEnrollment = null;
             iProblemStudents = new HashSet<Student>();
+            Double initialValue = null;
             for (Request request : iStudent.getRequests()) {
+                if (initialValue == null)
+                    initialValue = request.getModel().getTotalValue();
                 if (iTimeout > 0 && (JProf.currentTimeMillis() - iT0) > iTimeout) {
                     if (!iTimeoutReached) {
                         if (sDebug)
@@ -227,8 +230,18 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
                     Set<Enrollment> conflicts = enrollment.variable().getModel().conflictValues(enrollment);
                     if (conflicts.contains(enrollment))
                         continue;
-                    double value = enrollment.toDouble();
-                    boolean unresolvedConflict = false;
+                    
+                    double bound = enrollment.toDouble();
+                    for (Enrollment conflict: conflicts)
+                        bound += conflict.variable().getBound();
+                    if (iBestEnrollment != null && bound >= iBestValue)
+                        continue;
+                    
+                    for (Enrollment conflict: conflicts)
+                        conflict.variable().unassign(0);
+                    enrollment.variable().assign(0, enrollment);
+                    
+                    boolean allResolved = true;
                     List<Enrollment> swaps = new ArrayList<Enrollment>(conflicts.size());
                     for (Enrollment conflict : conflicts) {
                         if (sDebug)
@@ -237,18 +250,23 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
                         if (other == null) {
                             if (sDebug)
                                 sLog.debug("          -- unable to resolve");
-                            unresolvedConflict = true;
+                            allResolved = false;
                             break;
                         }
+                        other.variable().assign(0, other);
                         swaps.add(other);
                         if (sDebug)
                             sLog.debug("          -- can be resolved by switching to " + other.getName());
-                        value -= conflict.toDouble();
-                        value += other.toDouble();
                     }
-                    if (unresolvedConflict)
-                        continue;
-                    if (iBestEnrollment == null || iBestEnrollment.toDouble() > value) {
+                    double value = request.getModel().getTotalValue() - initialValue;
+                    
+                    for (Enrollment other: swaps)
+                        other.variable().unassign(0);
+                    enrollment.variable().unassign(0);
+                    for (Enrollment conflict: conflicts)
+                        conflict.variable().assign(0, conflict);
+                    
+                    if (allResolved && value <= 0.0 && (iBestEnrollment == null || iBestValue > value)) {
                         iBestEnrollment = enrollment;
                         iBestValue = value;
                         iBestSwaps = swaps;
@@ -318,23 +336,19 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
      */
     public static Enrollment bestSwap(Enrollment conflict, Enrollment enrl, Set<Student> problematicStudents) {
         Enrollment bestEnrollment = null;
+        double bestValue = 0;
         for (Enrollment enrollment : conflict.getRequest().values()) {
-            if (enrollment.equals(conflict))
+            if (conflict.variable().getModel().inConflict(enrollment))
                 continue;
-            if (!enrl.isConsistent(enrollment))
-                continue;
-            if (conflict.variable().getModel().conflictValues(enrollment).isEmpty()) {
-                if (bestEnrollment == null || bestEnrollment.toDouble() > enrollment.toDouble())
-                    bestEnrollment = enrollment;
+            double value = enrollment.toDouble();
+            if (bestEnrollment == null || bestValue > value) {
+                bestEnrollment = enrollment;
+                bestValue = value;
             }
         }
         if (bestEnrollment == null && problematicStudents != null) {
             boolean added = false;
             for (Enrollment enrollment : conflict.getRequest().values()) {
-                if (enrollment.equals(conflict))
-                    continue;
-                if (!enrl.isConsistent(enrollment))
-                    continue;
                 Set<Enrollment> conflicts = conflict.variable().getModel().conflictValues(enrollment);
                 for (Enrollment c : conflicts) {
                     if (enrl.getStudent().isDummy() && !c.getStudent().isDummy())
