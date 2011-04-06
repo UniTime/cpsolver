@@ -73,7 +73,7 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
             Request request = iRequestIterator.next();
             Progress.getInstance(solution.getModel()).incProgress();
             Neighbour<Request, Enrollment> n = iRBtNSel.selectNeighbour(solution, request);
-            if (n != null)
+            if (n != null && n.value() <= 0.0)
                 return n;
         }
         return null;
