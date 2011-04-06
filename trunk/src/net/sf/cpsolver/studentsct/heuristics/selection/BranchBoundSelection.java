@@ -27,6 +27,7 @@ import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.FreeTimeRequest;
 import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Student;
+import net.sf.cpsolver.studentsct.weights.StudentWeights;
 
 import org.apache.log4j.Logger;
 
@@ -307,7 +308,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         }
         
         /**
-         * Weight of an assignment. Unlike {@link StudentSectioningModel#getWeight(Enrollment, Set, Set)}, only count this side of distance conflicts and time overlaps.
+         * Weight of an assignment. Unlike {@link StudentWeights#getWeight(Enrollment, Set, Set)}, only count this side of distance conflicts and time overlaps.
          **/
         protected double getWeight(Enrollment enrollment, Set<DistanceConflict.Conflict> distanceConflicts, Set<TimeOverlapsCounter.Conflict> timeOverlappingConflicts) {
             double weight = - iModel.getStudentWeights().getWeight(enrollment);
