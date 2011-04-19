@@ -126,6 +126,7 @@ public class DbtValueSelection<V extends Variable<V, T>, T extends Value<V, T>> 
      * 
      * @see ValueSelection#init(Solver)
      */
+    @Override
     public void init(Solver<V, T> solver) {
         for (Extension<V, T> extension : solver.getExtensions()) {
             if (DbtPropagation.class.isInstance(extension)) {
@@ -142,6 +143,7 @@ public class DbtValueSelection<V extends Variable<V, T>, T extends Value<V, T>> 
      * 
      * @see ValueSelection#selectValue(Solution, Variable)
      */
+    @Override
     public T selectValue(Solution<V, T> solution, V selectedVariable) {
         ArrayList<T> values = null;
 

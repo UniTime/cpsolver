@@ -35,6 +35,7 @@ public class FreshmanStudentFilter implements StudentFilter {
      * Accept student. Student is accepted if it is freshmen, i.e., academic
      * area classification code is A, 01, or 02.
      **/
+    @Override
     public boolean accept(Student student) {
         for (AcademicAreaCode aac : student.getAcademicAreaClasiffications()) {
             if ("A".equals(aac.getCode()))

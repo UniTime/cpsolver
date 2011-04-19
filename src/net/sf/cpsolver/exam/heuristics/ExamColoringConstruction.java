@@ -355,6 +355,7 @@ public class ExamColoringConstruction implements NeighbourSelection<Exam, ExamPl
         
         public Exam exam() { return iExam; }
         
+        @Override
         public int compareTo(Vertex v) {
             if (available() < v.available()) return -1;
             if (v.available() < available()) return 1;

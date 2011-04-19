@@ -80,6 +80,7 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
     }
 
     /** Initialization */
+    @Override
     public void init(Solver<Request, Enrollment> solver) {
         iIteration = solver.currentSolution().getIteration();
         iNrIterations = solver.getProperties().getPropertyLong("Neighbour.StandardIterations", -1);
@@ -93,6 +94,7 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
      * is stopped (null is returned) after the number of iterations equal to the
      * number of variables in the problem or when a complete solution is found.
      */
+    @Override
     public Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
         if (iNrIterations < 0) {
             iNrIterations = solution.getModel().unassignedVariables().size();

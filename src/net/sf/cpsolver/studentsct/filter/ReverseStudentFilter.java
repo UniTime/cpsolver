@@ -43,6 +43,7 @@ public class ReverseStudentFilter implements StudentFilter {
      * Accept student. Student is accepted if the provided student filter
      * refuses him/her.
      **/
+    @Override
     public boolean accept(Student student) {
         return (iFilter == null ? false : !iFilter.accept(student));
     }

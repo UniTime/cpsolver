@@ -50,6 +50,7 @@ public class RouletteWheelRequestSelection implements VariableSelection<Request,
     }
 
     /** Initialization */
+    @Override
     public void init(Solver<Request, Enrollment> solver) {
 
     }
@@ -81,6 +82,7 @@ public class RouletteWheelRequestSelection implements VariableSelection<Request,
      * request has 10 points, an assigned request has 1 point for each section
      * that exceeds its bound.
      */
+    @Override
     public Request selectVariable(Solution<Request, Enrollment> solution) {
         return getRoulette(solution).nextElement();
     }

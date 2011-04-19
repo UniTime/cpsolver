@@ -378,6 +378,7 @@ public class SpreadConstraint extends Constraint<Lecture, Placement> implements 
         return (penalty < iMaxAllowedPenalty);
     }
 
+    @Override
     public void weaken() {
         if (!iInitialized || iUnassignmentsToWeaken == 0)
             return;

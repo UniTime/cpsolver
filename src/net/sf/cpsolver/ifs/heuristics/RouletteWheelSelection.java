@@ -66,6 +66,7 @@ public class RouletteWheelSelection<E> implements Enumeration<E> {
     }
 
     /** Are there still some adepts that have not been yet selected */
+    @Override
     public boolean hasMoreElements() {
         return iFirst < iAdepts.size();
     }
@@ -75,6 +76,7 @@ public class RouletteWheelSelection<E> implements Enumeration<E> {
      * proportional to the provided weight. Each object can be selected only
      * once.
      */
+    @Override
     public E nextElement() {
         if (!hasMoreElements())
             return null;

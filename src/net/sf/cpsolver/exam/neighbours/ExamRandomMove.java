@@ -58,6 +58,7 @@ public class ExamRandomMove implements NeighbourSelection<Exam, ExamPlacement> {
     /**
      * Initialization
      */
+    @Override
     public void init(Solver<Exam, ExamPlacement> solver) {
     }
 
@@ -66,6 +67,7 @@ public class ExamRandomMove implements NeighbourSelection<Exam, ExamPlacement> {
      * {@link Exam#getPeriodPlacements()}), select rooms using
      * {@link Exam#findBestAvailableRooms(ExamPeriodPlacement)}.
      */
+    @Override
     public Neighbour<Exam, ExamPlacement> selectNeighbour(Solution<Exam, ExamPlacement> solution) {
         ExamModel model = (ExamModel) solution.getModel();
         Exam exam = ToolBox.random(model.variables());

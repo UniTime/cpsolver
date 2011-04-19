@@ -57,6 +57,7 @@ public class ExamTimeMove implements NeighbourSelection<Exam,ExamPlacement> {
     /**
      * Initialization
      */
+    @Override
     public void init(Solver<Exam,ExamPlacement> solver) {}
     
     /**
@@ -64,6 +65,7 @@ public class ExamTimeMove implements NeighbourSelection<Exam,ExamPlacement> {
      * select an available period randomly (if it is not assigned), 
      * use rooms if possible, select rooms using {@link Exam#findBestAvailableRooms(ExamPeriodPlacement)} if not (exam is unassigned, a room is not available or used).
      */
+    @Override
     public Neighbour<Exam,ExamPlacement> selectNeighbour(Solution<Exam,ExamPlacement> solution) {
         ExamModel model = (ExamModel)solution.getModel();
         Exam exam = ToolBox.random(model.variables());

@@ -1228,6 +1228,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         return iCommitted;
     }
 
+    @Override
     public boolean isConstant() {
         return iCommitted;
     }

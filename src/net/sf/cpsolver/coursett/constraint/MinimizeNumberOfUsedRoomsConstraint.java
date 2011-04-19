@@ -140,6 +140,7 @@ public class MinimizeNumberOfUsedRoomsConstraint extends Constraint<Lecture, Pla
                 conflicts.add(placement);
             } else {
                 Collections.sort(adepts, new Comparator<List<Placement>>() {
+                    @Override
                     public int compare(List<Placement> c1, List<Placement> c2) {
                         return Double.compare(c1.size(), c2.size());
                     }
@@ -213,6 +214,7 @@ public class MinimizeNumberOfUsedRoomsConstraint extends Constraint<Lecture, Pla
         }
     }
 
+    @Override
     public void weaken() {
         iUnassignment++;
         if (iUnassignmentsToWeaken > 0 && iUnassignment % iUnassignmentsToWeaken == 0)

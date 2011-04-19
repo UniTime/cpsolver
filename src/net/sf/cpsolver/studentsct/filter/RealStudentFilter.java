@@ -35,6 +35,7 @@ public class RealStudentFilter implements StudentFilter {
      * Accept student. Student is accepted if {@link Student#isDummy()} is
      * false.
      **/
+    @Override
     public boolean accept(Student student) {
         return !student.isDummy();
     }

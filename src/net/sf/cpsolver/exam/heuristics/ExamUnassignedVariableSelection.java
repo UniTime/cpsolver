@@ -43,10 +43,12 @@ public class ExamUnassignedVariableSelection implements VariableSelection<Exam, 
     }
 
     /** Initialization */
+    @Override
     public void init(Solver<Exam, ExamPlacement> solver) {
     }
 
     /** Variable selection */
+    @Override
     public Exam selectVariable(Solution<Exam, ExamPlacement> solution) {
         ExamModel model = (ExamModel) solution.getModel();
         if (model.nrUnassignedVariables() == 0)

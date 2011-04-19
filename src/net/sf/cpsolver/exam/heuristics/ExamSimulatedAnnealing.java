@@ -157,6 +157,7 @@ public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlac
     /**
      * Initialization
      */
+    @Override
     public void init(Solver<Exam, ExamPlacement> solver) {
         iTemperature = iInitialTemperature;
         iReheatLength = Math.round(iReheatLengthCoef * iTemperatureLength);
@@ -284,6 +285,7 @@ public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlac
      * {@link ExamSimulatedAnnealing#accept(Solution, Neighbour)}, keep
      * increasing iteration {@link ExamSimulatedAnnealing#incIter(Solution)}.
      */
+    @Override
     public Neighbour<Exam, ExamPlacement> selectNeighbour(Solution<Exam, ExamPlacement> solution) {
         if (!iActive) {
             iProgress.setPhase("Simulated Annealing [" + sDF2.format(iTemperature) + "]...");
@@ -304,6 +306,7 @@ public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlac
     /**
      * Memorize the iteration when the last best solution was found.
      */
+    @Override
     public void bestSaved(Solution<Exam, ExamPlacement> solution) {
         if (Math.abs(iBestValue - solution.getBestValue()) >= 1.0) {
             iLastImprovingIter = iIter;
@@ -312,18 +315,23 @@ public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlac
         iLastImprovingIter = iIter;
     }
 
+    @Override
     public void solutionUpdated(Solution<Exam, ExamPlacement> solution) {
     }
 
+    @Override
     public void getInfo(Solution<Exam, ExamPlacement> solution, Map<String, String> info) {
     }
 
+    @Override
     public void getInfo(Solution<Exam, ExamPlacement> solution, Map<String, String> info, Collection<Exam> variables) {
     }
 
+    @Override
     public void bestCleared(Solution<Exam, ExamPlacement> solution) {
     }
 
+    @Override
     public void bestRestored(Solution<Exam, ExamPlacement> solution) {
     }
 

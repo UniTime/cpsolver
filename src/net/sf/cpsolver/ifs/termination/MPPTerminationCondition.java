@@ -97,6 +97,7 @@ public class MPPTerminationCondition<V extends Variable<V, T>, T extends Value<V
         iTimeOut = timeout;
     }
 
+    @Override
     public boolean canContinue(Solution<V, T> currentSolution) {
         if (iMinPerturbances >= 0 && currentSolution.getModel().nrUnassignedVariables() == 0
                 && currentSolution.getModel().perturbVariables().size() <= iMinPerturbances) {

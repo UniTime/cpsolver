@@ -119,6 +119,7 @@ public class ExamOwner implements Comparable<ExamOwner> {
     }
 
     /** Compare two exam owners by name */
+    @Override
     public int compareTo(ExamOwner owner) {
         if (!getName().equals(owner.getName()))
             return getName().compareTo(owner.getName());

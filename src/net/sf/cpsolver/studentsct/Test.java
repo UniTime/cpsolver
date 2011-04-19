@@ -293,7 +293,6 @@ public class Test {
     }
 
     /** Online sectioning test */
-    @SuppressWarnings("unchecked")
     public static Solution<Request, Enrollment> onlineSectioning(DataProperties cfg) throws Exception {
         StudentSectioningModel model = loadModel(cfg);
         if (model == null)
@@ -325,8 +324,10 @@ public class Test {
 
         List<Student> students = model.getStudents();
         try {
+            @SuppressWarnings("rawtypes")
             Class studentOrdClass = Class.forName(model.getProperties().getProperty("Test.StudentOrder",
                     StudentRandomOrder.class.getName()));
+            @SuppressWarnings("unchecked")
             StudentOrder studentOrd = (StudentOrder) studentOrdClass.getConstructor(
                     new Class[] { DataProperties.class }).newInstance(new Object[] { model.getProperties() });
             students = studentOrd.order(model.getStudents());
@@ -590,14 +591,17 @@ public class Test {
         solver.setInitalSolution(solution);
         if (cfg.getPropertyBoolean("Test.Verbose", false)) {
             solver.addSolverListener(new SolverListener<Request, Enrollment>() {
+                @Override
                 public boolean variableSelected(long iteration, Request variable) {
                     return true;
                 }
 
+                @Override
                 public boolean valueSelected(long iteration, Request variable, Enrollment value) {
                     return true;
                 }
 
+                @Override
                 public boolean neighbourSelected(long iteration, Neighbour<Request, Enrollment> neighbour) {
                     sLog.debug("Select[" + iteration + "]: " + neighbour);
                     return true;
@@ -895,6 +899,7 @@ public class Test {
                 }
             }
             Collections.sort(model.getStudents(), new Comparator<Student>() {
+                @Override
                 public int compare(Student o1, Student o2) {
                     return Double.compare(o1.getId(), o2.getId());
                 }
@@ -963,6 +968,7 @@ public class Test {
     public static void fixPriorities(StudentSectioningModel model) {
         for (Student student : model.getStudents()) {
             Collections.sort(student.getRequests(), new Comparator<Request>() {
+                @Override
                 public int compare(Request r1, Request r2) {
                     int cmp = Double.compare(r1.getPriority(), r2.getPriority());
                     if (cmp != 0)
@@ -1042,6 +1048,7 @@ public class Test {
             Element root = document.addElement("info");
             TreeSet<Map.Entry<String, String>> entrySet = new TreeSet<Map.Entry<String, String>>(
                     new Comparator<Map.Entry<String, String>>() {
+                        @Override
                         public int compare(Map.Entry<String, String> e1, Map.Entry<String, String> e2) {
                             return e1.getKey().compareTo(e2.getKey());
                         }
@@ -1254,12 +1261,14 @@ public class Test {
             }
         }
 
+        @Override
         public boolean accept(Student student) {
             return !iIds.contains(new Long(student.getId()));
         }
     }
 
     public static class TestSolutionListener implements SolutionListener<Request, Enrollment> {
+        @Override
         public void solutionUpdated(Solution<Request, Enrollment> solution) {
             StudentSectioningModel m = (StudentSectioningModel) solution.getModel();
             if (m.getTimeOverlaps() != null && TimeOverlapsCounter.sDebug)
@@ -1268,19 +1277,24 @@ public class Test {
                 m.getDistanceConflict().checkAllConflicts();
         }
 
+        @Override
         public void getInfo(Solution<Request, Enrollment> solution, Map<String, String> info) {
         }
 
+        @Override
         public void getInfo(Solution<Request, Enrollment> solution, Map<String, String> info, Collection<Request> variables) {
         }
 
+        @Override
         public void bestCleared(Solution<Request, Enrollment> solution) {
         }
 
+        @Override
         public void bestSaved(Solution<Request, Enrollment> solution) {
             sLog.debug("**BEST** " + solution.getModel().toString() + ", TM:" + sDF.format(solution.getTime() / 3600.0) + "h");
         }
 
+        @Override
         public void bestRestored(Solution<Request, Enrollment> solution) {
         }
     }

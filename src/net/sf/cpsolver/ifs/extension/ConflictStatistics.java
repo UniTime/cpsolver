@@ -298,6 +298,7 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
     public String toString() {
         StringBuffer sb = new StringBuffer("Statistics{");
         TreeSet<V> sortedUnassignedVariables = new TreeSet<V>(new Comparator<V>() {
+            @Override
             public int compare(V v1, V v2) {
                 int cmp = Double.compare(v1.countAssignments(), v2.countAssignments());
                 if (cmp != 0)
@@ -323,10 +324,12 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
         return sb.toString();
     }
 
+    @Override
     public void constraintBeforeAssigned(long iteration, Constraint<?, T> constraint, T assigned, Set<T> unassigned) {
     }
 
     /** Increments appropriate counters when there is a value unassigned */
+    @Override
     public void constraintAfterAssigned(long iteration, Constraint<?, T> constraint, T assigned, Set<T> unassigned) {
         if (iteration <= 0)
             return;

@@ -153,6 +153,7 @@ public class RoomLocation implements Comparable<RoomLocation> {
         return m.getDistanceInMinutes(getPosX(), getPosY(), roomLocation.getPosX(), roomLocation.getPosY());
     }
 
+    @Override
     public int compareTo(RoomLocation o) {
         int cmp = -(new Long(getRoomSize())).compareTo(new Long(o.getRoomSize()));
         if (cmp != 0)

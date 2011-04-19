@@ -82,6 +82,7 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
     }
 
     /** Initialization */
+    @Override
     public void init(Solver<V, T> solver) {
         for (Extension<V, T> extension : solver.getExtensions()) {
             if (ViolatedInitials.class.isInstance(extension))
@@ -89,6 +90,7 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
         }
     }
 
+    @Override
     public double getPerturbationPenalty(Model<V, T> model) {
         double penalty = 0.0;
         for (V variable : model.perturbVariables()) {
@@ -99,6 +101,7 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
         return penalty;
     }
 
+    @Override
     public double getPerturbationPenalty(Model<V, T> model, Collection<V> variables) {
         double penalty = 0.0;
         for (V variable : variables) {
@@ -186,6 +189,7 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
         return getPenalty(selectedValue, initialValue);
     }
 
+    @Override
     public double getPerturbationPenalty(Model<V, T> model, T selectedValue, Collection<T> conflicts) {
         double penalty = 0;
         Set<T> violations = (getViolatedInitials() == null ? null : getViolatedInitials().getViolatedInitials(
@@ -212,11 +216,13 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
         return penalty;
     }
 
+    @Override
     public void getInfo(Map<String, String> info, Model<V, T> model) {
         if (model.variablesWithInitialValue().size() > 0)
             info.put("Perturbations: Total penalty", sDoubleFormat.format(getPerturbationPenalty(model)));
     }
 
+    @Override
     public void getInfo(Map<String, String> info, Model<V, T> model, Collection<V> variables) {
         if (model.variablesWithInitialValue().size() > 0)
             info.put("Perturbations: Total penalty", sDoubleFormat.format(getPerturbationPenalty(model, variables)));

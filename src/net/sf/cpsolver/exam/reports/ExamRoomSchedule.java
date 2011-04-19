@@ -61,6 +61,7 @@ public class ExamRoomSchedule {
                 new CSVField("Enrl") });
         List<ExamRoom> rooms = new ArrayList<ExamRoom>(iModel.getRooms());
         Collections.sort(rooms, new Comparator<ExamRoom>() {
+            @Override
             public int compare(ExamRoom r1, ExamRoom r2) {
                 int cmp = -Double.compare(r1.getSize(), r2.getSize());
                 if (cmp != 0)

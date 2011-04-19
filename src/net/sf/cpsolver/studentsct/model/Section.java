@@ -103,6 +103,7 @@ public class Section implements Assignment, Comparable<Section> {
     }
 
     /** Section id */
+    @Override
     public long getId() {
         return iId;
     }
@@ -164,11 +165,13 @@ public class Section implements Assignment, Comparable<Section> {
     }
 
     /** Time placement of the section. */
+    @Override
     public TimeLocation getTime() {
         return (iPlacement == null ? null : iPlacement.getTimeLocation());
     }
 
     /** Number of rooms in which the section meet. */
+    @Override
     public int getNrRooms() {
         return (iPlacement == null ? 0 : iPlacement.getNrRooms());
     }
@@ -177,6 +180,7 @@ public class Section implements Assignment, Comparable<Section> {
      * Room placement -- list of
      * {@link net.sf.cpsolver.coursett.model.RoomLocation}
      */
+    @Override
     public List<RoomLocation> getRooms() {
         if (iPlacement == null)
             return null;
@@ -192,6 +196,7 @@ public class Section implements Assignment, Comparable<Section> {
      * True, if this section overlaps with the given assignment in time and
      * space
      */
+    @Override
     public boolean isOverlapping(Assignment assignment) {
         if (isAllowOverlap() || assignment.isAllowOverlap()) return false;
         if (getTime() == null || assignment.getTime() == null)
@@ -203,6 +208,7 @@ public class Section implements Assignment, Comparable<Section> {
      * True, if this section overlaps with one of the given set of assignments
      * in time and space
      */
+    @Override
     public boolean isOverlapping(Set<? extends Assignment> assignments) {
         if (isAllowOverlap()) return false;
         if (getTime() == null || assignments == null)
@@ -219,6 +225,7 @@ public class Section implements Assignment, Comparable<Section> {
     }
 
     /** Called when an enrollment with this section is assigned to a request */
+    @Override
     public void assigned(Enrollment enrollment) {
         if (iEnrollments.isEmpty()) {
             iMinEnrollmentWeight = iMaxEnrollmentWeight = enrollment.getRequest().getWeight();
@@ -231,6 +238,7 @@ public class Section implements Assignment, Comparable<Section> {
     }
 
     /** Called when an enrollment with this section is unassigned from a request */
+    @Override
     public void unassigned(Enrollment enrollment) {
         iEnrollments.remove(enrollment);
         iEnrollmentWeight -= enrollment.getRequest().getWeight();
@@ -265,6 +273,7 @@ public class Section implements Assignment, Comparable<Section> {
     }
 
     /** Set of assigned enrollments */
+    @Override
     public Set<Enrollment> getEnrollments() {
         return iEnrollments;
     }
@@ -334,6 +343,7 @@ public class Section implements Assignment, Comparable<Section> {
      * Compare two sections, prefer sections with lower penalty and more open
      * space
      */
+    @Override
     public int compareTo(Section s) {
         int cmp = Double.compare(getPenalty(), s.getPenalty());
         if (cmp != 0)
@@ -407,6 +417,7 @@ public class Section implements Assignment, Comparable<Section> {
     }
     
     /** Sections first, then by {@link FreeTimeRequest#getId()} */
+    @Override
     public int compareById(Assignment a) {
         if (a instanceof Section) {
             return new Long(getId()).compareTo(((Section)a).getId());

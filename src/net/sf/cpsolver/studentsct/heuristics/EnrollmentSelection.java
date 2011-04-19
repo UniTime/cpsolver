@@ -96,6 +96,7 @@ public class EnrollmentSelection implements ValueSelection<Request, Enrollment> 
     }
 
     /** Initialization */
+    @Override
     public void init(Solver<Request, Enrollment> solver) {
         for (Extension<Request, Enrollment> extension : solver.getExtensions()) {
             if (ConflictStatistics.class.isInstance(extension))
@@ -136,7 +137,8 @@ public class EnrollmentSelection implements ValueSelection<Request, Enrollment> 
         return true;
     }
 
-    /** Value selecion */
+    /** Value selection */
+    @Override
     public Enrollment selectValue(Solution<Request, Enrollment> solution, Request selectedVariable) {
         if (iMPP) {
             if (selectedVariable.getInitialAssignment() != null) {

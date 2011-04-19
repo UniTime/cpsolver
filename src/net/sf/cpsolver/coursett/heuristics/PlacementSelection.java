@@ -257,6 +257,7 @@ public class PlacementSelection implements ValueSelection<Lecture, Placement> {
 
     private boolean iCanUnassingSingleton = false;
 
+    @Override
     public void init(Solver<Lecture, Placement> solver) {
         for (Extension<Lecture, Placement> extension : solver.getExtensions()) {
             if (ConflictStatistics.class.isInstance(extension))
@@ -389,6 +390,7 @@ public class PlacementSelection implements ValueSelection<Lecture, Placement> {
         }
     }
 
+    @Override
     public Placement selectValue(Solution<Lecture, Placement> solution, Lecture var) {
         if (var == null)
             return null;

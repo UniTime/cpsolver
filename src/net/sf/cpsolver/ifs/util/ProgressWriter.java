@@ -66,10 +66,12 @@ public class ProgressWriter implements ProgressListener {
         iTextOut = out;
     }
 
+    @Override
     public void statusChanged(String status) {
         // iTextOut.println("Status: "+status);
     }
 
+    @Override
     public void phaseChanged(String phase) {
         if (iPrintedDots > 0) {
             while (iPrintedDots < DOTS_LENGTH) {
@@ -83,6 +85,7 @@ public class ProgressWriter implements ProgressListener {
         iTextOut.flush();
     }
 
+    @Override
     public void progressChanged(long currentProgress, long maxProgress) {
         int dotsToPrint = (maxProgress == 0 ? 0 : (int) ((DOTS_LENGTH * currentProgress) / maxProgress));
         while (iPrintedDots < dotsToPrint) {
@@ -92,12 +95,15 @@ public class ProgressWriter implements ProgressListener {
         iTextOut.flush();
     }
 
+    @Override
     public void progressSaved() {
     }
 
+    @Override
     public void progressRestored() {
     }
 
+    @Override
     public void progressMessagePrinted(Progress.Message msg) {
     }
 

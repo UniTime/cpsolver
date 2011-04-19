@@ -45,6 +45,7 @@ public class GeneralSolutionComparator<V extends Variable<V, T>, T extends Value
     public GeneralSolutionComparator(DataProperties properties) {
     }
 
+    @Override
     public boolean isBetterThanBestSolution(Solution<V, T> currentSolution) {
         if (currentSolution.getBestInfo() == null)
             return true;

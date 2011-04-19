@@ -173,6 +173,7 @@ public class PriorityStudentWeights implements StudentWeights {
         return round(getWeight(e) * toc);
     }
     
+    @Override
     public double getWeight(Enrollment enrollment, Set<DistanceConflict.Conflict> distanceConflicts, Set<TimeOverlapsCounter.Conflict> timeOverlappingConflicts) {
         double base = getWeight(enrollment);
         double dc = 0.0;

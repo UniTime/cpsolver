@@ -115,6 +115,7 @@ public class ExamTabuSearch implements NeighbourSelection<Exam, ExamPlacement>, 
     }
 
     /** Initialization */
+    @Override
     public void init(Solver<Exam, ExamPlacement> solver) {
         for (Extension<Exam, ExamPlacement> extension : solver.getExtensions()) {
             if (ConflictStatistics.class.isInstance(extension))
@@ -125,6 +126,7 @@ public class ExamTabuSearch implements NeighbourSelection<Exam, ExamPlacement>, 
     /**
      * Neighbor selection
      */
+    @Override
     public Neighbour<Exam, ExamPlacement> selectNeighbour(Solution<Exam, ExamPlacement> solution) {
         if (iFirstIteration < 0)
             iFirstIteration = solution.getIteration();
@@ -223,6 +225,7 @@ public class ExamTabuSearch implements NeighbourSelection<Exam, ExamPlacement>, 
     /**
      * Value selection
      */
+    @Override
     public ExamPlacement selectValue(Solution<Exam, ExamPlacement> solution, Exam exam) {
         if (iFirstIteration < 0)
             iFirstIteration = solution.getIteration();
@@ -400,6 +403,7 @@ public class ExamTabuSearch implements NeighbourSelection<Exam, ExamPlacement>, 
             return getObject().hashCode();
         }
 
+        @Override
         public int compareTo(TabuItem o) {
             return Double.compare(getIteration(), o.getIteration());
         }

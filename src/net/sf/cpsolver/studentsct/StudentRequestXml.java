@@ -66,6 +66,7 @@ public class StudentRequestXml {
             Element courseRequestsElement = studentElement.addElement("updateCourseRequests");
             courseRequestsElement.addAttribute("commit", "true");
             Collections.sort(student.getRequests(), new Comparator<Request>() {
+                @Override
                 public int compare(Request r1, Request r2) {
                     if (r1.isAlternative() != r2.isAlternative()) {
                         return (r1.isAlternative() ? 1 : -1);

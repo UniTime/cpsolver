@@ -434,6 +434,7 @@ public class CSVFile implements Serializable {
         return (new CSVFilter() {
             String n, v;
 
+            @Override
             public boolean match(CSVLine line) {
                 return line.getField(n).equals(v);
             }
@@ -450,6 +451,7 @@ public class CSVFile implements Serializable {
         return (new CSVFilter() {
             CSVFilter a, b;
 
+            @Override
             public boolean match(CSVLine line) {
                 return a.match(line) && b.match(line);
             }
@@ -466,6 +468,7 @@ public class CSVFile implements Serializable {
         return (new CSVFilter() {
             CSVFilter a, b;
 
+            @Override
             public boolean match(CSVLine line) {
                 return a.match(line) || b.match(line);
             }
@@ -482,6 +485,7 @@ public class CSVFile implements Serializable {
         return (new CSVFilter() {
             CSVFilter f;
 
+            @Override
             public boolean match(CSVLine line) {
                 return !f.match(line);
             }

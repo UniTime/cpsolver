@@ -96,38 +96,47 @@ public class Extension<V extends Variable<V, T>, T extends Value<V, T>> implemen
     }
 
     /** Called after a value is assigned to a variable */
+    @Override
     public void afterAssigned(long iteration, T value) {
     }
 
     /** Called after a value is unassigned from a variable */
+    @Override
     public void afterUnassigned(long iteration, T value) {
     }
 
     /** Called before a value is assigned to a variable */
+    @Override
     public void beforeAssigned(long iteration, T value) {
     }
 
     /** Called after a value is unassigned from a variable */
+    @Override
     public void beforeUnassigned(long iteration, T value) {
     }
 
     /** Called when a constraint is added to the model */
+    @Override
     public void constraintAdded(Constraint<V, T> constraint) {
     }
 
     /** Called when a constraint is removed from the model */
+    @Override
     public void constraintRemoved(Constraint<V, T> constraint) {
     }
 
     /** Called when a variable is added to the model */
+    @Override
     public void variableAdded(V variable) {
     }
 
     /** Called when a variable is removed from the model */
+    @Override
     public void variableRemoved(V variable) {
     }
 
     /** Initialization -- called before the solver is started */
+    @Override
     public boolean init(Solver<V, T> solver) {
         return true;
     }

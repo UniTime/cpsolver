@@ -122,12 +122,14 @@ public class Exam extends Variable<Exam, ExamPlacement> {
         iMinSize = minSize;
         iPeriodPlacements = new ArrayList<ExamPeriodPlacement>(periodPlacements);
         Collections.sort(iPeriodPlacements, new Comparator<ExamPeriodPlacement>() {
+            @Override
             public int compare(ExamPeriodPlacement p1, ExamPeriodPlacement p2) {
                 return p1.getPeriod().compareTo(p2.getPeriod());
             }
         });
         iRoomPlacements = new ArrayList<ExamRoomPlacement>(roomPlacements);
         Collections.sort(iRoomPlacements, new Comparator<ExamRoomPlacement>() {
+            @Override
             public int compare(ExamRoomPlacement p1, ExamRoomPlacement p2) {
                 int cmp = -Double.compare(p1.getSize(hasAltSeating()), p2.getSize(hasAltSeating()));
                 if (cmp != 0)
@@ -328,6 +330,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
             return rooms().toString().compareTo(rooms.toString());
         }
 
+        @Override
         public int compareTo(RoomSet r) {
             return compareTo(r.rooms(), r.penalty());
         }

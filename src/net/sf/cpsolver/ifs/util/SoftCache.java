@@ -47,18 +47,22 @@ public class SoftCache<K, V> implements Map<K, V> {
         new SoftCacheCleanupThread().start();
     }
 
+    @Override
     public synchronized boolean isEmpty() {
         return iCache.isEmpty();
     }
 
+    @Override
     public synchronized void clear() {
         iCache.clear();
     }
 
+    @Override
     public synchronized boolean containsKey(Object key) {
         return iCache.containsKey(key);
     }
 
+    @Override
     public synchronized boolean containsValue(Object value) {
         for (Iterator<Reference<V>> i = iCache.values().iterator(); i.hasNext();) {
             Reference<V> ref = i.next();
@@ -68,16 +72,19 @@ public class SoftCache<K, V> implements Map<K, V> {
         return false;
     }
 
+    @Override
     public synchronized V get(Object key) {
         Reference<V> ref = iCache.get(key);
         return (ref == null ? null : ref.get());
     }
 
+    @Override
     public synchronized V remove(Object key) {
         Reference<V> ref = iCache.remove(key);
         return (ref == null ? null : ref.get());
     }
 
+    @Override
     public V put(K key, V value) {
         return putReference(key, new SoftReference<V>(value, iQueue));
     }
@@ -95,20 +102,24 @@ public class SoftCache<K, V> implements Map<K, V> {
         return (old == null ? null : old.get());
     }
 
+    @Override
     public void putAll(Map<? extends K, ? extends V> map) {
         for (Map.Entry<? extends K, ? extends V> entry : map.entrySet()) {
             put(entry.getKey(), entry.getValue());
         }
     }
 
+    @Override
     public synchronized int size() {
         return iCache.size();
     }
 
+    @Override
     public synchronized Set<K> keySet() {
         return iCache.keySet();
     }
 
+    @Override
     public synchronized Collection<V> values() {
         List<V> ret = new ArrayList<V>(iCache.size());
         for (Reference<V> ref : iCache.values()) {
@@ -119,6 +130,7 @@ public class SoftCache<K, V> implements Map<K, V> {
         return ret;
     }
 
+    @Override
     public synchronized Set<Map.Entry<K, V>> entrySet() {
         Set<Map.Entry<K, V>> ret = new HashSet<Map.Entry<K, V>>(iCache.size());
         for (Map.Entry<K, Reference<V>> entry : iCache.entrySet()) {
@@ -194,14 +206,17 @@ public class SoftCache<K, V> implements Map<K, V> {
             return (getKey() == null ? 0 : getKey().hashCode()) ^ (getValue() == null ? 0 : getValue().hashCode());
         }
 
+        @Override
         public K getKey() {
             return iKey;
         }
 
+        @Override
         public V getValue() {
             return iValue;
         }
 
+        @Override
         public V setValue(V value) throws UnsupportedOperationException {
             throw new UnsupportedOperationException();
         }
