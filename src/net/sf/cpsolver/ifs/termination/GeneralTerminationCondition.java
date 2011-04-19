@@ -72,6 +72,7 @@ public class GeneralTerminationCondition<V extends Variable<V, T>, T extends Val
         iStopWhenComplete = properties.getPropertyBoolean("Termination.StopWhenComplete", false);
     }
 
+    @Override
     public boolean canContinue(Solution<V, T> currentSolution) {
         if (iMaxIter >= 0 && currentSolution.getIteration() >= iMaxIter) {
             sLogger.info("Maximum number of iteration reached.");

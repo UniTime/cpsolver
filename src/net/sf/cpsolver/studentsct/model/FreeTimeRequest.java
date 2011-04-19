@@ -60,16 +60,19 @@ public class FreeTimeRequest extends Request implements Assignment {
     }
 
     /** Return requested time to be free */
+    @Override
     public TimeLocation getTime() {
         return iTime;
     }
 
     /** Assignment API: free time request has no rooms */
+    @Override
     public int getNrRooms() {
         return 0;
     }
 
     /** Assignment API: free time request has no rooms */
+    @Override
     public List<RoomLocation> getRooms() {
         return new ArrayList<RoomLocation>(0);
     }
@@ -78,6 +81,7 @@ public class FreeTimeRequest extends Request implements Assignment {
      * True, if this assignment is overlapping in time and space with the given
      * assignment.
      */
+    @Override
     public boolean isOverlapping(Assignment assignment) {
         if (isAllowOverlap() || assignment.isAllowOverlap()) return false;
         if (getTime() == null || assignment.getTime() == null)
@@ -91,6 +95,7 @@ public class FreeTimeRequest extends Request implements Assignment {
      * True, if this assignment is overlapping in time and space with the given
      * set of assignments.
      */
+    @Override
     public boolean isOverlapping(Set<? extends Assignment> assignments) {
         if (isAllowOverlap())
             return false;
@@ -127,17 +132,20 @@ public class FreeTimeRequest extends Request implements Assignment {
         return enrollments;
     }
 
-    /** Enrollment with this assignmnet was assigned to a {@link Request}. */
+    /** Enrollment with this assignment was assigned to a {@link Request}. */
+    @Override
     public void assigned(Enrollment enrollment) {
         iEnrollments.add(enrollment);
     }
 
-    /** Enrollment with this assignmnet was unassigned from a {@link Request}. */
+    /** Enrollment with this assignment was unassigned from a {@link Request}. */
+    @Override
     public void unassigned(Enrollment enrollment) {
         iEnrollments.remove(enrollment);
     }
 
     /** Return the list of assigned enrollments that contains this assignment. */
+    @Override
     public Set<Enrollment> getEnrollments() {
         return iEnrollments;
     }
@@ -170,6 +178,7 @@ public class FreeTimeRequest extends Request implements Assignment {
     }
     
     /** Sections first, then by {@link FreeTimeRequest#getId()} */
+    @Override
     public int compareById(Assignment a) {
         if (a instanceof FreeTimeRequest) {
             return new Long(getId()).compareTo(((FreeTimeRequest)a).getId());

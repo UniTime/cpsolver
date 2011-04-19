@@ -135,6 +135,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         iDistanceConflict = model.getDistanceConflict();
     }
     
+    @Override
     public void init(Solver<Request, Enrollment> solver) {
         init(solver, "Branch&bound...");
     }
@@ -143,6 +144,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
      * Select neighbour. All students are taken, one by one in a random order.
      * For each student a branch & bound search is employed.
      */
+    @Override
     public Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
         while (iStudentsEnumeration.hasNext()) {
             Student student = iStudentsEnumeration.next();
@@ -512,6 +514,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                     return value;
                 }
                 
+                @Override
                 public int compare(Enrollment e1, Enrollment e2) {
                     if (e1.equals(request.getAssignment())) return -1;
                     if (e2.equals(request.getAssignment())) return -1;

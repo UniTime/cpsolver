@@ -70,6 +70,7 @@ public class FinalSectioning implements Runnable {
         iWeighStudents = model.getProperties().getPropertyBoolean("General.WeightStudents", iWeighStudents);
     }
 
+    @Override
     public void run() {
         iProgress.setStatus("Student Sectioning...");
         Collection<Lecture> variables = new ArrayList<Lecture>(iModel.variables());

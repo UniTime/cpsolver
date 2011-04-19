@@ -77,6 +77,7 @@ public class RandomUnassignmentSelection implements NeighbourSelection<Request, 
     /**
      * Initialization
      */
+    @Override
     public void init(Solver<Request, Enrollment> solver) {
         iStudents = ((StudentSectioningModel) solver.currentSolution().getModel()).getStudents();
         Progress.getInstance(solver.currentSolution().getModel()).setPhase("Random unassignment...", 1);
@@ -86,6 +87,7 @@ public class RandomUnassignmentSelection implements NeighbourSelection<Request, 
      * With the given probabilty, a student is randomly selected to be
      * unassigned. Null is returned otherwise.
      */
+    @Override
     public Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
         if (Math.random() < iRandom) {
             Student student = ToolBox.random(iStudents);

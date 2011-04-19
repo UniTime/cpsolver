@@ -293,6 +293,7 @@ public abstract class Constraint<V extends Variable<V, T>, T extends Value<V, T>
         return getId() == ((Constraint<?, ?>) o).getId();
     }
 
+    @Override
     public int compareTo(Constraint<V, T> c) {
         return Double.compare(getId(), c.getId());
     }

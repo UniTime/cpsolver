@@ -100,6 +100,7 @@ public class ExamNeighbourSelection implements NeighbourSelection<Exam, ExamPlac
     /**
      * Initialization
      */
+    @Override
     public void init(Solver<Exam, ExamPlacement> solver) {
         if (iColor != null)
             iColor.init(solver);
@@ -129,6 +130,7 @@ public class ExamNeighbourSelection implements NeighbourSelection<Exam, ExamPlac
      * </ul>
      */
     @SuppressWarnings("fallthrough")
+    @Override
     public synchronized Neighbour<Exam, ExamPlacement> selectNeighbour(Solution<Exam, ExamPlacement> solution) {
         Neighbour<Exam, ExamPlacement> n = null;
         if (!isFinalPhase() && !iTerm.canContinue(solution))
@@ -201,6 +203,7 @@ public class ExamNeighbourSelection implements NeighbourSelection<Exam, ExamPlac
     }
 
     /** Termination condition (i.e., has final phase finished) */
+    @Override
     public boolean canContinue(Solution<Exam, ExamPlacement> currentSolution) {
         return iCanContinue;
     }

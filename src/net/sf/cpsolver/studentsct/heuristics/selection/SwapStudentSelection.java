@@ -114,6 +114,7 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
     }
 
     /** Initialization */
+    @Override
     public void init(Solver<Request, Enrollment> solver) {
         List<Student> students = iOrder.order(((StudentSectioningModel) solver.currentSolution().getModel())
                 .getStudents());
@@ -127,6 +128,7 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
      * request and a student that can be moved out of an enrollment so that the
      * selected student can be assigned to the selected request.
      */
+    @Override
     public Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
         if (iStudent != null && !iStudent.isComplete()) {
             Selection selection = getSelection(iStudent);
@@ -154,6 +156,7 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
     }
 
     /** List of problematic students */
+    @Override
     public Set<Student> getProblemStudents() {
         return iProblemStudents;
     }

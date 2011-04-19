@@ -51,6 +51,7 @@ public class JenrlChart extends DomainChart {
     protected void computeTable() {
         clearTable();
         TreeSet<Lecture> vars = new TreeSet<Lecture>(new Comparator<Lecture>() {
+            @Override
             public int compare(Lecture l1, Lecture l2) {
                 int cmp = -Double.compare(l1.students().size(), l2.students().size());
                 if (cmp != 0)

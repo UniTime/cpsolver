@@ -90,6 +90,7 @@ public class ExamHillClimbing implements NeighbourSelection<Exam, ExamPlacement>
     /**
      * Initialization
      */
+    @Override
     public void init(Solver<Exam, ExamPlacement> solver) {
         solver.currentSolution().addSolutionListener(this);
         for (int i = 0; i < iNeighbours.length; i++)
@@ -105,6 +106,7 @@ public class ExamHillClimbing implements NeighbourSelection<Exam, ExamPlacement>
      * selection otherwise). Return null when the given number of idle
      * iterations is reached.
      */
+    @Override
     public Neighbour<Exam, ExamPlacement> selectNeighbour(Solution<Exam, ExamPlacement> solution) {
         if (!iActive) {
             iProgress.setPhase(iName + "...");
@@ -129,6 +131,7 @@ public class ExamHillClimbing implements NeighbourSelection<Exam, ExamPlacement>
     /**
      * Memorize the iteration when the last best solution was found.
      */
+    @Override
     public void bestSaved(Solution<Exam, ExamPlacement> solution) {
         if (Math.abs(iBestValue - solution.getBestValue()) >= 1.0) {
             iLastImprovingIter = iIter;
@@ -136,18 +139,23 @@ public class ExamHillClimbing implements NeighbourSelection<Exam, ExamPlacement>
         }
     }
 
+    @Override
     public void solutionUpdated(Solution<Exam, ExamPlacement> solution) {
     }
 
+    @Override
     public void getInfo(Solution<Exam, ExamPlacement> solution, Map<String, String> info) {
     }
 
+    @Override
     public void getInfo(Solution<Exam, ExamPlacement> solution, Map<String, String> info, Collection<Exam> variables) {
     }
 
+    @Override
     public void bestCleared(Solution<Exam, ExamPlacement> solution) {
     }
 
+    @Override
     public void bestRestored(Solution<Exam, ExamPlacement> solution) {
     }
 }

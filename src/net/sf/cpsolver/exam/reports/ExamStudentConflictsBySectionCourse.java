@@ -107,6 +107,7 @@ public class ExamStudentConflictsBySectionCourse {
             boolean csPrinted = false;
             List<ExamStudent> students = new ArrayList<ExamStudent>(cs.getStudents());
             Collections.sort(students, new Comparator<ExamStudent>() {
+                @Override
                 public int compare(ExamStudent s1, ExamStudent s2) {
                     int cmp = s1.getName().compareTo(s2.getName());
                     if (cmp != 0)

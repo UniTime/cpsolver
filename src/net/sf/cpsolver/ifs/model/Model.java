@@ -693,6 +693,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     }
 
     private class BestAssignmentComparator implements Comparator<V> {
+        @Override
         public int compare(V v1, V v2) {
             if (v1.getBestAssignmentIteration() < v2.getBestAssignmentIteration()) return -1;
             if (v1.getBestAssignmentIteration() > v2.getBestAssignmentIteration()) return 1;

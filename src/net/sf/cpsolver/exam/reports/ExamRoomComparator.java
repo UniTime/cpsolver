@@ -47,6 +47,7 @@ public class ExamRoomComparator implements Comparator<ExamRoomPlacement> {
     /**
      * Compare two rooms based on their normal/alternative seating size
      */
+    @Override
     public int compare(ExamRoomPlacement r1, ExamRoomPlacement r2) {
         int cmp = (iAsc ? 1 : -1)
                 * Double.compare(r1.getSize(iExam.hasAltSeating()), r2.getSize(iExam.hasAltSeating()));

@@ -180,6 +180,7 @@ public class ExamRoomPlacement implements Comparable<ExamRoomPlacement> {
     }
 
     /** Compare two room placements */
+    @Override
     public int compareTo(ExamRoomPlacement o) {
         return getRoom().compareTo(o.getRoom());
     }

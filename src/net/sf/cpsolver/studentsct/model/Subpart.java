@@ -117,6 +117,7 @@ public class Subpart implements Comparable<Subpart> {
      * Compare two subparts: put parents first, use ids if there is no
      * parent-child relation
      */
+    @Override
     public int compareTo(Subpart s) {
         if (isParentOf(s))
             return -1;

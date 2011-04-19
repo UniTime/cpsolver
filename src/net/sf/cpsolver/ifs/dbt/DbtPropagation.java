@@ -117,6 +117,7 @@ public class DbtPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
      * 
      * @see DbtVariableSelection#selectVariable(Solution)
      */
+    @Override
     public boolean variableSelected(long iteration, V variable) {
         if (variable == null) {
             sLogger.debug("No variable selected -> backtrack.");
@@ -175,6 +176,7 @@ public class DbtPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
      * 
      * @see DbtVariableSelection#selectVariable(Solution)
      */
+    @Override
     public boolean valueSelected(long iteration, V variable, T value) {
         if (variable != null && value == null) {
             Set<T> noGoods = new HashSet<T>();
@@ -209,6 +211,7 @@ public class DbtPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
         return true;
     }
 
+    @Override
     public boolean neighbourSelected(long iteration, Neighbour<V, T> neighbour) {
         return true;
     }

@@ -64,10 +64,12 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
         Progress.getInstance(solver.currentSolution().getModel()).setPhase(name, unassigned.size());
     }
 
+    @Override
     public void init(Solver<Request, Enrollment> solver) {
         init(solver, "Backtracking...");
     }
 
+    @Override
     public Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
         while (iRequestIterator.hasNext()) {
             Request request = iRequestIterator.next();

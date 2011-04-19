@@ -47,6 +47,7 @@ public class RandomStudentFilter implements StudentFilter {
     /**
      * A student is accepted with the given probability
      */
+    @Override
     public boolean accept(Student student) {
         Long studentId = new Long(student.getId());
         if (iAcceptedStudentIds.contains(studentId))

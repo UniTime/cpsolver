@@ -122,10 +122,12 @@ public class PrologFile implements Iterator<PrologFile.Term> {
         pw.println(t.toString() + ".");
     }
 
+    @Override
     public boolean hasNext() {
         return iNextTerm != null;
     }
 
+    @Override
     public Term next() {
         Term ret = iNextTerm;
         try {
@@ -143,6 +145,7 @@ public class PrologFile implements Iterator<PrologFile.Term> {
         return ret;
     }
 
+    @Override
     public void remove() {
     }
 

@@ -106,6 +106,7 @@ public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>,
     }
 
     /** Initialization */
+    @Override
     public void init(Solver<Exam, ExamPlacement> solver) {
         iIter = -1;
         solver.currentSolution().addSolutionListener(this);
@@ -184,6 +185,7 @@ public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>,
     /**
      * A neighbour is generated randomly untill an acceptable one is found.
      */
+    @Override
     public Neighbour<Exam, ExamPlacement> selectNeighbour(Solution<Exam, ExamPlacement> solution) {
         Neighbour<Exam, ExamPlacement> neighbour = null;
         while ((neighbour = genMove(solution)) != null) {
@@ -197,6 +199,7 @@ public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>,
     }
 
     /** Update last improving iteration count */
+    @Override
     public void bestSaved(Solution<Exam, ExamPlacement> solution) {
         if (Math.abs(iBestValue - solution.getBestValue()) >= 1.0) {
             iLastImprovingIter = iIter;
@@ -205,18 +208,23 @@ public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>,
         }
     }
 
+    @Override
     public void solutionUpdated(Solution<Exam, ExamPlacement> solution) {
     }
 
+    @Override
     public void getInfo(Solution<Exam, ExamPlacement> solution, Map<String, String> info) {
     }
 
+    @Override
     public void getInfo(Solution<Exam, ExamPlacement> solution, Map<String, String> info, Collection<Exam> variables) {
     }
 
+    @Override
     public void bestCleared(Solution<Exam, ExamPlacement> solution) {
     }
 
+    @Override
     public void bestRestored(Solution<Exam, ExamPlacement> solution) {
     }
 

@@ -96,6 +96,7 @@ public class ExamPeriodPlacement implements Comparable<ExamPeriodPlacement> {
     }
 
     /** Compare two period placements */
+    @Override
     public int compareTo(ExamPeriodPlacement o) {
         return getPeriod().compareTo(o.getPeriod());
     }

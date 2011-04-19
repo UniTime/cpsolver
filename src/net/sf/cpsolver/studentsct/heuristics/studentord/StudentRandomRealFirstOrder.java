@@ -42,6 +42,7 @@ public class StudentRandomRealFirstOrder implements StudentOrder {
      * Return the given set of students in a random order, however, all real
      * students before last-like ({@link Student#isDummy()} is true) students.
      **/
+    @Override
     public List<Student> order(List<Student> students) {
         List<Student> real = new ArrayList<Student>(students.size());
         List<Student> dummy = new ArrayList<Student>(students.size());

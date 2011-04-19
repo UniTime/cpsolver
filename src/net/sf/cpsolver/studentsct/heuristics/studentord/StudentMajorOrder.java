@@ -39,12 +39,14 @@ public class StudentMajorOrder implements StudentOrder, Comparator<Student> {
     }
 
     /** Order the given list of students */
+    @Override
     public List<Student> order(List<Student> students) {
         List<Student> ret = new ArrayList<Student>(students);
         Collections.sort(ret, this);
         return ret;
     }
 
+    @Override
     public int compare(Student s1, Student s2) {
         int cmp = compareMajors(s1.getMajors(), s2.getMajors());
         if (cmp != 0)

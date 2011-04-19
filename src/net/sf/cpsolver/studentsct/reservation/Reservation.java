@@ -266,6 +266,7 @@ public abstract class Reservation implements Comparable<Reservation> {
     /**
      * Priority first, than restrictivity (more restrictive first), than availability (more available first), than id 
      */
+    @Override
     public int compareTo(Reservation r) {
         if (getPriority() != r.getPriority()) {
             return (getPriority() < r.getPriority() ? -1 : 1);

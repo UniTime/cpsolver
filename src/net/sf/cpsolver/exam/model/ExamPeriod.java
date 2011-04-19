@@ -232,6 +232,7 @@ public class ExamPeriod implements Comparable<ExamPeriod> {
         return getIndex() == ((ExamPeriod) o).getIndex();
     }
 
+    @Override
     public int compareTo(ExamPeriod p) {
         return Double.compare(getIndex(), p.getIndex());
     }

@@ -35,6 +35,7 @@ public class StudentRandomOrder implements StudentOrder {
     }
 
     /** Return the given set of students in a random order */
+    @Override
     public List<Student> order(List<Student> students) {
         List<Student> ret = new ArrayList<Student>(students);
         Collections.shuffle(ret);
