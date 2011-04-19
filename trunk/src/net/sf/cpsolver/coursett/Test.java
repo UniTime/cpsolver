@@ -266,22 +266,28 @@ public class Test implements SolutionListener<Lecture, Placement> {
         new Test(args);
     }
 
+    @Override
     public void bestCleared(Solution<Lecture, Placement> solution) {
     }
 
+    @Override
     public void bestRestored(Solution<Lecture, Placement> solution) {
     }
 
+    @Override
     public void bestSaved(Solution<Lecture, Placement> solution) {
         notify(solution);
     }
 
+    @Override
     public void getInfo(Solution<Lecture, Placement> solution, Map<String, String> info) {
     }
 
+    @Override
     public void getInfo(Solution<Lecture, Placement> solution, Map<String, String> info, Collection<Lecture> variables) {
     }
 
+    @Override
     public void solutionUpdated(Solution<Lecture, Placement> solution) {
         if (!initialized) {
             for (Extension<Lecture, Placement> extension : iSolver.getExtensions()) {

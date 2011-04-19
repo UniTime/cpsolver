@@ -54,6 +54,7 @@ public class CombinedStudentFilter implements StudentFilter {
      * A student is accepted if it is accepted by the first and/or the second
      * filter
      */
+    @Override
     public boolean accept(Student student) {
         switch (iOp) {
             case OP_OR:

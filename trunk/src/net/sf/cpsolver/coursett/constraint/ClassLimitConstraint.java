@@ -153,6 +153,7 @@ public class ClassLimitConstraint extends Constraint<Lecture, Placement> {
     }
 
     private static class ClassLimitComparator implements Comparator<Placement> {
+        @Override
         public int compare(Placement p1, Placement p2) {
             Lecture l1 = p1.variable();
             Lecture l2 = p2.variable();

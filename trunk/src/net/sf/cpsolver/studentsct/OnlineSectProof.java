@@ -494,6 +494,7 @@ public class OnlineSectProof {
          * If the same, higher average number of not-sectioned students goes
          * first. If the same, compare by category.
          */
+        @Override
         public int compare(String c1, String c2) {
             int wc1 = (iWorstCaseCat.get(c1)).intValue();
             int wc2 = (iWorstCaseCat.get(c2)).intValue();

@@ -320,10 +320,12 @@ public class TimeLocation {
             return true;
         }
 
+        @Override
         public boolean hasMoreElements() {
             return hasNext;
         }
 
+        @Override
         public Integer nextElement() {
             int slot = (day * Constants.SLOTS_PER_DAY) + iStartSlot;
             hasNext = nextDay();
@@ -331,6 +333,7 @@ public class TimeLocation {
         }
         
         @Deprecated
+        @Override
         public Integer nextInt() {
             return nextElement();
         }

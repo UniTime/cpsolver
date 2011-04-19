@@ -99,10 +99,12 @@ public class TwoPhaseStudentSctNeighbourSelection extends StudentSctNeighbourSel
         public RestoreDummyStudents() {
         }
 
+        @Override
         public void init(Solver<Request, Enrollment> solver) {
         }
 
         /** Return all (removed) dummy students into the problem */
+        @Override
         public Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
             addDummyStudents(solution);
             return null;

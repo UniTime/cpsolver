@@ -123,6 +123,7 @@ public class InevitableStudentConflicts {
         double incompleteInevitableRequestWeight = 0.0;
         long total = 0;
         Comparator<Object> simpleCmp = new Comparator<Object>() {
+            @Override
             public int compare(Object o1, Object o2) {
                 return o1.toString().compareTo(o2.toString());
             }
@@ -247,6 +248,7 @@ public class InevitableStudentConflicts {
                 + incompleteInevitableRequestWeight);
         if (iCSVFile.getLines() != null)
             Collections.sort(iCSVFile.getLines(), new Comparator<CSVFile.CSVLine>() {
+                @Override
                 public int compare(CSVFile.CSVLine l1, CSVFile.CSVLine l2) {
                     int cmp = Double.compare(l2.getField(1).toDouble(), l1.getField(1).toDouble());
                     if (cmp != 0)
@@ -278,6 +280,7 @@ public class InevitableStudentConflicts {
         Collection<Assignment> assignments = enrollment.getAssignments();
         if (enrollment.isCourseRequest()) {
             assignments = new TreeSet<Assignment>(new Comparator<Assignment>() {
+                @Override
                 public int compare(Assignment a1, Assignment a2) {
                     Section s1 = (Section) a1;
                     Section s2 = (Section) a2;

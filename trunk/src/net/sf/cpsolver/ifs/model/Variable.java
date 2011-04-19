@@ -318,6 +318,7 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
         return iLastUnassignmentIteration;
     }
 
+    @Override
     public int compareTo(V variable) {
         if (variable == null)
             return -1;

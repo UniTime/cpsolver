@@ -85,7 +85,7 @@ public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements C
     }
 
     /** Sets the variable which this value belongs to */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     public void setVariable(Variable variable) {
         iVariable = (V) variable;
     }
@@ -173,6 +173,7 @@ public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements C
         return toDouble() == value.toDouble();
     }
 
+    @Override
     public int compareTo(T value) {
         if (value == null)
             return -1;

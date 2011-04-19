@@ -224,6 +224,7 @@ public class JobShopModel extends Model<Operation, Location> {
     }
 
     private static class OperationComparator implements Comparator<Operation> {
+        @Override
         public int compare(Operation op1, Operation op2) {
             Location loc1 = op1.getAssignment();
             Location loc2 = op2.getAssignment();

@@ -381,19 +381,24 @@ public class Test {
             solver.setInitalSolution(new Solution<Exam, ExamPlacement>(model));
 
             solver.currentSolution().addSolutionListener(new SolutionListener<Exam, ExamPlacement>() {
+                @Override
                 public void solutionUpdated(Solution<Exam, ExamPlacement> solution) {
                 }
 
+                @Override
                 public void getInfo(Solution<Exam, ExamPlacement> solution, Map<String, String> info) {
                 }
 
+                @Override
                 public void getInfo(Solution<Exam, ExamPlacement> solution, Map<String, String> info,
                         Collection<Exam> variables) {
                 }
 
+                @Override
                 public void bestCleared(Solution<Exam, ExamPlacement> solution) {
                 }
 
+                @Override
                 public void bestSaved(Solution<Exam, ExamPlacement> solution) {
                     ExamModel m = (ExamModel) solution.getModel();
                     if (sLog.isInfoEnabled()) {
@@ -406,6 +411,7 @@ public class Test {
                     }
                 }
 
+                @Override
                 public void bestRestored(Solution<Exam, ExamPlacement> solution) {
                 }
             });

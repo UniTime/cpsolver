@@ -206,6 +206,7 @@ public class Student implements Comparable<Student> {
         return getId().hashCode();
     }
 
+    @Override
     public int compareTo(Student s) {
         return getId().compareTo(s.getId());
     }

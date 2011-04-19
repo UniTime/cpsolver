@@ -187,6 +187,7 @@ public class GeneralValueSelection<V extends Variable<V, T>, T extends Value<V, 
     }
 
     /** Initialization */
+    @Override
     public void init(Solver<V, T> solver) {
         for (Extension<V, T> extension : solver.getExtensions()) {
             if (ConflictStatistics.class.isInstance(extension))
@@ -198,7 +199,8 @@ public class GeneralValueSelection<V extends Variable<V, T>, T extends Value<V, 
         }
     }
 
-    /** Value selecion */
+    /** Value selection */
+    @Override
     public T selectValue(Solution<V, T> solution, V selectedVariable) {
         if (iMPP) {
             if (selectedVariable.getInitialAssignment() != null) {

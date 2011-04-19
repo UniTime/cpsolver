@@ -165,6 +165,7 @@ public class TimetableComparator implements SolutionComparator<Lecture, Placemen
         iCommitedStudentConflictWeight = properties.getPropertyDouble(COMMITED_STUDENT_CONFLICT_WEIGHT, 1.0);
     }
 
+    @Override
     public boolean isBetterThanBestSolution(Solution<Lecture, Placement> currentSolution) {
         if (currentSolution.getBestInfo() == null)
             return true;

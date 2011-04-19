@@ -95,6 +95,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
             addGlobalConstraint(sectionLimit);
             if (properties.getPropertyBoolean("Sectioning.SectionLimit.Debug", false)) {
                 sectionLimit.addConstraintListener(new ConstraintListener<Enrollment>() {
+                    @Override
                     public void constraintBeforeAssigned(long iteration, Constraint<?, Enrollment> constraint,
                             Enrollment enrollment, Set<Enrollment> unassigned) {
                         if (enrollment.getStudent().isDummy())
@@ -107,6 +108,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
                             }
                     }
 
+                    @Override
                     public void constraintAfterAssigned(long iteration, Constraint<?, Enrollment> constraint,
                             Enrollment assigned, Set<Enrollment> unassigned) {
                     }

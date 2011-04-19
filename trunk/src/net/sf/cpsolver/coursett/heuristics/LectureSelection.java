@@ -271,6 +271,7 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
         iVariableChanceProb = properties.getPropertyDouble("Lecture.VariableChanceProb", 0.05);
     }
 
+    @Override
     public void init(Solver<Lecture, Placement> solver) {
         for (Extension<Lecture, Placement> extension : solver.getExtensions()) {
             if (MacPropagation.class.isInstance(extension))
@@ -278,6 +279,7 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
         }
     }
 
+    @Override
     public Lecture selectVariable(Solution<Lecture, Placement> solution) {
         TimetableModel model = (TimetableModel) solution.getModel();
         Collection<Lecture> unassignedVariables = model.unassignedVariables();

@@ -274,6 +274,7 @@ public class CourseConflictTable {
         }
         if (csv.getLines() != null)
             Collections.sort(csv.getLines(), new Comparator<CSVFile.CSVLine>() {
+                @Override
                 public int compare(CSVFile.CSVLine l1, CSVFile.CSVLine l2) {
                     // int cmp =
                     // l2.getField(3).toString().compareTo(l1.getField(3).toString());

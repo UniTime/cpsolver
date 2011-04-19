@@ -168,6 +168,7 @@ public class Assignment<T extends Value<?, T>> {
             iIteration = iteration;
         }
 
+        @Override
         public int compare(Assignment<E> a1, Assignment<E> a2) {
             return a1.compareTo(iIteration, a2);
         }

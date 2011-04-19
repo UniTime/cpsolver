@@ -74,21 +74,27 @@ public class OnFlySectioning implements ModelListener<Lecture, Placement> {
         iFinalSectioning = new FinalSectioning(model);
     }
 
+    @Override
     public void variableAdded(Lecture variable) {
     }
 
+    @Override
     public void variableRemoved(Lecture variable) {
     }
 
+    @Override
     public void constraintAdded(Constraint<Lecture, Placement> constraint) {
     }
 
+    @Override
     public void constraintRemoved(Constraint<Lecture, Placement> constraint) {
     }
 
+    @Override
     public void beforeAssigned(long iteration, Placement value) {
     }
 
+    @Override
     public void beforeUnassigned(long iteration, Placement value) {
     }
 
@@ -96,17 +102,20 @@ public class OnFlySectioning implements ModelListener<Lecture, Placement> {
      * {@link FinalSectioning#resection(Lecture, boolean, boolean)} is called
      * when given iteration number is greater than zero.
      */
+    @Override
     public void afterAssigned(long iteration, Placement value) {
         if (iteration > 0)
             iFinalSectioning.resection(value.variable(), iRecursive, iConfigAsWell);
     }
 
+    @Override
     public void afterUnassigned(long iteration, Placement value) {
     }
 
     /**
      * Initialization
      */
+    @Override
     public boolean init(Solver<Lecture, Placement> solver) {
         iRecursive = solver.getProperties().getPropertyBoolean("OnFlySectioning.Recursive", true);
         iConfigAsWell = solver.getProperties().getPropertyBoolean("OnFlySectioning.ConfigAsWell", false);

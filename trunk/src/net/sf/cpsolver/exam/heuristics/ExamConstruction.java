@@ -77,6 +77,7 @@ public class ExamConstruction implements NeighbourSelection<Exam, ExamPlacement>
     /**
      * Initialization
      */
+    @Override
     public void init(Solver<Exam, ExamPlacement> solver) {
         iSkip.clear();
         solver.setUpdateProgress(false);
@@ -133,6 +134,7 @@ public class ExamConstruction implements NeighbourSelection<Exam, ExamPlacement>
      * Return null when done (all variables are assigned and the problem is
      * locally optimal).
      */
+    @Override
     public Neighbour<Exam, ExamPlacement> selectNeighbour(Solution<Exam, ExamPlacement> solution) {
         ExamModel model = (ExamModel) solution.getModel();
         if (!iActive) {

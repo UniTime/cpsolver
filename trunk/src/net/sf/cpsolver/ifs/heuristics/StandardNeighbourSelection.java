@@ -127,6 +127,7 @@ public class StandardNeighbourSelection<V extends Variable<V, T>, T extends Valu
      * {@link net.sf.cpsolver.ifs.heuristics.ValueSelection#init(Solver)} are
      * called.
      */
+    @Override
     public void init(Solver<V, T> solver) {
         getValueSelection().init(solver);
         getVariableSelection().init(solver);
@@ -170,6 +171,7 @@ public class StandardNeighbourSelection<V extends Variable<V, T>, T extends Valu
     /**
      * Select neighbour. A value is selected to the selected variable.
      */
+    @Override
     public Neighbour<V, T> selectNeighbour(Solution<V, T> solution) {
         V variable = selectVariable(solution);
         if (variable == null)

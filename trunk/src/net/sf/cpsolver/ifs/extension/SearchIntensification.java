@@ -108,6 +108,7 @@ public class SearchIntensification<V extends Variable<V, T>, T extends Value<V, 
         }
     }
 
+    @Override
     public void bestSaved(Solution<V, T> solution) {
         if (iResetCounter > 0)
             sLogger.debug("Reset counter set to zero.");
@@ -116,18 +117,23 @@ public class SearchIntensification<V extends Variable<V, T>, T extends Value<V, 
         iIterationLimit = iInitialIterationLimit;
     }
 
+    @Override
     public void solutionUpdated(Solution<V, T> solution) {
     }
 
+    @Override
     public void bestCleared(Solution<V, T> solution) {
     }
 
+    @Override
     public void bestRestored(Solution<V, T> solution) {
     }
 
+    @Override
     public void getInfo(Solution<V, T> solution, Map<String, String> info) {
     }
 
+    @Override
     public void getInfo(Solution<V, T> solution, Map<String, String> info, Collection<V> variables) {
     }
 }

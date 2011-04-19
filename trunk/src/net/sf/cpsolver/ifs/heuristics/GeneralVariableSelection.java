@@ -115,6 +115,7 @@ public class GeneralVariableSelection<V extends Variable<V, T>, T extends Value<
     }
 
     /** Initialization */
+    @Override
     public void init(Solver<V, T> solver) {
         for (Extension<V, T> extension : solver.getExtensions()) {
             if (MacPropagation.class.isInstance(extension))
@@ -123,6 +124,7 @@ public class GeneralVariableSelection<V extends Variable<V, T>, T extends Value<
     }
 
     /** Variable selection */
+    @Override
     public V selectVariable(Solution<V, T> solution) {
         if (solution.getModel().nrUnassignedVariables() == 0) {
             if (!solution.getModel().perturbVariables().isEmpty())

@@ -49,6 +49,7 @@ public class DbtVariableSelection<V extends Variable<V, T>, T extends Value<V, T
      * 
      * @see VariableSelection#init(Solver)
      */
+    @Override
     public void init(Solver<V, T> solver) {
         for (Extension<V, T> extension : solver.getExtensions()) {
             if (extension instanceof DbtPropagation<?, ?>) {
@@ -62,6 +63,7 @@ public class DbtVariableSelection<V extends Variable<V, T>, T extends Value<V, T
      * 
      * @see VariableSelection#selectVariable(Solution)
      */
+    @Override
     public V selectVariable(Solution<V, T> solution) {
         if (solution.getModel().nrUnassignedVariables() == 0) {
             return null;
