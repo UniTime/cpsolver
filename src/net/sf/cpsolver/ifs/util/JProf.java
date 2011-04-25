@@ -83,6 +83,7 @@ public class JProf {
     
     /** Current CPU time of this thread in milliseconds */
     public static long currentTimeMillis() {
+        init();
         try {
             switch (sMode) {
                 case cpu :
