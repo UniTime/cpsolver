@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import net.sf.cpsolver.ifs.model.GlobalConstraint;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
@@ -172,7 +173,17 @@ public class CourseConflictTable {
                     continue;
 
                 List<Enrollment> values = courseRequest.values();
-                SectionLimit limitConstraint = new SectionLimit(new DataProperties());
+                SectionLimit limitConstraint = null;
+                for (GlobalConstraint<Request, Enrollment> c: getModel().globalConstraints()) {
+                    if (c instanceof SectionLimit) {
+                        limitConstraint = (SectionLimit)c;
+                        break;
+                    }
+                }
+                if (limitConstraint == null) {
+                    limitConstraint = new SectionLimit(new DataProperties());
+                    limitConstraint.setModel(getModel());
+                }
                 List<Enrollment> availableValues = new ArrayList<Enrollment>(values.size());
                 for (Enrollment enrollment : values) {
                     if (!limitConstraint.inConflict(enrollment))
