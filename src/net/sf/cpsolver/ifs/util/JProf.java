@@ -32,7 +32,7 @@ import org.apache.log4j.Logger;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class JProf {
-    private static Mode sMode = Mode.cpu;
+    private static Mode sMode = Mode.wall;
     private static enum Mode {
         cpu, wall, user
     }
