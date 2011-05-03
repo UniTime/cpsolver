@@ -1,5 +1,6 @@
 package net.sf.cpsolver.studentsct.model;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -40,7 +41,7 @@ public class Course {
     private int iLimit = 0, iProjected = 0;
     private double iEnrollmentWeight = 0.0;
     private Set<Enrollment> iEnrollments = new HashSet<Enrollment>();
-    private Set<CourseRequest> iRequests = new HashSet<CourseRequest>();
+    private Set<CourseRequest> iRequests = Collections.synchronizedSet(new HashSet<CourseRequest>());
 
     /**
      * Constructor
