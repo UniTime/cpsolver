@@ -1,6 +1,7 @@
 package net.sf.cpsolver.ifs.example.tt;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -391,9 +392,23 @@ public class TimetableModel extends Model<Activity, Location> {
     }
 
     public static void main(String[] args) {
-        org.apache.log4j.BasicConfigurator.configure();
-        TimetableModel model = generate(new DataProperties());
-        System.out.println(model.getInfo());
+        try {
+            // Configure logging
+            org.apache.log4j.BasicConfigurator.configure();
+            
+            // Load properties (take first argument as input file, containing key=value lines)
+            DataProperties properties = new DataProperties();
+            properties.load(new FileInputStream(args[0]));
+            
+            // Generate model
+            TimetableModel model = TimetableModel.generate(new DataProperties());
+            System.out.println(model.getInfo());
+            
+            // Save solution (take second argument as output file)
+            model.saveAsXML(properties, true, new Solution<Activity, Location>(model), new File(args[1]));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void saveAsXML(DataProperties cfg, boolean gen, Solution<Activity, Location> solution, File outFile)
