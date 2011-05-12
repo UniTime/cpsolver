@@ -626,6 +626,7 @@ public class TimetableXMLLoader extends TimetableLoader {
             if (student == null) {
                 student = new Student(studentId);
                 students.put(studentId, student);
+                getModel().addStudent(student);
             }
             student.setAcademicArea(studentEl.attributeValue("area"));
             student.setAcademicClassification(studentEl.attributeValue("classification"));
