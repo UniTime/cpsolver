@@ -94,7 +94,7 @@ public class CourseRequest extends Request {
      * needs to be correct, i.e., a section for each subpart of a configuration
      * of one of the requested courses.
      */
-    public Enrollment createEnrollment(Set<? extends Assignment> sections) {
+    public Enrollment createEnrollment(Set<? extends Assignment> sections, Reservation reservation) {
         if (sections == null || sections.isEmpty())
             return null;
         Config config = ((Section) sections.iterator().next()).getSubpart().getConfig();
@@ -105,7 +105,16 @@ public class CourseRequest extends Request {
                 break;
             }
         }
-        Enrollment ret = new Enrollment(this, iCourses.indexOf(course), course, config, sections, null);
+        return new Enrollment(this, iCourses.indexOf(course), course, config, sections, reservation);
+    }
+
+    /**
+     * Create enrollment for the given list of sections. The list of sections
+     * needs to be correct, i.e., a section for each subpart of a configuration
+     * of one of the requested courses.
+     */
+    public Enrollment createEnrollment(Set<? extends Assignment> sections) {
+        Enrollment ret = createEnrollment(sections, null);
         ret.guessReservation(true);
         return ret;
         
