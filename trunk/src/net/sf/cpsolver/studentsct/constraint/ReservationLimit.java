@@ -59,6 +59,7 @@ import net.sf.cpsolver.studentsct.reservation.Reservation;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
+    private static double sNominalWeight = 0.00001;
     private boolean iPreferDummyStudents = false;
 
     /**
@@ -70,6 +71,26 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
     public ReservationLimit(DataProperties cfg) {
         super();
         iPreferDummyStudents = cfg.getPropertyBoolean("ReservationLimit.PreferDummyStudents", false);
+    }
+
+    
+    /**
+     * Remaining unreserved space in a config if the given request is assigned. In order
+     * to overcome rounding problems with last-like students ( e.g., 5 students
+     * are projected to two sections of limit 2 -- each section can have up to 3
+     * of these last-like students), the weight of the request with the highest
+     * weight in the section is changed to a small nominal weight.
+     * 
+     * @param config
+     *            a config that is of concern
+     * @param request
+     *            a request of a student to be assigned containing the given
+     *            section
+     * @return config's new unreserved space
+     */
+    public static double getUnreservedSpace(Config config, Request request) {
+        return config.getUnreservedSpace(request) - request.getWeight()
+                + Math.max(config.getMaxEnrollmentWeight(), request.getWeight()) - sNominalWeight;
     }
 
 
@@ -180,9 +201,9 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
                     return;
                 }
 
-                double unreserved = config.getUnreservedSpace(enrollment.getRequest());
+                double unreserved = getUnreservedSpace(config, enrollment.getRequest());
 
-                if (unreserved < enrollment.getRequest().getWeight()) {
+                if (unreserved < 0.0) {
                     // no unreserved space available -> cannot be assigned
                     // try to unassign some other enrollments that also do not have config reservation
                     
@@ -198,7 +219,7 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
                             adepts.add(e);
                     }
                     
-                    while (unreserved < enrollment.getRequest().getWeight()) {
+                    while (unreserved < 0.0) {
                         if (adepts.isEmpty()) {
                             // no adepts -> enrollment cannot be assigned
                             conflicts.add(enrollment);
@@ -252,10 +273,10 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
                 
             // check configuration unavailable space too
             double unreserved = Math.min(
-                    config.getOffering().getUnreservedSpace(enrollment.getRequest()),
-                    config.getUnreservedSpace(enrollment.getRequest()));
+                    config.getOffering().getUnreservedSpace(enrollment.getRequest()) - enrollment.getRequest().getWeight(),
+                    getUnreservedSpace(config, enrollment.getRequest()));
                 
-            if (unreserved < enrollment.getRequest().getWeight()) {
+            if (unreserved < 0.0) {
                 // no unreserved space available -> cannot be assigned
                 // try to unassign some other enrollments that also do not have reservation
                 
@@ -271,7 +292,7 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
                         adepts.add(e);
                 }
                 
-                while (unreserved < enrollment.getRequest().getWeight()) {
+                while (unreserved < 0.0) {
                     if (adepts.isEmpty()) {
                         // no adepts -> enrollment cannot be assigned
                         conflicts.add(enrollment);
@@ -364,12 +385,12 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
             
             // if not configuration reservation, check configuration unreserved space too
             return (!hasConfigReservation(enrollment) &&
-                config.getUnreservedSpace(enrollment.getRequest()) < enrollment.getRequest().getWeight());
+                    getUnreservedSpace(config, enrollment.getRequest()) < 0.0);
         } else {
             // check unreserved space;
             return config.getOffering().getTotalUnreservedSpace() < enrollment.getRequest().getWeight() || 
                    config.getTotalUnreservedSpace() < enrollment.getRequest().getWeight() ||
-                   config.getUnreservedSpace(enrollment.getRequest()) < enrollment.getRequest().getWeight() ||
+                   getUnreservedSpace(config, enrollment.getRequest()) < 0.0 ||
                    config.getOffering().getUnreservedSpace(enrollment.getRequest()) < enrollment.getRequest().getWeight();
         }
     }
