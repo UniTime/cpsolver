@@ -101,6 +101,26 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
     }
     
     /**
+     * Remaining unreserved space in a section if the given request is assigned. In order
+     * to overcome rounding problems with last-like students ( e.g., 5 students
+     * are projected to two sections of limit 2 -- each section can have up to 3
+     * of these last-like students), the weight of the request with the highest
+     * weight in the section is changed to a small nominal weight.
+     * 
+     * @param section
+     *            a section that is of concern
+     * @param request
+     *            a request of a student to be assigned containing the given
+     *            section
+     * @return section's new unreserved space
+     */
+    public static double getUnreservedSpace(Section section, Request request) {
+        return section.getUnreservedSpace(request) - request.getWeight()
+                + Math.max(section.getMaxEnrollmentWeight(), request.getWeight()) - sNominalWeight;
+    }
+
+    
+    /**
      * True if the enrollment has reservation for this section.
      * Everything else is checked in the {@link ReservationLimit} constraint.
      **/
@@ -137,18 +157,18 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
 
         // for each section
         for (Section section : enrollment.getSections()) {
-            
+
             // no reservation -- check the space in the unreserved space in the section
-            if (!hasSectionReservation(enrollment, section)) {
+            if (enrollment.getConfig().getOffering().hasReservations() && !hasSectionReservation(enrollment, section)) {
                 // section is fully reserved by section reservations
                 if (section.getTotalUnreservedSpace() < enrollment.getRequest().getWeight()) {
                     conflicts.add(enrollment);
                     return;
                 }
                 
-                double unreserved = section.getUnreservedSpace(enrollment.getRequest()); 
+                double unreserved = getUnreservedSpace(section, enrollment.getRequest()); 
                 
-                if (unreserved < enrollment.getRequest().getWeight()) {
+                if (unreserved < 0.0) {
                     // no unreserved space available -> cannot be assigned
                     // try to unassign some other enrollments that also do not have reservation
                     
@@ -164,7 +184,7 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
                             adepts.add(e);
                     }
                     
-                    while (unreserved < enrollment.getRequest().getWeight()) {
+                    while (unreserved < 0.0) {
                         if (adepts.isEmpty()) {
                             // no adepts -> enrollment cannot be assigned
                             conflicts.add(enrollment);
@@ -206,7 +226,6 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
                         conflicts.add(conflict);
                     }
                 }
-                
             }
 
             // unlimited section
@@ -317,16 +336,17 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
         // for each section
         for (Section section : enrollment.getSections()) {
 
+            // not have reservation -> check unreserved space
+            if (enrollment.getConfig().getOffering().hasReservations() &&
+                !hasSectionReservation(enrollment, section) && (
+                section.getTotalUnreservedSpace() < enrollment.getRequest().getWeight() ||
+                getUnreservedSpace(section, enrollment.getRequest()) < 0.0))
+                return true;
+
             // unlimited section
             if (section.getLimit() < 0)
                 continue;
             
-            // not have reservation -> check unreserved space
-            if (!hasSectionReservation(enrollment, section) && (
-                section.getTotalUnreservedSpace() < enrollment.getRequest().getWeight() ||
-                section.getUnreservedSpace(enrollment.getRequest()) < enrollment.getRequest().getWeight()))
-                return true;
-
             // new enrollment weight
             double enrlWeight = getEnrollmentWeight(section, enrollment.getRequest());
 
