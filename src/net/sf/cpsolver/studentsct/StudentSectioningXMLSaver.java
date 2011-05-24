@@ -3,6 +3,7 @@ package net.sf.cpsolver.studentsct;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.BitSet;
 import java.util.Date;
@@ -137,6 +138,10 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
 
     private boolean iConvertIds = false;
     private boolean iShowNames = false;
+    
+    static {
+        sStudentWeightFormat.setRoundingMode(RoundingMode.DOWN);
+    }
 
     /**
      * Constructor
@@ -451,6 +456,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                     if (iSaveInitial && request.getInitialAssignment() != null) {
                         Element assignmentEl = requestEl.addElement("initial");
                         Enrollment enrollment = request.getInitialAssignment();
+                        if (enrollment.getReservation() != null)
+                            assignmentEl.addAttribute("reservation", getId("reservation", enrollment.getReservation().getId()));
                         for (Section section : enrollment.getSections()) {
                             Element sectionEl = assignmentEl.addElement("section").addAttribute("id",
                                     getId("section", section.getId()));
@@ -468,6 +475,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                     if (iSaveCurrent && request.getAssignment() != null) {
                         Element assignmentEl = requestEl.addElement("current");
                         Enrollment enrollment = request.getAssignment();
+                        if (enrollment.getReservation() != null)
+                            assignmentEl.addAttribute("reservation", getId("reservation", enrollment.getReservation().getId()));
                         for (Section section : enrollment.getSections()) {
                             Element sectionEl = assignmentEl.addElement("section").addAttribute("id",
                                     getId("section", section.getId()));
@@ -485,6 +494,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                     if (iSaveBest && request.getBestAssignment() != null) {
                         Element assignmentEl = requestEl.addElement("best");
                         Enrollment enrollment = request.getBestAssignment();
+                        if (enrollment.getReservation() != null)
+                            assignmentEl.addAttribute("reservation", getId("reservation", enrollment.getReservation().getId()));
                         for (Section section : enrollment.getSections()) {
                             Element sectionEl = assignmentEl.addElement("section").addAttribute("id",
                                     getId("section", section.getId()));
