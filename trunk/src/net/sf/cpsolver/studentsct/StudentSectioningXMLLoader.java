@@ -513,8 +513,15 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                                         .attributeValue("id")));
                                 sections.add(section);
                             }
+                            Reservation reservation = null;
+                            if (initialEl.attributeValue("reservation", null) != null) {
+                                long reservationId = Long.valueOf(initialEl.attributeValue("reservation"));
+                                for (Course course: courseRequest.getCourses())
+                                    for (Reservation r: course.getOffering().getReservations())
+                                        if (r.getId() == reservationId) { reservation = r; break; }
+                            }
                             if (!sections.isEmpty())
-                                courseRequest.setInitialAssignment(courseRequest.createEnrollment(sections));
+                                courseRequest.setInitialAssignment(courseRequest.createEnrollment(sections, reservation));
                         }
                         Element currentEl = requestEl.element("current");
                         if (iLoadCurrent && currentEl != null) {
@@ -525,8 +532,15 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                                         .attributeValue("id")));
                                 sections.add(section);
                             }
+                            Reservation reservation = null;
+                            if (currentEl.attributeValue("reservation", null) != null) {
+                                long reservationId = Long.valueOf(currentEl.attributeValue("reservation"));
+                                for (Course course: courseRequest.getCourses())
+                                    for (Reservation r: course.getOffering().getReservations())
+                                        if (r.getId() == reservationId) { reservation = r; break; }
+                            }
                             if (!sections.isEmpty())
-                                currentEnrollments.add(courseRequest.createEnrollment(sections));
+                                currentEnrollments.add(courseRequest.createEnrollment(sections, reservation));
                         }
                         Element bestEl = requestEl.element("best");
                         if (iLoadBest && bestEl != null) {
@@ -537,8 +551,15 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                                         .attributeValue("id")));
                                 sections.add(section);
                             }
+                            Reservation reservation = null;
+                            if (bestEl.attributeValue("reservation", null) != null) {
+                                long reservationId = Long.valueOf(bestEl.attributeValue("reservation"));
+                                for (Course course: courseRequest.getCourses())
+                                    for (Reservation r: course.getOffering().getReservations())
+                                        if (r.getId() == reservationId) { reservation = r; break; }
+                            }
                             if (!sections.isEmpty())
-                                bestEnrollments.add(courseRequest.createEnrollment(sections));
+                                bestEnrollments.add(courseRequest.createEnrollment(sections, reservation));
                         }
                     }
                 }
@@ -547,13 +568,11 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
 
             if (!bestEnrollments.isEmpty()) {
                 for (Enrollment enrollment : bestEnrollments) {
-                    Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(
-                            enrollment);
+                    Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(enrollment);
                     if (conflicts.isEmpty())
                         enrollment.variable().assign(0, enrollment);
-                    else {
+                    else
                         sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
-                    }
                 }
                 getModel().saveBest();
             }
