@@ -324,7 +324,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                 for (TimeOverlapsCounter.Conflict c: timeOverlappingConflicts) {
                     weight += iModel.getStudentWeights().getTimeOverlapConflictWeight(enrollment, c);
                 }
-            return weight;
+            return enrollment.getRequest().getWeight() * weight;
         }
         
         /** Return bound of a request */
