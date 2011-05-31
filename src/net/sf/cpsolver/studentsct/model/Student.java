@@ -36,6 +36,7 @@ import net.sf.cpsolver.coursett.model.TimeLocation;
  */
 public class Student {
     private long iId;
+    private String iExternalId = null;
     private boolean iDummy = false;
     private List<Request> iRequests = new ArrayList<Request>();
     private List<AcademicAreaCode> iAcadAreaClassifs = new ArrayList<AcademicAreaCode>();
@@ -248,4 +249,13 @@ public class Student {
         }
         return ret;
     }
+    
+    /**
+     * Get student external id
+     */
+    public String getExternalId() { return iExternalId; }
+    /**
+     * Set student external id
+     */
+    public void setExternalId(String externalId) { iExternalId = externalId; }
 }
