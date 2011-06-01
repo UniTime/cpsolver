@@ -49,6 +49,7 @@ public class Enrollment extends Value<Request, Enrollment> {
     private Double iCachedPenalty = null;
     private int iPriority = 0;
     private Reservation iReservation = null;
+    private Long iTimeStamp = null;
 
     /**
      * Constructor
@@ -399,4 +400,18 @@ public class Enrollment extends Value<Request, Enrollment> {
      * Set reservation for this enrollment
      */
     public void setReservation(Reservation reservation) { iReservation = reservation; }
+    
+    /**
+     * Time stamp of the enrollment
+     */
+    public Long getTimeStamp() {
+        return iTimeStamp;
+    }
+
+    /**
+     * Time stamp of the enrollment
+     */
+    public void setTimeStamp(Long timeStamp) {
+        iTimeStamp = timeStamp;
+    }
 }
