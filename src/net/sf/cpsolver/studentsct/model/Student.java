@@ -210,7 +210,7 @@ public class Student {
     public boolean equals(Object object) {
         if (object == null || !(object instanceof Student))
             return false;
-        return getId() == ((Student) object).getId();
+        return getId() == ((Student) object).getId() && isDummy() == ((Student) object).isDummy();
     }
 
     /**
