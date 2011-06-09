@@ -593,7 +593,7 @@ public class SpreadConstraint extends Constraint<Lecture, Placement> implements 
     public void addVariable(Lecture lecture) {
         if (lecture.canShareRoom()) {
             for (GroupConstraint gc : lecture.groupConstraints()) {
-                if (gc.getType() == GroupConstraint.TYPE_MEET_WITH) {
+                if (gc.getType() == GroupConstraint.ConstraintType.MEET_WITH) {
                     if (gc.variables().indexOf(lecture) > 0)
                         return;
                 }

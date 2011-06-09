@@ -669,8 +669,8 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
             iGroupConstraints.add((GroupConstraint) constraint);
             if (!constraint.isHard()) {
                 GroupConstraint gc = (GroupConstraint) constraint;
-                iMinGroupConstraintPreference += Math.min(gc.getPreference(), 0);
-                iMaxGroupConstraintPreference += Math.max(gc.getPreference(), 0);
+                iMinGroupConstraintPreference -= Math.abs(gc.getPreference());
+                iMaxGroupConstraintPreference += 0;
             }
         }
     }

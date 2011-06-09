@@ -427,7 +427,7 @@ public class TimetableXMLSaver extends TimetableSaver {
         for (GroupConstraint gc : getModel().getGroupConstraints()) {
             Element grEl = grConstraintsEl.addElement("constraint").addAttribute("id",
                     getId("gr", String.valueOf(gc.getId())));
-            grEl.addAttribute("type", gc.getType());
+            grEl.addAttribute("type", gc.getType().reference());
             grEl.addAttribute("pref", gc.getPrologPreference());
             for (Lecture l : gc.variables()) {
                 grEl.addElement("class").addAttribute("id", getId("class", l.getClassId()));
