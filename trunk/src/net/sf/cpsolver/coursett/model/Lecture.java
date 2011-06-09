@@ -650,7 +650,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
             iClassLimitConstraint = (ClassLimitConstraint) constraint;
         else if (constraint instanceof GroupConstraint) {
             GroupConstraint gc = (GroupConstraint) constraint;
-            if (GroupConstraint.canShareRooms(gc.getType())) {
+            if (gc.canShareRoom()) {
                 iCanShareRoomGroupConstraints.add((GroupConstraint) constraint);
             } else {
                 iGroupConstraints.add((GroupConstraint) constraint);

@@ -601,8 +601,10 @@ public class TimetableXMLLoader extends TimetableLoader {
                 c = new MinimizeNumberOfUsedGroupsOfTime(getModel().getProperties(), "2x5h",
                         MinimizeNumberOfUsedGroupsOfTime.sGroups2of5h);
             } else {
-                c = new GroupConstraint(Long.valueOf(grConstraintEl.attributeValue("id")), grConstraintEl
-                        .attributeValue("type"), grConstraintEl.attributeValue("pref"));
+                c = new GroupConstraint(
+                        Long.valueOf(grConstraintEl.attributeValue("id")),
+                        GroupConstraint.ConstraintType.get(grConstraintEl.attributeValue("type")),
+                        grConstraintEl.attributeValue("pref"));
             }
             getModel().addConstraint(c);
             for (Iterator<?> i2 = grConstraintEl.elementIterator("class"); i2.hasNext();) {

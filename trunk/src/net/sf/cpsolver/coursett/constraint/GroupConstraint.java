@@ -14,6 +14,7 @@ import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.coursett.model.TimetableModel;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.GlobalConstraint;
+import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
  * Group constraint. <br>
@@ -102,109 +103,472 @@ import net.sf.cpsolver.ifs.model.GlobalConstraint;
 public class GroupConstraint extends Constraint<Lecture, Placement> {
     private Long iId;
     private int iPreference;
-    private String iType;
+    private ConstraintType iType;
     private boolean iIsRequired;
     private boolean iIsProhibited;
     private int iLastPreference = 0;
+    
+    /**
+     * Group constraints that can be checked on pairs of classes (e.g., same room means any two classes are in the same room),
+     * only need to implement this interface.
+     */
+    public static interface PairCheck {
+        /**
+         * Check whether the constraint is satisfied for the given two assignments (required / preferred case)
+         * @param gc Calling group constraint 
+         * @param plc1 First placement
+         * @param plc2 Second placement
+         * @return true if constraint is satisfied
+         */
+        public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2);
+        /**
+         * Check whether the constraint is satisfied for the given two assignments (prohibited / discouraged case)
+         * @param gc Calling group constraint 
+         * @param plc1 First placement
+         * @param plc2 Second placement
+         * @return true if constraint is satisfied
+         */
+        public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2);
+    }
+    
+    /**
+     * Group constraint building blocks (individual constraints that need more than {@link PairCheck})
+     */
+    public static enum Flag {
+        /** Back-to-back constraint (sequence check) */
+        BACK_TO_BACK,
+        /** Can share room flag */
+        CAN_SHARE_ROOM,
+        /** Maximum hours a day (number of slots a day check) */
+        MAX_HRS_DAY,
+        /** Children cannot overlap */
+        CH_NOTOVERLAP;
+        /** Bit number (to combine flags) */
+        int flag() { return 1 << ordinal(); }
+    }
+    
+    /**
+     * Group constraint type.
+     */
+    public static enum ConstraintType {
+        /**
+         * Same Rime: Given classes must be taught at the same time of day (independent of the actual day the classes meet).
+         * For the classes of the same length, this is the same constraint as same start. For classes of different length,
+         * the shorter one cannot start before, nor end after, the longer one.<BR>
+         * When prohibited or (strongly) discouraged: one class may not meet on any day at a time of day that overlaps with
+         * that of the other. For example, one class can not meet M 7:30 while the other meets F 7:30. Note the difference
+         * here from the different time constraint that only prohibits the actual class meetings from overlapping.
+         */
+        SAME_TIME("SAME_TIME", "Same Time", new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return sameHours(plc1.getTimeLocation().getStartSlot(), plc1.getTimeLocation().getLength(),
+                        plc2.getTimeLocation().getStartSlot(), plc2.getTimeLocation().getLength());
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return !(plc1.getTimeLocation().shareHours(plc2.getTimeLocation()));
+            }}),
+        /**
+         * Same Days: Given classes must be taught on the same days. In case of classes of different time patterns, a class
+         * with fewer meetings must meet on a subset of the days used by the class with more meetings. For example, if one
+         * class pattern is 3x50, all others given in the constraint can only be taught on Monday, Wednesday, or Friday.
+         * For a 2x100 class MW, MF, WF is allowed but TTh is prohibited.<BR>
+         * When prohibited or (strongly) discouraged: any pair of classes classes cannot be taught on the same days (cannot
+         *  overlap in days). For instance, if one class is MFW, the second has to be TTh.
+         */
+        SAME_DAYS("SAME_DAYS", "Same Days", new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray());
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return !plc1.getTimeLocation().shareDays(plc2.getTimeLocation());
+            }}),
+        /**
+         * Back-To-Back & Same Room: Classes must be offered in adjacent time segments and must be placed in the same room.
+         * Given classes must also be taught on the same days.<BR>
+         * When prohibited or (strongly) discouraged: classes cannot be back-to-back. There must be at least half-hour
+         * between these classes, and they must be taught on the same days and in the same room.
+         */
+        BTB("BTB", "Back-To-Back & Same Room", new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return
+                    plc1.sameRooms(plc2) &&
+                    sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray());
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return
+                    plc1.sameRooms(plc2) &&
+                    sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray());
+            }}, Flag.BACK_TO_BACK),
+        /**
+         * Back-To-Back: Classes must be offered in adjacent time segments but may be placed in different rooms. Given classes
+         * must also be taught on the same days.<BR>
+         * When prohibited or (strongly) discouraged: no pair of classes can be taught back-to-back. They may not overlap in time,
+         * but must be taught on the same days. This means that there must be at least half-hour between these classes. 
+         */
+        BTB_TIME("BTB_TIME", "Back-To-Back", new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray());
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray());
+            }}, Flag.BACK_TO_BACK),
+        /**
+         * Different Time: Given classes cannot overlap in time. They may be taught at the same time of day if they are on
+         * different days. For instance, MF 7:30 is compatible with TTh 7:30.<BR>
+         * When prohibited or (strongly) discouraged: every pair of classes in the constraint must overlap in time. 
+         */
+        DIFF_TIME("DIFF_TIME", "Different Time", new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return !plc1.getTimeLocation().hasIntersection(plc2.getTimeLocation());
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return plc1.getTimeLocation().hasIntersection(plc2.getTimeLocation());
+            }}),
+        /**
+         * 1 Hour Between: Given classes must have exactly 1 hour in between the end of one and the beginning of another.
+         * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
+         * When prohibited or (strongly) discouraged: classes can not have 1 hour in between. They may not overlap in time
+         * but must be taught on the same days.
+         */
+        NHB_1("NHB(1)", "1 Hour Between", 12, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        /**
+         * 2 Hours Between: Given classes must have exactly 2 hours in between the end of one and the beginning of another.
+         * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
+         * When prohibited or (strongly) discouraged: classes can not have 2 hours in between. They may not overlap in time
+         * but must be taught on the same days.
+         */
+        NHB_2("NHB(2)", "2 Hours Between", 24, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        /**
+         * 3 Hours Between: Given classes must have exactly 3 hours in between the end of one and the beginning of another.
+         * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
+         * When prohibited or (strongly) discouraged: classes can not have 3 hours in between. They may not overlap in time
+         * but must be taught on the same days.
+         */
+        NHB_3("NHB(3)", "3 Hours Between", 36, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        /**
+         * 4 Hours Between: Given classes must have exactly 4 hours in between the end of one and the beginning of another.
+         * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
+         * When prohibited or (strongly) discouraged: classes can not have 4 hours in between. They may not overlap in time
+         * but must be taught on the same days.
+         */
+        NHB_4("NHB(4)", "4 Hours Between", 48, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        /**
+         * 5 Hours Between: Given classes must have exactly 5 hours in between the end of one and the beginning of another.
+         * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
+         * When prohibited or (strongly) discouraged: classes can not have 5 hours in between. They may not overlap in time
+         * but must be taught on the same days.
+         */
+        NHB_5("NHB(5)", "5 Hours Between", 60, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        /**
+         * 6 Hours Between: Given classes must have exactly 6 hours in between the end of one and the beginning of another.
+         * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
+         * When prohibited or (strongly) discouraged: classes can not have 6 hours in between. They may not overlap in time
+         * but must be taught on the same days.
+         */
+        NHB_6("NHB(6)", "6 Hours Between", 72, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        /**
+         * 7 Hours Between: Given classes must have exactly 7 hours in between the end of one and the beginning of another.
+         * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
+         * When prohibited or (strongly) discouraged: classes can not have 7 hours in between. They may not overlap in time
+         * but must be taught on the same days.
+         */
+        NHB_7("NHB(7)", "7 Hours Between", 84, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        /**
+         * 8 Hours Between: Given classes must have exactly 8 hours in between the end of one and the beginning of another.
+         * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
+         * When prohibited or (strongly) discouraged: classes can not have 8 hours in between. They may not overlap in time
+         * but must be taught on the same days.
+         */
+        NHB_8("NHB(8)", "8 Hours Between", 96, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        /**
+         * Same Start Time: Given classes must start during the same half-hour period of a day (independent of the actual
+         * day the classes meet). For instance, MW 7:30 is compatible with TTh 7:30 but not with MWF 8:00.<BR>
+         * When prohibited or (strongly) discouraged: any pair of classes in the given constraint cannot start during the
+         * same half-hour period of any day of the week.
+         */
+        SAME_START("SAME_START", "Same Start Time", new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return
+                    (plc1.getTimeLocation().getStartSlot() % Constants.SLOTS_PER_DAY) == 
+                    (plc2.getTimeLocation().getStartSlot() % Constants.SLOTS_PER_DAY);
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return
+                    (plc1.getTimeLocation().getStartSlot() % Constants.SLOTS_PER_DAY) != 
+                    (plc2.getTimeLocation().getStartSlot() % Constants.SLOTS_PER_DAY);
+            }}),
+        /**
+         * Same Room: Given classes must be taught in the same room.<BR>
+         * When prohibited or (strongly) discouraged: any pair of classes in the constraint cannot be taught in the same room.
+         */
+        SAME_ROOM("SAME_ROOM", "Same Room", new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return plc1.sameRooms(plc2);
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return !plc1.sameRooms(plc2);
+            }}),
+        /**
+         * At Least 1 Hour Between: Given classes have to have 1 hour or more in between.<BR>
+         * When prohibited or (strongly) discouraged: given classes have to have less than 1 hour in between.
+         */
+        NHB_GTE_1("NHB_GTE(1)", "At Least 1 Hour Between", 6, 288, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        /**
+         * Less Than 6 Hours Between: Given classes must have less than 6 hours from end of first class to the beginning of
+         * the next. Given classes must also be taught on the same days.<BR>
+         * When prohibited or (strongly) discouraged: given classes must have 6 or more hours between. This constraint does
+         * not carry over from classes taught at the end of one day to the beginning of the next.
+         */
+        NHB_LT_6("NHB_LT(6)", "Less Than 6 Hours Between", 0, 66, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        /**
+         * 1.5 Hour Between: Given classes must have exactly 90 minutes in between the end of one and the beginning of another.
+         * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
+         * When prohibited or (strongly) discouraged: classes can not have 90 minutes in between. They may not overlap in time
+         * but must be taught on the same days.
+         */
+        NHB_1_5("NHB(1.5)", "1.5 Hour Between", 18, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        /**
+         * 4.5 Hours Between: Given classes must have exactly 4.5 hours in between the end of one and the beginning of another.
+         * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
+         * When prohibited or (strongly) discouraged: classes can not have 4.5 hours in between. They may not overlap in time
+         * but must be taught on the same days.
+         */
+        NHB_4_5("NHB(4.5)", "4.5 Hours Between", 54, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        /**
+         * Same Students: Given classes are treated as they are attended by the same students, i.e., they cannot overlap in time
+         * and if they are back-to-back the assigned rooms cannot be too far (student limit is used).
+         */
+        SAME_STUDENTS("SAME_STUDENTS", "Same Students", new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return !JenrlConstraint.isInConflict(plc1, plc2, ((TimetableModel)gc.getModel()).getDistanceMetric());
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return true;
+            }}),
+        /**
+         * Same Instructor: Given classes are treated as they are taught by the same instructor, i.e., they cannot overlap in time
+         * and if they are back-to-back the assigned rooms cannot be too far (instructor limit is used).<BR>
+         * If the constraint is required and the classes are back-to-back, discouraged and strongly discouraged distances between
+         * assigned rooms are also considered.
+         */
+        SAME_INSTR("SAME_INSTR", "Same Instructor", new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                TimeLocation t1 = plc1.getTimeLocation(), t2 = plc2.getTimeLocation();
+                if (t1.shareDays(t2) && t1.shareWeeks(t2)) {
+                    if (t1.shareHours(t2))
+                        return false; // overlap
+                    int s1 = t1.getStartSlot() % Constants.SLOTS_PER_DAY;
+                    int s2 = t2.getStartSlot() % Constants.SLOTS_PER_DAY;
+                    if (s1 + t1.getLength() == s2 || s2 + t2.getLength() == s1) { // back-to-back
+                        TimetableModel m = (TimetableModel)gc.getModel();
+                        double distance = Placement.getDistanceInMeters(m.getDistanceMetric(), plc1, plc2);
+                        if (distance > m.getDistanceMetric().getInstructorProhibitedLimit())
+                            return false;
+                    }
+                }
+                return true;
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return true;
+            }}),
+        /**
+         * Can Share Room: Given classes can share the room (use the room in the same time) if the room is big enough.
+         */
+        CAN_SHARE_ROOM("CAN_SHARE_ROOM", "Can Share Room", null, Flag.CAN_SHARE_ROOM),
+        /**
+         * Precedence: Given classes have to be taught in the given order (the first meeting of the first class has to end before
+         * the first meeting of the second class etc.)<BR>
+         * When prohibited or (strongly) discouraged: classes have to be taught in the order reverse to the given one.
+         */
+        PRECEDENCE("PRECEDENCE", "Precedence", new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return gc.isPrecedence(plc1, plc2, true);
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return gc.isPrecedence(plc1, plc2, false);
+            }}),
+        /**
+         * Back-To-Back Day: Classes must be offered on adjacent days and may be placed in different rooms.<BR>
+         * When prohibited or (strongly) discouraged: classes can not be taught on adjacent days. They also can not be taught
+         * on the same days. This means that there must be at least one day between these classes.
+         */
+        BTB_DAY("BTB_DAY", "Back-To-Back Day", new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return
+                    !sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray()) &&
+                    isBackToBackDays(plc1.getTimeLocation(), plc2.getTimeLocation());
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return
+                    !sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray()) &&
+                    !isBackToBackDays(plc1.getTimeLocation(), plc2.getTimeLocation());
+            }}),
+        /**
+         * Meet Together: Given classes are meeting together (same as if the given classes require constraints Can Share Room,
+         * Same Room, Same Time and Same Days all together).
+         */
+        MEET_WITH("MEET_WITH", "Meet Together", new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return
+                        plc1.sameRooms(plc2) &&
+                        sameHours(plc1.getTimeLocation().getStartSlot(), plc1.getTimeLocation().getLength(),
+                                plc2.getTimeLocation().getStartSlot(), plc2.getTimeLocation().getLength()) &&
+                        sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray());
+                        
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return true;
+            }}, Flag.CAN_SHARE_ROOM),
+        /**
+         * More Than 1 Day Between: Given classes must have two or more days in between.<br>
+         * When prohibited or (strongly) discouraged: given classes must be offered on adjacent days or with at most one day in between.
+         */
+        NDB_GT_1("NDB_GT_1", "More Than 1 Day Between", new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return
+                    !sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray()) &&
+                    isNrDaysBetweenGreaterThanOne(plc1.getTimeLocation(), plc2.getTimeLocation());
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return
+                    !sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray()) &&
+                    !isNrDaysBetweenGreaterThanOne(plc1.getTimeLocation(), plc2.getTimeLocation());
+            }}),
+        /**
+         * Children Cannot Overlap: If parent classes do not overlap in time, children classes can not overlap in time as well.<BR>
+         * Note: This constraint only needs to be put on the parent classes. Preferred configurations are Required All Classes
+         * or Pairwise (Strongly) Preferred.
+         */
+        CH_NOTOVERLAP("CH_NOTOVERLAP", "Children Cannot Overlap", new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return gc.isChildrenNotOverlap(plc1.variable(), plc1, plc2.variable(), plc2);
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return true;
+            }}),
+        /**
+         * Next Day: The second class has to be placed on the following day of the first class (if the first class is on Friday,
+         * second class have to be on Monday).<br>
+         * When prohibited or (strongly) discouraged: The second class has to be placed on the previous day of the first class
+         * (if the first class is on Monday, second class have to be on Friday).<br>
+         * Note: This constraint works only between pairs of classes.
+         */
+        FOLLOWING_DAY("FOLLOWING_DAY", "Next Day", new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return gc.isFollowingDay(plc1, plc2, true);
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return gc.isFollowingDay(plc1, plc2, false);
+            }}),
+        /**
+         * Two Days After: The second class has to be placed two days after the first class (Monday &rarr; Wednesday, Tuesday &rarr; 
+         * Thurday, Wednesday &rarr; Friday, Thursday &rarr; Monday, Friday &rarr; Tuesday).<br>
+         * When prohibited or (strongly) discouraged: The second class has to be placed two days before the first class (Monday &rarr;
+         * Thursday, Tuesday &rarr; Friday, Wednesday &rarr; Monday, Thursday &rarr; Tuesday, Friday &rarr; Wednesday).<br>
+         * Note: This constraint works only between pairs of classes.
+         */
+        EVERY_OTHER_DAY("EVERY_OTHER_DAY", "Two Days After", new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return gc.isEveryOtherDay(plc1, plc2, true);
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return gc.isEveryOtherDay(plc1, plc2, false);
+            }}),
+        /**
+         * At Most 6 Hours A Day: Classes are to be placed in a way that there is no more than six hours in any day.
+         */
+        MAX_HRS_DAY_6("MAX_HRS_DAY(6)", "At Most 6 Hours A Day", 72, null, Flag.MAX_HRS_DAY),
+        /**
+         * At Most 7 Hours A Day: Classes are to be placed in a way that there is no more than seven hours in any day.
+         */
+        MAX_HRS_DAY_7("MAX_HRS_DAY(7)", "At Most 7 Hours A Day", 84, null, Flag.MAX_HRS_DAY),
+        /**
+         * At Most 8 Hours A Day: Classes are to be placed in a way that there is no more than eight hours in any day.
+         */
+        MAX_HRS_DAY_8("MAX_HRS_DAY(8)", "At Most 8 Hours A Day", 96, null, Flag.MAX_HRS_DAY),
+        ;
+        
+        String iReference, iName;
+        int iFlag = 0;
+        Flag[] iFlags = null;
+        int iMin = 0, iMax = 0;
+        PairCheck iCheck = null;
+        ConstraintType(String reference, String name, PairCheck check, Flag... flags) {
+            iReference = reference;
+            iName = name;
+            iCheck = check;
+            iFlags = flags;
+            for (Flag f: flags)
+                iFlag |= f.flag();
+        }
+        ConstraintType(String reference, String name, int limit, PairCheck check, Flag... flags) {
+            this(reference, name, check, flags);
+            iMin = iMax = limit;
+        }
+        ConstraintType(String reference, String name, int min, int max, PairCheck check, Flag... flags) {
+            this(reference, name, check, flags);
+            iMin = min;
+            iMax = max;
+        }
+        
+        /** Constraint reference */
+        public String reference() { return iReference; }
+        /** Constraint name */
+        public String getName() { return iName; }
+        /** Minimum (gap) parameter */
+        public int getMin() { return iMin; }
+        /** Maximum (gap, hours a day) parameter */
+        public int getMax() { return iMax; }
+        
+        /** Flag check (true if contains given flag) */
+        public boolean is(Flag f) { return (iFlag & f.flag()) != 0; }
 
-    /**
-     * Same time: given classes have to be taught in the same hours. If the
-     * classes are of different length, the smaller one cannot start before the
-     * longer one and it cannot end after the longer one.
-     */
-    public static String TYPE_SAME_TIME = "SAME_TIME";
-    /**
-     * Same days: given classes have to be taught in the same day. If the
-     * classes are of different time patterns, the days of one class have to
-     * form a subset of the days of the other class.
-     */
-    public static String TYPE_SAME_DAYS = "SAME_DAYS";
-    /**
-     * Back-to-back constraint: given classes have to be taught in the same room
-     * and they have to follow one strictly after another.
-     */
-    public static String TYPE_BTB = "BTB";
-    /**
-     * Back-to-back constraint: given classes have to follow one strictly after
-     * another, but they can be taught in different rooms.
-     */
-    public static String TYPE_BTB_TIME = "BTB_TIME";
-    /** Different time: given classes cannot overlap in time. */
-    public static String TYPE_DIFF_TIME = "DIFF_TIME";
-    /**
-     * One hour between: between the given classes, the exact number of hours
-     * have to be kept.
-     */
-    public static String TYPE_NHB_1 = "NHB(1)";
-    /**
-     * Two hours between: between the given classes, the exact number of hours
-     * have to be kept.
-     */
-    public static String TYPE_NHB_2 = "NHB(2)";
-    /**
-     * Three hours between: between the given classes, the exact number of hours
-     * have to be kept.
-     */
-    public static String TYPE_NHB_3 = "NHB(3)";
-    /**
-     * Four hours between: between the given classes, the exact number of hours
-     * have to be kept.
-     */
-    public static String TYPE_NHB_4 = "NHB(4)";
-    /**
-     * Five hours between: between the given classes, the exact number of hours
-     * have to be kept.
-     */
-    public static String TYPE_NHB_5 = "NHB(5)";
-    /**
-     * Six hours between: between the given classes, the exact number of hours
-     * have to be kept.
-     */
-    public static String TYPE_NHB_6 = "NHB(6)";
-    /**
-     * Seven hours between: between the given classes, the exact number of hours
-     * have to be kept.
-     */
-    public static String TYPE_NHB_7 = "NHB(7)";
-    /**
-     * Eight hours between: between the given classes, the exact number of hours
-     * have to be kept.
-     */
-    public static String TYPE_NHB_8 = "NHB(8)";
-    /** Same room: given classes have to placed in the same room. */
-    public static String TYPE_SAME_START = "SAME_START";
-    /** Same room: given classes have to placed in the same room. */
-    public static String TYPE_SAME_ROOM = "SAME_ROOM";
-    /**
-     * Greater than or equal to 1 hour between: between the given classes, the
-     * number of hours have to be one or more.
-     */
-    public static String TYPE_NHB_GTE_1 = "NHB_GTE(1)";
-    /**
-     * Less than 6 hours between: between the given classes, the number of hours
-     * have to be less than six.
-     */
-    public static String TYPE_NHB_LT_6 = "NHB_LT(6)";
-    /**
-     * One and half hour between: between the given classes, the exact number of
-     * hours have to be kept.
-     */
-    public static String TYPE_NHB_1_5 = "NHB(1.5)";
-    /**
-     * Four and half hours between: between the given classes, the exact number
-     * of hours have to be kept.
-     */
-    public static String TYPE_NHB_4_5 = "NHB(4.5)";
-    public static String TYPE_SAME_STUDENTS = "SAME_STUDENTS";
-    public static String TYPE_SAME_INSTR = "SAME_INSTR";
-    public static String TYPE_CAN_SHARE_ROOM = "CAN_SHARE_ROOM";
-    public static String TYPE_PRECEDENCE = "PRECEDENCE";
-    public static String TYPE_BTB_DAY = "BTB_DAY";
-    public static String TYPE_MEET_WITH = "MEET_WITH";
-    public static String TYPE_NDB_GT_1 = "NDB_GT_1";
-    public static String TYPE_CH_NOTOVERLAP = "CH_NOTOVERLAP";
-    public static String TYPE_FOLLOWING_DAY = "FOLLOWING_DAY";
-    public static String TYPE_EVERY_OTHER_DAY = "EVERY_OTHER_DAY";
+        /** Constraint type from reference */
+        public static ConstraintType get(String reference) {
+            for (ConstraintType t: ConstraintType.values())
+                if (t.reference().equals(reference)) return t;
+            return null;
+        }
+        
+        /** True if a required or preferred constraint is satisfied between a pair of placements */ 
+        public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) { return (iCheck == null ? true : iCheck.isSatisfied(gc, plc1, plc2)); }
+        /** True if a prohibited or discouraged constraint is satisfied between a pair of placements */ 
+        public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) { return (iCheck == null ? true : iCheck.isViolated(gc, plc1, plc2)); }
+        /** Pair check */
+        private PairCheck check() { return iCheck; }
+    }
 
     public GroupConstraint() {
     }
@@ -213,7 +577,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
     public void addVariable(Lecture lecture) {
         if (!variables().contains(lecture))
             super.addVariable(lecture);
-        if (isChildrenNotOverlap(getType())) {
+        if (getType().is(Flag.CH_NOTOVERLAP)) {
             if (lecture.getChildrenSubpartIds() != null) {
                 for (Long subpartId: lecture.getChildrenSubpartIds()) {
                     for (Lecture ch : lecture.getChildren(subpartId)) {
@@ -229,7 +593,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
     public void removeVariable(Lecture lecture) {
         if (variables().contains(lecture))
             super.removeVariable(lecture);
-        if (isChildrenNotOverlap(getType())) {
+        if (getType().is(Flag.CH_NOTOVERLAP)) {
             if (lecture.getChildrenSubpartIds() != null) {
                 for (Long subpartId: lecture.getChildrenSubpartIds()) {
                     for (Lecture ch : lecture.getChildren(subpartId)) {
@@ -247,12 +611,12 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
      * @param id
      *            constraint id
      * @param type
-     *            constraString type (e.g, "SAME_TIME")
+     *            constraString type (e.g, {@link ConstraintType#SAME_TIME})
      * @param preference
-     *            time preferent ("R" for required, "P" for prohibited, "-2",
+     *            time preference ("R" for required, "P" for prohibited, "-2",
      *            "-1", "1", "2" for soft preference)
      */
-    public GroupConstraint(Long id, String type, String preference) {
+    public GroupConstraint(Long id, ConstraintType type, String preference) {
         iId = id;
         iType = type;
         iIsRequired = preference.equals(Constants.sPreferenceRequired);
@@ -270,12 +634,12 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         return (iId == null ? -1 : iId.longValue());
     }
 
-    /** ConstraString type (e.g, {@link GroupConstraint#TYPE_SAME_TIME} */
-    public String getType() {
+    /** ConstraString type (e.g, {@link ConstraintType#SAME_TIME}) */
+    public ConstraintType getType() {
         return iType;
     }
 
-    public void setType(String type) {
+    public void setType(ConstraintType type) {
         iType = type;
     }
 
@@ -301,14 +665,23 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
     public boolean isConsistent(Placement value1, Placement value2) {
         if (!isHard())
             return true;
-        if (!isSatisfiedPair(value1.variable(), value1, value2.variable(), value2))
+        if (!isSatisfiedPair(value1, value2))
             return false;
-        if (isBackToBack(getType())) {
+        if (getType().is(Flag.BACK_TO_BACK)) {
             HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
             assignments.put(value1.variable(), value1);
             assignments.put(value2.variable(), value2);
             if (!isSatisfiedSeq(assignments, false, null))
                 return false;
+        }
+        if (getType().is(Flag.MAX_HRS_DAY)) {
+            HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
+            assignments.put(value1.variable(), value1);
+            assignments.put(value2.variable(), value2);
+            for (int dayCode: Constants.DAY_CODES) {
+                if (nrSlotsADay(dayCode, assignments, null) > getType().getMax())
+                    return false;
+            }
         }
         return true;
     }
@@ -323,15 +696,37 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
             if (v.getAssignment() == null)
                 continue; // there is an unassigned variable -- great, still a
                           // chance to get violated
-            if (!isSatisfiedPair(v, v.getAssignment(), value.variable(), value))
+            if (!isSatisfiedPair(v.getAssignment(), value))
                 conflicts.add(v.getAssignment());
         }
-        HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
-        assignments.put(value.variable(), value);
-        if (!isSatisfiedSeq(assignments, true, conflicts))
-            conflicts.add(value);
+        if (getType().is(Flag.BACK_TO_BACK)) {
+            HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
+            assignments.put(value.variable(), value);
+            if (!isSatisfiedSeq(assignments, true, conflicts))
+                conflicts.add(value);
+        }
+        if (getType().is(Flag.MAX_HRS_DAY)) {
+            HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
+            assignments.put(value.variable(), value);
+            for (int dayCode: Constants.DAY_CODES) {
+                if (nrSlotsADay(dayCode, assignments, conflicts) > getType().getMax()) {
+                    List<Placement> adepts = new ArrayList<Placement>();
+                    for (Lecture lecture: assignedVariables()) {
+                        if (conflicts.contains(lecture.getAssignment()) || lecture.equals(value.variable())) continue;
+                        if (lecture.getAssignment().getTimeLocation() == null) continue;
+                        if ((lecture.getAssignment().getTimeLocation().getDayCode() & dayCode) == 0) continue;
+                        adepts.add(lecture.getAssignment());
+                    }
+                    do {
+                        Placement conflict = ToolBox.random(adepts);
+                        adepts.remove(conflict);
+                        conflicts.add(conflict);
+                    } while (!adepts.isEmpty() && nrSlotsADay(dayCode, assignments, conflicts) > getType().getMax());
+                }
+            }
+        }
         
-        if (TYPE_MEET_WITH.equals(iType) && !conflicts.contains(value)) {
+        if (iType == ConstraintType.MEET_WITH && !conflicts.contains(value)) {
             // Check the room size
             int neededSize = 0;
             for (Lecture lecture: variables())
@@ -395,12 +790,24 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
             if (v.getAssignment() == null)
                 continue; // there is an unassigned variable -- great, still a
                           // chance to get violated
-            if (!isSatisfiedPair(v, v.getAssignment(), value.variable(), value))
+            if (!isSatisfiedPair(v.getAssignment(), value))
                 return true;
         }
-        HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
-        assignments.put(value.variable(), value);
-        return isSatisfiedSeq(assignments, true, null);
+        if (getType().is(Flag.BACK_TO_BACK)) {
+            HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
+            assignments.put(value.variable(), value);
+            if (!isSatisfiedSeq(assignments, true, null))
+                return true;
+        }
+        if (getType().is(Flag.MAX_HRS_DAY)) {
+            HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
+            assignments.put(value.variable(), value);
+            for (int dayCode: Constants.DAY_CODES) {
+                if (nrSlotsADay(dayCode, assignments, null) > getType().getMax())
+                    return true;
+            }
+        }
+        return false;
     }
 
     /** Constraint preference (0 if prohibited or reqired) */
@@ -413,82 +820,55 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
      * current satisfaction of the constraint)
      */
     public int getCurrentPreference() {
-        if (isHard())
-            return 0; // no preference
-        if (countAssignedVariables() < 2)
-            return 0;
-        if (iPreference < 0) { // preference version (violated -> 0, satisfied
-                               // -> preference)
-            for (Lecture v1 : variables()) {
-                if (v1.getAssignment() == null)
-                    continue;
-                for (Lecture v2 : variables()) {
-                    if (v2.getAssignment() == null)
-                        continue;
-                    if (v1.equals(v2))
-                        continue;
-                    if (!isSatisfiedPair(v1, v1.getAssignment(), v2, v2.getAssignment()))
-                        return 0;
-                }
-            }
-            if (!isSatisfiedSeq(null, true, null))
-                return 0;
-            return iPreference;
-        } else { // discouraged version (violated -> prefernce, satisfied -> 0)
-            for (Lecture v1 : variables()) {
-                if (v1.getAssignment() == null)
-                    continue;
-                for (Lecture v2 : variables()) {
-                    if (v2.getAssignment() == null)
-                        continue;
-                    if (v1.equals(v2))
-                        continue;
-                    if (!isSatisfiedPair(v1, v1.getAssignment(), v2, v2.getAssignment()))
-                        return iPreference;
-                }
-            }
-            if (!isSatisfiedSeq(null, true, null))
-                return iPreference;
-            return 0;
+        if (isHard()) return 0; // no preference
+        if (countAssignedVariables() < 2) return 0; // not enough variable
+        if (getType().is(Flag.MAX_HRS_DAY)) { // max hours a day
+            int over = 0;
+            for (int dayCode: Constants.DAY_CODES)
+                over += Math.max(0, nrSlotsADay(dayCode, null, null) - getType().getMax());
+            return (over > 0 ? Math.abs(iPreference) * over / 12 : - Math.abs(iPreference));
         }
+        int nrViolatedPairs = 0;
+        for (Lecture v1 : variables()) {
+            if (v1.getAssignment() == null) continue;
+            for (Lecture v2 : variables()) {
+                if (v2.getAssignment() == null || v1.getId() >= v2.getId()) continue;
+                if (!isSatisfiedPair(v1.getAssignment(), v2.getAssignment())) nrViolatedPairs++;
+            }
+        }
+        if (getType().is(Flag.BACK_TO_BACK)) {
+            Set<Placement> conflicts = new HashSet<Placement>();
+            if (!isSatisfiedSeq(new HashMap<Lecture, Placement>(), true, conflicts))
+                nrViolatedPairs += conflicts.size();
+        }
+        return (nrViolatedPairs > 0 ? Math.abs(iPreference) * nrViolatedPairs : - Math.abs(iPreference));
     }
 
     /** Current constraint preference (if given placement is assigned) */
     public int getCurrentPreference(Placement placement) {
-        // if (isHard()) return 0; //no preference
-        if (iPreference < 0) { // preference version
-            for (Lecture v1 : variables()) {
-                if (v1.getAssignment() == null)
-                    continue;
-                if (v1.equals(placement.variable()))
-                    continue;
-                if (!isSatisfiedPair(v1, v1.getAssignment(), placement.variable(), placement))
-                    return 0;
-            }
-            if (isBackToBack(getType())) {
-                HashMap<Lecture, Placement> assignment = new HashMap<Lecture, Placement>();
-                assignment.put(placement.variable(), placement);
-                if (!isSatisfiedSeq(assignment, true, null))
-                    return 0;
-            }
-            return iPreference;
-        } else { // discouraged version
-            for (Lecture v1 : variables()) {
-                if (v1.getAssignment() == null)
-                    continue;
-                if (v1.equals(placement.variable()))
-                    continue;
-                if (!isSatisfiedPair(v1, v1.getAssignment(), placement.variable(), placement))
-                    return iPreference;
-            }
-            if (isBackToBack(getType())) {
-                HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
-                assignments.put(placement.variable(), placement);
-                if (!isSatisfiedSeq(assignments, true, null))
-                    return iPreference;
-            }
-            return 0;
+        if (getType().is(Flag.MAX_HRS_DAY)) {
+            if (placement.getTimeLocation() == null) return 0;
+            HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
+            assignments.put(placement.variable(), placement);
+            int over = 0;
+            for (int dayCode: Constants.DAY_CODES)
+                if ((placement.getTimeLocation().getDayCode() & dayCode) != 0)
+                    over += Math.min(Math.max(0, nrSlotsADay(dayCode, assignments, null) - getType().getMax()), placement.getTimeLocation().getLength());
+            return (over > 0 ? Math.abs(iPreference) * over / 12 : - Math.abs(iPreference));
         }
+        int nrViolatedPairs = 0;
+        for (Lecture v1 : variables()) {
+            if (v1.getAssignment() == null || v1.equals(placement.variable())) continue;
+            if (!isSatisfiedPair(v1.getAssignment(), placement)) nrViolatedPairs++;
+        }
+        if (getType().is(Flag.BACK_TO_BACK)) {
+            HashMap<Lecture, Placement> assignment = new HashMap<Lecture, Placement>();
+            assignment.put(placement.variable(), placement);
+            Set<Placement> conflicts = new HashSet<Placement>();
+            if (!isSatisfiedSeq(assignment, true, conflicts))
+                nrViolatedPairs += conflicts.size();
+        }
+        return (nrViolatedPairs > 0 ? Math.abs(iPreference) * nrViolatedPairs : - Math.abs(iPreference));
     }
 
     @Override
@@ -497,7 +877,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         if (iIsRequired || iIsProhibited)
             return;
         ((TimetableModel) getModel()).getGlobalGroupConstraintPreferenceCounter().dec(iLastPreference);
-        iLastPreference = getCurrentPreference();
+        iLastPreference = Math.min(0, getCurrentPreference());
         ((TimetableModel) getModel()).getGlobalGroupConstraintPreferenceCounter().inc(iLastPreference);
     }
 
@@ -507,7 +887,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         if (iIsRequired || iIsProhibited)
             return;
         ((TimetableModel) getModel()).getGlobalGroupConstraintPreferenceCounter().dec(iLastPreference);
-        iLastPreference = getCurrentPreference();
+        iLastPreference = Math.min(0, getCurrentPreference());
         ((TimetableModel) getModel()).getGlobalGroupConstraintPreferenceCounter().inc(iLastPreference);
     }
 
@@ -532,152 +912,9 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
 
     @Override
     public String getName() {
-        return getName(iType);
+        return getType().getName();
     }
 
-    public static String getName(String type) {
-        return type;
-    }
-
-    private static int getGapMin(String type) {
-        if (type.equals(TYPE_BTB))
-            return 0;
-        else if (type.equals(TYPE_BTB_TIME))
-            return 0;
-        else if (type.equals(TYPE_NHB_1))
-            return 6 * 2;
-        else if (type.equals(TYPE_NHB_1_5))
-            return 6 * 3;
-        else if (type.equals(TYPE_NHB_2))
-            return 6 * 4;
-        else if (type.equals(TYPE_NHB_3))
-            return 6 * 6;
-        else if (type.equals(TYPE_NHB_4))
-            return 6 * 8;
-        else if (type.equals(TYPE_NHB_4_5))
-            return 6 * 9;
-        else if (type.equals(TYPE_NHB_5))
-            return 6 * 10;
-        else if (type.equals(TYPE_NHB_6))
-            return 6 * 12;
-        else if (type.equals(TYPE_NHB_7))
-            return 6 * 14;
-        else if (type.equals(TYPE_NHB_8))
-            return 6 * 16;
-        else if (type.equals(TYPE_NHB_GTE_1))
-            return 6 * 1;
-        else if (type.equals(TYPE_NHB_LT_6))
-            return 0;
-        return -1;
-    }
-
-    private static int getGapMax(String type) {
-        if (type.equals(TYPE_BTB))
-            return 0;
-        else if (type.equals(TYPE_BTB_TIME))
-            return 0;
-        else if (type.equals(TYPE_NHB_1))
-            return 6 * 2;
-        else if (type.equals(TYPE_NHB_1_5))
-            return 6 * 3;
-        else if (type.equals(TYPE_NHB_2))
-            return 6 * 4;
-        else if (type.equals(TYPE_NHB_3))
-            return 6 * 6;
-        else if (type.equals(TYPE_NHB_4))
-            return 6 * 8;
-        else if (type.equals(TYPE_NHB_4_5))
-            return 6 * 9;
-        else if (type.equals(TYPE_NHB_5))
-            return 6 * 10;
-        else if (type.equals(TYPE_NHB_6))
-            return 6 * 12;
-        else if (type.equals(TYPE_NHB_7))
-            return 6 * 14;
-        else if (type.equals(TYPE_NHB_8))
-            return 6 * 16;
-        else if (type.equals(TYPE_NHB_GTE_1))
-            return Constants.SLOTS_PER_DAY;
-        else if (type.equals(TYPE_NHB_LT_6))
-            return 6 * 11;
-        return -1;
-    }
-
-    private static boolean isBackToBack(String type) {
-        if (type.equals(TYPE_BTB))
-            return true;
-        if (type.equals(TYPE_BTB_TIME))
-            return true;
-        if (type.equals(TYPE_NHB_1))
-            return true;
-        if (type.equals(TYPE_NHB_1_5))
-            return true;
-        if (type.equals(TYPE_NHB_2))
-            return true;
-        if (type.equals(TYPE_NHB_3))
-            return true;
-        if (type.equals(TYPE_NHB_4))
-            return true;
-        if (type.equals(TYPE_NHB_4_5))
-            return true;
-        if (type.equals(TYPE_NHB_5))
-            return true;
-        if (type.equals(TYPE_NHB_6))
-            return true;
-        if (type.equals(TYPE_NHB_7))
-            return true;
-        if (type.equals(TYPE_NHB_8))
-            return true;
-        if (type.equals(TYPE_NHB_GTE_1))
-            return true;
-        if (type.equals(TYPE_NHB_LT_6))
-            return true;
-        return false;
-    }
-
-    private static boolean isBackToBackTime(String type) {
-        if (type.equals(TYPE_BTB_TIME))
-            return true;
-        if (type.equals(TYPE_NHB_1))
-            return true;
-        if (type.equals(TYPE_NHB_1_5))
-            return true;
-        if (type.equals(TYPE_NHB_2))
-            return true;
-        if (type.equals(TYPE_NHB_3))
-            return true;
-        if (type.equals(TYPE_NHB_4))
-            return true;
-        if (type.equals(TYPE_NHB_4_5))
-            return true;
-        if (type.equals(TYPE_NHB_5))
-            return true;
-        if (type.equals(TYPE_NHB_6))
-            return true;
-        if (type.equals(TYPE_NHB_7))
-            return true;
-        if (type.equals(TYPE_NHB_8))
-            return true;
-        if (type.equals(TYPE_NHB_GTE_1))
-            return true;
-        if (type.equals(TYPE_NHB_LT_6))
-            return true;
-        return false;
-    }
-
-    private static boolean sameRoom(String type) {
-        if (type.equals(TYPE_SAME_ROOM))
-            return true;
-        if (type.equals(TYPE_MEET_WITH))
-            return true;
-        return false;
-    }
-
-    private static boolean isPrecedence(String type) {
-        if (type.equals(TYPE_PRECEDENCE))
-            return true;
-        return false;
-    }
 
     private boolean isPrecedence(Placement p1, Placement p2, boolean firstGoesFirst) {
         int ord1 = variables().indexOf(p1.variable());
@@ -703,48 +940,6 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         return t1.getStartSlots().nextElement() + t1.getLength() <= t2.getStartSlots().nextElement();
     }
 
-    private static boolean sameStudents(String type) {
-        if (type.equals(TYPE_SAME_STUDENTS))
-            return true;
-        return false;
-    }
-
-    private static boolean sameInstructor(String type) {
-        if (type.equals(TYPE_SAME_INSTR))
-            return true;
-        return false;
-    }
-
-    public static boolean canShareRooms(String type) {
-        if (type.equals(TYPE_CAN_SHARE_ROOM))
-            return true;
-        if (type.equals(TYPE_MEET_WITH))
-            return true;
-        return false;
-    }
-
-    private static boolean sameStartHour(String type) {
-        return (type.equals(TYPE_SAME_START));
-    }
-
-    private static boolean sameHours(String type) {
-        return (type.equals(TYPE_SAME_TIME) || type.equals(TYPE_MEET_WITH));
-    }
-
-    private static boolean sameDays(String type) {
-        if (type.equals(TYPE_SAME_DAYS) || type.equals(TYPE_MEET_WITH))
-            return true;
-        return false;
-    }
-
-    private static boolean notOverlap(String type) {
-        return (type.equals(TYPE_DIFF_TIME));
-    }
-
-    private static boolean isBackToBackDay(String type) {
-        return (type.equals(TYPE_BTB_DAY));
-    }
-
     private static boolean isBackToBackDays(TimeLocation t1, TimeLocation t2) {
         int f1 = -1, f2 = -1, e1 = -1, e2 = -1;
         for (int i = 0; i < Constants.DAY_CODES.length; i++) {
@@ -761,23 +956,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         }
         return (e1 + 1 == f2) || (e2 + 1 == f1);
     }
-
-    private static boolean isNrDaysBetweenGreaterThanOne(String type) {
-        return (type.equals(TYPE_NDB_GT_1));
-    }
-
-    private static boolean isChildrenNotOverlap(String type) {
-        return (type.equals(TYPE_CH_NOTOVERLAP));
-    }
-
-    private static boolean isFollowingDay(String type) {
-        return (type.equals(TYPE_FOLLOWING_DAY));
-    }
-
-    private static boolean isEveryOtherDay(String type) {
-        return (type.equals(TYPE_EVERY_OTHER_DAY));
-    }
-
+    
     private static boolean isNrDaysBetweenGreaterThanOne(TimeLocation t1, TimeLocation t2) {
         int f1 = -1, f2 = -1, e1 = -1, e2 = -1;
         for (int i = 0; i < Constants.DAY_CODES.length; i++) {
@@ -971,10 +1150,9 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
 
     private boolean isSatisfiedSeqCheck(HashMap<Lecture, Placement> assignments, boolean considerCurrentAssignments,
             Set<Placement> conflicts) {
-        int gapMin = getGapMin(getType());
-        int gapMax = getGapMax(getType());
-        if (gapMin < 0 || gapMax < 0)
-            return true;
+        if (!getType().is(Flag.BACK_TO_BACK)) return true;
+        int gapMin = getType().getMin();
+        int gapMax = getType().getMax();
 
         List<Integer> lengths = new ArrayList<Integer>();
 
@@ -1063,12 +1241,10 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
     }
 
     public boolean isSatisfied() {
-        if (isHard())
-            return true;
-        if (countAssignedVariables() < 2)
-            return true;
-        return (getPreference() < 0 && getCurrentPreference() < 0) || getPreference() == 0
-                || (getPreference() > 0 && getCurrentPreference() == 0);
+        if (isHard()) return true;
+        if (countAssignedVariables() < 2) return true;
+        if (getPreference() == 0) return true;
+        return isHard() || countAssignedVariables() < 2 || getPreference() == 0 || getCurrentPreference() < 0;
     }
 
     public boolean isChildrenNotOverlap(Lecture lec1, Placement plc1, Lecture lec2, Placement plc2) {
@@ -1112,122 +1288,34 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         return true;
     }
 
-    private boolean isSatisfiedPair(Lecture lec1, Placement plc1, Lecture lec2, Placement plc2) {
-        if (iIsRequired || (!iIsProhibited && iPreference < 0)) {
-            if (sameRoom(getType()) || (isBackToBack(getType()) && !isBackToBackTime(getType()))) {
-                if (!plc1.sameRooms(plc2))
-                    return false;
-            }
-            if (sameStartHour(getType())) {
-                if ((plc1.getTimeLocation().getStartSlot() % Constants.SLOTS_PER_DAY) != (plc2.getTimeLocation()
-                        .getStartSlot() % Constants.SLOTS_PER_DAY))
-                    return false;
-            }
-            if (sameHours(getType())) {
-                if (!sameHours(plc1.getTimeLocation().getStartSlot(), plc1.getTimeLocation().getLength(), plc2
-                        .getTimeLocation().getStartSlot(), plc2.getTimeLocation().getLength()))
-                    return false;
-            }
-            if (sameDays(getType()) || isBackToBack(getType())) {
-                if (!sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray()))
-                    return false;
-            }
-            if (notOverlap(getType())) {
-                if (plc1.getTimeLocation().hasIntersection(plc2.getTimeLocation()))
-                    return false;
-            }
-            if (sameStudents(getType())) {
-                if (JenrlConstraint.isInConflict(plc1, plc2, ((TimetableModel)getModel()).getDistanceMetric()))
-                    return false;
-            }
-            if (sameInstructor(getType())) {
-                TimeLocation t1 = plc1.getTimeLocation(), t2 = plc2.getTimeLocation();
-                if (t1.shareDays(t2) && t1.shareWeeks(t2)) {
-                    if (t1.shareHours(t2))
-                        return false; // overlap
-                    int s1 = t1.getStartSlot() % Constants.SLOTS_PER_DAY;
-                    int s2 = t2.getStartSlot() % Constants.SLOTS_PER_DAY;
-                    if (s1 + t1.getLength() == s2 || s2 + t2.getLength() == s1) { // back-to-back
-                        TimetableModel m = (TimetableModel) getModel();
-                        double distance = Placement.getDistanceInMeters(m.getDistanceMetric(), plc1, plc2);
-                        if (distance > m.getDistanceMetric().getInstructorProhibitedLimit())
-                            return false;
-                    }
-                }
-            }
-            if (isPrecedence(getType())) {
-                return isPrecedence(plc1, plc2, true);
-            }
-            if (isBackToBackDay(getType())) {
-                if (sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray()))
-                    return false;
-                return isBackToBackDays(plc1.getTimeLocation(), plc2.getTimeLocation());
-            }
-            if (isNrDaysBetweenGreaterThanOne(getType())) {
-                if (sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray()))
-                    return false;
-                return isNrDaysBetweenGreaterThanOne(plc1.getTimeLocation(), plc2.getTimeLocation());
-            }
-            if (isChildrenNotOverlap(getType())) {
-                return isChildrenNotOverlap(lec1, plc1, lec2, plc2);
-            }
-            if (isFollowingDay(getType())) {
-                return isFollowingDay(plc1, plc2, true);
-            }
-            if (isEveryOtherDay(getType())) {
-                return isEveryOtherDay(plc1, plc2, true);
-            }
-        } else if (iIsProhibited || (!iIsRequired && iPreference > 0)) {
-            if (sameRoom(getType())) {
-                if (plc1.sameRooms(plc2))
-                    return false;
-            }
-            if (sameHours(getType())) {
-                if (plc1.getTimeLocation().shareHours(plc2.getTimeLocation()))
-                    return false;
-            }
-            if (sameStartHour(getType())) {
-                if ((plc1.getTimeLocation().getStartSlot() % Constants.SLOTS_PER_DAY) == (plc2.getTimeLocation()
-                        .getStartSlot() % Constants.SLOTS_PER_DAY))
-                    return false;
-            }
-            if (sameDays(getType())) {
-                if (plc1.getTimeLocation().shareDays(plc2.getTimeLocation()))
-                    return false;
-            }
-            if (notOverlap(getType())) {
-                if (!plc1.getTimeLocation().hasIntersection(plc2.getTimeLocation()))
-                    return false;
-            }
-            if (isBackToBack(getType())) { // still same time
-                if (!sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray()))
-                    return false;
-                if (!isBackToBackTime(getType())) { // still same room
-                    if (!plc1.sameRooms(plc2))
-                        return false;
-                }
-            }
-            if (isPrecedence(getType())) {
-                return isPrecedence(plc1, plc2, false);
-            }
-            if (isBackToBackDay(getType())) {
-                if (sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray()))
-                    return false;
-                return !isBackToBackDays(plc1.getTimeLocation(), plc2.getTimeLocation());
-            }
-            if (isNrDaysBetweenGreaterThanOne(getType())) {
-                if (sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray()))
-                    return false;
-                return !isNrDaysBetweenGreaterThanOne(plc1.getTimeLocation(), plc2.getTimeLocation());
-            }
-            if (isFollowingDay(getType())) {
-                return isFollowingDay(plc1, plc2, false);
-            }
-            if (isEveryOtherDay(getType())) {
-                return isEveryOtherDay(plc1, plc2, false);
-            }
-        }
+    public boolean isSatisfiedPair(Placement plc1, Placement plc2) {
+        if (iIsRequired || (!iIsProhibited && iPreference <= 0))
+            return getType().isSatisfied(this, plc1, plc2);
+        else if (iIsProhibited || (!iIsRequired && iPreference > 0))
+            return getType().isViolated(this, plc1, plc2);
         return true;
     }
+    
+    public boolean canShareRoom() {
+        return getType().is(Flag.CAN_SHARE_ROOM);
+    }
+    
+    private int nrSlotsADay(int dayCode, HashMap<Lecture, Placement> assignments, Set<Placement> conflicts) {
+        Set<Integer> slots = new HashSet<Integer>();
+        for (Lecture lecture: variables()) {
+            Placement placement = (assignments == null ? null : assignments.get(lecture));
+            if (placement == null) {
+                placement = lecture.getAssignment();
+                if (conflicts != null && conflicts.contains(placement)) continue;
+            }
+            if (placement == null || placement.getTimeLocation() == null) continue;
+            TimeLocation t = placement.getTimeLocation();
+            if (t == null || (t.getDayCode() & dayCode) == 0) continue;
+            for (int i = 0; i < t.getLength(); i++)
+                slots.add(i + t.getStartSlot());
+        }
+        return slots.size();
+    }
 
+    
 }
