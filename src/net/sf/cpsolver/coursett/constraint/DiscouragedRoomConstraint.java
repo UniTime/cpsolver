@@ -31,7 +31,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class DiscouragedRoomConstraint extends RoomConstraint {
+public class DiscouragedRoomConstraint extends RoomConstraint implements WeakeningConstraint {
     int iUsage = 0;
     int iLimit = 0;
     boolean iEnabled = false;
@@ -142,5 +142,10 @@ public class DiscouragedRoomConstraint extends RoomConstraint {
 
     public boolean isEnabled() {
         return iEnabled;
+    }
+
+    @Override
+    public void weaken() {
+        iLimit ++;
     }
 }
