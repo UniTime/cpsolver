@@ -1,5 +1,7 @@
 package net.sf.cpsolver.ifs.util;
 
+import java.util.HashMap;
+
 /**
  * Common class for computing distances and back-to-back instructor / student conflicts.
  * 
@@ -88,6 +90,8 @@ public class DistanceMetric {
     /** Default distance when given coordinates are null. */
     private double iNullDistance = 10000.0;
     
+    private HashMap<String, Double> iDistanceCache = new HashMap<String, Double>();
+    
     /** Default properties */
     public DistanceMetric() {
     }
@@ -139,6 +143,8 @@ public class DistanceMetric {
         if (lat1 == null || lat2 == null || lon1 == null || lon2 == null)
             return iNullDistance;
         
+        if (lat1.equals(lat2) && lon1.equals(lon2)) return 0.0;
+        
         // legacy mode -- euclidian distance, 1 unit is 10 meters
         if (iModel == Ellipsoid.LEGACY) {
             if (lat1 < 0 || lat2 < 0 || lon1 < 0 || lon2 < 0) return iNullDistance;
@@ -147,47 +153,68 @@ public class DistanceMetric {
             return Math.sqrt(dx * dx + dy * dy);
         }
         
-        double a = iModel.a(), b = iModel.b(),  f = iModel.f();  // ellipsoid params
-        double L = deg2rad(lon2-lon1);
-        double U1 = Math.atan((1-f) * Math.tan(deg2rad(lat1)));
-        double U2 = Math.atan((1-f) * Math.tan(deg2rad(lat2)));
-        double sinU1 = Math.sin(U1), cosU1 = Math.cos(U1);
-        double sinU2 = Math.sin(U2), cosU2 = Math.cos(U2);
+        String id = null;
+        if (lat1 < lat2 || (lat1 == lat2 && lon1 <= lon2)) {
+            id =
+                Long.toHexString(Double.doubleToRawLongBits(lat1)) +
+                Long.toHexString(Double.doubleToRawLongBits(lon1)) +
+                Long.toHexString(Double.doubleToRawLongBits(lat2)) +
+                Long.toHexString(Double.doubleToRawLongBits(lon2));
+        } else {
+            id =
+                Long.toHexString(Double.doubleToRawLongBits(lat1)) +
+                Long.toHexString(Double.doubleToRawLongBits(lon1)) +
+                Long.toHexString(Double.doubleToRawLongBits(lat2)) +
+                Long.toHexString(Double.doubleToRawLongBits(lon2));
+        }
+        Double distance = iDistanceCache.get(id);
         
-        double lambda = L, lambdaP, iterLimit = 100;
-        double cosSqAlpha, cos2SigmaM, sinSigma, cosSigma, sigma, sinLambda, cosLambda;
-        do {
-          sinLambda = Math.sin(lambda);
-          cosLambda = Math.cos(lambda);
-          sinSigma = Math.sqrt((cosU2*sinLambda) * (cosU2*sinLambda) + 
-            (cosU1*sinU2-sinU1*cosU2*cosLambda) * (cosU1*sinU2-sinU1*cosU2*cosLambda));
-          if (sinSigma==0) return 0;  // co-incident points
-          cosSigma = sinU1*sinU2 + cosU1*cosU2*cosLambda;
-          sigma = Math.atan2(sinSigma, cosSigma);
-          double sinAlpha = cosU1 * cosU2 * sinLambda / sinSigma;
-          cosSqAlpha = 1 - sinAlpha*sinAlpha;
-          cos2SigmaM = cosSigma - 2*sinU1*sinU2/cosSqAlpha;
-          if (Double.isNaN(cos2SigmaM)) cos2SigmaM = 0;  // equatorial line: cosSqAlpha=0 (�6)
-          double C = f/16*cosSqAlpha*(4+f*(4-3*cosSqAlpha));
-          lambdaP = lambda;
-          lambda = L + (1-C) * f * sinAlpha *
-            (sigma + C*sinSigma*(cos2SigmaM+C*cosSigma*(-1+2*cos2SigmaM*cos2SigmaM)));
-        } while (Math.abs(lambda-lambdaP) > 1e-12 && --iterLimit>0);
-        if (iterLimit==0) return Double.NaN; // formula failed to converge
-       
-        double uSq = cosSqAlpha * (a*a - b*b) / (b*b);
-        double A = 1 + uSq/16384*(4096+uSq*(-768+uSq*(320-175*uSq)));
-        double B = uSq/1024 * (256+uSq*(-128+uSq*(74-47*uSq)));
-        double deltaSigma = B*sinSigma*(cos2SigmaM+B/4*(cosSigma*(-1+2*cos2SigmaM*cos2SigmaM)-
-          B/6*cos2SigmaM*(-3+4*sinSigma*sinSigma)*(-3+4*cos2SigmaM*cos2SigmaM)));
-        double s = b*A*(sigma-deltaSigma);
+        if (distance == null) {
+            double a = iModel.a(), b = iModel.b(),  f = iModel.f();  // ellipsoid params
+            double L = deg2rad(lon2-lon1);
+            double U1 = Math.atan((1-f) * Math.tan(deg2rad(lat1)));
+            double U2 = Math.atan((1-f) * Math.tan(deg2rad(lat2)));
+            double sinU1 = Math.sin(U1), cosU1 = Math.cos(U1);
+            double sinU2 = Math.sin(U2), cosU2 = Math.cos(U2);
+            
+            double lambda = L, lambdaP, iterLimit = 100;
+            double cosSqAlpha, cos2SigmaM, sinSigma, cosSigma, sigma, sinLambda, cosLambda;
+            do {
+              sinLambda = Math.sin(lambda);
+              cosLambda = Math.cos(lambda);
+              sinSigma = Math.sqrt((cosU2*sinLambda) * (cosU2*sinLambda) + 
+                (cosU1*sinU2-sinU1*cosU2*cosLambda) * (cosU1*sinU2-sinU1*cosU2*cosLambda));
+              if (sinSigma==0) return 0;  // co-incident points
+              cosSigma = sinU1*sinU2 + cosU1*cosU2*cosLambda;
+              sigma = Math.atan2(sinSigma, cosSigma);
+              double sinAlpha = cosU1 * cosU2 * sinLambda / sinSigma;
+              cosSqAlpha = 1 - sinAlpha*sinAlpha;
+              cos2SigmaM = cosSigma - 2*sinU1*sinU2/cosSqAlpha;
+              if (Double.isNaN(cos2SigmaM)) cos2SigmaM = 0;  // equatorial line: cosSqAlpha=0 (�6)
+              double C = f/16*cosSqAlpha*(4+f*(4-3*cosSqAlpha));
+              lambdaP = lambda;
+              lambda = L + (1-C) * f * sinAlpha *
+                (sigma + C*sinSigma*(cos2SigmaM+C*cosSigma*(-1+2*cos2SigmaM*cos2SigmaM)));
+            } while (Math.abs(lambda-lambdaP) > 1e-12 && --iterLimit>0);
+            if (iterLimit==0) return Double.NaN; // formula failed to converge
+           
+            double uSq = cosSqAlpha * (a*a - b*b) / (b*b);
+            double A = 1 + uSq/16384*(4096+uSq*(-768+uSq*(320-175*uSq)));
+            double B = uSq/1024 * (256+uSq*(-128+uSq*(74-47*uSq)));
+            double deltaSigma = B*sinSigma*(cos2SigmaM+B/4*(cosSigma*(-1+2*cos2SigmaM*cos2SigmaM)-
+              B/6*cos2SigmaM*(-3+4*sinSigma*sinSigma)*(-3+4*cos2SigmaM*cos2SigmaM)));
+            
+            // initial & final bearings
+            // double fwdAz = Math.atan2(cosU2*sinLambda, cosU1*sinU2-sinU1*cosU2*cosLambda);
+            // double revAz = Math.atan2(cosU1*sinLambda, -sinU1*cosU2+cosU1*sinU2*cosLambda);
+            
+            // s = s.toFixed(3); // round to 1mm precision
+
+            distance = b*A*(sigma-deltaSigma);
+            iDistanceCache.put(id, distance);
+        }
         
-        // initial & final bearings
-        // double fwdAz = Math.atan2(cosU2*sinLambda, cosU1*sinU2-sinU1*cosU2*cosLambda);
-        // double revAz = Math.atan2(cosU1*sinLambda, -sinU1*cosU2+cosU1*sinU2*cosLambda);
-        
-        // s = s.toFixed(3); // round to 1mm precision
-        return s;
+        return distance;
     }
     
     /**
