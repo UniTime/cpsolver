@@ -143,6 +143,8 @@ public class TimetableComparator implements SolutionComparator<Lecture, Placemen
     private double iSpreadPenaltyWeight;
     public static final String COMMITED_STUDENT_CONFLICT_WEIGHT = "Comparator.CommitedStudentConflictWeight";
     private double iCommitedStudentConflictWeight;
+    public static final String DIST_STUDENT_CONFLICT_WEIGHT = "Comparator.DistStudentConflictWeight";
+    private double iDistStudentConflictWeight;
 
     public TimetableComparator(DataProperties properties) {
         iEmptySingleSlotWeight = properties.getPropertyDouble(USELESS_SLOT_WEIGHT, 0.0);
@@ -163,6 +165,7 @@ public class TimetableComparator implements SolutionComparator<Lecture, Placemen
         iDeptSpreadPenaltyWeight = properties.getPropertyDouble(DEPT_SPREAD_PENALTY_WEIGHT, 1.0);
         iSpreadPenaltyWeight = properties.getPropertyDouble(SPREAD_PENALTY_WEIGHT, 1.0);
         iCommitedStudentConflictWeight = properties.getPropertyDouble(COMMITED_STUDENT_CONFLICT_WEIGHT, 1.0);
+        iDistStudentConflictWeight = properties.getPropertyDouble(DIST_STUDENT_CONFLICT_WEIGHT, iStudentConflictWeight);
     }
 
     @Override
@@ -208,7 +211,8 @@ public class TimetableComparator implements SolutionComparator<Lecture, Placemen
                 + (iTimePreferencesWeight * tm.getGlobalTimePreference())
                 + (iRoomPreferencesWeight * tm.getGlobalRoomPreference())
                 + (iConstrPreferencesWeight * tm.getGlobalGroupConstraintPreference())
-                + (iStudentConflictWeight * tm.getViolatedStudentConflicts())
+                + (iStudentConflictWeight * (tm.getViolatedStudentConflicts() - tm.getViolatedDistanceStudentConflictsCounter().get()))
+                + (iDistStudentConflictWeight * tm.getViolatedDistanceStudentConflictsCounter().get())
                 + (iHardStudentConflictWeight * hardSCCurr) + (iTooBigRoomWeight * tooBigCurr)
                 + (iDistanceInstructorPreferenceWeight * tm.getInstructorDistancePreference())
                 + (iPerturbationPenaltyWeight * pertCurr) + (iDeptSpreadPenaltyWeight * deptSpread)
@@ -222,7 +226,7 @@ public class TimetableComparator implements SolutionComparator<Lecture, Placemen
         int roomPref = 0;
         double timePref = 0;
         double grPref = 0;
-        long allSC = 0, comSC = 0, hardSC = 0;
+        long allSC = 0, comSC = 0, hardSC = 0, distSC = 0;
         int instPref = 0;
         int spreadPen = 0, deptSpreadPen = 0;
         int tooBigRooms = 0;
@@ -274,9 +278,12 @@ public class TimetableComparator implements SolutionComparator<Lecture, Placemen
                         continue;
                     Lecture l1 = jc.first();
                     Lecture l2 = jc.second();
-                    allSC += jc.getJenrl();
                     if (l1.areStudentConflictsHard(l2))
                         hardSC += jc.getJenrl();
+                    if (jc.areStudentConflictsDistance())
+                        distSC += jc.getJenrl();
+                    else
+                        allSC += jc.getJenrl();
                 }
 
                 if (c instanceof RoomConstraint) {
@@ -289,6 +296,7 @@ public class TimetableComparator implements SolutionComparator<Lecture, Placemen
         double prefCurr = (iEmptySingleSlotWeight * uselessSlots) + (iTimePreferencesWeight * timePref)
                 + (iRoomPreferencesWeight * roomPref) + (iConstrPreferencesWeight * grPref)
                 + (iStudentConflictWeight * allSC) + (iHardStudentConflictWeight * hardSC)
+                + (iDistStudentConflictWeight * distSC)
                 + (iTooBigRoomWeight * tooBigRooms) + (iDistanceInstructorPreferenceWeight * instPref)
                 + (iPerturbationPenaltyWeight * pertCurr) + (iDeptSpreadPenaltyWeight * deptSpreadPen)
                 + (iSpreadPenaltyWeight * spreadPen) + (iCommitedStudentConflictWeight * comSC);
@@ -324,7 +332,8 @@ public class TimetableComparator implements SolutionComparator<Lecture, Placemen
                 + (iTimePreferencesWeight * tm.bestGlobalTimePreference())
                 + (iRoomPreferencesWeight * tm.bestGlobalRoomPreference())
                 + (iConstrPreferencesWeight * tm.bestGlobalGroupConstraintPreference())
-                + (iStudentConflictWeight * tm.bestViolatedStudentConflicts())
+                + (iStudentConflictWeight * (tm.bestViolatedStudentConflicts() - tm.bestDistanceStudentConflicts()))
+                + (iDistStudentConflictWeight * tm.bestDistanceStudentConflicts())
                 + (iHardStudentConflictWeight * hardSCBest) + (iTooBigRoomWeight * tooBigBest)
                 + (iDistanceInstructorPreferenceWeight * tm.bestInstructorDistancePreference())
                 + (iPerturbationPenaltyWeight * pertBest) + (iDeptSpreadPenaltyWeight * deptSpreadBest)

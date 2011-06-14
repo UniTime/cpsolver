@@ -217,6 +217,8 @@ public class PlacementSelection implements ValueSelection<Lecture, Placement> {
     public static final String DELTA_INITIAL_ASSIGNMENT_WEIGHT = "Placement.MPP_DeltaInitialAssignmentWeight";
     private double[] iNrStudentConflictsWeight = new double[NR_LEVELS];
     public static final String NR_STUDENT_CONF_WEIGHT = "Placement.NrStudConfsWeight";
+    private double[] iNrDistStudentConflictsWeight = new double[NR_LEVELS];
+    public static final String NR_DIST_STUDENT_CONF_WEIGHT = "Placement.NrDistStudConfsWeight";
     private double[] iNrHardStudentConflictsWeight = new double[NR_LEVELS];
     public static final String NR_HARD_STUDENT_CONF_WEIGHT = "Placement.NrHardStudConfsWeight";
     private double[] iNrCommitedStudentConflictsWeight = new double[NR_LEVELS];
@@ -297,6 +299,7 @@ public class PlacementSelection implements ValueSelection<Lecture, Placement> {
                     + (level + 1), (level == 0 ? 0.5 : level == 1 ? 1.0 : 0.0)) : 0.0);
             iNrStudentConflictsWeight[level] = properties.getPropertyDouble(NR_STUDENT_CONF_WEIGHT + (level + 1),
                     (level == 0 ? 0.1 : (level == 1 ? 0.2 : 0.0)));
+            iNrDistStudentConflictsWeight[level] = properties.getPropertyDouble(NR_DIST_STUDENT_CONF_WEIGHT + (level + 1), iNrStudentConflictsWeight[level]);
             iNrHardStudentConflictsWeight[level] = (iSW ? properties.getPropertyDouble(NR_HARD_STUDENT_CONF_WEIGHT
                     + (level + 1), (level == 0 ? 0.5 : level == 1 ? 1.0 : 0.0)) : 0.0);
             iNrCommitedStudentConflictsWeight[level] = properties.getPropertyDouble(NR_COMMITED_STUDENT_CONF_WEIGHT
@@ -329,10 +332,9 @@ public class PlacementSelection implements ValueSelection<Lecture, Placement> {
             iThresholdKoef[0] = 0.1;
 
             iNrStudentConflictsWeight[0] = properties.getPropertyDouble("Comparator.StudentConflictWeight", 0.2);
-            iNrHardStudentConflictsWeight[0] = properties
-                    .getPropertyDouble("Comparator.HardStudentConflictWeight", 1.0);
-            iNrCommitedStudentConflictsWeight[0] = properties.getPropertyDouble(
-                    "Comparator.CommitedStudentConflictWeight", 1.0);
+            iNrDistStudentConflictsWeight[0] = properties.getPropertyDouble("Comparator.DistStudentConflictWeight", iNrStudentConflictsWeight[0]);
+            iNrHardStudentConflictsWeight[0] = properties.getPropertyDouble("Comparator.HardStudentConflictWeight", 1.0);
+            iNrCommitedStudentConflictsWeight[0] = properties.getPropertyDouble("Comparator.CommitedStudentConflictWeight", 1.0);
             iUselessSlotsWeight[0] = properties.getPropertyDouble("Comparator.UselessSlotWeight", 0.0);
             iSumConstrPreferencesWeight[0] = properties.getPropertyDouble("Comparator.ContrPreferenceWeight", 1.0);
             iSumRoomPreferencesWeight[0] = properties.getPropertyDouble("Comparator.RoomPreferenceWeight", 0.1);
@@ -353,10 +355,9 @@ public class PlacementSelection implements ValueSelection<Lecture, Placement> {
             iThresholdKoef[1] = 0.0;
 
             iNrStudentConflictsWeight[1] = properties.getPropertyDouble("Comparator.StudentConflictWeight", 0.2);
-            iNrHardStudentConflictsWeight[1] = properties
-                    .getPropertyDouble("Comparator.HardStudentConflictWeight", 1.0);
-            iNrCommitedStudentConflictsWeight[1] = properties.getPropertyDouble(
-                    "Comparator.CommitedStudentConflictWeight", 1.0);
+            iNrDistStudentConflictsWeight[1] = properties.getPropertyDouble("Comparator.DistStudentConflictWeight", iNrStudentConflictsWeight[1]);
+            iNrHardStudentConflictsWeight[1] = properties.getPropertyDouble("Comparator.HardStudentConflictWeight", 1.0);
+            iNrCommitedStudentConflictsWeight[1] = properties.getPropertyDouble("Comparator.CommitedStudentConflictWeight", 1.0);
             iUselessSlotsWeight[1] = properties.getPropertyDouble("Comparator.UselessSlotWeight", 0.0);
             iSumConstrPreferencesWeight[1] = properties.getPropertyDouble("Comparator.ContrPreferenceWeight", 1.0);
             iSumRoomPreferencesWeight[1] = properties.getPropertyDouble("Comparator.RoomPreferenceWeight", 0.1);
@@ -375,6 +376,7 @@ public class PlacementSelection implements ValueSelection<Lecture, Placement> {
             iDeltaTimePreferenceWeight[2] = 0.0;
             iPerturbationPenaltyWeight[2] = 0.0;
             iNrStudentConflictsWeight[2] = 0.0;
+            iNrDistStudentConflictsWeight[3] = 0.0;
             iNrHardStudentConflictsWeight[2] = 0.0;
             iNrCommitedStudentConflictsWeight[2] = 0.0;
             iUselessSlotsWeight[2] = 0.0;
@@ -614,7 +616,9 @@ public class PlacementSelection implements ValueSelection<Lecture, Placement> {
                     + (iNrHardStudentConflictsWeight[level] == 0.0 ? 0.0 : iNrHardStudentConflictsWeight[level]
                             * paramRetriever.sumHardStudentConflicts())
                     + (iNrCommitedStudentConflictsWeight[level] == 0.0 ? 0.0 : iNrCommitedStudentConflictsWeight[level]
-                            * paramRetriever.sumCommitedStudentConflicts());
+                            * paramRetriever.sumCommitedStudentConflicts())
+                    + (iNrDistStudentConflictsWeight[level] == 0.0 ? 0.0 : iNrDistStudentConflictsWeight[level]
+                            * paramRetriever.sumDisttudentConflicts());
             return cost;
         }
         double cost = (iNrConflictsWeight[level] == 0.0 ? 0.0 : iNrConflictsWeight[level]
@@ -647,7 +651,9 @@ public class PlacementSelection implements ValueSelection<Lecture, Placement> {
                 + (iDistanceInstructorPreferenceWeight[level] == 0.0 ? 0.0 : iDistanceInstructorPreferenceWeight[level]
                         * paramRetriever.distanceInstructorPreference())
                 + (iNrCommitedStudentConflictsWeight[level] == 0.0 ? 0.0 : iNrCommitedStudentConflictsWeight[level]
-                        * paramRetriever.sumCommitedStudentConflicts());
+                        * paramRetriever.sumCommitedStudentConflicts())
+                + (iNrDistStudentConflictsWeight[level] == 0.0 ? 0.0 : iNrDistStudentConflictsWeight[level]
+                        * paramRetriever.sumDisttudentConflicts());
         return cost;
     }
 
@@ -723,9 +729,14 @@ public class PlacementSelection implements ValueSelection<Lecture, Placement> {
         public void countStudentConflicts() {
             long all = 0;
             int hard = 0;
+            long dist = 0;
             if (!iLecture.isSingleSection()) {
                 for (JenrlConstraint jc : iLecture.jenrlConstraints()) {
-                    all += jc.jenrl(iLecture, iPlacement);
+                    long conf = jc.jenrl(iLecture, iPlacement);
+                    if (jc.areStudentConflictsDistance(iPlacement))
+                        dist += conf;
+                    else
+                        all += conf;
                 }
             } else {
                 for (JenrlConstraint jc : iLecture.jenrlConstraints()) {
@@ -737,6 +748,7 @@ public class PlacementSelection implements ValueSelection<Lecture, Placement> {
             }
             iSumStudentConflicts = new Integer((int) all);
             iSumHardStudentConflicts = new Integer(hard);
+            iSumDistStudentConflicts = new Integer((int) dist);
         }
 
         Integer iSumStudentConflicts = null;
@@ -775,6 +787,14 @@ public class PlacementSelection implements ValueSelection<Lecture, Placement> {
             if (iSumHardStudentConflicts == null)
                 countStudentConflicts();
             return iSumHardStudentConflicts.intValue();
+        }
+
+        Integer iSumDistStudentConflicts = null;
+
+        public int sumDisttudentConflicts() {
+            if (iSumDistStudentConflicts == null)
+                countStudentConflicts();
+            return iSumDistStudentConflicts.intValue();
         }
 
         public int sumCommitedStudentConflicts() {
