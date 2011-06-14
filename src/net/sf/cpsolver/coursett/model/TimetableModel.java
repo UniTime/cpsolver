@@ -577,6 +577,7 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
     private long iBestGlobalGroupConstraintPreference;
     private long iBestViolatedStudentConflicts;
     private long iBestHardStudentConflicts;
+    private long iBestDistanceStudentConflicts;
 
     /** Overall number of too big rooms of the best solution ever found */
     public int bestTooBigRooms() {
@@ -616,6 +617,13 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
         return iBestHardStudentConflicts;
     }
 
+    /**
+     * Overall number of student distance conflicts of the best solution ever found
+     */
+    public long bestDistanceStudentConflicts() {
+        return iBestDistanceStudentConflicts;
+    }
+
     /** Overall instructor distance preference of the best solution ever found */
     public long bestInstructorDistancePreference() {
         return iBestInstructorDistancePreference;
@@ -644,6 +652,7 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
         iBestGlobalGroupConstraintPreference = getGlobalGroupConstraintPreference();
         iBestViolatedStudentConflicts = getViolatedStudentConflicts();
         iBestHardStudentConflicts = getHardStudentConflicts();
+        iBestDistanceStudentConflicts = getViolatedDistanceStudentConflictsCounter().get();
         iBestInstructorDistancePreference = getInstructorDistancePreference();
         iBestDepartmentSpreadPenalty = getDepartmentSpreadPenalty();
         iBestSpreadPenalty = getSpreadPenalty();

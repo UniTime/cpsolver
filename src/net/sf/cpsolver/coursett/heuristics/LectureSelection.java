@@ -195,6 +195,7 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
     private double iConstrPreferencesWeight;
     private double iHardStudentConflictWeight;
     private double iCommitedStudentConflictWeight;
+    private double iDistStudentConflictWeight;
     private double iDistanceInstructorPreferenceWeight;
     private double iDeptSpreadPenaltyWeight;
     private double iSpreadPenaltyWeight;
@@ -251,6 +252,8 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
         iHardStudentConflictWeight = (!iSwitchStudents ? 0.0 : properties.getPropertyDouble(
                 "Lecture.HardStudentConflictWeight", properties.getPropertyDouble(
                         "Comparator.HardStudentConflictWeight", 1.0)));
+        iDistStudentConflictWeight = properties.getPropertyDouble("Lecture.DistStudentConflictWeight", properties
+                .getPropertyDouble("Comparator.DistStudentConflictWeight", iStudentConflictWeight));
         iDistanceInstructorPreferenceWeight = properties.getPropertyDouble(
                 "Lecture.DistanceInstructorPreferenceWeight", properties.getPropertyDouble(
                         "Comparator.DistanceInstructorPreferenceWeight", 1.0));
@@ -313,27 +316,29 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
 
                 Placement value = selectedVariable.getAssignment();
 
-                int sumStudentConflicts = (iStudentConflictWeight != 0.0 ? (selectedVariable)
-                        .countStudentConflicts(value) : 0);
-                boolean haveAlternative = !(selectedVariable).isSingleSection();
+                int sumStudentConflicts = 0;
                 int constrPreference = 0;
                 int emptySingleHalfHours = 0;
                 int sumHardStudentConflicts = 0;
+                int sumDistStudentConflicts = 0;
                 int distanceInstructorPreferences = 0;
                 int tooBig = (value).getTooBigRoomPreference();
                 int sumCommitedStudentConflicts = 0;
+                sumCommitedStudentConflicts += (iCommitedStudentConflictWeight != 0.0 ? selectedVariable.getCommitedConflicts(value) : 0.0);
 
                 for (Constraint<Lecture, Placement> constraint : selectedVariable.constraints()) {
-                    if (iCommitedStudentConflictWeight != 0.0) {
-                        sumCommitedStudentConflicts += (selectedVariable).getCommitedConflicts(value);
-                    }
                     if (iDistanceInstructorPreferenceWeight != 0.0 && constraint instanceof InstructorConstraint) {
                         distanceInstructorPreferences += ((InstructorConstraint) constraint).getPreference(value);
                     }
-                    if (iHardStudentConflictWeight != 0.0 && !haveAlternative && constraint instanceof JenrlConstraint) {
+                    if ((iHardStudentConflictWeight != 0.0 || iDistStudentConflictWeight != 0.0 || iStudentConflictWeight != 0.0) && constraint instanceof JenrlConstraint) {
                         JenrlConstraint jenrl = (JenrlConstraint) constraint;
+                        long conf = jenrl.jenrl(selectedVariable, value);
                         if (jenrl.areStudentConflictsHard())
-                            sumHardStudentConflicts += ((JenrlConstraint) constraint).jenrl(selectedVariable, value);
+                            sumHardStudentConflicts += conf;
+                        if (jenrl.areStudentConflictsDistance())
+                            sumDistStudentConflicts += conf;
+                        else
+                            sumStudentConflicts += conf;
                     } else if (iConstrPreferencesWeight != 0.0 && constraint instanceof GroupConstraint) {
                         GroupConstraint gc = (GroupConstraint) constraint;
                         constrPreference += gc.getCurrentPreference();
@@ -355,7 +360,10 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
                         + (iEmptySingleSlotWeight * emptySingleHalfHours) + (iRoomPreferencesWeight * roomPreference)
                         + (iTooBigRoomWeight * tooBig) + (iConstrPreferencesWeight * constrPreference)
                         + (iDistanceInstructorPreferenceWeight * distanceInstructorPreferences)
-                        + (iDeptSpreadPenaltyWeight * deptSpreadPenalty) + (iSpreadPenaltyWeight * spreadPenalty) + (iCommitedStudentConflictWeight * sumCommitedStudentConflicts)));
+                        + (iDeptSpreadPenaltyWeight * deptSpreadPenalty)
+                        + (iSpreadPenaltyWeight * spreadPenalty)
+                        + (iCommitedStudentConflictWeight * sumCommitedStudentConflicts)
+                        + (iDistStudentConflictWeight * sumDistStudentConflicts)));
 
                 if (selectionVariables == null
                         || timePreference > worstTimePreference
