@@ -516,9 +516,10 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
                         continue;
                     minGrPref -= Math.abs(gc.getPreference());
                     maxGrPref += 0;
+                    grPref += Math.min(0, gc.getCurrentPreference());
                     // minGrPref += Math.min(gc.getPreference(), 0);
                     // maxGrPref += Math.max(gc.getPreference(), 0);
-                    grPref += gc.getCurrentPreference();
+                    // grPref += gc.getCurrentPreference();
                 }
 
                 if (c instanceof JenrlConstraint) {
