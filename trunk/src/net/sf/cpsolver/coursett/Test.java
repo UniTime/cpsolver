@@ -920,8 +920,10 @@ public class Test implements SolutionListener<Lecture, Placement> {
                         GroupConstraint gc = (GroupConstraint) c;
                         if (gc.isHard())
                             continue;
-                        minGrPref += Math.min(gc.getPreference(), 0);
-                        maxGrPref += Math.max(gc.getPreference(), 0);
+                        minGrPref -= Math.abs(gc.getPreference());
+                        maxGrPref += 0;
+                        // minGrPref += Math.min(gc.getPreference(), 0);
+                        // maxGrPref += Math.max(gc.getPreference(), 0);
                     }
                 }
             }
@@ -1028,8 +1030,10 @@ public class Test implements SolutionListener<Lecture, Placement> {
                             GroupConstraint gc = (GroupConstraint) c;
                             if (gc.isHard())
                                 continue;
-                            minGrPref += Math.min(gc.getPreference(), 0);
-                            maxGrPref += Math.max(gc.getPreference(), 0);
+                            minGrPref -= Math.abs(gc.getPreference());
+                            maxGrPref += 0;
+                            // minGrPref += Math.min(gc.getPreference(), 0);
+                            // maxGrPref += Math.max(gc.getPreference(), 0);
                             grPref += gc.getCurrentPreference();
                         }
 
