@@ -1,5 +1,9 @@
 package net.sf.cpsolver.coursett.constraint;
 
+import net.sf.cpsolver.coursett.criteria.DepartmentBalancingPenalty;
+import net.sf.cpsolver.coursett.model.Lecture;
+import net.sf.cpsolver.coursett.model.Placement;
+import net.sf.cpsolver.ifs.criteria.Criterion;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -159,6 +163,11 @@ public class DepartmentSpreadConstraint extends SpreadConstraint {
 
     public Long getDepartmentId() {
         return iDepartment;
+    }
+    
+    @Override
+    protected Criterion<Lecture, Placement> getCriterion() {
+        return getModel().getCriterion(DepartmentBalancingPenalty.class);
     }
 
     @Override
