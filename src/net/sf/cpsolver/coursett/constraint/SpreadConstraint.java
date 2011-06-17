@@ -8,8 +8,10 @@ import java.util.List;
 import java.util.Set;
 
 import net.sf.cpsolver.coursett.Constants;
+import net.sf.cpsolver.coursett.criteria.SameSubpartBalancingPenalty;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
+import net.sf.cpsolver.ifs.criteria.Criterion;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.ToolBox;
@@ -73,6 +75,11 @@ public class SpreadConstraint extends Constraint<Lecture, Placement> implements 
     public SpreadConstraint(DataProperties config, String name) {
         this(name, config.getPropertyDouble("Spread.SpreadFactor", 1.20), config.getPropertyInt(
                 "Spread.Unassignments2Weaken", 250), config.getPropertyBoolean("General.InteractiveMode", false));
+    }
+    
+    
+    protected Criterion<Lecture, Placement> getCriterion() {
+        return getModel().getCriterion(SameSubpartBalancingPenalty.class);
     }
 
     /**
@@ -153,6 +160,7 @@ public class SpreadConstraint extends Constraint<Lecture, Placement> implements 
             }
         }
         iMaxAllowedPenalty = iCurrentPenalty;
+        getCriterion().inc(iCurrentPenalty);
         // System.out.println("Initial penalty = "+fmt(iMaxAllowedPenalty));
         iInitialized = true;
     }
@@ -398,6 +406,7 @@ public class SpreadConstraint extends Constraint<Lecture, Placement> implements 
         int endSlot = firstSlot + placement.getTimeLocation().getNrSlotsPerMeeting() - 1;
         if (endSlot < Constants.DAY_SLOTS_FIRST)
             return;
+        getCriterion().inc(-iCurrentPenalty);
         for (int i = Math.max(firstSlot, Constants.DAY_SLOTS_FIRST); i <= Math.min(endSlot, Constants.DAY_SLOTS_LAST); i++) {
             for (int j = 0; j < Constants.NR_DAYS_WEEK; j++) {
                 int dayCode = Constants.DAY_CODES[j];
@@ -409,6 +418,7 @@ public class SpreadConstraint extends Constraint<Lecture, Placement> implements 
                 }
             }
         }
+        getCriterion().inc(iCurrentPenalty);
     }
 
     @Override
@@ -422,6 +432,7 @@ public class SpreadConstraint extends Constraint<Lecture, Placement> implements 
         int endSlot = firstSlot + placement.getTimeLocation().getNrSlotsPerMeeting() - 1;
         if (endSlot < Constants.DAY_SLOTS_FIRST)
             return;
+        getCriterion().inc(-iCurrentPenalty);
         for (int i = Math.max(firstSlot, Constants.DAY_SLOTS_FIRST); i <= Math.min(endSlot, Constants.DAY_SLOTS_LAST); i++) {
             for (int j = 0; j < Constants.NR_DAYS_WEEK; j++) {
                 int dayCode = Constants.DAY_CODES[j];
@@ -433,6 +444,7 @@ public class SpreadConstraint extends Constraint<Lecture, Placement> implements 
                 }
             }
         }
+        getCriterion().inc(iCurrentPenalty);
     }
 
     @Override
