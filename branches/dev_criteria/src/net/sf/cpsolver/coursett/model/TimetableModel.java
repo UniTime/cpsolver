@@ -67,6 +67,7 @@ import net.sf.cpsolver.ifs.util.DistanceMetric;
  */
 
 public class TimetableModel extends ConstantModel<Lecture, Placement> {
+    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(TimetableModel.class);
     private static java.text.DecimalFormat sDoubleFormat = new java.text.DecimalFormat("0.00",
             new java.text.DecimalFormatSymbols(Locale.US));
 
@@ -91,28 +92,40 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
         iDistanceMetric = new DistanceMetric(properties);
         if (properties.getPropertyBoolean("OnFlySectioning.Enabled", false))
             addModelListener(new OnFlySectioning(this));
-        // Objectives
-        addCriterion(new StudentConflict());
-        addCriterion(new StudentDistanceConflict());
-        addCriterion(new StudentHardConflict());
-        addCriterion(new StudentCommittedConflict());
-        addCriterion(new StudentOverlapConflict());
-        addCriterion(new UselessHalfHours());
-        addCriterion(new BrokenTimePatterns());
-        addCriterion(new TooBigRooms());
-        addCriterion(new TimePreferences());
-        addCriterion(new RoomPreferences());
-        addCriterion(new DistributionPreferences());
-        addCriterion(new SameSubpartBalancingPenalty());
-        addCriterion(new DepartmentBalancingPenalty());
-        addCriterion(new BackToBackInstructorPreferences());
-        addCriterion(new Perturbations());
-        // Additional placement selection criteria
-        addCriterion(new AssignmentCount());
-        addCriterion(new DeltaTimePreference());
-        addCriterion(new HardConflicts());
-        addCriterion(new PotentialHardConflicts());
-        addCriterion(new WeightedHardConflicts());
+        String criteria = properties.getProperty("General.Criteria",
+                // Objectives
+                StudentConflict.class.getName() + ";" +
+                StudentDistanceConflict.class.getName() + ";" +
+                StudentHardConflict.class.getName() + ";" +
+                StudentCommittedConflict.class.getName() + ";" +
+                StudentOverlapConflict.class.getName() + ";" +
+                UselessHalfHours.class.getName() + ";" +
+                BrokenTimePatterns.class.getName() + ";" +
+                TooBigRooms.class.getName() + ";" +
+                TimePreferences.class.getName() + ";" +
+                RoomPreferences.class.getName() + ";" +
+                DistributionPreferences.class.getName() + ";" +
+                SameSubpartBalancingPenalty.class.getName() + ";" +
+                DepartmentBalancingPenalty.class.getName() + ";" +
+                BackToBackInstructorPreferences.class.getName() + ";" +
+                Perturbations.class.getName() + ";" +
+                // Additional placement selection criteria
+                AssignmentCount.class.getName() + ";" +
+                DeltaTimePreference.class.getName() + ";" +
+                HardConflicts.class.getName() + ";" +
+                PotentialHardConflicts.class.getName() + ";" +
+                WeightedHardConflicts.class.getName());
+        criteria += ";" + properties.getProperty("General.AdditionalCriteria", "");
+        for (String criterion: criteria.split("\\;")) {
+            if (criterion == null || criterion.isEmpty()) continue;
+            try {
+                @SuppressWarnings("unchecked")
+                Class<Criterion<Lecture, Placement>> clazz = (Class<Criterion<Lecture, Placement>>)Class.forName(criterion);
+                addCriterion(clazz.newInstance());
+            } catch (Exception e) {
+                sLogger.error("Unable to use " + criterion + ": " + e.getMessage());
+            }
+        }
     }
 
     public DistanceMetric getDistanceMetric() {
