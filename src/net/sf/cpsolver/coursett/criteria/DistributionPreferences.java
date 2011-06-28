@@ -67,7 +67,7 @@ public class DistributionPreferences extends TimetablingCriterion {
         for (Lecture lect: variables) {
             for (GroupConstraint gc: lect.groupConstraints()) {
                 if (!constraints.add(gc)) continue;
-                ret += gc.getCurrentPreference();
+                ret += Math.min(0, gc.getCurrentPreference());
             }
         }
         return ret;
@@ -88,7 +88,7 @@ public class DistributionPreferences extends TimetablingCriterion {
         Set<GroupConstraint> constraints = new HashSet<GroupConstraint>();
         for (Lecture lect: variables) {
             for (GroupConstraint gc: lect.groupConstraints()) {
-                if (constraints.add(gc))
+                if (!gc.isHard() && constraints.add(gc))
                     bounds[0] -= Math.abs(gc.getPreference());
             }
         }
