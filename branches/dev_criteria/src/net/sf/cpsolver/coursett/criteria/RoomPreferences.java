@@ -47,10 +47,10 @@ public class RoomPreferences extends TimetablingCriterion {
     @Override
     public double getValue(Placement value, Set<Placement> conflicts) {
         if (value.variable().isCommitted()) return 0.0;
-        double ret = value.sumRoomPreference();
+        double ret = value.getRoomPreference();
         if (conflicts != null)
             for (Placement conflict: conflicts)
-                ret -= conflict.sumRoomPreference();
+                ret -= conflict.getRoomPreference();
         return ret;
     }
     
