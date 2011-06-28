@@ -226,7 +226,7 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
         ret.put("Memory usage", getMem());
         
         Criterion<Lecture, Placement> rp = getCriterion(RoomPreferences.class);
-        ret.put("Room preferences", getPerc(rp.getValue(variables), rp.getBounds()[0], rp.getBounds(variables)[1]) + "% (" + Math.round(rp.getValue(variables)) + ")");
+        ret.put("Room preferences", getPerc(rp.getValue(variables), rp.getBounds(variables)[0], rp.getBounds(variables)[1]) + "% (" + Math.round(rp.getValue(variables)) + ")");
         
         Criterion<Lecture, Placement> tp = getCriterion(TimePreferences.class);
         ret.put("Time preferences", getPerc(tp.getValue(variables), tp.getBounds(variables)[0], tp.getBounds(variables)[1]) + "% (" + sDoubleFormat.format(tp.getValue(variables)) + ")"); 
