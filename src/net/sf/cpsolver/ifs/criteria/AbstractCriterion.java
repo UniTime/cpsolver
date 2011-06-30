@@ -288,9 +288,11 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
                         ", bounds: " + sDoubleFormat.format(bounds[1]) + "&hellip;" + sDoubleFormat.format(bounds[0]) + ")");
             else if (bounds[0] != val || val != bounds[1])
                 info.put("[C] " + getName(),
-                        sDoubleFormat.format(val) + " (weighted:" + sDoubleFormat.format(w) +
-                        (prec != val ? ", precise:" + sDoubleFormat.format(prec) : "") +
-                        ", bounds: " + sDoubleFormat.format(bounds[0]) + "&hellip;" + sDoubleFormat.format(bounds[1]) + ")");
+                        sDoubleFormat.format(val) + " (" +
+                        (prec != val ? "precise:" + sDoubleFormat.format(prec) + ", ": "") +
+                        "weighted:" + sDoubleFormat.format(w) +
+                        (bounds[0] != bounds[1] ? ", bounds: " + sDoubleFormat.format(bounds[0]) + "&hellip;" + sDoubleFormat.format(bounds[1]) : "") +
+                        ")");
         }
     }
     
@@ -312,7 +314,8 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
             else if (bounds[0] != val || val != bounds[1])
                 info.put("[C] " + getName(),
                         sDoubleFormat.format(val) + " (weighted:" + sDoubleFormat.format(w) +
-                        ", bounds: " + sDoubleFormat.format(bounds[0]) + "&hellip;" + sDoubleFormat.format(bounds[1]) + ")");
+                        (bounds[0] != bounds[1] ? ", bounds: " + sDoubleFormat.format(bounds[0]) + "&hellip;" + sDoubleFormat.format(bounds[1]) : "") +
+                        ")");
         }
     }
 }
