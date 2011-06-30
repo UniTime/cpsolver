@@ -48,6 +48,7 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
             new java.text.DecimalFormatSymbols(Locale.US));
     protected static java.text.DecimalFormat sPercentFormat = new java.text.DecimalFormat("0.##",
             new java.text.DecimalFormatSymbols(Locale.US));
+    protected boolean iDebug = false;
     
     /**
      * Defines how the overall value of the criterion should be automatically updated (using {@link Criterion#getValue(Value, Set)}).
@@ -80,6 +81,9 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
     public boolean init(Solver<V, T> solver) {
         iModel = solver.currentSolution().getModel();
         iWeight = solver.getProperties().getPropertyDouble(getWeightName(), getWeightDefault(solver.getProperties()));
+        iDebug = solver.getProperties().getPropertyBoolean(
+                "Debug." + getClass().getName().substring(1 + getClass().getName().lastIndexOf('.')),
+                solver.getProperties().getPropertyBoolean("Debug.Criterion", false));
         return true;
     }
     
@@ -267,25 +271,48 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
 
     @Override
     public void getInfo(Map<String, String> info) {
-        double val = getValue(), w = getWeightedValue();
-        double[] bounds = getBounds();
-        if (bounds[0] <= val && val <= bounds[1] && bounds[0] < bounds[1])
-            info.put("(C) " + getName(), getPerc(val, bounds[0], bounds[1]) + "% (value: " + sDoubleFormat.format(val) + ", weighted:" + sDoubleFormat.format(w) + ", bounds: " + sDoubleFormat.format(bounds[0]) + "&hellip;" + sDoubleFormat.format(bounds[1]) + ")");
-        else if (bounds[1] <= val && val <= bounds[0] && bounds[1] < bounds[0])
-            info.put("(C) " + getName(), getPercRev(val, bounds[1], bounds[0]) + "% (value: " + sDoubleFormat.format(val) + ", weighted:" + sDoubleFormat.format(w) + ", bounds: " + sDoubleFormat.format(bounds[1]) + "&hellip;" + sDoubleFormat.format(bounds[0]) + ")");
-        else if (bounds[0] != val || val != bounds[1])
-            info.put("(C) " + getName(), sDoubleFormat.format(val) + " (weighted:" + sDoubleFormat.format(w) + ", bounds: " + sDoubleFormat.format(bounds[0]) + "&hellip;" + sDoubleFormat.format(bounds[1]) + ")");
+        if (iDebug) {
+            double val = getValue(), w = getWeightedValue(), prec = getValue(getModel().variables());
+            double[] bounds = getBounds();
+            if (bounds[0] <= val && val <= bounds[1] && bounds[0] < bounds[1])
+                info.put("[C] " + getName(),
+                        getPerc(val, bounds[0], bounds[1]) + "% (value: " + sDoubleFormat.format(val) +
+                        (prec != val ? ", precise:" + sDoubleFormat.format(prec) : "") +
+                        ", weighted:" + sDoubleFormat.format(w) +
+                        ", bounds: " + sDoubleFormat.format(bounds[0]) + "&hellip;" + sDoubleFormat.format(bounds[1]) + ")");
+            else if (bounds[1] <= val && val <= bounds[0] && bounds[1] < bounds[0])
+                info.put("[C] " + getName(),
+                        getPercRev(val, bounds[1], bounds[0]) + "% (value: " + sDoubleFormat.format(val) +
+                        (prec != val ? ", precise:" + sDoubleFormat.format(prec) : "") +
+                        ", weighted:" + sDoubleFormat.format(w) +
+                        ", bounds: " + sDoubleFormat.format(bounds[1]) + "&hellip;" + sDoubleFormat.format(bounds[0]) + ")");
+            else if (bounds[0] != val || val != bounds[1])
+                info.put("[C] " + getName(),
+                        sDoubleFormat.format(val) + " (weighted:" + sDoubleFormat.format(w) +
+                        (prec != val ? ", precise:" + sDoubleFormat.format(prec) : "") +
+                        ", bounds: " + sDoubleFormat.format(bounds[0]) + "&hellip;" + sDoubleFormat.format(bounds[1]) + ")");
+        }
     }
     
     @Override
     public void getInfo(Map<String, String> info, Collection<V> variables) {
-        double val = getValue(variables), w = getWeightedValue(variables);
-        double[] bounds = getBounds(variables);
-        if (bounds[0] <= val && val <= bounds[1])
-            info.put("(C) " + getName(), getPerc(val, bounds[0], bounds[1]) + "% (value: " + sDoubleFormat.format(val) + ", weighted:" + sDoubleFormat.format(w) + ", bounds: " + sDoubleFormat.format(bounds[0]) + "&hellip;" + sDoubleFormat.format(bounds[1]) + ")");
-        else if (bounds[1] <= val && val <= bounds[0])
-            info.put("(C) " + getName(), getPercRev(val, bounds[1], bounds[0]) + "% (value: " + sDoubleFormat.format(val) + ", weighted:" + sDoubleFormat.format(w) + ", bounds: " + sDoubleFormat.format(bounds[1]) + "&hellip;" + sDoubleFormat.format(bounds[0]) + ")");
-        else if (bounds[0] != val || val != bounds[1])
-            info.put("(C) " + getName(), sDoubleFormat.format(val) + " (weighted:" + sDoubleFormat.format(w) + ", bounds: " + sDoubleFormat.format(bounds[0]) + "&hellip;" + sDoubleFormat.format(bounds[1]) + ")");
+        if (iDebug) {
+            double val = getValue(variables), w = getWeightedValue(variables);
+            double[] bounds = getBounds(variables);
+            if (bounds[0] <= val && val <= bounds[1])
+                info.put("[C] " + getName(),
+                        getPerc(val, bounds[0], bounds[1]) + "% (value: " + sDoubleFormat.format(val) +
+                        ", weighted:" + sDoubleFormat.format(w) +
+                        ", bounds: " + sDoubleFormat.format(bounds[0]) + "&hellip;" + sDoubleFormat.format(bounds[1]) + ")");
+            else if (bounds[1] <= val && val <= bounds[0])
+                info.put("[C] " + getName(),
+                        getPercRev(val, bounds[1], bounds[0]) + "% (value: " + sDoubleFormat.format(val) +
+                        ", weighted:" + sDoubleFormat.format(w) +
+                        ", bounds: " + sDoubleFormat.format(bounds[1]) + "&hellip;" + sDoubleFormat.format(bounds[0]) + ")");
+            else if (bounds[0] != val || val != bounds[1])
+                info.put("[C] " + getName(),
+                        sDoubleFormat.format(val) + " (weighted:" + sDoubleFormat.format(w) +
+                        ", bounds: " + sDoubleFormat.format(bounds[0]) + "&hellip;" + sDoubleFormat.format(bounds[1]) + ")");
+        }
     }
 }
