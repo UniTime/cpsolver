@@ -1,13 +1,10 @@
 package net.sf.cpsolver.coursett.criteria;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Set;
 
-import net.sf.cpsolver.coursett.constraint.JenrlConstraint;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
-import net.sf.cpsolver.coursett.model.TimetableModel;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -45,6 +42,12 @@ public class StudentCommittedConflict extends StudentConflict {
     public String getPlacementSelectionWeightName() {
         return "Placement.NrCommitedStudConfsWeight";
     }
+    
+    @Override
+    public boolean isApplicable(Lecture l1, Lecture l2) {
+        return committed(l1, l2); // only committed student conflicts
+    }
+
 
     @Override
     public boolean inConflict(Placement p1, Placement p2) {
@@ -55,11 +58,8 @@ public class StudentCommittedConflict extends StudentConflict {
     public double[] getBounds() {
         if (iBounds == null)
             computeBounds();
-        double[] bounds = { iBounds[0], iBounds[1] };
-        for (JenrlConstraint jenrl: ((TimetableModel)getModel()).getJenrlConstraints())
-            if (committed(jenrl.first(), jenrl.second()))
-                bounds[0] += jenrl.jenrl();
-        return bounds;
+        double[] bounds = super.getBounds();
+        return new double[] { bounds[0] + iBounds[0], bounds[1] + iBounds[1] };
     }
     
     @Override
@@ -77,15 +77,7 @@ public class StudentCommittedConflict extends StudentConflict {
     
     @Override
     public double[] getBounds(Collection<Lecture> variables) {
-        double[] bounds = { 0.0, 0.0 };
-        Set<JenrlConstraint> constraints = new HashSet<JenrlConstraint>();
-        for (Lecture lect: variables) {
-            if (lect.getAssignment() == null) continue;
-            for (JenrlConstraint jenrl: lect.jenrlConstraints()) {
-                if (constraints.add(jenrl) && committed(jenrl.first(), jenrl.second()))
-                    bounds[0] += jenrl.jenrl();
-            }
-        }
+        double[] bounds = super.getBounds(variables);
         for (Lecture lecture: variables) {
             Double max = null;
             for (Placement placement: lecture.values()) {
@@ -101,7 +93,7 @@ public class StudentCommittedConflict extends StudentConflict {
     public double getValue(Placement value, Set<Placement> conflicts) {
         double ret = super.getValue(value, conflicts);
         ret += value.variable().getCommitedConflicts(value);
-        if (conflicts != null)
+        if (iIncludeConflicts && conflicts != null)
             for (Placement conflict: conflicts)
                 ret -= value.variable().getCommitedConflicts(conflict);
         return ret;

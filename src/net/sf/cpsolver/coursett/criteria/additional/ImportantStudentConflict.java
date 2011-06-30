@@ -50,23 +50,11 @@ public class ImportantStudentConflict extends StudentConflict {
         return super.init(solver);
     }
 
-    public boolean important(Placement p) {
-        return p != null && important(p.variable());
-    }
-    
-    public boolean important(Lecture l) {
-        return iImportantOwners.contains(l.getScheduler());
-    }
-    
-    public boolean important(Placement p1, Placement p2) {
-        return important(p1) && important(p2);
-    }
-    
     @Override
-    public boolean inConflict(Placement p1, Placement p2) {
-        return important(p1, p2) && (overlaps(p1, p2) || distance(getMetrics(), p1, p2));
+    public boolean isApplicable(Lecture l1, Lecture l2) {
+        return iImportantOwners.contains(l1.getScheduler()) && iImportantOwners.contains(l2.getScheduler());
     }
-
+    
     @Override
     public double getWeightDefault(DataProperties config) {
         return config.getPropertyDouble("Comparator.ImportantStudentConflictWeight",

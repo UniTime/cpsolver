@@ -1,14 +1,8 @@
 package net.sf.cpsolver.coursett.criteria.additional;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-
 import net.sf.cpsolver.coursett.constraint.JenrlConstraint;
 import net.sf.cpsolver.coursett.criteria.StudentConflict;
 import net.sf.cpsolver.coursett.model.Lecture;
-import net.sf.cpsolver.coursett.model.Placement;
-import net.sf.cpsolver.coursett.model.TimetableModel;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -38,6 +32,11 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  */
 
 public class QuadraticStudentConflict extends StudentConflict {
+    
+    @Override
+    public boolean isApplicable(Lecture l1, Lecture l2) {
+        return applicable(l1, l2);
+    }
 
     @Override
     public double getWeightDefault(DataProperties config) {
@@ -49,72 +48,9 @@ public class QuadraticStudentConflict extends StudentConflict {
         return "Placement.NrStudConfsWeight";
     }
 
-    protected double jenrl(JenrlConstraint jenrl) {
+    @Override
+    protected double jointEnrollment(JenrlConstraint jenrl) {
         return jenrl.jenrl() * jenrl.jenrl();
-    }
-    
-    @Override
-    public double getValue(Placement value, Set<Placement> conflicts) {
-        double ret = 0.0;
-        for (JenrlConstraint jenrl: value.variable().jenrlConstraints()) {
-            Placement another = jenrl.another(value.variable()).getAssignment();
-            if (another == null) continue;
-            if (conflicts != null && conflicts.contains(another)) continue;
-            if (inConflict(value, another))
-                ret += jenrl(jenrl);
-        }
-        /*
-        if (conflicts != null)
-            for (Placement conflict: conflicts) {
-                for (JenrlConstraint jenrl: conflict.variable().jenrlConstraints()) {
-                    Placement another = jenrl.another(conflict.variable()).getAssignment();
-                    if (another == null || another.variable().equals(value.variable())) continue;
-                    if (conflicts != null && conflicts.contains(another)) continue;
-                    if (inConflict(conflict, another))
-                        ret -= jenrl(jenrl);
-                }
-            }
-            */
-        return ret;
-    }
-    
-    @Override
-    public double getValue(Collection<Lecture> variables) {
-        double ret = 0.0;
-        Set<JenrlConstraint> constraints = new HashSet<JenrlConstraint>();
-        for (Lecture lect: variables) {
-            if (lect.getAssignment() == null) continue;
-            for (JenrlConstraint jenrl: lect.jenrlConstraints()) {
-                if (!constraints.add(jenrl)) continue;
-                Placement another = jenrl.another(lect).getAssignment();
-                if (another == null) continue;
-                if (inConflict(lect.getAssignment(), another))
-                    ret += jenrl(jenrl);
-            }
-        }
-        return Math.round(ret);
-    }
-
-    @Override
-    public double[] getBounds() {
-        double[] bounds = { 0.0, 0.0 };
-        for (JenrlConstraint jenrl: ((TimetableModel)getModel()).getJenrlConstraints())
-            bounds[0] += jenrl(jenrl);
-        return bounds;
-    }
-    
-    @Override
-    public double[] getBounds(Collection<Lecture> variables) {
-        double[] bounds = { 0.0, 0.0 };
-        Set<JenrlConstraint> constraints = new HashSet<JenrlConstraint>();
-        for (Lecture lect: variables) {
-            if (lect.getAssignment() == null) continue;
-            for (JenrlConstraint jenrl: lect.jenrlConstraints()) {
-                if (constraints.add(jenrl))
-                    bounds[0] += jenrl(jenrl);
-            }
-        }
-        return bounds;
     }
     
     @Override
