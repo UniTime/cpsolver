@@ -1,5 +1,6 @@
 package net.sf.cpsolver.coursett.criteria;
 
+import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.ifs.util.DataProperties;
@@ -34,6 +35,11 @@ public class StudentOverlapConflict extends StudentConflict {
     @Override
     public boolean inConflict(Placement p1, Placement p2) {
         return overlaps(p1, p2);
+    }
+    
+    @Override
+    public boolean isApplicable(Lecture l1, Lecture l2) {
+        return applicable(l1, l2); // all student conflicts (including committed)
     }
 
     @Override

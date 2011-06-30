@@ -9,6 +9,7 @@ import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.coursett.model.TimetableModel;
+import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DistanceMetric;
 
 /**
@@ -38,9 +39,16 @@ import net.sf.cpsolver.ifs.util.DistanceMetric;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class StudentConflict extends TimetablingCriterion {
+    protected boolean iIncludeConflicts = false;
     
     public StudentConflict() {
         iValueUpdateType = ValueUpdateType.BeforeUnassignedBeforeAssigned;
+    }
+    
+    @Override
+    public boolean init(Solver<Lecture, Placement> solver) {
+        iIncludeConflicts = solver.getProperties().getPropertyBoolean("StudentConflict.IncludeConflicts", false);
+        return super.init(solver);
     }
     
     @Override
@@ -58,11 +66,16 @@ public class StudentConflict extends TimetablingCriterion {
     }
 
     public static boolean overlaps(Placement p1, Placement p2) {
-        return p1 != null && p2 != null && p1.getTimeLocation().hasIntersection(p2.getTimeLocation());
+        return p1 != null && p2 != null && p1.getTimeLocation().hasIntersection(p2.getTimeLocation()) && (!p1.variable().isCommitted() || !p2.variable().isCommitted());
+    }
+    
+    protected double jointEnrollment(JenrlConstraint jenrl) {
+        return jenrl.jenrl();
     }
     
     public static boolean distance(DistanceMetric m, Placement p1, Placement p2) {
         if (p1 == null || p2 == null || m == null) return false;
+        if (p1.variable().isCommitted() && p2.variable().isCommitted()) return false;
         TimeLocation t1 = p1.getTimeLocation(), t2 = p2.getTimeLocation();
         if (!t1.shareDays(t2) || !t1.shareWeeks(t2)) return false;
         if (t1.getStartSlot() != t2.getStartSlot() + t2.getNrSlotsPerMeeting() && t2.getStartSlot() != t1.getStartSlot() + t1.getNrSlotsPerMeeting()) return false;
@@ -79,19 +92,31 @@ public class StudentConflict extends TimetablingCriterion {
     }
     
     public static boolean committed(Lecture l1, Lecture l2) {
-        return l1 != null && l2 != null && (l1.isCommitted() || l2.isCommitted());
+        return l1 != null && l2 != null && (l1.isCommitted() || l2.isCommitted()) && (!l1.isCommitted() || !l2.isCommitted());
     }
     
+    public static boolean applicable(Placement p1, Placement p2) {
+        return p1 != null && p2 != null && applicable(p1.variable(), p2.variable());
+    }
+    
+    public static boolean applicable(Lecture l1, Lecture l2) {
+        return l1 != null && l2 != null && (!l1.isCommitted() || !l2.isCommitted());
+    }
+
     public static boolean hard(Placement p1, Placement p2) {
         return p1 != null && p2 != null && hard(p1.variable(), p2.variable());
     }
     
     public static boolean hard(Lecture l1, Lecture l2) {
-        return l1 != null && l2 != null && l1.isSingleSection() && l2.isSingleSection();
+        return l1 != null && l2 != null && l1.isSingleSection() && l2.isSingleSection() && (!l1.isCommitted() || !l2.isCommitted());
     }
     
+    public boolean isApplicable(Lecture l1, Lecture l2) {
+        return applicable(l1, l2) && !committed(l1, l2); // exclude committed and outside student conflicts
+    }
+
     public boolean inConflict(Placement p1, Placement p2) {
-        return !committed(p1, p2) && (overlaps(p1, p2) || distance(getMetrics(), p1, p2));
+        return (overlaps(p1, p2) || distance(getMetrics(), p1, p2)) && isApplicable(p1.variable(), p2.variable());
     }
 
     @Override
@@ -102,20 +127,18 @@ public class StudentConflict extends TimetablingCriterion {
             if (another == null) continue;
             if (conflicts != null && conflicts.contains(another)) continue;
             if (inConflict(value, another))
-                ret += jenrl.jenrl();
+                ret += jointEnrollment(jenrl);
         }
-        /*
-        if (conflicts != null)
+        if (iIncludeConflicts && conflicts != null)
             for (Placement conflict: conflicts) {
                 for (JenrlConstraint jenrl: conflict.variable().jenrlConstraints()) {
                     Placement another = jenrl.another(conflict.variable()).getAssignment();
                     if (another == null || another.variable().equals(value.variable())) continue;
                     if (conflicts != null && conflicts.contains(another)) continue;
                     if (inConflict(conflict, another))
-                        ret -= jenrl.jenrl();
+                        ret -= jointEnrollment(jenrl);
                 }
             }
-            */
         return ret;
     }
     
@@ -127,10 +150,9 @@ public class StudentConflict extends TimetablingCriterion {
             if (lect.getAssignment() == null) continue;
             for (JenrlConstraint jenrl: lect.jenrlConstraints()) {
                 if (!constraints.add(jenrl)) continue;
-                Placement another = jenrl.another(lect).getAssignment();
-                if (another == null) continue;
-                if (inConflict(lect.getAssignment(), another))
-                    ret += jenrl.jenrl();
+                if (!jenrl.another(lect).isCommitted() && !variables.contains(jenrl.another(lect))) continue;
+                if (inConflict(lect.getAssignment(), jenrl.another(lect).getAssignment()))
+                    ret += jointEnrollment(jenrl);
             }
         }
         return Math.round(ret);
@@ -140,7 +162,8 @@ public class StudentConflict extends TimetablingCriterion {
     public double[] getBounds() {
         double[] bounds = { 0.0, 0.0 };
         for (JenrlConstraint jenrl: ((TimetableModel)getModel()).getJenrlConstraints())
-            bounds[0] += jenrl.jenrl();
+            if (isApplicable(jenrl.first(), jenrl.second()))
+                bounds[0] += jointEnrollment(jenrl);
         return bounds;
     }
     
@@ -151,8 +174,8 @@ public class StudentConflict extends TimetablingCriterion {
         for (Lecture lect: variables) {
             if (lect.getAssignment() == null) continue;
             for (JenrlConstraint jenrl: lect.jenrlConstraints()) {
-                if (constraints.add(jenrl))
-                    bounds[0] += jenrl.jenrl();
+                if (isApplicable(jenrl.first(), jenrl.second()) && constraints.add(jenrl) && (jenrl.another(lect).isCommitted() || variables.contains(jenrl.another(lect))))
+                    bounds[0] += jointEnrollment(jenrl);
             }
         }
         return bounds;

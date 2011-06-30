@@ -1,13 +1,6 @@
 package net.sf.cpsolver.coursett.criteria;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-
-import net.sf.cpsolver.coursett.constraint.JenrlConstraint;
 import net.sf.cpsolver.coursett.model.Lecture;
-import net.sf.cpsolver.coursett.model.Placement;
-import net.sf.cpsolver.coursett.model.TimetableModel;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -38,8 +31,8 @@ import net.sf.cpsolver.ifs.util.DataProperties;
 public class StudentHardConflict extends StudentConflict {
         
     @Override
-    public boolean inConflict(Placement p1, Placement p2) {
-        return hard(p1, p2) && super.inConflict(p1, p2);
+    public boolean isApplicable(Lecture l1, Lecture l2) {
+        return hard(l1, l2); // only hard student conflicts, but including committed
     }
 
     @Override
@@ -51,28 +44,4 @@ public class StudentHardConflict extends StudentConflict {
     public String getPlacementSelectionWeightName() {
         return "Placement.NrHardStudConfsWeight";
     }
-    
-    @Override
-    public double[] getBounds() {
-        double[] bounds = { 0.0, 0.0 };
-        for (JenrlConstraint jenrl: ((TimetableModel)getModel()).getJenrlConstraints())
-            if (hard(jenrl.first(), jenrl.second()))
-                bounds[0] += jenrl.jenrl();
-        return bounds;
-    }
-    
-    @Override
-    public double[] getBounds(Collection<Lecture> variables) {
-        double[] bounds = { 0.0, 0.0 };
-        Set<JenrlConstraint> constraints = new HashSet<JenrlConstraint>();
-        for (Lecture lect: variables) {
-            if (lect.getAssignment() == null) continue;
-            for (JenrlConstraint jenrl: lect.jenrlConstraints()) {
-                if (constraints.add(jenrl) && hard(jenrl.first(), jenrl.second()))
-                    bounds[0] += jenrl.jenrl();
-            }
-        }
-        return bounds;
-    }
-
 }
