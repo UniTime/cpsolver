@@ -199,14 +199,16 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
                 if (aValue.variable().getAssignment() == null)
                     penalty += getPenaltyA(selectedValue, aValue);
             }
-        for (T conflictValue : conflicts) {
-            T initialValue = conflictValue.variable().getInitialAssignment();
-            if (initialValue != null) {
-                if (initialValue.equals(conflictValue))
-                    penalty += getPenaltyB(selectedValue, conflictValue, initialValue);
-                else {
-                    if (violations == null || !violations.contains(initialValue))
-                        penalty += getPenaltyC(selectedValue, conflictValue, initialValue);
+        if (conflicts != null) {
+            for (T conflictValue : conflicts) {
+                T initialValue = conflictValue.variable().getInitialAssignment();
+                if (initialValue != null) {
+                    if (initialValue.equals(conflictValue))
+                        penalty += getPenaltyB(selectedValue, conflictValue, initialValue);
+                    else {
+                        if (violations == null || !violations.contains(initialValue))
+                            penalty += getPenaltyC(selectedValue, conflictValue, initialValue);
+                    }
                 }
             }
         }

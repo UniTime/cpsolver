@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import net.sf.cpsolver.coursett.constraint.JenrlConstraint;
+import net.sf.cpsolver.coursett.criteria.StudentConflict;
 import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
@@ -479,7 +480,7 @@ public class FinalSectioning implements Runnable {
         }
 
         public boolean perform() {
-            long conflicts = ((TimetableModel)firstLecture().getModel()).getViolatedStudentConflicts();
+            double conflicts = firstLecture().getModel().getCriterion(StudentConflict.class).getValue();
             for (Lecture lecture : firstStudent().getLectures()) {
                 if (lecture.equals(firstLecture()))
                     continue;
@@ -557,7 +558,7 @@ public class FinalSectioning implements Runnable {
                 }
             }
             // sLogger.debug("Solution after swap is "+iModel.getInfo()+".");
-            return (((TimetableModel)firstLecture().getModel()).getViolatedStudentConflicts() < conflicts);
+            return firstLecture().getModel().getCriterion(StudentConflict.class).getValue() < conflicts;
         }
 
         public double getDelta() {
@@ -774,7 +775,7 @@ public class FinalSectioning implements Runnable {
         }
 
         public boolean perform() {
-            long conflicts = ((TimetableModel)firstLectures().iterator().next().getModel()).getViolatedStudentConflicts();
+            double conflicts = firstLectures().iterator().next().getModel().getCriterion(StudentConflict.class).getValue();
             firstStudent().removeConfiguration(firstConfiguration());
             firstStudent().addConfiguration(secondConfiguration());
             for (Lecture lecture : firstStudent().getLectures()) {
@@ -883,7 +884,7 @@ public class FinalSectioning implements Runnable {
                     }
                 }
             }
-            return (((TimetableModel)firstLectures().iterator().next().getModel()).getViolatedStudentConflicts() < conflicts);
+            return firstLectures().iterator().next().getModel().getCriterion(StudentConflict.class).getValue() < conflicts;
         }
 
         public double getDelta() {

@@ -52,7 +52,6 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
 
     private Solution<Lecture, Placement> iSolution = null;
     private SuggestionNeighbour iSuggestionNeighbour = null;
-    private TimetableComparator iCmp = null;
     private double iValue = 0;
     private int iNrAssigned = 0;
 
@@ -74,7 +73,6 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
     @Override
     public void init(Solver<Lecture, Placement> solver) {
         super.init(solver);
-        iCmp = (TimetableComparator) solver.getSolutionComparator();
     }
 
     @Override
@@ -105,7 +103,7 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
 
         iSolution = solution;
         iSuggestionNeighbour = null;
-        iValue = iCmp.currentValue(solution);
+        iValue = solution.getModel().getTotalValue();
         iNrAssigned = solution.getModel().assignedVariables().size();
 
         synchronized (solution) {
@@ -138,8 +136,7 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
         int nrUnassigned = conflictsToResolve.size();
         if ((initialLectures == null || initialLectures.isEmpty()) && nrUnassigned == 0) {
             if (iSolution.getModel().assignedVariables().size() > iNrAssigned
-                    || (iSolution.getModel().assignedVariables().size() == iNrAssigned && iValue > iCmp
-                            .currentValue(iSolution))) {
+                    || (iSolution.getModel().assignedVariables().size() == iNrAssigned && iValue > iSolution.getModel().getTotalValue())) {
                 if (iSuggestionNeighbour == null || iSuggestionNeighbour.compareTo(iSolution) >= 0)
                     iSuggestionNeighbour = new SuggestionNeighbour(resolvedLectures);
             }
@@ -207,7 +204,7 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
         private List<Placement> iDifferentAssignments = null;
 
         public SuggestionNeighbour(List<Lecture> resolvedLectures) {
-            iValue = iCmp.currentValue(iSolution);
+            iValue = iSolution.getModel().getTotalValue();
             iDifferentAssignments = new ArrayList<Placement>();
             for (Lecture lecture : resolvedLectures) {
                 Placement p = lecture.getAssignment();
@@ -235,12 +232,12 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
         }
 
         public int compareTo(Solution<Lecture, Placement> solution) {
-            return Double.compare(iValue, iCmp.currentValue(solution));
+            return Double.compare(iValue, iSolution.getModel().getTotalValue());
         }
 
         @Override
         public String toString() {
-            StringBuffer sb = new StringBuffer("Suggestion{value=" + (iValue - iCmp.currentValue(iSolution)) + ": ");
+            StringBuffer sb = new StringBuffer("Suggestion{value=" + (iValue - iSolution.getModel().getTotalValue()) + ": ");
             for (Iterator<Placement> e = iDifferentAssignments.iterator(); e.hasNext();) {
                 Placement p = e.next();
                 sb.append("\n    " + p.variable().getName() + " " + p.getName() + (e.hasNext() ? "," : ""));
