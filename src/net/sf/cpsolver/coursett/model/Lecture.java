@@ -19,6 +19,8 @@ import net.sf.cpsolver.coursett.constraint.JenrlConstraint;
 import net.sf.cpsolver.coursett.constraint.RoomConstraint;
 import net.sf.cpsolver.coursett.constraint.SpreadConstraint;
 import net.sf.cpsolver.coursett.constraint.WeakeningConstraint;
+import net.sf.cpsolver.coursett.criteria.StudentCommittedConflict;
+import net.sf.cpsolver.coursett.criteria.StudentConflict;
 import net.sf.cpsolver.ifs.constant.ConstantVariable;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Variable;
@@ -217,8 +219,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         if (!iStudents.add(student))
             return;
         if (getAssignment() != null && getModel() != null)
-            ((TimetableModel) getModel()).getCommittedStudentConflictsCounter().inc(
-                    student.countConflictPlacements(getAssignment()));
+            getModel().getCriterion(StudentCommittedConflict.class).inc(student.countConflictPlacements(getAssignment()));
         iSameStudents.clear();
         iCommitedConflicts.clear();
     }
@@ -227,8 +228,8 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         if (!iStudents.remove(student))
             return;
         if (getAssignment() != null && getModel() != null)
-            ((TimetableModel) getModel()).getCommittedStudentConflictsCounter().dec(
-                    student.countConflictPlacements(getAssignment()));
+            if (getAssignment() != null && getModel() != null)
+                getModel().getCriterion(StudentCommittedConflict.class).inc(-student.countConflictPlacements(getAssignment()));
         iSameStudents.clear();
         iCommitedConflicts.clear();
     }
@@ -971,10 +972,6 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         return (iParent.getChildren(getSchedulingSubpartId()).size() <= 1);
     }
 
-    public boolean areStudentConflictsHard(Lecture lecture) {
-        return isSingleSection() && lecture.isSingleSection();
-    }
-
     public java.util.List<Lecture> sameStudentsLectures() {
         return (hasParent() ? getParent().getChildren(getSchedulingSubpartId()) : sameSubpartLectures());
     }
@@ -999,26 +996,6 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
             iCommitedConflicts.put(placement, ret);
         }
         return ret.intValue();
-    }
-
-    @Override
-    public void assign(long iteration, Placement value) {
-        if (value != null && getModel() != null) {
-            ((TimetableModel) getModel()).getCommittedStudentConflictsCounter().inc(getCommitedConflicts(value));
-        }
-        super.assign(iteration, value);
-    }
-
-    @Override
-    public void unassign(long iteration) {
-        if (getAssignment() != null && isCommitted())
-            throw new RuntimeException("Unable to unassign committed variable (" + getName() + " "
-                    + getAssignment().getName() + ")");
-        if (getAssignment() != null && getModel() != null) {
-            ((TimetableModel) getModel()).getCommittedStudentConflictsCounter().dec(
-                    getCommitedConflicts(getAssignment()));
-        }
-        super.unassign(iteration);
     }
 
     public Set<GroupConstraint> hardGroupSoftConstraints() {
@@ -1084,14 +1061,6 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
             iCacheMaxRoomSize = new Integer(max);
             return max;
         }
-    }
-
-    public long getDiscouragedRoomSize() {
-        return Math.round(1.25 * minRoomSize());
-    }
-
-    public long getStronglyDiscouragedRoomSize() {
-        return Math.round(1.5 * minRoomSize());
     }
 
     public boolean canShareRoom() {
@@ -1323,5 +1292,9 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
 
     public void setNote(String note) {
         iNote = note;
+    }
+    
+    public boolean areStudentConflictsHard(Lecture other) {
+        return StudentConflict.hard(this, other);
     }
 }

@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Set;
 
 import net.sf.cpsolver.coursett.Constants;
+import net.sf.cpsolver.coursett.criteria.BrokenTimePatterns;
+import net.sf.cpsolver.coursett.criteria.UselessHalfHours;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomSharingModel;
@@ -51,13 +53,11 @@ public class RoomConstraint extends Constraint<Lecture, Placement> {
     private Double iPosX = null, iPosY = null;
     private boolean iIgnoreTooFar = false;
 
-    private Integer iCacheUselessSlots = null;
-    private Integer iCacheUselessSlotsHalfHours = null;
-    private Integer iCacheBrokenTimePatterns = null;
-
     private RoomSharingModel iRoomSharingModel = null;
 
     private Long iType = null;
+    private int iLastUselessHalfHours = 0;
+    private int iLastBrokenTimePatterns = 0;
 
     /**
      * Constructor
@@ -251,12 +251,17 @@ public class RoomConstraint extends Constraint<Lecture, Placement> {
         super.assigned(iteration, placement);
         if (!placement.hasRoomLocation(getResourceId()))
             return;
-        clearCache();
         iPreference += placement.getRoomLocation(getResourceId()).getPreference();
         for (Enumeration<Integer> e = placement.getTimeLocation().getSlots(); e.hasMoreElements();) {
             int slot = e.nextElement();
             iResource[slot].add(placement);
         }
+        getModel().getCriterion(UselessHalfHours.class).inc(-iLastUselessHalfHours);
+        iLastUselessHalfHours = UselessHalfHours.countUselessSlotsHalfHours(this);
+        getModel().getCriterion(UselessHalfHours.class).inc(iLastUselessHalfHours);
+        getModel().getCriterion(BrokenTimePatterns.class).inc(-iLastBrokenTimePatterns);
+        iLastBrokenTimePatterns = BrokenTimePatterns.countUselessSlotsBrokenTimePatterns(this);
+        getModel().getCriterion(BrokenTimePatterns.class).inc(iLastBrokenTimePatterns);
     }
 
     @Override
@@ -264,12 +269,18 @@ public class RoomConstraint extends Constraint<Lecture, Placement> {
         super.unassigned(iteration, placement);
         if (!placement.hasRoomLocation(getResourceId()))
             return;
-        clearCache();
         iPreference -= placement.getRoomLocation(getResourceId()).getPreference();
         for (Enumeration<Integer> e = placement.getTimeLocation().getSlots(); e.hasMoreElements();) {
             int slot = e.nextElement();
             iResource[slot].remove(placement);
         }
+        getModel().getCriterion(UselessHalfHours.class).inc(-iLastUselessHalfHours);
+        iLastUselessHalfHours = UselessHalfHours.countUselessSlotsHalfHours(this);
+        getModel().getCriterion(UselessHalfHours.class).inc(iLastUselessHalfHours);
+        getModel().getCriterion(BrokenTimePatterns.class).inc(-iLastBrokenTimePatterns);
+        iLastBrokenTimePatterns = BrokenTimePatterns.countUselessSlotsBrokenTimePatterns(this);
+        getModel().getCriterion(BrokenTimePatterns.class).inc(iLastBrokenTimePatterns);
+
     }
 
     /**
@@ -287,185 +298,7 @@ public class RoomConstraint extends Constraint<Lecture, Placement> {
         }
         return ret;
     }
-
-    boolean isUseless(int slot) {
-        int s = slot % Constants.SLOTS_PER_DAY;
-        if (s - 1 < 0 || s + 6 >= Constants.SLOTS_PER_DAY)
-            return false;
-        return (!iResource[slot - 1].isEmpty() && iResource[slot + 0].isEmpty() && iResource[slot + 1].isEmpty()
-                && iResource[slot + 2].isEmpty() && iResource[slot + 3].isEmpty() && iResource[slot + 4].isEmpty()
-                && iResource[slot + 5].isEmpty() && !iResource[slot + 6].isEmpty());
-    }
-
-    boolean isUselessBefore(int slot) {
-        int s = slot % Constants.SLOTS_PER_DAY;
-        if (s - 1 < 0 || s + 6 >= Constants.SLOTS_PER_DAY)
-            return false;
-        return (!iResource[slot - 1].isEmpty() && iResource[slot + 0].isEmpty() && iResource[slot + 1].isEmpty()
-                && iResource[slot + 2].isEmpty() && iResource[slot + 3].isEmpty() && iResource[slot + 4].isEmpty() && iResource[slot + 5]
-                .isEmpty());
-    }
-
-    boolean isUselessAfter(int slot) {
-        int s = slot % Constants.SLOTS_PER_DAY;
-        if (s - 1 < 0 || s + 6 >= Constants.SLOTS_PER_DAY)
-            return false;
-        return (iResource[slot + 0].isEmpty() && iResource[slot + 1].isEmpty() && iResource[slot + 2].isEmpty()
-                && iResource[slot + 3].isEmpty() && iResource[slot + 4].isEmpty() && iResource[slot + 5].isEmpty() && !iResource[slot + 6]
-                .isEmpty());
-    }
-
-    /** Number of useless slots for this room */
-    public int countUselessSlots() {
-        if (iCacheUselessSlots != null)
-            return iCacheUselessSlots.intValue();
-        float ret = 0;
-        float factor = 1.0f / 6.0f;
-        for (int d = 0; d < Constants.NR_DAYS; d++) {
-            for (int s = 0; s < Constants.SLOTS_PER_DAY; s++) {
-                int slot = d * Constants.SLOTS_PER_DAY + s;
-                if (iResource[slot].isEmpty()) {
-                    if (isUseless(slot))
-                        ret += Constants.sPreferenceLevelStronglyDiscouraged;
-                    switch (d) {
-                        case 0:
-                            if (!iResource[2 * Constants.SLOTS_PER_DAY + s].isEmpty()
-                                    && !iResource[4 * Constants.SLOTS_PER_DAY + s].isEmpty())
-                                ret += factor * Constants.sPreferenceLevelDiscouraged;
-                            break;
-                        case 1:
-                            if (!iResource[3 * Constants.SLOTS_PER_DAY + s].isEmpty())
-                                ret += factor * Constants.sPreferenceLevelDiscouraged;
-                            break;
-                        case 2:
-                            if (!iResource[0 * Constants.SLOTS_PER_DAY + s].isEmpty()
-                                    && !iResource[4 * Constants.SLOTS_PER_DAY + s].isEmpty())
-                                ret += factor * Constants.sPreferenceLevelDiscouraged;
-                            break;
-                        case 3:
-                            if (!iResource[1 * Constants.SLOTS_PER_DAY + s].isEmpty())
-                                ret += factor * Constants.sPreferenceLevelDiscouraged;
-                            break;
-                        case 4:
-                            if (!iResource[0 * Constants.SLOTS_PER_DAY + s].isEmpty()
-                                    && !iResource[2 * Constants.SLOTS_PER_DAY + s].isEmpty())
-                                ret += factor * Constants.sPreferenceLevelDiscouraged;
-                            break;
-                    }
-                }
-            }
-        }
-        iCacheUselessSlots = new Integer(Math.round(ret));
-        return iCacheUselessSlots.intValue();
-    }
-
-    /** Number of useless slots for this room */
-    public int countUselessSlotsHalfHours() {
-        if (iCacheUselessSlotsHalfHours != null)
-            return iCacheUselessSlotsHalfHours.intValue();
-        int ret = 0;
-        for (int d = 0; d < Constants.NR_DAYS; d++) {
-            for (int s = 0; s < Constants.SLOTS_PER_DAY; s++) {
-                int slot = d * Constants.SLOTS_PER_DAY + s;
-                if (isUseless(slot))
-                    ret++;
-            }
-        }
-        iCacheUselessSlotsHalfHours = new Integer(ret);
-        return ret;
-    }
-
-    /** Number of useless slots for this room */
-    public int countUselessSlotsBrokenTimePatterns() {
-        if (iCacheBrokenTimePatterns != null)
-            return iCacheBrokenTimePatterns.intValue();
-        int ret = 0;
-        for (int d = 0; d < Constants.NR_DAYS; d++) {
-            for (int s = 0; s < Constants.SLOTS_PER_DAY; s++) {
-                int slot = d * Constants.SLOTS_PER_DAY + s;
-                if (iResource[slot].isEmpty()) {
-                    switch (d) {
-                        case 0:
-                            if (!iResource[2 * Constants.SLOTS_PER_DAY + s].isEmpty()
-                                    && !iResource[4 * Constants.SLOTS_PER_DAY + s].isEmpty())
-                                ret++;
-                            break;
-                        case 1:
-                            if (!iResource[3 * Constants.SLOTS_PER_DAY + s].isEmpty())
-                                ret++;
-                            break;
-                        case 2:
-                            if (!iResource[0 * Constants.SLOTS_PER_DAY + s].isEmpty()
-                                    && !iResource[4 * Constants.SLOTS_PER_DAY + s].isEmpty())
-                                ret++;
-                            break;
-                        case 3:
-                            if (!iResource[1 * Constants.SLOTS_PER_DAY + s].isEmpty())
-                                ret++;
-                            break;
-                        case 4:
-                            if (!iResource[0 * Constants.SLOTS_PER_DAY + s].isEmpty()
-                                    && !iResource[2 * Constants.SLOTS_PER_DAY + s].isEmpty())
-                                ret++;
-                            break;
-                    }
-                }
-            }
-        }
-        iCacheBrokenTimePatterns = new Integer(Math.round((1.0f / 6.0f) * ret));
-        return iCacheBrokenTimePatterns.intValue();
-    }
-
-    public void clearCache() {
-        iCacheBrokenTimePatterns = null;
-        iCacheUselessSlots = null;
-        iCacheUselessSlotsHalfHours = null;
-    }
-
-    private static int sDaysMWF = Constants.DAY_CODES[0] + Constants.DAY_CODES[2] + Constants.DAY_CODES[4];
-    private static int sDaysTTh = Constants.DAY_CODES[1] + Constants.DAY_CODES[3];
-
-    /** Number of useless slots for this room */
-    public int countUselessSlots(Placement placement) {
-        float ret = 0;
-        float factor = 1.0f / 6.0f;
-        int slot = placement.getTimeLocation().getStartSlot() % Constants.SLOTS_PER_DAY;
-        int days = placement.getTimeLocation().getDayCode();
-        for (int d = 0; d < Constants.NR_DAYS; d++) {
-            if ((Constants.DAY_CODES[d] & days) == 0)
-                continue;
-            if (isUselessBefore(d * Constants.SLOTS_PER_DAY + slot - 6))
-                ret += Constants.sPreferenceLevelStronglyDiscouraged;
-            if (isUselessAfter(d * Constants.SLOTS_PER_DAY + slot + placement.getTimeLocation().getNrSlotsPerMeeting()))
-                ret += Constants.sPreferenceLevelStronglyDiscouraged;
-        }
-        if ((days & sDaysMWF) != 0 && (days & sDaysMWF) != sDaysMWF) {
-            for (int s = slot; s < slot + placement.getTimeLocation().getLength(); s++) {
-                int nrEmpty = 0;
-                if ((Constants.DAY_CODES[0] & days) == 0 && iResource[0 * Constants.SLOTS_PER_DAY + s].isEmpty())
-                    nrEmpty++;
-                if ((Constants.DAY_CODES[2] & days) == 0 && iResource[2 * Constants.SLOTS_PER_DAY + s].isEmpty())
-                    nrEmpty++;
-                if ((Constants.DAY_CODES[4] & days) == 0 && iResource[4 * Constants.SLOTS_PER_DAY + s].isEmpty())
-                    nrEmpty++;
-                if (nrEmpty > 0)
-                    ret += factor * Constants.sPreferenceLevelDiscouraged;
-            }
-        }
-        if ((days & sDaysTTh) != 0 && (days & sDaysTTh) != sDaysTTh) {
-            for (int s = slot; s < slot + placement.getTimeLocation().getLength(); s++) {
-                int nrEmpty = 0;
-                if ((Constants.DAY_CODES[1] & days) == 0 && iResource[1 * Constants.SLOTS_PER_DAY + s].isEmpty())
-                    nrEmpty++;
-                if ((Constants.DAY_CODES[3] & days) == 0 && iResource[3 * Constants.SLOTS_PER_DAY + s].isEmpty())
-                    nrEmpty++;
-                if (nrEmpty > 0)
-                    ret += factor * Constants.sPreferenceLevelDiscouraged;
-            }
-        }
-        return Math.round(ret);
-    }
-
+    
     /** Room usage */
     protected void printUsage(StringBuffer sb) {
         for (int slot = 0; slot < iResource.length; slot++) {

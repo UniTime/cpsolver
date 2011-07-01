@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import net.sf.cpsolver.ifs.criteria.Criterion;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
@@ -83,6 +84,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
 
     private List<ModelListener<V, T>> iModelListeners = new ArrayList<ModelListener<V, T>>();
     private List<InfoProvider<V>> iInfoProviders = new ArrayList<InfoProvider<V>>();
+    private HashMap<String, Criterion<V, T>> iCriteria = new HashMap<String, Criterion<V,T>>();
 
     private int iBestUnassignedVariables = -1;
     private int iBestPerturbations = 0;
@@ -484,6 +486,9 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
         for (V variable : iVariables) {
             variable.setBestAssignment(variable.getAssignment());
         }
+        for (Criterion<V, T> criterion: getCriteria()) {
+            criterion.bestSaved();
+        }
     }
 
     /** Clear the best ever found assignment */
@@ -561,6 +566,9 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
             }
             variable.assign(0, value);
         }
+        for (Criterion<V, T> criterion: getCriteria()) {
+            criterion.bestRestored();
+        }
     }
 
     /** The list of unassigned variables in the best ever found solution */
@@ -580,10 +588,10 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * i.e., {@link Value#toDouble()}.
      */
     public double getTotalValue() {
-        double valCurrent = 0;
-        for (V variable : assignedVariables())
-            valCurrent += variable.getAssignment().toDouble();
-        return valCurrent;
+        double ret = 0.0;
+        for (V v: assignedVariables())
+            ret += v.getAssignment().toDouble();
+        return ret;
     }
 
     /**
@@ -592,12 +600,11 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * considered.
      **/
     public double getTotalValue(Collection<V> variables) {
-        double valCurrent = 0;
-        for (V variable : variables) {
-            if (variable.getAssignment() != null)
-                valCurrent += variable.getAssignment().toDouble();
-        }
-        return valCurrent;
+        double ret = 0.0;
+        for (V v: variables)
+            if (v.getAssignment() != null)
+                ret += v.getAssignment().toDouble();
+        return ret;
     }
 
     /** Adds a model listener */
@@ -704,5 +711,34 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     /** Registered info providers (see {@link InfoProvider}) */
     protected List<InfoProvider<V>> getInfoProviders() {
         return iInfoProviders;
+    }
+    
+    /** Register a new criterion */
+    public void addCriterion(Criterion<V,T> criterion) {
+        iCriteria.put(criterion.getClass().getName(), criterion);
+        addModelListener(criterion);
+    }
+    
+    /** Unregister an existing criterion */
+    public void removeCriterion(Criterion<V,T> criterion) {
+        iCriteria.remove(criterion.getClass().getName());
+        removeModelListener(criterion);
+    }
+    
+    /** Unregister an existing criterion */
+    public void removeCriterion(Class<? extends Criterion<V, T>> criterion) {
+        Criterion<V,T> c = iCriteria.remove(criterion.getName());
+        if (c != null)
+            removeModelListener(c);
+    }
+
+    /** Return a registered criterion of the given type. */
+    public Criterion<V, T> getCriterion(Class<? extends Criterion<V, T>> criterion) {
+        return iCriteria.get(criterion.getName());
+    }
+    
+    /** List all registered criteria */
+    public Collection<Criterion<V, T>> getCriteria() {
+        return iCriteria.values();
     }
 }
