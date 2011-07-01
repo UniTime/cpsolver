@@ -21,6 +21,20 @@ import net.sf.cpsolver.coursett.constraint.InstructorConstraint;
 import net.sf.cpsolver.coursett.constraint.JenrlConstraint;
 import net.sf.cpsolver.coursett.constraint.RoomConstraint;
 import net.sf.cpsolver.coursett.constraint.SpreadConstraint;
+import net.sf.cpsolver.coursett.criteria.BackToBackInstructorPreferences;
+import net.sf.cpsolver.coursett.criteria.BrokenTimePatterns;
+import net.sf.cpsolver.coursett.criteria.DepartmentBalancingPenalty;
+import net.sf.cpsolver.coursett.criteria.DistributionPreferences;
+import net.sf.cpsolver.coursett.criteria.Perturbations;
+import net.sf.cpsolver.coursett.criteria.RoomPreferences;
+import net.sf.cpsolver.coursett.criteria.SameSubpartBalancingPenalty;
+import net.sf.cpsolver.coursett.criteria.StudentCommittedConflict;
+import net.sf.cpsolver.coursett.criteria.StudentConflict;
+import net.sf.cpsolver.coursett.criteria.StudentDistanceConflict;
+import net.sf.cpsolver.coursett.criteria.StudentHardConflict;
+import net.sf.cpsolver.coursett.criteria.TimePreferences;
+import net.sf.cpsolver.coursett.criteria.TooBigRooms;
+import net.sf.cpsolver.coursett.criteria.UselessHalfHours;
 import net.sf.cpsolver.coursett.heuristics.UniversalPerturbationsCounter;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
@@ -197,6 +211,8 @@ public class Test implements SolutionListener<Lecture, Placement> {
                     + colSeparator
                     + "DistStudentConf"
                     + colSeparator
+                    + "CommitStudentConf"
+                    + colSeparator
                     + "TimePref"
                     + colSeparator
                     + "RoomPref"
@@ -205,7 +221,9 @@ public class Test implements SolutionListener<Lecture, Placement> {
                     + colSeparator
                     + "GrConstPref"
                     + colSeparator
-                    + "UselessSlots"
+                    + "UselessHalfHours"
+                    + colSeparator
+                    + "BrokenTimePat"
                     + colSeparator
                     + "TooBigRooms"
                     + (iProp != null ? colSeparator + "GoodVars" + colSeparator + "GoodVars[%]" + colSeparator
@@ -347,40 +365,28 @@ public class Test implements SolutionListener<Lecture, Placement> {
             iCSVFile.print(model.perturbVariables().size());
             iCSVFile.print(colSeparator);
             iCSVFile.print(sDoubleFormat.format(100.0 * model.perturbVariables().size() / model.variables().size()));
-
-            long studentConflicts = 0;
-            long hardStudentConflicts = 0;
-            long uselessSlots = 0;
-            for (RoomConstraint constraint : ((TimetableModel) solution.getModel()).getRoomConstraints()) {
-                uselessSlots += constraint.countUselessSlots();
-            }
-            for (JenrlConstraint jenrl : ((TimetableModel) solution.getModel()).getJenrlConstraints()) {
-                if (jenrl.isInConflict()) {
-                    studentConflicts += jenrl.getJenrl();
-                    Lecture l1 = jenrl.first();
-                    Lecture l2 = jenrl.second();
-                    if (l1.areStudentConflictsHard(l2))
-                        hardStudentConflicts += jenrl.getJenrl();
-                }
-            }
             iCSVFile.print(colSeparator);
-            iCSVFile.print(hardStudentConflicts);
+            iCSVFile.print(Math.round(solution.getModel().getCriterion(StudentHardConflict.class).getValue()));
             iCSVFile.print(colSeparator);
-            iCSVFile.print(studentConflicts);
+            iCSVFile.print(Math.round(solution.getModel().getCriterion(StudentConflict.class).getValue()));
             iCSVFile.print(colSeparator);
-            iCSVFile.print(((TimetableModel) solution.getModel()).getStudentDistanceConflicts());
+            iCSVFile.print(Math.round(solution.getModel().getCriterion(StudentDistanceConflict.class).getValue()));
             iCSVFile.print(colSeparator);
-            iCSVFile.print(sDoubleFormat.format(((TimetableModel) solution.getModel()).getGlobalTimePreference()));
+            iCSVFile.print(Math.round(solution.getModel().getCriterion(StudentCommittedConflict.class).getValue()));
             iCSVFile.print(colSeparator);
-            iCSVFile.print(((TimetableModel) solution.getModel()).getGlobalRoomPreference());
+            iCSVFile.print(sDoubleFormat.format(solution.getModel().getCriterion(TimePreferences.class).getValue()));
             iCSVFile.print(colSeparator);
-            iCSVFile.print(((TimetableModel) solution.getModel()).getInstructorDistancePreference());
+            iCSVFile.print(Math.round(solution.getModel().getCriterion(RoomPreferences.class).getValue()));
             iCSVFile.print(colSeparator);
-            iCSVFile.print(((TimetableModel) solution.getModel()).getGlobalGroupConstraintPreference());
+            iCSVFile.print(Math.round(solution.getModel().getCriterion(BackToBackInstructorPreferences.class).getValue()));
             iCSVFile.print(colSeparator);
-            iCSVFile.print(uselessSlots);
+            iCSVFile.print(Math.round(solution.getModel().getCriterion(DistributionPreferences.class).getValue()));
             iCSVFile.print(colSeparator);
-            iCSVFile.print(((TimetableModel) solution.getModel()).countTooBigRooms());
+            iCSVFile.print(Math.round(solution.getModel().getCriterion(UselessHalfHours.class).getValue()));
+            iCSVFile.print(colSeparator);
+            iCSVFile.print(Math.round(solution.getModel().getCriterion(BrokenTimePatterns.class).getValue()));
+            iCSVFile.print(colSeparator);
+            iCSVFile.print(Math.round(solution.getModel().getCriterion(TooBigRooms.class).getValue()));
             if (iProp != null) {
                 if (solution.getModel().unassignedVariables().size() > 0) {
                     int goodVariables = 0;
@@ -845,35 +851,30 @@ public class Test implements SolutionListener<Lecture, Placement> {
             int idx = 1;
             w.println("000." + dx.format(idx++) + " Assigned variables," + m.assignedVariables().size());
             w.println("000." + dx.format(idx++) + " Time [sec]," + sDoubleFormat.format(s.getBestTime()));
-            w.println("000." + dx.format(idx++) + " Hard student conflicts," + m.getHardStudentConflicts());
+            w.println("000." + dx.format(idx++) + " Hard student conflicts," + Math.round(m.getCriterion(StudentHardConflict.class).getValue()));
             if (m.getProperties().getPropertyBoolean("General.UseDistanceConstraints", true))
-                w.println("000." + dx.format(idx++) + " Distance student conf.," + m.getStudentDistanceConflicts());
-            w.println("000." + dx.format(idx++) + " Student conflicts," + m.getViolatedStudentConflicts());
-            w.println("000." + dx.format(idx++) + " Committed student conflicts," + m.getCommitedStudentConflicts());
+                w.println("000." + dx.format(idx++) + " Distance student conf.," + Math.round(m.getCriterion(StudentDistanceConflict.class).getValue()));
+            w.println("000." + dx.format(idx++) + " Student conflicts," + Math.round(m.getCriterion(StudentConflict.class).getValue()));
+            w.println("000." + dx.format(idx++) + " Committed student conflicts," + Math.round(m.getCriterion(StudentCommittedConflict.class).getValue()));
             w.println("000." + dx.format(idx++) + " All Student conflicts,"
-                    + (m.getViolatedStudentConflicts() + m.getCommitedStudentConflicts()));
+                    + Math.round(m.getCriterion(StudentConflict.class).getValue() + m.getCriterion(StudentCommittedConflict.class).getValue()));
             w.println("000." + dx.format(idx++) + " Time preferences,"
-                    + sDoubleFormat.format(m.getGlobalTimePreference()));
-            w.println("000." + dx.format(idx++) + " Room preferences," + m.getGlobalRoomPreference());
-            w.println("000." + dx.format(idx++) + " Useless half-hours," + m.getUselessSlots());
-            w.println("000." + dx.format(idx++) + " Too big room," + m.countTooBigRooms());
-            w.println("000." + dx.format(idx++) + " Distribution preferences,"
-                    + sDoubleFormat.format(m.getGlobalGroupConstraintPreference()));
+                    + sDoubleFormat.format( m.getCriterion(TimePreferences.class).getValue()));
+            w.println("000." + dx.format(idx++) + " Room preferences," + Math.round(m.getCriterion(RoomPreferences.class).getValue()));
+            w.println("000." + dx.format(idx++) + " Useless half-hours," + Math.round(m.getCriterion(UselessHalfHours.class).getValue()));
+            w.println("000." + dx.format(idx++) + " Broken time patterns," + Math.round(m.getCriterion(BrokenTimePatterns.class).getValue()));
+            w.println("000." + dx.format(idx++) + " Too big room," + Math.round(m.getCriterion(TooBigRooms.class).getValue()));
+            w.println("000." + dx.format(idx++) + " Distribution preferences," + sDoubleFormat.format(m.getCriterion(DistributionPreferences.class).getValue()));
             if (m.getProperties().getPropertyBoolean("General.UseDistanceConstraints", true))
-                w.println("000." + dx.format(idx++) + " Back-to-back instructor pref.,"
-                        + m.getInstructorDistancePreference());
+                w.println("000." + dx.format(idx++) + " Back-to-back instructor pref.," + Math.round(m.getCriterion(BackToBackInstructorPreferences.class).getValue()));
             if (m.getProperties().getPropertyBoolean("General.DeptBalancing", true)) {
-                w.println("000." + dx.format(idx++) + " Dept. balancing penalty,"
-                        + sDoubleFormat.format(m.getDepartmentSpreadPenalty()));
+                w.println("000." + dx.format(idx++) + " Dept. balancing penalty," + sDoubleFormat.format(m.getCriterion(DepartmentBalancingPenalty.class).getValue()));
             }
-            w.println("000." + dx.format(idx++) + " Same subpart balancing penalty,"
-                    + sDoubleFormat.format(m.getSpreadPenalty()));
+            w.println("000." + dx.format(idx++) + " Same subpart balancing penalty," + sDoubleFormat.format(m.getCriterion(SameSubpartBalancingPenalty.class).getValue()));
             if (m.getProperties().getPropertyBoolean("General.MPP", false)) {
-                Map<String, Double> mppInfo = ((UniversalPerturbationsCounter) m.getPerturbationsCounter())
-                        .getCompactInfo(m, false, false);
+                Map<String, Double> mppInfo = ((UniversalPerturbationsCounter)((Perturbations)m.getCriterion(Perturbations.class)).getPerturbationsCounter()).getCompactInfo(m, false, false);
                 int pidx = 51;
-                w.println("000." + dx.format(pidx++) + " Perturbation penalty,"
-                        + sDoubleFormat.format(m.getPerturbationsCounter().getPerturbationPenalty(m)));
+                w.println("000." + dx.format(pidx++) + " Perturbation penalty," + sDoubleFormat.format(m.getCriterion(Perturbations.class).getValue()));
                 w.println("000." + dx.format(pidx++) + " Additional perturbations," + m.perturbVariables().size());
                 int nrPert = 0, nrStudentPert = 0;
                 for (Lecture lecture : m.variables()) {
@@ -1005,7 +1006,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
                     if (placement != null) {
                         roomPref += placement.getRoomPreference();
                         timePref += placement.getTimeLocation().getNormalizedPreference();
-                        tooBigRooms += placement.getTooBigRoomPreference();
+                        tooBigRooms += TooBigRooms.getTooBigRoomPreference(placement);
                     }
 
                     for (Constraint<Lecture, Placement> c : lecture.constraints()) {
@@ -1055,9 +1056,9 @@ public class Test implements SolutionListener<Lecture, Placement> {
 
                         if (c instanceof RoomConstraint) {
                             RoomConstraint rc = (RoomConstraint) c;
-                            uselessSlots += rc.countUselessSlots();
-                            uselessSlotsHH += rc.countUselessSlotsHalfHours();
-                            uselessSlotsBTP += rc.countUselessSlotsBrokenTimePatterns();
+                            uselessSlots += UselessHalfHours.countUselessSlotsHalfHours(rc) + BrokenTimePatterns.countUselessSlotsBrokenTimePatterns(rc);
+                            uselessSlotsHH += UselessHalfHours.countUselessSlotsHalfHours(rc);
+                            uselessSlotsBTP += BrokenTimePatterns.countUselessSlotsBrokenTimePatterns(rc);
                             rcs++;
                         }
                     }

@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Set;
 
 import net.sf.cpsolver.coursett.Constants;
+import net.sf.cpsolver.coursett.criteria.DistributionPreferences;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimeLocation;
@@ -876,9 +877,9 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         super.unassigned(iteration, value);
         if (iIsRequired || iIsProhibited)
             return;
-        ((TimetableModel) getModel()).getGlobalGroupConstraintPreferenceCounter().dec(iLastPreference);
+        getModel().getCriterion(DistributionPreferences.class).inc(-iLastPreference);
         iLastPreference = Math.min(0, getCurrentPreference());
-        ((TimetableModel) getModel()).getGlobalGroupConstraintPreferenceCounter().inc(iLastPreference);
+        getModel().getCriterion(DistributionPreferences.class).inc(iLastPreference);
     }
 
     @Override
@@ -886,9 +887,9 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         super.assigned(iteration, value);
         if (iIsRequired || iIsProhibited)
             return;
-        ((TimetableModel) getModel()).getGlobalGroupConstraintPreferenceCounter().dec(iLastPreference);
+        getModel().getCriterion(DistributionPreferences.class).inc(-iLastPreference);
         iLastPreference = Math.min(0, getCurrentPreference());
-        ((TimetableModel) getModel()).getGlobalGroupConstraintPreferenceCounter().inc(iLastPreference);
+        getModel().getCriterion(DistributionPreferences.class).inc(iLastPreference);
     }
 
     @Override

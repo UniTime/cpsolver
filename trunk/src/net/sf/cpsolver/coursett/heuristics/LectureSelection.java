@@ -5,16 +5,12 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
-import net.sf.cpsolver.coursett.constraint.GroupConstraint;
-import net.sf.cpsolver.coursett.constraint.InstructorConstraint;
-import net.sf.cpsolver.coursett.constraint.JenrlConstraint;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimetableModel;
 import net.sf.cpsolver.ifs.extension.Extension;
 import net.sf.cpsolver.ifs.extension.MacPropagation;
 import net.sf.cpsolver.ifs.heuristics.VariableSelection;
-import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
@@ -85,48 +81,48 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  * <th>Comment</th>
  * </tr>
  * <tr>
- * <td>Lecture.HardStudentConflictWeight</td>
+ * <td>Comparator.HardStudentConflictWeight</td>
  * <td>{@link Double}</td>
  * <td>Hard student conflict weight</td>
  * </tr>
  * <tr>
- * <td>Lecture.StudentConflictWeight</td>
+ * <td>Comparator.StudentConflictWeight</td>
  * <td>{@link Double}</td>
  * <td>Student conflict weight</td>
  * </tr>
  * <tr>
- * <td>Lecture.TimePreferenceWeight</td>
+ * <td>Comparator.TimePreferenceWeight</td>
  * <td>{@link Double}</td>
  * <td>Time preference weight</td>
  * </tr>
  * <tr>
- * <td>Lecture.ContrPreferenceWeight</td>
+ * <td>Comparator.ContrPreferenceWeight</td>
  * <td>{@link Double}</td>
  * <td>Group constraint preference weight</td>
  * </tr>
  * <tr>
- * <td>Lecture.RoomPreferenceWeight</td>
+ * <td>Comparator.RoomPreferenceWeight</td>
  * <td>{@link Double}</td>
  * <td>Room preference weight</td>
  * </tr>
  * <tr>
- * <td>Lecture.UselessSlotWeight</td>
+ * <td>Comparator.UselessSlotWeight</td>
  * <td>{@link Double}</td>
  * <td>Useless slot weight</td>
  * </tr>
  * <tr>
- * <td>Lecture.TooBigRoomWeight</td>
+ * <td>Comparator.TooBigRoomWeight</td>
  * <td>{@link Double}</td>
  * <td>Too big room weight</td>
  * </tr>
  * <tr>
- * <td>Lecture.DistanceInstructorPreferenceWeight</td>
+ * <td>Comparator.DistanceInstructorPreferenceWeight</td>
  * <td>{@link Double}</td>
  * <td>Distance (of the rooms of the back-to-back classes) based instructor
  * preferences weight</td>
  * </tr>
  * <tr>
- * <td>Lecture.DeptSpreadPenaltyWeight</td>
+ * <td>Comparator.DeptSpreadPenaltyWeight</td>
  * <td>{@link Double}</td>
  * <td>Department balancing penalty (see
  * {@link net.sf.cpsolver.coursett.constraint.DepartmentSpreadConstraint})</td>
@@ -187,19 +183,6 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
     private boolean iRouletteWheelSelection;
     private boolean iUnassignWhenNotGood;
 
-    private double iEmptySingleSlotWeight;
-    private double iTooBigRoomWeight;
-    private double iTimePreferencesWeight;
-    private double iStudentConflictWeight;
-    private double iRoomPreferencesWeight;
-    private double iConstrPreferencesWeight;
-    private double iHardStudentConflictWeight;
-    private double iCommitedStudentConflictWeight;
-    private double iDistStudentConflictWeight;
-    private double iDistanceInstructorPreferenceWeight;
-    private double iDeptSpreadPenaltyWeight;
-    private double iSpreadPenaltyWeight;
-
     private boolean iSubSetSelection;
     private double iSelectionSubSetPart;
     private int iSelectionSubSetMinSize;
@@ -207,7 +190,6 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
 
     private boolean iRW = false;
     private boolean iMPP = false;
-    private boolean iSwitchStudents = false;
 
     private MacPropagation<Lecture, Placement> iProp = null;
 
@@ -232,35 +214,6 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
         iConstraintsWeight = properties.getPropertyDouble("Lecture.NrConstraintsWeight", 0.0);
         iMPP = properties.getPropertyBoolean("General.MPP", false);
         iInitialAssignmentWeight = (!iMPP ? 0.0 : properties.getPropertyDouble("Lecture.InitialAssignmentWeight", 20.0));
-
-        iEmptySingleSlotWeight = properties.getPropertyDouble("Lecture.UselessSlotWeight", properties
-                .getPropertyDouble("Comparator.UselessSlotWeight", 0.0));
-        iTooBigRoomWeight = properties.getPropertyDouble("Lecture.TooBigRoomWeight", properties.getPropertyDouble(
-                "Comparator.TooBigRoomWeight", 0.0));
-        iTimePreferencesWeight = properties.getPropertyDouble("Lecture.TimePreferenceWeight", properties
-                .getPropertyDouble("Comparator.TimePreferenceWeight", 1.0));
-        iStudentConflictWeight = properties.getPropertyDouble("Lecture.StudentConflictWeight", properties
-                .getPropertyDouble("Comparator.StudentConflictWeight", 0.2));
-        iCommitedStudentConflictWeight = properties.getPropertyDouble("Lecture.CommitedStudentConflictWeight",
-                properties.getPropertyDouble("Comparator.CommitedStudentConflictWeight", 1.0));
-        iRoomPreferencesWeight = properties.getPropertyDouble("Lecture.RoomPreferenceWeight", properties
-                .getPropertyDouble("Comparator.RoomPreferenceWeight", 0.1));
-        iConstrPreferencesWeight = properties.getPropertyDouble("Lecture.ContrPreferenceWeight", properties
-                .getPropertyDouble("Comparator.ContrPreferenceWeight", 1.0));
-
-        iSwitchStudents = properties.getPropertyBoolean("General.SwitchStudents", true);
-        iHardStudentConflictWeight = (!iSwitchStudents ? 0.0 : properties.getPropertyDouble(
-                "Lecture.HardStudentConflictWeight", properties.getPropertyDouble(
-                        "Comparator.HardStudentConflictWeight", 1.0)));
-        iDistStudentConflictWeight = properties.getPropertyDouble("Lecture.DistStudentConflictWeight", properties
-                .getPropertyDouble("Comparator.DistStudentConflictWeight", iStudentConflictWeight));
-        iDistanceInstructorPreferenceWeight = properties.getPropertyDouble(
-                "Lecture.DistanceInstructorPreferenceWeight", properties.getPropertyDouble(
-                        "Comparator.DistanceInstructorPreferenceWeight", 1.0));
-        iDeptSpreadPenaltyWeight = properties.getPropertyDouble("Lecture.DeptSpreadPenaltyWeight", properties
-                .getPropertyDouble("Comparator.DeptSpreadPenaltyWeight", 1.0));
-        iSpreadPenaltyWeight = properties.getPropertyDouble("Lecture.SpreadPenaltyWeight", properties
-                .getPropertyDouble("Comparator.DeptSpreadPenaltyWeight", 1.0));
 
         iSubSetSelection = properties.getPropertyBoolean("Lecture.SelectionSubSet", true);
         iSelectionSubSetMinSize = properties.getPropertyInt("Lecture.SelectionSubSetMinSize", 10);
@@ -303,9 +256,8 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
             if (iRW && ToolBox.random() <= iRandomWalkProb)
                 return ToolBox.random(variables);
 
-            List<Lecture> selectionVariables = null;
-            int worstTimePreference = 0;
-            int worstRoomConstrPreference = 0;
+            List<Lecture> selectionVariables = new ArrayList<Lecture>();
+            double worstValue = 0.0; 
 
             for (Iterator<Lecture> i1 = (iSubSetSelection ? ToolBox.subSet(variables, iSelectionSubSetPart,
                     iSelectionSubSetMinSize) : variables).iterator(); i1.hasNext();) {
@@ -314,69 +266,13 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
                 if (iTabu != null && iTabu.contains(selectedVariable))
                     continue;
 
-                Placement value = selectedVariable.getAssignment();
-
-                int sumStudentConflicts = 0;
-                int constrPreference = 0;
-                int emptySingleHalfHours = 0;
-                int sumHardStudentConflicts = 0;
-                int sumDistStudentConflicts = 0;
-                int distanceInstructorPreferences = 0;
-                int tooBig = (value).getTooBigRoomPreference();
-                int sumCommitedStudentConflicts = 0;
-                sumCommitedStudentConflicts += (iCommitedStudentConflictWeight != 0.0 ? selectedVariable.getCommitedConflicts(value) : 0.0);
-
-                for (Constraint<Lecture, Placement> constraint : selectedVariable.constraints()) {
-                    if (iDistanceInstructorPreferenceWeight != 0.0 && constraint instanceof InstructorConstraint) {
-                        distanceInstructorPreferences += ((InstructorConstraint) constraint).getPreference(value);
-                    }
-                    if ((iHardStudentConflictWeight != 0.0 || iDistStudentConflictWeight != 0.0 || iStudentConflictWeight != 0.0) && constraint instanceof JenrlConstraint) {
-                        JenrlConstraint jenrl = (JenrlConstraint) constraint;
-                        long conf = jenrl.jenrl(selectedVariable, value);
-                        if (jenrl.areStudentConflictsHard())
-                            sumHardStudentConflicts += conf;
-                        if (jenrl.areStudentConflictsDistance())
-                            sumDistStudentConflicts += conf;
-                        else
-                            sumStudentConflicts += conf;
-                    } else if (iConstrPreferencesWeight != 0.0 && constraint instanceof GroupConstraint) {
-                        GroupConstraint gc = (GroupConstraint) constraint;
-                        constrPreference += gc.getCurrentPreference();
-                    }
-                }
-
-                if (iEmptySingleSlotWeight != 0.0) {
-                    emptySingleHalfHours = (value).nrUselessHalfHours();
-                }
-
-                int roomPreference = (value).sumRoomPreference();
-                double deptSpreadPenalty = (iDeptSpreadPenaltyWeight == 0.0
-                        || (selectedVariable).getDeptSpreadConstraint() == null ? 0 : (selectedVariable)
-                        .getDeptSpreadConstraint().getPenalty());
-                double spreadPenalty = (iSpreadPenaltyWeight == 0.0 ? 0.0 : (selectedVariable).getSpreadPenalty());
-                int timePreference = (int) (100.0 * ((iStudentConflictWeight * sumStudentConflicts)
-                        + (iHardStudentConflictWeight * sumHardStudentConflicts)
-                        + (iTimePreferencesWeight * (value).getTimeLocation().getNormalizedPreference())
-                        + (iEmptySingleSlotWeight * emptySingleHalfHours) + (iRoomPreferencesWeight * roomPreference)
-                        + (iTooBigRoomWeight * tooBig) + (iConstrPreferencesWeight * constrPreference)
-                        + (iDistanceInstructorPreferenceWeight * distanceInstructorPreferences)
-                        + (iDeptSpreadPenaltyWeight * deptSpreadPenalty)
-                        + (iSpreadPenaltyWeight * spreadPenalty)
-                        + (iCommitedStudentConflictWeight * sumCommitedStudentConflicts)
-                        + (iDistStudentConflictWeight * sumDistStudentConflicts)));
-
-                if (selectionVariables == null
-                        || timePreference > worstTimePreference
-                        || (timePreference == worstTimePreference && roomPreference + constrPreference > worstRoomConstrPreference)) {
-                    if (selectionVariables == null)
-                        selectionVariables = new ArrayList<Lecture>();
-                    else
-                        selectionVariables.clear();
+                double value = selectedVariable.getAssignment().toDouble();
+                
+                if (selectionVariables.isEmpty() || value > worstValue) {
+                    selectionVariables.clear();
                     selectionVariables.add(selectedVariable);
-                    worstTimePreference = timePreference;
-                    worstRoomConstrPreference = roomPreference + constrPreference;
-                } else if (timePreference == worstTimePreference
-                        && roomPreference + constrPreference == worstRoomConstrPreference) {
+                    worstValue = value;
+                } else if (worstValue == value) {
                     selectionVariables.add(selectedVariable);
                 }
             }

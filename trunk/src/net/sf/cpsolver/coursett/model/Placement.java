@@ -8,6 +8,7 @@ import net.sf.cpsolver.coursett.constraint.GroupConstraint;
 import net.sf.cpsolver.coursett.constraint.InstructorConstraint;
 import net.sf.cpsolver.coursett.constraint.SpreadConstraint;
 import net.sf.cpsolver.coursett.preference.PreferenceCombination;
+import net.sf.cpsolver.ifs.criteria.Criterion;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.util.DistanceMetric;
 import net.sf.cpsolver.ifs.util.ToolBox;
@@ -43,9 +44,7 @@ public class Placement extends Value<Lecture, Placement> {
     private List<RoomLocation> iRoomLocations = null;
     private Long iAssignmentId = null;
 
-    private Integer iCacheTooBigRoomPreference = null;
-
-    private int iHashCode = 0;
+        private int iHashCode = 0;
 
     /**
      * Constructor
@@ -334,52 +333,10 @@ public class Placement extends Value<Lecture, Placement> {
         }
     }
 
-    public int getTooBigRoomPreference() {
-        if (iCacheTooBigRoomPreference != null)
-            return iCacheTooBigRoomPreference.intValue();
-        if (isMultiRoom()) {
-            PreferenceCombination pref = PreferenceCombination.getDefault();
-            for (RoomLocation r : getRoomLocations()) {
-                if (r.getRoomSize() > (variable()).getStronglyDiscouragedRoomSize())
-                    pref.addPreferenceInt(Constants.sPreferenceLevelStronglyDiscouraged);
-                else if (r.getRoomSize() > (variable()).getDiscouragedRoomSize())
-                    pref.addPreferenceInt(Constants.sPreferenceLevelDiscouraged);
-            }
-            iCacheTooBigRoomPreference = new Integer(pref.getPreferenceInt());
-            return iCacheTooBigRoomPreference.intValue();
-        } else {
-            if (getRoomLocation().getRoomSize() > (variable()).getStronglyDiscouragedRoomSize())
-                iCacheTooBigRoomPreference = new Integer(Constants.sPreferenceLevelStronglyDiscouraged);
-            else if (getRoomLocation().getRoomSize() > (variable()).getDiscouragedRoomSize())
-                iCacheTooBigRoomPreference = new Integer(Constants.sPreferenceLevelDiscouraged);
-            else
-                iCacheTooBigRoomPreference = new Integer(Constants.sPreferenceLevelNeutral);
-            return iCacheTooBigRoomPreference.intValue();
-        }
-    }
-
-    public int nrUselessHalfHours() {
-        if (isMultiRoom()) {
-            int ret = 0;
-            for (RoomLocation r : getRoomLocations()) {
-                if (r.getRoomConstraint() == null)
-                    continue;
-                ret += r.getRoomConstraint().countUselessSlots(this);
-            }
-            return ret;
-        } else {
-            return (getRoomLocation().getRoomConstraint() == null ? 0 : getRoomLocation().getRoomConstraint()
-                    .countUselessSlots(this));
-        }
-    }
-
     public boolean isHard() {
-        if (Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(getTimeLocation()
-                .getPreference())))
+        if (Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(getTimeLocation().getPreference())))
             return true;
-        if (getRoomLocation() != null
-                && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(getRoomLocation()
-                        .getPreference())))
+        if (getRoomLocation() != null && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(getRoomLocation().getPreference())))
             return true;
         Lecture lecture = variable();
         for (GroupConstraint gc : lecture.hardGroupSoftConstraints()) {
@@ -600,8 +557,10 @@ public class Placement extends Value<Lecture, Placement> {
 
     @Override
     public double toDouble() {
-        TimetableModel m = (TimetableModel) variable().getModel();
-        return m.getTimetableComparator().value(this, m.getPerturbationsCounter());
+        double ret = 0.0;
+        for (Criterion<Lecture, Placement> criterion: variable().getModel().getCriteria())
+            ret += criterion.getWeightedValue(this, null);
+        return ret;
     }
 
     private transient Object iAssignment = null;
