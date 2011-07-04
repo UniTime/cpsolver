@@ -8,6 +8,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -140,14 +141,6 @@ public class TimetableXMLLoader extends TimetableLoader {
     @Override
     public void load() throws Exception {
         load(null);
-    }
-
-    private static BitSet createBitSet(String bitString) {
-        BitSet ret = new BitSet(bitString.length());
-        for (int i = 0; i < bitString.length(); i++)
-            if (bitString.charAt(i) == '1')
-                ret.set(i);
-        return ret;
     }
 
     public void load(Solution<Lecture, Placement> currentSolution) throws Exception {
@@ -339,22 +332,25 @@ public class TimetableXMLLoader extends TimetableLoader {
                 }
             }
 
-            Long datePatternId = null;
-            String datePatternName = null;
-            BitSet weekCode = null;
+            DatePattern defaultDatePattern = new DatePattern();
             if (classEl.attributeValue("dates") == null) {
                 int startDay = Integer.parseInt(classEl.attributeValue("startDay", "0"));
                 int endDay = Integer.parseInt(classEl.attributeValue("endDay", "1"));
-                weekCode = new BitSet(366);
-                for (int d = startDay; d <= endDay; d++)
-                    weekCode.set(d);
-                datePatternName = sDF.format(getDate(getModel().getYear(), startDay)) + "-"
-                        + sDF.format(getDate(getModel().getYear(), endDay));
+                defaultDatePattern.setPattern(startDay, endDay);
+                defaultDatePattern.setName(sDF.format(getDate(getModel().getYear(), startDay)) + "-" + sDF.format(getDate(getModel().getYear(), endDay)));
             } else {
-                datePatternId = (classEl.attributeValue("datePattern") == null ? null : Long.valueOf(classEl
-                        .attributeValue("datePattern")));
-                datePatternName = classEl.attributeValue("datePatternName");
-                weekCode = createBitSet(classEl.attributeValue("dates"));
+                defaultDatePattern.setId(classEl.attributeValue("datePattern") == null ? null : Long.valueOf(classEl.attributeValue("datePattern")));
+                defaultDatePattern.setName("datePatternName");
+                defaultDatePattern.setPattern(classEl.attributeValue("dates"));
+            }
+            Hashtable<Long, DatePattern> datePatterns = new Hashtable<Long, TimetableXMLLoader.DatePattern>();
+            for (Iterator<?> i2 = classEl.elementIterator("date"); i2.hasNext();) {
+                Element dateEl = (Element) i2.next();
+                Long id = Long.valueOf(dateEl.attributeValue("id"));
+                datePatterns.put(id, new DatePattern(
+                        id,
+                        dateEl.attributeValue("name"),
+                        dateEl.attributeValue("pattern")));
             }
             classElements.put(classEl.attributeValue("id"), classEl);
             List<InstructorConstraint> ics = new ArrayList<InstructorConstraint>();
@@ -425,16 +421,20 @@ public class TimetableXMLLoader extends TimetableLoader {
             TimeLocation assignedTimeLocation = null;
             TimeLocation bestTimeLocation = null;
             TimeLocation prohibitedTime = perts.get(Long.valueOf(classEl.attributeValue("id")));
+            
             for (Iterator<?> i2 = classEl.elementIterator("time"); i2.hasNext();) {
                 Element timeLocationEl = (Element) i2.next();
-                TimeLocation tl = new TimeLocation(Integer.parseInt(timeLocationEl.attributeValue("days"), 2), Integer
-                        .parseInt(timeLocationEl.attributeValue("start")), Integer.parseInt(timeLocationEl
-                        .attributeValue("length")), (int) Double.parseDouble(timeLocationEl.attributeValue("pref")),
-                        Double.parseDouble(timeLocationEl
-                                .attributeValue("npref", timeLocationEl.attributeValue("pref"))), datePatternId,
-                        datePatternName, weekCode, Integer
-                                .parseInt(timeLocationEl.attributeValue("breakTime") == null ? "-1" : timeLocationEl
-                                        .attributeValue("breakTime")));
+                DatePattern dp = defaultDatePattern;
+                if (timeLocationEl.attributeValue("date") != null)
+                    dp = datePatterns.get(Long.valueOf(timeLocationEl.attributeValue("date")));
+                TimeLocation tl = new TimeLocation(
+                        Integer.parseInt(timeLocationEl.attributeValue("days"), 2),
+                        Integer.parseInt(timeLocationEl.attributeValue("start")),
+                        Integer.parseInt(timeLocationEl.attributeValue("length")),
+                        (int) Double.parseDouble(timeLocationEl.attributeValue("pref")),
+                        Double.parseDouble(timeLocationEl.attributeValue("npref", timeLocationEl.attributeValue("pref"))),
+                        dp.getId(), dp.getName(), dp.getPattern(),
+                        Integer.parseInt(timeLocationEl.attributeValue("breakTime") == null ? "-1" : timeLocationEl.attributeValue("breakTime")));
                 if (tl.getBreakTime() < 0) tl.setBreakTime(tl.getLength() == 18 ? 15 : 10);
                 if (timeLocationEl.attributeValue("pattern") != null)
                     tl.setTimePatternId(Long.valueOf(timeLocationEl.attributeValue("pattern")));
@@ -863,5 +863,35 @@ public class TimetableXMLLoader extends TimetableLoader {
         c.set(year, 1, 1, 0, 0, 0);
         c.set(Calendar.DAY_OF_YEAR, dayOfYear);
         return c.getTime();
+    }
+    
+    public static class DatePattern {
+        Long iId;
+        String iName;
+        BitSet iPattern;
+        public DatePattern() {}
+        public DatePattern(Long id, String name, BitSet pattern) {
+            setId(id); setName(name); setPattern(pattern);
+        }
+        public DatePattern(Long id, String name, String pattern) {
+            setId(id); setName(name); setPattern(pattern);
+        }
+        public Long getId() { return iId; }
+        public void setId(Long id) { iId = id; }
+        public String getName() { return iName; }
+        public void setName(String name) { iName = name; }
+        public BitSet getPattern() { return iPattern; }
+        public void setPattern(BitSet pattern) { iPattern = pattern; }
+        public void setPattern(String pattern) {
+            iPattern = new BitSet(pattern.length());
+            for (int i = 0; i < pattern.length(); i++)
+                if (pattern.charAt(i) == '1')
+                    iPattern.set(i);
+        }
+        public void setPattern(int startDay, int endDay) {
+            iPattern = new BitSet(366);
+            for (int d = startDay; d <= endDay; d++)
+                iPattern.set(d);
+        }
     }
 }
