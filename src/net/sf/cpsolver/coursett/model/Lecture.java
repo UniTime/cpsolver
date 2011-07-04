@@ -421,6 +421,10 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         }
         return values;
     }
+    
+    public void clearValueCache() {
+        super.setValues(null);
+    }
 
     /** All values */
     @Override
