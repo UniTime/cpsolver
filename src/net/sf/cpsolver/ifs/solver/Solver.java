@@ -390,7 +390,8 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
             if (extensionClassNames != null) {
                 StringTokenizer extensionClassNameTokenizer = new StringTokenizer(extensionClassNames, ";");
                 while (extensionClassNameTokenizer.hasMoreTokens()) {
-                    String extensionClassName = extensionClassNameTokenizer.nextToken();
+                    String extensionClassName = extensionClassNameTokenizer.nextToken().trim();
+                    if (extensionClassName.isEmpty()) continue;
                     sLogger.info("Using " + extensionClassName);
                     Class<?> extensionClass = Class.forName(extensionClassName);
                     Constructor<?> extensionConstructor = extensionClass.getConstructor(new Class[] { Solver.class,
