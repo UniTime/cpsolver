@@ -355,6 +355,7 @@ public class TimetableXMLSaver extends TimetableSaver {
                 }
             }
             boolean first = true;
+            Set<Long> dp = new HashSet<Long>();
             for (TimeLocation tl : lecture.timeLocations()) {
                 Element timeLocationEl = classEl.addElement("time");
                 timeLocationEl.addAttribute("days", sDF[7].format(Long.parseLong(Integer
@@ -370,13 +371,21 @@ public class TimetableXMLSaver extends TimetableSaver {
                 }
                 if (!iConvertIds && tl.getTimePatternId() != null)
                     timeLocationEl.addAttribute("pattern", getId("pat", tl.getTimePatternId()));
-                if (first) {
-                    if (!iConvertIds && tl.getDatePatternId() != null)
-                        classEl.addAttribute("datePattern", getId("dpat", String.valueOf(tl.getDatePatternId())));
+                if (tl.getDatePatternId() != null && dp.add(tl.getDatePatternId())) {
+                    Element dateEl = classEl.addElement("date");
+                    dateEl.addAttribute("id", getId("dpat", String.valueOf(tl.getDatePatternId())));
+                    if (iShowNames)
+                        dateEl.addAttribute("name", tl.getDatePatternName());
+                    dateEl.addAttribute("pattern", bitset2string(tl.getWeekCode()));
+                }
+                if (tl.getTimePatternId() == null && first) {
                     if (iShowNames)
                         classEl.addAttribute("datePatternName", tl.getDatePatternName());
                     classEl.addAttribute("dates", bitset2string(tl.getWeekCode()));
                     first = false;
+                }
+                if (tl.getDatePatternId() != null) {
+                    timeLocationEl.addAttribute("date", getId("dpat", String.valueOf(tl.getDatePatternId())));
                 }
                 if ((lecture.isCommitted() || iSaveCurrent) && placement != null
                         && placement.getTimeLocation().equals(tl))
