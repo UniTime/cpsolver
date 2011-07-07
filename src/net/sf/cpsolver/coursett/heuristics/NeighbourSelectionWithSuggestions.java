@@ -54,6 +54,7 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
     private SuggestionNeighbour iSuggestionNeighbour = null;
     private double iValue = 0;
     private int iNrAssigned = 0;
+    private boolean iTimeoutReached = false;
 
     public NeighbourSelectionWithSuggestions(DataProperties properties) throws Exception {
         super(properties);
@@ -105,6 +106,7 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
         iSuggestionNeighbour = null;
         iValue = solution.getModel().getTotalValue();
         iNrAssigned = solution.getModel().assignedVariables().size();
+        iTimeoutReached = false;
 
         synchronized (solution) {
             // System.out.println("BEFORE BT ("+lecture.getName()+"): nrAssigned="+iSolution.getModel().assignedVariables().size()+",  value="+iCmp.currentValue(iSolution));
@@ -144,15 +146,18 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
         }
         if (depth <= 0)
             return;
-        if (iSuggestionTimeout > 0 && JProf.currentTimeMillis() - startTime > iSuggestionTimeout) {
+        if (iTimeoutReached || iSuggestionTimeout > 0 && JProf.currentTimeMillis() - startTime > iSuggestionTimeout) {
+            iTimeoutReached = true;
             return;
         }
         
         for (Lecture lecture: initialLectures != null && !initialLectures.isEmpty() ? initialLectures : new ArrayList<Lecture>(conflictsToResolve.keySet())) {
+            if (iTimeoutReached) break;
             if (resolvedLectures.contains(lecture))
                 continue;
             resolvedLectures.add(lecture);
             placements: for (Placement placement : lecture.values()) {
+                if (iTimeoutReached) break;
                 if (placement.equals(lecture.getAssignment()))
                     continue;
                 if (placement.isHard())
