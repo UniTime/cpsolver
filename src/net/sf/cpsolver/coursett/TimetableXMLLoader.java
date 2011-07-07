@@ -744,10 +744,12 @@ public class TimetableXMLLoader extends TimetableLoader {
             }
         }
 
-        iProgress.setPhase("Purging invalid placements ...", getModel().variables().size());
-        for (Lecture lecture : getModel().variables()) {
-            lecture.purgeInvalidValues(iInteractiveMode);
-            iProgress.incProgress();
+        if (getModel().getProperties().getPropertyBoolean("General.PurgeInvalidPlacements", true)) {
+            iProgress.setPhase("Purging invalid placements ...", getModel().variables().size());
+            for (Lecture lecture : getModel().variables()) {
+                lecture.purgeInvalidValues(iInteractiveMode);
+                iProgress.incProgress();
+            }            
         }
         
         if (getModel().hasConstantVariables() && getModel().constantVariables().size() > 0) {
