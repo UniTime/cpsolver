@@ -519,6 +519,19 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
          * At Most 8 Hours A Day: Classes are to be placed in a way that there is no more than eight hours in any day.
          */
         MAX_HRS_DAY_8("MAX_HRS_DAY(8)", "At Most 8 Hours A Day", 96, null, Flag.MAX_HRS_DAY),
+        /**
+         * Given classes must be taught during the same weeks (i.e., must have the same date pattern).<br>
+         * When prohibited or (strongly) discouraged: any two classes must have non overlapping date patterns.
+         */
+        SAME_WEEKS("SAME_WEEKS", "Same Weeks", new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return plc1.getTimeLocation().getWeekCode().equals(plc2.getTimeLocation().getWeekCode());
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return !plc1.getTimeLocation().shareWeeks(plc2.getTimeLocation());
+            }}),
         ;
         
         String iReference, iName;
