@@ -971,9 +971,12 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
     }
 
     public boolean isSingleSection() {
+        return (iSameSubpartLectures == null || iSameSubpartLectures.size() <= 1);
+        /*
         if (iParent == null)
             return (iSameSubpartLectures == null || iSameSubpartLectures.size() <= 1);
         return (iParent.getChildren(getSchedulingSubpartId()).size() <= 1);
+        */
     }
 
     public java.util.List<Lecture> sameStudentsLectures() {
