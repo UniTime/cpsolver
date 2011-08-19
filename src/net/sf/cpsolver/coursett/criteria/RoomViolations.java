@@ -7,11 +7,9 @@ import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 
-import net.sf.cpsolver.ifs.util.DataProperties;
-
 /**
- * Room preferences. This criterion counts how well the room preferences are met. This is
- * a sum of {@link Placement#getRoomPreference()} of the assigned classes.
+ * Room violations. This criterion counts how many times a prohibited room is assigned
+ * to a class in interactive timetabling.
  * <br>
  * 
  * @version CourseTT 1.2 (University Course Timetabling)<br>
@@ -33,59 +31,31 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class RoomPreferences extends TimetablingCriterion {
+public class RoomViolations extends TimetablingCriterion {
 
-    @Override
-    public double getWeightDefault(DataProperties config) {
-        return config.getPropertyDouble("Comparator.RoomPreferenceWeight", 1.0);
-    }
-
-    @Override
-    public String getPlacementSelectionWeightName() {
-        return "Placement.RoomPreferenceWeight";
-    }
-    
-    private int preference(Placement value) {
+    protected boolean violation(Placement value) {
         int pref = value.getRoomPreference();
-        if (pref < Constants.sPreferenceLevelRequired / 2)
-            return value.variable().getMinMaxRoomPreference()[0];
-        else if (pref > Constants.sPreferenceLevelProhibited / 2)
-            return value.variable().getMinMaxRoomPreference()[1];
-        else
-            return pref;
+        return pref < Constants.sPreferenceLevelRequired / 2 || pref > Constants.sPreferenceLevelProhibited / 2;
     }
     
     @Override
     public double getValue(Placement value, Set<Placement> conflicts) {
         if (value.variable().isCommitted()) return 0.0;
-        double ret = preference(value);
+        double ret = (violation(value) ? 1.0 : 0.0);
         if (conflicts != null)
             for (Placement conflict: conflicts)
-                ret -= preference(conflict);
+                ret -= (violation(conflict) ? 1.0 : 0.0);
         return ret;
     }
     
     @Override
-    protected void computeBounds() {
-        iBounds = new double[] { 0.0, 0.0 };
-        for (Lecture lect: getModel().variables()) {
-            if (lect.isCommitted()) continue;
-            int[] p = lect.getMinMaxRoomPreference();
-            iBounds[0] += p[0];
-            iBounds[1] += p[1];
-        }
+    public double[] getBounds() {
+        return new double[] { getModel().variables().size(), 0.0 };
     }
-    
+        
     @Override
     public double[] getBounds(Collection<Lecture> variables) {
-        double[] bounds = new double[] { 0.0, 0.0 };
-        for (Lecture lect: variables) {
-            if (lect.isCommitted()) continue;
-            int[] p = lect.getMinMaxRoomPreference();
-            bounds[0] += p[0];
-            bounds[1] += p[1];
-        }
-        return bounds;
+        return new double[] { variables.size(), 0.0 };
     }
 
 }
