@@ -3,6 +3,7 @@ package net.sf.cpsolver.coursett.criteria;
 import java.util.Collection;
 import java.util.Set;
 
+import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimeLocation;
@@ -43,14 +44,24 @@ public class TimePreferences extends TimetablingCriterion {
     public String getPlacementSelectionWeightName() {
         return "Placement.TimePreferenceWeight";
     }
+    
+    private double preference(Placement value) {
+        int pref = value.getTimeLocation().getPreference();
+        if (pref < Constants.sPreferenceLevelRequired / 2)
+            return value.variable().getMinMaxTimePreference()[0];
+        else if (pref > Constants.sPreferenceLevelProhibited / 2)
+            return value.variable().getMinMaxTimePreference()[1];
+        else
+            return value.getTimeLocation().getNormalizedPreference();
+    }
 
     @Override
     public double getValue(Placement value, Set<Placement> conflicts) {
         if (value.variable().isCommitted()) return 0.0;
-        double ret = value.getTimeLocation().getNormalizedPreference();
+        double ret = preference(value);
         if (conflicts != null)
             for (Placement conflict: conflicts)
-                ret -= conflict.getTimeLocation().getNormalizedPreference();
+                ret -= preference(conflict);
         return ret;
     }
         

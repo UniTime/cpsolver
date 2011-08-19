@@ -23,6 +23,7 @@ import net.sf.cpsolver.coursett.criteria.DepartmentBalancingPenalty;
 import net.sf.cpsolver.coursett.criteria.DistributionPreferences;
 import net.sf.cpsolver.coursett.criteria.Perturbations;
 import net.sf.cpsolver.coursett.criteria.RoomPreferences;
+import net.sf.cpsolver.coursett.criteria.RoomViolations;
 import net.sf.cpsolver.coursett.criteria.SameSubpartBalancingPenalty;
 import net.sf.cpsolver.coursett.criteria.StudentCommittedConflict;
 import net.sf.cpsolver.coursett.criteria.StudentConflict;
@@ -30,6 +31,7 @@ import net.sf.cpsolver.coursett.criteria.StudentDistanceConflict;
 import net.sf.cpsolver.coursett.criteria.StudentHardConflict;
 import net.sf.cpsolver.coursett.criteria.StudentOverlapConflict;
 import net.sf.cpsolver.coursett.criteria.TimePreferences;
+import net.sf.cpsolver.coursett.criteria.TimeViolations;
 import net.sf.cpsolver.coursett.criteria.TooBigRooms;
 import net.sf.cpsolver.coursett.criteria.UselessHalfHours;
 import net.sf.cpsolver.coursett.criteria.placement.AssignmentCount;
@@ -115,6 +117,10 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
                 HardConflicts.class.getName() + ";" +
                 PotentialHardConflicts.class.getName() + ";" +
                 WeightedHardConflicts.class.getName());
+        // Interactive mode -- count time / room violations
+        if (properties.getPropertyBoolean("General.InteractiveMode", false))
+            criteria += ";" + TimeViolations.class.getName() + ";" + RoomViolations.class.getName();
+        // Additional (custom) criteria
         criteria += ";" + properties.getProperty("General.AdditionalCriteria", "");
         for (String criterion: criteria.split("\\;")) {
             if (criterion == null || criterion.isEmpty()) continue;
@@ -178,10 +184,14 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
         ret.put("Memory usage", getMem());
         
         Criterion<Lecture, Placement> rp = getCriterion(RoomPreferences.class);
-        ret.put("Room preferences", getPerc(rp.getValue(), rp.getBounds()[0], rp.getBounds()[1]) + "% (" + Math.round(rp.getValue()) + ")");
+        Criterion<Lecture, Placement> rv = getCriterion(RoomViolations.class);
+        ret.put("Room preferences", getPerc(rp.getValue(), rp.getBounds()[0], rp.getBounds()[1]) + "% (" + Math.round(rp.getValue()) + ")"
+                + (rv != null && rv.getValue() >= 0.5 ? " [hard:" + Math.round(rv.getValue()) + "]" : ""));
         
         Criterion<Lecture, Placement> tp = getCriterion(TimePreferences.class);
-        ret.put("Time preferences", getPerc(tp.getValue(), tp.getBounds()[0], tp.getBounds()[1]) + "% (" + sDoubleFormat.format(tp.getValue()) + ")"); 
+        Criterion<Lecture, Placement> tv = getCriterion(TimeViolations.class);
+        ret.put("Time preferences", getPerc(tp.getValue(), tp.getBounds()[0], tp.getBounds()[1]) + "% (" + sDoubleFormat.format(tp.getValue()) + ")"
+                + (tv != null && tv.getValue() >= 0.5 ? " [hard:" + Math.round(tv.getValue()) + "]" : ""));
 
         Criterion<Lecture, Placement> dp = getCriterion(DistributionPreferences.class);
         ret.put("Distribution preferences", getPerc(dp.getValue(), dp.getBounds()[0], dp.getBounds()[1]) + "% (" + sDoubleFormat.format(dp.getValue()) + ")");
