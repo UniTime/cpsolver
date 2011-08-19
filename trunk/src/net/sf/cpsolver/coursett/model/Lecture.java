@@ -1244,16 +1244,15 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
             if (getNrRooms() <= 0 || roomLocations().isEmpty()) {
                 iMinMaxRoomPreference = new int[] { 0, 0 };
             } else {
-                int minRoomPref = Integer.MAX_VALUE;
-                int maxRoomPref = Integer.MIN_VALUE;
+                Integer minRoomPref = null, maxRoomPref = null;
                 for (RoomLocation r : roomLocations()) {
                     int pref = r.getPreference();
-                    if (pref > Constants.sPreferenceLevelRequired / 2)
-                        minRoomPref = Math.min(minRoomPref, pref);
-                    if (pref < Constants.sPreferenceLevelProhibited / 2)
-                        maxRoomPref = Math.max(maxRoomPref, pref);
+                    if (pref >= Constants.sPreferenceLevelRequired / 2 && pref <= Constants.sPreferenceLevelProhibited / 2) {
+                        minRoomPref = (minRoomPref == null ? pref : Math.min(minRoomPref, pref));
+                        maxRoomPref = (maxRoomPref == null ? pref : Math.max(maxRoomPref, pref));
+                    }
                 }
-                iMinMaxRoomPreference = new int[] { minRoomPref, maxRoomPref };
+                iMinMaxRoomPreference = new int[] { minRoomPref == null ? 0 : minRoomPref, maxRoomPref == null ? 0 : maxRoomPref };
             }
         }
         return iMinMaxRoomPreference;
@@ -1263,16 +1262,16 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
 
     public double[] getMinMaxTimePreference() {
         if (iMinMaxTimePreference == null) {
-            double minTimePref = Double.MAX_VALUE;
-            double maxTimePref = -Double.MAX_VALUE;
+            Double minTimePref = null, maxTimePref = null;
             for (TimeLocation t : timeLocations()) {
-                double pref = t.getNormalizedPreference();
-                if (pref > Constants.sPreferenceLevelRequired / 2)
-                    minTimePref = Math.min(minTimePref, pref);
-                if (pref < Constants.sPreferenceLevelProhibited / 2)
-                    maxTimePref = Math.max(maxTimePref, pref);
+                double npref = t.getNormalizedPreference();
+                int pref = t.getPreference();
+                if (pref >= Constants.sPreferenceLevelRequired / 2 && pref <= Constants.sPreferenceLevelProhibited / 2) {
+                    minTimePref = (minTimePref == null ? npref : Math.min(minTimePref, npref));
+                    maxTimePref = (maxTimePref == null ? npref : Math.max(maxTimePref, npref));
+                }
             }
-            iMinMaxTimePreference = new double[] { minTimePref, maxTimePref };
+            iMinMaxTimePreference = new double[] { minTimePref == null ? 0.0 : minTimePref, maxTimePref == null ? 0.0 : maxTimePref };
         }
         return iMinMaxTimePreference;
     }
