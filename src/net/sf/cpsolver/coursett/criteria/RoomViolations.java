@@ -35,7 +35,7 @@ public class RoomViolations extends TimetablingCriterion {
 
     protected boolean violation(Placement value) {
         int pref = value.getRoomPreference();
-        return pref < Constants.sPreferenceLevelRequired / 2 || pref > Constants.sPreferenceLevelProhibited / 2;
+        return pref > Constants.sPreferenceLevelProhibited / 2;
     }
     
     @Override
