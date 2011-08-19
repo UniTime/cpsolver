@@ -33,7 +33,7 @@ public class TimeViolations extends RoomViolations {
     @Override
     protected boolean violation(Placement value) {
         int pref = value.getTimeLocation().getPreference();
-        return pref < Constants.sPreferenceLevelRequired / 2 || pref > Constants.sPreferenceLevelProhibited / 2;
+        return pref > Constants.sPreferenceLevelProhibited / 2;
     }
 
 }
