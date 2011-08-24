@@ -380,15 +380,16 @@ public class FinalSectioning implements Runnable {
             while (l1.getParent() != null && l2.getParent() != null && !l1.getParent().equals(l2.getParent())) {
                 Lecture p1 = l1.getParent();
                 Lecture p2 = l2.getParent();
+                if (p1.getAssignment() == null || p2.getAssignment() == null) return null;
                 double w1 = firstStudent.getOfferingWeight(p1.getConfiguration());
-                double w2 = secondStudent.getOfferingWeight(p2.getConfiguration());
+                double w2 = (secondStudent == null ? 0.0 : secondStudent.getOfferingWeight(p2.getConfiguration()));
                 if (w1 != w2) {
                     if (p1.nrWeightedStudents() - w1 + w2 > sEps + p1.classLimit())
                         return null;
                     if (p2.nrWeightedStudents() - w2 + w1 > sEps + p2.classLimit())
                         return null;
                 }
-                if (secondStudent.canEnroll(p2) && firstStudent.canEnroll(p1)) {
+                if (firstStudent.canEnroll(p1) && (secondStudent == null || secondStudent.canEnroll(p2))) {
                     move.addChildMove(new Move(p1, firstStudent, p2, secondStudent));
                 } else {
                     return null;
