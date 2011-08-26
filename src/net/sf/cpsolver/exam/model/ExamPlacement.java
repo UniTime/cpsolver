@@ -303,7 +303,7 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
         Exam exam = variable();
         // if (!exam.isAllowDirectConflicts()) return 0;
         int penalty = 0;
-        for (ExamStudent s : exam.getStudents()) {
+        for (ExamInstructor s : exam.getInstructors()) {
             Set<Exam> exams = s.getExams(getPeriod());
             int nrExams = exams.size() + (exams.contains(exam) ? 0 : 1);
             if (nrExams > 1)
