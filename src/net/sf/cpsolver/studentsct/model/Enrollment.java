@@ -50,6 +50,7 @@ public class Enrollment extends Value<Request, Enrollment> {
     private int iPriority = 0;
     private Reservation iReservation = null;
     private Long iTimeStamp = null;
+    private String iApproval = null;
 
     /**
      * Constructor
@@ -413,5 +414,19 @@ public class Enrollment extends Value<Request, Enrollment> {
      */
     public void setTimeStamp(Long timeStamp) {
         iTimeStamp = timeStamp;
+    }
+
+    /**
+     * Approval of the enrollment (only used by the online student sectioning)
+     */
+    public String getApproval() {
+        return iApproval;
+    }
+
+    /**
+     * Approval of the enrollment (only used by the online student sectioning)
+     */
+    public void setApproval(String approval) {
+        iApproval = approval;
     }
 }
