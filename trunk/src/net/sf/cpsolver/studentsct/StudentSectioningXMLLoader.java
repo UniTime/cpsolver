@@ -30,6 +30,7 @@ import net.sf.cpsolver.studentsct.model.Student;
 import net.sf.cpsolver.studentsct.model.Subpart;
 import net.sf.cpsolver.studentsct.reservation.CourseReservation;
 import net.sf.cpsolver.studentsct.reservation.CurriculumReservation;
+import net.sf.cpsolver.studentsct.reservation.DummyReservation;
 import net.sf.cpsolver.studentsct.reservation.GroupReservation;
 import net.sf.cpsolver.studentsct.reservation.IndividualReservation;
 import net.sf.cpsolver.studentsct.reservation.Reservation;
@@ -404,6 +405,8 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                             if (course.getId() == courseId)
                                 r = new CourseReservation(Long.valueOf(reservationEl.attributeValue("id")), course);
                         }
+                    } else if ("dummy".equals(reservationEl.attributeValue("type"))) {
+                        r = new DummyReservation(offering);
                     }
                     if (r == null) {
                         sLogger.error("Unknown reservation type "+ reservationEl.attributeValue("type"));

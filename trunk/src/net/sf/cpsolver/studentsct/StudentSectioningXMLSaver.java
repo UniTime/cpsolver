@@ -36,6 +36,7 @@ import net.sf.cpsolver.studentsct.model.Student;
 import net.sf.cpsolver.studentsct.model.Subpart;
 import net.sf.cpsolver.studentsct.reservation.CourseReservation;
 import net.sf.cpsolver.studentsct.reservation.CurriculumReservation;
+import net.sf.cpsolver.studentsct.reservation.DummyReservation;
 import net.sf.cpsolver.studentsct.reservation.GroupReservation;
 import net.sf.cpsolver.studentsct.reservation.IndividualReservation;
 import net.sf.cpsolver.studentsct.reservation.Reservation;
@@ -351,6 +352,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                         reservationEl.addAttribute("type", "course");
                         CourseReservation cr = (CourseReservation)r;
                         reservationEl.addAttribute("course", getId("course",cr.getCourse().getId()));
+                    } else if (r instanceof DummyReservation) {
+                        reservationEl.addAttribute("type", "dummy");
                     }
                     for (Config config: r.getConfigs())
                         reservationEl.addElement("config").addAttribute("id", getId("config", config.getId()));
