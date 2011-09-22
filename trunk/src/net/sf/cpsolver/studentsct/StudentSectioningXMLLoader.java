@@ -590,7 +590,20 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                 }
             }
         }
-
+        
+        if (root.element("constraints") != null) {
+            for (Iterator<?> i = root.element("constraints").elementIterator("linked-sections"); i.hasNext();) {
+                Element linkedEl = (Element) i.next();
+                List<Section> sections = new ArrayList<Section>();
+                for (Iterator<?> j = linkedEl.elementIterator("section"); j.hasNext();) {
+                    Element sectionEl = (Element) j.next();
+                    Offering offering = offeringTable.get(Long.valueOf(sectionEl.attributeValue("offering")));
+                    sections.add(offering.getSection(Long.valueOf(sectionEl.attributeValue("id"))));
+                }
+                getModel().addLinkedSections(sections);
+            }
+        }
+        
         sLogger.debug("Model successfully loaded.");
     }
 

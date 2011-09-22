@@ -22,6 +22,7 @@ import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.Progress;
+import net.sf.cpsolver.studentsct.constraint.LinkedSections;
 import net.sf.cpsolver.studentsct.model.AcademicAreaCode;
 import net.sf.cpsolver.studentsct.model.Choice;
 import net.sf.cpsolver.studentsct.model.Config;
@@ -515,6 +516,17 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                     }
                 }
             }
+        }
+        
+        Element constrainstEl = root.addElement("constraints");
+        for (LinkedSections linkedSections: getModel().getLinkedSections()) {
+            Element linkEl = constrainstEl.addElement("linked-sections");
+            for (Offering offering: linkedSections.getOfferings())
+                for (Subpart subpart: linkedSections.getSubparts(offering))
+                    for (Section section: linkedSections.getSections(subpart))
+                        linkEl.addElement("section")
+                            .addAttribute("offering", getId("offering", offering.getId()))
+                            .addAttribute("id", getId("section", section.getId()));
         }
 
         if (iShowNames) {

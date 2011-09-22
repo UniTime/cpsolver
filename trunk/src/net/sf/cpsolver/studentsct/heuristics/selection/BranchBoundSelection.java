@@ -18,6 +18,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.JProf;
 import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
+import net.sf.cpsolver.studentsct.constraint.LinkedSections;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
 import net.sf.cpsolver.studentsct.extension.TimeOverlapsCounter;
 import net.sf.cpsolver.studentsct.heuristics.studentord.StudentChoiceRealFirstOrder;
@@ -426,15 +427,18 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         }
         
         /** True if the enrollment is conflicting */
-        public boolean inConflict(int idx, Enrollment enrollment) {
-            /*
-            for (Constraint<Request, Enrollment> constraint : enrollment.variable().hardConstraints())
-                if (!(constraint instanceof StudentConflict) && constraint.inConflict(enrollment))
-                    return true;
-            */
+        public boolean inConflict(final int idx, final Enrollment enrollment) {
             for (GlobalConstraint<Request, Enrollment> constraint : enrollment.variable().getModel().globalConstraints())
                 if (constraint.inConflict(enrollment))
                     return true;
+            for (LinkedSections linkedSections: iStudent.getLinkedSections()) {
+                if (linkedSections.inConflict(enrollment, new LinkedSections.Assignment() {
+                    @Override
+                    public Enrollment getEnrollment(Request request, int index) {
+                        return (index == idx ? enrollment : iAssignment[index]);
+                    }
+                }) != null) return true;
+            }
             for (int i = 0; i < iAssignment.length; i++)
                 if (iAssignment[i] != null && i != idx && iAssignment[i].isOverlapping(enrollment))
                     return true;
