@@ -23,12 +23,12 @@ import org.dom4j.Element;
  * <code>
  * Progress.getInstance().setStatus("Loading input data");<br>
  * Progress.getInstance().setPhase("Creating variables ...", nrVariables);<br>
- * for (int i=0;i<nrVariables;i++) {<br>
+ * for (int i=0;i&lt;nrVariables;i++) {<br>
  * &nbsp;&nbsp;&nbsp;&nbsp;//load variable here<br>
  * &nbsp;&nbsp;&nbsp;&nbsp;Progress.getInstance().incProgress();<br>
  * }<br>
  * Progress.getInstance().setPhase("Creating constraints ...", nrConstraints);<br>
- * for (int i=0;i<nrConstraints;i++) {<br>
+ * for (int i=0;i&lt;nrConstraints;i++) {<br>
  * &nbsp;&nbsp;&nbsp;&nbsp;//load constraint here<br>
  * &nbsp;&nbsp;&nbsp;&nbsp;Progress.getInstance().incProgress();<br>
  * }<br>
