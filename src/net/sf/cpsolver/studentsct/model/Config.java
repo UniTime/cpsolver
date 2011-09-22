@@ -232,7 +232,7 @@ public class Config {
             available -= Math.max(0.0, reserved);
         }
         
-        return Math.max(0.0, available);
+        return available;
     }
     
     /**
