@@ -39,7 +39,7 @@ public class JProf {
     private static boolean sInitialized = false;
     
     /** Enable / disable the thread CPU timing, if needed */
-    private static void init() {
+    private synchronized static void init() {
         if (sInitialized) return;
         sMode = Mode.valueOf(System.getProperty("jprof", sMode.name()));
         if (sMode != Mode.wall) {
