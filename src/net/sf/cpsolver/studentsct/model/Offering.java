@@ -243,7 +243,7 @@ public class Offering {
             reserved += Math.max(0.0, r.getReservedAvailableSpace(excludeRequest));
         }
         
-        return Math.max(0.0, available - reserved);
+        return available - reserved;
     }
 
     
