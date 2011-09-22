@@ -314,7 +314,8 @@ public class Section implements Assignment, Comparable<Section> {
 
     @Override
     public String toString() {
-        return getName() + (getTime() == null ? "" : " " + getTime().getLongName())
+        return getSubpart().getConfig().getOffering().getName() + " " + getSubpart().getName() + " " + getName()
+                + (getTime() == null ? "" : " " + getTime().getLongName())
                 + (getNrRooms() == 0 ? "" : " " + getPlacement().getRoomName(","))
                 + (getChoice().getInstructorNames() == null ? "" : " " + getChoice().getInstructorNames()) + " (L:"
                 + (getLimit() < 0 ? "unlimited" : "" + getLimit())
@@ -452,7 +453,7 @@ public class Section implements Assignment, Comparable<Section> {
             available -= Math.max(0.0, reserved);
         }
         
-        return Math.max(0.0, available);
+        return available;
     }
     
     /**
