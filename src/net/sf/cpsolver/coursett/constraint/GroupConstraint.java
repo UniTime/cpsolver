@@ -532,6 +532,13 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
             public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
                 return !plc1.getTimeLocation().shareWeeks(plc2.getTimeLocation());
             }}),
+        /**
+         * Classes (of different courses) are to be attended by the same students. For instance,
+         * if class A1 (of a course A) and class B1 (of a course B) are linked, a student requesting
+         * both courses must attend A1 if and only if he also attends B1. This is a student sectioning
+         * constraint that is interpreted as Same Students constraint during course timetabling.
+         */
+        LINKED_SECTIONS("LINKED_SECTIONS", "Linked Classes", SAME_STUDENTS.check()),
         ;
         
         String iReference, iName;

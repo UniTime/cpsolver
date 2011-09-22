@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.sf.cpsolver.coursett.model.TimeLocation;
+import net.sf.cpsolver.studentsct.constraint.LinkedSections;
 
 
 /**
@@ -42,6 +43,7 @@ public class Student {
     private List<AcademicAreaCode> iAcadAreaClassifs = new ArrayList<AcademicAreaCode>();
     private List<AcademicAreaCode> iMajors = new ArrayList<AcademicAreaCode>();
     private List<AcademicAreaCode> iMinors = new ArrayList<AcademicAreaCode>();
+    private List<LinkedSections> iLinkedSections = new ArrayList<LinkedSections>();
 
     /**
      * Constructor
@@ -267,4 +269,9 @@ public class Student {
      * Set student name
      */
     public void setName(String name) { iName = name; }
+    
+    /**
+     * Linked sections of this student
+     */
+    public List<LinkedSections> getLinkedSections() { return iLinkedSections; }
 }
