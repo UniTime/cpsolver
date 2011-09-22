@@ -215,7 +215,7 @@ public class CSVFile implements Serializable {
             int fromIdx = 0;
             while ((newIdx = line.indexOf(iSeparator, fromIdx)) >= 0) {
                 String field = line.substring(idx, newIdx);
-                if (iQuotationMark != null && field.startsWith(iQuotationMark) && !field.endsWith(iQuotationMark)) {
+                if (iQuotationMark != null && field.startsWith(iQuotationMark) && (!field.endsWith(iQuotationMark) || field.length() == 1)) {
                     fromIdx = newIdx + iSeparator.length();
                     continue;
                 }
