@@ -253,6 +253,9 @@ public class Offering {
     public void clearReservationCache() {
         for (Config c: getConfigs())
             c.clearReservationCache();
+        for (Course c: getCourses())
+            for (CourseRequest r: c.getRequests())
+                r.clearReservationCache();
         iTotalUnreservedSpace = null;
     }
 

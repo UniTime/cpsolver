@@ -4,8 +4,10 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -217,8 +219,8 @@ public class CourseRequest extends Request {
         if (idx == 0) { // run only once for each configuration
             boolean canOverLimit = false;
             if (availableOnly && (getModel() == null || ((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit())) {
-                for (Reservation r: config.getOffering().getReservations()) {
-                    if (!r.canAssignOverLimit() || !r.isApplicable(getStudent())) continue;
+                for (Reservation r: getReservations(course)) {
+                    if (!r.canAssignOverLimit()) continue;
                     if (!r.getConfigs().isEmpty() && !r.getConfigs().contains(config)) continue;
                     if (r.getReservedAvailableSpace(this) < getWeight()) continue;
                     canOverLimit = true; break;
@@ -231,9 +233,8 @@ public class CourseRequest extends Request {
                     return;
                 if (config.getOffering().hasReservations()) {
                     boolean hasReservation = false, hasOtherReservation = false, hasConfigReservation = false;
-                    for (Reservation r: config.getOffering().getReservations()) {
+                    for (Reservation r: getReservations(course)) {
                         if (availableOnly && r.getReservedAvailableSpace(this) < getWeight()) continue;
-                        if (!r.isApplicable(getStudent())) continue;
                         if (r.getConfigs().isEmpty()) {
                             hasReservation = true;
                         } else if (r.getConfigs().contains(config)) {
@@ -289,16 +290,16 @@ public class CourseRequest extends Request {
                 }
                 boolean canOverLimit = false;
                 if (availableOnly &&  (getModel() == null || ((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit())) {
-                    for (Reservation r: config.getOffering().getReservations()) {
-                        if (!r.canAssignOverLimit() || !r.isApplicable(getStudent()) || !r.isIncluded(e)) continue;
+                    for (Reservation r: getReservations(course)) {
+                        if (!r.canAssignOverLimit() || !r.isIncluded(e)) continue;
                         if (r.getReservedAvailableSpace(this) < getWeight()) continue;
                         enrollments.add(new Enrollment(this, priority, null, config, new HashSet<Assignment>(sections), r));
                         canOverLimit = true;
                     }
                 }
                 if (!canOverLimit) {
-                    reservations: for (Reservation r: (availableOnly ? new TreeSet<Reservation>(config.getOffering().getReservations()) : config.getOffering().getReservations())) {
-                        if (!r.isApplicable(getStudent()) || !r.isIncluded(e)) continue;
+                    reservations: for (Reservation r: (availableOnly ? new TreeSet<Reservation>(getReservations(course)) : getReservations(course))) {
+                        if (!r.isIncluded(e)) continue;
                         if (availableOnly && r.getReservedAvailableSpace(this) < getWeight()) continue;
                         if (mustHaveConfigReservation && r.getConfigs().isEmpty()) continue;
                         if (mustHaveSectionReservation)
@@ -338,8 +339,8 @@ public class CourseRequest extends Request {
                     continue;
                 boolean canOverLimit = false;
                 if (availableOnly && (getModel() == null || ((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit())) {
-                    for (Reservation r: config.getReservations()) {
-                        if (!r.canAssignOverLimit() || !r.isApplicable(getStudent())) continue;
+                    for (Reservation r: getReservations(course)) {
+                        if (!r.canAssignOverLimit()) continue;
                         if (r.getSections(subpart) != null && !r.getSections(subpart).contains(section)) continue;
                         if (r.getReservedAvailableSpace(this) < getWeight()) continue;
                         canOverLimit = true; break;
@@ -351,9 +352,8 @@ public class CourseRequest extends Request {
                         continue;
                     if (config.getOffering().hasReservations()) {
                         boolean hasReservation = false, hasSectionReservation = false, hasOtherReservation = false;
-                        for (Reservation r: config.getReservations()) {
+                        for (Reservation r: getReservations(course)) {
                             if (availableOnly && r.getReservedAvailableSpace(this) < getWeight()) continue;
-                            if (!r.isApplicable(getStudent())) continue;
                             if (r.getSections(subpart) == null) {
                                 hasReservation = true;
                             } else if (r.getSections(subpart).contains(section)) {
@@ -639,4 +639,41 @@ public class CourseRequest extends Request {
     public boolean equals(Object o) {
         return super.equals(o) && (o instanceof CourseRequest);
     }
+    
+    /**
+     * Get reservations for this course requests
+     */
+    public List<Reservation> getReservations(Course course) {
+        if (iReservations == null)
+            iReservations = new HashMap<Course, List<Reservation>>();
+        List<Reservation> reservations = iReservations.get(course);
+        if (reservations == null) {
+            reservations = new ArrayList<Reservation>();
+            for (Reservation r: course.getOffering().getReservations()) {
+                if (r.isApplicable(getStudent()))
+                    reservations.add(r);
+            }
+            iReservations.put(course, reservations);
+        }
+        return reservations;
+    }
+    private Map<Course, List<Reservation>> iReservations = null;
+    
+    /**
+     * Return true if there is a reservation for a course of this request
+     */
+    public boolean hasReservations() {
+        for (Course course: getCourses())
+            if (!getReservations(course).isEmpty())
+                return true;
+        return false;
+    }
+    
+    /**
+     * Clear reservation information that was cached on this section
+     */
+    public void clearReservationCache() {
+        if (iReservations != null) iReservations.clear();
+    }
+
 }
