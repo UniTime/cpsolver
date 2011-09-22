@@ -71,6 +71,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
     private int iNrDummyStudents = 0, iNrDummyRequests = 0, iNrAssignedDummyRequests = 0, iNrCompleteDummyStudents = 0;
     private double iTotalWeight = 0.0, iTotalDummyWeight = 0.0, iAssignedWeight = 0.0, iAssignedDummyWeight = 0.0;
     private double iTotalCRWeight = 0.0, iTotalDummyCRWeight = 0.0, iAssignedCRWeight = 0.0, iAssignedDummyCRWeight = 0.0;
+    private double iReservedSpace = 0.0, iTotalReservedSpace = 0.0;
     private StudentWeights iStudentWeights = null;
     private boolean iReservationCanAssignOverTheLimit;
     protected double iProjectedStudentWeight = 0.0100;
@@ -212,6 +213,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         iAssignedWeight = 0.0; iAssignedCRWeight = 0.0;
         iAssignedDummyWeight = 0.0; iAssignedDummyCRWeight = 0.0;
         iNrDummyRequests = 0; iNrAssignedDummyRequests = 0;
+        iTotalReservedSpace = 0.0; iReservedSpace = 0.0;
         for (Request request: variables()) {
             boolean cr = (request instanceof CourseRequest);
             iTotalWeight += request.getWeight();
@@ -227,6 +229,10 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
                 iAssignedWeight += request.getWeight();
                 if (cr)
                     iAssignedCRWeight += request.getWeight();
+                if (request.getAssignment().getReservation() != null)
+                    iReservedSpace += request.getWeight();
+                if (cr && ((CourseRequest)request).hasReservations())
+                    iTotalReservedSpace += request.getWeight();
                 if (request.getStudent().isDummy()) {
                     iNrAssignedDummyRequests ++;
                     iAssignedDummyWeight += request.getWeight();
@@ -353,6 +359,9 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
             if (getTimeOverlaps() != null && getTimeOverlaps().getTotalNrConflicts() > 0)
                 info.put("Time overlapping conflicts", String.valueOf(getTimeOverlaps().getTotalNrConflicts()));
         }
+        if (iTotalReservedSpace > 0.0)
+            info.put("Reservations", sDoubleFormat.format(100.0 * iReservedSpace / iTotalReservedSpace) + "% (" + Math.round(iReservedSpace) + "/" + Math.round(iTotalReservedSpace) + ")"); 
+
         return info;
     }
 
@@ -402,6 +411,10 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         iAssignedWeight += enrollment.getRequest().getWeight();
         if (enrollment.isCourseRequest())
             iAssignedCRWeight += enrollment.getRequest().getWeight();
+        if (enrollment.getReservation() != null)
+            iReservedSpace += enrollment.getRequest().getWeight();
+        if (enrollment.isCourseRequest() && ((CourseRequest)enrollment.getRequest()).hasReservations())
+            iTotalReservedSpace += enrollment.getRequest().getWeight();
         if (student.isDummy()) {
             iNrAssignedDummyRequests++;
             iAssignedDummyWeight += enrollment.getRequest().getWeight();
@@ -433,6 +446,10 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         iAssignedWeight -= enrollment.getRequest().getWeight();
         if (enrollment.isCourseRequest())
             iAssignedCRWeight -= enrollment.getRequest().getWeight();
+        if (enrollment.getReservation() != null)
+            iReservedSpace -= enrollment.getRequest().getWeight();
+        if (enrollment.isCourseRequest() && ((CourseRequest)enrollment.getRequest()).hasReservations())
+            iTotalReservedSpace -= enrollment.getRequest().getWeight();
         if (student.isDummy()) {
             iNrAssignedDummyRequests--;
             iAssignedDummyWeight -= enrollment.getRequest().getWeight();
