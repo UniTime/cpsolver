@@ -108,8 +108,8 @@ public class Enrollment extends Value<Request, Enrollment> {
         if (iCourse != null) {
             Reservation best = null;
             boolean canAssignOverTheLimit = (variable().getModel() == null || ((StudentSectioningModel)variable().getModel()).getReservationCanAssignOverTheLimit());
-            for (Reservation reservation: iCourse.getOffering().getReservations()) {
-                if (reservation.isApplicable(iRequest.getStudent()) && reservation.isIncluded(this)) {
+            for (Reservation reservation: ((CourseRequest)iRequest).getReservations(iCourse)) {
+                if (reservation.isIncluded(this)) {
                     if (onlyAvailable && reservation.getReservedAvailableSpace(iRequest) < iRequest.getWeight() &&
                        (!reservation.canAssignOverLimit() || !canAssignOverTheLimit))
                         continue;
@@ -333,6 +333,7 @@ public class Enrollment extends Value<Request, Enrollment> {
                 ret += assignment + (i.hasNext() ? ", " : "");
             }
         }
+        if (getReservation() != null) ret = "(r) " + ret;
         return ret;
     }
 
