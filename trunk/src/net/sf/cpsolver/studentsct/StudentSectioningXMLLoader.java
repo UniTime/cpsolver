@@ -570,7 +570,17 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             }
 
             if (!bestEnrollments.isEmpty()) {
+                // Enrollments with a reservation must go first
                 for (Enrollment enrollment : bestEnrollments) {
+                    if (enrollment.getReservation() == null) continue;
+                    Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(enrollment);
+                    if (conflicts.isEmpty())
+                        enrollment.variable().assign(0, enrollment);
+                    else
+                        sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
+                }
+                for (Enrollment enrollment : bestEnrollments) {
+                    if (enrollment.getReservation() != null) continue;
                     Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(enrollment);
                     if (conflicts.isEmpty())
                         enrollment.variable().assign(0, enrollment);
