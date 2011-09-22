@@ -2,6 +2,7 @@ package net.sf.cpsolver.studentsct;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +14,7 @@ import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.studentsct.constraint.ConfigLimit;
 import net.sf.cpsolver.studentsct.constraint.CourseLimit;
+import net.sf.cpsolver.studentsct.constraint.LinkedSections;
 import net.sf.cpsolver.studentsct.constraint.ReservationLimit;
 import net.sf.cpsolver.studentsct.constraint.SectionLimit;
 import net.sf.cpsolver.studentsct.constraint.StudentConflict;
@@ -63,6 +65,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
     protected static DecimalFormat sDecimalFormat = new DecimalFormat("0.000");
     private List<Student> iStudents = new ArrayList<Student>();
     private List<Offering> iOfferings = new ArrayList<Offering>();
+    private List<LinkedSections> iLinkedSections = new ArrayList<LinkedSections>();
     private Set<Student> iCompleteStudents = new java.util.HashSet<Student>();
     private double iTotalValue = 0.0;
     private DataProperties iProperties;
@@ -300,6 +303,31 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
      */
     public void addOffering(Offering offering) {
         iOfferings.add(offering);
+    }
+    
+    /**
+     * Link sections using {@link LinkedSections}
+     */
+    public void addLinkedSections(Section... sections) {
+        LinkedSections constraint = new LinkedSections(sections);
+        iLinkedSections.add(constraint);
+        constraint.createConstraints();
+    }
+
+    /**
+     * Link sections using {@link LinkedSections}
+     */
+    public void addLinkedSections(Collection<Section> sections) {
+        LinkedSections constraint = new LinkedSections(sections);
+        iLinkedSections.add(constraint);
+        constraint.createConstraints();
+    }
+
+    /**
+     * List of linked sections
+     */
+    public List<LinkedSections> getLinkedSections() {
+        return iLinkedSections;
     }
 
     /**
