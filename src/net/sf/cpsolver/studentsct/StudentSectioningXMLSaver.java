@@ -333,8 +333,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                         reservationEl.addAttribute("type", "group");
                         for (Long studentId: gr.getStudentIds())
                             reservationEl.addElement("student").addAttribute("id", getId("student", studentId));
-                        if (gr.getLimit() >= 0.0)
-                            reservationEl.addAttribute("limit", String.valueOf(gr.getLimit()));
+                        if (gr.getReservationLimit() >= 0.0)
+                            reservationEl.addAttribute("limit", String.valueOf(gr.getReservationLimit()));
                     } else if (r instanceof IndividualReservation) {
                         reservationEl.addAttribute("type", "individual");
                         for (Long studentId: ((IndividualReservation)r).getStudentIds())
@@ -342,8 +342,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                     } else if (r instanceof CurriculumReservation) {
                         reservationEl.addAttribute("type", "curriculum");
                         CurriculumReservation cr = (CurriculumReservation)r;
-                        if (cr.getLimit() >= 0.0)
-                            reservationEl.addAttribute("limit", String.valueOf(cr.getLimit()));
+                        if (cr.getReservationLimit() >= 0.0)
+                            reservationEl.addAttribute("limit", String.valueOf(cr.getReservationLimit()));
                         reservationEl.addAttribute("area", cr.getAcademicArea());
                         for (String clasf: cr.getClassifications())
                             reservationEl.addElement("classification").addAttribute("code", clasf);

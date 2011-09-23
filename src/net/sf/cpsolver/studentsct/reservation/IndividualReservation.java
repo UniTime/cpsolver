@@ -66,6 +66,14 @@ public class IndividualReservation extends Reservation {
     public boolean canAssignOverLimit() {
         return true;
     }
+    
+    /**
+     * Individual or group reservation must be used 
+     */
+    @Override
+    public boolean mustBeUsed() {
+        return true;
+    }
 
     /**
      * Individual reservations are of the top priority
@@ -94,7 +102,7 @@ public class IndividualReservation extends Reservation {
      * Reservation limit == number of students in the reservation
      */
     @Override
-    public double getLimit() {
+    public double getReservationLimit() {
         return iStudentIds.size();
     }
 

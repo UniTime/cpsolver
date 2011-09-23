@@ -82,7 +82,7 @@ public abstract class Reservation implements Comparable<Reservation> {
     /**
      * Reservation limit
      */
-    public abstract double getLimit();
+    public abstract double getReservationLimit();
     
     
     /** Reservation priority (e.g., individual reservations first) */
@@ -108,7 +108,10 @@ public abstract class Reservation implements Comparable<Reservation> {
     /**
      * Add a configuration (of the offering {@link Reservation#getOffering()}) to this reservation
      */
-    public void addConfig(Config config) { iConfigs.add(config); }
+    public void addConfig(Config config) {
+        iConfigs.add(config);
+        clearLimitCapCache();
+    }
     
     /**
      * One or more sections on which the reservation is set (optional).
@@ -137,6 +140,7 @@ public abstract class Reservation implements Comparable<Reservation> {
             sections.add(section);
             section = section.getParent();
         }
+        clearLimitCapCache();
     }
     
     /**
@@ -220,6 +224,11 @@ public abstract class Reservation implements Comparable<Reservation> {
     public abstract boolean canAssignOverLimit();
     
     /**
+     * If true, student must use the reservation (if applicable)
+     */
+    public abstract boolean mustBeUsed();
+    
+    /**
      * Reservation restrictivity (estimated percentage of enrollments that include this reservation, 1.0 reservation on the whole offering)
      */
     public double getRestrictivity() {
@@ -276,5 +285,69 @@ public abstract class Reservation implements Comparable<Reservation> {
         cmp = - Double.compare(getReservedAvailableSpace(null), r.getReservedAvailableSpace(null));
         if (cmp != 0) return cmp;
         return new Long(getId()).compareTo(r.getId());
+    }
+    
+    /**
+     * Return minimum of two limits where -1 counts as unlimited (any limit is smaller)
+     */
+    private static double min(double l1, double l2) {
+        return (l1 < 0 ? l2 : l2 < 0 ? l1 : Math.min(l1, l2));
+    }
+    
+    /**
+     * Add two limits where -1 counts as unlimited (unlimited plus anything is unlimited)
+     */
+    private static double add(double l1, double l2) {
+        return (l1 < 0 ? -1 : l2 < 0 ? -1 : l1 + l2);
+    }
+    
+
+    /** Limit cap cache */
+    private Double iLimitCap = null;
+
+    /**
+     * Compute limit cap (maximum number of students that can get into the offering using this reservation)
+     */
+    public double getLimitCap() {
+        if (iLimitCap == null) iLimitCap = getLimitCapNoCache();
+        return iLimitCap;
+    }
+
+    /**
+     * Compute limit cap (maximum number of students that can get into the offering using this reservation)
+     */
+    private double getLimitCapNoCache() {
+        if (getConfigs().isEmpty()) return -1; // no config -> can be unlimited
+        
+        // config cap
+        double cap = 0;
+        for (Config config: iConfigs)
+            cap = add(cap, config.getLimit());
+        
+        for (Set<Section> sections: getSections().values()) {
+            // subpart cap
+            double subpartCap = 0;
+            for (Section section: sections)
+                subpartCap = add(subpartCap, section.getLimit());
+            
+            // minimize
+            cap = min(cap, subpartCap);
+        }
+        
+        return cap;
+    }
+    
+    /**
+     * Clear limit cap cache
+     */
+    private void clearLimitCapCache() {
+        iLimitCap = null;
+    }
+    
+    /**
+     * Reservation limit capped the limit cap (see {@link Reservation#getLimitCap()})
+     */
+    public double getLimit() {
+        return min(getLimitCap(), getReservationLimit());
     }
 }

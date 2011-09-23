@@ -42,7 +42,7 @@ public class DummyReservation extends Reservation {
      * Dummy reservation is unlimited
      */
     @Override
-    public double getLimit() {
+    public double getReservationLimit() {
         return -1;
     }
 
@@ -67,6 +67,15 @@ public class DummyReservation extends Reservation {
      */
     @Override
     public boolean canAssignOverLimit() {
+        return false;
+    }
+
+    
+    /**
+     * Dummy reservation do not need to be used
+     */
+    @Override
+    public boolean mustBeUsed() {
         return false;
     }
 

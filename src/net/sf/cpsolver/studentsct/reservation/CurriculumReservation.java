@@ -66,19 +66,27 @@ public class CurriculumReservation extends Reservation {
     public boolean canAssignOverLimit() {
         return false;
     }
+    
+    /**
+     * Curriculum reservation do not need to be used
+     */
+    @Override
+    public boolean mustBeUsed() {
+        return false;
+    }
 
     /**
      * Reservation limit (-1 for unlimited)
      */
     @Override
-    public double getLimit() {
+    public double getReservationLimit() {
         return iLimit;
     }
 
     /**
      * Set reservation limit (-1 for unlimited)
      */
-    public void setLimit(double limit) {
+    public void setReservationLimit(double limit) {
         iLimit = limit;
     }
 
