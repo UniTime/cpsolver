@@ -79,7 +79,7 @@ public class GroupReservation extends IndividualReservation {
      * Reservation limit
      */
     @Override
-    public double getLimit() {
+    public double getReservationLimit() {
         return iLimit;
     }
 
