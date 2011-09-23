@@ -232,8 +232,9 @@ public class CourseRequest extends Request {
                 if (availableOnly && course.getLimit() >= 0 && CourseLimit.getEnrollmentWeight(course, this) > course.getLimit())
                     return;
                 if (config.getOffering().hasReservations()) {
-                    boolean hasReservation = false, hasOtherReservation = false, hasConfigReservation = false;
+                    boolean hasReservation = false, hasOtherReservation = false, hasConfigReservation = false, reservationMustBeUsed = false;
                     for (Reservation r: getReservations(course)) {
+                        if (r.mustBeUsed()) reservationMustBeUsed = true;
                         if (availableOnly && r.getReservedAvailableSpace(this) < getWeight()) continue;
                         if (r.getConfigs().isEmpty()) {
                             hasReservation = true;
@@ -253,6 +254,8 @@ public class CourseRequest extends Request {
                     if (availableOnly && !hasReservation && config.getOffering().getUnreservedSpace(this) < getWeight())
                         return;
                     if (availableOnly && !hasConfigReservation && config.getUnreservedSpace(this) < getWeight())
+                        return;
+                    if (!hasReservation && reservationMustBeUsed)
                         return;
                 }
             }
@@ -298,7 +301,9 @@ public class CourseRequest extends Request {
                     }
                 }
                 if (!canOverLimit) {
+                    boolean reservationMustBeUsed = false;
                     reservations: for (Reservation r: (availableOnly ? new TreeSet<Reservation>(getReservations(course)) : getReservations(course))) {
+                        if (r.mustBeUsed()) reservationMustBeUsed = true;
                         if (!r.isIncluded(e)) continue;
                         if (availableOnly && r.getReservedAvailableSpace(this) < getWeight()) continue;
                         if (mustHaveConfigReservation && r.getConfigs().isEmpty()) continue;
@@ -310,7 +315,8 @@ public class CourseRequest extends Request {
                     }
                     // a case w/o reservation
                     if (!(mustHaveReservation || mustHaveConfigReservation || mustHaveSectionReservation) &&
-                        !(availableOnly && config.getOffering().getUnreservedSpace(this) < getWeight())) {
+                        !(availableOnly && config.getOffering().getUnreservedSpace(this) < getWeight()) &&
+                        !reservationMustBeUsed) {
                         enrollments.add(new Enrollment(this, 1 + priority, null, config, new HashSet<Assignment>(sections), null));
                     }
                 }
@@ -351,8 +357,9 @@ public class CourseRequest extends Request {
                             && SectionLimit.getEnrollmentWeight(section, this) > section.getLimit())
                         continue;
                     if (config.getOffering().hasReservations()) {
-                        boolean hasReservation = false, hasSectionReservation = false, hasOtherReservation = false;
+                        boolean hasReservation = false, hasSectionReservation = false, hasOtherReservation = false, reservationMustBeUsed = false;
                         for (Reservation r: getReservations(course)) {
+                            if (r.mustBeUsed()) reservationMustBeUsed = true;
                             if (availableOnly && r.getReservedAvailableSpace(this) < getWeight()) continue;
                             if (r.getSections(subpart) == null) {
                                 hasReservation = true;
@@ -368,6 +375,8 @@ public class CourseRequest extends Request {
                         if (hasOtherReservation && !hasReservation)
                             continue;
                         if (availableOnly && !hasSectionReservation && section.getUnreservedSpace(this) < getWeight())
+                            continue;
+                        if (!hasReservation && reservationMustBeUsed)
                             continue;
                     }
                 }
@@ -649,9 +658,12 @@ public class CourseRequest extends Request {
         List<Reservation> reservations = iReservations.get(course);
         if (reservations == null) {
             reservations = new ArrayList<Reservation>();
+            boolean mustBeUsed = false;
             for (Reservation r: course.getOffering().getReservations()) {
-                if (r.isApplicable(getStudent()))
-                    reservations.add(r);
+                if (!r.isApplicable(getStudent())) continue;
+                if (!mustBeUsed && r.mustBeUsed()) { reservations.clear(); mustBeUsed = true; }
+                if (mustBeUsed && !r.mustBeUsed()) continue;
+                reservations.add(r);
             }
             iReservations.put(course, reservations);
         }
