@@ -171,7 +171,7 @@ public class Enrollment extends Value<Request, Enrollment> {
 
     /** True when this enrollment is overlapping with the given enrollment */
     public boolean isOverlapping(Enrollment enrl) {
-        if (enrl == null)
+        if (enrl == null || isAllowOverlap() || enrl.isAllowOverlap())
             return false;
         for (Assignment a : getAssignments()) {
             if (a.isOverlapping(enrl.getAssignments()))
@@ -429,5 +429,12 @@ public class Enrollment extends Value<Request, Enrollment> {
      */
     public void setApproval(String approval) {
         iApproval = approval;
+    }
+    
+    /**
+     * True if this enrollment can overlap with other enrollments of the student.
+     */
+    public boolean isAllowOverlap() {
+        return (getReservation() != null && getReservation().isAllowOverlap());
     }
 }
