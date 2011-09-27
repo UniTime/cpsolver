@@ -105,5 +105,14 @@ public class IndividualReservation extends Reservation {
     public double getReservationLimit() {
         return iStudentIds.size();
     }
+    
+    /**
+     * Overlaps are allowed for individual reservations. 
+     */
+    @Override
+    public boolean isAllowOverlap() {
+        return true;
+    }
+
 
 }

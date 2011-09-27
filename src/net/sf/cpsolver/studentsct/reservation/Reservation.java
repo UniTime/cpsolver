@@ -350,4 +350,11 @@ public abstract class Reservation implements Comparable<Reservation> {
     public double getLimit() {
         return min(getLimitCap(), getReservationLimit());
     }
+    
+    /**
+     * True if holding this reservation allows a student to have attend overlapping class. 
+     */
+    public boolean isAllowOverlap() {
+        return false;
+    }
 }
