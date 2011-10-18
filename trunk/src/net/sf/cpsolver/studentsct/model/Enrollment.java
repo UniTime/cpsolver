@@ -437,4 +437,21 @@ public class Enrollment extends Value<Request, Enrollment> {
     public boolean isAllowOverlap() {
         return (getReservation() != null && getReservation().isAllowOverlap());
     }
+    
+    /**
+     * Enrollment limit, i.e., the number of students that would be able to get into the offering using this enrollment (if all the sections are empty)  
+     */
+    public int getLimit() {
+        if (!isCourseRequest()) return -1; // free time requests have no limit
+        Integer limit = null;
+        for (Section section: getSections())
+            if (section.getLimit() >= 0) {
+                if (limit == null)
+                    limit = section.getLimit();
+                else
+                    limit = Math.min(limit, section.getLimit());
+            }
+        return (limit == null ? -1 : limit);
+    }
+    
 }
