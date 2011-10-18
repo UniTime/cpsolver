@@ -530,6 +530,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
                     }
                 }
                 List<Enrollment> feasibleEnrollments = new ArrayList<Enrollment>();
+                int totalLimit = 0;
                 for (Enrollment enrl : courseRequest.values()) {
                     boolean overlaps = false;
                     for (Request otherRequest : student.getRequests()) {
@@ -543,13 +544,23 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
                             break;
                         }
                     }
-                    if (!overlaps)
+                    if (!overlaps) {
                         feasibleEnrollments.add(enrl);
+                        if (totalLimit >= 0) {
+                            int limit = enrl.getLimit();
+                            if (limit < 0) totalLimit = -1;
+                            else totalLimit += limit;
+                        }
+                    }
                 }
-                double increment = courseRequest.getWeight() / feasibleEnrollments.size();
+                double increment = courseRequest.getWeight() / (totalLimit > 0 ? totalLimit : feasibleEnrollments.size());
                 for (Enrollment feasibleEnrollment : feasibleEnrollments) {
                     for (Section section : feasibleEnrollment.getSections()) {
-                        section.setSpaceExpected(section.getSpaceExpected() + increment);
+                        if (totalLimit > 0) {
+                            section.setSpaceExpected(section.getSpaceExpected() + increment * feasibleEnrollment.getLimit());
+                        } else {
+                            section.setSpaceExpected(section.getSpaceExpected() + increment);
+                        }
                     }
                 }
             }
