@@ -63,6 +63,7 @@ public class Section implements Assignment, Comparable<Section> {
     private double iMinEnrollmentWeight = 0.0;
     private double iSpaceExpected = 0.0;
     private double iSpaceHeld = 0.0;
+    private String iNote = null;
 
     /**
      * Constructor
@@ -568,4 +569,14 @@ public class Section implements Assignment, Comparable<Section> {
     public int hashCode() {
         return (int) (iId ^ (iId >>> 32));
     }
+    
+    /**
+     * Section note
+     */
+    public String getNote() { return iNote; }
+    
+    /**
+     * Section note
+     */
+    public void setNote(String note) { iNote = note; }
 }
