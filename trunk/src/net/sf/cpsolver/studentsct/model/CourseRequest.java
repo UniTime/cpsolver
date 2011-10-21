@@ -340,9 +340,6 @@ public class CourseRequest extends Request {
                     continue;
                 if (selectedOnly && !isSelected(section))
                     continue;
-                if (skipSameTime && section.getTime() != null && !hasChildren && !times.add(section.getTime())
-                        && !isSelected(section) && !isWaitlisted(section))
-                    continue;
                 boolean canOverLimit = false;
                 if (availableOnly && (getModel() == null || ((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit())) {
                     for (Reservation r: getReservations(course)) {
@@ -380,6 +377,9 @@ public class CourseRequest extends Request {
                             continue;
                     }
                 }
+                if (skipSameTime && section.getTime() != null && !hasChildren && !times.add(section.getTime())
+                        && !isSelected(section) && !isWaitlisted(section))
+                    continue;
                 sections.add(section);
                 computeEnrollments(enrollments, priority, penalty + section.getPenalty(), course, config, sections, idx + 1,
                         availableOnly, skipSameTime, selectedOnly, random, limit);
