@@ -44,6 +44,8 @@ public class Student {
     private List<AcademicAreaCode> iMajors = new ArrayList<AcademicAreaCode>();
     private List<AcademicAreaCode> iMinors = new ArrayList<AcademicAreaCode>();
     private List<LinkedSections> iLinkedSections = new ArrayList<LinkedSections>();
+    private String iStatus = null;
+    private Long iEmailTimeStamp = null;
 
     /**
      * Constructor
@@ -274,4 +276,22 @@ public class Student {
      * Linked sections of this student
      */
     public List<LinkedSections> getLinkedSections() { return iLinkedSections; }
+    
+    /**
+     * Get student status (online sectioning only)
+     */
+    public String getStatus() { return iStatus; }
+    /**
+     * Set student status
+     */
+    public void setStatus(String status) { iStatus = status; }
+    
+    /**
+     * Get last email time stamp (online sectioning only)
+     */
+    public Long getEmailTimeStamp() { return iEmailTimeStamp; }
+    /**
+     * Set last email time stamp
+     */
+    public void setEmailTimeStamp(Long emailTimeStamp) { iEmailTimeStamp = emailTimeStamp; }
 }
