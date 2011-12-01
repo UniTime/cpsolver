@@ -3,6 +3,7 @@ package net.sf.cpsolver.studentsct;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -869,11 +870,21 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
     
     @Override
     public void restoreBest() {
-        for (Request r: variables())
-            if (r.getAssignment() != null) r.unassign(0);
-        for (Student s: getStudents())
-            for (Request r: s.getRequests())
-                if (r.getBestAssignment() != null) r.assign(0, r.getBestAssignment());
+        restoreBest(new Comparator<Request>() {
+            @Override
+            public int compare(Request r1, Request r2) {
+                Enrollment e1 = r1.getBestAssignment();
+                Enrollment e2 = r2.getBestAssignment();
+                // Reservations first
+                if (e1.getReservation() != null && e2.getReservation() == null) return -1;
+                if (e1.getReservation() == null && e2.getReservation() != null) return 1;
+                // Then assignment iteration (i.e., order in which assignments were made)
+                if (r1.getBestAssignmentIteration() != r2.getBestAssignmentIteration())
+                    return (r1.getBestAssignmentIteration() < r2.getBestAssignmentIteration() ? -1 : 1);
+                // Then student and priority
+                return r1.compareTo(r2);
+            }
+        });
     }
         
     @Override
