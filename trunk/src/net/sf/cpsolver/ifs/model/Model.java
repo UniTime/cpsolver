@@ -504,7 +504,10 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     protected void restoreBest(Comparator<V> assignmentOrder) {
         TreeSet<V> sortedVariables = new TreeSet<V>(assignmentOrder);
         for (V variable : iVariables) {
-            if (variable.getAssignment() != null && !variable.getAssignment().equals(variable.getBestAssignment())) {
+            if (variable.getAssignment() == null) {
+                if (variable.getBestAssignment() != null)
+                    sortedVariables.add(variable);
+            } else if (!variable.getAssignment().equals(variable.getBestAssignment())) {
                 variable.unassign(0);
                 if (variable.getBestAssignment() != null)
                     sortedVariables.add(variable);
