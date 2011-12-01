@@ -501,43 +501,43 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     }
 
     /** Restore the best ever found assignment into the current assignment */
-    public void restoreBest() {
+    protected void restoreBest(Comparator<V> assignmentOrder) {
+        TreeSet<V> sortedVariables = new TreeSet<V>(assignmentOrder);
         for (V variable : iVariables) {
-            if (variable.getAssignment() != null && !variable.getAssignment().equals(variable.getBestAssignment()))
+            if (variable.getAssignment() != null && !variable.getAssignment().equals(variable.getBestAssignment())) {
                 variable.unassign(0);
-        }
-        Set<T> problems = new HashSet<T>();
-        TreeSet<V> sortedVariables = new TreeSet<V>(new BestAssignmentComparator());
-        sortedVariables.addAll(iVariables);
-        for (V variable : sortedVariables) {
-            if (variable.getBestAssignment() != null && variable.getAssignment() == null) {
-                Set<T> confs = conflictValues(variable.getBestAssignment());
-                if (!confs.isEmpty()) {
-                    sLogger.error("restore best problem: assignment " + variable.getName() + " = "
-                            + variable.getBestAssignment().getName());
-                    for (Constraint<V, T> c : variable.hardConstraints()) {
-                        Set<T> x = new HashSet<T>();
-                        c.computeConflicts(variable.getBestAssignment(), x);
-                        if (!x.isEmpty()) {
-                            sLogger.error("  constraint " + c.getClass().getName() + " " + c.getName()
-                                    + " causes the following conflicts " + x);
-                        }
-                    }
-                    for (GlobalConstraint<V, T> c : globalConstraints()) {
-                        Set<T> x = new HashSet<T>();
-                        c.computeConflicts(variable.getBestAssignment(), x);
-                        if (!x.isEmpty()) {
-                            sLogger.error("  global constraint " + c.getClass().getName() + " " + c.getName()
-                                    + " causes the following conflicts " + x);
-                        }
-                    }
-                    problems.add(variable.getBestAssignment());
-                } else
-                    variable.assign(0, variable.getBestAssignment());
+                if (variable.getBestAssignment() != null)
+                    sortedVariables.add(variable);
             }
         }
-        int attempt = 0;
-        while (!problems.isEmpty() && attempt <= 100) {
+        Set<T> problems = new HashSet<T>();
+        for (V variable : sortedVariables) {
+            Set<T> confs = conflictValues(variable.getBestAssignment());
+            if (!confs.isEmpty()) {
+                sLogger.error("restore best problem: assignment " + variable.getName() + " = "
+                        + variable.getBestAssignment().getName());
+                for (Constraint<V, T> c : variable.hardConstraints()) {
+                    Set<T> x = new HashSet<T>();
+                    c.computeConflicts(variable.getBestAssignment(), x);
+                    if (!x.isEmpty()) {
+                        sLogger.error("  constraint " + c.getClass().getName() + " " + c.getName()
+                                + " causes the following conflicts " + x);
+                    }
+                }
+                for (GlobalConstraint<V, T> c : globalConstraints()) {
+                    Set<T> x = new HashSet<T>();
+                    c.computeConflicts(variable.getBestAssignment(), x);
+                    if (!x.isEmpty()) {
+                        sLogger.error("  global constraint " + c.getClass().getName() + " " + c.getName()
+                                + " causes the following conflicts " + x);
+                    }
+                }
+                problems.add(variable.getBestAssignment());
+            } else
+                variable.assign(0, variable.getBestAssignment());
+        }
+        int attempt = 0, maxAttempts = 3 * problems.size();
+        while (!problems.isEmpty() && attempt <= maxAttempts) {
             attempt++;
             T value = ToolBox.random(problems);
             problems.remove(value);
@@ -569,6 +569,17 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
         for (Criterion<V, T> criterion: getCriteria()) {
             criterion.bestRestored();
         }
+    }
+    
+    public void restoreBest() {
+        restoreBest(new Comparator<V>() {
+            @Override
+            public int compare(V v1, V v2) {
+                if (v1.getBestAssignmentIteration() < v2.getBestAssignmentIteration()) return -1;
+                if (v1.getBestAssignmentIteration() > v2.getBestAssignmentIteration()) return 1;
+                return v1.compareTo(v2);
+            }
+        });
     }
 
     /** The list of unassigned variables in the best ever found solution */
@@ -697,15 +708,6 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
         if (!unassignedVariables().isEmpty())
             ret.addAll(globalConstraints());
         return ret;
-    }
-
-    private class BestAssignmentComparator implements Comparator<V> {
-        @Override
-        public int compare(V v1, V v2) {
-            if (v1.getBestAssignmentIteration() < v2.getBestAssignmentIteration()) return -1;
-            if (v1.getBestAssignmentIteration() > v2.getBestAssignmentIteration()) return 1;
-            return v1.compareTo(v2);
-        }
     }
 
     /** Registered info providers (see {@link InfoProvider}) */
