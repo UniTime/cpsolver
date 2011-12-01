@@ -106,9 +106,10 @@ public abstract class Request extends Variable<Request, Enrollment> {
      */
     @Override
     public int compareTo(Request r) {
-        if (isAlternative() != r.isAlternative())
-            return (isAlternative() ? 1 : -1);
-        return Double.compare(getPriority(), r.getPriority());
+        if (getStudent().getId() == r.getStudent().getId())
+            return (isAlternative() != r.isAlternative() ? isAlternative() ? 1 : -1 : getPriority() < r.getPriority() ? -1 : 1);
+        else
+            return getStudent().compareTo(r.getStudent());
     }
 
     /** Compute available enrollments */

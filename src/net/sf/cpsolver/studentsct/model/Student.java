@@ -35,7 +35,7 @@ import net.sf.cpsolver.studentsct.constraint.LinkedSections;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class Student {
+public class Student implements Comparable<Student> {
     private long iId;
     private String iExternalId = null, iName = null;
     private boolean iDummy = false;
@@ -294,4 +294,14 @@ public class Student {
      * Set last email time stamp
      */
     public void setEmailTimeStamp(Long emailTimeStamp) { iEmailTimeStamp = emailTimeStamp; }
+
+    @Override
+    public int compareTo(Student s) {
+        // real students first
+        if (isDummy()) {
+            if (!s.isDummy()) return 1;
+        } else if (s.isDummy()) return -1;
+        // then id
+        return new Long(getId()).compareTo(s.getId());
+    }
 }
