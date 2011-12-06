@@ -371,6 +371,14 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         for (Student student : getModel().getStudents()) {
             Element studentEl = studentsEl.addElement("student");
             studentEl.addAttribute("id", getId("student", student.getId()));
+            if (iShowNames) {
+                if (student.getExternalId() != null && !student.getExternalId().isEmpty())
+                    studentEl.addAttribute("externalId", student.getExternalId());
+                if (student.getName() != null && !student.getName().isEmpty())
+                    studentEl.addAttribute("name", student.getName());
+                if (student.getStatus() != null && !student.getStatus().isEmpty())
+                    studentEl.addAttribute("status", student.getStatus());
+            }
             if (student.isDummy())
                 studentEl.addAttribute("dummy", "true");
             if (iSaveStudentInfo) {
