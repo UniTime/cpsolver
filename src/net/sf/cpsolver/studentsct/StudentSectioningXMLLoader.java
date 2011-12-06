@@ -412,6 +412,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                         sLogger.error("Unknown reservation type "+ reservationEl.attributeValue("type"));
                         continue;
                     }
+                    r.setExpired("true".equals(reservationEl.attributeValue("expired", "false")));
                     for (Iterator<?> k = reservationEl.elementIterator("config"); k.hasNext(); ) {
                         Element configEl = (Element)k.next();
                         r.addConfig(configTable.get(Long.parseLong(configEl.attributeValue("id"))));

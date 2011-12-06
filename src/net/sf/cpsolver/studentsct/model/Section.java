@@ -438,6 +438,9 @@ public class Section implements Assignment, Comparable<Section> {
         if (getLimit() < 0) {
             // exclude reservations that are not directly set on this section
             for (Reservation r: getSectionReservations()) {
+                // ignore expired reservations
+                if (r.isExpired()) continue;
+                // there is an unlimited reservation -> no unreserved space
                 if (r.getLimit() < 0) return 0.0;
             }
             return Double.MAX_VALUE;
@@ -446,6 +449,8 @@ public class Section implements Assignment, Comparable<Section> {
         double available = getLimit() - getEnrollmentWeight(excludeRequest);
         // exclude reservations that are not directly set on this section
         for (Reservation r: getSectionReservations()) {
+            // ignore expired reservations
+            if (r.isExpired()) continue;
             // unlimited reservation -> all the space is reserved
             if (r.getLimit() < 0.0) return 0.0;
             // compute space that can be potentially taken by this reservation
@@ -472,6 +477,9 @@ public class Section implements Assignment, Comparable<Section> {
         if (getLimit() < 0) {
             // exclude reservations that are not directly set on this section
             for (Reservation r: getSectionReservations()) {
+                // ignore expired reservations
+                if (r.isExpired()) continue;
+                // there is an unlimited reservation -> no unreserved space
                 if (r.getLimit() < 0) return 0.0;
             }
             return Double.MAX_VALUE;
@@ -481,6 +489,8 @@ public class Section implements Assignment, Comparable<Section> {
         double available = getLimit(), reserved = 0, exclusive = 0;
         Set<Section> sections = new HashSet<Section>();
         reservations: for (Reservation r: getSectionReservations()) {
+            // ignore expired reservations
+            if (r.isExpired()) continue;
             // unlimited reservation -> no unreserved space
             if (r.getLimit() < 0) return 0.0;
             for (Section s: r.getSections(getSubpart())) {

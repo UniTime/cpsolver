@@ -200,8 +200,12 @@ public class Offering {
             // offering is unlimited -> there is unreserved space unless there is an unlimited reservation too 
             // (in which case there is no unreserved space)
             if (config.getLimit() < 0) {
-                for (Reservation r: getReservations())
+                for (Reservation r: getReservations()) {
+                    // ignore expired reservations
+                    if (r.isExpired()) continue;
+                    // there is an unlimited reservation -> no unreserved space
                     if (r.getLimit() < 0) return 0.0;
+                }
                 return Double.MAX_VALUE;
             }
         }
@@ -209,6 +213,8 @@ public class Offering {
         // compute maximal reserved space (out of the available space)
         double reserved = 0;
         for (Reservation r: getReservations()) {
+            // ignore expired reservations
+            if (r.isExpired()) continue;
             // unlimited reservation -> no unreserved space
             if (r.getLimit() < 0) return 0.0;
             reserved += r.getLimit();
@@ -229,8 +235,12 @@ public class Offering {
             // offering is unlimited -> there is unreserved space unless there is an unlimited reservation too 
             // (in which case there is no unreserved space)
             if (config.getLimit() < 0) {
-                for (Reservation r: getReservations())
+                for (Reservation r: getReservations()) {
+                    // ignore expired reservations
+                    if (r.isExpired()) continue;
+                    // there is an unlimited reservation -> no unreserved space
                     if (r.getLimit() < 0) return 0.0;
+                }
                 return Double.MAX_VALUE;
             }
         }
@@ -238,6 +248,8 @@ public class Offering {
         // compute reserved space (out of the available space)
         double reserved = 0;
         for (Reservation r: getReservations()) {
+            // ignore expired reservations
+            if (r.isExpired()) continue;
             // unlimited reservation -> no unreserved space
             if (r.getLimit() < 0) return 0.0;
             reserved += Math.max(0.0, r.getReservedAvailableSpace(excludeRequest));
