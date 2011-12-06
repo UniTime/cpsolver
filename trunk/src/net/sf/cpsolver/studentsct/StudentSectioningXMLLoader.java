@@ -436,8 +436,10 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             List<Enrollment> currentEnrollments = new ArrayList<Enrollment>();
             for (Iterator<?> i = root.element("students").elementIterator("student"); i.hasNext();) {
                 Element studentEl = (Element) i.next();
-                Student student = new Student(Long.parseLong(studentEl.attributeValue("id")), "true".equals(studentEl
-                        .attributeValue("dummy")));
+                Student student = new Student(Long.parseLong(studentEl.attributeValue("id")), "true".equals(studentEl.attributeValue("dummy")));
+                student.setExternalId(studentEl.attributeValue("externalId"));
+                student.setName(studentEl.attributeValue("name"));
+                student.setStatus(studentEl.attributeValue("status"));
                 for (Iterator<?> j = studentEl.elementIterator(); j.hasNext();) {
                     Element requestEl = (Element) j.next();
                     if ("classification".equals(requestEl.getName())) {
