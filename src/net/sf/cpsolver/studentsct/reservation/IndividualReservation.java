@@ -68,11 +68,12 @@ public class IndividualReservation extends Reservation {
     }
     
     /**
-     * Individual or group reservation must be used 
+     * Individual or group reservation must be used (unless it is expired)
+     * @return true if not expired, false if expired
      */
     @Override
     public boolean mustBeUsed() {
-        return true;
+        return !isExpired();
     }
 
     /**
