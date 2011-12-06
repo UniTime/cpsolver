@@ -328,6 +328,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                 for (Reservation r: offering.getReservations()) {
                     Element reservationEl = offeringEl.addElement("reservation");
                     reservationEl.addAttribute("id", getId("reservation", r.getId()));
+                    reservationEl.addAttribute("expired", r.isExpired() ? "true" : "false");
                     if (r instanceof GroupReservation) {
                         GroupReservation gr = (GroupReservation)r;
                         reservationEl.addAttribute("type", "group");

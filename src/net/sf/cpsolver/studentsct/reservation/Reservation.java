@@ -47,6 +47,9 @@ public abstract class Reservation implements Comparable<Reservation> {
     /** Reservation unique id */
     private long iId = 0;
     
+    /** Is reservation expired? */
+    private boolean iExpired;
+    
     /** Instructional offering on which the reservation is set, required */
     private Offering iOffering;
 
@@ -208,7 +211,7 @@ public abstract class Reservation implements Comparable<Reservation> {
      **/
     public double getReservedAvailableSpace(Request excludeRequest) {
         // Unlimited
-        if (getLimit() < 0) return Float.MAX_VALUE;
+        if (getLimit() < 0) return Double.MAX_VALUE;
         
         double reserved = getLimit() - getUsedSpace();
         if (excludeRequest != null && excludeRequest.getAssignment() != null &&
@@ -356,5 +359,23 @@ public abstract class Reservation implements Comparable<Reservation> {
      */
     public boolean isAllowOverlap() {
         return false;
+    }
+    
+    /**
+     * Set reservation expiration. If a reservation is expired, it works as ordinary reservation
+     * (especially the flags mutBeUsed and isAllowOverlap), except it does not block other students
+     * of getting into the offering / config / section.  
+     */
+    public void setExpired(boolean expired) {
+        iExpired = expired;
+    }
+    
+    /**
+     * True if the reservation is expired. If a reservation is expired, it works as ordinary reservation
+     * (especially the flags mutBeUsed and isAllowOverlap), except it does not block other students
+     * of getting into the offering / config / section.
+     */
+    public boolean isExpired() {
+        return iExpired;
     }
 }
