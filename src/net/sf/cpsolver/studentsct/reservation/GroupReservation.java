@@ -82,5 +82,12 @@ public class GroupReservation extends IndividualReservation {
     public double getReservationLimit() {
         return iLimit;
     }
-
+    
+    /**
+     * Overlaps are allowed for individual reservations. 
+     */
+    @Override
+    public boolean isAllowOverlap() {
+        return false;
+    }
 }
