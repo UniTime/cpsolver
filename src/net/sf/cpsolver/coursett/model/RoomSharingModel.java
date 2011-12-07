@@ -33,8 +33,8 @@ public class RoomSharingModel {
 
     public static Long sFreeForAllPref = new Long(-1);
     public static Long sNotAvailablePref = new Long(-2);
-    public static char sFreeForAllPrefChar = 'F';
-    public static char sNotAvailablePrefChar = 'X';
+    public static char sFreeForAllPrefChar = '*';
+    public static char sNotAvailablePrefChar = '#';
 
     public static Long sDefaultPref = sFreeForAllPref;
     public static char sDefaultPrefChar = sFreeForAllPrefChar;
