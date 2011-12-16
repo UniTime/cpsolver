@@ -153,7 +153,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
      */
     public static enum ConstraintType {
         /**
-         * Same Rime: Given classes must be taught at the same time of day (independent of the actual day the classes meet).
+         * Same Time: Given classes must be taught at the same time of day (independent of the actual day the classes meet).
          * For the classes of the same length, this is the same constraint as same start. For classes of different length,
          * the shorter one cannot start before, nor end after, the longer one.<BR>
          * When prohibited or (strongly) discouraged: one class may not meet on any day at a time of day that overlaps with
@@ -508,6 +508,10 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                 return gc.isEveryOtherDay(plc1, plc2, false);
             }}),
         /**
+          * At Most 5 Hours A Day: Classes are to be placed in a way that there is no more than five hours in any day.
+          */
+        MAX_HRS_DAY_5("MAX_HRS_DAY(5)", "At Most 5 Hours A Day", 60, null, Flag.MAX_HRS_DAY),        
+        /**
          * At Most 6 Hours A Day: Classes are to be placed in a way that there is no more than six hours in any day.
          */
         MAX_HRS_DAY_6("MAX_HRS_DAY(6)", "At Most 6 Hours A Day", 72, null, Flag.MAX_HRS_DAY),
@@ -539,6 +543,62 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
          * constraint that is interpreted as Same Students constraint during course timetabling.
          */
         LINKED_SECTIONS("LINKED_SECTIONS", "Linked Classes", SAME_STUDENTS.check()),
+        /**
+         * Back-To-Back Precedence: Given classes have to be taught in the given order, on the same days,
+         * and in adjacent time segments.
+         * When prohibited or (strongly) discouraged: Given classes have to be taught in the given order,
+         * on the same days, but cannot be back-to-back.
+         */
+        BTB_PRECEDENCE("BTB_PRECEDENCE", "Back-To-Back Precedence", new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return gc.isPrecedence(plc1, plc2, true) && sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray());
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return gc.isPrecedence(plc1, plc2, true) && sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray());
+            }}, Flag.BACK_TO_BACK),   
+            
+        /**
+         * Same Days-Time: Given classes must be taught at the same time of day and on the same days.
+         * It is the combination of Same Days and Same Time distribution preferences.     
+         * When prohibited or (strongly) discouraged: Any pair of classes classes cannot be taught on the same days
+         * during the same time.
+         */             
+        SAME_DAYS_TIME("SAME_D_T", "Same Days-Time", new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return sameHours(plc1.getTimeLocation().getStartSlot(), plc1.getTimeLocation().getLength(),
+                        plc2.getTimeLocation().getStartSlot(), plc2.getTimeLocation().getLength()) &&
+                        sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray());
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return !plc1.getTimeLocation().shareHours(plc2.getTimeLocation()) ||
+                        !plc1.getTimeLocation().shareDays(plc2.getTimeLocation());
+            }}),
+        /**
+         * Same Days-Room-Time: Given classes must be taught at the same time of day, on the same days and in the same room.
+         * It is the combination of Same Days, Same Time and Same Room distribution preferences.
+         * Note that this constraint is the same as Meet Together constraint, except it does not allow room sharing. In other words,
+         * it is only useful when these classes are taught during non-overlapping date patterns.
+         * When prohibited or (strongly) discouraged: Any pair of classes classes cannot be taught on the same days 
+         * during the same time in the same room.
+         */            
+        SAME_DAYS_ROOM_TIME("SAME_D_R_T", "Same Days-Room-Time", new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return sameHours(plc1.getTimeLocation().getStartSlot(), plc1.getTimeLocation().getLength(),
+                        plc2.getTimeLocation().getStartSlot(), plc2.getTimeLocation().getLength()) &&
+                        sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray()) &&
+                        plc1.sameRooms(plc2);
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return !plc1.getTimeLocation().shareHours(plc2.getTimeLocation()) ||
+                        !plc1.getTimeLocation().shareDays(plc2.getTimeLocation()) ||
+                        !plc1.sameRooms(plc2);
+            }}), 
         ;
         
         String iReference, iName;
