@@ -15,6 +15,8 @@ import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.coursett.model.TimetableModel;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.GlobalConstraint;
+import net.sf.cpsolver.ifs.model.Model;
+import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
@@ -108,6 +110,8 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
     private boolean iIsRequired;
     private boolean iIsProhibited;
     private int iLastPreference = 0;
+    private int iDayOfWeekOffset = 0;
+    private boolean iPrecedenceConsiderDatePatterns = true;
     
     /**
      * Group constraints that can be checked on pairs of classes (e.g., same room means any two classes are in the same room),
@@ -402,11 +406,11 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         PRECEDENCE("PRECEDENCE", "Precedence", new PairCheck() {
             @Override
             public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
-                return gc.isPrecedence(plc1, plc2, true);
+                return gc.isPrecedence(plc1, plc2, true, true);
             }
             @Override
             public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
-                return gc.isPrecedence(plc1, plc2, false);
+                return gc.isPrecedence(plc1, plc2, false, true);
             }}),
         /**
          * Back-To-Back Day: Classes must be offered on adjacent days and may be placed in different rooms.<BR>
@@ -552,11 +556,11 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         BTB_PRECEDENCE("BTB_PRECEDENCE", "Back-To-Back Precedence", new PairCheck() {
             @Override
             public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
-                return gc.isPrecedence(plc1, plc2, true) && sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray());
+                return gc.isPrecedence(plc1, plc2, true, false) && sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray());
             }
             @Override
             public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
-                return gc.isPrecedence(plc1, plc2, true) && sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray());
+                return gc.isPrecedence(plc1, plc2, true, false) && sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray());
             }}, Flag.BACK_TO_BACK),   
             
         /**
@@ -652,6 +656,14 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
     }
 
     public GroupConstraint() {
+    }
+    
+    @Override
+    public void setModel(Model<Lecture, Placement> model) {
+        super.setModel(model);
+        DataProperties config = ((TimetableModel)model).getProperties();
+        iDayOfWeekOffset = config.getPropertyInt("DatePattern.DayOfWeekOffset", 0);
+        iPrecedenceConsiderDatePatterns = config.getPropertyBoolean("Precedence.ConsiderDatePatterns", true);
     }
 
     @Override
@@ -997,7 +1009,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
     }
 
 
-    private boolean isPrecedence(Placement p1, Placement p2, boolean firstGoesFirst) {
+    private boolean isPrecedence(Placement p1, Placement p2, boolean firstGoesFirst, boolean considerDatePatterns) {
         int ord1 = variables().indexOf(p1.variable());
         int ord2 = variables().indexOf(p2.variable());
         TimeLocation t1 = null, t2 = null;
@@ -1018,7 +1030,23 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                 t1 = p2.getTimeLocation();
             }
         }
+        if (considerDatePatterns && iPrecedenceConsiderDatePatterns) {
+            boolean sameDatePattern = (t1.getDatePatternId() != null ? t1.getDatePatternId().equals(t2.getDatePatternId()) : t1.getWeekCode().equals(t2.getWeekCode()));
+            if (!sameDatePattern) {
+                int m1 = getFirstMeeting(t1), m2 = getFirstMeeting(t2);
+                if (m1 != m2) return m1 < m2;
+            }
+        }
         return t1.getStartSlots().nextElement() + t1.getLength() <= t2.getStartSlots().nextElement();
+    }
+    
+    private int getFirstMeeting(TimeLocation time) {
+        int idx = -1;
+        while ((idx = time.getWeekCode().nextSetBit(1 + idx)) >= 0) {
+            int dow = (idx + iDayOfWeekOffset) % 7;
+            if ((time.getDayCode() & Constants.DAY_CODES[dow]) != 0) break;
+        }
+        return idx;
     }
 
     private static boolean isBackToBackDays(TimeLocation t1, TimeLocation t2) {
