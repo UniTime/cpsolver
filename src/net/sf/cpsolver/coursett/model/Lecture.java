@@ -525,8 +525,6 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
     
     public int countCommittedStudentConflicts(Placement value) {
         int studentConflictsSum = 0;
-        if (!isSingleSection())
-            return 0;
         for (JenrlConstraint jenrl : jenrlConstraints()) {
             if (!jenrl.areStudentConflictsCommitted())
                 continue;
