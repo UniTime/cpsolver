@@ -251,6 +251,13 @@ public class TimetableXMLLoader extends TimetableLoader {
                 constraint.setType(Long.valueOf(roomEl.attributeValue("type")));
             getModel().addConstraint(constraint);
             roomConstraints.put(roomEl.attributeValue("id"), constraint);
+            
+            for (Iterator<?> j = roomEl.elementIterator("travel-time"); j.hasNext();) {
+                Element travelTimeEl = (Element)j.next();
+                getModel().getDistanceMetric().addTravelTime(constraint.getResourceId(),
+                        Long.valueOf(travelTimeEl.attributeValue("id")),
+                        Integer.valueOf(travelTimeEl.attributeValue("minutes")));
+            }
         }
 
         HashMap<String, InstructorConstraint> instructorConstraints = new HashMap<String, InstructorConstraint>();

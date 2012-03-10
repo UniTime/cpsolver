@@ -99,6 +99,10 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
         return "DistanceConstraint";
     }
     
+    public DistanceMetric getDistanceMetric() {
+        return iDistanceMetric;
+    }
+    
     
     private Map<Long, Map<Long, Integer>> iDistanceCache = new HashMap<Long, Map<Long,Integer>>();
     protected int getDistanceInMinutes(RoomLocation r1, RoomLocation r2) {
@@ -106,7 +110,7 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
         if (r1.getId().equals(r2.getId()) || r1.getIgnoreTooFar() || r2.getIgnoreTooFar())
             return 0;
         if (r1.getPosX() == null || r1.getPosY() == null || r2.getPosX() == null || r2.getPosY() == null)
-            return 60;
+            return iDistanceMetric.getMaxTravelDistanceInMinutes();
         Map<Long, Integer> other2distance = iDistanceCache.get(r1.getId());
         if (other2distance == null) {
             other2distance = new HashMap<Long, Integer>();
@@ -114,8 +118,8 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
         }
         Integer distance = other2distance.get(r2.getId());
         if (distance == null) {
-            distance = iDistanceMetric.getDistanceInMinutes(r1.getPosX(), r1.getPosY(), r2.getPosX(), r2.getPosY());
-            other2distance.put(r2.getId(), distance);
+            distance = iDistanceMetric.getDistanceInMinutes(r1.getId(), r1.getPosX(), r1.getPosY(), r2.getId(), r2.getPosX(), r2.getPosY());
+            other2distance.put(r2.getId(), distance);    
         }
         return distance;
     }

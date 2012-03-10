@@ -1881,6 +1881,10 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
                             getId(anonymize, "period", String.valueOf(period.getId()))).addAttribute("penalty",
                             String.valueOf(room.getPenalty(period)));
             }
+            Map<Long, Integer> travelTimes = getDistanceMetric().getTravelTimes().get(room.getId());
+            if (travelTimes != null)
+                for (Map.Entry<Long, Integer> time: travelTimes.entrySet())
+                    r.addElement("travel-time").addAttribute("id", getId(anonymize, "room", time.getKey().toString())).addAttribute("minutes", time.getValue().toString());
         }
         Element exams = root.addElement("exams");
         for (Exam exam : variables()) {
@@ -2183,6 +2187,12 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
                     }
                     roomsThisGrop.add(room);
                 }
+            }
+            for (Iterator<?> j = e.elementIterator("travel-time"); j.hasNext();) {
+                Element travelTimeEl = (Element)j.next();
+                getDistanceMetric().addTravelTime(room.getId(),
+                        Long.valueOf(travelTimeEl.attributeValue("id")),
+                        Integer.valueOf(travelTimeEl.attributeValue("minutes")));
             }
         }
         ArrayList<ExamPlacement> assignments = new ArrayList<ExamPlacement>();
