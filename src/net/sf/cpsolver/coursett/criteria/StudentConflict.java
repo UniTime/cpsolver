@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
+import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.constraint.JenrlConstraint;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
@@ -78,11 +79,18 @@ public class StudentConflict extends TimetablingCriterion {
         if (p1.variable().isCommitted() && p2.variable().isCommitted()) return false;
         TimeLocation t1 = p1.getTimeLocation(), t2 = p2.getTimeLocation();
         if (!t1.shareDays(t2) || !t1.shareWeeks(t2)) return false;
-        if (t1.getStartSlot() != t2.getStartSlot() + t2.getNrSlotsPerMeeting() && t2.getStartSlot() != t1.getStartSlot() + t1.getNrSlotsPerMeeting()) return false;
-        if (t1.getStartSlot() + t1.getLength() == t2.getStartSlot()) {
-            return Placement.getDistanceInMinutes(m, p1, p2) > t1.getBreakTime();
-        } else if (t2.getStartSlot() + t2.getLength() == t1.getStartSlot()) {
-            return Placement.getDistanceInMinutes(m, p1, p2) > t2.getBreakTime();
+        if (m.doComputeDistanceConflictsBetweenNonBTBClasses()) {
+            if (t1.getStartSlot() + t1.getLength() <= t2.getStartSlot()) {
+                return Placement.getDistanceInMinutes(m, p1, p2) > t1.getBreakTime() + Constants.SLOT_LENGTH_MIN * (t2.getStartSlot() - t1.getStartSlot() - t1.getLength());
+            } else if (t2.getStartSlot() + t2.getLength() <= t1.getStartSlot()) {
+                return Placement.getDistanceInMinutes(m, p1, p2) > t2.getBreakTime() + Constants.SLOT_LENGTH_MIN * (t1.getStartSlot() - t2.getStartSlot() - t2.getLength());
+            }
+        } else {
+            if (t1.getStartSlot() + t1.getLength() == t2.getStartSlot()) {
+                return Placement.getDistanceInMinutes(m, p1, p2) > t1.getBreakTime();
+            } else if (t2.getStartSlot() + t2.getLength() == t1.getStartSlot()) {
+                return Placement.getDistanceInMinutes(m, p1, p2) > t2.getBreakTime();
+            }
         }
         return false;
     }
