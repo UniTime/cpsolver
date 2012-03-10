@@ -1,6 +1,7 @@
 package net.sf.cpsolver.ifs.util;
 
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Common class for computing distances and back-to-back instructor / student conflicts.
@@ -40,7 +41,7 @@ public class DistanceMetric {
         WGS84 ("WGS-84 (GPS)", 6378137, 6356752.3142, 1.0 / 298.257223563),
         GRS80 ("GRS-80", 6378137, 6356752.3141, 1.0 / 298.257222101),
         Airy1830 ("Airy (1830)", 6377563.396, 6356256.909, 1.0 / 299.3249646),
-        Intl1924 ("Int�l 1924", 6378388, 6356911.946, 1.0 / 297),
+        Intl1924 ("Int'l 1924", 6378388, 6356911.946, 1.0 / 297),
         Clarke1880 ("Clarke (1880)", 6378249.145, 6356514.86955, 1.0 / 293.465),
         GRS67 ("GRS-67", 6378160, 6356774.719, 1.0 / 298.25);
         
@@ -89,7 +90,11 @@ public class DistanceMetric {
     private double iInstructorProhibitedLimit = 200.0;
     /** Default distance when given coordinates are null. */
     private double iNullDistance = 10000.0;
-    
+    /** Maximal travel time in minutes when no coordinates are given. */
+    private int iMaxTravelTime = 60;
+    /** Travel times overriding the distances computed from coordintaes */
+    private Map<Long, Map<Long, Integer>> iTravelTimes = new HashMap<Long, Map<Long,Integer>>();
+    /** Distance cache  */
     private HashMap<String, Double> iDistanceCache = new HashMap<String, Double>();
     
     /** Default properties */
@@ -122,6 +127,7 @@ public class DistanceMetric {
             iInstructorDiscouragedLimit = properties.getPropertyDouble("Instructor.DiscouragedLimit", 5.0);
             iInstructorProhibitedLimit = properties.getPropertyDouble("Instructor.ProhibitedLimit", 20.0);
             iNullDistance = properties.getPropertyDouble("Distances.NullDistance", 1000.0);
+            iMaxTravelTime = properties.getPropertyInt("Distances.MaxTravelDistanceInMinutes", 60);
         } else {
             iModel = Ellipsoid.valueOf(properties.getProperty("Distances.Ellipsoid", Ellipsoid.WGS84.name()));
             if (iModel == null) iModel = Ellipsoid.WGS84;
@@ -130,6 +136,7 @@ public class DistanceMetric {
             iInstructorDiscouragedLimit = properties.getPropertyDouble("Instructor.DiscouragedLimit", iInstructorDiscouragedLimit);
             iInstructorProhibitedLimit = properties.getPropertyDouble("Instructor.ProhibitedLimit", iInstructorProhibitedLimit);
             iNullDistance = properties.getPropertyDouble("Distances.NullDistance", iNullDistance);
+            iMaxTravelTime = properties.getPropertyInt("Distances.MaxTravelDistanceInMinutes", 60);
         }
     }
 
@@ -138,7 +145,10 @@ public class DistanceMetric {
         return deg * Math.PI / 180;
     }
     
-    /** Compute distance between the two given coordinates */
+    /** Compute distance between the two given coordinates
+     * @deprecated Use @{link {@link DistanceMetric#getDistanceInMeters(Long, Double, Double, Long, Double, Double)} instead (to include travel time matrix when available).
+     */
+    @Deprecated
     public double getDistanceInMeters(Double lat1, Double lon1, Double lat2, Double lon2) {
         if (lat1 == null || lat2 == null || lon1 == null || lon2 == null)
             return iNullDistance;
@@ -220,7 +230,9 @@ public class DistanceMetric {
     /**
      * Compute distance in minutes.
      * Property Distances.Speed (in meters per minute) is used to convert meters to minutes, defaults to 1000 meters per 15 minutes (that means 66.67 meters per minute).
+     * @deprecated Use @{link {@link DistanceMetric#getDistanceInMinutes(Long, Double, Double, Long, Double, Double)} instead (to include travel time matrix when available).
      */
+    @Deprecated
     public int getDistanceInMinutes(double lat1, double lon1, double lat2, double lon2) {
         return (int) Math.round(getDistanceInMeters(lat1, lon1, lat2, lon2) / iSpeed);
     }
@@ -253,7 +265,66 @@ public class DistanceMetric {
     public boolean isLegacy() {
         return iModel == Ellipsoid.LEGACY;
     }
+    
+    /** Maximal travel distance between rooms when no coordinates are given */
+    public int getMaxTravelDistanceInMinutes() {
+        return iMaxTravelTime;
+    }
 
+    /** Add travel time between two locations */
+    public void addTravelTime(Long roomId1, Long roomId2, Integer travelTimeInMinutes) {
+        if (roomId1 == null || roomId2 == null) return;
+        if (roomId1 < roomId2) {
+            Map<Long, Integer> times = iTravelTimes.get(roomId1);
+            if (times == null) { times = new HashMap<Long, Integer>(); iTravelTimes.put(roomId1, times); }
+            if (travelTimeInMinutes == null)
+                times.remove(roomId2);
+            else
+                times.put(roomId2, travelTimeInMinutes);
+        } else {
+            Map<Long, Integer> times = iTravelTimes.get(roomId2);
+            if (times == null) { times = new HashMap<Long, Integer>(); iTravelTimes.put(roomId2, times); }
+            if (travelTimeInMinutes == null)
+                times.remove(roomId1);
+            else
+                times.put(roomId1, travelTimeInMinutes);
+        }
+    }
+    
+    /** Return travel time between two locations. */
+    public Integer getTravelTimeInMinutes(Long roomId1, Long roomId2) {
+        if (roomId1 == null || roomId2 == null) return null;
+        if (roomId1 < roomId2) {
+            Map<Long, Integer> times = iTravelTimes.get(roomId1);
+            return (times == null ? null : times.get(roomId2));
+        } else {
+            Map<Long, Integer> times = iTravelTimes.get(roomId2);
+            return (times == null ? null : times.get(roomId1));
+        }
+    }
+    
+    /** Return travel time between two locations. Travel times are used when available, use coordinates otherwise. */
+    public Integer getDistanceInMinutes(Long roomId1, Double lat1, Double lon1, Long roomId2, Double lat2, Double lon2) {
+        Integer distance = getTravelTimeInMinutes(roomId1, roomId2);
+        if (distance != null) return distance;
+        
+        if (lat1 == null || lat2 == null || lon1 == null || lon2 == null)
+            return getMaxTravelDistanceInMinutes();
+        else 
+            return (int) Math.round(getDistanceInMeters(lat1, lon1, lat2, lon2) / iSpeed);
+    }
+    
+    /** Return travel distance between two locations.  Travel times are used when available, use coordinates otherwise. */
+    public double getDistanceInMeters(Long roomId1, Double lat1, Double lon1, Long roomId2, Double lat2, Double lon2) {
+        Integer distance = getTravelTimeInMinutes(roomId1, roomId2);
+        if (distance != null) return minutes2meters(distance);
+        
+        return getDistanceInMeters(lat1, lon1, lat2, lon2);
+    }
+    
+    /** Return travel times matrix */
+    public Map<Long, Map<Long, Integer>> getTravelTimes() { return iTravelTimes; }
+    
     /** Few tests */
     public static void main(String[] args) {
         System.out.println("Distance between Prague and Zlin: " + new DistanceMetric().getDistanceInMeters(50.087661, 14.420535, 49.226736, 17.668856) / 1000.0 + " km");

@@ -747,7 +747,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
             if (rc.getPosX() != null && rc.getPosY() != null) {
                 for (RoomConstraint rc2 : model.getRoomConstraints()) {
                     if (rc2.getResourceId().compareTo(rc.getResourceId()) > 0 && rc2.getPosX() != null && rc2.getPosY() != null) {
-                        double distance = ((TimetableModel)solution.getModel()).getDistanceMetric().getDistanceInMeters(rc.getPosX(), rc.getPosY(), rc2.getPosX(), rc2.getPosY());
+                        double distance = ((TimetableModel)solution.getModel()).getDistanceMetric().getDistanceInMeters(rc.getId(), rc.getPosX(), rc.getPosY(), rc2.getId(), rc2.getPosX(), rc2.getPosY());
                         totalRoomDistance += distance;
                         nrDistancePairs++;
                         maxRoomDistance = Math.max(maxRoomDistance, distance);

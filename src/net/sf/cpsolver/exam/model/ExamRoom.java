@@ -82,7 +82,7 @@ public class ExamRoom extends Constraint<Exam, ExamPlacement> {
      * @return distance between this and the given room
      */
     public double getDistanceInMeters(ExamRoom other) {
-        return ((ExamModel)getModel()).getDistanceMetric().getDistanceInMeters(getCoordX(), getCoordY(), other.getCoordX(), other.getCoordY());
+        return ((ExamModel)getModel()).getDistanceMetric().getDistanceInMeters(getId(), getCoordX(), getCoordY(), other.getId(), other.getCoordX(), other.getCoordY());
     }
 
     /**

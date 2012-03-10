@@ -537,6 +537,20 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                             .addAttribute("offering", getId("offering", offering.getId()))
                             .addAttribute("id", getId("section", section.getId()));
         }
+        
+        if (getModel().getDistanceConflict() != null) {
+            Map<Long, Map<Long, Integer>> travelTimes = getModel().getDistanceConflict().getDistanceMetric().getTravelTimes();
+            if (travelTimes != null) {
+                Element travelTimesEl = root.addElement("travel-times");
+                for (Map.Entry<Long, Map<Long, Integer>> e1: travelTimes.entrySet())
+                    for (Map.Entry<Long, Integer> e2: e1.getValue().entrySet())
+                        travelTimesEl.addElement("travel-time")
+                            .addAttribute("id1", getId("room", e1.getKey().toString()))
+                            .addAttribute("id2", getId("room", e2.getKey().toString()))
+                            .addAttribute("minutes", e2.getValue().toString());
+            }
+        }
+
 
         if (iShowNames) {
             Progress.getInstance(getModel()).save(root);

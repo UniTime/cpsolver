@@ -200,6 +200,16 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             return;
         }
         
+        if (getModel().getDistanceConflict() != null && root.element("travel-times") != null) {
+            for (Iterator<?> i = root.element("travel-times").elementIterator("travel-time"); i.hasNext();) {
+                Element travelTimeEl = (Element)i.next();
+                getModel().getDistanceConflict().getDistanceMetric().addTravelTime(
+                        Long.valueOf(travelTimeEl.attributeValue("id1")),
+                        Long.valueOf(travelTimeEl.attributeValue("id2")),
+                        Integer.valueOf(travelTimeEl.attributeValue("minutes")));
+            }
+        }
+        
         HashMap<Long, Placement> timetable = null;
         if (iTimetableFile != null) {
             sLogger.info("Reading timetable from " + iTimetableFile + " ...");
