@@ -138,9 +138,7 @@ public class RoomLocation implements Comparable<RoomLocation> {
             return 0.0;
         if (getIgnoreTooFar() || roomLocation.getIgnoreTooFar())
             return 0.0;
-        if (getPosX() == null || getPosY() == null || roomLocation.getPosX() == null || roomLocation.getPosY() == null)
-            return 10000.0;
-        return m.getDistanceInMeters(getPosX(), getPosY(), roomLocation.getPosX(), roomLocation.getPosY());
+        return m.getDistanceInMeters(getId(), getPosX(), getPosY(), roomLocation.getId(), roomLocation.getPosX(), roomLocation.getPosY());
     }
 
     public int getDistanceInMinutes(DistanceMetric m, RoomLocation roomLocation) {
@@ -148,9 +146,7 @@ public class RoomLocation implements Comparable<RoomLocation> {
             return 0;
         if (getIgnoreTooFar() || roomLocation.getIgnoreTooFar())
             return 0;
-        if (getPosX() == null || getPosY() == null || roomLocation.getPosX() == null || roomLocation.getPosY() == null)
-            return 60;
-        return m.getDistanceInMinutes(getPosX(), getPosY(), roomLocation.getPosX(), roomLocation.getPosY());
+        return  m.getDistanceInMinutes(getId(), getPosX(), getPosY(), roomLocation.getId(), roomLocation.getPosX(), roomLocation.getPosY());
     }
 
     @Override

@@ -243,6 +243,11 @@ public class TimetableXMLSaver extends TimetableSaver {
             }
             if (roomConstraint.getType() != null && iShowNames)
                 roomEl.addAttribute("type", roomConstraint.getType().toString());
+            
+            Map<Long, Integer> travelTimes = getModel().getDistanceMetric().getTravelTimes().get(roomConstraint.getResourceId());
+            if (travelTimes != null)
+                for (Map.Entry<Long, Integer> time: travelTimes.entrySet())
+                    roomEl.addElement("travel-time").addAttribute("id", getId("room", time.getKey())).addAttribute("minutes", time.getValue().toString());
         }
 
         Element instructorsEl = root.addElement("instructors");
