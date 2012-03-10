@@ -8,6 +8,7 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 
+import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.TimeLocation;
@@ -177,14 +178,26 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
         if (!t1.shareDays(t2) || !t1.shareWeeks(t2))
             return false;
         int a1 = t1.getStartSlot(), a2 = t2.getStartSlot();
-        if (a1 + t1.getNrSlotsPerMeeting() == a2) {
-            int dist = getDistanceInMinutes(s1.getPlacement(), s2.getPlacement());
-            if (dist > t1.getBreakTime())
-                return true;
-        } else if (a2 + t2.getNrSlotsPerMeeting() == a1) {
-            int dist = getDistanceInMinutes(s1.getPlacement(), s2.getPlacement());
-            if (dist > t2.getBreakTime())
-                return true;
+        if (getDistanceMetric().doComputeDistanceConflictsBetweenNonBTBClasses()) {
+            if (a1 + t1.getNrSlotsPerMeeting() <= a2) {
+                int dist = getDistanceInMinutes(s1.getPlacement(), s2.getPlacement());
+                if (dist > t1.getBreakTime() + Constants.SLOT_LENGTH_MIN * (a2 - a1 - t1.getStartSlot()))
+                    return true;
+            } else if (a2 + t2.getNrSlotsPerMeeting() <= a1) {
+                int dist = getDistanceInMinutes(s1.getPlacement(), s2.getPlacement());
+                if (dist > t2.getBreakTime() + Constants.SLOT_LENGTH_MIN * (a1 - a2 - t2.getStartSlot()))
+                    return true;
+            }
+        } else {
+            if (a1 + t1.getNrSlotsPerMeeting() == a2) {
+                int dist = getDistanceInMinutes(s1.getPlacement(), s2.getPlacement());
+                if (dist > t1.getBreakTime())
+                    return true;
+            } else if (a2 + t2.getNrSlotsPerMeeting() == a1) {
+                int dist = getDistanceInMinutes(s1.getPlacement(), s2.getPlacement());
+                if (dist > t2.getBreakTime())
+                    return true;
+            }
         }
         return false;
     }

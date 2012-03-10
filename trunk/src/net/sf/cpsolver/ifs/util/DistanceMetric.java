@@ -96,6 +96,8 @@ public class DistanceMetric {
     private Map<Long, Map<Long, Integer>> iTravelTimes = new HashMap<Long, Map<Long,Integer>>();
     /** Distance cache  */
     private HashMap<String, Double> iDistanceCache = new HashMap<String, Double>();
+    /** True if distances should be considered between classes that are NOT back-to-back */
+    private boolean iComputeDistanceConflictsBetweenNonBTBClasses = false;
     
     /** Default properties */
     public DistanceMetric() {
@@ -138,6 +140,8 @@ public class DistanceMetric {
             iNullDistance = properties.getPropertyDouble("Distances.NullDistance", iNullDistance);
             iMaxTravelTime = properties.getPropertyInt("Distances.MaxTravelDistanceInMinutes", 60);
         }
+        iComputeDistanceConflictsBetweenNonBTBClasses = properties.getPropertyBoolean(
+                "Distances.ComputeDistanceConflictsBetweenNonBTBClasses", iComputeDistanceConflictsBetweenNonBTBClasses);
     }
 
     /** Degrees to radians */
@@ -324,6 +328,14 @@ public class DistanceMetric {
     
     /** Return travel times matrix */
     public Map<Long, Map<Long, Integer>> getTravelTimes() { return iTravelTimes; }
+    
+    /**
+     * True if distances should be considered between classes that are NOT back-to-back. Distance in minutes is then 
+     * to be compared with the difference between end of the last class and start of the second class plus break time of the first class.
+     **/
+    public boolean doComputeDistanceConflictsBetweenNonBTBClasses() {
+        return iComputeDistanceConflictsBetweenNonBTBClasses;
+    }
     
     /** Few tests */
     public static void main(String[] args) {
