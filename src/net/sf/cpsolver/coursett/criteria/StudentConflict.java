@@ -63,7 +63,7 @@ public class StudentConflict extends TimetablingCriterion {
     }
     
     public DistanceMetric getMetrics() {
-        return ((TimetableModel)getModel()).getDistanceMetric();
+        return (getModel() == null ? null : ((TimetableModel)getModel()).getDistanceMetric());
     }
 
     public static boolean overlaps(Placement p1, Placement p2) {
@@ -75,6 +75,8 @@ public class StudentConflict extends TimetablingCriterion {
     }
     
     public static boolean distance(DistanceMetric m, Placement p1, Placement p2) {
+        if (m == null && p1 != null) m = ((TimetableModel)p1.variable().getModel()).getDistanceMetric();
+        if (m == null && p2 != null) m = ((TimetableModel)p2.variable().getModel()).getDistanceMetric();
         if (p1 == null || p2 == null || m == null) return false;
         if (p1.variable().isCommitted() && p2.variable().isCommitted()) return false;
         TimeLocation t1 = p1.getTimeLocation(), t2 = p2.getTimeLocation();
