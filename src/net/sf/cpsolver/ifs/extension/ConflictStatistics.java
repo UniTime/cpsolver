@@ -293,6 +293,16 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
         }
         return count;
     }
+    
+    private int countAssignments(V variable) {
+        List<Assignment<T>> assignments = iUnassignedVariables.get(variable);
+        if (assignments == null || assignments.isEmpty()) return 0;
+        int ret = 0;
+        for (Assignment<T> assignment: assignments) {
+            ret += assignment.getCounter(0);
+        }
+        return ret;
+    }
 
     @Override
     public String toString() {
@@ -300,25 +310,32 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
         TreeSet<V> sortedUnassignedVariables = new TreeSet<V>(new Comparator<V>() {
             @Override
             public int compare(V v1, V v2) {
-                int cmp = Double.compare(v1.countAssignments(), v2.countAssignments());
+                int cmp = Double.compare(countAssignments(v1), countAssignments(v2));
                 if (cmp != 0)
                     return -cmp;
                 return v1.compareTo(v2);
             }
         });
         sortedUnassignedVariables.addAll(iUnassignedVariables.keySet());
+        int printedVariables = 0;
         for (V variable : sortedUnassignedVariables) {
-            if (variable.countAssignments() < 100)
-                continue;
-            sb.append("\n      ").append(variable.countAssignments() + "x ").append(variable.getName()).append(" <= {");
+            sb.append("\n      ").append(countAssignments(variable) + "x ").append(variable.getName()).append(" <= {");
             TreeSet<Assignment<T>> sortedAssignments = new TreeSet<Assignment<T>>(
                     new Assignment.AssignmentComparator<T>(0));
             sortedAssignments.addAll(iUnassignedVariables.get(variable));
+            int printedAssignments = 0;
             for (Assignment<T> x : sortedAssignments) {
-                if (x.getCounter(0) >= 10)
-                    sb.append("\n        ").append(x.toString(0, true));
+                sb.append("\n        ").append(x.toString(0, true));
+                if (++printedAssignments == 20) {
+                    sb.append("\n        ...");
+                    break;
+                }
             }
             sb.append("\n      }");
+            if (++printedVariables == 100) {
+                sb.append("\n      ...");
+                break;
+            }
         }
         sb.append("\n    }");
         return sb.toString();
