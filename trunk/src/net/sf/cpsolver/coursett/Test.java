@@ -42,6 +42,7 @@ import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.Student;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.coursett.model.TimetableModel;
+import net.sf.cpsolver.ifs.extension.ConflictStatistics;
 import net.sf.cpsolver.ifs.extension.Extension;
 import net.sf.cpsolver.ifs.extension.MacPropagation;
 import net.sf.cpsolver.ifs.model.Constraint;
@@ -107,6 +108,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
     private PrintWriter iCSVFile = null;
 
     private MacPropagation<Lecture, Placement> iProp = null;
+    private ConflictStatistics<Lecture, Placement> iStat = null;
     private int iLastNotified = -1;
 
     private boolean initialized = false;
@@ -273,6 +275,12 @@ public class Test implements SolutionListener<Lecture, Placement> {
             out.close();
             Progress.removeInstance(model);
 
+            if (iStat != null) {
+                PrintWriter cbs = new PrintWriter(new FileWriter(new File(outDir, "cbs.txt")));
+                cbs.println(iStat.toString());
+                cbs.flush(); cbs.close();
+            }
+
             System.out.println("Unassigned variables: " + model.nrUnassignedVariables());
             System.exit(model.nrUnassignedVariables());
         } catch (Throwable t) {
@@ -311,32 +319,11 @@ public class Test implements SolutionListener<Lecture, Placement> {
             for (Extension<Lecture, Placement> extension : iSolver.getExtensions()) {
                 if (MacPropagation.class.isInstance(extension))
                     iProp = (MacPropagation<Lecture, Placement>) extension;
+                if (ConflictStatistics.class.isInstance(extension)) {
+                    iStat = (ConflictStatistics<Lecture, Placement>) extension;
+                }
             }
         }
-        /*
-         * if ((solution.getIteration()%10000)==0 && iStat!=null &&
-         * iStat.getNoGoods()!=null && !iStat.getNoGoods().isEmpty()) { try {
-         * ConflictStatisticsInfo info = new ConflictStatisticsInfo();
-         * info.load(iStat);
-         * 
-         * File outDir = new
-         * File(((TimetableModel)solution.getModel()).getProperties
-         * ().getProperty("General.Output",".")); PrintWriter pw = new
-         * PrintWriter(new
-         * FileWriter(outDir.toString()+File.separator+"cbs_"+(solution
-         * .getIteration()/1000)+"k.html"));
-         * 
-         * pw.println("<html><head>");
-         * ConflictStatisticsInfo.printHtmlHeader(pw,true);
-         * pw.println("</head><body>");
-         * info.printHtml(pw,1.00,ConflictStatisticsInfo.TYPE_CONSTRAINT_BASED,
-         * true); pw.println("<br><hr>");
-         * info.printHtml(pw,1.00,ConflictStatisticsInfo.TYPE_VARIABLE_BASED,
-         * true); pw.println("</body></html>");
-         * 
-         * pw.flush(); pw.close(); } catch (Exception e) {
-         * sLogger.error(e.getMessage(),e); } }
-         */
     }
 
     /** Add a line into the output CSV file when a enw best solution is found. */
