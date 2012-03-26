@@ -498,7 +498,7 @@ public class TimetableXMLLoader extends TimetableLoader {
                             .attributeValue("subpart", classEl.attributeValue("course", "-1"))), (classEl
                             .attributeValue("name") != null ? classEl.attributeValue("name") : "c"
                             + classEl.attributeValue("id")), timeLocations, roomLocations, Integer.parseInt(classEl
-                            .attributeValue("nrRooms", "1")), null, minClassLimit, maxClassLimit, room2limitRatio);
+                            .attributeValue("nrRooms", roomLocations.isEmpty() ? "0" : "1")), null, minClassLimit, maxClassLimit, room2limitRatio);
             lecture.setNote(classEl.attributeValue("note"));
 
             if ("true".equals(classEl.attributeValue("committed")))
