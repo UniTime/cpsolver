@@ -397,8 +397,6 @@ public class Test {
                     int sumVal2 = 0;
                     int sumTotalVal = 0;
                     int sumTotalVal2 = 0;
-                    double sumAssignPer = 0;
-                    double sumPertPer = 0;
                     for (int test = 1; test <= nrTests; test++) {
                         log.println("  " + test + ". test");
                         log.flush();
@@ -516,8 +514,6 @@ public class Test {
                         sumAssign += best.getModel().assignedVariables().size();
                         sumAssign2 += best.getModel().assignedVariables().size()
                                 * best.getModel().assignedVariables().size();
-                        sumAssignPer += 100.0 * ((double) best.getModel().assignedVariables().size() / ((double) best
-                                .getModel().variables().size()));
                         sumVal += val;
                         sumVal2 += val * val;
                         sumTotalVal += totalVal;
@@ -529,9 +525,6 @@ public class Test {
                                     .unassignedVariables().size())
                                     * (best.getModel().perturbVariables().size() + best.getModel()
                                             .unassignedVariables().size());
-                            sumPertPer += 100.0
-                                    * (best.getModel().perturbVariables().size() + best.getModel()
-                                            .unassignedVariables().size()) / best.getModel().variables().size();
                         }
                         log.flush();
                         logStat.flush();

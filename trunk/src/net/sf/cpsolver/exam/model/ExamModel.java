@@ -1687,15 +1687,6 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
         info.put("Number of Periods", String.valueOf(getPeriods().size()));
         info.put("Number of Exams", String.valueOf(variables().size()));
         info.put("Number of Rooms", String.valueOf(getRooms().size()));
-        int avail = 0, availAlt = 0;
-        for (ExamRoom room : getRooms()) {
-            for (ExamPeriod period : getPeriods()) {
-                if (room.isAvailable(period)) {
-                    avail += room.getSize();
-                    availAlt += room.getAltSize();
-                }
-            }
-        }
         info.put("Number of Students", String.valueOf(getStudents().size()));
         int nrStudentExams = 0;
         for (ExamStudent student : getStudents()) {

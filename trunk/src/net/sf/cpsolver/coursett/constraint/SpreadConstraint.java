@@ -123,13 +123,11 @@ public class SpreadConstraint extends Constraint<Lecture, Placement> implements 
         double threshold = iSpreadFactor
                 * ((double) totalUsedSlots / (Constants.NR_DAYS_WEEK * Constants.SLOTS_PER_DAY_NO_EVENINGS));
         // System.out.println("Threshold["+iDepartment+"] = "+threshold);
-        int totalAvailableSlots = 0;
         for (int i = 0; i < Constants.SLOTS_PER_DAY_NO_EVENINGS; i++) {
             // System.out.println("  "+fmt(i+1)+": "+fmt(histogramPerDay[i]));
             for (int j = 0; j < Constants.NR_DAYS_WEEK; j++) {
                 iMaxCourses[i][j] = (int) (0.999 + (histogramPerDay[i][j] <= threshold ? iSpreadFactor
                         * histogramPerDay[i][j] : histogramPerDay[i][j]));
-                totalAvailableSlots += iMaxCourses[i][j];
             }
         }
         for (Lecture lecture : variables()) {
