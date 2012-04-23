@@ -78,7 +78,6 @@ public class Test {
                 int sumVal = 0;
                 int sumVal2 = 0;
                 int sumVar = 0;
-                int sumVar2 = 0;
                 for (int test = 1; test <= nrTests; test++) {
                     if (nrResources >= 0) {
                         properties.setProperty("Generator.NrRooms", String.valueOf(nrResources));
@@ -166,7 +165,6 @@ public class Test {
                     sumVal += val;
                     sumVal2 += val * val;
                     sumVar += m.variables().size();
-                    sumVar2 += m.variables().size() * m.variables().size();
                     logStat.flush();
                 }
                 logAvgStat.println(sDoubleFormat.format(properties.getPropertyDouble("Generator.FillFactor", 0.0))

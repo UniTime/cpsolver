@@ -708,7 +708,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
         double totalRoomDistance = 0.0;
         int[] totalAvailableSlots = new int[sizeLimits.length];
         int[] totalAvailableSeats = new int[sizeLimits.length];
-        int totalAllSlots = 0, nrOfRooms = 0;
+        int nrOfRooms = 0;
         totalRoomSize = 0;
         for (RoomConstraint rc : model.getRoomConstraints()) {
             if (!rc.getConstraint() || rc.variables().isEmpty())
@@ -743,7 +743,6 @@ public class Test implements SolutionListener<Lecture, Placement> {
             }
             for (int d = 0; d < Constants.NR_DAYS_WEEK; d++) {
                 for (int t = Constants.DAY_SLOTS_FIRST; t <= Constants.DAY_SLOTS_LAST; t++) {
-                    totalAllSlots++;
                     if (rc.isAvailable(d * Constants.SLOTS_PER_DAY + t)) {
                         for (int l = 0; l < sizeLimits.length; l++) {
                             if (sizeLimits[l] <= rc.getCapacity()) {
@@ -780,15 +779,9 @@ public class Test implements SolutionListener<Lecture, Placement> {
         }
         pw.println("Average hours available: "
                 + sDoubleFormat.format(1.0 * totalAvailableSlots[0] / model.getRoomConstraints().size() / 12.0));
-        totalAllSlots = 0;
         int totalInstructedClasses = 0;
         for (InstructorConstraint ic : model.getInstructorConstraints()) {
             totalInstructedClasses += ic.variables().size();
-            for (int d = 0; d < Constants.NR_DAYS_WEEK; d++) {
-                for (int t = Constants.DAY_SLOTS_FIRST; t <= Constants.DAY_SLOTS_LAST; t++) {
-                    totalAllSlots++;
-                }
-            }
         }
         pw.println("Total number of instructors: " + model.getInstructorConstraints().size());
         pwi.println("Number of instructors," + model.getInstructorConstraints().size());
@@ -965,12 +958,12 @@ public class Test implements SolutionListener<Lecture, Placement> {
                 double grPref = 0;
                 minGrPref = 0;
                 maxGrPref = 0;
-                long allSC = 0, hardSC = 0, distSC = 0, comSC = 0;
+                long allSC = 0, hardSC = 0, distSC = 0;
                 int instPref = 0;
                 worstInstrPref = 0;
                 int spreadPen = 0, deptSpreadPen = 0;
                 int tooBigRooms = 0;
-                int rcs = 0, uselessSlots = 0, uselessSlotsHH = 0, uselessSlotsBTP = 0;
+                int rcs = 0, uselessSlots = 0;
                 used = new HashSet<Constraint<Lecture, Placement>>();
                 for (Lecture lecture : vars) {
                     if (lecture.isCommitted())
@@ -979,7 +972,6 @@ public class Test implements SolutionListener<Lecture, Placement> {
                     Placement placement = lecture.getAssignment();
                     if (placement != null) {
                         nrAssg++;
-                        comSC += lecture.getCommitedConflicts(placement);
                     }
 
                     int[] minMaxRoomPref = lecture.getMinMaxRoomPreference();
@@ -1044,8 +1036,6 @@ public class Test implements SolutionListener<Lecture, Placement> {
                         if (c instanceof RoomConstraint) {
                             RoomConstraint rc = (RoomConstraint) c;
                             uselessSlots += UselessHalfHours.countUselessSlotsHalfHours(rc) + BrokenTimePatterns.countUselessSlotsBrokenTimePatterns(rc);
-                            uselessSlotsHH += UselessHalfHours.countUselessSlotsHalfHours(rc);
-                            uselessSlotsBTP += BrokenTimePatterns.countUselessSlotsBrokenTimePatterns(rc);
                             rcs++;
                         }
                     }
