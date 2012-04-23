@@ -44,7 +44,6 @@ public class RoomConstraint extends Constraint<Lecture, Placement> {
     private List<Placement>[] iResource;
     private Long iResourceId;
     private String iName;
-    private long iPreference = 0;
     private Long iBuildingId;
     private int iCapacity = 0;
     private List<Placement>[] iAvailable = null;
@@ -251,7 +250,6 @@ public class RoomConstraint extends Constraint<Lecture, Placement> {
         super.assigned(iteration, placement);
         if (!placement.hasRoomLocation(getResourceId()))
             return;
-        iPreference += placement.getRoomLocation(getResourceId()).getPreference();
         for (Enumeration<Integer> e = placement.getTimeLocation().getSlots(); e.hasMoreElements();) {
             int slot = e.nextElement();
             iResource[slot].add(placement);
@@ -269,7 +267,6 @@ public class RoomConstraint extends Constraint<Lecture, Placement> {
         super.unassigned(iteration, placement);
         if (!placement.hasRoomLocation(getResourceId()))
             return;
-        iPreference -= placement.getRoomLocation(getResourceId()).getPreference();
         for (Enumeration<Integer> e = placement.getTimeLocation().getSlots(); e.hasMoreElements();) {
             int slot = e.nextElement();
             iResource[slot].remove(placement);

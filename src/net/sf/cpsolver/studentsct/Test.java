@@ -919,9 +919,7 @@ public class Test {
                     sLog.debug("Loading " + file + " ...");
                     BufferedReader in = new BufferedReader(new FileReader(file));
                     String line;
-                    int lineIndex = 0;
                     while ((line = in.readLine()) != null) {
-                        lineIndex++;
                         if (line.length() < 55)
                             continue;
                         char code = line.charAt(12);

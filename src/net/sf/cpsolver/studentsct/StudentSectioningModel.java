@@ -73,7 +73,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
     private DistanceConflict iDistanceConflict = null;
     private TimeOverlapsCounter iTimeOverlaps = null;
     private int iNrDummyStudents = 0, iNrDummyRequests = 0, iNrAssignedDummyRequests = 0, iNrCompleteDummyStudents = 0;
-    private double iTotalWeight = 0.0, iTotalDummyWeight = 0.0, iAssignedWeight = 0.0, iAssignedDummyWeight = 0.0;
+    private double iTotalDummyWeight = 0.0;
     private double iTotalCRWeight = 0.0, iTotalDummyCRWeight = 0.0, iAssignedCRWeight = 0.0, iAssignedDummyCRWeight = 0.0;
     private double iReservedSpace = 0.0, iTotalReservedSpace = 0.0;
     private StudentWeights iStudentWeights = null;
@@ -197,7 +197,6 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
     @Override
     public void addVariable(Request request) {
         super.addVariable(request);
-        iTotalWeight += request.getWeight();
         if (request instanceof CourseRequest)
             iTotalCRWeight += request.getWeight();
         if (request.getStudent().isDummy()) {
@@ -212,15 +211,14 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
      * Recompute cached request weights
      */
     public void requestWeightsChanged() {
-        iTotalWeight = 0.0; iTotalCRWeight = 0.0;
+        iTotalCRWeight = 0.0;
         iTotalDummyWeight = 0.0; iTotalDummyCRWeight = 0.0;
-        iAssignedWeight = 0.0; iAssignedCRWeight = 0.0;
-        iAssignedDummyWeight = 0.0; iAssignedDummyCRWeight = 0.0;
+        iAssignedCRWeight = 0.0;
+        iAssignedDummyCRWeight = 0.0;
         iNrDummyRequests = 0; iNrAssignedDummyRequests = 0;
         iTotalReservedSpace = 0.0; iReservedSpace = 0.0;
         for (Request request: variables()) {
             boolean cr = (request instanceof CourseRequest);
-            iTotalWeight += request.getWeight();
             if (cr)
                 iTotalCRWeight += request.getWeight();
             if (request.getStudent().isDummy()) {
@@ -230,7 +228,6 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
                     iTotalDummyCRWeight += request.getWeight();
             }
             if (request.getAssignment() != null) {
-                iAssignedWeight += request.getWeight();
                 if (cr)
                     iAssignedCRWeight += request.getWeight();
                 if (request.getAssignment().getReservation() != null)
@@ -239,7 +236,6 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
                     iTotalReservedSpace += request.getWeight();
                 if (request.getStudent().isDummy()) {
                     iNrAssignedDummyRequests ++;
-                    iAssignedDummyWeight += request.getWeight();
                     if (cr)
                         iAssignedDummyCRWeight += request.getWeight();
                 }
@@ -286,7 +282,6 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
             if (request instanceof CourseRequest)
                 iTotalDummyCRWeight -= request.getWeight();
         }
-        iTotalWeight -= request.getWeight();
         if (request instanceof CourseRequest)
             iTotalCRWeight -= request.getWeight();
     }
@@ -437,7 +432,6 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         double value = enrollment.getRequest().getWeight() * iStudentWeights.getWeight(enrollment);
         iTotalValue -= value;
         enrollment.setExtra(value);
-        iAssignedWeight += enrollment.getRequest().getWeight();
         if (enrollment.isCourseRequest())
             iAssignedCRWeight += enrollment.getRequest().getWeight();
         if (enrollment.getReservation() != null)
@@ -446,7 +440,6 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
             iTotalReservedSpace += enrollment.getRequest().getWeight();
         if (student.isDummy()) {
             iNrAssignedDummyRequests++;
-            iAssignedDummyWeight += enrollment.getRequest().getWeight();
             if (enrollment.isCourseRequest())
                 iAssignedDummyCRWeight += enrollment.getRequest().getWeight();
             if (student.isComplete())
@@ -472,7 +465,6 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
             value = enrollment.getRequest().getWeight() * iStudentWeights.getWeight(enrollment);
         iTotalValue += value;
         enrollment.setExtra(null);
-        iAssignedWeight -= enrollment.getRequest().getWeight();
         if (enrollment.isCourseRequest())
             iAssignedCRWeight -= enrollment.getRequest().getWeight();
         if (enrollment.getReservation() != null)
@@ -481,7 +473,6 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
             iTotalReservedSpace -= enrollment.getRequest().getWeight();
         if (student.isDummy()) {
             iNrAssignedDummyRequests--;
-            iAssignedDummyWeight -= enrollment.getRequest().getWeight();
             if (enrollment.isCourseRequest())
                 iAssignedDummyCRWeight -= enrollment.getRequest().getWeight();
         }
