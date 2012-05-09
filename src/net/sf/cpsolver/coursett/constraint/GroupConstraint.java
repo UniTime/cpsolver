@@ -855,6 +855,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                     Placement sameAssignment = sameAssignments.get(0);
                     for (Constraint<Lecture, Placement> other: lecture.hardConstraints()) {
                         if (other.equals(this)) continue;
+                        if (other instanceof GroupConstraint && ((GroupConstraint)other).getType() == ConstraintType.MEET_WITH) continue;
                         other.computeConflicts(sameAssignment, conflicts);
                         if (conflicts.contains(value)) return;
                         if (conflicts.contains(sameAssignment)) {
