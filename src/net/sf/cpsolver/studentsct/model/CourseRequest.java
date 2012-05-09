@@ -317,7 +317,7 @@ public class CourseRequest extends Request {
                     if (!(mustHaveReservation || mustHaveConfigReservation || mustHaveSectionReservation) &&
                         !(availableOnly && config.getOffering().getUnreservedSpace(this) < getWeight()) &&
                         !reservationMustBeUsed) {
-                        enrollments.add(new Enrollment(this, 1 + priority, null, config, new HashSet<Assignment>(sections), null));
+                        enrollments.add(new Enrollment(this, (getReservations(course).isEmpty() ? 0 : 1) + priority, null, config, new HashSet<Assignment>(sections), null));
                     }
                 }
             }
