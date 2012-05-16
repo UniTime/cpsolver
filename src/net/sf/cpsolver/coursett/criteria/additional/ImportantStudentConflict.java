@@ -1,24 +1,21 @@
 package net.sf.cpsolver.coursett.criteria.additional;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
+import net.sf.cpsolver.coursett.constraint.JenrlConstraint;
 import net.sf.cpsolver.coursett.criteria.StudentConflict;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
+import net.sf.cpsolver.coursett.model.Student;
 import net.sf.cpsolver.ifs.criteria.Criterion;
-import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
  * Important student conflicts. Some student conflicts can be counted differently,
- * using Comparator.ImportantStudentConflictWeight. "Important" conflicts are
- * between two classes that are managed by one of the schedulers (managing departments)
- * given by General.ImportantSchedulers parameter (comma separated list of department
- * ids).
- * .  
+ * using Comparator.ImportantStudentConflictWeight. Importance of a conflict is
+ * defined by the student - offering request priority {@link Student#getPriority(Long)}.
+ *   
  * <br>
  * 
  * @version CourseTT 1.2 (University Course Timetabling)<br>
@@ -41,18 +38,26 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class ImportantStudentConflict extends StudentConflict {
-    private Set<Long> iImportantOwners = new HashSet<Long>();
     
     @Override
-    public boolean init(Solver<Lecture, Placement> solver) {
-        for (Long id: solver.getProperties().getPropertyLongArry("General.ImportantSchedulers", new Long[] {}))
-            iImportantOwners.add(id);
-        return super.init(solver);
+    protected double jointEnrollment(JenrlConstraint jenrl) {
+        return jenrl.priority();
     }
-
+    
     @Override
-    public boolean isApplicable(Lecture l1, Lecture l2) {
-        return iImportantOwners.contains(l1.getScheduler()) && iImportantOwners.contains(l2.getScheduler());
+    public boolean inConflict(Placement p1, Placement p2) {
+        return super.inConflict(p1, p2) && important(p1, p2); 
+    }
+    
+    public boolean important(Placement p1, Placement p2) {
+        JenrlConstraint jenrl = (p1 == null || p2 == null ? null : p1.variable().jenrlConstraint(p2.variable()));
+        return jenrl != null && jenrl.priority() > 0.0; 
+    }
+    
+    @Override
+    public void incJenrl(JenrlConstraint jenrl, double studentWeight, Double conflictPriority) {
+        if (super.inConflict(jenrl.first().getAssignment(), jenrl.second().getAssignment()) && conflictPriority != null)
+            iValue += studentWeight * conflictPriority;
     }
     
     @Override
@@ -73,7 +78,7 @@ public class ImportantStudentConflict extends StudentConflict {
         if (conf > 0.0) {
             Criterion<Lecture, Placement> c = getModel().getCriterion(ImportantStudentHardConflict.class);
             double hard = (c == null ? 0.0 : c.getValue());
-            info.put("Important student conflicts", Math.round(conf) + (hard > 0.0 ? " [hard: " + Math.round(hard) + "]" : ""));
+            info.put("Important student conflicts", sDoubleFormat.format(conf) + (hard > 0.0 ? " [hard: " + sDoubleFormat.format(hard) + "]" : ""));
         }
     }
     
@@ -84,9 +89,8 @@ public class ImportantStudentConflict extends StudentConflict {
         if (conf > 0.0) {
             Criterion<Lecture, Placement> c = getModel().getCriterion(ImportantStudentHardConflict.class);
             double hard = (c == null ? 0.0 : c.getValue(variables));
-            info.put("Important student conflicts", Math.round(conf) + (hard > 0.0 ? " [hard: " + Math.round(hard) + "]" : ""));
+            info.put("Important student conflicts", sDoubleFormat.format(conf) + (hard > 0.0 ? " [hard: " + sDoubleFormat.format(hard) + "]" : ""));
         }
     }
-
 
 }

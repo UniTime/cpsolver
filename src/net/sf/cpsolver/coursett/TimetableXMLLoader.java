@@ -644,7 +644,8 @@ public class TimetableXMLLoader extends TimetableLoader {
             for (Iterator<?> i2 = studentEl.elementIterator("offering"); i2.hasNext();) {
                 Element ofEl = (Element) i2.next();
                 Long offeringId = Long.valueOf(ofEl.attributeValue("id"));
-                student.addOffering(offeringId, Double.parseDouble(ofEl.attributeValue("weight", "1.0")));
+                String priority = ofEl.attributeValue("priority");
+                student.addOffering(offeringId, Double.parseDouble(ofEl.attributeValue("weight", "1.0")), priority == null ? null : Double.valueOf(priority));
                 Set<Student> studentsThisOffering = offering2students.get(offeringId);
                 if (studentsThisOffering == null) {
                     studentsThisOffering = new HashSet<Student>();
