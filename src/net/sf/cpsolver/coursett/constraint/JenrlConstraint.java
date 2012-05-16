@@ -44,6 +44,7 @@ import net.sf.cpsolver.ifs.util.ToolBox;
 
 public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> {
     private double iJenrl = 0.0;
+    private double iPriority = 0.0;
     private int iNrStrudents = 0;
     private boolean iAdded = false;
 
@@ -123,11 +124,14 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> {
      * sectioning)
      */
     public void incJenrl(Student student) {
-        iJenrl += student.getJenrlWeight(first(), second());
+        double jenrlWeight = student.getJenrlWeight(first(), second());
+        iJenrl += jenrlWeight;
+        Double conflictPriority = student.getConflictingPriorty(first(), second());
+        if (conflictPriority != null) iPriority += conflictPriority * jenrlWeight;
         iNrStrudents++;
         for (Criterion<Lecture, Placement> criterion: getModel().getCriteria())
             if (criterion instanceof StudentConflict)
-                ((StudentConflict)criterion).incJenrl(this, student.getJenrlWeight(first(), second()));
+                ((StudentConflict)criterion).incJenrl(this, jenrlWeight, conflictPriority);
     }
 
     public double getJenrlWeight(Student student) {
@@ -139,11 +143,14 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> {
      * sectioning)
      */
     public void decJenrl(Student student) {
-        iJenrl -= student.getJenrlWeight(first(), second());
+        double jenrlWeight = student.getJenrlWeight(first(), second());
+        iJenrl -= jenrlWeight;
+        Double conflictPriority = student.getConflictingPriorty(first(), second());
+        if (conflictPriority != null) iPriority -= conflictPriority * jenrlWeight;
         iNrStrudents--;
         for (Criterion<Lecture, Placement> criterion: getModel().getCriteria())
             if (criterion instanceof StudentConflict)
-                ((StudentConflict)criterion).incJenrl(this, - student.getJenrlWeight(first(), second()));
+                ((StudentConflict)criterion).incJenrl(this, -jenrlWeight, conflictPriority);
     }
 
     /** Number of joined enrollments (during student final sectioning) */
@@ -153,6 +160,10 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> {
 
     public double jenrl() {
         return iJenrl;
+    }
+
+    public double priority() {
+        return iPriority;
     }
 
     public int getNrStudents() {
