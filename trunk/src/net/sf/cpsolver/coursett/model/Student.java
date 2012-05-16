@@ -41,13 +41,19 @@ public class Student implements Comparable<Student> {
     HashMap<Student, Double> iDistanceCache = null;
     HashSet<Placement> iCommitedPlacements = null;
     private String iAcademicArea = null, iAcademicClassification = null, iMajor = null, iCurriculum = null;
+    HashMap<Long, Double> iOfferingPriority = new HashMap<Long, Double>();
 
     public Student(Long studentId) {
         iStudentId = studentId;
     }
 
-    public void addOffering(Long offeringId, double weight) {
+    public void addOffering(Long offeringId, double weight, Double priority) {
         iOfferings.put(offeringId, weight);
+        if (priority != null) iOfferingPriority.put(offeringId, priority);
+    }
+    
+    public void addOffering(Long offeringId, double weight) {
+        addOffering(offeringId, weight, null);
     }
 
     public Map<Long, Double> getOfferingsMap() {
@@ -60,6 +66,29 @@ public class Student implements Comparable<Student> {
 
     public boolean hasOffering(Long offeringId) {
         return iOfferings.containsKey(offeringId);
+    }
+    
+    /**
+     * Priority of an offering (for the student). Null if not used, or between
+     * zero (no priority) and one (highest priority)
+     */
+    public Double getPriority(Long offeringId) {
+        return offeringId == null ? null : iOfferingPriority.get(offeringId);
+    }
+    
+    public Double getPriority(Configuration configuration) {
+        return configuration == null ? null : getPriority(configuration.getOfferingId());
+    }
+    
+    public Double getPriority(Lecture lecture) {
+        return lecture == null ? null : getPriority(lecture.getConfiguration());
+    }
+    
+    public Double getConflictingPriorty(Lecture l1, Lecture l2) {
+        // Conflicting priority is the lower of the two priorities
+        Double p1 = getPriority(l1);
+        Double p2 = getPriority(l2);
+        return p1 == null ? null : p2 == null ? null : Math.min(p1, p2);
     }
 
     public double getOfferingWeight(Configuration configuration) {

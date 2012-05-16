@@ -128,7 +128,7 @@ public class StudentConflict extends TimetablingCriterion {
     public boolean inConflict(Placement p1, Placement p2) {
         return (overlaps(p1, p2) || distance(getMetrics(), p1, p2)) && isApplicable(p1.variable(), p2.variable());
     }
-
+    
     @Override
     public double getValue(Placement value, Set<Placement> conflicts) {
         double ret = 0.0;
@@ -191,7 +191,7 @@ public class StudentConflict extends TimetablingCriterion {
         return bounds;
     }
     
-    public void incJenrl(JenrlConstraint jenrl, double studentWeight) {
+    public void incJenrl(JenrlConstraint jenrl, double studentWeight, Double conflictPriority) {
         if (inConflict(jenrl.first().getAssignment(), jenrl.second().getAssignment()))
             iValue += studentWeight;
     }

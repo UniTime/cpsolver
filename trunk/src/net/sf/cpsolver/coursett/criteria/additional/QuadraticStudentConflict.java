@@ -54,7 +54,7 @@ public class QuadraticStudentConflict extends StudentConflict {
     }
     
     @Override
-    public void incJenrl(JenrlConstraint jenrl, double studentWeight) {
+    public void incJenrl(JenrlConstraint jenrl, double studentWeight, Double conflictPriority) {
         if (inConflict(jenrl.first().getAssignment(), jenrl.second().getAssignment())) {
             iValue += (jenrl.jenrl() * jenrl.jenrl()) - (jenrl.jenrl() - studentWeight) * (jenrl.jenrl() - studentWeight);
         }

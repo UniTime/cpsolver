@@ -528,6 +528,9 @@ public class TimetableXMLSaver extends TimetableSaver {
                         .addAttribute("id", getId("offering", offeringId.toString()));
                 if (weight.doubleValue() != 1.0)
                     offEl.addAttribute("weight", sStudentWeightFormat.format(weight));
+                Double priority = student.getPriority(offeringId);
+                if (priority != null)
+                    offEl.addAttribute("priority", priority.toString());
             }
             if (iExportStudentSectioning || getModel().unassignedVariables().isEmpty()
                     || student.getOfferingsMap().isEmpty()) {
