@@ -1,5 +1,6 @@
 package net.sf.cpsolver.coursett.constraint;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import net.sf.cpsolver.coursett.criteria.StudentConflict;
@@ -45,7 +46,7 @@ import net.sf.cpsolver.ifs.util.ToolBox;
 public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> {
     private double iJenrl = 0.0;
     private double iPriority = 0.0;
-    private int iNrStrudents = 0;
+    private Set<Student> iStudents = new HashSet<Student>();
     private boolean iAdded = false;
 
     /**
@@ -128,7 +129,7 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> {
         iJenrl += jenrlWeight;
         Double conflictPriority = student.getConflictingPriorty(first(), second());
         if (conflictPriority != null) iPriority += conflictPriority * jenrlWeight;
-        iNrStrudents++;
+        iStudents.add(student);
         for (Criterion<Lecture, Placement> criterion: getModel().getCriteria())
             if (criterion instanceof StudentConflict)
                 ((StudentConflict)criterion).incJenrl(this, jenrlWeight, conflictPriority);
@@ -147,7 +148,7 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> {
         iJenrl -= jenrlWeight;
         Double conflictPriority = student.getConflictingPriorty(first(), second());
         if (conflictPriority != null) iPriority -= conflictPriority * jenrlWeight;
-        iNrStrudents--;
+        iStudents.remove(student);
         for (Criterion<Lecture, Placement> criterion: getModel().getCriteria())
             if (criterion instanceof StudentConflict)
                 ((StudentConflict)criterion).incJenrl(this, -jenrlWeight, conflictPriority);
@@ -167,7 +168,11 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> {
     }
 
     public int getNrStudents() {
-        return iNrStrudents;
+        return iStudents.size();
+    }
+    
+    public Set<Student> getStudents() {
+        return iStudents;
     }
 
     @Override
