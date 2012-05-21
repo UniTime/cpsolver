@@ -78,7 +78,6 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
     private java.util.List<Lecture> iSameSubpartLectures = null;
     private Configuration iParentConfiguration = null;
 
-    private HashMap<Lecture, Set<Student>> iSameStudents = new HashMap<Lecture, Set<Student>>(10);
     private Set<JenrlConstraint> iActiveJenrls = new HashSet<JenrlConstraint>();
     private List<JenrlConstraint> iJenrlConstraints = new ArrayList<JenrlConstraint>();
     private HashMap<Lecture, JenrlConstraint> iJenrlConstraintsHash = new HashMap<Lecture, JenrlConstraint>();
@@ -220,7 +219,6 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
             return;
         if (getAssignment() != null && getModel() != null)
             getModel().getCriterion(StudentCommittedConflict.class).inc(student.countConflictPlacements(getAssignment()));
-        iSameStudents.clear();
         iCommitedConflicts.clear();
     }
 
@@ -230,7 +228,6 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         if (getAssignment() != null && getModel() != null)
             if (getAssignment() != null && getModel() != null)
                 getModel().getCriterion(StudentCommittedConflict.class).inc(-student.countConflictPlacements(getAssignment()));
-        iSameStudents.clear();
         iCommitedConflicts.clear();
     }
 
@@ -251,12 +248,8 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
 
     /** List of students enrolled in this class as well as in the given class */
     public Set<Student> sameStudents(Lecture lecture) {
-        if (iSameStudents.containsKey(lecture))
-            return iSameStudents.get(lecture);
-        Set<Student> ret = new HashSet<Student>(students());
-        ret.retainAll(lecture.students());
-        iSameStudents.put(lecture, ret);
-        return ret;
+        JenrlConstraint jenrl = jenrlConstraint(lecture);
+        return (jenrl == null ? new HashSet<Student>() : jenrl.getStudents());
     }
 
     /** List of students of this class in conflict with the given assignment */

@@ -165,7 +165,7 @@ public class StudentConflict extends TimetablingCriterion {
                     ret += jointEnrollment(jenrl);
             }
         }
-        return Math.round(ret);
+        return ret;
     }
 
     @Override
@@ -194,5 +194,11 @@ public class StudentConflict extends TimetablingCriterion {
     public void incJenrl(JenrlConstraint jenrl, double studentWeight, Double conflictPriority) {
         if (inConflict(jenrl.first().getAssignment(), jenrl.second().getAssignment()))
             iValue += studentWeight;
+    }
+    
+    @Override
+    public void bestRestored() {
+        super.bestRestored();
+        iValue = getValue(getModel().variables());
     }
 }
