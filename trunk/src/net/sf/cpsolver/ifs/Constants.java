@@ -25,9 +25,9 @@ package net.sf.cpsolver.ifs;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class Constants {
-    protected static final String VERSION = "1.2";
-    protected static final int BLD_NUMBER = -1;
-    protected static final String REL_DATE = "Unknown";
+    protected static final String VERSION = "${project.version}";
+    protected static final String BLD_NUMBER = "${build.number}";
+    protected static final String REL_DATE = "${build.date}";
 
     /**
      * Version
@@ -39,7 +39,7 @@ public class Constants {
     /**
      * Build number
      */
-    public static int getBuildNumber() {
+    public static String getBuildNumber() {
         return BLD_NUMBER;
     }
 
