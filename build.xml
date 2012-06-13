@@ -54,18 +54,20 @@
             <fileset dir="${src.dir}" includes="**/*.java"/>
         </copy>
         <replace file="${build.dir}/net/sf/cpsolver/ifs/Constants.java">
-            <replacetoken>int BLD_NUMBER = -1</replacetoken>
-            <replacevalue>int BLD_NUMBER = @build.number@</replacevalue>
+            <replacetoken>${build.number}</replacetoken>
+            <replacevalue>@build.number@</replacevalue>
         </replace>
         <replace file="${build.dir}/net/sf/cpsolver/ifs/Constants.java">
-            <replacetoken>String REL_DATE = "Unknown"</replacetoken>
-            <replacevalue>String REL_DATE = "@build.date@"</replacevalue>
+            <replacetoken>${build.date}</replacetoken>
+            <replacevalue>@build.date@</replacevalue>
         </replace>
-        <replace file="${build.dir}/net/sf/cpsolver/ifs/Constants.java" propertyFile="build.date">
-            <replacefilter token="@build.date@" property="build.date"/>
+        <replace file="${build.dir}/net/sf/cpsolver/ifs/Constants.java">
+            <replacetoken>${project.version}</replacetoken>
+            <replacevalue>1.2</replacevalue>
         </replace>
         <replace file="${build.dir}/net/sf/cpsolver/ifs/Constants.java" propertyFile="build.date">
             <replacefilter token="@build.number@" property="build.number"/>
+            <replacefilter token="@build.date@" property="build.date"/>
         </replace>
         <path id="build.classpath">
             <fileset dir="${lib.dir}">
