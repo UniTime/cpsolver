@@ -17,17 +17,15 @@
 	Lesser General Public License for more details.
 
 	You should have received a copy of the GNU Lesser General Public
-	License along with this library; if not see <http://www.gnu.org/licenses/>.
+	License along with this library; if not see <http://www.gnu.org/licenses />.
 -->
-<project
-	xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
 	
 	<groupId>org.unitime</groupId>
 	<artifactId>cpsolver</artifactId>
-	<version>1.2-SNAPSHOT</version>
+	<version>1.2.84</version>
 	<packaging>jar</packaging>
 	
 	<name>CPSolver</name>
@@ -76,9 +74,9 @@
 	</dependencies>
 	
 	<scm>
-		<connection>scm:svn:http://cpsolver.googlecode.com/svn/trunk/</connection>
-		<developerConnection>scm:svn:https://cpsolver.googlecode.com/svn/trunk/</developerConnection>
-		<url>http://code.google.com/p/cpsolver/source</url>
+		<connection>scm:svn:http://cpsolver.googlecode.com/svn/tags/cpsolver-1.2.84</connection>
+		<developerConnection>scm:svn:https://cpsolver.googlecode.com/svn/tags/cpsolver-1.2.84</developerConnection>
+		<url>http://code.google.com/p/cpsolver/source/tags/cpsolver-1.2.84</url>
 	</scm>
 	
 	<build>
@@ -101,7 +99,7 @@
 				</excludes>
 			</resource>
 			<resource>
-				<directory></directory>
+				<directory />
 				<includes>
 					<include>lgpl.txt</include>
 				</includes>
@@ -279,9 +277,9 @@
 						<configuration>
 							<exportAntProperties>true</exportAntProperties>
 							<tasks>
-								<buildnumber/>
+								<buildnumber />
 								<tstamp>
-									<format property="build.date" pattern="EEE, d MMM yyyy" locale="en"/>
+									<format property="build.date" pattern="EEE, d MMM yyyy" locale="en" />
 								</tstamp>
 							</tasks>
 						</configuration>
