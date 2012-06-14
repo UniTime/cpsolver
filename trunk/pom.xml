@@ -25,23 +25,40 @@
 
 	<modelVersion>4.0.0</modelVersion>
 	
-	<groupId>org.unitime.cpsolver</groupId>
+	<groupId>org.unitime</groupId>
 	<artifactId>cpsolver</artifactId>
-	<version>1.2</version>
+	<version>1.2-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	
 	<name>CPSolver</name>
 	<url>http://code.google.com/p/cpsolver</url>
+	<description>
+		The constraint solver library contains a local search based framework that allows
+		modeling of a problem using constraint programming primitives (variables, values, constraints).
+	</description>
 	
 	<organization>
 		<name>UniTime LLC</name>
 		<url>http://www.unitime.org</url>
 	</organization>
 	
+	<developers>
+		<developer>
+			<id>muller</id>
+			<name>Tomas Muller</name>
+			<email>muller@unitime.org</email>
+			<url>http://muller.unitime.org</url>
+			<roles>
+				<role>owner</role>
+			</roles>
+		</developer>
+	</developers>
+	
 	<licenses>
 		<license>
 			<name>GNU Lesser General Public License, Version 3</name>
 			<url>http://www.gnu.org/licenses/lgpl.html</url>
+			<distribution>repo</distribution>
 		</license>
 	</licenses>
 	
@@ -59,14 +76,14 @@
 	</dependencies>
 	
 	<scm>
-		<url>scm:svn:http://code.google.com/p/cpsolver/source</url>
 		<connection>scm:svn:http://cpsolver.googlecode.com/svn/trunk/</connection>
 		<developerConnection>scm:svn:https://cpsolver.googlecode.com/svn/trunk/</developerConnection>
+		<url>http://code.google.com/p/cpsolver/source</url>
 	</scm>
 	
 	<build>
 		<directory>dist</directory>
-		<finalName>${project.artifactId}-${project.version}.${build.number}</finalName>
+		<finalName>${project.artifactId}-${project.version}</finalName>
 		<resources>
 			<resource>
 				<directory>src</directory>
@@ -290,6 +307,13 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 	
+	<parent>
+		<groupId>org.sonatype.oss</groupId>
+		<artifactId>oss-parent</artifactId>
+		<version>7</version>
+	</parent>
+	
+	<!-- 
 	<distributionManagement>
 		<repository>
 			<id>unitime.org</id>
@@ -297,4 +321,5 @@
 			<url>ftp://unitime.org/releases</url>
 		</repository>
 	</distributionManagement>
+	 -->
 </project>
