@@ -83,9 +83,12 @@ public class DistanceConflictTable {
     public DistanceConflictTable(StudentSectioningModel model) {
         iModel = model;
         iDC = model.getDistanceConflict();
-        if (iDC == null)
-            iDC = new DistanceConflict(null, model.getProperties());
-        iDM = new DistanceMetric(model.getProperties());
+        if (iDC == null) {
+            iDM = new DistanceMetric(model.getProperties());
+            iDC = new DistanceConflict(iDM, model.getProperties());
+        } else {
+            iDM = iDC.getDistanceMetric();
+        }
     }
 
     /** Return student sectioning model */
