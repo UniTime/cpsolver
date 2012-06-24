@@ -82,6 +82,16 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
             ((StudentSectioningModel) solver.currentSolution().getModel()).setDistanceConflict(this);
         iDistanceMetric = new DistanceMetric(properties);
     }
+    
+    /**
+     * Alternative constructor (for online student sectioning)
+     * @param metrics distance metrics
+     * @param properties configuration
+     */
+    public DistanceConflict(DistanceMetric metrics, DataProperties properties) {
+        super(null, properties);
+        iDistanceMetric = metrics;
+    }
 
     /**
      * Initialize extension
@@ -181,11 +191,11 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
         if (getDistanceMetric().doComputeDistanceConflictsBetweenNonBTBClasses()) {
             if (a1 + t1.getNrSlotsPerMeeting() <= a2) {
                 int dist = getDistanceInMinutes(s1.getPlacement(), s2.getPlacement());
-                if (dist > t1.getBreakTime() + Constants.SLOT_LENGTH_MIN * (a2 - a1 - t1.getStartSlot()))
+                if (dist > t1.getBreakTime() + Constants.SLOT_LENGTH_MIN * (a2 - a1 - t1.getLength()))
                     return true;
             } else if (a2 + t2.getNrSlotsPerMeeting() <= a1) {
                 int dist = getDistanceInMinutes(s1.getPlacement(), s2.getPlacement());
-                if (dist > t2.getBreakTime() + Constants.SLOT_LENGTH_MIN * (a1 - a2 - t2.getStartSlot()))
+                if (dist > t2.getBreakTime() + Constants.SLOT_LENGTH_MIN * (a1 - a2 - t2.getLength()))
                     return true;
             }
         } else {
