@@ -228,15 +228,18 @@ public class InitialSectioning {
                 continue;
             }
 
-            // disobey max size
+            // disobey max size, but prefer sections with smallest excess
+            int excess = 0;
             for (int idx = 0; idx < iGroups.length; idx++) {
                 Group g = iGroups[idx];
                 if (!g.canEnroll(student))
                     continue;
                 double d = g.getDistance(student);
-                if (group == null || d < dist) {
+                int ex = (int)Math.round(g.size() + studentWeight - g.getMaxSize());
+                if (group == null || ex < excess || (ex == excess && d < dist)) {
                     group = g;
                     dist = d;
+                    excess = ex;
                 }
             }
 
