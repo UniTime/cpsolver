@@ -59,7 +59,7 @@ public class StudentConflict extends TimetablingCriterion {
 
     @Override
     public double getValue() {
-        return Math.round(super.getValue());
+        return super.getValue();
     }
     
     public DistanceMetric getMetrics() {
