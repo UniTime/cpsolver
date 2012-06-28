@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import net.sf.cpsolver.coursett.model.Lecture;
@@ -113,7 +114,7 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
 
             List<Lecture> initialLectures = new ArrayList<Lecture>(1);
             initialLectures.add(lecture);
-            backtrack(JProf.currentTimeMillis(), initialLectures, new ArrayList<Lecture>(),
+            backtrack(JProf.currentTimeMillis(), initialLectures, new HashMap<Lecture, Placement>(),
                     new HashMap<Lecture, Placement>(), depth);
 
             // System.out.println("AFTER  BT ("+lecture.getName()+"): nrAssigned="+iSolution.getModel().assignedVariables().size()+",  value="+iCmp.currentValue(iSolution));
@@ -133,7 +134,7 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
         return false;
     }
 
-    private void backtrack(long startTime, List<Lecture> initialLectures, List<Lecture> resolvedLectures,
+    private void backtrack(long startTime, List<Lecture> initialLectures, Map<Lecture, Placement> resolvedLectures,
             HashMap<Lecture, Placement> conflictsToResolve, int depth) {
         int nrUnassigned = conflictsToResolve.size();
         if ((initialLectures == null || initialLectures.isEmpty()) && nrUnassigned == 0) {
@@ -153,9 +154,8 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
         
         for (Lecture lecture: initialLectures != null && !initialLectures.isEmpty() ? initialLectures : new ArrayList<Lecture>(conflictsToResolve.keySet())) {
             if (iTimeoutReached) break;
-            if (resolvedLectures.contains(lecture))
+            if (resolvedLectures.containsKey(lecture))
                 continue;
-            resolvedLectures.add(lecture);
             placements: for (Placement placement : lecture.values()) {
                 if (iTimeoutReached) break;
                 if (placement.equals(lecture.getAssignment()))
@@ -171,7 +171,7 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
                     continue;
                 for (Iterator<Placement> i = conflicts.iterator();i.hasNext();) {
                     Placement c = i.next();
-                    if (resolvedLectures.contains(c.variable()))
+                    if (resolvedLectures.containsKey(c.variable()))
                         continue placements;
                 }
                 Placement cur = lecture.getAssignment();
@@ -187,7 +187,9 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
                     conflictsToResolve.put(c.variable(), c);
                 }
                 Placement resolvedConf = conflictsToResolve.remove(lecture);
+                resolvedLectures.put(lecture, placement);
                 backtrack(startTime, null, resolvedLectures, conflictsToResolve, depth - 1);
+                resolvedLectures.remove(lecture);
                 if (cur == null)
                     lecture.unassign(0);
                 else
@@ -200,7 +202,6 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
                 if (resolvedConf != null)
                     conflictsToResolve.put(lecture, resolvedConf);
             }
-            resolvedLectures.remove(lecture);
         }
     }
 
@@ -208,13 +209,9 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
         private double iValue = 0;
         private List<Placement> iDifferentAssignments = null;
 
-        public SuggestionNeighbour(List<Lecture> resolvedLectures) {
+        public SuggestionNeighbour(Map<Lecture, Placement> resolvedLectures) {
             iValue = iSolution.getModel().getTotalValue();
-            iDifferentAssignments = new ArrayList<Placement>();
-            for (Lecture lecture : resolvedLectures) {
-                Placement p = lecture.getAssignment();
-                iDifferentAssignments.add(p);
-            }
+            iDifferentAssignments = new ArrayList<Placement>(resolvedLectures.values());
         }
 
         @Override
