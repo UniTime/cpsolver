@@ -42,6 +42,7 @@ public class Course {
     private double iEnrollmentWeight = 0.0;
     private Set<Enrollment> iEnrollments = new HashSet<Enrollment>();
     private Set<CourseRequest> iRequests = Collections.synchronizedSet(new HashSet<CourseRequest>());
+    private String iNote = null;
 
     /**
      * Constructor
@@ -170,6 +171,16 @@ public class Course {
     public Set<CourseRequest> getRequests() {
         return iRequests;
     }
+    
+    /**
+     * Course note
+     */
+    public String getNote() { return iNote; }
+    
+    /**
+     * Course note
+     */
+    public void setNote(String note) { iNote = note; }
 
     @Override
     public boolean equals(Object o) {
