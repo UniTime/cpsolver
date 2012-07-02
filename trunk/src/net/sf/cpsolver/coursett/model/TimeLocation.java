@@ -46,6 +46,7 @@ public class TimeLocation {
     private BitSet iWeekCode;
     private Long iDatePatternId = null;
     private String iDatePatternName = null;
+    private int iDatePreference;
 
     /**
      * Constructor
@@ -59,8 +60,8 @@ public class TimeLocation {
      * @param pref
      *            time preference
      */
-    public TimeLocation(int dayCode, int startTime, int length, int pref, double normPref, Long datePatternId,
-            String datePatternName, BitSet weekCode, int breakTime) {
+    public TimeLocation(int dayCode, int startTime, int length, int pref, double normPref, int datePatternPreference,
+            Long datePatternId, String datePatternName, BitSet weekCode, int breakTime) {
         iPreference = pref;
         iNormalizedPreference = normPref;
         iStartSlot = startTime;
@@ -79,11 +80,17 @@ public class TimeLocation {
         iDatePatternId = datePatternId;
         if (iDatePatternName == null)
             iDatePatternName = "not set";
+        iDatePreference = datePatternPreference;
         if (iWeekCode == null) {
             iWeekCode = new BitSet(366);
             for (int i = 0; i <= 365; i++)
                 iWeekCode.set(i);
         }
+    }
+    
+    public TimeLocation(int dayCode, int startTime, int length, int pref, double normPref, Long datePatternId,
+            String datePatternName, BitSet weekCode, int breakTime) {
+        this(dayCode, startTime, length, pref, normPref, 0, datePatternId, datePatternName, weekCode, breakTime);
     }
 
     /** Number of meetings */
@@ -291,6 +298,10 @@ public class TimeLocation {
         iDatePatternId = datePatternId;
         iDatePatternName = datePatternName;
         iWeekCode = weekCode;
+    }
+    
+    public int getDatePatternPreference() {
+        return iDatePreference;
     }
 
     @Override

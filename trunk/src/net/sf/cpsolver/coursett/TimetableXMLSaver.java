@@ -383,6 +383,8 @@ public class TimetableXMLSaver extends TimetableSaver {
                         dateEl.addAttribute("name", tl.getDatePatternName());
                     dateEl.addAttribute("pattern", bitset2string(tl.getWeekCode()));
                 }
+                if (tl.getDatePatternPreference() != 0)
+                    timeLocationEl.addAttribute("datePref", String.valueOf(tl.getDatePatternPreference()));
                 if (tl.getTimePatternId() == null && first) {
                     if (iShowNames)
                         classEl.addAttribute("datePatternName", tl.getDatePatternName());

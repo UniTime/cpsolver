@@ -197,7 +197,7 @@ public class TimetableXMLLoader extends TimetableLoader {
                 Long classId = Long.valueOf(pertEl.attributeValue("id"));
                 TimeLocation tl = new TimeLocation(Integer.parseInt(pertEl.attributeValue("days"), 2), Integer
                         .parseInt(pertEl.attributeValue("start")), Integer.parseInt(pertEl.attributeValue("length")),
-                        0, 0.0, null, null, null, 0);
+                        0, 0.0, 0, null, null, null, 0);
                 perts.put(classId, tl);
             }
         }
@@ -440,6 +440,7 @@ public class TimetableXMLLoader extends TimetableLoader {
                         Integer.parseInt(timeLocationEl.attributeValue("length")),
                         (int) Double.parseDouble(timeLocationEl.attributeValue("pref")),
                         Double.parseDouble(timeLocationEl.attributeValue("npref", timeLocationEl.attributeValue("pref"))),
+                        Integer.parseInt(timeLocationEl.attributeValue("datePref", "0")),
                         dp.getId(), dp.getName(), dp.getPattern(),
                         Integer.parseInt(timeLocationEl.attributeValue("breakTime") == null ? "-1" : timeLocationEl.attributeValue("breakTime")));
                 if (tl.getBreakTime() < 0) tl.setBreakTime(tl.getLength() == 18 ? 15 : 10);
