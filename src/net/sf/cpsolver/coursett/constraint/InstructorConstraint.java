@@ -128,6 +128,8 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
                 iAvailable[slot] = new ArrayList<Placement>(1);
             iAvailable[slot].add(placement);
         }
+        for (Lecture lecture: variables())
+            lecture.clearValueCache();
     }
 
     public boolean isAvailable(int slot) {
