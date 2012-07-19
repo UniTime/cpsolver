@@ -1144,8 +1144,6 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         TimetableModel model = (TimetableModel) getModel();
         if (model == null)
             return;
-        if (!model.hasConstantVariables())
-            return;
         List<Placement> newValues = new ArrayList<Placement>(values().size());
         for (Placement placement : values()) {
             if (placement.isValid())
