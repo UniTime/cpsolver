@@ -39,10 +39,13 @@ public class RoomSharingModel {
     public static Long sDefaultPref = sFreeForAllPref;
     public static char sDefaultPrefChar = sFreeForAllPrefChar;
 
+    public char iFreeForAllPrefChar = sFreeForAllPrefChar;
+    public char iNotAvailablePrefChar = sNotAvailablePrefChar;
+
     protected RoomSharingModel() {
     }
 
-    public RoomSharingModel(Long[] managerIds, String pattern) {
+    public RoomSharingModel(Long[] managerIds, String pattern, Character freeForAllPrefChar, Character notAvailablePrefChar) {
         iPreference = new Long[getNrDays()][getNrTimes()];
         iDepartmentIds = new Long[managerIds.length];
         iDepartmentIdx = new HashMap<Long, Integer>();
@@ -50,9 +53,19 @@ public class RoomSharingModel {
             iDepartmentIds[i] = managerIds[i];
             iDepartmentIdx.put(managerIds[i], i);
         }
+        if (freeForAllPrefChar != null)
+            iFreeForAllPrefChar = freeForAllPrefChar;
+        if (notAvailablePrefChar != null)
+            iNotAvailablePrefChar = notAvailablePrefChar;
 
         setPreferences(pattern);
     }
+    
+    public char getFreeForAllPrefChar() { return iFreeForAllPrefChar; }
+    public void setFreeForAllPrefChar(char c) { iFreeForAllPrefChar = c; }
+
+    public char getNotAvailablePrefChar() { return iNotAvailablePrefChar; }
+    public void setNotAvailablePrefChar(char c) { iNotAvailablePrefChar = c; }
 
     public boolean isFreeForAll(int day, int time) {
         return iPreference[day][time] == sFreeForAllPref;
@@ -126,9 +139,9 @@ public class RoomSharingModel {
         for (int d = 0; d < getNrDays(); d++)
             for (int t = 0; t < getNrTimes(); t++) {
                 if (iPreference[d][t].equals(sFreeForAllPref))
-                    sb.append(sFreeForAllPrefChar);
+                    sb.append(getFreeForAllPrefChar());
                 else if (iPreference[d][t].equals(sNotAvailablePref))
-                    sb.append(sNotAvailablePrefChar);
+                    sb.append(getNotAvailablePrefChar());
                 else
                     sb.append((char) ('0' + getIndex(iPreference[d][t])));
             }
@@ -140,11 +153,11 @@ public class RoomSharingModel {
             int idx = 0;
             for (int d = 0; d < getNrDays(); d++)
                 for (int t = 0; t < getNrTimes(); t++) {
-                    char pref = (pattern != null && idx < pattern.length() ? pattern.charAt(idx) : sDefaultPrefChar);
+                    char pref = (pattern != null && idx < pattern.length() ? pattern.charAt(idx) : getFreeForAllPrefChar());
                     idx++;
-                    if (pref == sNotAvailablePrefChar) {
+                    if (pref == getNotAvailablePrefChar()) {
                         iPreference[d][t] = sNotAvailablePref;
-                    } else if (pref == sFreeForAllPrefChar) {
+                    } else if (pref == getFreeForAllPrefChar()) {
                         iPreference[d][t] = sFreeForAllPref;
                     } else {
                         iPreference[d][t] = iDepartmentIds[(pref - '0')];
