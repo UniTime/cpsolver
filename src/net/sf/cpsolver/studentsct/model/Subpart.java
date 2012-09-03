@@ -40,6 +40,7 @@ public class Subpart implements Comparable<Subpart> {
     private Config iConfig = null;
     private Subpart iParent = null;
     private boolean iAllowOverlap = false;
+    private String iCredit = null;
 
     /**
      * Constructor
@@ -228,4 +229,14 @@ public class Subpart implements Comparable<Subpart> {
     public int hashCode() {
         return (int) (iId ^ (iId >>> 32));
     }
+    
+    /**
+     * Set credit (Online Student Scheduling only)
+     */
+    public void setCredit(String credit) { iCredit = credit; }
+    
+    /**
+     * Get credit (Online Student Scheduling only)
+     */
+    public String getCredit() { return iCredit; }
 }
