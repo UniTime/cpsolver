@@ -915,7 +915,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
             }
             HashMap<Long, List<Lecture>> subs = new HashMap<Long, List<Lecture>>();
             for (Lecture lecture : m.variables()) {
-                if (lecture.isCommitted())
+                if (lecture.isCommitted() || lecture.getScheduler() == null)
                     continue;
                 List<Lecture> vars = subs.get(lecture.getScheduler());
                 if (vars == null) {
