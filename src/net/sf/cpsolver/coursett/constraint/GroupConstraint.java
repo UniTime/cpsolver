@@ -661,9 +661,11 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
     @Override
     public void setModel(Model<Lecture, Placement> model) {
         super.setModel(model);
-        DataProperties config = ((TimetableModel)model).getProperties();
-        iDayOfWeekOffset = config.getPropertyInt("DatePattern.DayOfWeekOffset", 0);
-        iPrecedenceConsiderDatePatterns = config.getPropertyBoolean("Precedence.ConsiderDatePatterns", true);
+        if (model != null) {
+            DataProperties config = ((TimetableModel)model).getProperties();
+            iDayOfWeekOffset = config.getPropertyInt("DatePattern.DayOfWeekOffset", 0);
+            iPrecedenceConsiderDatePatterns = config.getPropertyBoolean("Precedence.ConsiderDatePatterns", true);
+        }
     }
 
     @Override
