@@ -13,6 +13,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import net.sf.cpsolver.exam.criteria.DistributionPenalty;
+import net.sf.cpsolver.exam.criteria.RoomPenalty;
+import net.sf.cpsolver.exam.criteria.RoomSizePenalty;
+import net.sf.cpsolver.exam.criteria.RoomSplitPenalty;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Variable;
@@ -258,10 +262,11 @@ public class Exam extends Variable<Exam, ExamPlacement> {
 
     private void genRoomSets(ExamPeriod period, int maxRoomSets, TreeSet<RoomSet> roomSets, int roomIdx, int maxRooms,
             Set<ExamRoomPlacement> roomsSoFar, int sizeSoFar, int penaltySoFar) {
-        ExamModel model = (ExamModel) getModel();
         if (sizeSoFar >= getSize()) {
-            double penalty = model.getRoomSplitWeight() * (roomsSoFar.size() - 1) * (roomsSoFar.size() - 1)
-                    + model.getRoomSizeWeight() * (sizeSoFar - getSize()) + model.getRoomWeight() * penaltySoFar;
+            double penalty = 
+                    getModel().getCriterion(RoomSplitPenalty.class).getWeight() * (roomsSoFar.size() - 1) * (roomsSoFar.size() - 1) +
+                    getModel().getCriterion(RoomSizePenalty.class).getWeight() * (sizeSoFar - getSize()) +
+                    getModel().getCriterion(RoomPenalty.class).getWeight() * penaltySoFar;
             if (roomSets.size() >= maxRoomSets) {
                 RoomSet last = roomSets.last();
                 if (penalty < last.penalty()) {
@@ -636,9 +641,10 @@ public class Exam extends Variable<Exam, ExamPlacement> {
     public Set<ExamRoomPlacement> findBestAvailableRooms(ExamPeriodPlacement period) {
         if (getMaxRooms() == 0)
             return new HashSet<ExamRoomPlacement>();
-        double sw = ((ExamModel) getModel()).getRoomSizeWeight();
-        double pw = ((ExamModel) getModel()).getRoomWeight();
-        double cw = ((ExamModel) getModel()).getDistributionWeight();
+        double sw = getModel().getCriterion(RoomSizePenalty.class).getWeight();
+        double pw = getModel().getCriterion(RoomPenalty.class).getWeight();
+        double cw = getModel().getCriterion(DistributionPenalty.class).getWeight();
+        ExamRoomSharing sharing = ((ExamModel) getModel()).getRoomSharing();
         loop: for (int nrRooms = 1; nrRooms <= getMaxRooms(); nrRooms++) {
             HashSet<ExamRoomPlacement> rooms = new HashSet<ExamRoomPlacement>();
             int size = 0;
@@ -650,8 +656,13 @@ public class Exam extends Variable<Exam, ExamPlacement> {
                 for (ExamRoomPlacement room : getRoomPlacements()) {
                     if (!room.isAvailable(period.getPeriod()))
                         continue;
-                    if (room.getRoom().getPlacement(period.getPeriod()) != null)
-                        continue;
+                    if (nrRooms == 1 && sharing != null) {
+                        if (sharing.inConflict(this, room.getRoom().getPlacements(period.getPeriod()), room.getRoom()))
+                            continue;
+                    } else {
+                        if (!room.getRoom().getPlacements(period.getPeriod()).isEmpty())
+                            continue;
+                    }
                     if (rooms.contains(room))
                         continue;
                     if (!checkDistributionConstraints(room))
@@ -720,6 +731,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
             return new HashSet<ExamRoomPlacement>();
         HashSet<ExamRoomPlacement> rooms = new HashSet<ExamRoomPlacement>();
         int size = 0;
+        ExamRoomSharing sharing = ((ExamModel) getModel()).getRoomSharing();
         loop: while (rooms.size() < getMaxRooms()) {
             int rx = ToolBox.random(getRoomPlacements().size());
             int minSize = (getSize() - size + (getMaxRooms() - rooms.size() - 1)) / (getMaxRooms() - rooms.size());
@@ -730,8 +742,15 @@ public class Exam extends Variable<Exam, ExamPlacement> {
                     continue;
                 if (!room.isAvailable(period.getPeriod()))
                     continue;
-                if (checkConflicts && room.getRoom().getPlacement(period.getPeriod()) != null)
-                    continue;
+                if (checkConflicts) {
+                    if (rooms.isEmpty() && sharing != null && !room.getRoom().getPlacements(period.getPeriod()).isEmpty()) {
+                        if (sharing.inConflict(this, room.getRoom().getPlacements(period.getPeriod()), room.getRoom()))
+                            continue;
+                    } else {
+                        if (!room.getRoom().getPlacements(period.getPeriod()).isEmpty())
+                            continue;
+                    }
+                }
                 if (rooms.contains(room))
                     continue;
                 if (checkConflicts && !checkDistributionConstraints(room))

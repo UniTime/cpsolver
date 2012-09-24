@@ -1,6 +1,8 @@
 package net.sf.cpsolver.exam.model;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import net.sf.cpsolver.ifs.model.Constraint;
@@ -31,7 +33,7 @@ import net.sf.cpsolver.ifs.util.DistanceMetric;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class ExamRoom extends Constraint<Exam, ExamPlacement> {
-    private ExamPlacement[] iTable;
+    private List<ExamPlacement>[] iTable;
     private boolean[] iAvailable;
     private int[] iPenalty;
     private String iName;
@@ -55,6 +57,7 @@ public class ExamRoom extends Constraint<Exam, ExamPlacement> {
      * @param coordY
      *            y coordinate
      */
+    @SuppressWarnings("unchecked")
     public ExamRoom(ExamModel model, long id, String name, int size, int altSize, Double coordX, Double coordY) {
         super();
         iAssignedVariables = null;
@@ -64,11 +67,11 @@ public class ExamRoom extends Constraint<Exam, ExamPlacement> {
         iCoordY = coordY;
         iSize = size;
         iAltSize = altSize;
-        iTable = new ExamPlacement[model.getNrPeriods()];
+        iTable = new List[model.getNrPeriods()];
         iAvailable = new boolean[model.getNrPeriods()];
         iPenalty = new int[model.getNrPeriods()];
         for (int i = 0; i < iTable.length; i++) {
-            iTable[i] = null;
+            iTable[i] = new ArrayList<ExamPlacement>();
             iAvailable[i] = true;
             iPenalty[i] = 0;
         }
@@ -116,14 +119,29 @@ public class ExamRoom extends Constraint<Exam, ExamPlacement> {
     }
 
     /**
-     * An exam placed at the given period
+     * An exam placed at the given period.
      * 
      * @param period
      *            a period
      * @return a placement of an exam in this room at the given period, null if
      *         unused
+     * @deprecated If room sharing is allowed, this method only returns first exam. Use {@link ExamRoom#getPlacements(ExamPeriod)} instead.
      */
+    @Deprecated
     public ExamPlacement getPlacement(ExamPeriod period) {
+        return (iTable[period.getIndex()].isEmpty() ? null : iTable[period.getIndex()].iterator().next());
+    }
+    
+    /**
+     * Exams placed at the given period
+     * 
+     * @param period
+     *            a period
+     * @return a placement of an exam in this room at the given period, null if
+     *         unused (multiple placements can be returned if the room is shared between
+     *         two or more exams)
+     */
+    public List<ExamPlacement> getPlacements(ExamPeriod period) {
         return iTable[period.getIndex()];
     }
 
@@ -179,6 +197,11 @@ public class ExamRoom extends Constraint<Exam, ExamPlacement> {
     public void setPenalty(int period, int penalty) {
         iPenalty[period] = penalty;
     }
+    
+    
+    public ExamRoomSharing getRoomSharing() {
+        return ((ExamModel)getModel()).getRoomSharing();
+    }
 
     /**
      * Compute conflicts between the given assignment of an exam and all the
@@ -186,11 +209,15 @@ public class ExamRoom extends Constraint<Exam, ExamPlacement> {
      */
     @Override
     public void computeConflicts(ExamPlacement p, Set<ExamPlacement> conflicts) {
-        if (!p.contains(this))
-            return;
-        if (iTable[p.getPeriod().getIndex()] != null
-                && !iTable[p.getPeriod().getIndex()].variable().equals(p.variable()))
-            conflicts.add(iTable[p.getPeriod().getIndex()]);
+        if (!p.contains(this)) return;
+        
+        if (getRoomSharing() == null) {
+            for (ExamPlacement conflict: iTable[p.getPeriod().getIndex()])
+                if (!conflict.variable().equals(p.variable()))
+                    conflicts.add(conflict);
+        } else {
+            getRoomSharing().computeConflicts(p, iTable[p.getPeriod().getIndex()], this, conflicts);
+        }
     }
 
     /**
@@ -199,10 +226,15 @@ public class ExamRoom extends Constraint<Exam, ExamPlacement> {
      */
     @Override
     public boolean inConflict(ExamPlacement p) {
-        if (!p.contains(this))
+        if (!p.contains(this)) return false;
+        
+        if (getRoomSharing() == null) {
+            for (ExamPlacement conflict: iTable[p.getPeriod().getIndex()])
+                if (!conflict.variable().equals(p.variable())) return true;
             return false;
-        return iTable[p.getPeriod().getIndex()] != null
-                && !iTable[p.getPeriod().getIndex()].variable().equals(p.variable());
+        } else {
+            return getRoomSharing().inConflict(p, iTable[p.getPeriod().getIndex()], this);
+        }
     }
 
     /**
@@ -218,14 +250,15 @@ public class ExamRoom extends Constraint<Exam, ExamPlacement> {
      */
     @Override
     public void assigned(long iteration, ExamPlacement p) {
-        if (p.contains(this) && iTable[p.getPeriod().getIndex()] != null) {
+        if (p.contains(this) && !iTable[p.getPeriod().getIndex()].isEmpty()) {
+            HashSet<ExamPlacement> confs = new HashSet<ExamPlacement>();
+            computeConflicts(p, confs);
+            for (ExamPlacement conf: confs)
+                conf.variable().unassign(iteration);
             if (iConstraintListeners != null) {
-                HashSet<ExamPlacement> confs = new HashSet<ExamPlacement>();
-                confs.add(iTable[p.getPeriod().getIndex()]);
                 for (ConstraintListener<ExamPlacement> listener : iConstraintListeners)
                     listener.constraintAfterAssigned(iteration, this, p, confs);
             }
-            iTable[p.getPeriod().getIndex()].variable().unassign(iteration);
         }
     }
 
@@ -234,7 +267,7 @@ public class ExamRoom extends Constraint<Exam, ExamPlacement> {
      */
     public void afterAssigned(long iteration, ExamPlacement p) {
         if (p.contains(this))
-            iTable[p.getPeriod().getIndex()] = p;
+            iTable[p.getPeriod().getIndex()].add(p);
     }
 
     /**
@@ -249,9 +282,8 @@ public class ExamRoom extends Constraint<Exam, ExamPlacement> {
      * An exam was unassigned, update room assignment table
      */
     public void afterUnassigned(long iteration, ExamPlacement p) {
-        // super.unassigned(iteration, p);
         if (p.contains(this)) {
-            iTable[p.getPeriod().getIndex()] = null;
+            iTable[p.getPeriod().getIndex()].remove(p);
         }
     }
 

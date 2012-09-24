@@ -76,18 +76,17 @@ public class ExamRoomSchedule {
             boolean first = true;
             int day = -1;
             for (ExamPeriod period : iModel.getPeriods()) {
-                ExamPlacement placement = room.getPlacement(period);
-                if (placement == null)
-                    continue;
-                Exam exam = placement.variable();
-                csv.addLine(new CSVField[] { new CSVField(first ? room.getName() : ""),
-                        new CSVField(first ? "" + room.getSize() : ""),
-                        new CSVField(first ? "" + room.getAltSize() : ""), new CSVField(period.getIndex() + 1),
-                        new CSVField(day == period.getDay() ? "" : period.getDayStr()),
-                        new CSVField(period.getTimeStr()), new CSVField(exam.getName()),
-                        new CSVField(exam.getStudents().size()) });
-                first = false;
-                day = period.getDay();
+                for (ExamPlacement placement: room.getPlacements(period)) {
+                    Exam exam = placement.variable();
+                    csv.addLine(new CSVField[] { new CSVField(first ? room.getName() : ""),
+                            new CSVField(first ? "" + room.getSize() : ""),
+                            new CSVField(first ? "" + room.getAltSize() : ""), new CSVField(period.getIndex() + 1),
+                            new CSVField(day == period.getDay() ? "" : period.getDayStr()),
+                            new CSVField(period.getTimeStr()), new CSVField(exam.getName()),
+                            new CSVField(exam.getStudents().size()) });
+                    first = false;
+                    day = period.getDay();
+                }
             }
         }
         return csv;

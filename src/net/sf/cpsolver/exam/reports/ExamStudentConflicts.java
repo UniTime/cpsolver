@@ -1,5 +1,7 @@
 package net.sf.cpsolver.exam.reports;
 
+import net.sf.cpsolver.exam.criteria.StudentBackToBackConflicts;
+import net.sf.cpsolver.exam.criteria.StudentDistanceBackToBackConflicts;
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamOwner;
@@ -60,6 +62,8 @@ public class ExamStudentConflicts {
         csv.setHeader(new CSVField[] { new CSVField("Student"), new CSVField("Type"), new CSVField("Section/Course"),
                 new CSVField("Period"), new CSVField("Day"), new CSVField("Time"), new CSVField("Room"),
                 new CSVField("Distance") });
+        boolean isDayBreakBackToBack = ((StudentBackToBackConflicts)iModel.getCriterion(StudentBackToBackConflicts.class)).isDayBreakBackToBack();
+        double backToBackDistance = ((StudentDistanceBackToBackConflicts)iModel.getCriterion(StudentDistanceBackToBackConflicts.class)).getBackToBackDistance();
         for (ExamStudent student : iModel.getStudents()) {
             for (ExamPeriod period : iModel.getPeriods()) {
                 int nrExams = student.getExams(period).size();
@@ -102,7 +106,7 @@ public class ExamStudentConflicts {
                 }
                 if (nrExams > 0) {
                     if (period.next() != null && !student.getExams(period.next()).isEmpty()
-                            && (!iModel.isDayBreakBackToBack() || period.next().getDay() == period.getDay())) {
+                            && (!isDayBreakBackToBack || period.next().getDay() == period.getDay())) {
                         for (Exam ex1 : student.getExams(period)) {
                             for (Exam ex2 : student.getExams(period.next())) {
                                 ExamPlacement placement = ex1.getAssignment();
@@ -172,7 +176,7 @@ public class ExamStudentConflicts {
                                     rooms += roomsThisExam;
                                 }
                                 String distStr = "";
-                                if (iModel.getBackToBackDistance() >= 0) {
+                                if (backToBackDistance >= 0) {
                                     double dist = (ex1.getAssignment()).getDistanceInMeters(ex2.getAssignment());
                                     if (dist > 0)
                                         distStr = String.valueOf(dist);
