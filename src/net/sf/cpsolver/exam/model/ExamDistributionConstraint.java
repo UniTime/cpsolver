@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
+import net.sf.cpsolver.exam.criteria.DistributionPenalty;
 import net.sf.cpsolver.ifs.model.Constraint;
 
 /**
@@ -366,7 +367,7 @@ public class ExamDistributionConstraint extends Constraint<Exam, ExamPlacement> 
         super.assigned(iteration, value);
         if (!isHard() && iIsSatisfied != isSatisfied()) {
             iIsSatisfied = !iIsSatisfied;
-            ((ExamModel) value.variable().getModel()).addDistributionPenalty(iIsSatisfied ? -getWeight() : getWeight());
+            ((DistributionPenalty)getModel().getCriterion(DistributionPenalty.class)).inc(iIsSatisfied ? -getWeight() : getWeight());
         }
     }
 
@@ -375,7 +376,7 @@ public class ExamDistributionConstraint extends Constraint<Exam, ExamPlacement> 
         super.unassigned(iteration, value);
         if (!isHard() && iIsSatisfied != isSatisfied()) {
             iIsSatisfied = !iIsSatisfied;
-            ((ExamModel) value.variable().getModel()).addDistributionPenalty(iIsSatisfied ? -getWeight() : getWeight());
+            ((DistributionPenalty)getModel().getCriterion(DistributionPenalty.class)).inc(iIsSatisfied ? -getWeight() : getWeight());
         }
     }
 

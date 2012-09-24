@@ -215,6 +215,7 @@ public class Test {
         return max;
     }
 
+    @SuppressWarnings("deprecation")
     private static void addCSVLine(File file, String instance, Solution<Exam, ExamPlacement> solution) {
         try {
             ExamModel model = (ExamModel) solution.getModel();
@@ -295,8 +296,7 @@ public class Test {
                     + ","
                     + model.getNrInstructorBackToBackConflicts(false)
                     + ","
-                    + (model.getBackToBackDistance() < 0 ? "" : model.getNrInstructorDistanceBackToBackConflicts(false)
-                            + ",")
+                    + (model.getBackToBackDistance() < 0 ? "" : model.getNrInstructorDistanceBackToBackConflicts(false) + ",")
                     + model.getPeriodPenalty(false)
                     + ","
                     + model.getExamRotationPenalty(false)

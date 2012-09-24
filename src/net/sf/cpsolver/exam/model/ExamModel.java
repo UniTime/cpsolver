@@ -12,6 +12,30 @@ import java.util.StringTokenizer;
 import java.util.TreeSet;
 
 import net.sf.cpsolver.coursett.IdConvertor;
+import net.sf.cpsolver.exam.criteria.DistributionPenalty;
+import net.sf.cpsolver.exam.criteria.ExamCriterion;
+import net.sf.cpsolver.exam.criteria.ExamRotationPenalty;
+import net.sf.cpsolver.exam.criteria.InstructorBackToBackConflicts;
+import net.sf.cpsolver.exam.criteria.InstructorDirectConflicts;
+import net.sf.cpsolver.exam.criteria.InstructorDistanceBackToBackConflicts;
+import net.sf.cpsolver.exam.criteria.InstructorMoreThan2ADayConflicts;
+import net.sf.cpsolver.exam.criteria.InstructorNotAvailableConflicts;
+import net.sf.cpsolver.exam.criteria.LargeExamsPenalty;
+import net.sf.cpsolver.exam.criteria.PeriodIndexPenalty;
+import net.sf.cpsolver.exam.criteria.PeriodPenalty;
+import net.sf.cpsolver.exam.criteria.PeriodSizePenalty;
+import net.sf.cpsolver.exam.criteria.PerturbationPenalty;
+import net.sf.cpsolver.exam.criteria.RoomPenalty;
+import net.sf.cpsolver.exam.criteria.RoomPerturbationPenalty;
+import net.sf.cpsolver.exam.criteria.RoomSizePenalty;
+import net.sf.cpsolver.exam.criteria.RoomSplitDistancePenalty;
+import net.sf.cpsolver.exam.criteria.RoomSplitPenalty;
+import net.sf.cpsolver.exam.criteria.StudentBackToBackConflicts;
+import net.sf.cpsolver.exam.criteria.StudentDirectConflicts;
+import net.sf.cpsolver.exam.criteria.StudentMoreThan2ADayConflicts;
+import net.sf.cpsolver.exam.criteria.StudentDistanceBackToBackConflicts;
+import net.sf.cpsolver.exam.criteria.StudentNotAvailableConflicts;
+import net.sf.cpsolver.ifs.criteria.Criterion;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.util.Callback;
@@ -114,59 +138,8 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
     private List<ExamStudent> iStudents = new ArrayList<ExamStudent>();
     private List<ExamDistributionConstraint> iDistributionConstraints = new ArrayList<ExamDistributionConstraint>();
     private List<ExamInstructor> iInstructors = new ArrayList<ExamInstructor>();
+    private ExamRoomSharing iRoomSharing = null;
 
-    private boolean iDayBreakBackToBack = false;
-    private double iDirectConflictWeight = 1000.0;
-    private double iMoreThanTwoADayWeight = 100.0;
-    private double iBackToBackConflictWeight = 10.0;
-    private double iDistanceBackToBackConflictWeight = 25.0;
-    private double iPeriodWeight = 1.0;
-    private double iPeriodSizeWeight = 1.0;
-    private double iPeriodIndexWeight = 0.0000001;
-    private double iExamRotationWeight = 0.001;
-    private double iRoomSizeWeight = 0.0001;
-    private double iRoomSplitWeight = 10.0;
-    private double iRoomWeight = 0.1;
-    private double iDistributionWeight = 1.0;
-    private double iBackToBackDistance = -1; // 67
-    private double iInstructorDirectConflictWeight = 1000.0;
-    private double iInstructorMoreThanTwoADayWeight = 100.0;
-    private double iInstructorBackToBackConflictWeight = 10.0;
-    private double iInstructorDistanceBackToBackConflictWeight = 25.0;
-    private boolean iMPP = false;
-    private double iPerturbationWeight = 0.01;
-    private double iRoomPerturbationWeight = 0.01;
-    private double iRoomSplitDistanceWeight = 0.01;
-    private int iLargeSize = -1;
-    private double iLargePeriod = 0.67;
-    private double iLargeWeight = 1.0;
-
-    private int iNrDirectConflicts = 0;
-    private int iNrNADirectConflicts = 0;
-    private int iNrBackToBackConflicts = 0;
-    private int iNrDistanceBackToBackConflicts = 0;
-    private int iNrMoreThanTwoADayConflicts = 0;
-    private int iRoomSizePenalty = 0;
-    private int iRoomSplitPenalty = 0;
-    private int iRoomSplits = 0;
-    private int iRoomSplitPenalties[] = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    private int iRoomPenalty = 0;
-    private int iDistributionPenalty = 0;
-    private int iPeriodPenalty = 0;
-    private int iPeriodSizePenalty = 0;
-    private int iPeriodIndexPenalty = 0;
-    private int iExamRotationPenalty = 0;
-    private int iPerturbationPenalty = 0;
-    private int iRoomPerturbationPenalty = 0;
-    private int iNrInstructorDirectConflicts = 0;
-    private int iNrNAInstructorDirectConflicts = 0;
-    private int iNrInstructorBackToBackConflicts = 0;
-    private int iNrInstructorDistanceBackToBackConflicts = 0;
-    private int iNrInstructorMoreThanTwoADayConflicts = 0;
-    private int iLargePenalty = 0;
-    private double iRoomSplitDistancePenalty = 0;
-    private int iNrLargeExams;
-    
     private DistanceMetric iDistanceMetric = null;
 
     /**
@@ -181,59 +154,77 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
         iPerturbVariables = null;
         iProperties = properties;
         iMaxRooms = properties.getPropertyInt("Exams.MaxRooms", iMaxRooms);
-        iDayBreakBackToBack = properties.getPropertyBoolean("Exams.IsDayBreakBackToBack", iDayBreakBackToBack);
-        iDirectConflictWeight = properties.getPropertyDouble("Exams.DirectConflictWeight", iDirectConflictWeight);
-        iBackToBackConflictWeight = properties.getPropertyDouble("Exams.BackToBackConflictWeight",
-                iBackToBackConflictWeight);
-        iDistanceBackToBackConflictWeight = properties.getPropertyDouble("Exams.DistanceBackToBackConflictWeight",
-                iDistanceBackToBackConflictWeight);
-        iMoreThanTwoADayWeight = properties.getPropertyDouble("Exams.MoreThanTwoADayWeight", iMoreThanTwoADayWeight);
-        iPeriodWeight = properties.getPropertyDouble("Exams.PeriodWeight", iPeriodWeight);
-        iPeriodIndexWeight = properties.getPropertyDouble("Exams.PeriodIndexWeight", iPeriodIndexWeight);
-        iPeriodSizeWeight = properties.getPropertyDouble("Exams.PeriodSizeWeight", iPeriodSizeWeight);
-        iExamRotationWeight = properties.getPropertyDouble("Exams.RotationWeight", iExamRotationWeight);
-        iRoomSizeWeight = properties.getPropertyDouble("Exams.RoomSizeWeight", iRoomSizeWeight);
-        iRoomWeight = properties.getPropertyDouble("Exams.RoomWeight", iRoomWeight);
-        iRoomSplitWeight = properties.getPropertyDouble("Exams.RoomSplitWeight", iRoomSplitWeight);
-        iBackToBackDistance = properties.getPropertyDouble("Exams.BackToBackDistance", iBackToBackDistance);
-        iDistributionWeight = properties.getPropertyDouble("Exams.DistributionWeight", iDistributionWeight);
-        iInstructorDirectConflictWeight = properties.getPropertyDouble("Exams.InstructorDirectConflictWeight",
-                iInstructorDirectConflictWeight);
-        iInstructorBackToBackConflictWeight = properties.getPropertyDouble("Exams.InstructorBackToBackConflictWeight",
-                iInstructorBackToBackConflictWeight);
-        iInstructorDistanceBackToBackConflictWeight = properties.getPropertyDouble(
-                "Exams.InstructorDistanceBackToBackConflictWeight", iInstructorDistanceBackToBackConflictWeight);
-        iInstructorMoreThanTwoADayWeight = properties.getPropertyDouble("Exams.InstructorMoreThanTwoADayWeight",
-                iInstructorMoreThanTwoADayWeight);
-        iMPP = properties.getPropertyBoolean("General.MPP", iMPP);
-        iPerturbationWeight = properties.getPropertyDouble("Exams.PerturbationWeight", iPerturbationWeight);
-        iRoomPerturbationWeight = properties.getPropertyDouble("Exams.RoomPerturbationWeight", iRoomPerturbationWeight);
-        iRoomSplitDistanceWeight = properties.getPropertyDouble("Exams.RoomSplitDistanceWeight",
-                iRoomSplitDistanceWeight);
-        iLargeSize = properties.getPropertyInt("Exams.LargeSize", iLargeSize);
-        iLargePeriod = properties.getPropertyDouble("Exams.LargePeriod", iLargePeriod);
-        iLargeWeight = properties.getPropertyDouble("Exams.LargeWeight", iLargeWeight);
         iDistanceMetric = new DistanceMetric(properties);
+        String roomSharingClass = properties.getProperty("Exams.RoomSharingClass");
+        if (roomSharingClass != null) {
+            try {
+                iRoomSharing = (ExamRoomSharing)Class.forName(roomSharingClass).getConstructor(Model.class, DataProperties.class).newInstance(this, properties);
+            } catch (Exception e) {
+                sLog.error("Failed to instantiate room sharing class " + roomSharingClass + ", reason: " + e.getMessage());
+            }
+        }
+        
+        String criteria = properties.getProperty("Exams.Criteria",
+                StudentDirectConflicts.class.getName() + ";" +
+                StudentNotAvailableConflicts.class.getName() + ";" +
+                StudentBackToBackConflicts.class.getName() + ";" +
+                StudentDistanceBackToBackConflicts.class.getName() + ";" +
+                StudentMoreThan2ADayConflicts.class.getName() + ";" +
+                InstructorDirectConflicts.class.getName() + ";" +
+                InstructorNotAvailableConflicts.class.getName() + ";" +
+                InstructorBackToBackConflicts.class.getName() + ";" +
+                InstructorDistanceBackToBackConflicts.class.getName() + ";" +
+                InstructorMoreThan2ADayConflicts.class.getName() + ";" +
+                PeriodPenalty.class.getName() + ";" +
+                RoomPenalty.class.getName() + ";" +
+                DistributionPenalty.class.getName() + ";" +
+                RoomSplitPenalty.class.getName() + ";" +
+                RoomSplitDistancePenalty.class.getName() + ";" +
+                RoomSizePenalty.class.getName() + ";" +
+                ExamRotationPenalty.class.getName() + ";" +
+                LargeExamsPenalty.class.getName() + ";" +
+                PeriodSizePenalty.class.getName() + ";" +
+                PeriodIndexPenalty.class.getName() + ";" +
+                PerturbationPenalty.class.getName() + ";" +
+                RoomPerturbationPenalty.class.getName() + ";"
+                );
+        // Additional (custom) criteria
+        criteria += ";" + properties.getProperty("Exams.AdditionalCriteria", "");
+        for (String criterion: criteria.split("\\;")) {
+            if (criterion == null || criterion.isEmpty()) continue;
+            try {
+                @SuppressWarnings("unchecked")
+                Class<Criterion<Exam, ExamPlacement>> clazz = (Class<Criterion<Exam, ExamPlacement>>)Class.forName(criterion);
+                addCriterion(clazz.newInstance());
+            } catch (Exception e) {
+                sLog.error("Unable to use " + criterion + ": " + e.getMessage());
+            }
+        }
     }
     
     public DistanceMetric getDistanceMetric() {
         return iDistanceMetric;
     }
+    
+    /**
+     * True if there is an examination sharing model
+     */
+    public boolean hasRoomSharing() { return iRoomSharing != null; }
+    
+    /**
+     * Return examination room sharing model
+     */
+    public ExamRoomSharing getRoomSharing() { return iRoomSharing; }
 
     /**
      * Initialization of the model
      */
     public void init() {
-        iNrLargeExams = 0;
         for (Exam exam : variables()) {
-            if (getLargeSize() >= 0 && exam.getSize() >= getLargeSize())
-                iNrLargeExams++;
             for (ExamRoomPlacement room : exam.getRoomPlacements()) {
                 room.getRoom().addVariable(exam);
             }
         }
-        iLimits = null;
-        iMaxDistributionPenalty = null;
     }
 
     /**
@@ -322,8 +313,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * Exams.DirectConflictWeight, or in the input xml file, property
      * directConflictWeight)
      */
+    @Deprecated
     public double getDirectConflictWeight() {
-        return iDirectConflictWeight;
+        return getCriterion(StudentDirectConflicts.class).getWeight();
     }
 
     /**
@@ -331,8 +323,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * Exams.DirectConflictWeight, or in the input xml file, property
      * directConflictWeight)
      */
+    @Deprecated
     public void setDirectConflictWeight(double directConflictWeight) {
-        iDirectConflictWeight = directConflictWeight;
+        ((ExamCriterion)getCriterion(StudentDirectConflicts.class)).setWeight(directConflictWeight);
     }
 
     /**
@@ -340,8 +333,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * Exams.BackToBackConflictWeight, or in the input xml file, property
      * backToBackConflictWeight)
      */
+    @Deprecated
     public double getBackToBackConflictWeight() {
-        return iBackToBackConflictWeight;
+        return getCriterion(StudentBackToBackConflicts.class).getWeight();
     }
 
     /**
@@ -349,8 +343,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * Exams.BackToBackConflictWeight, or in the input xml file, property
      * backToBackConflictWeight)
      */
+    @Deprecated
     public void setBackToBackConflictWeight(double backToBackConflictWeight) {
-        iBackToBackConflictWeight = backToBackConflictWeight;
+        ((ExamCriterion)getCriterion(StudentBackToBackConflicts.class)).setWeight(backToBackConflictWeight);
     }
 
     /**
@@ -358,8 +353,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * property Exams.DistanceBackToBackConflictWeight, or in the input xml
      * file, property distanceBackToBackConflictWeight)
      */
+    @Deprecated
     public double getDistanceBackToBackConflictWeight() {
-        return iDistanceBackToBackConflictWeight;
+        return getCriterion(StudentDistanceBackToBackConflicts.class).getWeight();
     }
 
     /**
@@ -367,8 +363,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * property Exams.DistanceBackToBackConflictWeight, or in the input xml
      * file, property distanceBackToBackConflictWeight)
      */
+    @Deprecated
     public void setDistanceBackToBackConflictWeight(double distanceBackToBackConflictWeight) {
-        iDistanceBackToBackConflictWeight = distanceBackToBackConflictWeight;
+        ((ExamCriterion)getCriterion(StudentDistanceBackToBackConflicts.class)).setWeight(distanceBackToBackConflictWeight);
     }
 
     /**
@@ -376,8 +373,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * property Exams.MoreThanTwoADayWeight, or in the input xml file, property
      * moreThanTwoADayWeight)
      */
+    @Deprecated
     public double getMoreThanTwoADayWeight() {
-        return iMoreThanTwoADayWeight;
+        return getCriterion(StudentMoreThan2ADayConflicts.class).getWeight();
     }
 
     /**
@@ -385,8 +383,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * property Exams.MoreThanTwoADayWeight, or in the input xml file, property
      * moreThanTwoADayWeight)
      */
+    @Deprecated
     public void setMoreThanTwoADayWeight(double moreThanTwoADayWeight) {
-        iMoreThanTwoADayWeight = moreThanTwoADayWeight;
+        ((ExamCriterion)getCriterion(StudentMoreThan2ADayConflicts.class)).setWeight(moreThanTwoADayWeight);
     }
 
     /**
@@ -394,8 +393,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * Exams.InstructorDirectConflictWeight, or in the input xml file, property
      * instructorDirectConflictWeight)
      */
+    @Deprecated
     public double getInstructorDirectConflictWeight() {
-        return iInstructorDirectConflictWeight;
+        return getCriterion(InstructorDirectConflicts.class).getWeight();
     }
 
     /**
@@ -403,8 +403,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * Exams.InstructorDirectConflictWeight, or in the input xml file, property
      * instructorDirectConflictWeight)
      */
+    @Deprecated
     public void setInstructorDirectConflictWeight(double directConflictWeight) {
-        iInstructorDirectConflictWeight = directConflictWeight;
+        ((ExamCriterion)getCriterion(InstructorDirectConflicts.class)).setWeight(directConflictWeight);
     }
 
     /**
@@ -412,8 +413,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * Exams.InstructorBackToBackConflictWeight, or in the input xml file,
      * property instructorBackToBackConflictWeight)
      */
+    @Deprecated
     public double getInstructorBackToBackConflictWeight() {
-        return iInstructorBackToBackConflictWeight;
+        return getCriterion(InstructorBackToBackConflicts.class).getWeight();
     }
 
     /**
@@ -421,8 +423,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * Exams.InstructorBackToBackConflictWeight, or in the input xml file,
      * property instructorBackToBackConflictWeight)
      */
+    @Deprecated
     public void setInstructorBackToBackConflictWeight(double backToBackConflictWeight) {
-        iInstructorBackToBackConflictWeight = backToBackConflictWeight;
+        ((ExamCriterion)getCriterion(InstructorBackToBackConflicts.class)).setWeight(backToBackConflictWeight);
     }
 
     /**
@@ -430,8 +433,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * property Exams.InstructorDistanceBackToBackConflictWeight, or in the
      * input xml file, property instructorDistanceBackToBackConflictWeight)
      */
+    @Deprecated
     public double getInstructorDistanceBackToBackConflictWeight() {
-        return iInstructorDistanceBackToBackConflictWeight;
+        return getCriterion(InstructorDistanceBackToBackConflicts.class).getWeight();
     }
 
     /**
@@ -439,8 +443,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * property Exams.InstructorDistanceBackToBackConflictWeight, or in the
      * input xml file, property instructorDistanceBackToBackConflictWeight)
      */
+    @Deprecated
     public void setInstructorDistanceBackToBackConflictWeight(double distanceBackToBackConflictWeight) {
-        iInstructorDistanceBackToBackConflictWeight = distanceBackToBackConflictWeight;
+        ((ExamCriterion)getCriterion(InstructorDistanceBackToBackConflicts.class)).setWeight(distanceBackToBackConflictWeight);
     }
 
     /**
@@ -448,8 +453,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * problem property Exams.InstructorMoreThanTwoADayWeight, or in the input
      * xml file, property instructorMoreThanTwoADayWeight)
      */
+    @Deprecated
     public double getInstructorMoreThanTwoADayWeight() {
-        return iInstructorMoreThanTwoADayWeight;
+        return getCriterion(InstructorMoreThan2ADayConflicts.class).getWeight();
     }
 
     /**
@@ -457,8 +463,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * problem property Exams.InstructorMoreThanTwoADayWeight, or in the input
      * xml file, property instructorMoreThanTwoADayWeight)
      */
+    @Deprecated
     public void setInstructorMoreThanTwoADayWeight(double moreThanTwoADayWeight) {
-        iInstructorMoreThanTwoADayWeight = moreThanTwoADayWeight;
+        ((ExamCriterion)getCriterion(InstructorMoreThan2ADayConflicts.class)).setWeight(moreThanTwoADayWeight);
     }
 
     /**
@@ -469,8 +476,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * input xml file, property isDayBreakBackToBack)
      * 
      */
+    @Deprecated
     public boolean isDayBreakBackToBack() {
-        return iDayBreakBackToBack;
+        return ((StudentBackToBackConflicts)getCriterion(StudentBackToBackConflicts.class)).isDayBreakBackToBack();
     }
 
     /**
@@ -481,8 +489,10 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * input xml file, property isDayBreakBackToBack)
      * 
      */
+    @Deprecated
     public void setDayBreakBackToBack(boolean dayBreakBackToBack) {
-        iDayBreakBackToBack = dayBreakBackToBack;
+        ((StudentBackToBackConflicts)getCriterion(StudentBackToBackConflicts.class)).setDayBreakBackToBack(dayBreakBackToBack);
+        ((InstructorBackToBackConflicts)getCriterion(InstructorBackToBackConflicts.class)).setDayBreakBackToBack(dayBreakBackToBack);
     }
 
     /**
@@ -491,8 +501,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * Exams.PeriodWeight, or in the input xml file, property periodWeight)
      * 
      */
+    @Deprecated
     public double getPeriodWeight() {
-        return iPeriodWeight;
+        return getCriterion(PeriodPenalty.class).getWeight();
     }
 
     /**
@@ -501,8 +512,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * Exams.PeriodWeight, or in the input xml file, property periodWeight)
      * 
      */
+    @Deprecated
     public void setPeriodWeight(double periodWeight) {
-        iPeriodWeight = periodWeight;
+        ((ExamCriterion)getCriterion(PeriodPenalty.class)).setWeight(periodWeight);
     }
 
     /**
@@ -512,8 +524,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * Exams.PeriodSizeWeight, or in the input xml file, property periodWeight)
      * 
      */
+    @Deprecated
     public double getPeriodSizeWeight() {
-        return iPeriodSizeWeight;
+        return getCriterion(PeriodSizePenalty.class).getWeight();
     }
 
     /**
@@ -523,8 +536,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * Exams.PeriodSizeWeight, or in the input xml file, property periodWeight)
      * 
      */
+    @Deprecated
     public void setPeriodSizeWeight(double periodSizeWeight) {
-        iPeriodSizeWeight = periodSizeWeight;
+        ((ExamCriterion)getCriterion(PeriodSizePenalty.class)).setWeight(periodSizeWeight);
     }
 
     /**
@@ -532,8 +546,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * Exams.PeriodIndexWeight, or in the input xml file, property periodWeight)
      * 
      */
+    @Deprecated
     public double getPeriodIndexWeight() {
-        return iPeriodIndexWeight;
+        return getCriterion(PeriodIndexPenalty.class).getWeight();
     }
 
     /**
@@ -541,8 +556,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * Exams.PeriodIndexWeight, or in the input xml file, property periodWeight)
      * 
      */
+    @Deprecated
     public void setPeriodIndexWeight(double periodIndexWeight) {
-        iPeriodIndexWeight = periodIndexWeight;
+        ((ExamCriterion)getCriterion(PeriodIndexPenalty.class)).setWeight(periodIndexWeight);
     }
 
     /**
@@ -552,8 +568,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * examRotationWeight)
      * 
      */
+    @Deprecated
     public double getExamRotationWeight() {
-        return iExamRotationWeight;
+        return getCriterion(ExamRotationPenalty.class).getWeight();
     }
 
     /**
@@ -563,8 +580,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * examRotationWeight)
      * 
      */
+    @Deprecated
     public void setExamRotationWeight(double examRotationWeight) {
-        iExamRotationWeight = examRotationWeight;
+        ((ExamCriterion)getCriterion(ExamRotationPenalty.class)).setWeight(examRotationWeight);
     }
 
     /**
@@ -574,8 +592,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * roomSizeWeight)
      * 
      */
+    @Deprecated
     public double getRoomSizeWeight() {
-        return iRoomSizeWeight;
+        return getCriterion(RoomSizePenalty.class).getWeight();
     }
 
     /**
@@ -585,8 +604,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * roomSizeWeight)
      * 
      */
+    @Deprecated
     public void setRoomSizeWeight(double roomSizeWeight) {
-        iRoomSizeWeight = roomSizeWeight;
+        ((ExamCriterion)getCriterion(RoomSizePenalty.class)).setWeight(roomSizeWeight);
     }
 
     /**
@@ -596,8 +616,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * roomPreferenceWeight)
      * 
      */
+    @Deprecated
     public double getRoomWeight() {
-        return iRoomWeight;
+        return getCriterion(RoomPenalty.class).getWeight();
     }
 
     /**
@@ -606,8 +627,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * Exams.RoomWeight, or in the input xml file, property roomWeight)
      * 
      */
+    @Deprecated
     public void setRoomWeight(double roomWeight) {
-        iRoomWeight = roomWeight;
+        ((ExamCriterion)getCriterion(RoomPenalty.class)).setWeight(roomWeight);
     }
 
     /**
@@ -617,8 +639,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * roomSplitWeight)
      * 
      */
+    @Deprecated
     public double getRoomSplitWeight() {
-        return iRoomSplitWeight;
+        return getCriterion(RoomSplitPenalty.class).getWeight();
     }
 
     /**
@@ -628,8 +651,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * roomSplitWeight)
      * 
      */
+    @Deprecated
     public void setRoomSplitWeight(double roomSplitWeight) {
-        iRoomSplitWeight = roomSplitWeight;
+        ((ExamCriterion)getCriterion(RoomSplitPenalty.class)).setWeight(roomSplitWeight);
     }
 
     /**
@@ -638,8 +662,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * problem property Exams.BackToBackDistance, or in the input xml file,
      * property backToBackDistance)
      */
+    @Deprecated
     public double getBackToBackDistance() {
-        return iBackToBackDistance;
+        return ((StudentDistanceBackToBackConflicts)getCriterion(StudentDistanceBackToBackConflicts.class)).getBackToBackDistance();
     }
 
     /**
@@ -648,8 +673,10 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * problem property Exams.BackToBackDistance, or in the input xml file,
      * property backToBackDistance)
      */
+    @Deprecated
     public void setBackToBackDistance(double backToBackDistance) {
-        iBackToBackDistance = backToBackDistance;
+        ((StudentDistanceBackToBackConflicts)getCriterion(StudentDistanceBackToBackConflicts.class)).setBackToBackDistance(backToBackDistance);
+        ((InstructorDistanceBackToBackConflicts)getCriterion(InstructorDistanceBackToBackConflicts.class)).setBackToBackDistance(backToBackDistance);
     }
 
     /**
@@ -658,8 +685,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * Exams.RoomDistributionWeight, or in the input xml file, property
      * roomDistributionWeight)
      */
+    @Deprecated
     public double getDistributionWeight() {
-        return iDistributionWeight;
+        return getCriterion(DistributionPenalty.class).getWeight();
     }
 
     /**
@@ -669,8 +697,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * roomDistributionWeight)
      * 
      */
+    @Deprecated
     public void setDistributionWeight(double distributionWeight) {
-        iDistributionWeight = distributionWeight;
+        ((ExamCriterion)getCriterion(DistributionPenalty.class)).setWeight(distributionWeight);
     }
 
     /**
@@ -680,8 +709,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * set by problem property Exams.PerturbationWeight, or in the input xml
      * file, property perturbationWeight)
      */
+    @Deprecated
     public double getPerturbationWeight() {
-        return iPerturbationWeight;
+        return getCriterion(PerturbationPenalty.class).getWeight();
     }
 
     /**
@@ -691,8 +721,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * set by problem property Exams.PerturbationWeight, or in the input xml
      * file, property perturbationWeight)
      */
+    @Deprecated
     public void setPerturbationWeight(double perturbationWeight) {
-        iPerturbationWeight = perturbationWeight;
+        ((ExamCriterion)getCriterion(PerturbationPenalty.class)).setWeight(perturbationWeight);
     }
 
     /**
@@ -702,8 +733,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * set by problem property Exams.RoomPerturbationWeight, or in the input xml
      * file, property perturbationWeight)
      */
+    @Deprecated
     public double getRoomPerturbationWeight() {
-        return iRoomPerturbationWeight;
+        return getCriterion(RoomPerturbationPenalty.class).getWeight();
     }
 
     /**
@@ -713,8 +745,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * set by problem property Exams.RoomPerturbationWeight, or in the input xml
      * file, property perturbationWeight)
      */
+    @Deprecated
     public void setRoomPerturbationWeight(double perturbationWeight) {
-        iRoomPerturbationWeight = perturbationWeight;
+        ((ExamCriterion)getCriterion(RoomPenalty.class)).setWeight(perturbationWeight);
     }
 
     /**
@@ -722,8 +755,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * split. Can by set by problem property Exams.RoomSplitDistanceWeight, or
      * in the input xml file, property roomSplitDistanceWeight)
      **/
+    @Deprecated
     public double getRoomSplitDistanceWeight() {
-        return iRoomSplitDistanceWeight;
+        return getCriterion(RoomSplitDistancePenalty.class).getWeight();
     }
 
     /**
@@ -731,8 +765,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * split. Can by set by problem property Exams.RoomSplitDistanceWeight, or
      * in the input xml file, property roomSplitDistanceWeight)
      **/
+    @Deprecated
     public void setRoomSplitDistanceWeight(double roomSplitDistanceWeight) {
-        iRoomSplitDistanceWeight = roomSplitDistanceWeight;
+        ((ExamCriterion)getCriterion(RoomSplitDistancePenalty.class)).setWeight(roomSplitDistanceWeight);
     }
 
     /**
@@ -740,8 +775,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * large size. Value -1 means all exams are small. Can by set by problem
      * property Exams.LargeSize, or in the input xml file, property largeSize)
      **/
+    @Deprecated
     public int getLargeSize() {
-        return iLargeSize;
+        return ((LargeExamsPenalty)getCriterion(LargeExamsPenalty.class)).getLargeSize();
     }
 
     /**
@@ -749,8 +785,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * large size. Value -1 means all exams are small. Can by set by problem
      * property Exams.LargeSize, or in the input xml file, property largeSize)
      **/
+    @Deprecated
     public void setLargeSize(int largeSize) {
-        iLargeSize = largeSize;
+        ((LargeExamsPenalty)getCriterion(LargeExamsPenalty.class)).setLargeSize(largeSize);
     }
 
     /**
@@ -758,8 +795,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * criteria for large exams Can by set by problem property
      * Exams.LargePeriod, or in the input xml file, property largePeriod)
      **/
+    @Deprecated
     public double getLargePeriod() {
-        return iLargePeriod;
+        return ((LargeExamsPenalty)getCriterion(LargeExamsPenalty.class)).getLargePeriod();
     }
 
     /**
@@ -767,8 +805,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * criteria for large exams Can by set by problem property
      * Exams.LargePeriod, or in the input xml file, property largePeriod)
      **/
+    @Deprecated
     public void setLargePeriod(double largePeriod) {
-        iLargePeriod = largePeriod;
+        ((LargeExamsPenalty)getCriterion(LargeExamsPenalty.class)).setLargePeriod(largePeriod);
     }
 
     /**
@@ -776,8 +815,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * after large period Can by set by problem property Exams.LargeWeight, or
      * in the input xml file, property largeWeight)
      **/
+    @Deprecated
     public double getLargeWeight() {
-        return iLargeWeight;
+        return ((ExamCriterion)getCriterion(LargeExamsPenalty.class)).getWeight();
     }
 
     /**
@@ -785,8 +825,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * after large period Can by set by problem property Exams.LargeWeight, or
      * in the input xml file, property largeWeight)
      **/
+    @Deprecated
     public void setLargeWeight(double largeWeight) {
-        iLargeWeight = largeWeight;
+        ((ExamCriterion)getCriterion(LargeExamsPenalty.class)).setWeight(largeWeight);
     }
 
     /**
@@ -797,30 +838,6 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
     public void beforeUnassigned(long iteration, ExamPlacement placement) {
         super.beforeUnassigned(iteration, placement);
         Exam exam = placement.variable();
-        iNrDirectConflicts -= placement.getNrDirectConflicts();
-        iNrNADirectConflicts -= placement.getNrNotAvailableConflicts();
-        iNrBackToBackConflicts -= placement.getNrBackToBackConflicts();
-        iNrMoreThanTwoADayConflicts -= placement.getNrMoreThanTwoADayConflicts();
-        iRoomSizePenalty -= placement.getRoomSizePenalty();
-        iNrDistanceBackToBackConflicts -= placement.getNrDistanceBackToBackConflicts();
-        iRoomSplitPenalty -= placement.getRoomSplitPenalty();
-        iRoomSplitPenalties[placement.getRoomPlacements().size()]--;
-        iPeriodPenalty -= placement.getPeriodPenalty();
-        iPeriodIndexPenalty -= placement.getPeriod().getIndex();
-        iPeriodSizePenalty -= placement.getPeriodPenalty() * (exam.getSize() + 1);
-        iExamRotationPenalty -= placement.getRotationPenalty();
-        iRoomPenalty -= placement.getRoomPenalty();
-        iNrInstructorDirectConflicts -= placement.getNrInstructorDirectConflicts();
-        iNrNAInstructorDirectConflicts -= placement.getNrInstructorNotAvailableConflicts();
-        iNrInstructorBackToBackConflicts -= placement.getNrInstructorBackToBackConflicts();
-        iNrInstructorMoreThanTwoADayConflicts -= placement.getNrInstructorMoreThanTwoADayConflicts();
-        iNrInstructorDistanceBackToBackConflicts -= placement.getNrInstructorDistanceBackToBackConflicts();
-        iPerturbationPenalty -= placement.getPerturbationPenalty();
-        iRoomPerturbationPenalty -= placement.getRoomPerturbationPenalty();
-        iRoomSplitDistancePenalty -= placement.getRoomSplitDistancePenalty();
-        iLargePenalty -= placement.getLargePenalty();
-        if (placement.getRoomPlacements().size() > 1)
-            iRoomSplits--;
         for (ExamStudent s : exam.getStudents())
             s.afterUnassigned(iteration, placement);
         for (ExamInstructor i : exam.getInstructors())
@@ -837,30 +854,6 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
     public void afterAssigned(long iteration, ExamPlacement placement) {
         super.afterAssigned(iteration, placement);
         Exam exam = placement.variable();
-        iNrDirectConflicts += placement.getNrDirectConflicts();
-        iNrNADirectConflicts += placement.getNrNotAvailableConflicts();
-        iNrBackToBackConflicts += placement.getNrBackToBackConflicts();
-        iNrMoreThanTwoADayConflicts += placement.getNrMoreThanTwoADayConflicts();
-        iRoomSizePenalty += placement.getRoomSizePenalty();
-        iNrDistanceBackToBackConflicts += placement.getNrDistanceBackToBackConflicts();
-        iRoomSplitPenalty += placement.getRoomSplitPenalty();
-        iRoomSplitPenalties[placement.getRoomPlacements().size()]++;
-        iPeriodPenalty += placement.getPeriodPenalty();
-        iPeriodIndexPenalty += placement.getPeriod().getIndex();
-        iPeriodSizePenalty += placement.getPeriodPenalty() * (exam.getSize() + 1);
-        iExamRotationPenalty += placement.getRotationPenalty();
-        iRoomPenalty += placement.getRoomPenalty();
-        iNrInstructorDirectConflicts += placement.getNrInstructorDirectConflicts();
-        iNrNAInstructorDirectConflicts += placement.getNrInstructorNotAvailableConflicts();
-        iNrInstructorBackToBackConflicts += placement.getNrInstructorBackToBackConflicts();
-        iNrInstructorMoreThanTwoADayConflicts += placement.getNrInstructorMoreThanTwoADayConflicts();
-        iNrInstructorDistanceBackToBackConflicts += placement.getNrInstructorDistanceBackToBackConflicts();
-        iPerturbationPenalty += placement.getPerturbationPenalty();
-        iRoomPerturbationPenalty += placement.getRoomPerturbationPenalty();
-        iRoomSplitDistancePenalty += placement.getRoomSplitDistancePenalty();
-        iLargePenalty += placement.getLargePenalty();
-        if (placement.getRoomPlacements().size() > 1)
-            iRoomSplits++;
         for (ExamStudent s : exam.getStudents())
             s.afterAssigned(iteration, placement);
         for (ExamInstructor i : exam.getInstructors())
@@ -930,22 +923,10 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      */
     @Override
     public double getTotalValue() {
-        return getDirectConflictWeight() * getNrDirectConflicts(false) + getMoreThanTwoADayWeight()
-                * getNrMoreThanTwoADayConflicts(false) + getBackToBackConflictWeight()
-                * getNrBackToBackConflicts(false) + getDistanceBackToBackConflictWeight()
-                * getNrDistanceBackToBackConflicts(false) + getPeriodWeight() * getPeriodPenalty(false)
-                + getPeriodIndexWeight() * getPeriodIndexPenalty(false) + getPeriodSizeWeight()
-                * getPeriodSizePenalty(false) + getPeriodIndexWeight() * getPeriodIndexPenalty(false)
-                + getRoomSizeWeight() * getRoomSizePenalty(false) + getRoomSplitWeight() * getRoomSplitPenalty(false)
-                + getRoomWeight() * getRoomPenalty(false) + getDistributionWeight() * getDistributionPenalty(false)
-                + getInstructorDirectConflictWeight() * getNrInstructorDirectConflicts(false)
-                + getInstructorMoreThanTwoADayWeight() * getNrInstructorMoreThanTwoADayConflicts(false)
-                + getInstructorBackToBackConflictWeight() * getNrInstructorBackToBackConflicts(false)
-                + getInstructorDistanceBackToBackConflictWeight() * getNrInstructorDistanceBackToBackConflicts(false)
-                + getExamRotationWeight() * getExamRotationPenalty(false) + getPerturbationWeight()
-                * getPerturbationPenalty(false) + getRoomPerturbationWeight() * getRoomPerturbationPenalty(false)
-                + getRoomSplitDistanceWeight() * getRoomSplitDistancePenalty(false) + getLargeWeight()
-                * getLargePenalty(false);
+        double total = 0;
+        for (Criterion<Exam, ExamPlacement> criterion: getCriteria())
+            total += criterion.getWeightedValue();
+        return total;
     }
 
     /**
@@ -1008,23 +989,11 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * @return an array of weighted objective criteria
      */
     public double[] getTotalMultiValue() {
-        return new double[] { getDirectConflictWeight() * getNrDirectConflicts(false),
-                getMoreThanTwoADayWeight() * getNrMoreThanTwoADayConflicts(false),
-                getBackToBackConflictWeight() * getNrBackToBackConflicts(false),
-                getDistanceBackToBackConflictWeight() * getNrDistanceBackToBackConflicts(false),
-                getPeriodWeight() * getPeriodPenalty(false), getPeriodSizeWeight() * getPeriodSizePenalty(false),
-                getPeriodIndexWeight() * getPeriodIndexPenalty(false), getRoomSizeWeight() * getRoomSizePenalty(false),
-                getRoomSplitWeight() * getRoomSplitPenalty(false),
-                getRoomSplitDistanceWeight() * getRoomSplitDistancePenalty(false),
-                getRoomWeight() * getRoomPenalty(false), getDistributionWeight() * getDistributionPenalty(false),
-                getInstructorDirectConflictWeight() * getNrInstructorDirectConflicts(false),
-                getInstructorMoreThanTwoADayWeight() * getNrInstructorMoreThanTwoADayConflicts(false),
-                getInstructorBackToBackConflictWeight() * getNrInstructorBackToBackConflicts(false),
-                getInstructorDistanceBackToBackConflictWeight() * getNrInstructorDistanceBackToBackConflicts(false),
-                getExamRotationWeight() * getExamRotationPenalty(false),
-                getPerturbationWeight() * getPerturbationPenalty(false),
-                getRoomPerturbationWeight() * getRoomPerturbationPenalty(false),
-                getLargeWeight() * getLargePenalty(false) };
+        double[] total = new double[getCriteria().size()];
+        int i = 0;
+        for (Criterion<Exam, ExamPlacement> criterion: getCriteria())
+            total[i++] = criterion.getWeightedValue();
+        return total;
     }
 
     /**
@@ -1032,15 +1001,13 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      */
     @Override
     public String toString() {
-        return "DC:" + getNrDirectConflicts(false) + "," + "M2D:" + getNrMoreThanTwoADayConflicts(false) + "," + "BTB:"
-                + getNrBackToBackConflicts(false) + ","
-                + (getBackToBackDistance() < 0 ? "" : "dBTB:" + getNrDistanceBackToBackConflicts(false) + ",") + "PP:"
-                + getPeriodPenalty(false) + "," + "PSP:" + getPeriodSizePenalty(false) + "," + "PX:"
-                + getPeriodIndexPenalty(false) + "," + "@P:" + getExamRotationPenalty(false) + "," + "RSz:"
-                + getRoomSizePenalty(false) + "," + "RSp:" + getRoomSplitPenalty(false) + "," + "RD:"
-                + sDoubleFormat.format(getRoomSplitDistancePenalty(false)) + "," + "RP:" + getRoomPenalty(false) + ","
-                + "DP:" + getDistributionPenalty(false) + (getLargeSize() >= 0 ? ",LP:" + getLargePenalty(false) : "")
-                + (isMPP() ? ",IP:" + getPerturbationPenalty(false) + ",IRP:" + getRoomPerturbationPenalty(false) : "");
+        String ret = "";
+        for (Criterion<Exam, ExamPlacement> criterion: getCriteria()) {
+            String val = criterion.toString();
+            if (!val.isEmpty())
+                ret += (!ret.isEmpty() && !ret.endsWith(",") ? "," : "") + val;
+        }
+        return ret;
     }
 
     /**
@@ -1052,9 +1019,10 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      *            if false, the cached value is used
      * @return number of direct student conflicts
      */
+    @Deprecated
     public int getNrDirectConflicts(boolean precise) {
         if (!precise)
-            return iNrDirectConflicts;
+            return (int)getCriterion(StudentDirectConflicts.class).getValue() + (int)getCriterion(StudentNotAvailableConflicts.class).getValue();
         int conflicts = 0;
         for (ExamStudent student : getStudents()) {
             for (ExamPeriod period : getPeriods()) {
@@ -1079,9 +1047,10 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      *            if false, the cached value is used
      * @return number of back-to-back student conflicts
      */
+    @Deprecated
     public int getNrBackToBackConflicts(boolean precise) {
         if (!precise)
-            return iNrBackToBackConflicts;
+            return (int)getCriterion(StudentBackToBackConflicts.class).getValue();
         int conflicts = 0;
         for (ExamStudent student : getStudents()) {
             for (ExamPeriod period : getPeriods()) {
@@ -1107,11 +1076,12 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      *            if false, the cached value is used
      * @return number of distance back-to-back student conflicts
      */
+    @Deprecated
     public int getNrDistanceBackToBackConflicts(boolean precise) {
         if (getBackToBackDistance() < 0)
             return 0;
         if (!precise)
-            return iNrDistanceBackToBackConflicts;
+            return (int)getCriterion(StudentDistanceBackToBackConflicts.class).getValue();
         int conflicts = 0;
         for (ExamStudent student : getStudents()) {
             for (ExamPeriod period : getPeriods()) {
@@ -1144,9 +1114,10 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      *            if false, the cached value is used
      * @return number of more than two exams a day student conflicts
      */
+    @Deprecated
     public int getNrMoreThanTwoADayConflicts(boolean precise) {
         if (!precise)
-            return iNrMoreThanTwoADayConflicts;
+            return (int)getCriterion(StudentMoreThan2ADayConflicts.class).getValue();
         int conflicts = 0;
         for (ExamStudent student : getStudents()) {
             for (int d = 0; d < getNrDays(); d++) {
@@ -1167,9 +1138,10 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      *            if false, the cached value is used
      * @return number of direct instructor conflicts
      */
+    @Deprecated
     public int getNrInstructorDirectConflicts(boolean precise) {
         if (!precise)
-            return iNrInstructorDirectConflicts;
+            return (int)getCriterion(InstructorDirectConflicts.class).getValue() + (int)getCriterion(InstructorNotAvailableConflicts.class).getValue();
         int conflicts = 0;
         for (ExamInstructor instructor : getInstructors()) {
             for (ExamPeriod period : getPeriods()) {
@@ -1195,9 +1167,10 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      *            if false, the cached value is used
      * @return number of back-to-back instructor conflicts
      */
+    @Deprecated
     public int getNrInstructorBackToBackConflicts(boolean precise) {
         if (!precise)
-            return iNrInstructorBackToBackConflicts;
+            return (int)getCriterion(InstructorBackToBackConflicts.class).getValue();
         int conflicts = 0;
         for (ExamInstructor instructor : getInstructors()) {
             for (ExamPeriod period : getPeriods()) {
@@ -1223,11 +1196,12 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      *            if false, the cached value is used
      * @return number of distance back-to-back student conflicts
      */
+    @Deprecated
     public int getNrInstructorDistanceBackToBackConflicts(boolean precise) {
         if (getBackToBackDistance() < 0)
             return 0;
         if (!precise)
-            return iNrInstructorDistanceBackToBackConflicts;
+            return (int)getCriterion(InstructorDistanceBackToBackConflicts.class).getValue();
         int conflicts = 0;
         for (ExamInstructor instructor : getInstructors()) {
             for (ExamPeriod period : getPeriods()) {
@@ -1260,9 +1234,10 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      *            if false, the cached value is used
      * @return number of more than two exams a day student conflicts
      */
+    @Deprecated
     public int getNrInstructorMoreThanTwoADayConflicts(boolean precise) {
         if (!precise)
-            return iNrInstructorMoreThanTwoADayConflicts;
+            return (int)getCriterion(InstructorMoreThan2ADayConflicts.class).getValue();
         int conflicts = 0;
         for (ExamInstructor instructor : getInstructors()) {
             for (int d = 0; d < getNrDays(); d++) {
@@ -1282,14 +1257,12 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      *            if false, the cached value is used
      * @return total room size penalty
      */
+    @Deprecated
     public int getRoomSizePenalty(boolean precise) {
         if (!precise)
-            return iRoomSizePenalty;
-        int penalty = 0;
-        for (Exam exam : assignedVariables()) {
-            penalty += exam.getAssignment().getRoomSizePenalty();
-        }
-        return penalty;
+            return (int)getCriterion(RoomSizePenalty.class).getValue();
+        else
+            return (int)getCriterion(RoomSizePenalty.class).getValue(variables());
     }
 
     /**
@@ -1300,14 +1273,12 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      *            if false, the cached value is used
      * @return total room split penalty
      */
+    @Deprecated
     public int getRoomSplitPenalty(boolean precise) {
         if (!precise)
-            return iRoomSplitPenalty;
-        int penalty = 0;
-        for (Exam exam : assignedVariables()) {
-            penalty += exam.getAssignment().getRoomSplitPenalty();
-        }
-        return penalty;
+            return (int)getCriterion(RoomSplitPenalty.class).getValue();
+        else
+            return (int)getCriterion(RoomSplitPenalty.class).getValue(variables());
     }
 
     /**
@@ -1318,14 +1289,12 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      *            if false, the cached value is used
      * @return total period penalty
      */
+    @Deprecated
     public int getPeriodPenalty(boolean precise) {
         if (!precise)
-            return iPeriodPenalty;
-        int penalty = 0;
-        for (Exam exam : assignedVariables()) {
-            penalty += exam.getAssignment().getPeriodPenalty();
-        }
-        return penalty;
+            return (int)getCriterion(PeriodPenalty.class).getValue();
+        else
+            return (int)getCriterion(PeriodPenalty.class).getValue(variables());
     }
 
     /**
@@ -1335,14 +1304,12 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      *            if false, the cached value is used
      * @return total period penalty
      */
+    @Deprecated
     public int getPeriodIndexPenalty(boolean precise) {
         if (!precise)
-            return iPeriodIndexPenalty;
-        int penalty = 0;
-        for (Exam exam : assignedVariables()) {
-            penalty += (exam.getAssignment()).getPeriod().getIndex();
-        }
-        return penalty;
+            return (int)getCriterion(PeriodIndexPenalty.class).getValue();
+        else
+            return (int)getCriterion(PeriodIndexPenalty.class).getValue(variables());
     }
 
     /**
@@ -1354,14 +1321,12 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      *            if false, the cached value is used
      * @return total period penalty
      */
+    @Deprecated
     public int getPeriodSizePenalty(boolean precise) {
         if (!precise)
-            return iPeriodSizePenalty;
-        int penalty = 0;
-        for (Exam exam : assignedVariables()) {
-            penalty += exam.getAssignment().getPeriodPenalty() * (exam.getSize() + 1);
-        }
-        return penalty;
+            return (int)getCriterion(PeriodSizePenalty.class).getValue();
+        else
+            return (int)getCriterion(PeriodSizePenalty.class).getValue(variables());
     }
 
     /**
@@ -1372,14 +1337,12 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      *            if false, the cached value is used
      * @return total period penalty
      */
+    @Deprecated
     public int getExamRotationPenalty(boolean precise) {
         if (!precise)
-            return iExamRotationPenalty;
-        int penalty = 0;
-        for (Exam exam : assignedVariables()) {
-            penalty += exam.getAssignment().getRotationPenalty();
-        }
-        return penalty;
+            return (int)getCriterion(ExamRotationPenalty.class).getValue();
+        else
+            return (int)getCriterion(ExamRotationPenalty.class).getValue(variables());
     }
 
     /**
@@ -1390,14 +1353,12 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      *            if false, the cached value is used
      * @return total room penalty
      */
+    @Deprecated
     public int getRoomPenalty(boolean precise) {
         if (!precise)
-            return iRoomPenalty;
-        int penalty = 0;
-        for (Exam exam : assignedVariables()) {
-            penalty += exam.getAssignment().getRoomPenalty();
-        }
-        return penalty;
+            return (int)getCriterion(RoomPenalty.class).getValue();
+        else
+            return (int)getCriterion(RoomPenalty.class).getValue(variables());
     }
 
     /**
@@ -1409,9 +1370,10 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      *            if false, the cached value is used
      * @return total distribution penalty
      */
+    @Deprecated
     public int getDistributionPenalty(boolean precise) {
         if (!precise)
-            return iDistributionPenalty;
+            return (int)getCriterion(DistributionPenalty.class).getValue();
         int penalty = 0;
         for (ExamDistributionConstraint dc : getDistributionConstraints()) {
             if (!dc.isSatisfied())
@@ -1429,14 +1391,12 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      *            if false, the cached value is used
      * @return total room split distance penalty
      */
+    @Deprecated
     public double getRoomSplitDistancePenalty(boolean precise) {
         if (!precise)
-            return iRoomSplitDistancePenalty;
-        double penalty = 0;
-        for (Exam exam : assignedVariables()) {
-            penalty += exam.getAssignment().getRoomSplitDistancePenalty();
-        }
-        return penalty;
+            return getCriterion(RoomSplitDistancePenalty.class).getValue();
+        else
+            return getCriterion(RoomSplitDistancePenalty.class).getValue(variables());
     }
 
     /**
@@ -1446,97 +1406,12 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      *            if false, the cached value is used
      * @return total number of exams that are assigned into two or more rooms
      */
+    @Deprecated
     public double getNrRoomSplits(boolean precise) {
         if (!precise)
-            return iRoomSplits;
-        int penalty = 0;
-        for (Exam exam : assignedVariables()) {
-            penalty += (exam.getAssignment().getRoomPlacements().size() > 1 ? 1 : 0);
-        }
-        return penalty;
-    }
-
-    /**
-     * To be called by soft {@link ExamDistributionConstraint} when satisfaction
-     * changes.
-     */
-    protected void addDistributionPenalty(int inc) {
-        iDistributionPenalty += inc;
-    }
-
-    private Integer iMaxDistributionPenalty = null;
-
-    private int getMaxDistributionPenalty() {
-        if (iMaxDistributionPenalty == null) {
-            int maxDistributionPenalty = 0;
-            for (ExamDistributionConstraint dc : getDistributionConstraints()) {
-                if (dc.isHard())
-                    continue;
-                maxDistributionPenalty += dc.getWeight();
-            }
-            iMaxDistributionPenalty = new Integer(maxDistributionPenalty);
-        }
-        return iMaxDistributionPenalty.intValue();
-    }
-
-    private int[] iLimits = null;
-
-    private int getMinPenalty(ExamRoom r) {
-        int min = Integer.MAX_VALUE;
-        for (ExamPeriod p : getPeriods()) {
-            if (r.isAvailable(p)) {
-                min = Math.min(min, r.getPenalty(p));
-            }
-        }
-        return min;
-    }
-
-    private int getMaxPenalty(ExamRoom r) {
-        int max = Integer.MIN_VALUE;
-        for (ExamPeriod p : getPeriods()) {
-            if (r.isAvailable(p)) {
-                max = Math.max(max, r.getPenalty(p));
-            }
-        }
-        return max;
-    }
-
-    private int[] getLimits() {
-        if (iLimits == null) {
-            int minPeriodPenalty = 0, maxPeriodPenalty = 0;
-            int minPeriodSizePenalty = 0, maxPeriodSizePenalty = 0;
-            int minRoomPenalty = 0, maxRoomPenalty = 0;
-            for (Exam exam : variables()) {
-                if (!exam.getPeriodPlacements().isEmpty()) {
-                    int minPenalty = Integer.MAX_VALUE, maxPenalty = Integer.MIN_VALUE;
-                    int minSizePenalty = Integer.MAX_VALUE, maxSizePenalty = Integer.MIN_VALUE;
-                    for (ExamPeriodPlacement periodPlacement : exam.getPeriodPlacements()) {
-                        minPenalty = Math.min(minPenalty, periodPlacement.getPenalty());
-                        maxPenalty = Math.max(maxPenalty, periodPlacement.getPenalty());
-                        minSizePenalty = Math.min(minSizePenalty, periodPlacement.getPenalty() * (exam.getSize() + 1));
-                        maxSizePenalty = Math.max(maxSizePenalty, periodPlacement.getPenalty() * (exam.getSize() + 1));
-                    }
-                    minPeriodPenalty += minPenalty;
-                    maxPeriodPenalty += maxPenalty;
-                    minPeriodSizePenalty += minSizePenalty;
-                    maxPeriodSizePenalty += maxSizePenalty;
-                }
-                if (!exam.getRoomPlacements().isEmpty()) {
-                    int minPenalty = Integer.MAX_VALUE, maxPenalty = Integer.MIN_VALUE;
-                    for (ExamRoomPlacement roomPlacement : exam.getRoomPlacements()) {
-                        minPenalty = Math.min(minPenalty, (roomPlacement.getPenalty() != 0 ? roomPlacement.getPenalty()
-                                : getMinPenalty(roomPlacement.getRoom())));
-                        maxPenalty = Math.max(maxPenalty, (roomPlacement.getPenalty() != 0 ? roomPlacement.getPenalty()
-                                : getMaxPenalty(roomPlacement.getRoom())));
-                    }
-                    minRoomPenalty += minPenalty;
-                    maxRoomPenalty += maxPenalty;
-                }
-            }
-            iLimits = new int[] { minPeriodPenalty, maxPeriodPenalty, minRoomPenalty, maxRoomPenalty,
-                    minPeriodSizePenalty, maxPeriodSizePenalty };
-        }
-        return iLimits;
+            return getCriterion(RoomSplitPenalty.class).getValue();
+        else
+            return getCriterion(RoomSplitPenalty.class).getValue(variables());
     }
 
     /**
@@ -1548,14 +1423,12 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      *            if false, the cached value is used
      * @return total period penalty
      */
+    @Deprecated
     public int getPerturbationPenalty(boolean precise) {
         if (!precise)
-            return iPerturbationPenalty;
-        int penalty = 0;
-        for (Exam exam : assignedVariables()) {
-            penalty += exam.getAssignment().getPerturbationPenalty();
-        }
-        return penalty;
+            return (int)getCriterion(PerturbationPenalty.class).getValue();
+        else
+            return (int)getCriterion(PerturbationPenalty.class).getValue(variables());
     }
 
     /**
@@ -1567,14 +1440,12 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      *            if false, the cached value is used
      * @return total room period penalty
      */
+    @Deprecated
     public int getRoomPerturbationPenalty(boolean precise) {
         if (!precise)
-            return iRoomPerturbationPenalty;
-        int penalty = 0;
-        for (Exam exam : assignedVariables()) {
-            penalty += exam.getAssignment().getRoomPerturbationPenalty();
-        }
-        return penalty;
+            return (int)getCriterion(RoomPerturbationPenalty.class).getValue();
+        else
+            return (int)getCriterion(RoomPerturbationPenalty.class).getValue(variables());
     }
 
     /**
@@ -1585,76 +1456,12 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      *            if false, the cached value is used
      * @return total period penalty
      */
+    @Deprecated
     public int getLargePenalty(boolean precise) {
         if (!precise)
-            return iLargePenalty;
-        int penalty = 0;
-        for (Exam exam : assignedVariables()) {
-            penalty += exam.getAssignment().getLargePenalty();
-        }
-        return penalty;
-    }
-
-    /**
-     * Info table
-     */
-    @Override
-    public Map<String, String> getInfo() {
-        Map<String, String> info = super.getInfo();
-        info.put("Direct Conflicts", getNrDirectConflicts(false)
-                + (iNrNADirectConflicts > 0 ? " (" + iNrNADirectConflicts + " N/A)" : ""));
-        info.put("More Than 2 A Day Conflicts", String.valueOf(getNrMoreThanTwoADayConflicts(false)));
-        info.put("Back-To-Back Conflicts", String.valueOf(getNrBackToBackConflicts(false)));
-        if (getBackToBackDistance() >= 0 && getNrDistanceBackToBackConflicts(false) > 0)
-            info.put("Distance Back-To-Back Conflicts", String.valueOf(getNrDistanceBackToBackConflicts(false)));
-        if (getNrInstructorDirectConflicts(false) > 0)
-            info.put("Instructor Direct Conflicts", getNrInstructorDirectConflicts(false)
-                    + (iNrNAInstructorDirectConflicts > 0 ? " (" + iNrNAInstructorDirectConflicts + " N/A)" : ""));
-        if (getNrInstructorMoreThanTwoADayConflicts(false) > 0)
-            info.put("Instructor More Than 2 A Day Conflicts", String
-                    .valueOf(getNrInstructorMoreThanTwoADayConflicts(false)));
-        if (getNrInstructorBackToBackConflicts(false) > 0)
-            info.put("Instructor Back-To-Back Conflicts", String.valueOf(getNrInstructorBackToBackConflicts(false)));
-        if (getBackToBackDistance() >= 0 && getNrInstructorDistanceBackToBackConflicts(false) > 0)
-            info.put("Instructor Distance Back-To-Back Conflicts", String
-                    .valueOf(getNrInstructorDistanceBackToBackConflicts(false)));
-        if (nrAssignedVariables() > 0 && getRoomSizePenalty(false) > 0)
-            info.put("Room Size Penalty", sDoubleFormat.format(((double) getRoomSizePenalty(false))
-                    / nrAssignedVariables()));
-        if (getRoomSplitPenalty(false) > 0) {
-            String split = "";
-            for (int i = 2; i < getMaxRooms(); i++)
-                if (iRoomSplitPenalties[i] > 0) {
-                    if (split.length() > 0)
-                        split += ", ";
-                    split += iRoomSplitPenalties[i] + "&times;" + i;
-                }
-            info.put("Room Split Penalty", getRoomSplitPenalty(false) + " (" + split + ")");
-        }
-        info.put("Period Penalty", getPerc(getPeriodPenalty(false), getLimits()[0], getLimits()[1]) + "% ("
-                + getPeriodPenalty(false) + ")");
-        info.put("Period&times;Size Penalty", getPerc(getPeriodSizePenalty(false), getLimits()[4], getLimits()[5])
-                + "% (" + getPeriodSizePenalty(false) + ")");
-        info.put("Average Period", sDoubleFormat
-                .format(((double) getPeriodIndexPenalty(false)) / nrAssignedVariables()));
-        info.put("Room Penalty", getPerc(getRoomPenalty(false), getLimits()[2], getLimits()[3]) + "% ("
-                + getRoomPenalty(false) + ")");
-        info.put("Distribution Penalty", getPerc(getDistributionPenalty(false), 0, getMaxDistributionPenalty()) + "% ("
-                + getDistributionPenalty(false) + ")");
-        info.put("Room Split Distance Penalty", sDoubleFormat.format(getRoomSplitDistancePenalty(false)
-                / getNrRoomSplits(false)));
-        if (getExamRotationPenalty(false) > 0)
-            info.put("Exam Rotation Penalty", String.valueOf(getExamRotationPenalty(false)));
-        if (isMPP()) {
-            info.put("Perturbation Penalty", sDoubleFormat.format(((double) getPerturbationPenalty(false))
-                    / nrAssignedVariables()));
-            info.put("Room Perturbation Penalty", sDoubleFormat.format(((double) getRoomPerturbationPenalty(false))
-                    / nrAssignedVariables()));
-        }
-        if (getLargeSize() >= 0)
-            info.put("Large Exams Penalty", getPerc(getLargePenalty(false), 0, iNrLargeExams) + "% ("
-                    + getLargePenalty(false) + ")");
-        return info;
+            return (int)getCriterion(LargeExamsPenalty.class).getValue();
+        else
+            return (int)getCriterion(LargeExamsPenalty.class).getValue(variables());
     }
 
     /**
@@ -1663,16 +1470,15 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
     @Override
     public Map<String, String> getExtendedInfo() {
         Map<String, String> info = super.getExtendedInfo();
+        /*
         info.put("Direct Conflicts [p]", String.valueOf(getNrDirectConflicts(true)));
         info.put("More Than 2 A Day Conflicts [p]", String.valueOf(getNrMoreThanTwoADayConflicts(true)));
         info.put("Back-To-Back Conflicts [p]", String.valueOf(getNrBackToBackConflicts(true)));
         info.put("Distance Back-To-Back Conflicts [p]", String.valueOf(getNrDistanceBackToBackConflicts(true)));
         info.put("Instructor Direct Conflicts [p]", String.valueOf(getNrInstructorDirectConflicts(true)));
-        info.put("Instructor More Than 2 A Day Conflicts [p]", String
-                .valueOf(getNrInstructorMoreThanTwoADayConflicts(true)));
+        info.put("Instructor More Than 2 A Day Conflicts [p]", String.valueOf(getNrInstructorMoreThanTwoADayConflicts(true)));
         info.put("Instructor Back-To-Back Conflicts [p]", String.valueOf(getNrInstructorBackToBackConflicts(true)));
-        info.put("Instructor Distance Back-To-Back Conflicts [p]", String
-                .valueOf(getNrInstructorDistanceBackToBackConflicts(true)));
+        info.put("Instructor Distance Back-To-Back Conflicts [p]", String.valueOf(getNrInstructorDistanceBackToBackConflicts(true)));
         info.put("Room Size Penalty [p]", String.valueOf(getRoomSizePenalty(true)));
         info.put("Room Split Penalty [p]", String.valueOf(getRoomSplitPenalty(true)));
         info.put("Period Penalty [p]", String.valueOf(getPeriodPenalty(true)));
@@ -1682,8 +1488,8 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
         info.put("Distribution Penalty [p]", String.valueOf(getDistributionPenalty(true)));
         info.put("Perturbation Penalty [p]", String.valueOf(getPerturbationPenalty(true)));
         info.put("Room Perturbation Penalty [p]", String.valueOf(getRoomPerturbationPenalty(true)));
-        info.put("Room Split Distance Penalty [p]", sDoubleFormat.format(getRoomSplitDistancePenalty(true)) + " / "
-                + getNrRoomSplits(true));
+        info.put("Room Split Distance Penalty [p]", sDoubleFormat.format(getRoomSplitDistancePenalty(true)) + " / " + getNrRoomSplits(true));
+        */
         info.put("Number of Periods", String.valueOf(getPeriods().size()));
         info.put("Number of Exams", String.valueOf(variables().size()));
         info.put("Number of Rooms", String.valueOf(getRooms().size()));
@@ -2396,7 +2202,8 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
         return true;
     }
 
+    @Deprecated
     public boolean isMPP() {
-        return iMPP;
+        return ((PerturbationPenalty)getCriterion(PerturbationPenalty.class)).isMPP();
     }
 }
