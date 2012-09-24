@@ -3,6 +3,8 @@ package net.sf.cpsolver.exam.reports;
 import java.text.DecimalFormat;
 import java.util.List;
 
+import net.sf.cpsolver.exam.criteria.StudentBackToBackConflicts;
+import net.sf.cpsolver.exam.criteria.StudentDistanceBackToBackConflicts;
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPlacement;
@@ -60,11 +62,13 @@ public class ExamStudentBackToBackConflicts {
                 new CSVField("Date 1"), new CSVField("Time 1"), new CSVField("Exam 2"), new CSVField("Enrl 2"),
                 new CSVField("Back-To-Back"), new CSVField("Back-To-Back [%]"), new CSVField("Distance") });
         DecimalFormat df = new DecimalFormat("0.0");
+        boolean isDayBreakBackToBack = ((StudentBackToBackConflicts)iModel.getCriterion(StudentBackToBackConflicts.class)).isDayBreakBackToBack();
+        double backToBackDistance = ((StudentDistanceBackToBackConflicts)iModel.getCriterion(StudentDistanceBackToBackConflicts.class)).getBackToBackDistance();
         for (Exam ex1 : iModel.variables()) {
             ExamPlacement p1 = ex1.getAssignment();
             if (p1 == null || p1.getPeriod().next() == null)
                 continue;
-            if (!iModel.isDayBreakBackToBack() && p1.getPeriod().getDay() != p1.getPeriod().next().getDay())
+            if (!isDayBreakBackToBack && p1.getPeriod().getDay() != p1.getPeriod().next().getDay())
                 continue;
             for (Exam ex2 : iModel.variables()) {
                 ExamPlacement p2 = ex2.getAssignment();
@@ -74,7 +78,7 @@ public class ExamStudentBackToBackConflicts {
                 if (students == null || students.isEmpty())
                     continue;
                 String distStr = "";
-                if (iModel.getBackToBackDistance() >= 0) {
+                if (backToBackDistance >= 0) {
                     double dist = p1.getDistanceInMeters(p2);
                     if (dist > 0)
                         distStr = String.valueOf(dist);
