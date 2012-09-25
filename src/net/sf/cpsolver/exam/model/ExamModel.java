@@ -217,6 +217,13 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
     public ExamRoomSharing getRoomSharing() { return iRoomSharing; }
 
     /**
+     * Set examination sharing model
+     */
+    public void setRoomSharing(ExamRoomSharing sharing) {
+        iRoomSharing = sharing;
+    }
+
+    /**
      * Initialization of the model
      */
     public void init() {
@@ -1751,6 +1758,8 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
                     ini.addElement("room").addAttribute("id", getId(anonymize, "room", String.valueOf(r.getId())));
                 }
             }
+            if (iRoomSharing != null)
+                iRoomSharing.save(exam, ex, anonymize ? IdConvertor.getInstance() : null);
         }
         Element students = root.addElement("students");
         for (ExamStudent student : getStudents()) {
@@ -2088,6 +2097,8 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
                 exam.getOwners().add(owner);
                 courseSections.put(new Long(owner.getId()), owner);
             }
+            if (iRoomSharing != null)
+                iRoomSharing.load(exam, e);
         }
         for (Iterator<?> i = root.element("students").elementIterator("student"); i.hasNext();) {
             Element e = (Element) i.next();

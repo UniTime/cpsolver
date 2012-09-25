@@ -5,6 +5,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import org.dom4j.Element;
+
+import net.sf.cpsolver.coursett.IdConvertor;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.ToolBox;
@@ -126,5 +129,14 @@ public abstract class ExamRoomSharing  {
      * True if given two exams can share a room
      */
     public abstract boolean canShareRoom(Exam x1, Exam x2);
-
+    
+    /**
+     * Save sharing information (if needed) for a given exam
+     */
+    public void save(Exam exam, Element element, IdConvertor idConvertor) {}
+    
+    /**
+     * Load sharing information (if needed) for a given exam
+     */
+    public void load(Exam exam, Element element) {}
 }
