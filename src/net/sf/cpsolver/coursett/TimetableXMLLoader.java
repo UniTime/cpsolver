@@ -625,7 +625,11 @@ public class TimetableXMLLoader extends TimetableLoader {
             getModel().addConstraint(c);
             for (Iterator<?> i2 = grConstraintEl.elementIterator("class"); i2.hasNext();) {
                 String classId = ((Element) i2.next()).attributeValue("id");
-                c.addVariable(lectures.get(classId));
+                Lecture other = lectures.get(classId);
+                if (other != null)
+                    c.addVariable(other);
+                else
+                    iProgress.warn("Class " + classId + " does not exists, but it is referred from group constraint " + c.getId() + " (" + c.getName() + ")");
             }
             grConstraintElements.put(grConstraintEl.attributeValue("id"), grConstraintEl);
             groupConstraints.put(grConstraintEl.attributeValue("id"), c);
@@ -665,6 +669,10 @@ public class TimetableXMLLoader extends TimetableLoader {
             for (Iterator<?> i2 = studentEl.elementIterator("class"); i2.hasNext();) {
                 String classId = ((Element) i2.next()).attributeValue("id");
                 Lecture lecture = lectures.get(classId);
+                if (lecture == null) {
+                    iProgress.warn("Class " + classId + " does not exists, but it is referred from student " + student.getId());
+                    continue;
+                }
                 if (lecture.isCommitted()) {
                     if (sectionWholeCourse && (lecture.getParent() != null || lecture.getConfiguration() != null)) {
                         // committed, but with course structure -- sectioning can be used
@@ -687,7 +695,10 @@ public class TimetableXMLLoader extends TimetableLoader {
             for (Iterator<?> i2 = studentEl.elementIterator("prohibited-class"); i2.hasNext();) {
                 String classId = ((Element) i2.next()).attributeValue("id");
                 Lecture lecture = lectures.get(classId);
-                student.addCanNotEnroll(lecture);
+                if (lecture != null)
+                    student.addCanNotEnroll(lecture);
+                else
+                    iProgress.warn("Class " + classId + " does not exists, but it is referred from student " + student.getId());
             }
 
             iProgress.incProgress();
