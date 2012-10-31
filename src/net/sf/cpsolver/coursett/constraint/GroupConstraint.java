@@ -17,6 +17,7 @@ import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.GlobalConstraint;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.DistanceMetric;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
@@ -377,14 +378,17 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
             public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
                 TimeLocation t1 = plc1.getTimeLocation(), t2 = plc2.getTimeLocation();
                 if (t1.shareDays(t2) && t1.shareWeeks(t2)) {
-                    if (t1.shareHours(t2))
-                        return false; // overlap
-                    int s1 = t1.getStartSlot() % Constants.SLOTS_PER_DAY;
-                    int s2 = t2.getStartSlot() % Constants.SLOTS_PER_DAY;
-                    if (s1 + t1.getLength() == s2 || s2 + t2.getLength() == s1) { // back-to-back
-                        TimetableModel m = (TimetableModel)gc.getModel();
-                        double distance = Placement.getDistanceInMeters(m.getDistanceMetric(), plc1, plc2);
-                        if (distance > m.getDistanceMetric().getInstructorProhibitedLimit())
+                    if (t1.shareHours(t2)) return false; // overlap
+                    DistanceMetric m = ((TimetableModel)gc.getModel()).getDistanceMetric();
+                    if ((t1.getStartSlot() + t1.getLength() == t2.getStartSlot() || t2.getStartSlot() + t2.getLength() == t1.getStartSlot())) {
+                        if (Placement.getDistanceInMeters(m, plc1, plc2) > m.getInstructorProhibitedLimit())
+                            return false;
+                    } else if (m.doComputeDistanceConflictsBetweenNonBTBClasses()) {
+                        if (t1.getStartSlot() + t1.getLength() < t2.getStartSlot() && 
+                            Placement.getDistanceInMinutes(m, plc1, plc2) > t1.getBreakTime() + Constants.SLOT_LENGTH_MIN * (t2.getStartSlot() - t1.getStartSlot() - t1.getLength()))
+                            return false;
+                        if (t2.getStartSlot() + t2.getLength() < t1.getStartSlot() &&
+                            Placement.getDistanceInMinutes(m, plc1, plc2) > t2.getBreakTime() + Constants.SLOT_LENGTH_MIN * (t1.getStartSlot() - t2.getStartSlot() - t2.getLength()))
                             return false;
                     }
                 }
