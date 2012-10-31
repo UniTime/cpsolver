@@ -88,6 +88,12 @@ public class DistanceMetric {
      * (everything above is prohibited)
      */
     private double iInstructorProhibitedLimit = 200.0;
+    /** 
+     * When Distances.ComputeDistanceConflictsBetweenNonBTBClasses is enabled, distance limit (in minutes)
+     * for a long travel.  
+     */
+    private double iInstructorLongTravelInMinutes = 30.0;
+    
     /** Default distance when given coordinates are null. */
     private double iNullDistance = 10000.0;
     /** Maximal travel time in minutes when no coordinates are given. */
@@ -142,6 +148,7 @@ public class DistanceMetric {
         }
         iComputeDistanceConflictsBetweenNonBTBClasses = properties.getPropertyBoolean(
                 "Distances.ComputeDistanceConflictsBetweenNonBTBClasses", iComputeDistanceConflictsBetweenNonBTBClasses);
+        iInstructorLongTravelInMinutes = properties.getPropertyDouble("Instructor.InstructorLongTravelInMinutes", 30.0);
     }
 
     /** Degrees to radians */
@@ -263,6 +270,14 @@ public class DistanceMetric {
     /** Back-to-back classes in rooms within this limit have strongly discouraged preference, it is prohibited to exceed this limit. */
     public double getInstructorProhibitedLimit() {
         return iInstructorProhibitedLimit;
+    }
+    
+    /**
+     * When Distances.ComputeDistanceConflictsBetweenNonBTBClasses is enabled, distance limit (in minutes)
+     * for a long travel.
+     */
+    public double getInstructorLongTravelInMinutes() {
+        return iInstructorLongTravelInMinutes;
     }
     
     /** True if legacy mode is used (Euclidian distance where 1 unit is 10 meters) */
