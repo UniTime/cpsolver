@@ -7,6 +7,7 @@ import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamRoom;
 import net.sf.cpsolver.exam.model.ExamRoomPlacement;
+import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -18,6 +19,12 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  * A weight for room size penalty can be set by problem
  * property Exams.RoomSizeWeight, or in the input xml file, property
  * roomSizeWeight).
+ * <br><br>
+ * The difference function can be made polynomial by using Exams.RoomSizeFactor parameter
+ * (defaults to 1.0). The value of this criteria is then cubed by the power of this room
+ * size factor. This is to be able to favor a room swap between two exams at the same period,
+ * in which a smaller exam takes a smaller room. To do this, set Exams.RoomSizeFactor to
+ * a number bigger than one that is close to one (e.g., 1.05).
  * 
  * <br>
  * 
@@ -41,6 +48,14 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class RoomSizePenalty extends ExamCriterion {
+    private double iRoomSizeFactor = 1.0;
+    
+    @Override
+    public boolean init(Solver<Exam, ExamPlacement> solver) {
+        iRoomSizeFactor = solver.getProperties().getPropertyDouble("Exams.RoomSizeFactor", 1.0);
+        return super.init(solver);
+    }
+
     
     @Override
     public String getWeightName() {
@@ -61,7 +76,7 @@ public class RoomSizePenalty extends ExamCriterion {
                 size += r.getSize(exam.hasAltSeating());
             }
         int diff = size - exam.getSize();
-        return (diff < 0 ? 0 : diff);
+        return (diff < 0 ? 0 : Math.pow(diff, iRoomSizeFactor));
     }
     
     @Override
