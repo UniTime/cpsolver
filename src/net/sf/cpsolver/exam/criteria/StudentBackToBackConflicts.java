@@ -60,6 +60,11 @@ public class StudentBackToBackConflicts extends ExamCriterion {
     }
     
     @Override
+    public String getXmlWeightName() {
+        return "backToBackConflictWeight";
+    }
+    
+    @Override
     public double getWeightDefault(DataProperties config) {
         return 10.0;
     }
@@ -85,6 +90,22 @@ public class StudentBackToBackConflicts extends ExamCriterion {
      */
     public void setDayBreakBackToBack(boolean dayBreakBackToBack) {
         iDayBreakBackToBack = dayBreakBackToBack;
+    }
+    
+    @Override
+    public void getXmlParameters(Map<String, String> params) {
+        params.put(getXmlWeightName(), String.valueOf(getWeight()));
+        params.put("isDayBreakBackToBack", isDayBreakBackToBack() ? "true" : "false");
+    }
+    
+    @Override
+    public void setXmlParameters(Map<String, String> params) {
+        try {
+            setWeight(Double.valueOf(params.get(getXmlWeightName())));
+        } catch (NumberFormatException e) {} catch (NullPointerException e) {}
+        try {
+            setDayBreakBackToBack("true".equals(params.get("isDayBreakBackToBack")));
+        } catch (NumberFormatException e) {} catch (NullPointerException e) {}
     }
     
     @Override

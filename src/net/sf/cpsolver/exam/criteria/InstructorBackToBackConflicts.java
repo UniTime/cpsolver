@@ -50,6 +50,11 @@ public class InstructorBackToBackConflicts extends StudentBackToBackConflicts {
     }
     
     @Override
+    public String getXmlWeightName() {
+        return "instructorBackToBackConflictWeight";
+    }
+    
+    @Override
     public double getWeightDefault(DataProperties config) {
         return 10.0;
     }

@@ -45,6 +45,11 @@ public class InstructorMoreThan2ADayConflicts extends StudentMoreThan2ADayConfli
     }
     
     @Override
+    public String getXmlWeightName() {
+        return "instructorMoreThanTwoADayWeight";
+    }
+
+    @Override
     public double getWeightDefault(DataProperties config) {
         return 100.0;
     }

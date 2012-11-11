@@ -1,5 +1,6 @@
 package net.sf.cpsolver.exam.criteria;
 
+import java.util.Map;
 import java.util.Set;
 
 import net.sf.cpsolver.exam.model.Exam;
@@ -52,6 +53,31 @@ public class LargeExamsPenalty extends ExamCriterion {
     @Override
     public String getWeightName() {
         return "Exams.LargeWeight";
+    }
+    
+    @Override
+    public String getXmlWeightName() {
+        return "largeWeight";
+    }
+    
+    @Override
+    public void getXmlParameters(Map<String, String> params) {
+        params.put(getXmlWeightName(), String.valueOf(getWeight()));
+        params.put("largeSize", String.valueOf(getLargeSize()));
+        params.put("largePeriod", String.valueOf(getLargePeriod()));
+    }
+    
+    @Override
+    public void setXmlParameters(Map<String, String> params) {
+        try {
+            setWeight(Double.valueOf(params.get(getXmlWeightName())));
+        } catch (NumberFormatException e) {} catch (NullPointerException e) {}
+        try {
+            setLargeSize(Integer.valueOf(params.get("largeSize")));
+        } catch (NumberFormatException e) {} catch (NullPointerException e) {}
+        try {
+            setLargePeriod(Double.valueOf(params.get("largePeriod")));
+        } catch (NumberFormatException e) {} catch (NullPointerException e) {}
     }
     
     @Override

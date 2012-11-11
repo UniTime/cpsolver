@@ -42,6 +42,11 @@ public class PeriodPenalty extends ExamCriterion {
     }
     
     @Override
+    public String getXmlWeightName() {
+        return "periodWeight";
+    }
+    
+    @Override
     public double getWeightDefault(DataProperties config) {
         return 1.0;
     }

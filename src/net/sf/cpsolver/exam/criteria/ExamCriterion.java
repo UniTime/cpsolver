@@ -114,4 +114,29 @@ public abstract class ExamCriterion extends AbstractCriterion<Exam, ExamPlacemen
      * Return impact of this criterion on room assignment (if this criterion is based on room assignment). Used by {@link ExamPlacement#getRoomCost()}.
      */
     public double getRoomValue(ExamPlacement value) { return isRoomCriterion() ? getValue(value, null) : 0.0; }
+    
+    /**
+     * Name of the weight parameter in the parameters section of the examination XML file.
+     */
+    public String getXmlWeightName() {
+        String name = getClass().getName().substring(1 + getClass().getName().lastIndexOf('.'));
+        return Character.toString(name.charAt(0)) + name.substring(1);
+    }
+    
+    /**
+     * Put all the parameters of this criterion into a map that is used to write parameters section of the examination XML file.
+     */
+    public void getXmlParameters(Map<String, String> params) {
+        params.put(getXmlWeightName(), String.valueOf(getWeight()));
+    }
+    
+    /**
+     * Set all the parameters of this criterion from a map that is read from the parameters section the examination XML file.
+     */
+    public void setXmlParameters(Map<String, String> params) {
+        try {
+            setWeight(Double.valueOf(params.get(getXmlWeightName())));
+        } catch (NumberFormatException e) {
+        } catch (NullPointerException e) {}
+    }
 }

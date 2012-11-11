@@ -49,6 +49,11 @@ public class DistributionPenalty extends ExamCriterion {
     }
     
     @Override
+    public String getXmlWeightName() {
+        return "distributionWeight";
+    }
+    
+    @Override
     public double getWeightDefault(DataProperties config) {
         return 1.0;
     }
