@@ -42,6 +42,11 @@ public class ExamRotationPenalty extends ExamCriterion {
     }
     
     @Override
+    public String getXmlWeightName() {
+        return "examRotationWeight";
+    }
+    
+    @Override
     public double getWeightDefault(DataProperties config) {
         return 0.001;
     }

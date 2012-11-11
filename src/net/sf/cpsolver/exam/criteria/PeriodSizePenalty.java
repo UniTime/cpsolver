@@ -11,7 +11,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  * A weight for period penalty (used in
  * {@link ExamPeriodPlacement#getPenalty()} multiplied by examination size
  * {@link Exam#getSize()}. Can be set by problem property
- * Exams.PeriodSizeWeight, or in the input xml file, property periodWeight).
+ * Exams.PeriodSizeWeight, or in the input xml file, property periodSizeWeight).
  * 
  * <br>
  * 
@@ -39,6 +39,11 @@ public class PeriodSizePenalty extends ExamCriterion {
     @Override
     public String getWeightName() {
         return "Exams.PeriodSizeWeight";
+    }
+    
+    @Override
+    public String getXmlWeightName() {
+        return "periodSizeWeight";
     }
     
     @Override

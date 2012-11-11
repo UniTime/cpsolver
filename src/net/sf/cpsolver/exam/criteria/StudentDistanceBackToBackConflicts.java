@@ -62,6 +62,11 @@ public class StudentDistanceBackToBackConflicts extends ExamCriterion {
     }
     
     @Override
+    public String getXmlWeightName() {
+        return "distanceBackToBackConflictWeight";
+    }
+    
+    @Override
     public double getWeightDefault(DataProperties config) {
         return 25.0;
     }
@@ -84,6 +89,21 @@ public class StudentDistanceBackToBackConflicts extends ExamCriterion {
         iBackToBackDistance = backToBackDistance;
     }
 
+    @Override
+    public void getXmlParameters(Map<String, String> params) {
+        params.put(getXmlWeightName(), String.valueOf(getWeight()));
+        params.put("backToBackDistance", String.valueOf(getBackToBackDistance()));
+    }
+    
+    @Override
+    public void setXmlParameters(Map<String, String> params) {
+        try {
+            setWeight(Double.valueOf(params.get(getXmlWeightName())));
+        } catch (NumberFormatException e) {} catch (NullPointerException e) {}
+        try {
+            setBackToBackDistance(Double.valueOf(params.get("backToBackDistance")));
+        } catch (NumberFormatException e) {} catch (NullPointerException e) {}
+    }
     
     @Override
     public double getValue(ExamPlacement value, Set<ExamPlacement> conflicts) {

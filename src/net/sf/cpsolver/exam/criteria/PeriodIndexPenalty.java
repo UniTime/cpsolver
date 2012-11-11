@@ -10,7 +10,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  * Average index of the assigned period.
  * <br><br>
  * A weight for period index can be set by problem property
- * Exams.PeriodIndexWeight, or in the input xml file, property periodWeight.
+ * Exams.PeriodIndexWeight, or in the input xml file, property periodIndexWeight.
  * 
  * <br>
  * 
@@ -40,6 +40,11 @@ public class PeriodIndexPenalty extends ExamCriterion {
         return "Exams.PeriodIndexWeight";
     }
     
+    @Override
+    public String getXmlWeightName() {
+        return "periodIndexWeight";
+    }
+
     @Override
     public double getWeightDefault(DataProperties config) {
         return 0.0000001;

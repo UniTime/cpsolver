@@ -1,16 +1,16 @@
 package net.sf.cpsolver.exam.criteria;
 
+import java.util.Map;
 import java.util.Set;
 
 import net.sf.cpsolver.exam.model.Exam;
-import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
  * Perturbation penalty. I.e., penalty for using a different examination period than
- * initial. Only applicable when {@link ExamModel#isMPP()} is true (minimal
+ * initial. Only applicable when {@link PerturbationPenalty#isMPP()} is true (minimal
  * perturbation problem).
  * <br><br>
  * A weight of perturbations (i.e., a penalty for an
@@ -55,12 +55,33 @@ public class PerturbationPenalty extends ExamCriterion {
     }
     
     @Override
+    public String getXmlWeightName() {
+        return "perturbationWeight";
+    }
+    
+    @Override
     public double getWeightDefault(DataProperties config) {
         return 0.01;
     }
     
     public boolean isMPP() {
         return iMPP;
+    }
+    
+    @Override
+    public void getXmlParameters(Map<String, String> params) {
+        params.put(getXmlWeightName(), String.valueOf(getWeight()));
+        params.put("mpp", isMPP() ? "true" : "false");
+    }
+    
+    @Override
+    public void setXmlParameters(Map<String, String> params) {
+        try {
+            setWeight(Double.valueOf(params.get(getXmlWeightName())));
+        } catch (NumberFormatException e) {} catch (NullPointerException e) {}
+        try {
+            iMPP = "true".equals(params.get("mpp"));
+        } catch (NumberFormatException e) {} catch (NullPointerException e) {}
     }
 
     @Override

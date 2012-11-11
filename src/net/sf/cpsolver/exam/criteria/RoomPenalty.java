@@ -16,7 +16,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  * <br><br>
  * A weight for room penalty can be set by problem property
  * Exams.RoomPreferenceWeight, or in the input xml file, property
- * roomPreferenceWeight).
+ * roomWeight).
  * 
  * <br>
  * 
@@ -44,6 +44,11 @@ public class RoomPenalty extends ExamCriterion {
     @Override
     public String getWeightName() {
         return "Exams.RoomWeight";
+    }
+    
+    @Override
+    public String getXmlWeightName() {
+        return "roomWeight";
     }
     
     @Override

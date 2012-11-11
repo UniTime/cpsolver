@@ -46,6 +46,11 @@ public class StudentDirectConflicts extends ExamCriterion {
     }
     
     @Override
+    public String getXmlWeightName() {
+        return "directConflictWeight";
+    }
+
+    @Override
     public double getWeightDefault(DataProperties config) {
         return 1000.0;
     }

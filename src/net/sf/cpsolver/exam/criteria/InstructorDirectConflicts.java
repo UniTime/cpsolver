@@ -46,6 +46,11 @@ public class InstructorDirectConflicts extends StudentDirectConflicts {
     }
     
     @Override
+    public String getXmlWeightName() {
+        return "instructorDirectConflictWeight";
+    }
+
+    @Override
     public double getWeightDefault(DataProperties config) {
         return 1000.0;
     }

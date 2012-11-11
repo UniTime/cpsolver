@@ -69,6 +69,11 @@ public class StudentMoreThan2ADayConflicts extends ExamCriterion {
     }
     
     @Override
+    public String getXmlWeightName() {
+        return "moreThanTwoADayWeight";
+    }
+
+    @Override
     public void getInfo(Map<String, String> info) {
         if (getValue() != 0.0)
             info.put(getName(), sDoubleFormat.format(getValue()));

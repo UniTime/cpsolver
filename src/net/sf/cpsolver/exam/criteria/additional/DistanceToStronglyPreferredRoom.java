@@ -51,6 +51,11 @@ public class DistanceToStronglyPreferredRoom extends ExamCriterion {
     }
     
     @Override
+    public String getXmlWeightName() {
+        return "distanceToStronglyPreferredRoomWeight";
+    }
+    
+    @Override
     public double getWeightDefault(DataProperties config) {
         return 0.001;
     }
