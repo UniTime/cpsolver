@@ -93,10 +93,8 @@ public class RoomPenalty extends ExamCriterion {
             if (!exam.getRoomPlacements().isEmpty()) {
                 int minPenalty = Integer.MAX_VALUE, maxPenalty = Integer.MIN_VALUE;
                 for (ExamRoomPlacement roomPlacement : exam.getRoomPlacements()) {
-                    minPenalty = Math.min(minPenalty, (roomPlacement.getPenalty() != 0 ? roomPlacement.getPenalty()
-                            : getMinPenalty(roomPlacement.getRoom())));
-                    maxPenalty = Math.max(maxPenalty, (roomPlacement.getPenalty() != 0 ? roomPlacement.getPenalty()
-                            : getMaxPenalty(roomPlacement.getRoom())));
+                    minPenalty = Math.min(minPenalty, 2 * roomPlacement.getPenalty() + getMinPenalty(roomPlacement.getRoom()));
+                    maxPenalty = Math.max(maxPenalty, 2 * roomPlacement.getPenalty() + getMaxPenalty(roomPlacement.getRoom()));
                 }
                 iBounds[0] += minPenalty;
                 iBounds[1] += maxPenalty;
