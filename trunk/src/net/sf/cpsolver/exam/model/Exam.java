@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import net.sf.cpsolver.exam.criteria.DistributionPenalty;
+import net.sf.cpsolver.exam.criteria.ExamRotationPenalty;
 import net.sf.cpsolver.exam.criteria.RoomPenalty;
 import net.sf.cpsolver.exam.criteria.RoomSizePenalty;
 import net.sf.cpsolver.exam.criteria.RoomSplitPenalty;
@@ -365,7 +366,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
     /**
      * Set average period. This represents an average period that the exam was
      * assigned to in the past. If set, it is used in exam rotation penalty
-     * {@link ExamPlacement#getRotationPenalty()} in order to put more weight on
+     * {@link ExamRotationPenalty} in order to put more weight on
      * exams that were badly assigned last time(s) and ensuring some form of
      * fairness.
      * 
@@ -379,7 +380,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
     /**
      * Average period. This represents an average period that the exam was
      * assigned to in the past. If set, it is used in exam rotation penalty
-     * {@link ExamPlacement#getRotationPenalty()} in order to put more weight on
+     * {@link ExamRotationPenalty} in order to put more weight on
      * exams that were badly assigned last time(s) and ensuring some form of
      * fairness.
      * 
@@ -393,7 +394,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      * True if there is an average period assigned to the exam. This represents
      * an average period that the exam was assigned to in the past. If set, it
      * is used in exam rotation penalty
-     * {@link ExamPlacement#getRotationPenalty()} in order to put more weight on
+     * {@link ExamRotationPenalty} in order to put more weight on
      * exams that were badly assigned last time(s) and ensuring some form of
      * fairness.
      */

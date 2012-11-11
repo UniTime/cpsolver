@@ -52,6 +52,11 @@ public class InstructorDistanceBackToBackConflicts extends StudentDistanceBackTo
     }
     
     @Override
+    public String getXmlWeightName() {
+        return "instructorDistanceBackToBackConflictWeight";
+    }
+
+    @Override
     public double getWeightDefault(DataProperties config) {
         return 25.0;
     }

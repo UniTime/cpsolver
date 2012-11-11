@@ -55,7 +55,6 @@ public class RoomSizePenalty extends ExamCriterion {
         iRoomSizeFactor = solver.getProperties().getPropertyDouble("Exams.RoomSizeFactor", 1.0);
         return super.init(solver);
     }
-
     
     @Override
     public String getWeightName() {
@@ -63,10 +62,31 @@ public class RoomSizePenalty extends ExamCriterion {
     }
     
     @Override
+    public String getXmlWeightName() {
+        return "roomSizeWeight";
+    }
+    
+    @Override
     public double getWeightDefault(DataProperties config) {
         return 0.0001;
     }
-
+    
+    @Override
+    public void getXmlParameters(Map<String, String> params) {
+        params.put(getXmlWeightName(), String.valueOf(getWeight()));
+        params.put("roomSizeFactor", String.valueOf(iRoomSizeFactor));
+    }
+    
+    @Override
+    public void setXmlParameters(Map<String, String> params) {
+        try {
+            setWeight(Double.valueOf(params.get(getXmlWeightName())));
+        } catch (NumberFormatException e) {} catch (NullPointerException e) {}
+        try {
+            iRoomSizeFactor = Double.valueOf(params.get("roomSizeFactor"));
+        } catch (NumberFormatException e) {} catch (NullPointerException e) {}
+    }
+    
     @Override
     public double getValue(ExamPlacement value, Set<ExamPlacement> conflicts) {
         Exam exam = value.variable();

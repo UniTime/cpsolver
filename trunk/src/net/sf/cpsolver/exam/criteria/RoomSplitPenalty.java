@@ -43,6 +43,11 @@ public class RoomSplitPenalty extends ExamCriterion {
     }
     
     @Override
+    public String getXmlWeightName() {
+        return "roomSplitWeight";
+    }
+    
+    @Override
     public double getWeightDefault(DataProperties config) {
         return 10.0;
     }

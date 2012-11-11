@@ -11,7 +11,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  * <br><br>
  * A weight for room split penalty can be set by problem
  * property Exams.RoomSplitWeight, or in the input xml file, property
- * roomSplitWeight).
+ * roomSplitDistanceWeight).
  * 
  * <br>
  * 
@@ -39,6 +39,11 @@ public class RoomSplitDistancePenalty  extends ExamCriterion {
     @Override
     public String getWeightName() {
         return "Exams.RoomSplitDistanceWeight";
+    }
+    
+    @Override
+    public String getXmlWeightName() {
+        return "roomSplitDistanceWeight";
     }
     
     @Override

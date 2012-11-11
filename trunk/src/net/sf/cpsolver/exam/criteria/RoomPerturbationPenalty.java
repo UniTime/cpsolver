@@ -3,20 +3,19 @@ package net.sf.cpsolver.exam.criteria;
 import java.util.Set;
 
 import net.sf.cpsolver.exam.model.Exam;
-import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamRoomPlacement;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
  * Room perturbation penalty. I.e., number of assigned rooms different from
- * initial. Only applicable when {@link ExamModel#isMPP()} is true (minimal
+ * initial. Only applicable when {@link PerturbationPenalty#isMPP()} is true (minimal
  * perturbation problem).
  * <br><br>
  * A weight of room perturbations (i.e., a penalty for
  * an assignment of an exam to a room different from the initial one) can be
  * set by problem property Exams.RoomPerturbationWeight, or in the input xml
- * file, property perturbationWeight).
+ * file, property roomPerturbationWeight).
  * 
  * <br>
  * 
@@ -44,6 +43,11 @@ public class RoomPerturbationPenalty extends PerturbationPenalty {
     @Override
     public String getWeightName() {
         return "Exams.RoomPerturbationWeight";
+    }
+    
+    @Override
+    public String getXmlWeightName() {
+        return "roomPerturbationWeight";
     }
     
     @Override

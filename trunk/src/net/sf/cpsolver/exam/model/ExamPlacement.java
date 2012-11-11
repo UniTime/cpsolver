@@ -5,27 +5,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-import net.sf.cpsolver.exam.criteria.DistributionPenalty;
 import net.sf.cpsolver.exam.criteria.ExamCriterion;
-import net.sf.cpsolver.exam.criteria.ExamRotationPenalty;
-import net.sf.cpsolver.exam.criteria.InstructorBackToBackConflicts;
-import net.sf.cpsolver.exam.criteria.InstructorDirectConflicts;
-import net.sf.cpsolver.exam.criteria.InstructorDistanceBackToBackConflicts;
-import net.sf.cpsolver.exam.criteria.InstructorMoreThan2ADayConflicts;
-import net.sf.cpsolver.exam.criteria.InstructorNotAvailableConflicts;
-import net.sf.cpsolver.exam.criteria.LargeExamsPenalty;
-import net.sf.cpsolver.exam.criteria.PeriodPenalty;
-import net.sf.cpsolver.exam.criteria.PerturbationPenalty;
-import net.sf.cpsolver.exam.criteria.RoomPenalty;
-import net.sf.cpsolver.exam.criteria.RoomPerturbationPenalty;
-import net.sf.cpsolver.exam.criteria.RoomSizePenalty;
-import net.sf.cpsolver.exam.criteria.RoomSplitDistancePenalty;
-import net.sf.cpsolver.exam.criteria.RoomSplitPenalty;
-import net.sf.cpsolver.exam.criteria.StudentBackToBackConflicts;
-import net.sf.cpsolver.exam.criteria.StudentDirectConflicts;
-import net.sf.cpsolver.exam.criteria.StudentDistanceBackToBackConflicts;
-import net.sf.cpsolver.exam.criteria.StudentMoreThan2ADayConflicts;
-import net.sf.cpsolver.exam.criteria.StudentNotAvailableConflicts;
 import net.sf.cpsolver.ifs.criteria.Criterion;
 import net.sf.cpsolver.ifs.model.Value;
 
@@ -41,43 +21,6 @@ import net.sf.cpsolver.ifs.model.Value;
  * Also, the number of rooms has to be smaller or equal to
  * {@link Exam#getMaxRooms()}. If {@link Exam#getMaxRooms()} is zero, the exam
  * is only to be assigned to period (the set of rooms is empty). <br>
- * <br>
- * The cost of an assignment consists of the following criteria:
- * <ul>
- * <li>Direct student conflicts {@link ExamPlacement#getNrDirectConflicts()},
- * weighted by {@link ExamModel#getDirectConflictWeight()}
- * <li>More than two exams a day student conflicts
- * {@link ExamPlacement#getNrMoreThanTwoADayConflicts()}, weighted by
- * {@link ExamModel#getMoreThanTwoADayWeight()}
- * <li>Back-to-back student conflicts
- * {@link ExamPlacement#getNrBackToBackConflicts()}, weighted by
- * {@link ExamModel#getBackToBackConflictWeight()}
- * <li>Distance back-to-back student conflicts
- * {@link ExamPlacement#getNrDistanceBackToBackConflicts()}, weighted by
- * {@link ExamModel#getDistanceBackToBackConflictWeight()}
- * <li>Period penalty {@link ExamPlacement#getPeriodPenalty()}, weighted by
- * {@link ExamModel#getPeriodWeight()}
- * <li>Room size penalty {@link ExamPlacement#getRoomSizePenalty()}, weighted by
- * {@link ExamModel#getRoomSizeWeight()}
- * <li>Room split penalty {@link ExamPlacement#getRoomSplitPenalty()}, weighted
- * by {@link ExamModel#getRoomSplitWeight()}
- * <li>Room penalty {@link ExamPlacement#getRoomPenalty()}, weighted by
- * {@link ExamModel#getRoomWeight()}
- * <li>Exam rotation penalty {@link ExamPlacement#getRotationPenalty()},
- * weighted by {@link ExamModel#getExamRotationWeight()}
- * <li>Direct instructor conflicts
- * {@link ExamPlacement#getNrInstructorDirectConflicts()}, weighted by
- * {@link ExamModel#getInstructorDirectConflictWeight()}
- * <li>More than two exams a day instructor conflicts
- * {@link ExamPlacement#getNrInstructorMoreThanTwoADayConflicts()}, weighted by
- * {@link ExamModel#getInstructorMoreThanTwoADayWeight()}
- * <li>Back-to-back instructor conflicts
- * {@link ExamPlacement#getNrInstructorBackToBackConflicts()}, weighted by
- * {@link ExamModel#getInstructorBackToBackConflictWeight()}
- * <li>Distance back-to-back instructor conflicts
- * {@link ExamPlacement#getNrInstructorDistanceBackToBackConflicts()}, weighted
- * by {@link ExamModel#getInstructorDistanceBackToBackConflictWeight()}
- * </ul>
  * <br>
  * <br>
  * 
@@ -103,7 +46,6 @@ import net.sf.cpsolver.ifs.model.Value;
 public class ExamPlacement extends Value<Exam, ExamPlacement> {
     private ExamPeriodPlacement iPeriodPlacement;
     private Set<ExamRoomPlacement> iRoomPlacements;
-    private int iSize;
 
     private int iHashCode;
 
@@ -124,9 +66,6 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
             iRoomPlacements = new HashSet<ExamRoomPlacement>();
         else
             iRoomPlacements = roomPlacements;
-        iSize = 0;
-        for (ExamRoomPlacement r : iRoomPlacements)
-            iSize += r.getSize(exam.hasAltSeating());
         iHashCode = getName().hashCode();
     }
 
@@ -154,46 +93,6 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
     }
 
     /**
-     * Overall size of assigned rooms
-     */
-    @Deprecated
-    public int getSize() {
-        return iSize;
-    }
-
-    /**
-     * Number of direct student conflicts, i.e., number of cases when this exam
-     * is attended by a student that attends some other exam at the same period
-     */
-    @Deprecated
-    public int getNrDirectConflicts() {
-        return (int)variable().getModel().getCriterion(StudentDirectConflicts.class).getValue(this, null) +
-               (int)variable().getModel().getCriterion(StudentNotAvailableConflicts.class).getValue(this, null);
-    }
-
-    /**
-     * Number of direct student conflicts caused by the fact that a student is
-     * not available
-     */
-    @Deprecated
-    public int getNrNotAvailableConflicts() {
-        return (int)variable().getModel().getCriterion(StudentNotAvailableConflicts.class).getValue(this, null);
-    }
-
-    /**
-     * Number of back-to-back student conflicts, i.e., number of cases when this
-     * exam is attended by a student that attends some other exam at the
-     * previous {@link ExamPeriod#prev()} or following {@link ExamPeriod#next()}
-     * period. If {@link ExamModel#isDayBreakBackToBack()} is false,
-     * back-to-back conflicts are only considered between consecutive periods
-     * that are of the same day.
-     */
-    @Deprecated
-    public int getNrBackToBackConflicts() {
-        return (int)variable().getModel().getCriterion(StudentBackToBackConflicts.class).getValue(this, null);
-    }
-
-    /**
      * Distance between two placements, i.e., maximal distance between a room of
      * this placement and a room of the given placement. Method
      * {@link ExamRoom#getDistanceInMeters(ExamRoom)} is used to get a distance between
@@ -212,253 +111,7 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
     }
 
     /**
-     * Number of back-to-back distance student conflicts, i.e., number of cases
-     * when this exam is attended by a student that attends some other exam at
-     * the previous {@link ExamPeriod#prev()} or following
-     * {@link ExamPeriod#next()} period and the distance
-     * {@link ExamPlacement#getDistanceInMeters(ExamPlacement)} between these two exams
-     * is greater than {@link ExamModel#getBackToBackDistance()}. Distance
-     * back-to-back conflicts are only considered between consecutive periods
-     * that are of the same day.
-     */
-    @Deprecated
-    public int getNrDistanceBackToBackConflicts() {
-        return (int)variable().getModel().getCriterion(StudentDistanceBackToBackConflicts.class).getValue(this, null);
-    }
-
-    /**
-     * Number of more than two exams a day student conflicts, i.e., when this
-     * exam is attended by a student that attends two or more other exams at the
-     * same day.
-     */
-    @Deprecated
-    public int getNrMoreThanTwoADayConflicts() {
-        return (int)variable().getModel().getCriterion(StudentMoreThan2ADayConflicts.class).getValue(this, null);
-    }
-
-    /**
-     * Number of direct instructor conflicts, i.e., number of cases when this
-     * exam is attended by an instructor that attends some other exam at the
-     * same period
-     */
-    @Deprecated
-    public int getNrInstructorDirectConflicts() {
-        return (int)variable().getModel().getCriterion(InstructorDirectConflicts.class).getValue(this, null) +
-               (int)variable().getModel().getCriterion(InstructorNotAvailableConflicts.class).getValue(this, null);
-    }
-
-    /**
-     * Number of direct instructor conflicts caused by the fact that a student
-     * is not available
-     */
-    @Deprecated
-    public int getNrInstructorNotAvailableConflicts() {
-        return (int)variable().getModel().getCriterion(InstructorNotAvailableConflicts.class).getValue(this, null);
-    }
-
-    /**
-     * Number of back-to-back instructor conflicts, i.e., number of cases when
-     * this exam is attended by an instructor that attends some other exam at
-     * the previous {@link ExamPeriod#prev()} or following
-     * {@link ExamPeriod#next()} period. If
-     * {@link ExamModel#isDayBreakBackToBack()} is false, back-to-back conflicts
-     * are only considered between consecutive periods that are of the same day.
-     */
-    @Deprecated
-    public int getNrInstructorBackToBackConflicts() {
-        return (int)variable().getModel().getCriterion(InstructorBackToBackConflicts.class).getValue(this, null);
-    }
-
-    /**
-     * Number of back-to-back distance instructor conflicts, i.e., number of
-     * cases when this exam is attended by an instructor that attends some other
-     * exam at the previous {@link ExamPeriod#prev()} or following
-     * {@link ExamPeriod#next()} period and the distance
-     * {@link ExamPlacement#getDistanceInMeters(ExamPlacement)} between these two exams
-     * is greater than {@link ExamModel#getBackToBackDistance()}. Distance
-     * back-to-back conflicts are only considered between consecutive periods
-     * that are of the same day.
-     */
-    @Deprecated
-    public int getNrInstructorDistanceBackToBackConflicts() {
-        return (int)variable().getModel().getCriterion(InstructorDistanceBackToBackConflicts.class).getValue(this, null);
-    }
-
-    /**
-     * Number of more than two exams a day instructor conflicts, i.e., when this
-     * exam is attended by an instructor student that attends two or more other
-     * exams at the same day.
-     */
-    @Deprecated
-    public int getNrInstructorMoreThanTwoADayConflicts() {
-        return (int)variable().getModel().getCriterion(InstructorMoreThan2ADayConflicts.class).getValue(this, null);
-    }
-
-    /**
-     * Cost for using room(s) that are too big
-     * 
-     * @return difference between total room size (computed using either
-     *         {@link ExamRoom#getSize()} or {@link ExamRoom#getAltSize()} based
-     *         on {@link Exam#hasAltSeating()}) and the number of students
-     *         {@link Exam#getSize()}
-     */
-    @Deprecated
-    public int getRoomSizePenalty() {
-        return (int)variable().getModel().getCriterion(RoomSizePenalty.class).getValue(this, null);
-    }
-
-    /**
-     * Cost for using more than one room (nrSplits^2).
-     * 
-     * @return penalty (1 for 2 rooms, 4 for 3 rooms, 9 for 4 rooms, etc.)
-     */
-    @Deprecated
-    public int getRoomSplitPenalty() {
-        return (int)variable().getModel().getCriterion(RoomSplitPenalty.class).getValue(this, null);
-    }
-
-    /**
-     * Cost for using a period, i.e., {@link ExamPeriodPlacement#getPenalty()}
-     */
-    @Deprecated
-    public int getPeriodPenalty() {
-        return (int)variable().getModel().getCriterion(PeriodPenalty.class).getValue(this, null);
-    }
-
-    /**
-     * Rotation penalty (an exam that has been in later period last times tries
-     * to be in an earlier period)
-     */
-    @Deprecated
-    public int getRotationPenalty() {
-        return (int)variable().getModel().getCriterion(ExamRotationPenalty.class).getValue(this, null);
-    }
-
-    /**
-     * Front load penalty (large exam is discouraged to be placed on or after a
-     * certain period)
-     * 
-     * @return zero if not large exam or if before
-     *         {@link ExamModel#getLargePeriod()}, one otherwise
-     */
-    @Deprecated
-    public int getLargePenalty() {
-        return (int)variable().getModel().getCriterion(LargeExamsPenalty.class).getValue(this, null);
-    }
-
-    /**
-     * Room penalty (penalty for using given rooms), i.e., sum of
-     * {@link ExamRoomPlacement#getPenalty(ExamPeriod)} of assigned rooms
-     */
-    @Deprecated
-    public int getRoomPenalty() {
-        return (int)variable().getModel().getCriterion(RoomPenalty.class).getValue(this, null);
-    }
-
-    /**
-     * Perturbation penalty, i.e., penalty for using a different assignment than
-     * initial. Only applicable when {@link ExamModel#isMPP()} is true (minimal
-     * perturbation problem).
-     * 
-     * @return |period index - initial period index | * exam size
-     */
-    @Deprecated
-    public int getPerturbationPenalty() {
-        return (int)variable().getModel().getCriterion(PerturbationPenalty.class).getValue(this, null);
-    }
-
-    /**
-     * Room perturbation penalty, i.e., number of assigned rooms different from
-     * initial. Only applicable when {@link ExamModel#isMPP()} is true (minimal
-     * perturbation problem).
-     * 
-     * @return |period index - initial period index | * exam size
-     */
-    @Deprecated
-    public int getRoomPerturbationPenalty() {
-        return (int)variable().getModel().getCriterion(RoomPerturbationPenalty.class).getValue(this, null);
-    }
-
-    /**
-     * Room split distance penalty, i.e., average distance between two rooms of
-     * this placement
-     */
-    @Deprecated
-    public double getRoomSplitDistancePenalty() {
-        return variable().getModel().getCriterion(RoomSplitDistancePenalty.class).getValue(this, null);
-    }
-
-    /**
-     * Distribution penalty, i.e., sum weights of violated distribution
-     * constraints
-     */
-    @Deprecated
-    public double getDistributionPenalty() {
-        return variable().getModel().getCriterion(DistributionPenalty.class).getValue(this, null);
-    }
-
-    /**
-     * Room related distribution penalty, i.e., sum weights of violated
-     * distribution constraints
-     */
-    @Deprecated
-    public double getRoomDistributionPenalty() {
-        return ((DistributionPenalty)variable().getModel().getCriterion(DistributionPenalty.class)).getRoomValue(this);
-    }
-
-    /**
-     * Period related distribution penalty, i.e., sum weights of violated
-     * distribution constraints
-     */
-    @Deprecated
-    public double getPeriodDistributionPenalty() {
-        return ((DistributionPenalty)variable().getModel().getCriterion(DistributionPenalty.class)).getPeriodValue(this);
-    }
-
-    /**
-     * Overall cost of using this placement. The cost of an assignment consists
-     * of the following criteria:
-     * <ul>
-     * <li>Direct student conflicts {@link ExamPlacement#getNrDirectConflicts()}
-     * , weighted by {@link ExamModel#getDirectConflictWeight()}
-     * <li>More than two exams a day student conflicts
-     * {@link ExamPlacement#getNrMoreThanTwoADayConflicts()}, weighted by
-     * {@link ExamModel#getMoreThanTwoADayWeight()}
-     * <li>Back-to-back student conflicts
-     * {@link ExamPlacement#getNrBackToBackConflicts()}, weighted by
-     * {@link ExamModel#getBackToBackConflictWeight()}
-     * <li>Distance back-to-back student conflicts
-     * {@link ExamPlacement#getNrDistanceBackToBackConflicts()}, weighted by
-     * {@link ExamModel#getDistanceBackToBackConflictWeight()}
-     * <li>Period penalty {@link ExamPlacement#getPeriodPenalty()}, weighted by
-     * {@link ExamModel#getPeriodWeight()}
-     * <li>Room size penalty {@link ExamPlacement#getRoomSizePenalty()},
-     * weighted by {@link ExamModel#getRoomSizeWeight()}
-     * <li>Room split penalty {@link ExamPlacement#getRoomSplitPenalty()},
-     * weighted by {@link ExamModel#getRoomSplitWeight()}
-     * <li>Room split distance penalty
-     * {@link ExamPlacement#getRoomSplitDistancePenalty()}, weighted by
-     * {@link ExamModel#getRoomSplitDistanceWeight()}
-     * <li>Room penalty {@link ExamPlacement#getRoomPenalty()}, weighted by
-     * {@link ExamModel#getRoomWeight()}
-     * <li>Exam rotation penalty {@link ExamPlacement#getRotationPenalty()},
-     * weighted by {@link ExamModel#getExamRotationWeight()}
-     * <li>Direct instructor conflicts
-     * {@link ExamPlacement#getNrInstructorDirectConflicts()}, weighted by
-     * {@link ExamModel#getInstructorDirectConflictWeight()}
-     * <li>More than two exams a day instructor conflicts
-     * {@link ExamPlacement#getNrInstructorMoreThanTwoADayConflicts()}, weighted
-     * by {@link ExamModel#getInstructorMoreThanTwoADayWeight()}
-     * <li>Back-to-back instructor conflicts
-     * {@link ExamPlacement#getNrInstructorBackToBackConflicts()}, weighted by
-     * {@link ExamModel#getInstructorBackToBackConflictWeight()}
-     * <li>Distance back-to-back instructor conflicts
-     * {@link ExamPlacement#getNrInstructorDistanceBackToBackConflicts()},
-     * weighted by
-     * {@link ExamModel#getInstructorDistanceBackToBackConflictWeight()}
-     * <li>Front load penalty {@link ExamPlacement#getLargePenalty()}, weighted
-     * by {@link ExamModel#getLargeWeight()}
-     * </ul>
+     * Overall cost of using this placement.
      */
     @Override
     public double toDouble() {
@@ -469,37 +122,7 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
     }
 
     /**
-     * Overall cost of using this period. The time cost of an assignment
-     * consists of the following criteria:
-     * <ul>
-     * <li>Direct student conflicts {@link ExamPlacement#getNrDirectConflicts()}
-     * , weighted by {@link ExamModel#getDirectConflictWeight()}
-     * <li>More than two exams a day student conflicts
-     * {@link ExamPlacement#getNrMoreThanTwoADayConflicts()}, weighted by
-     * {@link ExamModel#getMoreThanTwoADayWeight()}
-     * <li>Back-to-back student conflicts
-     * {@link ExamPlacement#getNrBackToBackConflicts()}, weighted by
-     * {@link ExamModel#getBackToBackConflictWeight()}
-     * <li>Period penalty {@link ExamPlacement#getPeriodPenalty()}, weighted by
-     * {@link ExamModel#getPeriodWeight()}
-     * <li>Exam rotation penalty {@link ExamPlacement#getRotationPenalty()},
-     * weighted by {@link ExamModel#getExamRotationWeight()}
-     * <li>Direct instructor conflicts
-     * {@link ExamPlacement#getNrInstructorDirectConflicts()}, weighted by
-     * {@link ExamModel#getInstructorDirectConflictWeight()}
-     * <li>More than two exams a day instructor conflicts
-     * {@link ExamPlacement#getNrInstructorMoreThanTwoADayConflicts()}, weighted
-     * by {@link ExamModel#getInstructorMoreThanTwoADayWeight()}
-     * <li>Back-to-back instructor conflicts
-     * {@link ExamPlacement#getNrInstructorBackToBackConflicts()}, weighted by
-     * {@link ExamModel#getInstructorBackToBackConflictWeight()}
-     * <li>Distance back-to-back instructor conflicts
-     * {@link ExamPlacement#getNrInstructorDistanceBackToBackConflicts()},
-     * weighted by
-     * {@link ExamModel#getInstructorDistanceBackToBackConflictWeight()}
-     * <li>Front load penalty {@link ExamPlacement#getLargePenalty()}, weighted
-     * by {@link ExamModel#getLargeWeight()}
-     * </ul>
+     * Overall cost of using this period.
      */
     public double getTimeCost() {
         double weight = 0.0;
@@ -511,26 +134,7 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
     }
 
     /**
-     * Overall cost of using this set or rooms. The room cost of an assignment
-     * consists of the following criteria:
-     * <ul>
-     * <li>Distance back-to-back student conflicts
-     * {@link ExamPlacement#getNrDistanceBackToBackConflicts()}, weighted by
-     * {@link ExamModel#getDistanceBackToBackConflictWeight()}
-     * <li>Distance back-to-back instructor conflicts
-     * {@link ExamPlacement#getNrInstructorDistanceBackToBackConflicts()},
-     * weighted by
-     * {@link ExamModel#getInstructorDistanceBackToBackConflictWeight()}
-     * <li>Room size penalty {@link ExamPlacement#getRoomSizePenalty()},
-     * weighted by {@link ExamModel#getRoomSizeWeight()}
-     * <li>Room split penalty {@link ExamPlacement#getRoomSplitPenalty()},
-     * weighted by {@link ExamModel#getRoomSplitWeight()}
-     * <li>Room split distance penalty
-     * {@link ExamPlacement#getRoomSplitDistancePenalty()}, weighted by
-     * {@link ExamModel#getRoomSplitDistanceWeight()}
-     * <li>Room penalty {@link ExamPlacement#getRoomPenalty()}, weighted by
-     * {@link ExamModel#getRoomWeight()}
-     * </ul>
+     * Overall cost of using this set or rooms.
      */
     public double getRoomCost() {
         double weight = 0.0;
