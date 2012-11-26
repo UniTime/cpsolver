@@ -1,0 +1,392 @@
+package net.sf.cpsolver.exam.model;
+
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
+
+import net.sf.cpsolver.exam.criteria.DistributionPenalty;
+import net.sf.cpsolver.ifs.model.Constraint;
+
+/**
+ * Distribution binary constraint. <br>
+ * <br>
+ * The following binary distribution constraints are implemented
+ * <ul>
+ * <li>Same room
+ * <li>Different room
+ * <li>Same period
+ * <li>Different period
+ * <li>Precedence
+ * </ul>
+ * <br>
+ * <br>
+ * 
+ * @version ExamTT 1.2 (Examination Timetabling)<br>
+ *          Copyright (C) 2008 - 2010 Tomas Muller<br>
+ *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
+ *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>
+ * <br>
+ *          This library is free software; you can redistribute it and/or modify
+ *          it under the terms of the GNU Lesser General Public License as
+ *          published by the Free Software Foundation; either version 3 of the
+ *          License, or (at your option) any later version. <br>
+ * <br>
+ *          This library is distributed in the hope that it will be useful, but
+ *          WITHOUT ANY WARRANTY; without even the implied warranty of
+ *          MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ *          Lesser General Public License for more details. <br>
+ * <br>
+ *          You should have received a copy of the GNU Lesser General Public
+ *          License along with this library; if not see
+ *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ */
+public class ExamDistributionConstraint extends Constraint<Exam, ExamPlacement> {
+    /** Same room constraint type */
+    public static final int sDistSameRoom = 0;
+    /** Different room constraint type */
+    public static final int sDistDifferentRoom = 1;
+    /** Same period constraint type */
+    public static final int sDistSamePeriod = 2;
+    /** Different period constraint type */
+    public static final int sDistDifferentPeriod = 3;
+    /** Precedence constraint type */
+    public static final int sDistPrecedence = 4;
+    /** Precedence constraint type (reverse order) */
+    public static final int sDistPrecedenceRev = 5;
+    /** Distribution type name */
+    public static final String[] sDistType = new String[] { "same-room", "different-room", "same-period",
+            "different-period", "precedence", "precedence-rev" };
+
+    private int iType = -1;
+    private boolean iHard = true;
+    private int iWeight = 0;
+
+    /**
+     * Constructor
+     * 
+     * @param id
+     *            constraint unique id
+     * @param type
+     *            constraint type
+     * @param hard
+     *            true if the constraint is hard (cannot be violated)
+     * @param weight
+     *            if not hard, penalty for violation
+     */
+    public ExamDistributionConstraint(long id, int type, boolean hard, int weight) {
+        iId = id;
+        iType = type;
+        iHard = hard;
+        iWeight = weight;
+    }
+
+    /**
+     * Constructor
+     * 
+     * @param id
+     *            constraint unique id
+     * @param type
+     *            constraint type (EX_SAME_PREF, EX_SAME_ROOM, or EX_PRECEDENCE)
+     * @param pref
+     *            preference (R/P for required/prohibited, or -2, -1, 0, 1, 2
+     *            for preference (from preferred to discouraged))
+     */
+    public ExamDistributionConstraint(long id, String type, String pref) {
+        iId = id;
+        boolean neg = "P".equals(pref) || "2".equals(pref) || "1".equals(pref);
+        if ("EX_SAME_PER".equals(type)) {
+            iType = (neg ? sDistDifferentPeriod : sDistSamePeriod);
+        } else if ("EX_SAME_ROOM".equals(type)) {
+            iType = (neg ? sDistDifferentRoom : sDistSameRoom);
+        } else if ("EX_PRECEDENCE".equals(type)) {
+            iType = (neg ? sDistPrecedenceRev : sDistPrecedence);
+        } else
+            throw new RuntimeException("Unkown type " + type);
+        if ("P".equals(pref) || "R".equals(pref))
+            iHard = true;
+        else {
+            iHard = false;
+            iWeight = Integer.parseInt(pref) * Integer.parseInt(pref);
+        }
+    }
+
+    /**
+     * Constructor
+     * 
+     * @param id
+     *            constraint unique id
+     * @param type
+     *            constraint type name
+     */
+    public ExamDistributionConstraint(long id, String type, boolean hard, int weight) {
+        iId = id;
+        for (int i = 0; i < sDistType.length; i++)
+            if (sDistType[i].equals(type))
+                iType = i;
+        if (iType < 0)
+            throw new RuntimeException("Unknown type '" + type + "'.");
+        iHard = hard;
+        iWeight = weight;
+    }
+
+    /**
+     * True if hard (must be satisfied), false for soft (should be satisfied)
+     */
+    @Override
+    public boolean isHard() {
+        return iHard;
+    }
+
+    /**
+     * If not hard, penalty for violation
+     */
+    public int getWeight() {
+        return iWeight;
+    }
+
+    /**
+     * Constraint type
+     */
+    public int getType() {
+        return iType;
+    }
+
+    /**
+     * Constraint type name
+     */
+    public String getTypeString() {
+        return sDistType[iType];
+    }
+
+    /**
+     * String representation -- constraint type name (exam 1, exam 2)
+     */
+    @Override
+    public String toString() {
+        return getTypeString() + " (" + variables() + ")";
+    }
+
+    /**
+     * Compute conflicts -- there is a conflict if the other variable is
+     * assigned and
+     * {@link ExamDistributionConstraint#check(ExamPlacement, ExamPlacement)} is
+     * false
+     */
+    @Override
+    public void computeConflicts(ExamPlacement givenPlacement, Set<ExamPlacement> conflicts) {
+        boolean before = true;
+        for (Exam exam : variables()) {
+            if (exam.equals(givenPlacement.variable())) {
+                before = false;
+                continue;
+            }
+            ExamPlacement placement = exam.getAssignment();
+            if (placement == null)
+                continue;
+            if (!check(before ? placement : givenPlacement, before ? givenPlacement : placement))
+                conflicts.add(placement);
+        }
+    }
+
+    /**
+     * Check for conflict -- there is a conflict if the other variable is
+     * assigned and
+     * {@link ExamDistributionConstraint#check(ExamPlacement, ExamPlacement)} is
+     * false
+     */
+    @Override
+    public boolean inConflict(ExamPlacement givenPlacement) {
+        boolean before = true;
+        for (Exam exam : variables()) {
+            if (exam.equals(givenPlacement.variable())) {
+                before = false;
+                continue;
+            }
+            ExamPlacement placement = exam.getAssignment();
+            if (placement == null)
+                continue;
+            if (!check(before ? placement : givenPlacement, before ? givenPlacement : placement))
+                return true;
+        }
+        return false;
+    }
+
+    /**
+     * Consistency check --
+     * {@link ExamDistributionConstraint#check(ExamPlacement, ExamPlacement)} is
+     * called
+     */
+    @Override
+    public boolean isConsistent(ExamPlacement first, ExamPlacement second) {
+        boolean before = (variables().indexOf(first.variable()) < variables().indexOf(second.variable()));
+        return check(before ? first : second, before ? second : first);
+    }
+
+    /**
+     * Check assignments of the given exams
+     * 
+     * @param first
+     *            assignment of the first exam
+     * @param second
+     *            assignment of the second exam
+     * @return true, if the constraint is satisfied
+     */
+    public boolean check(ExamPlacement first, ExamPlacement second) {
+        switch (getType()) {
+            case sDistPrecedence:
+                return first.getPeriod().getIndex() < second.getPeriod().getIndex();
+            case sDistPrecedenceRev:
+                return first.getPeriod().getIndex() > second.getPeriod().getIndex();
+            case sDistSamePeriod:
+                return first.getPeriod().getIndex() == second.getPeriod().getIndex();
+            case sDistDifferentPeriod:
+                return first.getPeriod().getIndex() != second.getPeriod().getIndex();
+            case sDistSameRoom:
+                return first.getRoomPlacements().containsAll(second.getRoomPlacements())
+                        || second.getRoomPlacements().containsAll(first.getRoomPlacements());
+            case sDistDifferentRoom:
+                for (Iterator<ExamRoomPlacement> i = first.getRoomPlacements().iterator(); i.hasNext();)
+                    if (second.getRoomPlacements().contains(i.next()))
+                        return false;
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Compare with other constraint for equality
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || !(o instanceof ExamDistributionConstraint))
+            return false;
+        ExamDistributionConstraint c = (ExamDistributionConstraint) o;
+        return getType() == c.getType() && getId() == c.getId();
+    }
+
+    /**
+     * Return true if this is hard constraint or this is a soft constraint
+     * without any violation
+     */
+    public boolean isSatisfied() {
+        return isSatisfied(null);
+    }
+
+    /**
+     * Return true if this is hard constraint or this is a soft constraint
+     * without any violation
+     * 
+     * @param p
+     *            exam assignment to be made
+     */
+    public boolean isSatisfied(ExamPlacement p) {
+        if (isHard())
+            return true;
+        switch (getType()) {
+            case sDistPrecedence:
+                ExamPeriod last = null;
+                for (Exam exam : variables()) {
+                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : exam.getAssignment());
+                    if (placement == null)
+                        continue;
+                    if (last == null || last.getIndex() < placement.getPeriod().getIndex())
+                        last = placement.getPeriod();
+                    else
+                        return false;
+                }
+                return true;
+            case sDistPrecedenceRev:
+                last = null;
+                for (Exam exam : variables()) {
+                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : exam.getAssignment());
+                    if (placement == null)
+                        continue;
+                    if (last == null || last.getIndex() > placement.getPeriod().getIndex())
+                        last = placement.getPeriod();
+                    else
+                        return false;
+                }
+                return true;
+            case sDistSamePeriod:
+                ExamPeriod period = null;
+                for (Exam exam : variables()) {
+                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : exam.getAssignment());
+                    if (placement == null)
+                        continue;
+                    if (period == null)
+                        period = placement.getPeriod();
+                    else if (period.getIndex() != placement.getPeriod().getIndex())
+                        return false;
+                }
+                return true;
+            case sDistDifferentPeriod:
+                HashSet<ExamPeriod> periods = new HashSet<ExamPeriod>();
+                for (Exam exam : variables()) {
+                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : exam.getAssignment());
+                    if (placement == null)
+                        continue;
+                    if (!periods.add(placement.getPeriod()))
+                        return false;
+                }
+                return true;
+            case sDistSameRoom:
+                Set<ExamRoomPlacement> rooms = null;
+                for (Exam exam : variables()) {
+                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : exam.getAssignment());
+                    if (placement == null)
+                        continue;
+                    if (rooms == null)
+                        rooms = placement.getRoomPlacements();
+                    else if (!rooms.containsAll(placement.getRoomPlacements())
+                            || !placement.getRoomPlacements().containsAll(rooms))
+                        return false;
+                }
+                return true;
+            case sDistDifferentRoom:
+                HashSet<ExamRoomPlacement> allRooms = new HashSet<ExamRoomPlacement>();
+                for (Exam exam : variables()) {
+                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : exam.getAssignment());
+                    if (placement == null)
+                        continue;
+                    for (ExamRoomPlacement room : placement.getRoomPlacements()) {
+                        if (!allRooms.add(room))
+                            return false;
+                    }
+                }
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    boolean iIsSatisfied = true;
+
+    @Override
+    public void assigned(long iteration, ExamPlacement value) {
+        super.assigned(iteration, value);
+        if (!isHard() && iIsSatisfied != isSatisfied()) {
+            iIsSatisfied = !iIsSatisfied;
+            ((DistributionPenalty)getModel().getCriterion(DistributionPenalty.class)).inc(iIsSatisfied ? -getWeight() : getWeight());
+        }
+    }
+
+    @Override
+    public void unassigned(long iteration, ExamPlacement value) {
+        super.unassigned(iteration, value);
+        if (!isHard() && iIsSatisfied != isSatisfied()) {
+            iIsSatisfied = !iIsSatisfied;
+            ((DistributionPenalty)getModel().getCriterion(DistributionPenalty.class)).inc(iIsSatisfied ? -getWeight() : getWeight());
+        }
+    }
+
+    /** True if the constraint is related to rooms */
+    public boolean isRoomRelated() {
+        return iType == sDistSameRoom || iType == sDistDifferentRoom;
+    }
+
+    /** True if the constraint is related to periods */
+    public boolean isPeriodRelated() {
+        return !isRoomRelated();
+    }
+}
