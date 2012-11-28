@@ -218,7 +218,8 @@ public abstract class Constraint<V extends Variable<V, T>, T extends Value<V, T>
                 listener.constraintBeforeAssigned(iteration, this, value, conf);
         if (conf != null) {
             for (T conflictValue : conf) {
-                conflictValue.variable().unassign(iteration);
+                if (!conflictValue.equals(value))
+                    conflictValue.variable().unassign(iteration);
             }
         }
         if (iAssignedVariables != null)
