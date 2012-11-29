@@ -17,6 +17,7 @@ import net.sf.cpsolver.coursett.constraint.InstructorConstraint;
 import net.sf.cpsolver.coursett.constraint.JenrlConstraint;
 import net.sf.cpsolver.coursett.constraint.RoomConstraint;
 import net.sf.cpsolver.coursett.constraint.SpreadConstraint;
+import net.sf.cpsolver.coursett.constraint.WeakeningConstraint;
 import net.sf.cpsolver.coursett.criteria.BackToBackInstructorPreferences;
 import net.sf.cpsolver.coursett.criteria.BrokenTimePatterns;
 import net.sf.cpsolver.coursett.criteria.DepartmentBalancingPenalty;
@@ -42,6 +43,7 @@ import net.sf.cpsolver.coursett.criteria.placement.WeightedHardConflicts;
 import net.sf.cpsolver.ifs.constant.ConstantModel;
 import net.sf.cpsolver.ifs.criteria.Criterion;
 import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.model.GlobalConstraint;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.DistanceMetric;
 
@@ -393,5 +395,42 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
     public static synchronized String getMem() {
         Runtime rt = Runtime.getRuntime();
         return sDoubleFormat.format(((double) (rt.totalMemory() - rt.freeMemory())) / 1048576) + "M";
+    }
+    
+    
+    /**
+     * Returns the set of conflicting variables with this value, if it is
+     * assigned to its variable. Conflicts with constraints that implement
+     * {@link WeakeningConstraint} are ignored.
+     */
+    public Set<Placement> conflictValuesSkipWeakeningConstraints(Placement value) {
+        Set<Placement> conflictValues = new HashSet<Placement>();
+        for (Constraint<Lecture, Placement> constraint : value.variable().hardConstraints()) {
+            if (constraint instanceof WeakeningConstraint) continue;
+            constraint.computeConflicts(value, conflictValues);
+        }
+        for (GlobalConstraint<Lecture, Placement> constraint : globalConstraints()) {
+            if (constraint instanceof WeakeningConstraint) continue;
+            constraint.computeConflicts(value, conflictValues);
+        }
+        return conflictValues;
+    }
+    
+    
+    /**
+     * Weaken all weakening constraint so that the given value can be assigned without
+     * them creating a conflict using {@link WeakeningConstraint#weaken(Placement)}.
+     * This method is handy for instance when an existing solution is being loaded
+     * into the solver.
+     */
+    public void weaken(Placement value) {
+        for (Constraint<Lecture, Placement> constraint : value.variable().hardConstraints()) {
+            if (constraint instanceof WeakeningConstraint)
+                ((WeakeningConstraint)constraint).weaken(value);
+        }
+        for (GlobalConstraint<Lecture, Placement> constraint : globalConstraints()) {
+            if (constraint instanceof WeakeningConstraint)
+                ((WeakeningConstraint)constraint).weaken(value);
+        }
     }
 }

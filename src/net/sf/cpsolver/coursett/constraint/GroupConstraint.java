@@ -862,6 +862,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                     for (Constraint<Lecture, Placement> other: lecture.hardConstraints()) {
                         if (other.equals(this)) continue;
                         if (other instanceof GroupConstraint && ((GroupConstraint)other).getType() == ConstraintType.MEET_WITH) continue;
+                        if (other instanceof WeakeningConstraint) continue;
                         other.computeConflicts(sameAssignment, conflicts);
                         if (conflicts.contains(value)) return;
                         if (conflicts.contains(sameAssignment)) {
@@ -869,6 +870,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                         }
                     }
                     for (GlobalConstraint<Lecture, Placement> other: getModel().globalConstraints()) {
+                        if (other instanceof WeakeningConstraint) continue;
                         other.computeConflicts(sameAssignment, conflicts);
                         if (conflicts.contains(value)) return;
                         if (conflicts.contains(sameAssignment)) {
