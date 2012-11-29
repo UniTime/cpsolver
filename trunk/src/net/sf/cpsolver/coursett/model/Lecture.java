@@ -1088,7 +1088,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         if (model == null)
             return true;
         if (model.hasConstantVariables()) {
-            for (Placement confPlacement : model.conflictValues(placement)) {
+            for (Placement confPlacement : model.conflictValuesSkipWeakeningConstraints(placement)) {
                 Lecture lecture = confPlacement.variable();
                 if (lecture.isCommitted())
                     return false;

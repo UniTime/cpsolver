@@ -148,4 +148,9 @@ public class DiscouragedRoomConstraint extends RoomConstraint implements Weakeni
     public void weaken() {
         iLimit ++;
     }
+
+    @Override
+    public void weaken(Placement value) {
+        while (isOverLimit(value)) iLimit ++;
+    }
 }

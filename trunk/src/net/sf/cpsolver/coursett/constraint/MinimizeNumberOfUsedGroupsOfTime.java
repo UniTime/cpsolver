@@ -338,4 +338,10 @@ public class MinimizeNumberOfUsedGroupsOfTime extends Constraint<Lecture, Placem
         return sb.toString();
     }
 
+    @Override
+    public void weaken(Placement value) {
+        if (isOverLimit(value))
+            iLimit += getOverLimit(value);
+    }
+
 }

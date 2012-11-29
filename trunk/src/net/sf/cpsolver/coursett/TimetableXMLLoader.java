@@ -786,6 +786,7 @@ public class TimetableXMLLoader extends TimetableLoader {
                 Lecture lecture = entry.getKey();
                 Placement placement = entry.getValue();
                 if (!lecture.isCommitted()) { iProgress.incProgress(); continue; }
+                getModel().weaken(placement);
                 Map<Constraint<Lecture, Placement>, Set<Placement>> conflictConstraints = getModel().conflictConstraints(placement);
                 if (conflictConstraints.isEmpty()) {
                     lecture.assign(0, placement);
@@ -809,8 +810,8 @@ public class TimetableXMLLoader extends TimetableLoader {
             for (Lecture lecture : getModel().variables()) {
                 iProgress.incProgress();
                 Placement placement = lecture.getBestAssignment();
-                if (placement == null)
-                    continue;
+                if (placement == null) continue;
+                getModel().weaken(placement);
                 lecture.assign(0, placement);
             }
 
@@ -827,6 +828,7 @@ public class TimetableXMLLoader extends TimetableLoader {
             Lecture lecture = entry.getKey();
             Placement placement = entry.getValue();
             if (lecture.isCommitted()) { iProgress.incProgress(); continue; }
+            getModel().weaken(placement);
             Map<Constraint<Lecture, Placement>, Set<Placement>> conflictConstraints = getModel().conflictConstraints(placement);
             if (conflictConstraints.isEmpty()) {
                 if (!placement.isValid()) {

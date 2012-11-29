@@ -287,4 +287,10 @@ public class MinimizeNumberOfUsedRoomsConstraint extends Constraint<Lecture, Pla
         }
         return sb.toString();
     }
+
+    @Override
+    public void weaken(Placement value) {
+        if (isOverLimit(value))
+            iLimit += getOverLimit(value);
+    }
 }
