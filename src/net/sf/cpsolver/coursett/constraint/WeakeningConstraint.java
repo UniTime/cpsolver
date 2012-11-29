@@ -1,5 +1,7 @@
 package net.sf.cpsolver.coursett.constraint;
 
+import net.sf.cpsolver.coursett.model.Placement;
+
 /**
  * Interface of a constraint that weakens with the time.
  * 
@@ -29,4 +31,11 @@ public interface WeakeningConstraint {
      * participates in an unassigned of a variable.
      */
     public void weaken();
+    
+    
+    /**
+     * Weaken the constraint enough so that it can assign the given
+     * value.
+     */
+    public void weaken(Placement value);
 }

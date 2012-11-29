@@ -611,4 +611,10 @@ public class SpreadConstraint extends Constraint<Lecture, Placement> implements 
         }
         super.addVariable(lecture);
     }
+
+    @Override
+    public void weaken(Placement value) {
+        while (inConflict(value))
+            weaken();
+    }
 }
