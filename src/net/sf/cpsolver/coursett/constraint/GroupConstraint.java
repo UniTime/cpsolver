@@ -246,56 +246,56 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
          * When prohibited or (strongly) discouraged: classes can not have 1 hour in between. They may not overlap in time
          * but must be taught on the same days.
          */
-        NHB_1("NHB(1)", "1 Hour Between", 12, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        NHB_1("NHB(1)", "1 Hour Between", 10, 12, BTB_TIME.check(), Flag.BACK_TO_BACK),
         /**
          * 2 Hours Between: Given classes must have exactly 2 hours in between the end of one and the beginning of another.
          * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
          * When prohibited or (strongly) discouraged: classes can not have 2 hours in between. They may not overlap in time
          * but must be taught on the same days.
          */
-        NHB_2("NHB(2)", "2 Hours Between", 24, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        NHB_2("NHB(2)", "2 Hours Between", 20, 24, BTB_TIME.check(), Flag.BACK_TO_BACK),
         /**
          * 3 Hours Between: Given classes must have exactly 3 hours in between the end of one and the beginning of another.
          * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
          * When prohibited or (strongly) discouraged: classes can not have 3 hours in between. They may not overlap in time
          * but must be taught on the same days.
          */
-        NHB_3("NHB(3)", "3 Hours Between", 36, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        NHB_3("NHB(3)", "3 Hours Between", 30, 36, BTB_TIME.check(), Flag.BACK_TO_BACK),
         /**
          * 4 Hours Between: Given classes must have exactly 4 hours in between the end of one and the beginning of another.
          * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
          * When prohibited or (strongly) discouraged: classes can not have 4 hours in between. They may not overlap in time
          * but must be taught on the same days.
          */
-        NHB_4("NHB(4)", "4 Hours Between", 48, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        NHB_4("NHB(4)", "4 Hours Between", 40, 48, BTB_TIME.check(), Flag.BACK_TO_BACK),
         /**
          * 5 Hours Between: Given classes must have exactly 5 hours in between the end of one and the beginning of another.
          * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
          * When prohibited or (strongly) discouraged: classes can not have 5 hours in between. They may not overlap in time
          * but must be taught on the same days.
          */
-        NHB_5("NHB(5)", "5 Hours Between", 60, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        NHB_5("NHB(5)", "5 Hours Between", 50, 60, BTB_TIME.check(), Flag.BACK_TO_BACK),
         /**
          * 6 Hours Between: Given classes must have exactly 6 hours in between the end of one and the beginning of another.
          * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
          * When prohibited or (strongly) discouraged: classes can not have 6 hours in between. They may not overlap in time
          * but must be taught on the same days.
          */
-        NHB_6("NHB(6)", "6 Hours Between", 72, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        NHB_6("NHB(6)", "6 Hours Between", 60, 72, BTB_TIME.check(), Flag.BACK_TO_BACK),
         /**
          * 7 Hours Between: Given classes must have exactly 7 hours in between the end of one and the beginning of another.
          * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
          * When prohibited or (strongly) discouraged: classes can not have 7 hours in between. They may not overlap in time
          * but must be taught on the same days.
          */
-        NHB_7("NHB(7)", "7 Hours Between", 84, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        NHB_7("NHB(7)", "7 Hours Between", 70, 84, BTB_TIME.check(), Flag.BACK_TO_BACK),
         /**
          * 8 Hours Between: Given classes must have exactly 8 hours in between the end of one and the beginning of another.
          * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
          * When prohibited or (strongly) discouraged: classes can not have 8 hours in between. They may not overlap in time
          * but must be taught on the same days.
          */
-        NHB_8("NHB(8)", "8 Hours Between", 96, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        NHB_8("NHB(8)", "8 Hours Between", 80, 96, BTB_TIME.check(), Flag.BACK_TO_BACK),
         /**
          * Same Start Time: Given classes must start during the same half-hour period of a day (independent of the actual
          * day the classes meet). For instance, MW 7:30 is compatible with TTh 7:30 but not with MWF 8:00.<BR>
@@ -339,21 +339,21 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
          * When prohibited or (strongly) discouraged: given classes must have 6 or more hours between. This constraint does
          * not carry over from classes taught at the end of one day to the beginning of the next.
          */
-        NHB_LT_6("NHB_LT(6)", "Less Than 6 Hours Between", 0, 66, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        NHB_LT_6("NHB_LT(6)", "Less Than 6 Hours Between", 0, 72, BTB_TIME.check(), Flag.BACK_TO_BACK),
         /**
          * 1.5 Hour Between: Given classes must have exactly 90 minutes in between the end of one and the beginning of another.
          * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
          * When prohibited or (strongly) discouraged: classes can not have 90 minutes in between. They may not overlap in time
          * but must be taught on the same days.
          */
-        NHB_1_5("NHB(1.5)", "1.5 Hour Between", 18, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        NHB_1_5("NHB(1.5)", "1.5 Hour Between", 15, 18, BTB_TIME.check(), Flag.BACK_TO_BACK),
         /**
          * 4.5 Hours Between: Given classes must have exactly 4.5 hours in between the end of one and the beginning of another.
          * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
          * When prohibited or (strongly) discouraged: classes can not have 4.5 hours in between. They may not overlap in time
          * but must be taught on the same days.
          */
-        NHB_4_5("NHB(4.5)", "4.5 Hours Between", 54, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        NHB_4_5("NHB(4.5)", "4.5 Hours Between", 45, 54, BTB_TIME.check(), Flag.BACK_TO_BACK),
         /**
          * Same Students: Given classes are treated as they are attended by the same students, i.e., they cannot overlap in time
          * and if they are back-to-back the assigned rooms cannot be too far (student limit is used).
