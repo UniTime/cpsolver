@@ -940,8 +940,10 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         }
         if (getType().is(Flag.BACK_TO_BACK)) {
             Set<Placement> conflicts = new HashSet<Placement>();
-            if (!isSatisfiedSeq(new HashMap<Lecture, Placement>(), true, conflicts))
+            if (isSatisfiedSeq(new HashMap<Lecture, Placement>(), true, conflicts))
                 nrViolatedPairs += conflicts.size();
+            else
+                nrViolatedPairs = variables().size();
         }
         return (nrViolatedPairs > 0 ? Math.abs(iPreference) * nrViolatedPairs : - Math.abs(iPreference));
     }
@@ -967,8 +969,10 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
             HashMap<Lecture, Placement> assignment = new HashMap<Lecture, Placement>();
             assignment.put(placement.variable(), placement);
             Set<Placement> conflicts = new HashSet<Placement>();
-            if (!isSatisfiedSeq(assignment, true, conflicts))
+            if (isSatisfiedSeq(assignment, true, conflicts))
                 nrViolatedPairs += conflicts.size();
+            else
+                nrViolatedPairs = variables().size();
         }
         return (nrViolatedPairs > 0 ? Math.abs(iPreference) * nrViolatedPairs : - Math.abs(iPreference));
     }
