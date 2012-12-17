@@ -59,15 +59,6 @@ public class TooBigRooms extends TimetablingCriterion {
     }
     
     @Override
-    protected void computeBounds() {
-        iBounds = new double[] { 0.0, 0.0 };
-        for (Lecture lect: getModel().variables()) {
-            if (lect.getNrRooms() > 0)
-                iBounds[0] += Constants.sPreferenceLevelStronglyDiscouraged;
-        }
-    }
-    
-    @Override
     public double[] getBounds(Collection<Lecture> variables) {
         double[] bounds = new double[] { 0.0, 0.0 };
         for (Lecture lect: variables) {

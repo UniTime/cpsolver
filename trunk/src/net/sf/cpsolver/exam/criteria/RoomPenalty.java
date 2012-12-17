@@ -1,5 +1,6 @@
 package net.sf.cpsolver.exam.criteria;
 
+import java.util.Collection;
 import java.util.Set;
 
 import net.sf.cpsolver.exam.model.Exam;
@@ -87,19 +88,20 @@ public class RoomPenalty extends ExamCriterion {
     }
 
     @Override
-    protected void computeBounds() {
-        iBounds = new double[] { 0.0, 0.0 };
-        for (Exam exam : getModel().variables()) {
+    public double[] getBounds(Collection<Exam> variables) {
+        double[] bounds = new double[] { 0.0, 0.0 };
+        for (Exam exam : variables) {
             if (!exam.getRoomPlacements().isEmpty()) {
                 int minPenalty = Integer.MAX_VALUE, maxPenalty = Integer.MIN_VALUE;
                 for (ExamRoomPlacement roomPlacement : exam.getRoomPlacements()) {
                     minPenalty = Math.min(minPenalty, 2 * roomPlacement.getPenalty() + getMinPenalty(roomPlacement.getRoom()));
                     maxPenalty = Math.max(maxPenalty, 2 * roomPlacement.getPenalty() + getMaxPenalty(roomPlacement.getRoom()));
                 }
-                iBounds[0] += minPenalty;
-                iBounds[1] += maxPenalty;
+                bounds[0] += minPenalty;
+                bounds[1] += maxPenalty;
             }
         }
+        return bounds;
     }
     
     @Override
