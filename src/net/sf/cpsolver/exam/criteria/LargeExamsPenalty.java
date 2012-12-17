@@ -1,5 +1,6 @@
 package net.sf.cpsolver.exam.criteria;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
@@ -142,12 +143,13 @@ public class LargeExamsPenalty extends ExamCriterion {
     }
 
     @Override
-    protected void computeBounds() {
-        iBounds = new double[] { 0.0, 0.0 };
-        for (Exam exam : getModel().variables()) {
+    public double[] getBounds(Collection<Exam> variables) {
+        double[] bounds = new double[] { 0.0, 0.0 };
+        for (Exam exam : variables) {
             if (getLargeSize() >= 0 && exam.getSize() >= getLargeSize())
-                iBounds[1] += 1.0;
+                bounds[1] += 1.0;
         }
+        return bounds;
     }
 
     @Override

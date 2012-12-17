@@ -113,13 +113,14 @@ public class DistributionPenalty extends ExamCriterion {
     }
     
     @Override
-    protected void computeBounds() {
-        iBounds = new double[] { 0.0, 0.0 };
+    protected double[] computeBounds() {
+        double[] bounds = new double[] { 0.0, 0.0 };
         for (ExamDistributionConstraint dc : ((ExamModel)getModel()).getDistributionConstraints()) {
             if (dc.isHard())
                 continue;
-            iBounds[1] += dc.getWeight();
+            bounds[1] += dc.getWeight();
         }
+        return bounds;
     }
 
     @Override

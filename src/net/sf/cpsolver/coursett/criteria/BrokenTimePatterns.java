@@ -107,8 +107,8 @@ public class BrokenTimePatterns extends TimetablingCriterion {
     }
     
     @Override
-    protected void computeBounds() {
-        iBounds = new double[] {
+    protected double[] computeBounds() {
+        return new double[] {
                 ((TimetableModel)getModel()).getRoomConstraints().size() * Constants.SLOTS_PER_DAY_NO_EVENINGS * Constants.NR_DAYS_WEEK,
                 0.0
         };
