@@ -1,5 +1,6 @@
 package net.sf.cpsolver.ifs.criteria;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Locale;
 import java.util.Map;
@@ -43,7 +44,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
 public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Value<V, T>> implements Criterion<V, T> {
     private Model<V, T> iModel;
     protected double iBest = 0.0, iValue = 0.0, iWeight = 0.0;
-    protected double[] iBounds = null;
+    private double[] iBounds = null;
     protected static java.text.DecimalFormat sDoubleFormat = new java.text.DecimalFormat("0.##",
             new java.text.DecimalFormatSymbols(Locale.US));
     protected static java.text.DecimalFormat sPercentFormat = new java.text.DecimalFormat("0.##",
@@ -137,26 +138,13 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
     }
 
     /** Compute bounds (bounds are being cached by default). */
-    protected void computeBounds() {
-        iBounds = new double[] { 0.0, 0.0 };
-        for (V v: getModel().variables()) {
-            Double min = null, max = null;
-            for (T t: v.values()) {
-                double value = getValue(t, null);
-                if (min == null) { min = value; max = value; continue; }
-                min = Math.min(min, value);
-                max = Math.max(max, value);
-            }
-            if (min != null) {
-                iBounds[0] += min;
-                iBounds[1] += max;
-            }
-        }
+    protected double[] computeBounds() {
+        return getBounds(new ArrayList<V>(getModel().variables()));
     }
 
     @Override
     public double[] getBounds() {
-        if (iBounds == null) computeBounds();
+        if (iBounds == null) iBounds = computeBounds();
         return (iBounds == null ? new double[] {0.0, 0.0} : iBounds);
     }
 

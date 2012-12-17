@@ -64,18 +64,7 @@ public class RoomPreferences extends TimetablingCriterion {
                 ret -= preference(conflict);
         return ret;
     }
-    
-    @Override
-    protected void computeBounds() {
-        iBounds = new double[] { 0.0, 0.0 };
-        for (Lecture lect: getModel().variables()) {
-            if (lect.isCommitted()) continue;
-            int[] p = lect.getMinMaxRoomPreference();
-            iBounds[0] += p[0];
-            iBounds[1] += p[1];
-        }
-    }
-    
+
     @Override
     public double[] getBounds(Collection<Lecture> variables) {
         double[] bounds = new double[] { 0.0, 0.0 };

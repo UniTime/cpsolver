@@ -85,10 +85,11 @@ public class BackToBackInstructorPreferences extends TimetablingCriterion {
     }
     
     @Override
-    protected void computeBounds() {
-        iBounds = new double[] { 0.0, 0.0 };
+    protected double[] computeBounds() {
+        double[] bounds = new double[] { 0.0, 0.0 };
         for (InstructorConstraint ic: ((TimetableModel)getModel()).getInstructorConstraints())
-            iBounds[1] += ic.getWorstPreference();
+            bounds[1] += ic.getWorstPreference();
+        return bounds;
     }
     
     @Override

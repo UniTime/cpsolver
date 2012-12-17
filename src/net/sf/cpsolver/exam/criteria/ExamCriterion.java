@@ -49,11 +49,6 @@ public abstract class ExamCriterion extends AbstractCriterion<Exam, ExamPlacemen
     }
     
     @Override
-    protected void computeBounds() {
-        iBounds = getBounds(getModel().variables());
-    }
-    
-    @Override
     public double[] getBounds(Collection<Exam> exams) {
         double[] bounds = new double[] { 0.0, 0.0 };
         for (Exam exam: exams) {
