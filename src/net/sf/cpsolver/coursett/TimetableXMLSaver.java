@@ -231,7 +231,7 @@ public class TimetableXMLSaver extends TimetableSaver {
             if (roomConstraint.getSharingModel() != null) {
                 RoomSharingModel sharingModel = roomConstraint.getSharingModel();
                 Element sharingEl = roomEl.addElement("sharing");
-                sharingEl.addElement("pattern").addAttribute("unit", "6").setText(sharingModel.getPreferences());
+                sharingEl.addElement("pattern").addAttribute("unit", String.valueOf(sharingModel.getStep())).setText(sharingModel.getPreferences());
                 sharingEl.addElement("freeForAll").addAttribute("value",
                         String.valueOf(sharingModel.getFreeForAllPrefChar()));
                 sharingEl.addElement("notAvailable").addAttribute("value",
