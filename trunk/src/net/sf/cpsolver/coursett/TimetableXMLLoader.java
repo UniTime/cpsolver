@@ -224,11 +224,12 @@ public class TimetableXMLLoader extends TimetableLoader {
                 if (notAvailableEl != null)
                     notAvailablePrefChar = notAvailableEl.attributeValue("value", "X").charAt(0);
                 String pattern = sharingEl.element("pattern").getText();
+                int unit = Integer.parseInt(sharingEl.element("pattern").attributeValue("unit", "1"));
                 java.util.List<?> depts = sharingEl.elements("department");
                 Long departmentIds[] = new Long[depts.size()];
                 for (int j = 0; j < departmentIds.length; j++)
                     departmentIds[j] = Long.valueOf(((Element) depts.get(j)).attributeValue("id"));
-                sharingModel = new RoomSharingModel(departmentIds, pattern, freeForAllPrefChar, notAvailablePrefChar);
+                sharingModel = new RoomSharingModel(unit, departmentIds, pattern, freeForAllPrefChar, notAvailablePrefChar);
             }
             boolean ignoreTooFar = false;
             if ("true".equals(roomEl.attributeValue("ignoreTooFar")))
