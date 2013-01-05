@@ -1,7 +1,11 @@
 package net.sf.cpsolver.exam.heuristics;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
+
+import org.apache.log4j.Logger;
 
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamPlacement;
@@ -52,7 +56,8 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class ExamHillClimbing implements NeighbourSelection<Exam, ExamPlacement>, SolutionListener<Exam, ExamPlacement> {
-    private NeighbourSelection<Exam, ExamPlacement>[] iNeighbours = null;
+    private static Logger sLog = Logger.getLogger(ExamHillClimbing.class);
+    private List<NeighbourSelection<Exam, ExamPlacement>> iNeighbours = null;
     private int iMaxIdleIters = 25000;
     private int iLastImprovingIter = 0;
     private double iBestValue = 0;
@@ -82,8 +87,21 @@ public class ExamHillClimbing implements NeighbourSelection<Exam, ExamPlacement>
     @SuppressWarnings("unchecked")
     public ExamHillClimbing(DataProperties properties, String name) {
         iMaxIdleIters = properties.getPropertyInt("HillClimber.MaxIdle", iMaxIdleIters);
-        iNeighbours = new NeighbourSelection[] { new ExamRandomMove(properties), new ExamRoomMove(properties),
-                new ExamTimeMove(properties) };
+        String neighbours = properties.getProperty("HillClimber.Neighbours", 
+                ExamRandomMove.class.getName() + ";" +
+                ExamRoomMove.class.getName() + ";" +
+                ExamTimeMove.class.getName());
+        neighbours += ";" + properties.getProperty("HillClimber.AdditionalNeighbours", "");
+        iNeighbours = new ArrayList<NeighbourSelection<Exam,ExamPlacement>>();
+        for (String neighbour: neighbours.split("\\;")) {
+            if (neighbour == null || neighbour.isEmpty()) continue;
+            try {
+                Class<NeighbourSelection<Exam, ExamPlacement>> clazz = (Class<NeighbourSelection<Exam, ExamPlacement>>)Class.forName(neighbour);
+                iNeighbours.add(clazz.getConstructor(DataProperties.class).newInstance(properties));
+            } catch (Exception e) {
+                sLog.error("Unable to use " + neighbour + ": " + e.getMessage());
+            }
+        }
         iName = name;
     }
 
@@ -93,8 +111,8 @@ public class ExamHillClimbing implements NeighbourSelection<Exam, ExamPlacement>
     @Override
     public void init(Solver<Exam, ExamPlacement> solver) {
         solver.currentSolution().addSolutionListener(this);
-        for (int i = 0; i < iNeighbours.length; i++)
-            iNeighbours[i].init(solver);
+        for (NeighbourSelection<Exam, ExamPlacement> neighbour: iNeighbours)
+            neighbour.init(solver);
         solver.setUpdateProgress(false);
         iProgress = Progress.getInstance(solver.currentSolution().getModel());
         iActive = false;
@@ -117,7 +135,7 @@ public class ExamHillClimbing implements NeighbourSelection<Exam, ExamPlacement>
             iProgress.setProgress(Math.round(100.0 * (iIter - iLastImprovingIter) / iMaxIdleIters));
             if (iIter - iLastImprovingIter >= iMaxIdleIters)
                 break;
-            NeighbourSelection<Exam, ExamPlacement> ns = iNeighbours[ToolBox.random(iNeighbours.length)];
+            NeighbourSelection<Exam, ExamPlacement> ns = iNeighbours.get(ToolBox.random(iNeighbours.size()));
             Neighbour<Exam, ExamPlacement> n = ns.selectNeighbour(solution);
             if (n != null && n.value() <= 0)
                 return n;
