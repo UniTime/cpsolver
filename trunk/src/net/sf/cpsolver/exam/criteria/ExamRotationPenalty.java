@@ -59,6 +59,6 @@ public class ExamRotationPenalty extends ExamCriterion {
     
     @Override
     public String toString() {
-        return "@P:" + sDoubleFormat.format(getWeightedValue());
+        return "@P:" + sDoubleFormat.format(getValue());
     }
 }

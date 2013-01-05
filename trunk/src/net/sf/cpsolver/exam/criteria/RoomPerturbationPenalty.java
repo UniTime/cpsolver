@@ -73,7 +73,7 @@ public class RoomPerturbationPenalty extends PerturbationPenalty {
 
     @Override
     public String toString() {
-        return (isMPP() ? "IRP:" + sDoubleFormat.format(getWeightedValue()) : "");
+        return (isMPP() ? "IRP:" + sDoubleFormat.format(getValue()) : "");
     }
 
     @Override

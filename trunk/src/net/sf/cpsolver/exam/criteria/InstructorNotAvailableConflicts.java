@@ -61,6 +61,6 @@ public class InstructorNotAvailableConflicts extends InstructorDirectConflicts {
 
     @Override
     public String toString() {
-        return "iNA" + sDoubleFormat.format(getWeightedValue());
+        return (getValue() <= 0.0 ? "" : "iNA:" + sDoubleFormat.format(getValue()));
     }
 }

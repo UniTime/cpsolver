@@ -154,6 +154,6 @@ public class LargeExamsPenalty extends ExamCriterion {
 
     @Override
     public String toString() {
-        return "LP:" + sDoubleFormat.format(getWeightedValue());
+        return (getValue() <= 0.0 ? "" : "LP:" + sDoubleFormat.format(getValue()));
     }
 }

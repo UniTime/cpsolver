@@ -81,6 +81,6 @@ public class StudentMoreThan2ADayConflicts extends ExamCriterion {
     
     @Override
     public String toString() {
-        return "M2D:" + sDoubleFormat.format(getWeightedValue());
+        return "M2D:" + sDoubleFormat.format(getValue());
     }
 }

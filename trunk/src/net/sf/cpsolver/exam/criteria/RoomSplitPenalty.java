@@ -88,7 +88,7 @@ public class RoomSplitPenalty extends ExamCriterion {
 
     @Override
     public String toString() {
-        return "RSp:" + sDoubleFormat.format(getWeightedValue());
+        return "RSp:" + sDoubleFormat.format(getValue());
     }
 
     @Override

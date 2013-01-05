@@ -100,7 +100,7 @@ public class InstructorDistanceBackToBackConflicts extends StudentDistanceBackTo
     
     @Override
     public String toString() {
-        return (getValue() <= 0.0 ? "" : "iBTBd:" + sDoubleFormat.format(getWeightedValue()));
+        return (getValue() <= 0.0 ? "" : "iBTBd:" + sDoubleFormat.format(getValue()));
     }
     
     @Override

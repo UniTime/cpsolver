@@ -148,7 +148,7 @@ public class StudentDistanceBackToBackConflicts extends ExamCriterion {
     
     @Override
     public String toString() {
-        return (getValue() <= 0.0 ? "" : "BTBd:" + sDoubleFormat.format(getWeightedValue()));
+        return (getValue() <= 0.0 ? "" : "BTBd:" + sDoubleFormat.format(getValue()));
     }
 
     @Override
