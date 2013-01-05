@@ -395,8 +395,6 @@ public class Test {
             Document document = (new SAXReader()).read(new File(cfg.getProperty("General.Input")));
             model.load(document);
 
-            sLog.info("Loaded model: " + ToolBox.dict2string(model.getExtendedInfo(), 2));
-
             Solver<Exam, ExamPlacement> solver = new Solver<Exam, ExamPlacement>(cfg);
             solver.setInitalSolution(new Solution<Exam, ExamPlacement>(model));
 
