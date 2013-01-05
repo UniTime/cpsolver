@@ -74,6 +74,6 @@ public class InstructorMoreThan2ADayConflicts extends StudentMoreThan2ADayConfli
 
     @Override
     public String toString() {
-        return "iM2D:" + sDoubleFormat.format(getWeightedValue());
+        return "iM2D:" + sDoubleFormat.format(getValue());
     }
 }

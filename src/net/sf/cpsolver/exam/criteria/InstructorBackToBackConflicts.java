@@ -89,7 +89,7 @@ public class InstructorBackToBackConflicts extends StudentBackToBackConflicts {
     
     @Override
     public String toString() {
-        return "iBTB:" + sDoubleFormat.format(getWeightedValue());
+        return "iBTB:" + sDoubleFormat.format(getValue());
     }
 
 }

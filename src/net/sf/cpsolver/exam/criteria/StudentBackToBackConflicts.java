@@ -144,6 +144,6 @@ public class StudentBackToBackConflicts extends ExamCriterion {
     
     @Override
     public String toString() {
-        return "BTB" + sDoubleFormat.format(getWeightedValue());
+        return "BTB:" + sDoubleFormat.format(getValue());
     }
 }

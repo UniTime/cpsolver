@@ -60,7 +60,7 @@ public class StudentNotAvailableConflicts extends StudentDirectConflicts {
 
     @Override
     public String toString() {
-        return "NA:" + sDoubleFormat.format(getWeightedValue());
+        return (getValue() <= 0.0 ? "" : "NA:" + sDoubleFormat.format(getValue()));
     }
 
 }

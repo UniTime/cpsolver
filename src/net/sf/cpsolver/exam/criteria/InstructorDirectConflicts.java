@@ -83,6 +83,6 @@ public class InstructorDirectConflicts extends StudentDirectConflicts {
     
     @Override
     public String toString() {
-        return "iDC:" + sDoubleFormat.format(getWeightedValue());
+        return "iDC:" + sDoubleFormat.format(getValue());
     }
 }
