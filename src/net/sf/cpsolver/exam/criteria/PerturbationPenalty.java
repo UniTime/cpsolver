@@ -95,6 +95,6 @@ public class PerturbationPenalty extends ExamCriterion {
 
     @Override
     public String toString() {
-        return (isMPP() ? "IP:" + sDoubleFormat.format(getWeightedValue()) : "");
+        return (isMPP() ? "IP:" + sDoubleFormat.format(getValue()) : "");
     }
 }

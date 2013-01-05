@@ -125,6 +125,6 @@ public class DistributionPenalty extends ExamCriterion {
 
     @Override
     public String toString() {
-        return "DP:" + sDoubleFormat.format(getWeightedValue());
+        return (getValue() <= 0.0 ? "" : "DP:" + sDoubleFormat.format(getValue()));
     }
 }

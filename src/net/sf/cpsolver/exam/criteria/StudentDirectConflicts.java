@@ -83,6 +83,6 @@ public class StudentDirectConflicts extends ExamCriterion {
 
     @Override
     public String toString() {
-        return "DC:" + sDoubleFormat.format(getWeightedValue());
+        return "DC:" + sDoubleFormat.format(getValue());
     }
 }

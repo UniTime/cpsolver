@@ -108,7 +108,7 @@ public class RoomSizePenalty extends ExamCriterion {
 
     @Override
     public String toString() {
-        return "RSz:" + sDoubleFormat.format(getWeightedValue());
+        return "RSz:" + sDoubleFormat.format(getValue());
     }
 
     @Override

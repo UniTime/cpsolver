@@ -81,6 +81,6 @@ public class PeriodSizePenalty extends ExamCriterion {
 
     @Override
     public String toString() {
-        return "PS:" + sDoubleFormat.format(getWeightedValue());
+        return "PS:" + sDoubleFormat.format(getValue());
     }
 }
