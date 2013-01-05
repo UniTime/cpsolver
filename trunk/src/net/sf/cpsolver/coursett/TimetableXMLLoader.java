@@ -356,7 +356,7 @@ public class TimetableXMLLoader extends TimetableLoader {
                 defaultDatePattern.setName(sDF.format(getDate(getModel().getYear(), startDay)) + "-" + sDF.format(getDate(getModel().getYear(), endDay)));
             } else {
                 defaultDatePattern.setId(classEl.attributeValue("datePattern") == null ? null : Long.valueOf(classEl.attributeValue("datePattern")));
-                defaultDatePattern.setName("datePatternName");
+                defaultDatePattern.setName(classEl.attributeValue("datePatternName"));
                 defaultDatePattern.setPattern(classEl.attributeValue("dates"));
             }
             Hashtable<Long, DatePattern> datePatterns = new Hashtable<Long, TimetableXMLLoader.DatePattern>();
