@@ -821,6 +821,7 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
             for (Iterator<?> j = e.elementIterator("period"); j.hasNext();) {
                 Element pe = (Element) j.next();
                 ExamPeriod period = getPeriod(Long.valueOf(pe.attributeValue("id")));
+                if (period == null) continue;
                 if ("false".equals(pe.attributeValue("available")))
                     room.setAvailable(period, false);
                 else
@@ -859,8 +860,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
             ArrayList<ExamPeriodPlacement> periodPlacements = new ArrayList<ExamPeriodPlacement>();
             for (Iterator<?> j = e.elementIterator("period"); j.hasNext();) {
                 Element pe = (Element) j.next();
-                periodPlacements.add(new ExamPeriodPlacement(getPeriod(Long.valueOf(pe.attributeValue("id"))), Integer
-                        .parseInt(pe.attributeValue("penalty", "0"))));
+                ExamPeriod p = getPeriod(Long.valueOf(pe.attributeValue("id")));
+                if (p != null)
+                    periodPlacements.add(new ExamPeriodPlacement(p, Integer.parseInt(pe.attributeValue("penalty", "0"))));
             }
             ArrayList<ExamRoomPlacement> roomPlacements = new ArrayList<ExamRoomPlacement>();
             for (Iterator<?> j = e.elementIterator("room"); j.hasNext();) {
@@ -912,9 +914,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
                     HashSet<ExamRoomPlacement> rp = new HashSet<ExamRoomPlacement>();
                     for (Iterator<?> j = asg.elementIterator("room"); j.hasNext();)
                         rp.add(exam.getRoomPlacement(Long.parseLong(((Element) j.next()).attributeValue("id"))));
-                    ExamPlacement p = new ExamPlacement(exam, exam.getPeriodPlacement(Long.valueOf(per
-                            .attributeValue("id"))), rp);
-                    assignments.add(p);
+                    ExamPeriodPlacement pp = exam.getPeriodPlacement(Long.valueOf(per.attributeValue("id")));
+                    if (pp != null)
+                        assignments.add(new ExamPlacement(exam, pp, rp));
                 }
             }
             Element ini = e.element("initial");
@@ -924,9 +926,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
                     HashSet<ExamRoomPlacement> rp = new HashSet<ExamRoomPlacement>();
                     for (Iterator<?> j = ini.elementIterator("room"); j.hasNext();)
                         rp.add(exam.getRoomPlacement(Long.parseLong(((Element) j.next()).attributeValue("id"))));
-                    ExamPlacement p = new ExamPlacement(exam, exam.getPeriodPlacement(Long.valueOf(per
-                            .attributeValue("id"))), rp);
-                    exam.setInitialAssignment(p);
+                    ExamPeriodPlacement pp = exam.getPeriodPlacement(Long.valueOf(per.attributeValue("id")));
+                    if (pp != null)
+                        exam.setInitialAssignment(new ExamPlacement(exam, pp, rp));
                 }
             }
             Element best = e.element("best");
@@ -936,9 +938,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
                     HashSet<ExamRoomPlacement> rp = new HashSet<ExamRoomPlacement>();
                     for (Iterator<?> j = best.elementIterator("room"); j.hasNext();)
                         rp.add(exam.getRoomPlacement(Long.parseLong(((Element) j.next()).attributeValue("id"))));
-                    ExamPlacement p = new ExamPlacement(exam, exam.getPeriodPlacement(Long.valueOf(per
-                            .attributeValue("id"))), rp);
-                    exam.setBestAssignment(p);
+                    ExamPeriodPlacement pp = exam.getPeriodPlacement(Long.valueOf(per.attributeValue("id")));
+                    if (pp != null)
+                        exam.setBestAssignment(new ExamPlacement(exam, pp, rp));
                 }
             }
             for (Iterator<?> j = e.elementIterator("owner"); j.hasNext();) {
@@ -973,6 +975,7 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
             for (Iterator<?> j = e.elementIterator("period"); j.hasNext();) {
                 Element pe = (Element) j.next();
                 ExamPeriod period = getPeriod(Long.valueOf(pe.attributeValue("id")));
+                if (period == null) continue;
                 if ("false".equals(pe.attributeValue("available")))
                     student.setAvailable(period.getIndex(), false);
             }
@@ -1004,6 +1007,7 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
                 for (Iterator<?> j = e.elementIterator("period"); j.hasNext();) {
                     Element pe = (Element) j.next();
                     ExamPeriod period = getPeriod(Long.valueOf(pe.attributeValue("id")));
+                    if (period == null) continue;
                     if ("false".equals(pe.attributeValue("available")))
                         instructor.setAvailable(period.getIndex(), false);
                 }
