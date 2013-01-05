@@ -1,7 +1,9 @@
 package net.sf.cpsolver.exam.heuristics;
 
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import net.sf.cpsolver.exam.model.Exam;
@@ -102,7 +104,7 @@ public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlac
     private Progress iProgress = null;
     private boolean iActive;
 
-    private NeighbourSelection<Exam, ExamPlacement>[] iNeighbours = null;
+    private List<NeighbourSelection<Exam, ExamPlacement>> iNeighbours = null;
 
     private boolean iRelativeAcceptance = true;
 
@@ -150,8 +152,21 @@ public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlac
             iReheatRate = Math.pow(1 / iCoolingRate, iReheatLengthCoef * 1.7);
         if (iRestoreBestLengthCoef < 0)
             iRestoreBestLengthCoef = iReheatLengthCoef * iReheatLengthCoef;
-        iNeighbours = new NeighbourSelection[] { new ExamRandomMove(properties), new ExamRoomMove(properties),
-                new ExamTimeMove(properties) };
+        String neighbours = properties.getProperty("SimulatedAnnealing.Neighbours", 
+                ExamRandomMove.class.getName() + ";" +
+                ExamRoomMove.class.getName() + ";" +
+                ExamTimeMove.class.getName());
+        neighbours += ";" + properties.getProperty("SimulatedAnnealing.AdditionalNeighbours", "");
+        iNeighbours = new ArrayList<NeighbourSelection<Exam,ExamPlacement>>();
+        for (String neighbour: neighbours.split("\\;")) {
+            if (neighbour == null || neighbour.isEmpty()) continue;
+            try {
+                Class<NeighbourSelection<Exam, ExamPlacement>> clazz = (Class<NeighbourSelection<Exam, ExamPlacement>>)Class.forName(neighbour);
+                iNeighbours.add(clazz.getConstructor(DataProperties.class).newInstance(properties));
+            } catch (Exception e) {
+                sLog.error("Unable to use " + neighbour + ": " + e.getMessage());
+            }
+        }
     }
 
     /**
@@ -163,8 +178,8 @@ public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlac
         iReheatLength = Math.round(iReheatLengthCoef * iTemperatureLength);
         iRestoreBestLength = Math.round(iRestoreBestLengthCoef * iTemperatureLength);
         solver.currentSolution().addSolutionListener(this);
-        for (int i = 0; i < iNeighbours.length; i++)
-            iNeighbours[i].init(solver);
+        for (NeighbourSelection<Exam, ExamPlacement> neighbour: iNeighbours)
+            neighbour.init(solver);
         solver.setUpdateProgress(false);
         iProgress = Progress.getInstance(solver.currentSolution().getModel());
         iActive = false;
@@ -219,7 +234,7 @@ public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlac
     public Neighbour<Exam, ExamPlacement> genMove(Solution<Exam, ExamPlacement> solution) {
         while (true) {
             incIter(solution);
-            NeighbourSelection<Exam, ExamPlacement> ns = iNeighbours[ToolBox.random(iNeighbours.length)];
+            NeighbourSelection<Exam, ExamPlacement> ns = iNeighbours.get(ToolBox.random(iNeighbours.size()));
             Neighbour<Exam, ExamPlacement> n = ns.selectNeighbour(solution);
             if (n != null)
                 return n;

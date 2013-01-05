@@ -1,7 +1,9 @@
 package net.sf.cpsolver.exam.heuristics;
 
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import net.sf.cpsolver.exam.model.Exam;
@@ -81,7 +83,7 @@ public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>,
     private double iBestValue = 0;
     private Progress iProgress = null;
 
-    private NeighbourSelection<Exam, ExamPlacement>[] iNeighbours = null;
+    private List<NeighbourSelection<Exam, ExamPlacement>> iNeighbours = null;
 
     /**
      * Constructor. Following problem properties are considered:
@@ -101,8 +103,21 @@ public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>,
         iCoolRate = properties.getPropertyDouble("GreatDeluge.CoolRate", iCoolRate);
         iUpperBoundRate = properties.getPropertyDouble("GreatDeluge.UpperBoundRate", iUpperBoundRate);
         iLowerBoundRate = properties.getPropertyDouble("GreatDeluge.LowerBoundRate", iLowerBoundRate);
-        iNeighbours = new NeighbourSelection[] { new ExamRandomMove(properties), new ExamRoomMove(properties),
-                new ExamTimeMove(properties) };
+        String neighbours = properties.getProperty("GreatDeluge.Neighbours", 
+                ExamRandomMove.class.getName() + ";" +
+                ExamRoomMove.class.getName() + ";" +
+                ExamTimeMove.class.getName());
+        neighbours += ";" + properties.getProperty("GreatDeluge.AdditionalNeighbours", "");
+        iNeighbours = new ArrayList<NeighbourSelection<Exam,ExamPlacement>>();
+        for (String neighbour: neighbours.split("\\;")) {
+            if (neighbour == null || neighbour.isEmpty()) continue;
+            try {
+                Class<NeighbourSelection<Exam, ExamPlacement>> clazz = (Class<NeighbourSelection<Exam, ExamPlacement>>)Class.forName(neighbour);
+                iNeighbours.add(clazz.getConstructor(DataProperties.class).newInstance(properties));
+            } catch (Exception e) {
+                sLog.error("Unable to use " + neighbour + ": " + e.getMessage());
+            }
+        }
     }
 
     /** Initialization */
@@ -110,8 +125,8 @@ public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>,
     public void init(Solver<Exam, ExamPlacement> solver) {
         iIter = -1;
         solver.currentSolution().addSolutionListener(this);
-        for (int i = 0; i < iNeighbours.length; i++)
-            iNeighbours[i].init(solver);
+        for (NeighbourSelection<Exam, ExamPlacement> neighbour: iNeighbours)
+            neighbour.init(solver);
         solver.setUpdateProgress(false);
         iProgress = Progress.getInstance(solver.currentSolution().getModel());
     }
@@ -134,7 +149,7 @@ public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>,
     public Neighbour<Exam, ExamPlacement> genMove(Solution<Exam, ExamPlacement> solution) {
         while (true) {
             incIter(solution);
-            NeighbourSelection<Exam, ExamPlacement> ns = iNeighbours[ToolBox.random(iNeighbours.length)];
+            NeighbourSelection<Exam, ExamPlacement> ns = iNeighbours.get(ToolBox.random(iNeighbours.size()));
             Neighbour<Exam, ExamPlacement> n = ns.selectNeighbour(solution);
             if (n != null)
                 return n;
