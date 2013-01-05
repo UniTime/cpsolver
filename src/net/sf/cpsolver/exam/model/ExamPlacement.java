@@ -47,7 +47,7 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
     private ExamPeriodPlacement iPeriodPlacement;
     private Set<ExamRoomPlacement> iRoomPlacements;
 
-    private int iHashCode;
+    private Integer iHashCode = null;
 
     /**
      * Constructor
@@ -66,7 +66,6 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
             iRoomPlacements = new HashSet<ExamRoomPlacement>();
         else
             iRoomPlacements = roomPlacements;
-        iHashCode = getName().hashCode();
     }
 
     /**
@@ -198,6 +197,7 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
      */
     @Override
     public int hashCode() {
+        if (iHashCode == null) iHashCode = getName().hashCode();
         return iHashCode;
     }
 
