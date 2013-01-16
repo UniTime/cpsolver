@@ -69,6 +69,6 @@ public class PeriodIndexPenalty extends ExamCriterion {
 
     @Override
     public String toString() {
-        return "PI:" + sDoubleFormat.format(getValue());
+        return "PI:" + sDoubleFormat.format(getValue() / getModel().nrAssignedVariables());
     }
 }
