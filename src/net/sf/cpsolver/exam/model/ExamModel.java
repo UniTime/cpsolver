@@ -397,13 +397,13 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      */
     @Override
     public String toString() {
-        String ret = "";
+        Set<String> props = new TreeSet<String>();
         for (Criterion<Exam, ExamPlacement> criterion: getCriteria()) {
             String val = criterion.toString();
             if (!val.isEmpty())
-                ret += (!ret.isEmpty() && !ret.endsWith(",") ? "," : "") + val;
+                props.add(val);
         }
-        return ret;
+        return props.toString();
     }
 
     /**
@@ -775,6 +775,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
         boolean loadBest = getProperties().getPropertyBoolean("Xml.LoadBest", true);
         boolean loadSolution = getProperties().getPropertyBoolean("Xml.LoadSolution", true);
         boolean loadParams = getProperties().getPropertyBoolean("Xml.LoadParameters", false);
+        Integer softPeriods = getProperties().getPropertyInteger("Exam.SoftPeriods", null);
+        Integer softRooms = getProperties().getPropertyInteger("Exam.SoftRooms", null);
+        Integer softDistributions = getProperties().getPropertyInteger("Exam.SoftDistributions", null);
         Element root = document.getRootElement();
         if (!"examtt".equals(root.getName()))
             return false;
@@ -858,19 +861,49 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
         for (Iterator<?> i = root.element("exams").elementIterator("exam"); i.hasNext();) {
             Element e = (Element) i.next();
             ArrayList<ExamPeriodPlacement> periodPlacements = new ArrayList<ExamPeriodPlacement>();
-            for (Iterator<?> j = e.elementIterator("period"); j.hasNext();) {
-                Element pe = (Element) j.next();
-                ExamPeriod p = getPeriod(Long.valueOf(pe.attributeValue("id")));
-                if (p != null)
-                    periodPlacements.add(new ExamPeriodPlacement(p, Integer.parseInt(pe.attributeValue("penalty", "0"))));
+            if (softPeriods != null) {
+                for (ExamPeriod period: getPeriods()) {
+                    int penalty = softPeriods;
+                    for (Iterator<?> j = e.elementIterator("period"); j.hasNext();) {
+                        Element pe = (Element) j.next();
+                        if (period.getId().equals(Long.valueOf(pe.attributeValue("id")))) {
+                            penalty = Integer.parseInt(pe.attributeValue("penalty", "0"));
+                            break;
+                        }
+                    }
+                    periodPlacements.add(new ExamPeriodPlacement(period, penalty));
+                }
+            } else {
+                for (Iterator<?> j = e.elementIterator("period"); j.hasNext();) {
+                    Element pe = (Element) j.next();
+                    ExamPeriod p = getPeriod(Long.valueOf(pe.attributeValue("id")));
+                    if (p != null)
+                        periodPlacements.add(new ExamPeriodPlacement(p, Integer.parseInt(pe.attributeValue("penalty", "0"))));
+                }
             }
             ArrayList<ExamRoomPlacement> roomPlacements = new ArrayList<ExamRoomPlacement>();
-            for (Iterator<?> j = e.elementIterator("room"); j.hasNext();) {
-                Element re = (Element) j.next();
-                ExamRoomPlacement room = new ExamRoomPlacement(rooms.get(Long.valueOf(re.attributeValue("id"))),
-                        Integer.parseInt(re.attributeValue("penalty", "0")), Integer.parseInt(re.attributeValue(
-                                "maxPenalty", "100")));
-                roomPlacements.add(room);
+            if (softRooms != null) {
+                for (ExamRoom room: getRooms()) {
+                    if (!room.isAvailable()) continue;
+                    int penalty = softRooms, maxPenalty = softRooms;
+                    for (Iterator<?> j = e.elementIterator("room"); j.hasNext();) {
+                        Element re = (Element) j.next();
+                        if (room.getId() == Long.parseLong(re.attributeValue("id"))) {
+                            penalty = Integer.parseInt(re.attributeValue("penalty", "0"));
+                            maxPenalty = Integer.parseInt(re.attributeValue("maxPenalty", softRooms.toString()));
+                        }
+                    }
+                    roomPlacements.add(new ExamRoomPlacement(room, penalty, maxPenalty));
+                }                
+            } else {
+                for (Iterator<?> j = e.elementIterator("room"); j.hasNext();) {
+                    Element re = (Element) j.next();
+                    ExamRoomPlacement room = new ExamRoomPlacement(rooms.get(Long.valueOf(re.attributeValue("id"))),
+                            Integer.parseInt(re.attributeValue("penalty", "0")),
+                            Integer.parseInt(re.attributeValue("maxPenalty", "100")));
+                    if (room.getRoom().isAvailable())
+                        roomPlacements.add(room);
+                }
             }
             String g = e.attributeValue("groups");
             if (g != null) {
@@ -1018,8 +1051,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
             for (Iterator<?> i = root.element("constraints").elementIterator(); i.hasNext();) {
                 Element e = (Element) i.next();
                 ExamDistributionConstraint dc = new ExamDistributionConstraint(Long.parseLong(e.attributeValue("id")),
-                        e.getName(), "true".equals(e.attributeValue("hard", "true")), Integer.parseInt(e
-                                .attributeValue("weight", "0")));
+                        e.getName(),
+                        softDistributions != null ? false : "true".equals(e.attributeValue("hard", "true")),
+                        (softDistributions != null && "true".equals(e.attributeValue("hard", "true")) ? softDistributions : Integer.parseInt(e.attributeValue("weight", "0"))));
                 for (Iterator<?> j = e.elementIterator("exam"); j.hasNext();) {
                     dc.addVariable(exams.get(Long.valueOf(((Element) j.next()).attributeValue("id"))));
                 }
