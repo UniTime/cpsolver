@@ -1,5 +1,6 @@
 package net.sf.cpsolver.exam.criteria;
 
+import java.util.Map;
 import java.util.Set;
 
 import net.sf.cpsolver.exam.model.ExamPlacement;
@@ -35,6 +36,8 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class ExamRotationPenalty extends ExamCriterion {
+    private int iAssignedExamsWithAvgPeriod = 0;
+    private double iAveragePeriod = 0.0;
     
     @Override
     public String getWeightName() {
@@ -58,7 +61,40 @@ public class ExamRotationPenalty extends ExamCriterion {
     }
     
     @Override
+    public void beforeUnassigned(long iteration, ExamPlacement value) {
+        super.beforeUnassigned(iteration, value);
+        if (value.variable().getAveragePeriod() >= 0) {
+            iAssignedExamsWithAvgPeriod --;
+            iAveragePeriod -= value.variable().getAveragePeriod();
+        }
+    }
+    
+    @Override
+    public void afterAssigned(long iteration, ExamPlacement value) {
+        super.afterAssigned(iteration, value);
+        if (value.variable().getAveragePeriod() >= 0) {
+            iAssignedExamsWithAvgPeriod ++;
+            iAveragePeriod += value.variable().getAveragePeriod();
+        }
+    }
+    
+    public int nrAssignedExamsWithAvgPeriod() {
+        return iAssignedExamsWithAvgPeriod;
+    }
+    
+    public double averagePeriod() {
+        return iAveragePeriod / iAssignedExamsWithAvgPeriod;
+    }
+    
+    @Override
+    public void getInfo(Map<String, String> info) {
+        if (getValue() != 0.0) {
+            info.put(getName(), sDoubleFormat.format(Math.sqrt(getValue() / iAssignedExamsWithAvgPeriod) - 1));
+        }
+    }
+    
+    @Override
     public String toString() {
-        return "@P:" + sDoubleFormat.format(getValue());
+        return "@P:" + sDoubleFormat.format((Math.sqrt(getValue() / iAssignedExamsWithAvgPeriod) - 1));
     }
 }
