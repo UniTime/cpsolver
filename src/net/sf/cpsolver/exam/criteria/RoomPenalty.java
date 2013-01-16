@@ -3,12 +3,14 @@ package net.sf.cpsolver.exam.criteria;
 import java.util.Collection;
 import java.util.Set;
 
+import net.sf.cpsolver.exam.criteria.additional.RoomViolation;
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPeriod;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamRoom;
 import net.sf.cpsolver.exam.model.ExamRoomPlacement;
+import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -41,6 +43,20 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class RoomPenalty extends ExamCriterion {
+    protected Integer iSoftRooms = null;
+    
+    @Override
+    public boolean init(Solver<Exam, ExamPlacement> solver) {
+        if (super.init(solver)) {
+            iSoftRooms = solver.getProperties().getPropertyInteger("Exam.SoftRooms", null);
+            if (iSoftRooms != null) {
+                RoomViolation rv = new RoomViolation();
+                getModel().addCriterion(rv);
+                return rv.init(solver);
+            }
+        }
+        return true;
+    }
     
     @Override
     public String getWeightName() {
@@ -62,7 +78,7 @@ public class RoomPenalty extends ExamCriterion {
         double penalty = 0.0;
         if (value.getRoomPlacements() != null)
             for (ExamRoomPlacement r : value.getRoomPlacements()) {
-                penalty += r.getPenalty(value.getPeriod());
+                penalty += (iSoftRooms != null && iSoftRooms == r.getPenalty() ? r.getRoom().getPenalty(value.getPeriod()) : r.getPenalty(value.getPeriod()));
             }
         return penalty;
     }
@@ -94,6 +110,8 @@ public class RoomPenalty extends ExamCriterion {
             if (!exam.getRoomPlacements().isEmpty()) {
                 int minPenalty = Integer.MAX_VALUE, maxPenalty = Integer.MIN_VALUE;
                 for (ExamRoomPlacement roomPlacement : exam.getRoomPlacements()) {
+                    if (iSoftRooms != null && iSoftRooms == roomPlacement.getPenalty()) continue;
+                    if (!roomPlacement.getRoom().isAvailable()) continue;
                     minPenalty = Math.min(minPenalty, 2 * roomPlacement.getPenalty() + getMinPenalty(roomPlacement.getRoom()));
                     maxPenalty = Math.max(maxPenalty, 2 * roomPlacement.getPenalty() + getMaxPenalty(roomPlacement.getRoom()));
                 }

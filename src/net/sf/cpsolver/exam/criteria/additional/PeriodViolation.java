@@ -1,20 +1,20 @@
-package net.sf.cpsolver.exam.criteria;
+package net.sf.cpsolver.exam.criteria.additional;
 
 import java.util.Collection;
 import java.util.Set;
 
-import net.sf.cpsolver.exam.criteria.additional.PeriodViolation;
+import net.sf.cpsolver.exam.criteria.ExamCriterion;
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamPeriodPlacement;
 import net.sf.cpsolver.exam.model.ExamPlacement;
-import net.sf.cpsolver.ifs.solver.Solver;
-import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
- * Cost for using a period. See {@link ExamPeriodPlacement#getPenalty()} for more details.
+ * Experimental criterion counting violations of periods assignments. If this
+ * criterion is enabled, any period can be assigned to an exam (not only those that are
+ * in the domain of the exam).
  * <br><br>
- * A weight for period penalty can be set by problem property
- * Exams.PeriodWeight, or in the input xml file, property periodWeight.
+ * To enable assignment of prohibited periods, set parameter Exam.SoftPeriods to
+ * a weight that should be inferred by a prohibited period assignment.
  * 
  * <br>
  * 
@@ -37,62 +37,41 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class PeriodPenalty extends ExamCriterion {
-    protected Integer iSoftPeriods = null;
-    
-    @Override
-    public boolean init(Solver<Exam, ExamPlacement> solver) {
-        if (super.init(solver)) {
-            iSoftPeriods = solver.getProperties().getPropertyInteger("Exam.SoftPeriods", null);
-            if (iSoftPeriods != null) {
-                PeriodViolation pv = new PeriodViolation();
-                getModel().addCriterion(pv);
-                return pv.init(solver);
-            }
-        }
-        return true;
-    }
+public class PeriodViolation extends ExamCriterion {
     
     @Override
     public String getWeightName() {
-        return "Exams.PeriodWeight";
+        return "Exam.SoftPeriods";
     }
     
     @Override
     public String getXmlWeightName() {
-        return "periodWeight";
-    }
-    
-    @Override
-    public double getWeightDefault(DataProperties config) {
-        return 1.0;
+        return "softPeriods";
     }
     
     @Override
     public double getValue(ExamPlacement value, Set<ExamPlacement> conflicts) {
-        return (iSoftPeriods == null || iSoftPeriods != value.getPeriodPlacement().getPenalty() ? value.getPeriodPlacement().getPenalty() : 0.0);
+        return (getWeight() == value.getPeriodPlacement().getPenalty() ? 1.0 : 0.0);
     }
-
+    
     @Override
     public double[] getBounds(Collection<Exam> variables) {
         double[] bounds = new double[] { 0.0, 0.0 };
         for (Exam exam : variables) {
             if (!exam.getPeriodPlacements().isEmpty()) {
-                int minPenalty = Integer.MAX_VALUE, maxPenalty = Integer.MIN_VALUE;
                 for (ExamPeriodPlacement periodPlacement : exam.getPeriodPlacements()) {
-                    if (iSoftPeriods != null && periodPlacement.getPenalty() == iSoftPeriods) continue;
-                    minPenalty = Math.min(minPenalty, periodPlacement.getPenalty());
-                    maxPenalty = Math.max(maxPenalty, periodPlacement.getPenalty());
+                    if (getWeight() == periodPlacement.getPenalty()) {
+                        bounds[1] ++; break;
+                    }
                 }
-                bounds[0] += minPenalty;
-                bounds[1] += maxPenalty;
             }
         }
         return bounds;
     }
-    
+
     @Override
     public String toString() {
-        return "PP:" + sDoubleFormat.format(getValue());
+        return (getValue() <= 0.0 ? "" : "!P:" + sDoubleFormat.format(getValue()));
     }
+
 }
