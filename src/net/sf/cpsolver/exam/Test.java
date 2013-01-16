@@ -18,9 +18,12 @@ import net.sf.cpsolver.exam.criteria.InstructorDistanceBackToBackConflicts;
 import net.sf.cpsolver.exam.criteria.InstructorMoreThan2ADayConflicts;
 import net.sf.cpsolver.exam.criteria.InstructorNotAvailableConflicts;
 import net.sf.cpsolver.exam.criteria.LargeExamsPenalty;
+import net.sf.cpsolver.exam.criteria.PeriodIndexPenalty;
 import net.sf.cpsolver.exam.criteria.PeriodPenalty;
+import net.sf.cpsolver.exam.criteria.PeriodSizePenalty;
 import net.sf.cpsolver.exam.criteria.PerturbationPenalty;
 import net.sf.cpsolver.exam.criteria.RoomPenalty;
+import net.sf.cpsolver.exam.criteria.RoomPerturbationPenalty;
 import net.sf.cpsolver.exam.criteria.RoomSizePenalty;
 import net.sf.cpsolver.exam.criteria.RoomSplitDistancePenalty;
 import net.sf.cpsolver.exam.criteria.RoomSplitPenalty;
@@ -29,15 +32,14 @@ import net.sf.cpsolver.exam.criteria.StudentDirectConflicts;
 import net.sf.cpsolver.exam.criteria.StudentDistanceBackToBackConflicts;
 import net.sf.cpsolver.exam.criteria.StudentMoreThan2ADayConflicts;
 import net.sf.cpsolver.exam.criteria.StudentNotAvailableConflicts;
+import net.sf.cpsolver.exam.criteria.additional.DistanceToStronglyPreferredRoom;
+import net.sf.cpsolver.exam.criteria.additional.DistributionViolation;
+import net.sf.cpsolver.exam.criteria.additional.PeriodViolation;
+import net.sf.cpsolver.exam.criteria.additional.RoomViolation;
 import net.sf.cpsolver.exam.model.Exam;
-import net.sf.cpsolver.exam.model.ExamDistributionConstraint;
 import net.sf.cpsolver.exam.model.ExamInstructor;
 import net.sf.cpsolver.exam.model.ExamModel;
-import net.sf.cpsolver.exam.model.ExamPeriod;
-import net.sf.cpsolver.exam.model.ExamPeriodPlacement;
 import net.sf.cpsolver.exam.model.ExamPlacement;
-import net.sf.cpsolver.exam.model.ExamRoom;
-import net.sf.cpsolver.exam.model.ExamRoomPlacement;
 import net.sf.cpsolver.exam.model.ExamStudent;
 import net.sf.cpsolver.exam.reports.ExamAssignments;
 import net.sf.cpsolver.exam.reports.ExamCourseSectionAssignments;
@@ -52,6 +54,7 @@ import net.sf.cpsolver.exam.reports.ExamStudentConflictsBySectionCourse;
 import net.sf.cpsolver.exam.reports.ExamStudentConflictsPerExam;
 import net.sf.cpsolver.exam.reports.ExamStudentDirectConflicts;
 import net.sf.cpsolver.exam.reports.ExamStudentMoreTwoADay;
+import net.sf.cpsolver.exam.split.ExamSplitter;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solution.SolutionListener;
 import net.sf.cpsolver.ifs.solver.Solver;
@@ -206,7 +209,7 @@ public class Test {
                 String baseName = new File(iSolver.getProperties().getProperty("General.Input")).getName();
                 if (baseName.indexOf('.') > 0)
                     baseName = baseName.substring(0, baseName.lastIndexOf('.'));
-                addCSVLine(new File(outFile.getParentFile(), baseName + ".csv"), outFile.getName(), solution);
+                addCSVLine(new File(outFile.getParentFile(), baseName + ".csv"), outFile.getName(), iSolver.getProperties().getProperty("General.Config"), solution);
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -214,71 +217,36 @@ public class Test {
         }
     }
 
-    private static int getMinPenalty(ExamRoom r) {
-        int min = Integer.MAX_VALUE;
-        for (ExamPeriod p : ((ExamModel) r.getModel()).getPeriods()) {
-            if (r.isAvailable(p)) {
-                min = Math.min(min, r.getPenalty(p));
-            }
-        }
-        return min;
-    }
-
-    private static int getMaxPenalty(ExamRoom r) {
-        int max = Integer.MIN_VALUE;
-        for (ExamPeriod p : ((ExamModel) r.getModel()).getPeriods()) {
-            if (r.isAvailable(p)) {
-                max = Math.max(max, r.getPenalty(p));
-            }
-        }
-        return max;
-    }
-
-    private static void addCSVLine(File file, String instance, Solution<Exam, ExamPlacement> solution) {
+    private static void addCSVLine(File file, String instance, String config, Solution<Exam, ExamPlacement> solution) {
         try {
             ExamModel model = (ExamModel) solution.getModel();
             boolean ex = file.exists();
             PrintWriter pw = new PrintWriter(new FileWriter(file, true));
             boolean mpp = ((PerturbationPenalty)model.getCriterion(PerturbationPenalty.class)).isMPP();
             int largeSize = ((LargeExamsPenalty)model.getCriterion(LargeExamsPenalty.class)).getLargeSize();
+            RoomSplitDistancePenalty splitDistance = (RoomSplitDistancePenalty)model.getCriterion(RoomSplitDistancePenalty.class);
+            ExamSplitter splitter = (ExamSplitter)model.getCriterion(ExamSplitter.class);
+            PeriodViolation violPer = (PeriodViolation)model.getCriterion(PeriodViolation.class);
+            RoomViolation violRoom = (RoomViolation)model.getCriterion(RoomViolation.class);
+            DistributionViolation violDist = (DistributionViolation)model.getCriterion(DistributionViolation.class);
+            DistanceToStronglyPreferredRoom distStrPref = (DistanceToStronglyPreferredRoom)model.getCriterion(DistanceToStronglyPreferredRoom.class);
+            ExamRotationPenalty rotation = (ExamRotationPenalty)model.getCriterion(ExamRotationPenalty.class);
+            DecimalFormat df = new DecimalFormat("0.00");
             if (!ex) {
-                pw.println("SEED," + "DC,sM2D,BTB," + (model.getBackToBackDistance() < 0 ? "" : "dBTB,")
-                        + "iDC,iM2D,iBTB," + (model.getBackToBackDistance() < 0 ? "" : "diBTB,")
-                        + "PP,@P,RSz,RSp,RD,RP,DP," + (largeSize >= 0 ? ",LP" : "")
-                        + (mpp ? ",IP" : "") + ",INSTANCE");
-                int minPeriodPenalty = 0, maxPeriodPenalty = 0;
-                int minRoomPenalty = 0, maxRoomPenalty = 0;
-                int nrLargeExams = 0;
-                for (Exam exam : model.variables()) {
-                    if (largeSize >= 0 && exam.getSize() >= largeSize)
-                        nrLargeExams++;
-                    if (!exam.getPeriodPlacements().isEmpty()) {
-                        int minPenalty = Integer.MAX_VALUE, maxPenalty = Integer.MIN_VALUE;
-                        for (ExamPeriodPlacement periodPlacement : exam.getPeriodPlacements()) {
-                            minPenalty = Math.min(minPenalty, periodPlacement.getPenalty());
-                            maxPenalty = Math.max(maxPenalty, periodPlacement.getPenalty());
-                        }
-                        minPeriodPenalty += minPenalty;
-                        maxPeriodPenalty += maxPenalty;
-                    }
-                    if (!exam.getRoomPlacements().isEmpty()) {
-                        int minPenalty = Integer.MAX_VALUE, maxPenalty = Integer.MIN_VALUE;
-                        for (ExamRoomPlacement roomPlacement : exam.getRoomPlacements()) {
-                            minPenalty = Math.min(minPenalty, roomPlacement.getPenalty()
-                                    + getMinPenalty(roomPlacement.getRoom()));
-                            maxPenalty = Math.max(maxPenalty, roomPlacement.getPenalty()
-                                    + getMaxPenalty(roomPlacement.getRoom()));
-                        }
-                        minRoomPenalty += minPenalty;
-                        maxRoomPenalty += maxPenalty;
-                    }
-                }
-                int maxDistributionPenalty = 0;
-                for (ExamDistributionConstraint dc : model.getDistributionConstraints()) {
-                    if (dc.isHard())
-                        continue;
-                    maxDistributionPenalty += dc.getWeight();
-                }
+                pw.println("SEED"
+                        + ",NA,DC,M2D,BTB" + (model.getBackToBackDistance() < 0 ? "" : ",dBTB")
+                        + ",iNA,iDC,iM2D,iBTB" + (model.getBackToBackDistance() < 0 ? "" : ",diBTB")
+                        + ",PP,RP,DP"
+                        + ",PI,@P,PS" // Period Index, Rotation Penalty, Period Size
+                        + ",RSz,RSp,RD" // Room Size, Room Split, Room Split Distance
+                        + (largeSize >= 0 ? ",LP" : "")
+                        + (mpp ? ",IP,IRP" : "")
+                        + (distStrPref == null ? "" : ",@D")
+                        + (splitter == null ? "" : ",XX")
+                        + (violPer == null ? "" : ",!P")
+                        + (violRoom == null ? "" : ",!R")
+                        + (violDist == null ? "" : ",!D")
+                        + ",INSTANCE,CONFIG");
                 int nrStudentExams = 0;
                 for (ExamStudent student : model.getStudents()) {
                     nrStudentExams += student.variables().size();
@@ -287,53 +255,68 @@ public class Test {
                 for (ExamInstructor instructor : model.getInstructors()) {
                     nrInstructorExams += instructor.variables().size();
                 }
-                pw
-                        .println("MIN," + "#EX,#RM,#PER," + (model.getBackToBackDistance() < 0 ? "" : ",")
-                                + "#STD,#STDX,," + (model.getBackToBackDistance() < 0 ? "" : ",") + minPeriodPenalty
-                                + ",#INS,#INSX,,," + minRoomPenalty + ",0," + (largeSize >= 0 ? ",0" : "")
-                                + (mpp ? "," : ""));
-                pw.println("MAX," + model.variables().size() + "," + model.getRooms().size() + ","
-                        + model.getPeriods().size() + "," + (model.getBackToBackDistance() < 0 ? "" : ",")
-                        + model.getStudents().size() + "," + nrStudentExams + ",,"
-                        + (model.getBackToBackDistance() < 0 ? "" : ",") + maxPeriodPenalty + ","
-                        + model.getInstructors().size() + "," + nrInstructorExams + ",,," + maxRoomPenalty + ","
-                        + maxDistributionPenalty + "," + (largeSize >= 0 ? "," + nrLargeExams : "")
-                        + (mpp ? "," : ""));
+                pw.println("MIN"
+                        + ",#EX,#RM,#PER," + (model.getBackToBackDistance() < 0 ? "" : ",")
+                        + ",#STD,#STDX,#INS,#INSX" + (model.getBackToBackDistance() < 0 ? "" : ",")
+                        + "," + model.getCriterion(PeriodPenalty.class).getBounds()[0]
+                        + "," + model.getCriterion(RoomPenalty.class).getBounds()[0]
+                        + "," + model.getCriterion(DistributionPenalty.class).getBounds()[0]
+                        + ",," + df.format(rotation.averagePeriod()) + ","
+                        + ",,,"
+                        + (largeSize >= 0 ? ",0" : "")
+                        + (mpp ? ",," : "")
+                        + (distStrPref == null ? "" : ",")
+                        + (splitter == null ? "" : ",")
+                        + (violPer == null ? "" : ",")
+                        + (violRoom == null ? "" : ",")
+                        + (violDist == null ? "" : ",")
+                        + ",,");
+                pw.println("MAX"
+                        + "," + model.variables().size() + "," + model.getRooms().size() + "," + model.getPeriods().size() + "," + (model.getBackToBackDistance() < 0 ? "" : ",")
+                        + "," + model.getStudents().size() + "," + nrStudentExams + "," + model.getInstructors().size() + "," + nrInstructorExams + (model.getBackToBackDistance() < 0 ? "" : ",")
+                        + "," + model.getCriterion(PeriodPenalty.class).getBounds()[1]
+                        + "," + model.getCriterion(RoomPenalty.class).getBounds()[1]
+                        + "," + model.getCriterion(DistributionPenalty.class).getBounds()[1]
+                        + ",," + rotation.nrAssignedExamsWithAvgPeriod() + ","
+                        + ",,,"
+                        + (largeSize >= 0 ? "," + model.getCriterion(LargeExamsPenalty.class).getBounds()[1] : "")
+                        + (mpp ? ",," : "")
+                        + (distStrPref == null ? "" : ",")
+                        + (splitter == null ? "" : ",")
+                        + (violPer == null ? "" : "," + model.getCriterion(PeriodViolation.class).getBounds()[1])
+                        + (violRoom == null ? "" : "," + model.getCriterion(RoomViolation.class).getBounds()[1])
+                        + (violDist == null ? "" : "," + model.getCriterion(DistributionViolation.class).getBounds()[1])
+                        + ",,");
             }
-            DecimalFormat df = new DecimalFormat("0.00");
             pw.println(ToolBox.getSeed()
-                    + ","
-                    + (model.getCriterion(StudentDirectConflicts.class).getValue() + model.getCriterion(StudentNotAvailableConflicts.class).getValue())
-                    + ","
-                    + model.getCriterion(StudentMoreThan2ADayConflicts.class).getValue()
-                    + ","
-                    + model.getCriterion(StudentBackToBackConflicts.class).getValue()
-                    + ","
-                    + (model.getBackToBackDistance() < 0 ? "" : model.getCriterion(StudentDistanceBackToBackConflicts.class).getValue() + ",")
-                    + (model.getCriterion(InstructorDirectConflicts.class).getValue() + model.getCriterion(InstructorNotAvailableConflicts.class).getValue())
-                    + ","
-                    + model.getCriterion(InstructorMoreThan2ADayConflicts.class).getValue()
-                    + ","
-                    + model.getCriterion(InstructorBackToBackConflicts.class).getValue()
-                    + ","
-                    + (model.getBackToBackDistance() < 0 ? "" : model.getCriterion(InstructorDistanceBackToBackConflicts.class).getValue() + ",")
-                    + model.getCriterion(PeriodPenalty.class).getWeight()
-                    + ","
-                    + model.getCriterion(ExamRotationPenalty.class).getValue()
-                    + ","
-                    + df.format(model.getCriterion(RoomSizePenalty.class).getValue() / model.nrAssignedVariables())
-                    + ","
-                    + model.getCriterion(RoomSplitPenalty.class).getValue()
-                    + ","
-                    + df.format(model.getCriterion(RoomSplitDistancePenalty.class).getValue() / model.getCriterion(RoomSplitPenalty.class).getValue())
-                    + ","
-                    + model.getCriterion(RoomPenalty.class).getValue()
-                    + ","
-                    + model.getCriterion(DistributionPenalty.class).getValue()
+                    + "," + model.getCriterion(StudentNotAvailableConflicts.class).getValue()
+                    + "," + model.getCriterion(StudentDirectConflicts.class).getValue()
+                    + "," + model.getCriterion(StudentMoreThan2ADayConflicts.class).getValue()
+                    + "," + model.getCriterion(StudentBackToBackConflicts.class).getValue()
+                    + (model.getBackToBackDistance() < 0 ? "" : "," + model.getCriterion(StudentDistanceBackToBackConflicts.class).getValue())
+                    + "," + model.getCriterion(InstructorNotAvailableConflicts.class).getValue()
+                    + "," + model.getCriterion(InstructorDirectConflicts.class).getValue()
+                    + "," + model.getCriterion(InstructorMoreThan2ADayConflicts.class).getValue()
+                    + "," + model.getCriterion(InstructorBackToBackConflicts.class).getValue()
+                    + (model.getBackToBackDistance() < 0 ? "" : "," + model.getCriterion(InstructorDistanceBackToBackConflicts.class).getValue())
+                    + "," + model.getCriterion(PeriodPenalty.class).getValue()
+                    + "," + model.getCriterion(RoomPenalty.class).getValue()
+                    + "," + model.getCriterion(DistributionPenalty.class).getValue()
+                    + "," + df.format(model.getCriterion(PeriodIndexPenalty.class).getValue() / model.nrAssignedVariables())
+                    + "," + df.format(Math.sqrt(rotation.getValue() / rotation.nrAssignedExamsWithAvgPeriod()) - 1)
+                    + "," + df.format(model.getCriterion(PeriodSizePenalty.class).getValue() / model.nrAssignedVariables())
+                    + "," + df.format(model.getCriterion(RoomSizePenalty.class).getValue() / model.nrAssignedVariables())
+                    + "," + model.getCriterion(RoomSplitPenalty.class).getValue()
+                    + "," + df.format(splitDistance.nrRoomSplits() <= 0 ? 0.0 : splitDistance.getValue() / splitDistance.nrRoomSplits())
                     + (largeSize >= 0 ? "," + model.getCriterion(LargeExamsPenalty.class).getValue() : "")
-                    + (mpp ? ","
-                            + df.format(model.getCriterion(PerturbationPenalty.class).getValue() / model.nrAssignedVariables())
-                            : "") + "," + instance);
+                    + (mpp ? "," + df.format(model.getCriterion(PerturbationPenalty.class).getValue() / model.nrAssignedVariables())
+                           + "," + df.format(model.getCriterion(RoomPerturbationPenalty.class).getValue() / model.nrAssignedVariables()): "")
+                    + (distStrPref == null ? "" : "," + df.format(distStrPref.getValue() / model.nrAssignedVariables()))
+                    + (splitter == null ? "" : "," + df.format(splitter.getValue()))
+                    + (violPer == null ? "" : "," + df.format(violPer.getValue()))
+                    + (violRoom == null ? "" : "," + df.format(violRoom.getValue()))
+                    + (violDist == null ? "" : "," + df.format(violDist.getValue()))
+                    + "," + instance + "," + config);
             pw.flush();
             pw.close();
         } catch (Exception e) {
@@ -358,6 +341,7 @@ public class Test {
             cfg.setProperty("Neighbour.Class", "net.sf.cpsolver.exam.heuristics.ExamNeighbourSelection");
             if (args.length >= 1) {
                 cfg.load(new FileInputStream(args[0]));
+                cfg.setProperty("General.Config", new File(args[0]).getName());
             }
             cfg.putAll(System.getProperties());
 
@@ -420,12 +404,10 @@ public class Test {
                 public void bestSaved(Solution<Exam, ExamPlacement> solution) {
                     ExamModel m = (ExamModel) solution.getModel();
                     if (sLog.isInfoEnabled()) {
-                        sLog.info("**BEST["
-                                + solution.getIteration()
-                                + "]** "
-                                + (m.nrUnassignedVariables() > 0 ? "V:" + m.nrAssignedVariables() + "/"
-                                        + m.variables().size() + " - " : "") + "T:"
-                                + new DecimalFormat("0.00").format(m.getTotalValue()) + " (" + m + ")");
+                        sLog.info("**BEST[" + solution.getIteration() + "]** "
+                                + (m.nrUnassignedVariables() > 0 ? "V:" + m.nrAssignedVariables() + "/" + m.variables().size() + " - " : "") +
+                                "T:" + new DecimalFormat("0.00").format(m.getTotalValue()) +
+                                " " + m);
                     }
                 }
 
