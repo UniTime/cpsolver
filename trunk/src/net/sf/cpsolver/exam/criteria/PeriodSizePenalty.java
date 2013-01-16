@@ -1,6 +1,7 @@
 package net.sf.cpsolver.exam.criteria;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 
 import net.sf.cpsolver.exam.model.Exam;
@@ -78,9 +79,16 @@ public class PeriodSizePenalty extends ExamCriterion {
         }
         return bounds;
     }
+    
+    @Override
+    public void getInfo(Map<String, String> info) {
+        if (getValue() != 0.0) {
+            info.put(getName(), sDoubleFormat.format(getValue() / getModel().nrAssignedVariables()));
+        }
+    }
 
     @Override
     public String toString() {
-        return "PS:" + sDoubleFormat.format(getValue());
+        return "PS:" + sDoubleFormat.format(getValue() / getModel().nrAssignedVariables());
     }
 }
