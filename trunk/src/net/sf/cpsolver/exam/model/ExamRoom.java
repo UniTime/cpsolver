@@ -161,6 +161,16 @@ public class ExamRoom extends Constraint<Exam, ExamPlacement> {
     public boolean isAvailable(int period) {
         return iAvailable[period];
     }
+    
+    /**
+     * True if the room is available during at least one period,
+     * @return true if there is an examination period at which the room is available
+     */
+    public boolean isAvailable() {
+        for (boolean a: iAvailable)
+            if (a) return true;
+        return false;
+    }
 
     /**
      * Set whether the room is available (for examination timetabling) during

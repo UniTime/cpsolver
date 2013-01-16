@@ -2,9 +2,12 @@ package net.sf.cpsolver.exam.criteria;
 
 import java.util.Set;
 
+import net.sf.cpsolver.exam.criteria.additional.DistributionViolation;
+import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamDistributionConstraint;
 import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPlacement;
+import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -38,9 +41,24 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class DistributionPenalty extends ExamCriterion {
+    protected Integer iSoftDistributions = null;
     
     public DistributionPenalty() {
         iValueUpdateType = ValueUpdateType.NoUpdate; 
+    }
+    
+    
+    @Override
+    public boolean init(Solver<Exam, ExamPlacement> solver) {
+        if (super.init(solver)) {
+            iSoftDistributions = solver.getProperties().getPropertyInteger("Exam.SoftDistributions", null);
+            if (iSoftDistributions != null) {
+                DistributionViolation dv = new DistributionViolation();
+                getModel().addCriterion(dv);
+                return dv.init(solver);
+            }
+        }
+        return true;
     }
     
     @Override
@@ -62,7 +80,7 @@ public class DistributionPenalty extends ExamCriterion {
     public double getValue(ExamPlacement value, Set<ExamPlacement> conflicts) {
         int penalty = 0;
         for (ExamDistributionConstraint dc : value.variable().getDistributionConstraints()) {
-            if (dc.isHard())
+            if (dc.isHard() || (iSoftDistributions != null && iSoftDistributions == dc.getWeight()))
                 continue;
             boolean sat = dc.isSatisfied(value);
             if (sat != dc.isSatisfied())
@@ -82,7 +100,7 @@ public class DistributionPenalty extends ExamCriterion {
     public double getRoomValue(ExamPlacement value) {
         int penalty = 0;
         for (ExamDistributionConstraint dc : value.variable().getDistributionConstraints()) {
-            if (dc.isHard() || !dc.isRoomRelated())
+            if (dc.isHard() || (iSoftDistributions != null && iSoftDistributions == dc.getWeight()) || !dc.isRoomRelated())
                 continue;
             boolean sat = dc.isSatisfied(value);
             if (sat != dc.isSatisfied())
@@ -95,6 +113,17 @@ public class DistributionPenalty extends ExamCriterion {
     @Override
     public boolean isPeriodCriterion() { return true; }
     
+    @Override
+    public void inc(double value) {
+        if (iSoftDistributions != null && iSoftDistributions == value) {
+            getModel().getCriterion(DistributionViolation.class).inc(1.0);
+        } else if (iSoftDistributions != null && iSoftDistributions == -value) {
+            getModel().getCriterion(DistributionViolation.class).inc(-1.0);
+        } else {
+            super.inc(value);
+        }
+    }
+    
     /**
      * Period related distribution penalty, i.e., sum weights of violated
      * distribution constraints
@@ -103,7 +132,7 @@ public class DistributionPenalty extends ExamCriterion {
     public double getPeriodValue(ExamPlacement value) {
         int penalty = 0;
         for (ExamDistributionConstraint dc : value.variable().getDistributionConstraints()) {
-            if (dc.isHard() || !dc.isPeriodRelated())
+            if (dc.isHard() || (iSoftDistributions != null && iSoftDistributions == dc.getWeight()) || !dc.isPeriodRelated())
                 continue;
             boolean sat = dc.isSatisfied(value);
             if (sat != dc.isSatisfied())
@@ -116,7 +145,7 @@ public class DistributionPenalty extends ExamCriterion {
     protected double[] computeBounds() {
         double[] bounds = new double[] { 0.0, 0.0 };
         for (ExamDistributionConstraint dc : ((ExamModel)getModel()).getDistributionConstraints()) {
-            if (dc.isHard())
+            if (dc.isHard() || (iSoftDistributions != null && iSoftDistributions == dc.getWeight()))
                 continue;
             bounds[1] += dc.getWeight();
         }
