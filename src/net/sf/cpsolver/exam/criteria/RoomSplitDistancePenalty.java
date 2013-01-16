@@ -1,5 +1,6 @@
 package net.sf.cpsolver.exam.criteria;
 
+import java.util.Map;
 import java.util.Set;
 
 import net.sf.cpsolver.exam.model.ExamPlacement;
@@ -35,7 +36,8 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class RoomSplitDistancePenalty  extends ExamCriterion {
-    
+    private int iRoomSplits = 0;
+
     @Override
     public String getWeightName() {
         return "Exams.RoomSplitDistanceWeight";
@@ -64,10 +66,35 @@ public class RoomSplitDistancePenalty  extends ExamCriterion {
         int pairs = value.getRoomPlacements().size() * (value.getRoomPlacements().size() - 1) / 2;
         return distance / pairs;
     }
+    
+    @Override
+    public void beforeUnassigned(long iteration, ExamPlacement value) {
+        super.beforeUnassigned(iteration, value);
+        if (value.getRoomPlacements() == null || value.getRoomPlacements().size() > 1)
+            iRoomSplits --;
+    }
+    
+    @Override
+    public void afterAssigned(long iteration, ExamPlacement value) {
+        super.afterAssigned(iteration, value);
+        if (value.getRoomPlacements() == null || value.getRoomPlacements().size() > 1)
+            iRoomSplits ++;
+    }
+    
+    @Override
+    public void getInfo(Map<String, String> info) {
+        if (getValue() != 0.0) {
+            info.put(getName(), sDoubleFormat.format(getValue() / iRoomSplits) + " m");
+        }
+    }
+    
+    public int nrRoomSplits() {
+        return iRoomSplits;
+    }
 
     @Override
     public String toString() {
-        return "RSd:" + sDoubleFormat.format(getValue());
+        return "RSd:" + sDoubleFormat.format(getValue() / iRoomSplits);
     }
 
     @Override
