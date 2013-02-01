@@ -54,7 +54,7 @@ public class RoomViolation extends ExamCriterion {
         double penalty = 0.0;
         if (value.getRoomPlacements() != null)
             for (ExamRoomPlacement r : value.getRoomPlacements()) {
-                penalty += (getWeight() == r.getPenalty() ? 1.0 / value.getRoomPlacements().size() : 0.0);
+                penalty += (getWeight() == r.getPenalty() || getWeight() == r.getRoom().getPenalty(value.getPeriod()) ? 1.0 / value.getRoomPlacements().size() : 0.0);
             }
         return penalty;
     }
@@ -64,9 +64,9 @@ public class RoomViolation extends ExamCriterion {
         double[] bounds = new double[] { 0.0, 0.0 };
         for (Exam exam : variables) {
             if (!exam.getRoomPlacements().isEmpty()) {
-                for (ExamRoomPlacement roomPlacement : exam.getRoomPlacements()) {
+                rooms: for (ExamRoomPlacement roomPlacement : exam.getRoomPlacements()) {
                     if (getWeight() == roomPlacement.getPenalty() && roomPlacement.getRoom().isAvailable()) {
-                        bounds[1] ++; break;
+                        bounds[1] ++; break rooms;
                     }
                 }
             }

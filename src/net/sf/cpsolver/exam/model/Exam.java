@@ -784,6 +784,16 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      * @return number of correlated exams
      */
     public int nrStudentCorrelatedExams() {
+        return getStudentCorrelatedExams().size();
+    }
+    
+    /**
+     * Exams that are correlated with this exam (there is at least one
+     * student attending both exams).
+     * 
+     * @return number of correlated exams
+     */
+    public Set<Exam> getStudentCorrelatedExams() {
         if (iCorrelatedExams == null) {
             iCorrelatedExams = new HashSet<Exam>();
             for (ExamStudent student : iStudents) {
@@ -791,7 +801,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
             }
             iCorrelatedExams.remove(this);
         }
-        return iCorrelatedExams.size();
+        return iCorrelatedExams;
     }
 
     private Integer iEstimatedDomainSize = null;

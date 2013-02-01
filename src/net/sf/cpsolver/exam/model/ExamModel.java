@@ -782,7 +782,7 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
         if (!"examtt".equals(root.getName()))
             return false;
         if (root.attribute("campus") != null)
-            getProperties().setProperty("Data.Initiative", root.attributeValue("campus"));
+            getProperties().setProperty("Data.Campus", root.attributeValue("campus"));
         else if (root.attribute("initiative") != null)
             getProperties().setProperty("Data.Initiative", root.attributeValue("initiative"));
         if (root.attribute("term") != null)
@@ -825,9 +825,12 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
                 Element pe = (Element) j.next();
                 ExamPeriod period = getPeriod(Long.valueOf(pe.attributeValue("id")));
                 if (period == null) continue;
-                if ("false".equals(pe.attributeValue("available")))
-                    room.setAvailable(period, false);
-                else
+                if ("false".equals(pe.attributeValue("available"))) {
+                    if (softRooms == null)
+                        room.setAvailable(period, false);
+                    else
+                        room.setPenalty(period, softRooms);
+                } else
                     room.setPenalty(period, Integer.parseInt(pe.attributeValue("penalty")));
             }
             String av = e.attributeValue("available");
@@ -884,7 +887,11 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
             ArrayList<ExamRoomPlacement> roomPlacements = new ArrayList<ExamRoomPlacement>();
             if (softRooms != null) {
                 for (ExamRoom room: getRooms()) {
-                    if (!room.isAvailable()) continue;
+                    boolean av = false;
+                    for (ExamPeriodPlacement p: periodPlacements) {
+                        if (room.isAvailable(p.getPeriod()) && room.getPenalty(p.getPeriod()) != softRooms) { av = true; break; }
+                    }
+                    if (!av) continue;
                     int penalty = softRooms, maxPenalty = softRooms;
                     for (Iterator<?> j = e.elementIterator("room"); j.hasNext();) {
                         Element re = (Element) j.next();
