@@ -138,6 +138,31 @@ public class ExamColoringConstruction implements NeighbourSelection<Exam, ExamPl
         iProgress = Progress.getInstance(solver.currentSolution().getModel());
         iSolver = solver;
     }
+    
+    public Set<ExamRoomPlacement> findRooms(Exam exam, ExamPeriodPlacement period) {
+        Set<ExamRoomPlacement> rooms = exam.findBestAvailableRooms(period);
+        if (rooms != null) return rooms;
+        
+        rooms = new HashSet<ExamRoomPlacement>();
+        int size = 0;
+        while (size < exam.getSize()) {
+            ExamRoomPlacement bestRoom = null; int bestSize = 0;
+            for (ExamRoomPlacement r: exam.getRoomPlacements()) {
+                if (!r.isAvailable(period.getPeriod())) continue;
+                if (rooms.contains(r)) continue;
+                if (!r.getRoom().getPlacements(period.getPeriod()).isEmpty()) continue;
+                int s = r.getSize(exam.hasAltSeating());
+                if (bestRoom == null || s > bestSize) {
+                    bestRoom = r;
+                    bestSize = s;
+                }
+            }
+            if (bestRoom == null) return rooms;
+            rooms.add(bestRoom); size += bestSize;
+        }
+        
+        return rooms;
+    }
 
     @Override
     public Neighbour<Exam, ExamPlacement> selectNeighbour(Solution<Exam, ExamPlacement> solution) {
@@ -207,7 +232,7 @@ public class ExamColoringConstruction implements NeighbourSelection<Exam, ExamPl
                     for (Vertex vertex: new TreeSet<Vertex>(vertices.values())) {
                         ExamPeriodPlacement period = vertex.period();
                         if (period == null || !vertex.exam().checkDistributionConstraints(period)) continue;
-                        Set<ExamRoomPlacement> rooms = vertex.exam().findBestAvailableRooms(period);
+                        Set<ExamRoomPlacement> rooms = findRooms(vertex.exam(), period);
                         if (rooms == null) continue;
                         vertex.exam().assign(iteration, new ExamPlacement(vertex.exam(), period, rooms));
                     }
@@ -230,7 +255,7 @@ public class ExamColoringConstruction implements NeighbourSelection<Exam, ExamPl
                             if (!vertex.colorize(color)) continue;
                             ExamPeriodPlacement period = vertex.period(color);
                             if (period == null || !vertex.exam().checkDistributionConstraints(period)) continue;
-                            Set<ExamRoomPlacement> rooms = vertex.exam().findBestAvailableRooms(period);
+                            Set<ExamRoomPlacement> rooms = findRooms(vertex.exam(), period);
                             if (rooms == null) continue;
                             vertex.exam().assign(iteration, new ExamPlacement(vertex.exam(), period, rooms));
                             continue unassigned;
@@ -303,7 +328,7 @@ public class ExamColoringConstruction implements NeighbourSelection<Exam, ExamPl
                 if (iMode.isConstraintCheck()) {
                     ExamPeriodPlacement period = iDomain.get(color);
                     if (!iExam.checkDistributionConstraints(period)) return false;
-                    Set<ExamRoomPlacement> rooms = iExam.findBestAvailableRooms(period);
+                    Set<ExamRoomPlacement> rooms = findRooms(iExam, period);
                     if (rooms == null) return false;
                     placement = new ExamPlacement(iExam, period, rooms);
                 }
