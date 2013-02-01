@@ -70,7 +70,7 @@ public class PeriodPenalty extends ExamCriterion {
     
     @Override
     public double getValue(ExamPlacement value, Set<ExamPlacement> conflicts) {
-        return (iSoftPeriods == null || iSoftPeriods != value.getPeriodPlacement().getPenalty() ? value.getPeriodPlacement().getPenalty() : 0.0);
+        return (iSoftPeriods == null || (value.getPeriodPlacement().getExamPenalty() != iSoftPeriods &&  value.getPeriodPlacement().getPeriod().getPenalty() != iSoftPeriods) ? value.getPeriodPlacement().getPenalty() : 0.0);
     }
 
     @Override
@@ -80,7 +80,7 @@ public class PeriodPenalty extends ExamCriterion {
             if (!exam.getPeriodPlacements().isEmpty()) {
                 int minPenalty = Integer.MAX_VALUE, maxPenalty = Integer.MIN_VALUE;
                 for (ExamPeriodPlacement periodPlacement : exam.getPeriodPlacements()) {
-                    if (iSoftPeriods != null && periodPlacement.getPenalty() == iSoftPeriods) continue;
+                    if (iSoftPeriods != null && (periodPlacement.getExamPenalty() == iSoftPeriods || periodPlacement.getPeriod().getPenalty() == iSoftPeriods)) continue;
                     minPenalty = Math.min(minPenalty, periodPlacement.getPenalty());
                     maxPenalty = Math.max(maxPenalty, periodPlacement.getPenalty());
                 }

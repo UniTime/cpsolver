@@ -78,7 +78,7 @@ public class RoomPenalty extends ExamCriterion {
         double penalty = 0.0;
         if (value.getRoomPlacements() != null)
             for (ExamRoomPlacement r : value.getRoomPlacements()) {
-                penalty += (iSoftRooms != null && iSoftRooms == r.getPenalty() ? r.getRoom().getPenalty(value.getPeriod()) : r.getPenalty(value.getPeriod()));
+                penalty += (iSoftRooms != null && (iSoftRooms == r.getPenalty() || iSoftRooms == r.getPenalty(value.getPeriod())) ? 0.0 : r.getPenalty(value.getPeriod()));
             }
         return penalty;
     }
@@ -86,7 +86,7 @@ public class RoomPenalty extends ExamCriterion {
     private int getMinPenalty(ExamRoom r) {
         int min = Integer.MAX_VALUE;
         for (ExamPeriod p : ((ExamModel)getModel()).getPeriods()) {
-            if (r.isAvailable(p)) {
+            if (r.isAvailable(p) && (iSoftRooms == null || r.getPenalty(p) != iSoftRooms)) {
                 min = Math.min(min, r.getPenalty(p));
             }
         }
@@ -96,11 +96,19 @@ public class RoomPenalty extends ExamCriterion {
     private int getMaxPenalty(ExamRoom r) {
         int max = Integer.MIN_VALUE;
         for (ExamPeriod p : ((ExamModel)getModel()).getPeriods()) {
-            if (r.isAvailable(p)) {
+            if (r.isAvailable(p) && (iSoftRooms == null || r.getPenalty(p) != iSoftRooms)) {
                 max = Math.max(max, r.getPenalty(p));
             }
         }
         return max;
+    }
+    
+    private boolean isAvailable(ExamRoom r) {
+        for (ExamPeriod p : ((ExamModel)getModel()).getPeriods()) {
+            if (r.isAvailable(p) && (iSoftRooms == null || r.getPenalty(p) != iSoftRooms))
+                return true;
+        }
+        return false;
     }
 
     @Override
@@ -111,7 +119,7 @@ public class RoomPenalty extends ExamCriterion {
                 int minPenalty = Integer.MAX_VALUE, maxPenalty = Integer.MIN_VALUE;
                 for (ExamRoomPlacement roomPlacement : exam.getRoomPlacements()) {
                     if (iSoftRooms != null && iSoftRooms == roomPlacement.getPenalty()) continue;
-                    if (!roomPlacement.getRoom().isAvailable()) continue;
+                    if (!isAvailable(roomPlacement.getRoom())) continue;
                     minPenalty = Math.min(minPenalty, 2 * roomPlacement.getPenalty() + getMinPenalty(roomPlacement.getRoom()));
                     maxPenalty = Math.max(maxPenalty, 2 * roomPlacement.getPenalty() + getMaxPenalty(roomPlacement.getRoom()));
                 }

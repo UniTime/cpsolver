@@ -51,7 +51,7 @@ public class PeriodViolation extends ExamCriterion {
     
     @Override
     public double getValue(ExamPlacement value, Set<ExamPlacement> conflicts) {
-        return (getWeight() == value.getPeriodPlacement().getPenalty() ? 1.0 : 0.0);
+        return (value.getPeriodPlacement().getExamPenalty() == getWeight() || value.getPeriodPlacement().getPeriod().getPenalty() == getWeight() ? 1.0 : 0.0);
     }
     
     @Override
@@ -60,7 +60,7 @@ public class PeriodViolation extends ExamCriterion {
         for (Exam exam : variables) {
             if (!exam.getPeriodPlacements().isEmpty()) {
                 for (ExamPeriodPlacement periodPlacement : exam.getPeriodPlacements()) {
-                    if (getWeight() == periodPlacement.getPenalty()) {
+                    if (periodPlacement.getExamPenalty() == getWeight() || periodPlacement.getPeriod().getPenalty() == getWeight()) {
                         bounds[1] ++; break;
                     }
                 }
