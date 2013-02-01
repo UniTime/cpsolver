@@ -314,7 +314,7 @@ public class CSVFile implements Serializable {
             field = field.trim();
             if (quotationMark != null && field.startsWith(quotationMark) && field.endsWith(quotationMark))
                 field = field.substring(1, field.length() - 1);
-            iField = field.trim();
+            iField = field;
         }
 
         public CSVField(Object field) {
