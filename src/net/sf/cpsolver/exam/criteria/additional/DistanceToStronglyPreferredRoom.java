@@ -74,7 +74,7 @@ public class DistanceToStronglyPreferredRoom extends ExamCriterion {
     
     @Override
     public String toString() {
-        return "@D:" + sDoubleFormat.format(getWeightedValue() / getModel().assignedVariables().size());
+        return "@D:" + sDoubleFormat.format(getValue() / getModel().assignedVariables().size());
     }
     
     @Override
