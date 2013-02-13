@@ -9,12 +9,15 @@ import org.apache.log4j.Logger;
 
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamPlacement;
+import net.sf.cpsolver.exam.neighbours.ExamPeriodSwapMove;
 import net.sf.cpsolver.exam.neighbours.ExamRandomMove;
 import net.sf.cpsolver.exam.neighbours.ExamRoomMove;
 import net.sf.cpsolver.exam.neighbours.ExamSimpleNeighbour;
 import net.sf.cpsolver.exam.neighbours.ExamTimeMove;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
+import net.sf.cpsolver.ifs.model.LazyNeighbour;
 import net.sf.cpsolver.ifs.model.Neighbour;
+import net.sf.cpsolver.ifs.model.LazyNeighbour.LazyNeighbourAcceptanceCriterion;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solution.SolutionListener;
 import net.sf.cpsolver.ifs.solver.Solver;
@@ -29,6 +32,7 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  * <li>random move ({@link ExamRandomMove})
  * <li>period swap ({@link ExamTimeMove})
  * <li>room swap ({@link ExamRoomMove})
+ * <li>exam swap ({@link ExamPeriodSwapMove})
  * </ul>
  * , then a neighbour is generated and it is accepted if its value
  * {@link ExamSimpleNeighbour#value()} is below or equal to zero. The search is
@@ -55,7 +59,7 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class ExamHillClimbing implements NeighbourSelection<Exam, ExamPlacement>, SolutionListener<Exam, ExamPlacement> {
+public class ExamHillClimbing implements NeighbourSelection<Exam, ExamPlacement>, SolutionListener<Exam, ExamPlacement>, LazyNeighbourAcceptanceCriterion<Exam, ExamPlacement> {
     private static Logger sLog = Logger.getLogger(ExamHillClimbing.class);
     private List<NeighbourSelection<Exam, ExamPlacement>> iNeighbours = null;
     private int iMaxIdleIters = 25000;
@@ -90,7 +94,8 @@ public class ExamHillClimbing implements NeighbourSelection<Exam, ExamPlacement>
         String neighbours = properties.getProperty("HillClimber.Neighbours", 
                 ExamRandomMove.class.getName() + ";" +
                 ExamRoomMove.class.getName() + ";" +
-                ExamTimeMove.class.getName());
+                ExamTimeMove.class.getName() + ";" + 
+                ExamPeriodSwapMove.class.getName());
         neighbours += ";" + properties.getProperty("HillClimber.AdditionalNeighbours", "");
         iNeighbours = new ArrayList<NeighbourSelection<Exam,ExamPlacement>>();
         for (String neighbour: neighbours.split("\\;")) {
@@ -137,8 +142,12 @@ public class ExamHillClimbing implements NeighbourSelection<Exam, ExamPlacement>
                 break;
             NeighbourSelection<Exam, ExamPlacement> ns = iNeighbours.get(ToolBox.random(iNeighbours.size()));
             Neighbour<Exam, ExamPlacement> n = ns.selectNeighbour(solution);
-            if (n != null && n.value() <= 0)
-                return n;
+            if (n != null) {
+                if (n instanceof LazyNeighbour) {
+                    ((LazyNeighbour<Exam,ExamPlacement>)n).setAcceptanceCriterion(this);
+                    return n;
+                } else if (n.value() <= 0.0) return n;
+            }
         }
         iIter = 0;
         iLastImprovingIter = 0;
@@ -175,5 +184,11 @@ public class ExamHillClimbing implements NeighbourSelection<Exam, ExamPlacement>
 
     @Override
     public void bestRestored(Solution<Exam, ExamPlacement> solution) {
+    }
+
+    /** Accept lazy neighbour */
+    @Override
+    public boolean accept(LazyNeighbour<Exam, ExamPlacement> neighbour, double value) {
+        return value <= 0.0;
     }
 }
