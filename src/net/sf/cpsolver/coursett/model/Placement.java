@@ -506,7 +506,7 @@ public class Placement extends Value<Lecture, Placement> {
             return reason;
         for (InstructorConstraint ic : lecture.getInstructorConstraints()) {
             if (!ic.isAvailable(lecture, this)) {
-                if (!ic.isAvailable(lecture, getTimeLocation()))
+                if (ic.isAvailable(lecture, getTimeLocation()))
                     return "instructor " + ic.getName() + " not available at " + getTimeLocation().getLongName();
                 else
                     return "placement " + getTimeLocation().getLongName() + " " + getRoomName(", ")

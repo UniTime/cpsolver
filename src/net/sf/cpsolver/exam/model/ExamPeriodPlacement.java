@@ -66,14 +66,7 @@ public class ExamPeriodPlacement implements Comparable<ExamPeriodPlacement> {
      *         {@link ExamPeriod#getPenalty()}
      */
     public int getPenalty() {
-        return 2 * iPenalty + iPeriod.getPenalty();
-    }
-    
-    /**
-     * Period penalty for given exam
-     */
-    public int getExamPenalty() {
-        return iPenalty;
+        return iPenalty + iPeriod.getPenalty();
     }
 
     /**

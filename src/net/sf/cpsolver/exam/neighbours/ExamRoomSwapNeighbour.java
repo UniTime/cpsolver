@@ -1,17 +1,13 @@
 package net.sf.cpsolver.exam.neighbours;
 
 import java.text.DecimalFormat;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 
 import net.sf.cpsolver.exam.model.Exam;
-import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamRoomPlacement;
-import net.sf.cpsolver.exam.model.ExamRoomSharing;
 import net.sf.cpsolver.ifs.model.Neighbour;
 
 /**
@@ -57,18 +53,7 @@ public class ExamRoomSwapNeighbour extends Neighbour<Exam, ExamPlacement> {
         size += swap.getSize(exam.hasAltSeating());
         if (size < exam.getSize())
             return; // new room is too small
-        ExamPlacement conflict = null;
-        ExamRoomSharing rs = ((ExamModel)exam.getModel()).getRoomSharing();
-        if (rs != null && placement.getRoomPlacements().size() == 1) {
-            Set<ExamPlacement> x = new HashSet<ExamPlacement>();
-            rs.computeConflicts(exam, swap.getRoom().getPlacements(placement.getPeriod()), swap.getRoom(), x);
-            if (x.size() > 1) return;
-            else if (x.size() == 1) conflict = x.iterator().next();
-        } else {
-            List<ExamPlacement> conf = swap.getRoom().getPlacements(placement.getPeriod());
-            if (conf.size() > 1) return;
-            else if (conf.size() == 1) conflict = conf.get(0);
-        }
+        ExamPlacement conflict = swap.getRoom().getPlacement(placement.getPeriod());
         if (conflict == null) {
             Set<ExamRoomPlacement> newRooms = new HashSet<ExamRoomPlacement>(placement.getRoomPlacements());
             newRooms.remove(current);
@@ -101,12 +86,6 @@ public class ExamRoomSwapNeighbour extends Neighbour<Exam, ExamPlacement> {
             xSize += current.getSize(x.hasAltSeating());
             if (xSize < x.getSize())
                 return; // current room is too small for the conflicting exam
-            if (rs != null) {
-                List<ExamPlacement> other = new ArrayList<ExamPlacement>(current.getRoom().getPlacements(conflict.getPeriod()));
-                other.remove(placement);
-                if (!other.isEmpty() && conflict.getRoomPlacements().size() > 1) return;
-                if (rs.inConflict(x, other, current.getRoom())) return;
-            }
             Set<ExamRoomPlacement> newRooms = new HashSet<ExamRoomPlacement>(placement.getRoomPlacements());
             newRooms.remove(current);
             newRooms.add(swap);

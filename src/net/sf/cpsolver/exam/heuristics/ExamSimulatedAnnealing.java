@@ -1,22 +1,17 @@
 package net.sf.cpsolver.exam.heuristics;
 
 import java.text.DecimalFormat;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamPlacement;
-import net.sf.cpsolver.exam.neighbours.ExamPeriodSwapMove;
 import net.sf.cpsolver.exam.neighbours.ExamRandomMove;
 import net.sf.cpsolver.exam.neighbours.ExamRoomMove;
 import net.sf.cpsolver.exam.neighbours.ExamSimpleNeighbour;
 import net.sf.cpsolver.exam.neighbours.ExamTimeMove;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
-import net.sf.cpsolver.ifs.model.LazyNeighbour;
 import net.sf.cpsolver.ifs.model.Neighbour;
-import net.sf.cpsolver.ifs.model.LazyNeighbour.LazyNeighbourAcceptanceCriterion;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solution.SolutionListener;
 import net.sf.cpsolver.ifs.solver.Solver;
@@ -34,7 +29,6 @@ import org.apache.log4j.Logger;
  * <li>random move ({@link ExamRandomMove})
  * <li>period swap ({@link ExamTimeMove})
  * <li>room swap ({@link ExamRoomMove})
- * <li>exam swap ({@link ExamPeriodSwapMove})
  * </ul>
  * , then a neighbour is generated and it is accepted with probability
  * {@link ExamSimulatedAnnealing#prob(double)}. The search is guided by the
@@ -80,7 +74,8 @@ import org.apache.log4j.Logger;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlacement>, SolutionListener<Exam, ExamPlacement>, LazyNeighbourAcceptanceCriterion<Exam, ExamPlacement> {
+public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlacement>,
+        SolutionListener<Exam, ExamPlacement> {
     private static Logger sLog = Logger.getLogger(ExamSimulatedAnnealing.class);
     private static DecimalFormat sDF2 = new DecimalFormat("0.00");
     private static DecimalFormat sDF5 = new DecimalFormat("0.00000");
@@ -107,7 +102,7 @@ public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlac
     private Progress iProgress = null;
     private boolean iActive;
 
-    private List<NeighbourSelection<Exam, ExamPlacement>> iNeighbours = null;
+    private NeighbourSelection<Exam, ExamPlacement>[] iNeighbours = null;
 
     private boolean iRelativeAcceptance = true;
 
@@ -155,22 +150,8 @@ public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlac
             iReheatRate = Math.pow(1 / iCoolingRate, iReheatLengthCoef * 1.7);
         if (iRestoreBestLengthCoef < 0)
             iRestoreBestLengthCoef = iReheatLengthCoef * iReheatLengthCoef;
-        String neighbours = properties.getProperty("SimulatedAnnealing.Neighbours", 
-                ExamRandomMove.class.getName() + ";" +
-                ExamRoomMove.class.getName() + ";" +
-                ExamTimeMove.class.getName() + ";" + 
-                ExamPeriodSwapMove.class.getName());
-        neighbours += ";" + properties.getProperty("SimulatedAnnealing.AdditionalNeighbours", "");
-        iNeighbours = new ArrayList<NeighbourSelection<Exam,ExamPlacement>>();
-        for (String neighbour: neighbours.split("\\;")) {
-            if (neighbour == null || neighbour.isEmpty()) continue;
-            try {
-                Class<NeighbourSelection<Exam, ExamPlacement>> clazz = (Class<NeighbourSelection<Exam, ExamPlacement>>)Class.forName(neighbour);
-                iNeighbours.add(clazz.getConstructor(DataProperties.class).newInstance(properties));
-            } catch (Exception e) {
-                sLog.error("Unable to use " + neighbour + ": " + e.getMessage());
-            }
-        }
+        iNeighbours = new NeighbourSelection[] { new ExamRandomMove(properties), new ExamRoomMove(properties),
+                new ExamTimeMove(properties) };
     }
 
     /**
@@ -182,8 +163,8 @@ public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlac
         iReheatLength = Math.round(iReheatLengthCoef * iTemperatureLength);
         iRestoreBestLength = Math.round(iRestoreBestLengthCoef * iTemperatureLength);
         solver.currentSolution().addSolutionListener(this);
-        for (NeighbourSelection<Exam, ExamPlacement> neighbour: iNeighbours)
-            neighbour.init(solver);
+        for (int i = 0; i < iNeighbours.length; i++)
+            iNeighbours[i].init(solver);
         solver.setUpdateProgress(false);
         iProgress = Progress.getInstance(solver.currentSolution().getModel());
         iActive = false;
@@ -238,7 +219,7 @@ public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlac
     public Neighbour<Exam, ExamPlacement> genMove(Solution<Exam, ExamPlacement> solution) {
         while (true) {
             incIter(solution);
-            NeighbourSelection<Exam, ExamPlacement> ns = iNeighbours.get(ToolBox.random(iNeighbours.size()));
+            NeighbourSelection<Exam, ExamPlacement> ns = iNeighbours[ToolBox.random(iNeighbours.length)];
             Neighbour<Exam, ExamPlacement> n = ns.selectNeighbour(solution);
             if (n != null)
                 return n;
@@ -270,25 +251,11 @@ public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlac
      *         {@link ExamSimulatedAnnealing#prob(double)}
      */
     protected boolean accept(Solution<Exam, ExamPlacement> solution, Neighbour<Exam, ExamPlacement> neighbour) {
-        if (neighbour instanceof LazyNeighbour) {
-            ((LazyNeighbour<Exam, ExamPlacement>)neighbour).setAcceptanceCriterion(this);
-            return true;
-        }
-        double value = (iRelativeAcceptance ? neighbour.value() : solution.getModel().getTotalValue() + neighbour.value() - solution.getBestValue());
+        double value = (iRelativeAcceptance ? neighbour.value() : solution.getModel().getTotalValue()
+                + neighbour.value() - solution.getBestValue());
         double prob = prob(value);
         if (prob >= 1.0 || ToolBox.random() < prob) {
             iAcceptIter[neighbour.value() < 0.0 ? 0 : neighbour.value() > 0.0 ? 2 : 1]++;
-            return true;
-        }
-        return false;
-    }
-    
-    /** Accept lazy neighbour */
-    @Override
-    public boolean accept(LazyNeighbour<Exam, ExamPlacement> neighbour, double value) {
-        double prob = prob(value);
-        if (prob >= 1.0 || ToolBox.random() < prob) {
-            iAcceptIter[value < 0.0 ? 0 : value > 0.0 ? 2 : 1]++;
             return true;
         }
         return false;
@@ -367,4 +334,5 @@ public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlac
     @Override
     public void bestRestored(Solution<Exam, ExamPlacement> solution) {
     }
+
 }

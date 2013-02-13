@@ -40,10 +40,6 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  */
 public class BackToBackInstructorPreferences extends TimetablingCriterion {
     
-    public BackToBackInstructorPreferences() {
-        iValueUpdateType = ValueUpdateType.NoUpdate;
-    }
-    
     @Override
     public double getWeightDefault(DataProperties config) {
         return Constants.sPreferenceLevelDiscouraged * config.getPropertyDouble("Comparator.DistanceInstructorPreferenceWeight", 1.0);
@@ -85,11 +81,10 @@ public class BackToBackInstructorPreferences extends TimetablingCriterion {
     }
     
     @Override
-    protected double[] computeBounds() {
-        double[] bounds = new double[] { 0.0, 0.0 };
+    protected void computeBounds() {
+        iBounds = new double[] { 0.0, 0.0 };
         for (InstructorConstraint ic: ((TimetableModel)getModel()).getInstructorConstraints())
-            bounds[1] += ic.getWorstPreference();
-        return bounds;
+            iBounds[1] += ic.getWorstPreference();
     }
     
     @Override

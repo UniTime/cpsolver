@@ -2,11 +2,6 @@ package net.sf.cpsolver.exam.reports;
 
 import java.text.DecimalFormat;
 
-import net.sf.cpsolver.exam.criteria.StudentBackToBackConflicts;
-import net.sf.cpsolver.exam.criteria.StudentDirectConflicts;
-import net.sf.cpsolver.exam.criteria.StudentDistanceBackToBackConflicts;
-import net.sf.cpsolver.exam.criteria.StudentMoreThan2ADayConflicts;
-import net.sf.cpsolver.exam.criteria.StudentNotAvailableConflicts;
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPlacement;
@@ -69,12 +64,8 @@ public class ExamStudentConflictsPerExam {
             ExamPlacement placement = exam.getAssignment();
             if (placement == null)
                 continue;
-            int dc = (int)iModel.getCriterion(StudentDirectConflicts.class).getValue(placement, null) +
-                     (int)iModel.getCriterion(StudentNotAvailableConflicts.class).getValue(placement, null);
-            int btb = (int)iModel.getCriterion(StudentBackToBackConflicts.class).getValue(placement, null);
-            int dbtb = (int)iModel.getCriterion(StudentDistanceBackToBackConflicts.class).getValue(placement, null);
-            int m2d = (int)iModel.getCriterion(StudentMoreThan2ADayConflicts.class).getValue(placement, null);
-            if (dc == 0 && m2d == 0 && btb == 0 && dbtb == 0)
+            if (placement.getNrDirectConflicts() == 0 && placement.getNrMoreThanTwoADayConflicts() == 0
+                    && placement.getNrBackToBackConflicts() == 0 && placement.getNrDistanceBackToBackConflicts() == 0)
                 continue;
             /*
              * String section = ""; for (Enumeration
@@ -85,14 +76,16 @@ public class ExamStudentConflictsPerExam {
             csv.addLine(new CSVField[] {
                     new CSVField(exam.getName()),
                     new CSVField(exam.getStudents().size()),
-                    new CSVField(dc),
-                    new CSVField(df.format(100.0 * dc / exam.getStudents().size())),
-                    new CSVField(m2d),
-                    new CSVField(df.format(100.0 * m2d / exam.getStudents().size())),
-                    new CSVField(btb),
-                    new CSVField(df.format(100.0 * btb / exam.getStudents().size())),
-                    new CSVField(dbtb),
-                    new CSVField(df.format(100.0 * dbtb / exam.getStudents().size())) });
+                    new CSVField(placement.getNrDirectConflicts()),
+                    new CSVField(df.format(100.0 * placement.getNrDirectConflicts() / exam.getStudents().size())),
+                    new CSVField(placement.getNrMoreThanTwoADayConflicts()),
+                    new CSVField(df.format(100.0 * placement.getNrMoreThanTwoADayConflicts()
+                            / exam.getStudents().size())),
+                    new CSVField(placement.getNrBackToBackConflicts()),
+                    new CSVField(df.format(100.0 * placement.getNrBackToBackConflicts() / exam.getStudents().size())),
+                    new CSVField(placement.getNrDistanceBackToBackConflicts()),
+                    new CSVField(df.format(100.0 * placement.getNrDistanceBackToBackConflicts()
+                            / exam.getStudents().size())) });
         }
         return csv;
     }

@@ -231,7 +231,7 @@ public class TimetableXMLSaver extends TimetableSaver {
             if (roomConstraint.getSharingModel() != null) {
                 RoomSharingModel sharingModel = roomConstraint.getSharingModel();
                 Element sharingEl = roomEl.addElement("sharing");
-                sharingEl.addElement("pattern").addAttribute("unit", String.valueOf(sharingModel.getStep())).setText(sharingModel.getPreferences());
+                sharingEl.addElement("pattern").addAttribute("unit", "6").setText(sharingModel.getPreferences());
                 sharingEl.addElement("freeForAll").addAttribute("value",
                         String.valueOf(sharingModel.getFreeForAllPrefChar()));
                 sharingEl.addElement("notAvailable").addAttribute("value",
@@ -420,11 +420,19 @@ public class TimetableXMLSaver extends TimetableSaver {
                     instrEl.addAttribute("ignDist", "true");
                 }
             }
-            if (ic.getUnavailabilities() != null) {
-                for (Placement placement: ic.getUnavailabilities()) {
-                    Lecture lecture = placement.variable();
-                    Element classEl = classElements.get(lecture.getClassId());
-                    classEl.addElement("instructor").addAttribute("id", getId("inst", ic.getResourceId())).addAttribute("solution", "true");
+            if (ic.getAvailableArray() != null) {
+                HashSet<Long> done = new HashSet<Long>();
+                for (int i = 0; i < ic.getAvailableArray().length; i++) {
+                    if (ic.getAvailableArray()[i] != null) {
+                        for (Placement placement : ic.getAvailableArray()[i]) {
+                            Lecture lecture = placement.variable();
+                            if (done.add(lecture.getClassId())) {
+                                Element classEl = classElements.get(lecture.getClassId());
+                                classEl.addElement("instructor").addAttribute("id", getId("inst", ic.getResourceId()))
+                                        .addAttribute("solution", "true");
+                            }
+                        }
+                    }
                 }
             }
         }

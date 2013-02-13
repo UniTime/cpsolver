@@ -8,7 +8,6 @@ import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPeriodPlacement;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamRoomPlacement;
-import net.sf.cpsolver.exam.model.ExamRoomSharing;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
@@ -69,7 +68,6 @@ public class ExamTimeMove implements NeighbourSelection<Exam,ExamPlacement> {
     @Override
     public Neighbour<Exam,ExamPlacement> selectNeighbour(Solution<Exam,ExamPlacement> solution) {
         ExamModel model = (ExamModel)solution.getModel();
-        ExamRoomSharing sharing = model.getRoomSharing();
         Exam exam = ToolBox.random(model.variables());
         ExamPlacement placement = exam.getAssignment();
         int px = ToolBox.random(exam.getPeriodPlacements().size());
@@ -80,15 +78,10 @@ public class ExamTimeMove implements NeighbourSelection<Exam,ExamPlacement> {
             if (iCheckDistributionConstraints && !exam.checkDistributionConstraints(period)) continue;
             if (placement!=null) {
                 boolean ok = true;
-                if (sharing != null && placement.getRoomPlacements().size() == 1) {
-                    ExamRoomPlacement room = placement.getRoomPlacements().iterator().next();
-                    ok = room.isAvailable(period.getPeriod()) && !sharing.inConflict(exam, room.getRoom().getPlacements(period.getPeriod()), room.getRoom());
-                } else {
-                    for (Iterator<ExamRoomPlacement> i=placement.getRoomPlacements().iterator();i.hasNext();) {
-                        ExamRoomPlacement room = i.next();
-                        if (!room.isAvailable(period.getPeriod()) || !room.getRoom().getPlacements(period.getPeriod()).isEmpty()) {
-                            ok = false; break;
-                        }
+                for (Iterator<ExamRoomPlacement> i=placement.getRoomPlacements().iterator();i.hasNext();) {
+                    ExamRoomPlacement room = i.next();
+                    if (!room.isAvailable(period.getPeriod()) || room.getRoom().getPlacement(period.getPeriod())!=null) {
+                        ok = false; break;
                     }
                 }
                 if (ok)

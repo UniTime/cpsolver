@@ -4,7 +4,6 @@ package net.sf.cpsolver.exam.reports;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.sf.cpsolver.exam.criteria.StudentBackToBackConflicts;
 import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPeriod;
 import net.sf.cpsolver.exam.model.ExamStudent;
@@ -61,7 +60,6 @@ public class ExamNbrMeetingsPerDay {
         List<CSVField> header = new ArrayList<CSVField>();
         header.add(new CSVField("Date"));
         header.add(new CSVField("None"));
-        boolean isDayBreakBackToBack = ((StudentBackToBackConflicts)iModel.getCriterion(StudentBackToBackConflicts.class)).isDayBreakBackToBack();
         for (int i = 1; i <= 5; i++)
             header.add(new CSVField(i == 5 ? "5+" : String.valueOf(i)));
         header.add(new CSVField("Back-To-Back"));
@@ -86,7 +84,7 @@ public class ExamNbrMeetingsPerDay {
                 int ex = student.getExamsADay(d).size();
                 nrExams[ex <= 5 ? ex : 5]++;
                 ExamPeriod p = period;
-                while (p.next() != null && (isDayBreakBackToBack ? p : p.next()).getDay() == d) {
+                while (p.next() != null && (iModel.isDayBreakBackToBack() ? p : p.next()).getDay() == d) {
                     btb += student.getExams(p).size() * student.getExams(p.next()).size();
                     p = p.next();
                 }

@@ -53,7 +53,28 @@ public class StudentCommittedConflict extends StudentConflict {
     public boolean inConflict(Placement p1, Placement p2) {
         return committed(p1, p2) && super.inConflict(p1, p2);
     }
-        
+    
+    @Override
+    public double[] getBounds() {
+        if (iBounds == null)
+            computeBounds();
+        double[] bounds = super.getBounds();
+        return new double[] { bounds[0] + iBounds[0], bounds[1] + iBounds[1] };
+    }
+    
+    @Override
+    public void computeBounds() {
+        iBounds = new double[] { 0.0, 0.0 };
+        for (Lecture lecture: getModel().variables()) {
+            Double max = null;
+            for (Placement placement: lecture.values()) {
+                if (max == null) { max = new Double(lecture.getCommitedConflicts(placement)); continue; }
+                max = Math.max(max, lecture.getCommitedConflicts(placement));
+            }
+            if (max != null) iBounds[0] += max;
+        }
+    }
+    
     @Override
     public double[] getBounds(Collection<Lecture> variables) {
         double[] bounds = super.getBounds(variables);

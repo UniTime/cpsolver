@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Set;
 
 import net.sf.cpsolver.coursett.Constants;
-import net.sf.cpsolver.coursett.criteria.BackToBackInstructorPreferences;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimeLocation;
@@ -72,7 +71,7 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
     private Long iResourceId;
     private String iName;
     private String iPuid;
-    private List<Placement> iUnavailabilities = null;
+    private List<Placement>[] iAvailable = null;
     private boolean iIgnoreDistances = false;
     private Long iType = null;
 
@@ -115,19 +114,43 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
         }
         return null;
     }
-    
+
+    @SuppressWarnings("unchecked")
     public void setNotAvailable(Placement placement) {
-        if (iUnavailabilities == null)
-            iUnavailabilities = new ArrayList<Placement>();
-        iUnavailabilities.add(placement);
+        if (iAvailable == null) {
+            iAvailable = new List[Constants.SLOTS_PER_DAY * Constants.DAY_CODES.length];
+            for (int i = 0; i < iResource.length; i++)
+                iAvailable[i] = null;
+        }
+        for (Enumeration<Integer> e = placement.getTimeLocation().getSlots(); e.hasMoreElements();) {
+            int slot = e.nextElement();
+            if (iAvailable[slot] == null)
+                iAvailable[slot] = new ArrayList<Placement>(1);
+            iAvailable[slot].add(placement);
+        }
         for (Lecture lecture: variables())
             lecture.clearValueCache();
     }
 
+    public boolean isAvailable(int slot) {
+        if (iAvailable == null)
+            return true;
+        return (iAvailable[slot] == null || iAvailable[slot].isEmpty());
+    }
+
     public boolean isAvailable(Lecture lecture, TimeLocation time) {
-        if (iUnavailabilities == null) return true;
-        for (Placement c: iUnavailabilities) {
-            if (c.getTimeLocation().hasIntersection(time) && !lecture.canShareRoom(c.variable())) return false;
+        if (iAvailable == null)
+            return true;
+        for (Enumeration<Integer> e = time.getSlots(); e.hasMoreElements();) {
+            int slot = e.nextElement().intValue();
+            if (iAvailable[slot] != null) {
+                for (Placement p : iAvailable[slot]) {
+                    if (lecture.canShareRoom(p.variable()))
+                        continue;
+                    if (time.shareWeeks(p.getTimeLocation()))
+                        return false;
+                }
+            }
         }
         return true;
     }
@@ -137,23 +160,42 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
     }
 
     public boolean isAvailable(Lecture lecture, Placement placement) {
-        if (iUnavailabilities == null) return true;
-        TimeLocation t1 = placement.getTimeLocation();
-        for (Placement c: iUnavailabilities) {
-            if (c.getTimeLocation().hasIntersection(placement.getTimeLocation()) && (!lecture.canShareRoom(c.variable()) || !placement.sameRooms(c)))
-                return false;
-            if (!iIgnoreDistances) {
-                TimeLocation t2 = c.getTimeLocation();
-                if (t1.shareDays(t2) && t1.shareWeeks(t2)) {
-                    if (t1.getStartSlot() + t1.getLength() == t2.getStartSlot() || t2.getStartSlot() + t2.getLength() == t1.getStartSlot()) {
-                        if (Placement.getDistanceInMeters(getDistanceMetric(), placement, c) > getDistanceMetric().getInstructorProhibitedLimit())
-                            return false;
-                    } else if (getDistanceMetric().doComputeDistanceConflictsBetweenNonBTBClasses()) {
-                        if (t1.getStartSlot() + t1.getLength() < t2.getStartSlot()) {
-                            if (Placement.getDistanceInMinutes(getDistanceMetric(), placement, c) > t1.getBreakTime() + Constants.SLOT_LENGTH_MIN * (t2.getStartSlot() - t1.getStartSlot() - t1.getLength()))
+        if (iAvailable == null)
+            return true;
+        for (Enumeration<Integer> e = placement.getTimeLocation().getSlots(); e.hasMoreElements();) {
+            int slot = e.nextElement();
+            if (iAvailable[slot] != null) {
+                for (Placement p : iAvailable[slot]) {
+                    if (lecture.canShareRoom(p.variable()) && placement.sameRooms(p))
+                        continue;
+                    if (placement.getTimeLocation().shareWeeks(p.getTimeLocation()))
+                        return false;
+                }
+            }
+        }
+        if (!iIgnoreDistances) {
+            for (Enumeration<Integer> e = placement.getTimeLocation().getStartSlots(); e.hasMoreElements();) {
+                int startSlot = e.nextElement();
+                int prevSlot = startSlot - 1;
+                if (prevSlot >= 0 && (prevSlot / Constants.SLOTS_PER_DAY) == (startSlot / Constants.SLOTS_PER_DAY)) {
+                    if (iAvailable[prevSlot] != null) {
+                        for (Placement p : iAvailable[prevSlot]) {
+                            if (lecture.canShareRoom(p.variable()) && placement.sameRooms(p))
+                                continue;
+                            if (placement.getTimeLocation().shareWeeks(p.getTimeLocation())
+                                    && Placement.getDistanceInMeters(getDistanceMetric(), p, placement) > getDistanceMetric().getInstructorProhibitedLimit())
                                 return false;
-                        } else if (t2.getStartSlot() + t2.getLength() < t1.getStartSlot()) {
-                            if (Placement.getDistanceInMinutes(getDistanceMetric(), placement, c) > t2.getBreakTime() + Constants.SLOT_LENGTH_MIN * (t1.getStartSlot() - t2.getStartSlot() - t2.getLength()))
+                        }
+                    }
+                }
+                int nextSlot = startSlot + placement.getTimeLocation().getLength();
+                if ((nextSlot / Constants.SLOTS_PER_DAY) == (startSlot / Constants.SLOTS_PER_DAY)) {
+                    if (iAvailable[nextSlot] != null) {
+                        for (Placement p : iAvailable[nextSlot]) {
+                            if (lecture.canShareRoom(p.variable()) && placement.sameRooms(p))
+                                continue;
+                            if (placement.getTimeLocation().shareWeeks(p.getTimeLocation())
+                                    && Placement.getDistanceInMeters(getDistanceMetric(), p, placement) > getDistanceMetric().getInstructorProhibitedLimit())
                                 return false;
                         }
                     }
@@ -163,63 +205,28 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
         return true;
     }
 
-    public List<Placement> getUnavailabilities() {
-        return iUnavailabilities;
-    }
-
-    @Deprecated
-    @SuppressWarnings("unchecked")
     public List<Placement>[] getAvailableArray() {
-        if (iUnavailabilities == null) return null;
-        List<Placement>[] available = new List[Constants.SLOTS_PER_DAY * Constants.DAY_CODES.length];
-        for (int i = 0; i < iResource.length; i++)
-            available[i] = null;
-        for (Placement p: iUnavailabilities) {
-            for (Enumeration<Integer> e = p.getTimeLocation().getSlots(); e.hasMoreElements();) {
-                int slot = e.nextElement();
-                if (available[slot] == null)
-                    available[slot] = new ArrayList<Placement>(1);
-                available[slot].add(p);
-            }
-        }
-        return available;
+        return iAvailable;
     }
 
     /** Back-to-back preference of two placements (3 means prohibited) */
     public int getDistancePreference(Placement p1, Placement p2) {
-        TimeLocation t1 = p1.getTimeLocation();
-        TimeLocation t2 = p2.getTimeLocation();
-        if (t1 == null || t2 == null || !t1.shareDays(t2) || !t1.shareWeeks(t2))
+        if (!p1.getTimeLocation().shareDays(p2.getTimeLocation()))
+            return 0;
+        if (!p1.getTimeLocation().shareWeeks(p2.getTimeLocation()))
+            return 0;
+        int s1 = p1.getTimeLocation().getStartSlot() % Constants.SLOTS_PER_DAY;
+        int s2 = p2.getTimeLocation().getStartSlot() % Constants.SLOTS_PER_DAY;
+        if (s1 + p1.getTimeLocation().getLength() != s2 && s2 + p2.getTimeLocation().getLength() != s1)
+            return 0;
+        double distance = Placement.getDistanceInMeters(getDistanceMetric(), p1, p2);
+        if (distance <= getDistanceMetric().getInstructorNoPreferenceLimit())
             return Constants.sPreferenceLevelNeutral;
-        if (t1.getStartSlot() + t1.getLength() == t2.getStartSlot() || t2.getStartSlot() + t2.getLength() == t1.getStartSlot()) {
-            double distance = Placement.getDistanceInMeters(getDistanceMetric(), p1, p2);
-            if (distance <= getDistanceMetric().getInstructorNoPreferenceLimit())
-                return Constants.sPreferenceLevelNeutral;
-            if (distance <= getDistanceMetric().getInstructorDiscouragedLimit())
-                return Constants.sPreferenceLevelDiscouraged;
-            if (iIgnoreDistances || distance <= getDistanceMetric().getInstructorProhibitedLimit())
-                return Constants.sPreferenceLevelStronglyDiscouraged;
-            return Constants.sPreferenceLevelProhibited;
-        } else if (getDistanceMetric().doComputeDistanceConflictsBetweenNonBTBClasses()) {
-            if (t1.getStartSlot() + t1.getLength() < t2.getStartSlot()) {
-                int distanceInMinutes = Placement.getDistanceInMinutes(getDistanceMetric(), p1, p2);
-                if (distanceInMinutes > t1.getBreakTime() + Constants.SLOT_LENGTH_MIN * (t2.getStartSlot() - t1.getStartSlot() - t1.getLength())) // too far apart
-                    return (iIgnoreDistances ? Constants.sPreferenceLevelStronglyDiscouraged : Constants.sPreferenceLevelProhibited);
-                if (distanceInMinutes >= getDistanceMetric().getInstructorLongTravelInMinutes()) // long travel
-                    return Constants.sPreferenceLevelStronglyDiscouraged;
-                if (distanceInMinutes > Constants.SLOT_LENGTH_MIN * (t2.getStartSlot() - t1.getStartSlot() - t1.getLength())) // too far if no break time
-                    return Constants.sPreferenceLevelDiscouraged;
-            } else if (t2.getStartSlot() + t2.getLength() < t1.getStartSlot()) {
-                int distanceInMinutes = Placement.getDistanceInMinutes(getDistanceMetric(), p1, p2);
-                if (distanceInMinutes > t2.getBreakTime() + Constants.SLOT_LENGTH_MIN * (t1.getStartSlot() - t2.getStartSlot() - t2.getLength())) // too far apart
-                    return (iIgnoreDistances ? Constants.sPreferenceLevelStronglyDiscouraged : Constants.sPreferenceLevelProhibited);
-                if (distanceInMinutes >= getDistanceMetric().getInstructorLongTravelInMinutes()) // long travel
-                    return Constants.sPreferenceLevelStronglyDiscouraged;
-                if (distanceInMinutes > Constants.SLOT_LENGTH_MIN * (t1.getStartSlot() - t2.getStartSlot() - t2.getLength())) // too far if no break time
-                    return Constants.sPreferenceLevelDiscouraged;
-            }
-        } 
-        return Constants.sPreferenceLevelNeutral; 
+        if (distance <= getDistanceMetric().getInstructorDiscouragedLimit())
+            return Constants.sPreferenceLevelDiscouraged;
+        if (iIgnoreDistances || distance <= getDistanceMetric().getInstructorProhibitedLimit())
+            return Constants.sPreferenceLevelStronglyDiscouraged;
+        return Constants.sPreferenceLevelProhibited;
     }
 
     /** Resource id */
@@ -251,38 +258,29 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
         if (!iIgnoreDistances) {
             for (Enumeration<Integer> e = placement.getTimeLocation().getStartSlots(); e.hasMoreElements();) {
                 int startSlot = e.nextElement();
-
                 int prevSlot = startSlot - 1;
                 if (prevSlot >= 0 && (prevSlot / Constants.SLOTS_PER_DAY) == (startSlot / Constants.SLOTS_PER_DAY)) {
-                    for (Placement c : getPlacements(prevSlot, placement)) {
-                        if (lecture.equals(c.variable())) continue;
-                        if (c.canShareRooms(placement) && c.sameRooms(placement)) continue;
-                        if (Placement.getDistanceInMeters(getDistanceMetric(), placement, c) > getDistanceMetric().getInstructorProhibitedLimit())
+                    List<Placement> conf = getPlacements(prevSlot, placement);
+                    for (Placement c : conf) {
+                        if (lecture.equals(c.variable()))
+                            continue;
+                        if (Placement.getDistanceInMeters(getDistanceMetric(), placement, c) > getDistanceMetric().getInstructorProhibitedLimit()) {
+                            if (c.canShareRooms(placement) && c.sameRooms(placement))
+                                continue;
                             conflicts.add(c);
+                        }
                     }
                 }
                 int nextSlot = startSlot + placement.getTimeLocation().getLength();
                 if ((nextSlot / Constants.SLOTS_PER_DAY) == (startSlot / Constants.SLOTS_PER_DAY)) {
-                    for (Placement c : getPlacements(nextSlot, placement)) {
-                        if (lecture.equals(c.variable())) continue;
-                        if (c.canShareRooms(placement) && c.sameRooms(placement)) continue;
-                        if (Placement.getDistanceInMeters(getDistanceMetric(), placement, c) > getDistanceMetric().getInstructorProhibitedLimit())
+                    List<Placement> conf = getPlacements(nextSlot, placement);
+                    for (Placement c : conf) {
+                        if (lecture.equals(c.variable()))
+                            continue;
+                        if (Placement.getDistanceInMeters(getDistanceMetric(), placement, c) > getDistanceMetric().getInstructorProhibitedLimit()) {
+                            if (c.canShareRooms(placement) && c.sameRooms(placement))
+                                continue;
                             conflicts.add(c);
-                    }
-                }
-                
-                if (getDistanceMetric().doComputeDistanceConflictsBetweenNonBTBClasses()) {
-                    TimeLocation t1 = placement.getTimeLocation();
-                    for (Lecture other: assignedVariables()) {
-                        if (other.getAssignment() == null || other.equals(placement.variable())) continue;
-                        TimeLocation t2 = other.getAssignment().getTimeLocation();
-                        if (t1 == null || t2 == null || !t1.shareDays(t2) || !t1.shareWeeks(t2)) continue;
-                        if (t1.getStartSlot() + t1.getLength() < t2.getStartSlot()) {
-                            if (Placement.getDistanceInMinutes(getDistanceMetric(), placement, other.getAssignment()) > t1.getBreakTime() + Constants.SLOT_LENGTH_MIN * (t2.getStartSlot() - t1.getStartSlot() - t1.getLength()))
-                                conflicts.add(other.getAssignment());
-                        } else if (t2.getStartSlot() + t2.getLength() < t1.getStartSlot()) {
-                            if (Placement.getDistanceInMinutes(getDistanceMetric(), placement, other.getAssignment()) >  t2.getBreakTime() + Constants.SLOT_LENGTH_MIN * (t1.getStartSlot() - t2.getStartSlot() - t2.getLength()))
-                                conflicts.add(other.getAssignment());
                         }
                     }
                 }
@@ -307,38 +305,29 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
         if (!iIgnoreDistances) {
             for (Enumeration<Integer> e = placement.getTimeLocation().getStartSlots(); e.hasMoreElements();) {
                 int startSlot = e.nextElement();
-                
                 int prevSlot = startSlot - 1;
                 if (prevSlot >= 0 && (prevSlot / Constants.SLOTS_PER_DAY) == (startSlot / Constants.SLOTS_PER_DAY)) {
-                    for (Placement c : getPlacements(prevSlot, placement)) {
-                        if (lecture.equals(c.variable())) continue;
-                        if (c.canShareRooms(placement) && c.sameRooms(placement)) continue;
-                        if (Placement.getDistanceInMeters(getDistanceMetric(), placement, c) > getDistanceMetric().getInstructorProhibitedLimit())
+                    List<Placement> conf = getPlacements(prevSlot, placement);
+                    for (Placement c : conf) {
+                        if (lecture.equals(c.variable()))
+                            continue;
+                        if (Placement.getDistanceInMeters(getDistanceMetric(), placement, c) > getDistanceMetric().getInstructorProhibitedLimit()) {
+                            if (c.canShareRooms(placement) && c.sameRooms(placement))
+                                continue;
                             return true;
+                        }
                     }
                 }
                 int nextSlot = startSlot + placement.getTimeLocation().getLength();
                 if ((nextSlot / Constants.SLOTS_PER_DAY) == (startSlot / Constants.SLOTS_PER_DAY)) {
-                    for (Placement c : getPlacements(nextSlot, placement)) {
-                        if (lecture.equals(c.variable())) continue;
-                        if (c.canShareRooms(placement) && c.sameRooms(placement)) continue;
-                        if (Placement.getDistanceInMeters(getDistanceMetric(), placement, c) > getDistanceMetric().getInstructorProhibitedLimit())
+                    List<Placement> conf = getPlacements(nextSlot, placement);
+                    for (Placement c : conf) {
+                        if (lecture.equals(c.variable()))
+                            continue;
+                        if (Placement.getDistanceInMeters(getDistanceMetric(), placement, c) > getDistanceMetric().getInstructorProhibitedLimit()) {
+                            if (c.canShareRooms(placement) && c.sameRooms(placement))
+                                continue;
                             return true;
-                    }
-                }
-                
-                if (getDistanceMetric().doComputeDistanceConflictsBetweenNonBTBClasses()) {
-                    TimeLocation t1 = placement.getTimeLocation();
-                    for (Lecture other: assignedVariables()) {
-                        if (other.getAssignment() == null || other.equals(placement.variable())) continue;
-                        TimeLocation t2 = other.getAssignment().getTimeLocation();
-                        if (t1 == null || t2 == null || !t1.shareDays(t2) || !t1.shareWeeks(t2)) continue;
-                        if (t1.getStartSlot() + t1.getLength() < t2.getStartSlot()) {
-                            if (Placement.getDistanceInMinutes(getDistanceMetric(), placement, other.getAssignment()) > t1.getBreakTime() + Constants.SLOT_LENGTH_MIN * (t2.getStartSlot() - t1.getStartSlot() - t1.getLength()))
-                                return true;
-                        } else if (t2.getStartSlot() + t2.getLength() < t1.getStartSlot()) {
-                            if (Placement.getDistanceInMinutes(getDistanceMetric(), placement, other.getAssignment()) >  t2.getBreakTime() + Constants.SLOT_LENGTH_MIN * (t1.getStartSlot() - t2.getStartSlot() - t2.getLength()))
-                                return true;
                         }
                     }
                 }
@@ -359,27 +348,21 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
     @Override
     public void assigned(long iteration, Placement placement) {
         super.assigned(iteration, placement);
-        // iPreference += getPreference(placement);
+        iPreference += getPreference(placement);
         for (Enumeration<Integer> e = placement.getTimeLocation().getSlots(); e.hasMoreElements();) {
             int slot = e.nextElement();
             iResource[slot].add(placement);
         }
-        getModel().getCriterion(BackToBackInstructorPreferences.class).inc(-iPreference);
-        iPreference = countPreference();
-        getModel().getCriterion(BackToBackInstructorPreferences.class).inc(iPreference);
     }
 
     @Override
     public void unassigned(long iteration, Placement placement) {
         super.unassigned(iteration, placement);
-        // iPreference -= getPreference(placement);
+        iPreference -= getPreference(placement);
         for (Enumeration<Integer> e = placement.getTimeLocation().getSlots(); e.hasMoreElements();) {
             int slot = e.nextElement();
             iResource[slot].remove(placement);
         }
-        getModel().getCriterion(BackToBackInstructorPreferences.class).inc(-iPreference);
-        iPreference = countPreference();
-        getModel().getCriterion(BackToBackInstructorPreferences.class).inc(iPreference);
     }
 
     /**
@@ -444,15 +427,17 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
         Lecture lecture = value.variable();
         Placement placement = value;
         int pref = 0;
-        HashSet<Placement> checked = new HashSet<Placement>();
-        
+        HashSet<Placement> used = new HashSet<Placement>();
         for (Enumeration<Integer> e = placement.getTimeLocation().getStartSlots(); e.hasMoreElements();) {
             int startSlot = e.nextElement();
-            
             int prevSlot = startSlot - 1;
             if (prevSlot >= 0 && (prevSlot / Constants.SLOTS_PER_DAY) == (startSlot / Constants.SLOTS_PER_DAY)) {
-                for (Placement c : getPlacements(prevSlot, placement)) {
-                    if (lecture.equals(c.variable()) || !checked.add(c)) continue;
+                List<Placement> conf = getPlacements(prevSlot, placement);
+                for (Placement c : conf) {
+                    if (lecture.equals(c.variable()))
+                        continue;
+                    if (!used.add(c))
+                        continue;
                     double dist = Placement.getDistanceInMeters(getDistanceMetric(), placement, c);
                     if (dist > getDistanceMetric().getInstructorNoPreferenceLimit() && dist <= getDistanceMetric().getInstructorDiscouragedLimit())
                         pref += Constants.sPreferenceLevelDiscouraged;
@@ -465,8 +450,12 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
             }
             int nextSlot = startSlot + placement.getTimeLocation().getLength();
             if ((nextSlot / Constants.SLOTS_PER_DAY) == (startSlot / Constants.SLOTS_PER_DAY)) {
-                for (Placement c : getPlacements(nextSlot, placement)) {
-                    if (lecture.equals(c.variable()) || !checked.add(c)) continue;
+                List<Placement> conf = getPlacements(nextSlot, placement);
+                for (Placement c : conf) {
+                    if (lecture.equals(c.variable()))
+                        continue;
+                    if (!used.add(c))
+                        continue;
                     double dist = Placement.getDistanceInMeters(getDistanceMetric(), placement, c);
                     if (dist > getDistanceMetric().getInstructorNoPreferenceLimit() && dist <= getDistanceMetric().getInstructorDiscouragedLimit())
                         pref += Constants.sPreferenceLevelDiscouraged;
@@ -477,55 +466,6 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
                         pref = Constants.sPreferenceLevelProhibited;
                 }
             }
-            
-            if (getDistanceMetric().doComputeDistanceConflictsBetweenNonBTBClasses()) {
-                TimeLocation t1 = placement.getTimeLocation();
-                Placement before = null, after = null;
-                for (Lecture other: assignedVariables()) {
-                    if (other.getAssignment() == null || other.equals(placement.variable())) continue;
-                    TimeLocation t2 = other.getAssignment().getTimeLocation();
-                    if (t1 == null || t2 == null || !t1.shareDays(t2) || !t1.shareWeeks(t2)) continue;
-                    if (t1.getStartSlot() + t1.getLength() < t2.getStartSlot()) {
-                        int distanceInMinutes = Placement.getDistanceInMinutes(getDistanceMetric(), placement, other.getAssignment());
-                        if (distanceInMinutes > t1.getBreakTime() + Constants.SLOT_LENGTH_MIN * (t2.getStartSlot() - t1.getStartSlot() - t1.getLength()))
-                            pref += (iIgnoreDistances ? Constants.sPreferenceLevelStronglyDiscouraged : Constants.sPreferenceLevelProhibited);
-                        else if (distanceInMinutes > Constants.SLOT_LENGTH_MIN * (t2.getStartSlot() - t1.getStartSlot() - t1.getLength()))
-                            pref += Constants.sPreferenceLevelDiscouraged;
-                    } else if (t2.getStartSlot() + t2.getLength() < t1.getStartSlot()) {
-                        int distanceInMinutes = Placement.getDistanceInMinutes(getDistanceMetric(), placement, other.getAssignment());
-                        if (distanceInMinutes >  t2.getBreakTime() + Constants.SLOT_LENGTH_MIN * (t1.getStartSlot() - t2.getStartSlot() - t2.getLength()))
-                            pref += (iIgnoreDistances ? Constants.sPreferenceLevelStronglyDiscouraged : Constants.sPreferenceLevelProhibited);
-                        else if (distanceInMinutes > Constants.SLOT_LENGTH_MIN * (t1.getStartSlot() - t2.getStartSlot() - t2.getLength()))
-                            pref += Constants.sPreferenceLevelDiscouraged;
-                    }
-                    if (t1.getStartSlot() + t1.getLength() <= t2.getStartSlot()) {
-                        if (after == null || t2.getStartSlot() < after.getTimeLocation().getStartSlot())
-                            after = other.getAssignment();
-                    } else if (t2.getStartSlot() + t2.getLength() <= t1.getStartSlot()) {
-                        if (before == null || before.getTimeLocation().getStartSlot() < t2.getStartSlot())
-                            before = other.getAssignment();
-                    }
-                }
-                if (iUnavailabilities != null) {
-                    for (Placement c: iUnavailabilities) {
-                        TimeLocation t2 = c.getTimeLocation();
-                        if (t1 == null || t2 == null || !t1.shareDays(t2) || !t1.shareWeeks(t2)) continue;
-                        if (t1.getStartSlot() + t1.getLength() <= t2.getStartSlot()) {
-                            if (after == null || t2.getStartSlot() < after.getTimeLocation().getStartSlot())
-                                after = c;
-                        } else if (t2.getStartSlot() + t2.getLength() <= t1.getStartSlot()) {
-                            if (before == null || before.getTimeLocation().getStartSlot() < t2.getStartSlot())
-                                before = c;
-                        }
-                    }
-                }
-                if (before != null && Placement.getDistanceInMinutes(getDistanceMetric(), before, placement) > getDistanceMetric().getInstructorLongTravelInMinutes())
-                    pref += Constants.sPreferenceLevelStronglyDiscouraged;
-                if (after != null && Placement.getDistanceInMinutes(getDistanceMetric(), after, placement) > getDistanceMetric().getInstructorLongTravelInMinutes())
-                    pref += Constants.sPreferenceLevelStronglyDiscouraged;
-                if (before != null && after != null && Placement.getDistanceInMinutes(getDistanceMetric(), before, after) > getDistanceMetric().getInstructorLongTravelInMinutes())
-                    pref -= Constants.sPreferenceLevelStronglyDiscouraged;
-            }
         }
         return pref;
     }
@@ -534,15 +474,17 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
         Lecture lecture = value.variable();
         Placement placement = value;
         int pref = 0;
-        HashSet<Placement> checked = new HashSet<Placement>();
-        
+        HashSet<Placement> used = new HashSet<Placement>();
         for (Enumeration<Integer> e = placement.getTimeLocation().getStartSlots(); e.hasMoreElements();) {
             int startSlot = e.nextElement();
-            
             int prevSlot = startSlot - 1;
             if (prevSlot >= 0 && (prevSlot / Constants.SLOTS_PER_DAY) == (startSlot / Constants.SLOTS_PER_DAY)) {
-                for (Placement c : getPlacements(prevSlot, placement)) {
-                    if (lecture.equals(c.variable()) || !checked.add(c)) continue;
+                List<Placement> conf = getPlacements(prevSlot, placement);
+                for (Placement c : conf) {
+                    if (lecture.equals(c.variable()))
+                        continue;
+                    if (!used.add(c))
+                        continue;
                     double dist = Placement.getDistanceInMeters(getDistanceMetric(), placement, c);
                     if (dist > getDistanceMetric().getInstructorNoPreferenceLimit() && dist <= getDistanceMetric().getInstructorDiscouragedLimit())
                         pref = Math.max(pref, Constants.sPreferenceLevelDiscouraged);
@@ -555,8 +497,12 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
             }
             int nextSlot = startSlot + placement.getTimeLocation().getLength();
             if ((nextSlot / Constants.SLOTS_PER_DAY) == (startSlot / Constants.SLOTS_PER_DAY)) {
-                for (Placement c : getPlacements(nextSlot, placement)) {
-                    if (lecture.equals(c.variable()) || !checked.add(c)) continue;
+                List<Placement> conf = getPlacements(nextSlot, placement);
+                for (Placement c : conf) {
+                    if (lecture.equals(c.variable()))
+                        continue;
+                    if (!used.add(c))
+                        continue;
                     double dist = Placement.getDistanceInMeters(getDistanceMetric(), placement, c);
                     if (dist > getDistanceMetric().getInstructorNoPreferenceLimit() && dist <= getDistanceMetric().getInstructorDiscouragedLimit())
                         pref = Math.max(pref, Constants.sPreferenceLevelDiscouraged);
@@ -564,58 +510,8 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
                             && (dist <= getDistanceMetric().getInstructorProhibitedLimit() || iIgnoreDistances))
                         pref = Math.max(pref, Constants.sPreferenceLevelStronglyDiscouraged);
                     if (!iIgnoreDistances && dist > getDistanceMetric().getInstructorProhibitedLimit())
-                        pref = Constants.sPreferenceLevelProhibited;
+                        pref = Math.max(pref, Constants.sPreferenceLevelProhibited);
                 }
-            }
-            
-            if (getDistanceMetric().doComputeDistanceConflictsBetweenNonBTBClasses()) {
-                TimeLocation t1 = placement.getTimeLocation();
-                Placement before = null, after = null;
-                for (Lecture other: assignedVariables()) {
-                    if (other.getAssignment() == null || other.equals(placement.variable())) continue;
-                    TimeLocation t2 = other.getAssignment().getTimeLocation();
-                    if (t1 == null || t2 == null || !t1.shareDays(t2) || !t1.shareWeeks(t2)) continue;
-                    if (t1.getStartSlot() + t1.getLength() < t2.getStartSlot()) {
-                        int distanceInMinutes = Placement.getDistanceInMinutes(getDistanceMetric(), placement, other.getAssignment());
-                        if (distanceInMinutes > t1.getBreakTime() + Constants.SLOT_LENGTH_MIN * (t2.getStartSlot() - t1.getStartSlot() - t1.getLength()))
-                            pref = Math.max(pref, (iIgnoreDistances ? Constants.sPreferenceLevelStronglyDiscouraged : Constants.sPreferenceLevelProhibited));
-                        else if (distanceInMinutes > Constants.SLOT_LENGTH_MIN * (t2.getStartSlot() - t1.getStartSlot() - t1.getLength()))
-                            pref = Math.max(pref, Constants.sPreferenceLevelDiscouraged);
-                    } else if (t2.getStartSlot() + t2.getLength() < t1.getStartSlot()) {
-                        int distanceInMinutes = Placement.getDistanceInMinutes(getDistanceMetric(), placement, other.getAssignment());
-                        if (distanceInMinutes >  t2.getBreakTime() + Constants.SLOT_LENGTH_MIN * (t1.getStartSlot() - t2.getStartSlot() - t2.getLength()))
-                            pref = Math.max(pref, (iIgnoreDistances ? Constants.sPreferenceLevelStronglyDiscouraged : Constants.sPreferenceLevelProhibited));
-                        else if (distanceInMinutes > Constants.SLOT_LENGTH_MIN * (t1.getStartSlot() - t2.getStartSlot() - t2.getLength()))
-                            pref = Math.max(pref, Constants.sPreferenceLevelDiscouraged);
-                    }
-                    if (t1.getStartSlot() + t1.getLength() <= t2.getStartSlot()) {
-                        if (after == null || t2.getStartSlot() < after.getTimeLocation().getStartSlot())
-                            after = other.getAssignment();
-                    } else if (t2.getStartSlot() + t2.getLength() <= t1.getStartSlot()) {
-                        if (before == null || before.getTimeLocation().getStartSlot() < t2.getStartSlot())
-                            before = other.getAssignment();
-                    }
-                }
-                if (iUnavailabilities != null) {
-                    for (Placement c: iUnavailabilities) {
-                        TimeLocation t2 = c.getTimeLocation();
-                        if (t1 == null || t2 == null || !t1.shareDays(t2) || !t1.shareWeeks(t2)) continue;
-                        if (t1.getStartSlot() + t1.getLength() <= t2.getStartSlot()) {
-                            if (after == null || t2.getStartSlot() < after.getTimeLocation().getStartSlot())
-                                after = c;
-                        } else if (t2.getStartSlot() + t2.getLength() <= t1.getStartSlot()) {
-                            if (before == null || before.getTimeLocation().getStartSlot() < t2.getStartSlot())
-                                before = c;
-                        }
-                    }
-                }
-                int tooLongTravel = 0;
-                if (before != null && Placement.getDistanceInMinutes(getDistanceMetric(), before, placement) > getDistanceMetric().getInstructorLongTravelInMinutes())
-                    tooLongTravel++;
-                if (after != null && Placement.getDistanceInMinutes(getDistanceMetric(), after, placement) > getDistanceMetric().getInstructorLongTravelInMinutes())
-                    tooLongTravel++;
-                if (tooLongTravel > 0)
-                    pref += Math.max(pref, Constants.sPreferenceLevelStronglyDiscouraged);
             }
         }
         return pref;
@@ -632,14 +528,16 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
 
     public int countPreference() {
         int pref = 0;
-        HashSet<Placement> checked = new HashSet<Placement>();
-        
+        HashSet<Placement> used = new HashSet<Placement>();
         for (int slot = 1; slot < iResource.length; slot++) {
-            if ((slot % Constants.SLOTS_PER_DAY) == 0) continue;
+            if ((slot % Constants.SLOTS_PER_DAY) == 0)
+                continue;
             for (Placement placement : iResource[slot]) {
-                for (Placement c : getPlacements(slot - 1, placement)) {
-                    if (placement.variable().equals(c.variable()) || !checked.add(c)) continue;
-                    double dist = Placement.getDistanceInMeters(getDistanceMetric(), c, placement);
+                List<Placement> prevPlacements = getPlacements(slot - 1, placement);
+                for (Placement prevPlacement : prevPlacements) {
+                    if (!used.add(prevPlacement))
+                        continue;
+                    double dist = Placement.getDistanceInMeters(getDistanceMetric(), prevPlacement, placement);
                     if (dist > getDistanceMetric().getInstructorNoPreferenceLimit() && dist <= getDistanceMetric().getInstructorDiscouragedLimit())
                         pref += Constants.sPreferenceLevelDiscouraged;
                     if (dist > getDistanceMetric().getInstructorDiscouragedLimit())
@@ -647,43 +545,6 @@ public class InstructorConstraint extends Constraint<Lecture, Placement> {
                 }
             }
         }
-        
-        if (getDistanceMetric().doComputeDistanceConflictsBetweenNonBTBClasses()) {
-            for (Lecture p1: assignedVariables()) {
-                TimeLocation t1 = (p1.getAssignment() == null ? null : p1.getAssignment().getTimeLocation());
-                if (t1 == null) continue;
-                Placement before = null;
-                for (Lecture p2: assignedVariables()) {
-                    if (p2.getAssignment() == null || p2.equals(p1)) continue;
-                    TimeLocation t2 = p2.getAssignment().getTimeLocation();
-                    if (t2 == null || !t1.shareDays(t2) || !t1.shareWeeks(t2)) continue;
-                    if (t2.getStartSlot() + t2.getLength() < t1.getStartSlot()) {
-                        int distanceInMinutes = Placement.getDistanceInMinutes(getDistanceMetric(), p1.getAssignment(), p2.getAssignment());
-                        if (distanceInMinutes >  t2.getBreakTime() + Constants.SLOT_LENGTH_MIN * (t1.getStartSlot() - t2.getStartSlot() - t2.getLength()))
-                            pref += (iIgnoreDistances ? Constants.sPreferenceLevelStronglyDiscouraged : Constants.sPreferenceLevelProhibited);
-                        else if (distanceInMinutes > Constants.SLOT_LENGTH_MIN * (t1.getStartSlot() - t2.getStartSlot() - t2.getLength()))
-                            pref += Constants.sPreferenceLevelDiscouraged;
-                    }
-                    if (t2.getStartSlot() + t2.getLength() <= t1.getStartSlot()) {
-                        if (before == null || before.getTimeLocation().getStartSlot() < t2.getStartSlot())
-                            before = p2.getAssignment();
-                    }
-                }
-                if (iUnavailabilities != null) {
-                    for (Placement c: iUnavailabilities) {
-                        TimeLocation t2 = c.getTimeLocation();
-                        if (t2 == null || !t1.shareDays(t2) || !t1.shareWeeks(t2)) continue;
-                        if (t2.getStartSlot() + t2.getLength() <= t1.getStartSlot()) {
-                            if (before == null || before.getTimeLocation().getStartSlot() < t2.getStartSlot())
-                                before = c;
-                        }
-                    }
-                }
-                if (before != null && Placement.getDistanceInMinutes(getDistanceMetric(), before, p1.getAssignment()) > getDistanceMetric().getInstructorLongTravelInMinutes())
-                    pref += Constants.sPreferenceLevelStronglyDiscouraged;
-            }
-        }
-
         return pref;
     }
 

@@ -646,7 +646,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
 
     /** Model initialization */
     public boolean init(Solver<V, T> solver) {
-        for (ModelListener<V, T> listener : new ArrayList<ModelListener<V, T>>(iModelListeners)) {
+        for (ModelListener<V, T> listener : iModelListeners) {
             if (!listener.init(solver))
                 return false;
         }

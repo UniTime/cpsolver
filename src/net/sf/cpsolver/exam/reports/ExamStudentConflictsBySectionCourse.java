@@ -6,8 +6,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.TreeSet;
 
-import net.sf.cpsolver.exam.criteria.StudentBackToBackConflicts;
-import net.sf.cpsolver.exam.criteria.StudentDistanceBackToBackConflicts;
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamOwner;
@@ -90,8 +88,6 @@ public class ExamStudentConflictsBySectionCourse {
                 new CSVField("Time"), new CSVField("Room"), new CSVField("Student"), new CSVField("Type"),
                 new CSVField("Section/Course"), new CSVField("Period"), new CSVField("Time"), new CSVField("Room"),
                 new CSVField("Distance") });
-        boolean isDayBreakBackToBack = ((StudentBackToBackConflicts)iModel.getCriterion(StudentBackToBackConflicts.class)).isDayBreakBackToBack();
-        double backToBackDistance = ((StudentDistanceBackToBackConflicts)iModel.getCriterion(StudentDistanceBackToBackConflicts.class)).getBackToBackDistance();
         TreeSet<ExamOwner> courseSections = new TreeSet<ExamOwner>();
         for (Exam exam : iModel.variables()) {
             courseSections.addAll(getOwners(exam));
@@ -158,10 +154,10 @@ public class ExamStudentConflictsBySectionCourse {
                     boolean typePrinted = false;
                     List<ExamPeriod> periods = new ArrayList<ExamPeriod>(2);
                     if (period.prev() != null && !student.getExams(period.prev()).isEmpty()
-                            && (!isDayBreakBackToBack || period.prev().getDay() == period.getDay()))
+                            && (!iModel.isDayBreakBackToBack() || period.prev().getDay() == period.getDay()))
                         periods.add(period.prev());
                     if (period.next() != null && !student.getExams(period.next()).isEmpty()
-                            && (!isDayBreakBackToBack || period.next().getDay() == period.getDay()))
+                            && (!iModel.isDayBreakBackToBack() || period.next().getDay() == period.getDay()))
                         periods.add(period.next());
                     for (ExamPeriod otherPeriod : periods) {
                         for (Exam otherExam : student.getExams(otherPeriod)) {
@@ -173,7 +169,7 @@ public class ExamStudentConflictsBySectionCourse {
                                 roomsOtherExam += room.getName();
                             }
                             String distStr = "";
-                            if (backToBackDistance >= 0) {
+                            if (iModel.getBackToBackDistance() >= 0) {
                                 double dist = placement.getDistanceInMeters(otherPlacement);
                                 if (dist > 0)
                                     distStr = String.valueOf(dist);

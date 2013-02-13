@@ -17,7 +17,6 @@ import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.GlobalConstraint;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.util.DataProperties;
-import net.sf.cpsolver.ifs.util.DistanceMetric;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
@@ -246,56 +245,56 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
          * When prohibited or (strongly) discouraged: classes can not have 1 hour in between. They may not overlap in time
          * but must be taught on the same days.
          */
-        NHB_1("NHB(1)", "1 Hour Between", 10, 12, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        NHB_1("NHB(1)", "1 Hour Between", 12, BTB_TIME.check(), Flag.BACK_TO_BACK),
         /**
          * 2 Hours Between: Given classes must have exactly 2 hours in between the end of one and the beginning of another.
          * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
          * When prohibited or (strongly) discouraged: classes can not have 2 hours in between. They may not overlap in time
          * but must be taught on the same days.
          */
-        NHB_2("NHB(2)", "2 Hours Between", 20, 24, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        NHB_2("NHB(2)", "2 Hours Between", 24, BTB_TIME.check(), Flag.BACK_TO_BACK),
         /**
          * 3 Hours Between: Given classes must have exactly 3 hours in between the end of one and the beginning of another.
          * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
          * When prohibited or (strongly) discouraged: classes can not have 3 hours in between. They may not overlap in time
          * but must be taught on the same days.
          */
-        NHB_3("NHB(3)", "3 Hours Between", 30, 36, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        NHB_3("NHB(3)", "3 Hours Between", 36, BTB_TIME.check(), Flag.BACK_TO_BACK),
         /**
          * 4 Hours Between: Given classes must have exactly 4 hours in between the end of one and the beginning of another.
          * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
          * When prohibited or (strongly) discouraged: classes can not have 4 hours in between. They may not overlap in time
          * but must be taught on the same days.
          */
-        NHB_4("NHB(4)", "4 Hours Between", 40, 48, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        NHB_4("NHB(4)", "4 Hours Between", 48, BTB_TIME.check(), Flag.BACK_TO_BACK),
         /**
          * 5 Hours Between: Given classes must have exactly 5 hours in between the end of one and the beginning of another.
          * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
          * When prohibited or (strongly) discouraged: classes can not have 5 hours in between. They may not overlap in time
          * but must be taught on the same days.
          */
-        NHB_5("NHB(5)", "5 Hours Between", 50, 60, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        NHB_5("NHB(5)", "5 Hours Between", 60, BTB_TIME.check(), Flag.BACK_TO_BACK),
         /**
          * 6 Hours Between: Given classes must have exactly 6 hours in between the end of one and the beginning of another.
          * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
          * When prohibited or (strongly) discouraged: classes can not have 6 hours in between. They may not overlap in time
          * but must be taught on the same days.
          */
-        NHB_6("NHB(6)", "6 Hours Between", 60, 72, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        NHB_6("NHB(6)", "6 Hours Between", 72, BTB_TIME.check(), Flag.BACK_TO_BACK),
         /**
          * 7 Hours Between: Given classes must have exactly 7 hours in between the end of one and the beginning of another.
          * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
          * When prohibited or (strongly) discouraged: classes can not have 7 hours in between. They may not overlap in time
          * but must be taught on the same days.
          */
-        NHB_7("NHB(7)", "7 Hours Between", 70, 84, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        NHB_7("NHB(7)", "7 Hours Between", 84, BTB_TIME.check(), Flag.BACK_TO_BACK),
         /**
          * 8 Hours Between: Given classes must have exactly 8 hours in between the end of one and the beginning of another.
          * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
          * When prohibited or (strongly) discouraged: classes can not have 8 hours in between. They may not overlap in time
          * but must be taught on the same days.
          */
-        NHB_8("NHB(8)", "8 Hours Between", 80, 96, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        NHB_8("NHB(8)", "8 Hours Between", 96, BTB_TIME.check(), Flag.BACK_TO_BACK),
         /**
          * Same Start Time: Given classes must start during the same half-hour period of a day (independent of the actual
          * day the classes meet). For instance, MW 7:30 is compatible with TTh 7:30 but not with MWF 8:00.<BR>
@@ -339,21 +338,21 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
          * When prohibited or (strongly) discouraged: given classes must have 6 or more hours between. This constraint does
          * not carry over from classes taught at the end of one day to the beginning of the next.
          */
-        NHB_LT_6("NHB_LT(6)", "Less Than 6 Hours Between", 0, 72, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        NHB_LT_6("NHB_LT(6)", "Less Than 6 Hours Between", 0, 66, BTB_TIME.check(), Flag.BACK_TO_BACK),
         /**
          * 1.5 Hour Between: Given classes must have exactly 90 minutes in between the end of one and the beginning of another.
          * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
          * When prohibited or (strongly) discouraged: classes can not have 90 minutes in between. They may not overlap in time
          * but must be taught on the same days.
          */
-        NHB_1_5("NHB(1.5)", "1.5 Hour Between", 15, 18, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        NHB_1_5("NHB(1.5)", "1.5 Hour Between", 18, BTB_TIME.check(), Flag.BACK_TO_BACK),
         /**
          * 4.5 Hours Between: Given classes must have exactly 4.5 hours in between the end of one and the beginning of another.
          * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
          * When prohibited or (strongly) discouraged: classes can not have 4.5 hours in between. They may not overlap in time
          * but must be taught on the same days.
          */
-        NHB_4_5("NHB(4.5)", "4.5 Hours Between", 45, 54, BTB_TIME.check(), Flag.BACK_TO_BACK),
+        NHB_4_5("NHB(4.5)", "4.5 Hours Between", 54, BTB_TIME.check(), Flag.BACK_TO_BACK),
         /**
          * Same Students: Given classes are treated as they are attended by the same students, i.e., they cannot overlap in time
          * and if they are back-to-back the assigned rooms cannot be too far (student limit is used).
@@ -378,17 +377,14 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
             public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
                 TimeLocation t1 = plc1.getTimeLocation(), t2 = plc2.getTimeLocation();
                 if (t1.shareDays(t2) && t1.shareWeeks(t2)) {
-                    if (t1.shareHours(t2)) return false; // overlap
-                    DistanceMetric m = ((TimetableModel)gc.getModel()).getDistanceMetric();
-                    if ((t1.getStartSlot() + t1.getLength() == t2.getStartSlot() || t2.getStartSlot() + t2.getLength() == t1.getStartSlot())) {
-                        if (Placement.getDistanceInMeters(m, plc1, plc2) > m.getInstructorProhibitedLimit())
-                            return false;
-                    } else if (m.doComputeDistanceConflictsBetweenNonBTBClasses()) {
-                        if (t1.getStartSlot() + t1.getLength() < t2.getStartSlot() && 
-                            Placement.getDistanceInMinutes(m, plc1, plc2) > t1.getBreakTime() + Constants.SLOT_LENGTH_MIN * (t2.getStartSlot() - t1.getStartSlot() - t1.getLength()))
-                            return false;
-                        if (t2.getStartSlot() + t2.getLength() < t1.getStartSlot() &&
-                            Placement.getDistanceInMinutes(m, plc1, plc2) > t2.getBreakTime() + Constants.SLOT_LENGTH_MIN * (t1.getStartSlot() - t2.getStartSlot() - t2.getLength()))
+                    if (t1.shareHours(t2))
+                        return false; // overlap
+                    int s1 = t1.getStartSlot() % Constants.SLOTS_PER_DAY;
+                    int s2 = t2.getStartSlot() % Constants.SLOTS_PER_DAY;
+                    if (s1 + t1.getLength() == s2 || s2 + t2.getLength() == s1) { // back-to-back
+                        TimetableModel m = (TimetableModel)gc.getModel();
+                        double distance = Placement.getDistanceInMeters(m.getDistanceMetric(), plc1, plc2);
+                        if (distance > m.getDistanceMetric().getInstructorProhibitedLimit())
                             return false;
                     }
                 }
@@ -665,11 +661,9 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
     @Override
     public void setModel(Model<Lecture, Placement> model) {
         super.setModel(model);
-        if (model != null) {
-            DataProperties config = ((TimetableModel)model).getProperties();
-            iDayOfWeekOffset = config.getPropertyInt("DatePattern.DayOfWeekOffset", 0);
-            iPrecedenceConsiderDatePatterns = config.getPropertyBoolean("Precedence.ConsiderDatePatterns", true);
-        }
+        DataProperties config = ((TimetableModel)model).getProperties();
+        iDayOfWeekOffset = config.getPropertyInt("DatePattern.DayOfWeekOffset", 0);
+        iPrecedenceConsiderDatePatterns = config.getPropertyBoolean("Precedence.ConsiderDatePatterns", true);
     }
 
     @Override
@@ -862,7 +856,6 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                     for (Constraint<Lecture, Placement> other: lecture.hardConstraints()) {
                         if (other.equals(this)) continue;
                         if (other instanceof GroupConstraint && ((GroupConstraint)other).getType() == ConstraintType.MEET_WITH) continue;
-                        if (other instanceof WeakeningConstraint) continue;
                         other.computeConflicts(sameAssignment, conflicts);
                         if (conflicts.contains(value)) return;
                         if (conflicts.contains(sameAssignment)) {
@@ -870,7 +863,6 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                         }
                     }
                     for (GlobalConstraint<Lecture, Placement> other: getModel().globalConstraints()) {
-                        if (other instanceof WeakeningConstraint) continue;
                         other.computeConflicts(sameAssignment, conflicts);
                         if (conflicts.contains(value)) return;
                         if (conflicts.contains(sameAssignment)) {
@@ -940,10 +932,8 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         }
         if (getType().is(Flag.BACK_TO_BACK)) {
             Set<Placement> conflicts = new HashSet<Placement>();
-            if (isSatisfiedSeq(new HashMap<Lecture, Placement>(), true, conflicts))
+            if (!isSatisfiedSeq(new HashMap<Lecture, Placement>(), true, conflicts))
                 nrViolatedPairs += conflicts.size();
-            else
-                nrViolatedPairs = variables().size();
         }
         return (nrViolatedPairs > 0 ? Math.abs(iPreference) * nrViolatedPairs : - Math.abs(iPreference));
     }
@@ -969,10 +959,8 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
             HashMap<Lecture, Placement> assignment = new HashMap<Lecture, Placement>();
             assignment.put(placement.variable(), placement);
             Set<Placement> conflicts = new HashSet<Placement>();
-            if (isSatisfiedSeq(assignment, true, conflicts))
+            if (!isSatisfiedSeq(assignment, true, conflicts))
                 nrViolatedPairs += conflicts.size();
-            else
-                nrViolatedPairs = variables().size();
         }
         return (nrViolatedPairs > 0 ? Math.abs(iPreference) * nrViolatedPairs : - Math.abs(iPreference));
     }

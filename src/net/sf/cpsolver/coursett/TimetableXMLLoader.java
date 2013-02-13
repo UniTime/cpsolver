@@ -224,12 +224,11 @@ public class TimetableXMLLoader extends TimetableLoader {
                 if (notAvailableEl != null)
                     notAvailablePrefChar = notAvailableEl.attributeValue("value", "X").charAt(0);
                 String pattern = sharingEl.element("pattern").getText();
-                int unit = Integer.parseInt(sharingEl.element("pattern").attributeValue("unit", "1"));
                 java.util.List<?> depts = sharingEl.elements("department");
                 Long departmentIds[] = new Long[depts.size()];
                 for (int j = 0; j < departmentIds.length; j++)
                     departmentIds[j] = Long.valueOf(((Element) depts.get(j)).attributeValue("id"));
-                sharingModel = new RoomSharingModel(unit, departmentIds, pattern, freeForAllPrefChar, notAvailablePrefChar);
+                sharingModel = new RoomSharingModel(departmentIds, pattern, freeForAllPrefChar, notAvailablePrefChar);
             }
             boolean ignoreTooFar = false;
             if ("true".equals(roomEl.attributeValue("ignoreTooFar")))
@@ -356,7 +355,7 @@ public class TimetableXMLLoader extends TimetableLoader {
                 defaultDatePattern.setName(sDF.format(getDate(getModel().getYear(), startDay)) + "-" + sDF.format(getDate(getModel().getYear(), endDay)));
             } else {
                 defaultDatePattern.setId(classEl.attributeValue("datePattern") == null ? null : Long.valueOf(classEl.attributeValue("datePattern")));
-                defaultDatePattern.setName(classEl.attributeValue("datePatternName"));
+                defaultDatePattern.setName("datePatternName");
                 defaultDatePattern.setPattern(classEl.attributeValue("dates"));
             }
             Hashtable<Long, DatePattern> datePatterns = new Hashtable<Long, TimetableXMLLoader.DatePattern>();
@@ -626,11 +625,7 @@ public class TimetableXMLLoader extends TimetableLoader {
             getModel().addConstraint(c);
             for (Iterator<?> i2 = grConstraintEl.elementIterator("class"); i2.hasNext();) {
                 String classId = ((Element) i2.next()).attributeValue("id");
-                Lecture other = lectures.get(classId);
-                if (other != null)
-                    c.addVariable(other);
-                else
-                    iProgress.warn("Class " + classId + " does not exists, but it is referred from group constraint " + c.getId() + " (" + c.getName() + ")");
+                c.addVariable(lectures.get(classId));
             }
             grConstraintElements.put(grConstraintEl.attributeValue("id"), grConstraintEl);
             groupConstraints.put(grConstraintEl.attributeValue("id"), c);
@@ -670,10 +665,6 @@ public class TimetableXMLLoader extends TimetableLoader {
             for (Iterator<?> i2 = studentEl.elementIterator("class"); i2.hasNext();) {
                 String classId = ((Element) i2.next()).attributeValue("id");
                 Lecture lecture = lectures.get(classId);
-                if (lecture == null) {
-                    iProgress.warn("Class " + classId + " does not exists, but it is referred from student " + student.getId());
-                    continue;
-                }
                 if (lecture.isCommitted()) {
                     if (sectionWholeCourse && (lecture.getParent() != null || lecture.getConfiguration() != null)) {
                         // committed, but with course structure -- sectioning can be used
@@ -696,10 +687,7 @@ public class TimetableXMLLoader extends TimetableLoader {
             for (Iterator<?> i2 = studentEl.elementIterator("prohibited-class"); i2.hasNext();) {
                 String classId = ((Element) i2.next()).attributeValue("id");
                 Lecture lecture = lectures.get(classId);
-                if (lecture != null)
-                    student.addCanNotEnroll(lecture);
-                else
-                    iProgress.warn("Class " + classId + " does not exists, but it is referred from student " + student.getId());
+                student.addCanNotEnroll(lecture);
             }
 
             iProgress.incProgress();
@@ -787,7 +775,6 @@ public class TimetableXMLLoader extends TimetableLoader {
                 Lecture lecture = entry.getKey();
                 Placement placement = entry.getValue();
                 if (!lecture.isCommitted()) { iProgress.incProgress(); continue; }
-                getModel().weaken(placement);
                 Map<Constraint<Lecture, Placement>, Set<Placement>> conflictConstraints = getModel().conflictConstraints(placement);
                 if (conflictConstraints.isEmpty()) {
                     lecture.assign(0, placement);
@@ -811,8 +798,8 @@ public class TimetableXMLLoader extends TimetableLoader {
             for (Lecture lecture : getModel().variables()) {
                 iProgress.incProgress();
                 Placement placement = lecture.getBestAssignment();
-                if (placement == null) continue;
-                getModel().weaken(placement);
+                if (placement == null)
+                    continue;
                 lecture.assign(0, placement);
             }
 
@@ -829,7 +816,6 @@ public class TimetableXMLLoader extends TimetableLoader {
             Lecture lecture = entry.getKey();
             Placement placement = entry.getValue();
             if (lecture.isCommitted()) { iProgress.incProgress(); continue; }
-            getModel().weaken(placement);
             Map<Constraint<Lecture, Placement>, Set<Placement>> conflictConstraints = getModel().conflictConstraints(placement);
             if (conflictConstraints.isEmpty()) {
                 if (!placement.isValid()) {

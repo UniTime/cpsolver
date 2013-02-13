@@ -1,21 +1,16 @@
 package net.sf.cpsolver.exam.heuristics;
 
 import java.text.DecimalFormat;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamPlacement;
-import net.sf.cpsolver.exam.neighbours.ExamPeriodSwapMove;
 import net.sf.cpsolver.exam.neighbours.ExamRandomMove;
 import net.sf.cpsolver.exam.neighbours.ExamRoomMove;
 import net.sf.cpsolver.exam.neighbours.ExamTimeMove;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
-import net.sf.cpsolver.ifs.model.LazyNeighbour;
 import net.sf.cpsolver.ifs.model.Neighbour;
-import net.sf.cpsolver.ifs.model.LazyNeighbour.LazyNeighbourAcceptanceCriterion;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solution.SolutionListener;
 import net.sf.cpsolver.ifs.solver.Solver;
@@ -33,7 +28,6 @@ import org.apache.log4j.Logger;
  * <li>random move ({@link ExamRandomMove})
  * <li>period swap ({@link ExamTimeMove})
  * <li>room swap ({@link ExamRoomMove})
- * <li>exam swap ({@link ExamPeriodSwapMove})
  * </ul>
  * , then a neighbour is generated and it is accepted if the value of the new
  * solution is below certain bound. This bound is initialized to the
@@ -69,7 +63,7 @@ import org.apache.log4j.Logger;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>, SolutionListener<Exam, ExamPlacement>, LazyNeighbourAcceptanceCriterion<Exam, ExamPlacement> {
+public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>, SolutionListener<Exam, ExamPlacement> {
     private static Logger sLog = Logger.getLogger(ExamGreatDeluge.class);
     private static DecimalFormat sDF2 = new DecimalFormat("0.00");
     private static DecimalFormat sDF5 = new DecimalFormat("0.00000");
@@ -87,7 +81,7 @@ public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>,
     private double iBestValue = 0;
     private Progress iProgress = null;
 
-    private List<NeighbourSelection<Exam, ExamPlacement>> iNeighbours = null;
+    private NeighbourSelection<Exam, ExamPlacement>[] iNeighbours = null;
 
     /**
      * Constructor. Following problem properties are considered:
@@ -107,22 +101,8 @@ public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>,
         iCoolRate = properties.getPropertyDouble("GreatDeluge.CoolRate", iCoolRate);
         iUpperBoundRate = properties.getPropertyDouble("GreatDeluge.UpperBoundRate", iUpperBoundRate);
         iLowerBoundRate = properties.getPropertyDouble("GreatDeluge.LowerBoundRate", iLowerBoundRate);
-        String neighbours = properties.getProperty("GreatDeluge.Neighbours", 
-                ExamRandomMove.class.getName() + ";" +
-                ExamRoomMove.class.getName() + ";" +
-                ExamTimeMove.class.getName() + ";" + 
-                ExamPeriodSwapMove.class.getName());
-        neighbours += ";" + properties.getProperty("GreatDeluge.AdditionalNeighbours", "");
-        iNeighbours = new ArrayList<NeighbourSelection<Exam,ExamPlacement>>();
-        for (String neighbour: neighbours.split("\\;")) {
-            if (neighbour == null || neighbour.isEmpty()) continue;
-            try {
-                Class<NeighbourSelection<Exam, ExamPlacement>> clazz = (Class<NeighbourSelection<Exam, ExamPlacement>>)Class.forName(neighbour);
-                iNeighbours.add(clazz.getConstructor(DataProperties.class).newInstance(properties));
-            } catch (Exception e) {
-                sLog.error("Unable to use " + neighbour + ": " + e.getMessage());
-            }
-        }
+        iNeighbours = new NeighbourSelection[] { new ExamRandomMove(properties), new ExamRoomMove(properties),
+                new ExamTimeMove(properties) };
     }
 
     /** Initialization */
@@ -130,8 +110,8 @@ public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>,
     public void init(Solver<Exam, ExamPlacement> solver) {
         iIter = -1;
         solver.currentSolution().addSolutionListener(this);
-        for (NeighbourSelection<Exam, ExamPlacement> neighbour: iNeighbours)
-            neighbour.init(solver);
+        for (int i = 0; i < iNeighbours.length; i++)
+            iNeighbours[i].init(solver);
         solver.setUpdateProgress(false);
         iProgress = Progress.getInstance(solver.currentSolution().getModel());
     }
@@ -154,7 +134,7 @@ public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>,
     public Neighbour<Exam, ExamPlacement> genMove(Solution<Exam, ExamPlacement> solution) {
         while (true) {
             incIter(solution);
-            NeighbourSelection<Exam, ExamPlacement> ns = iNeighbours.get(ToolBox.random(iNeighbours.size()));
+            NeighbourSelection<Exam, ExamPlacement> ns = iNeighbours[ToolBox.random(iNeighbours.length)];
             Neighbour<Exam, ExamPlacement> n = ns.selectNeighbour(solution);
             if (n != null)
                 return n;
@@ -163,17 +143,7 @@ public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>,
 
     /** Accept neighbour */
     protected boolean accept(Solution<Exam, ExamPlacement> solution, Neighbour<Exam, ExamPlacement> neighbour) {
-        if (neighbour instanceof LazyNeighbour) {
-            ((LazyNeighbour<Exam, ExamPlacement>)neighbour).setAcceptanceCriterion(this);
-            return true;
-        }
         return (neighbour.value() <= 0 || solution.getModel().getTotalValue() + neighbour.value() <= iBound);
-    }
-    
-    /** Accept lazy neighbour */
-    @Override
-    public boolean accept(LazyNeighbour<Exam, ExamPlacement> neighbour, double value) {
-        return (value <= 0.0 || neighbour.getModel().getTotalValue() <= iBound);
     }
 
     /** Increment iteration count, update bound */
@@ -257,4 +227,5 @@ public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>,
     @Override
     public void bestRestored(Solution<Exam, ExamPlacement> solution) {
     }
+
 }

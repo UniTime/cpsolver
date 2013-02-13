@@ -74,13 +74,12 @@ public class DistributionPreferences extends TimetablingCriterion {
     }
         
     @Override
-    protected double[] computeBounds() {
-        double[] bounds = new double[] { 0.0, 0.0 };
+    protected void computeBounds() {
+        iBounds = new double[] { 0.0, 0.0 };
         for (GroupConstraint gc: ((TimetableModel)getModel()).getGroupConstraints()) {
             if (!gc.isHard())
-                bounds[0] -= Math.abs(gc.getPreference());
-        }
-        return bounds;
+                iBounds[0] -= Math.abs(gc.getPreference());
+        }        
     }
     
     @Override

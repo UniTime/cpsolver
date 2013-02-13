@@ -27,7 +27,6 @@ import net.sf.cpsolver.coursett.Constants;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class RoomSharingModel {
-	protected int iStep = 1;
     protected Long[][] iPreference = null;
     protected Long[] iDepartmentIds = null;
     protected HashMap<Long, Integer> iDepartmentIdx = null;
@@ -43,16 +42,10 @@ public class RoomSharingModel {
     public char iFreeForAllPrefChar = sFreeForAllPrefChar;
     public char iNotAvailablePrefChar = sNotAvailablePrefChar;
 
-    protected RoomSharingModel(int step) {
-    	iStep = step;
-    }
-    
     protected RoomSharingModel() {
-        this(6);
     }
 
-    public RoomSharingModel(int step, Long[] managerIds, String pattern, Character freeForAllPrefChar, Character notAvailablePrefChar) {
-    	iStep = step;
+    public RoomSharingModel(Long[] managerIds, String pattern, Character freeForAllPrefChar, Character notAvailablePrefChar) {
         iPreference = new Long[getNrDays()][getNrTimes()];
         iDepartmentIds = new Long[managerIds.length];
         iDepartmentIdx = new HashMap<Long, Integer>();
@@ -75,31 +68,31 @@ public class RoomSharingModel {
     public void setNotAvailablePrefChar(char c) { iNotAvailablePrefChar = c; }
 
     public boolean isFreeForAll(int day, int time) {
-        return sFreeForAllPref.equals(iPreference[day][time]);
+        return iPreference[day][time] == sFreeForAllPref;
     }
 
     public boolean isFreeForAll(int slot) {
         int day = slot / Constants.SLOTS_PER_DAY;
-        int time = (slot % Constants.SLOTS_PER_DAY) / getStep();
-        return sFreeForAllPref.equals(iPreference[day][time]);
+        int time = (slot % Constants.SLOTS_PER_DAY) / 6;
+        return iPreference[day][time] == sFreeForAllPref;
     }
 
     public boolean isNotAvailable(int day, int time) {
-        return sNotAvailablePref.equals(iPreference[day][time]);
+        return iPreference[day][time] == sNotAvailablePref;
     }
 
     public boolean isNotAvailable(int slot) {
         int day = slot / Constants.SLOTS_PER_DAY;
-        int time = (slot % Constants.SLOTS_PER_DAY) / getStep();
-        return sNotAvailablePref.equals(iPreference[day][time]);
+        int time = (slot % Constants.SLOTS_PER_DAY) / 6;
+        return iPreference[day][time] == sNotAvailablePref;
     }
 
     public boolean isAvailable(TimeLocation timeLocation, Long departmentId) {
         for (int d = 0; d < Constants.NR_DAYS; d++) {
             if ((Constants.DAY_CODES[d] & timeLocation.getDayCode()) == 0)
                 continue;
-            int startTime = timeLocation.getStartSlot() / getStep();
-            int endTime = (timeLocation.getStartSlot() + timeLocation.getLength() - 1) / getStep();
+            int startTime = timeLocation.getStartSlot() / 6;
+            int endTime = (timeLocation.getStartSlot() + timeLocation.getLength() - 1) / 6;
             for (int t = startTime; t <= endTime; t++) {
                 Long pref = iPreference[d][t];
                 if (pref.equals(sNotAvailablePref))
@@ -122,7 +115,7 @@ public class RoomSharingModel {
 
     public Long getDepartmentId(int slot) {
         int day = slot / Constants.SLOTS_PER_DAY;
-        int time = (slot % Constants.SLOTS_PER_DAY) / getStep();
+        int time = (slot % Constants.SLOTS_PER_DAY) / 6;
         return getDepartmentId(day, time);
     }
 
@@ -180,10 +173,6 @@ public class RoomSharingModel {
     }
 
     public int getNrTimes() {
-        return Constants.SLOTS_PER_DAY / getStep();
-    }
-    
-    public int getStep() {
-        return iStep;
+        return Constants.SLOTS_PER_DAY / 6;
     }
 }
