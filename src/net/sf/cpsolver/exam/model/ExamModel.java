@@ -598,7 +598,7 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
             ex.addAttribute("alt", (exam.hasAltSeating() ? "true" : "false"));
             if (exam.getMaxRooms() != getMaxRooms())
                 ex.addAttribute("maxRooms", String.valueOf(exam.getMaxRooms()));
-            if (exam.getPrintOffset() != null)
+            if (exam.getPrintOffset() != null && !anonymize)
                 ex.addAttribute("printOffset", exam.getPrintOffset().toString());
             if (!anonymize)
                 ex.addAttribute("enrl", String.valueOf(exam.getStudents().size()));
