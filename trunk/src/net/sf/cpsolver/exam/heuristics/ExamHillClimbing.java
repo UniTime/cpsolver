@@ -9,7 +9,6 @@ import org.apache.log4j.Logger;
 
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamPlacement;
-import net.sf.cpsolver.exam.neighbours.ExamPeriodSwapMove;
 import net.sf.cpsolver.exam.neighbours.ExamRandomMove;
 import net.sf.cpsolver.exam.neighbours.ExamRoomMove;
 import net.sf.cpsolver.exam.neighbours.ExamSimpleNeighbour;
@@ -32,7 +31,6 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  * <li>random move ({@link ExamRandomMove})
  * <li>period swap ({@link ExamTimeMove})
  * <li>room swap ({@link ExamRoomMove})
- * <li>exam swap ({@link ExamPeriodSwapMove})
  * </ul>
  * , then a neighbour is generated and it is accepted if its value
  * {@link ExamSimpleNeighbour#value()} is below or equal to zero. The search is
@@ -94,8 +92,7 @@ public class ExamHillClimbing implements NeighbourSelection<Exam, ExamPlacement>
         String neighbours = properties.getProperty("HillClimber.Neighbours", 
                 ExamRandomMove.class.getName() + ";" +
                 ExamRoomMove.class.getName() + ";" +
-                ExamTimeMove.class.getName() + ";" + 
-                ExamPeriodSwapMove.class.getName());
+                ExamTimeMove.class.getName());
         neighbours += ";" + properties.getProperty("HillClimber.AdditionalNeighbours", "");
         iNeighbours = new ArrayList<NeighbourSelection<Exam,ExamPlacement>>();
         for (String neighbour: neighbours.split("\\;")) {
