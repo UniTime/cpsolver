@@ -8,7 +8,6 @@ import java.util.Map;
 
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamPlacement;
-import net.sf.cpsolver.exam.neighbours.ExamPeriodSwapMove;
 import net.sf.cpsolver.exam.neighbours.ExamRandomMove;
 import net.sf.cpsolver.exam.neighbours.ExamRoomMove;
 import net.sf.cpsolver.exam.neighbours.ExamTimeMove;
@@ -33,7 +32,6 @@ import org.apache.log4j.Logger;
  * <li>random move ({@link ExamRandomMove})
  * <li>period swap ({@link ExamTimeMove})
  * <li>room swap ({@link ExamRoomMove})
- * <li>exam swap ({@link ExamPeriodSwapMove})
  * </ul>
  * , then a neighbour is generated and it is accepted if the value of the new
  * solution is below certain bound. This bound is initialized to the
@@ -110,8 +108,7 @@ public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>,
         String neighbours = properties.getProperty("GreatDeluge.Neighbours", 
                 ExamRandomMove.class.getName() + ";" +
                 ExamRoomMove.class.getName() + ";" +
-                ExamTimeMove.class.getName() + ";" + 
-                ExamPeriodSwapMove.class.getName());
+                ExamTimeMove.class.getName());
         neighbours += ";" + properties.getProperty("GreatDeluge.AdditionalNeighbours", "");
         iNeighbours = new ArrayList<NeighbourSelection<Exam,ExamPlacement>>();
         for (String neighbour: neighbours.split("\\;")) {
