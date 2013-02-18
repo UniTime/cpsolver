@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import net.sf.cpsolver.coursett.constraint.JenrlConstraint;
+
 /**
  * Configuration. Each course can have multiple configurations. A student needs
  * to be enrolled into classes of one of the configurations.
@@ -106,7 +108,8 @@ public class Configuration {
             for (Lecture x : student.getLectures()) {
                 if (x.getAssignment() == null || x.equals(lecture))
                     continue;
-                if (lecture.jenrlConstraint(x).isInConflict())
+                JenrlConstraint jenrl = lecture.jenrlConstraint(x);
+                if (jenrl != null && jenrl.isInConflict())
                     return true;
             }
         }
