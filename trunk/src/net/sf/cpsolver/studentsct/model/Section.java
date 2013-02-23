@@ -64,6 +64,7 @@ public class Section implements Assignment, Comparable<Section> {
     private double iSpaceExpected = 0.0;
     private double iSpaceHeld = 0.0;
     private String iNote = null;
+    private Set<Long> iIgnoreConflictsWith = null;
 
     /**
      * Constructor
@@ -200,8 +201,8 @@ public class Section implements Assignment, Comparable<Section> {
     @Override
     public boolean isOverlapping(Assignment assignment) {
         if (isAllowOverlap() || assignment.isAllowOverlap()) return false;
-        if (getTime() == null || assignment.getTime() == null)
-            return false;
+        if (getTime() == null || assignment.getTime() == null) return false;
+        if (assignment instanceof Section && isToIgnoreStudentConflictsWith(assignment.getId())) return false;
         return getTime().hasIntersection(assignment.getTime());
     }
 
@@ -218,6 +219,8 @@ public class Section implements Assignment, Comparable<Section> {
             if (assignment.isAllowOverlap())
                 continue;
             if (assignment.getTime() == null)
+                continue;
+            if (assignment instanceof Section && isToIgnoreStudentConflictsWith(assignment.getId()))
                 continue;
             if (getTime().hasIntersection(assignment.getTime()))
                 return true;
@@ -589,4 +592,26 @@ public class Section implements Assignment, Comparable<Section> {
      * Section note
      */
     public void setNote(String note) { iNote = note; }
+    
+    /**
+     * Add section id of a section that student conflicts are to be ignored with
+     */
+    public void addIgnoreConflictWith(long sectionId) {
+        if (iIgnoreConflictsWith == null) iIgnoreConflictsWith = new HashSet<Long>();
+        iIgnoreConflictsWith.add(sectionId);
+    }
+    
+    /**
+     * Returns true if student conflicts between this section and the given one are to be ignored
+     */
+    public boolean isToIgnoreStudentConflictsWith(long sectionId) {
+        return iIgnoreConflictsWith != null && iIgnoreConflictsWith.contains(sectionId);
+    }
+    
+    /**
+     * Returns a set of ids of sections that student conflicts are to be ignored with (between this section and the others)
+     */
+    public Set<Long> getIgnoreConflictWithSectionIds() {
+        return iIgnoreConflictsWith;
+    }
 }
