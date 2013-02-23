@@ -579,9 +579,10 @@ public class TimetableXMLLoader extends TimetableLoader {
             Lecture lecture = entry.getKey();
             Lecture parent = lectures.get(entry.getValue());
             if (parent == null) {
-                System.out.println("Unknown parent class: " + entry.getValue());
+                iProgress.warn("Parent class " + entry.getValue() + " does not exists.");
+            } else {
+                lecture.setParent(parent);
             }
-            lecture.setParent(parent);
         }
 
         iProgress.setPhase("Creating constraints ...", root.element("groupConstraints").elements("constraint").size());
