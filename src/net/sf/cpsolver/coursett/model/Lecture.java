@@ -14,6 +14,7 @@ import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.constraint.ClassLimitConstraint;
 import net.sf.cpsolver.coursett.constraint.DepartmentSpreadConstraint;
 import net.sf.cpsolver.coursett.constraint.GroupConstraint;
+import net.sf.cpsolver.coursett.constraint.IgnoreStudentConflictsConstraint;
 import net.sf.cpsolver.coursett.constraint.InstructorConstraint;
 import net.sf.cpsolver.coursett.constraint.JenrlConstraint;
 import net.sf.cpsolver.coursett.constraint.RoomConstraint;
@@ -71,6 +72,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
     private Set<SpreadConstraint> iSpreadConstraints = new HashSet<SpreadConstraint>();
     private Set<Constraint<Lecture, Placement>> iWeakeningConstraints = new HashSet<Constraint<Lecture, Placement>>();
     private List<InstructorConstraint> iInstructorConstraints = new ArrayList<InstructorConstraint>();
+    private Set<Long> iIgnoreStudentConflictsWith = null;
     private ClassLimitConstraint iClassLimitConstraint = null;
 
     private Lecture iParent = null;
@@ -1291,5 +1293,25 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
     
     public boolean areStudentConflictsHard(Lecture other) {
         return StudentConflict.hard(this, other);
+    }
+    
+    public void clearIgnoreStudentConflictsWithCache() {
+        iIgnoreStudentConflictsWith = null;
+    }
+    
+    /**
+     * Returns true if there is {@link IgnoreStudentConflictsConstraint} between the two lectures.
+     */
+   public boolean isToIgnoreStudentConflictsWith(Lecture other) {
+        if (iIgnoreStudentConflictsWith == null) {
+            iIgnoreStudentConflictsWith = new HashSet<Long>();
+            for (Constraint<Lecture, Placement> constraint: constraints()) {
+                if (constraint instanceof IgnoreStudentConflictsConstraint)
+                    for (Lecture x: constraint.variables()) {
+                        if (!x.equals(this)) iIgnoreStudentConflictsWith.add(x.getClassId());
+                    }
+            }
+        }
+        return iIgnoreStudentConflictsWith.contains(other.getClassId());
     }
 }

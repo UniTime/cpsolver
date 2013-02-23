@@ -102,7 +102,7 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> implem
      * back-to-back and too far for students.
      */
     public static boolean isInConflict(Placement p1, Placement p2, DistanceMetric m) {
-        return StudentConflict.distance(m, p1, p2) || StudentConflict.overlaps(p1, p2);
+        return !StudentConflict.ignore(p1, p2) && (StudentConflict.distance(m, p1, p2) || StudentConflict.overlaps(p1, p2));
     }
 
     @Override
@@ -266,5 +266,11 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> implem
             }
         }
     }
-
+    
+    /**
+     * Returns true if there is {@link IgnoreStudentConflictsConstraint} between the two lectures.
+     */
+    public boolean isToBeIgnored() {
+        return first().isToIgnoreStudentConflictsWith(second());
+    }
 }

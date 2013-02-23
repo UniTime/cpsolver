@@ -267,6 +267,7 @@ public class Student implements Comparable<Student> {
             if (lecture.getSchedulingSubpartId() != null
                     && lecture.getSchedulingSubpartId().equals(commitedLecture.getSchedulingSubpartId()))
                 continue;
+            if (lecture.isToIgnoreStudentConflictsWith(commitedLecture)) continue;
             if (JenrlConstraint.isInConflict(commitedPlacement, placement, ((TimetableModel)placement.variable().getModel()).getDistanceMetric()))
                 ret.add(commitedPlacement);
         }

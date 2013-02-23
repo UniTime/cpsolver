@@ -19,6 +19,7 @@ import net.sf.cpsolver.coursett.constraint.ClassLimitConstraint;
 import net.sf.cpsolver.coursett.constraint.DepartmentSpreadConstraint;
 import net.sf.cpsolver.coursett.constraint.DiscouragedRoomConstraint;
 import net.sf.cpsolver.coursett.constraint.GroupConstraint;
+import net.sf.cpsolver.coursett.constraint.IgnoreStudentConflictsConstraint;
 import net.sf.cpsolver.coursett.constraint.InstructorConstraint;
 import net.sf.cpsolver.coursett.constraint.JenrlConstraint;
 import net.sf.cpsolver.coursett.constraint.MinimizeNumberOfUsedGroupsOfTime;
@@ -617,6 +618,8 @@ public class TimetableXMLLoader extends TimetableLoader {
             } else if ("MIN_GRUSE(2x5h)".equals(grConstraintEl.attributeValue("type"))) {
                 c = new MinimizeNumberOfUsedGroupsOfTime(getModel().getProperties(), "2x5h",
                         MinimizeNumberOfUsedGroupsOfTime.sGroups2of5h);
+            } else if (IgnoreStudentConflictsConstraint.REFERENCE.equals(grConstraintEl.attributeValue("type"))) {
+                c = new IgnoreStudentConflictsConstraint();
             } else {
                 c = new GroupConstraint(
                         Long.valueOf(grConstraintEl.attributeValue("id")),
