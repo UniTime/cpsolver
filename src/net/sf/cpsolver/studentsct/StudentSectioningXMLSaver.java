@@ -321,6 +321,11 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                                 sectionEl.addAttribute("expect", sStudentWeightFormat
                                         .format(section.getSpaceExpected()));
                         }
+                        if (section.getIgnoreConflictWithSectionIds() != null && !section.getIgnoreConflictWithSectionIds().isEmpty()) {
+                            Element ignoreEl = sectionEl.addElement("no-conflicts");
+                            for (Long sectionId: section.getIgnoreConflictWithSectionIds())
+                                ignoreEl.addElement("section").addAttribute("id", getId("section", sectionId));
+                        }
                     }
                 }
             }

@@ -13,6 +13,7 @@ import net.sf.cpsolver.studentsct.model.Assignment;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.FreeTimeRequest;
 import net.sf.cpsolver.studentsct.model.Request;
+import net.sf.cpsolver.studentsct.model.Section;
 import net.sf.cpsolver.studentsct.model.Student;
 
 /**
@@ -98,6 +99,7 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
      */
     public boolean inConflict(Assignment a1, Assignment a2) {
         if (a1.getTime() == null || a2.getTime() == null) return false;
+        if (a1 instanceof Section && a2 instanceof Section && ((Section)a1).isToIgnoreStudentConflictsWith(a2.getId())) return false;
         return a1.getTime().hasIntersection(a2.getTime());
     }
     
