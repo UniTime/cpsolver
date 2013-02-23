@@ -371,6 +371,11 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                                 Element cNameEl = (Element)m.next();
                                 section.setName(Long.parseLong(cNameEl.attributeValue("id")), cNameEl.getText());
                             }
+                            Element ignoreEl = sectionEl.element("no-conflicts");
+                            if (ignoreEl != null) {
+                                for (Iterator<?> m = ignoreEl.elementIterator("section"); m.hasNext(); )
+                                    section.addIgnoreConflictWith(Long.parseLong(((Element)m.next()).attributeValue("id")));
+                            }
                         }
                     }
                 }
