@@ -1,16 +1,23 @@
-package net.sf.cpsolver.coursett.criteria;
+package net.sf.cpsolver.coursett.constraint;
 
+import java.util.Set;
+
+import net.sf.cpsolver.coursett.criteria.StudentConflict;
 import net.sf.cpsolver.coursett.model.Lecture;
-import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.coursett.model.Placement;
+import net.sf.cpsolver.ifs.model.Constraint;
 
 /**
- * Student hard conflicts. This criterion counts student conflicts (either overlapping or
- * distance) between classes. A hard conflict is a student conflict that happens between
- * two classes that do not have alternatives (see {@link Lecture#isSingleSection()}).
+ * Ignore student conflicts constraint. <br>
+ * This constraint keeps track of classes between which student conflicts of any kind are to be ignored.
+ * This constraint is used by {@link Lecture#isToIgnoreStudentConflictsWith(Lecture)} and translates to
+ * {@link StudentConflict#ignore(Lecture, Lecture)} that is true when the two classes are connected by
+ * this constraint.
+ *   
  * <br>
  * 
  * @version CourseTT 1.2 (University Course Timetabling)<br>
- *          Copyright (C) 2006 - 2011 Tomas Muller<br>
+ *          Copyright (C) 2013 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>
  * <br>
@@ -28,20 +35,23 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class StudentHardConflict extends StudentConflict {
-        
+public class IgnoreStudentConflictsConstraint extends Constraint<Lecture, Placement> {
+    
+    public static final String REFERENCE = "NO_CONFLICT";
+    
     @Override
-    public boolean isApplicable(Lecture l1, Lecture l2) {
-        return !ignore(l1, l2) && hard(l1, l2); // only hard student conflicts, but including committed
+    public void addVariable(Lecture variable) {
+        super.addVariable(variable);
+        variable.clearIgnoreStudentConflictsWithCache();
     }
 
     @Override
-    public double getWeightDefault(DataProperties config) {
-        return config.getPropertyDouble("Comparator.HardStudentConflictWeight", 5.0);
+    public void computeConflicts(Placement value, Set<Placement> conflicts) {
     }
     
     @Override
-    public String getPlacementSelectionWeightName() {
-        return "Placement.NrHardStudConfsWeight";
+    public boolean isHard() {
+        return false;
     }
+
 }

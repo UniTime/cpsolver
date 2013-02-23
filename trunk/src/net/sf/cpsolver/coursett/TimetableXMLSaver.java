@@ -19,6 +19,7 @@ import java.util.TreeSet;
 import net.sf.cpsolver.coursett.constraint.ClassLimitConstraint;
 import net.sf.cpsolver.coursett.constraint.DiscouragedRoomConstraint;
 import net.sf.cpsolver.coursett.constraint.GroupConstraint;
+import net.sf.cpsolver.coursett.constraint.IgnoreStudentConflictsConstraint;
 import net.sf.cpsolver.coursett.constraint.InstructorConstraint;
 import net.sf.cpsolver.coursett.constraint.MinimizeNumberOfUsedGroupsOfTime;
 import net.sf.cpsolver.coursett.constraint.MinimizeNumberOfUsedRoomsConstraint;
@@ -466,6 +467,14 @@ public class TimetableXMLSaver extends TimetableSaver {
                 Element grEl = grConstraintsEl.addElement("constraint").addAttribute("id",
                         getId("gr", String.valueOf(c.getId())));
                 grEl.addAttribute("type", ((MinimizeNumberOfUsedGroupsOfTime) c).getConstraintName());
+                grEl.addAttribute("pref", Constants.sPreferenceRequired);
+                for (Lecture l : c.variables()) {
+                    grEl.addElement("class").addAttribute("id", getId("class", l.getClassId()));
+                }
+            }
+            if (c instanceof IgnoreStudentConflictsConstraint) {
+                Element grEl = grConstraintsEl.addElement("constraint").addAttribute("id", getId("gr", String.valueOf(c.getId())));
+                grEl.addAttribute("type", IgnoreStudentConflictsConstraint.REFERENCE);
                 grEl.addAttribute("pref", Constants.sPreferenceRequired);
                 for (Lecture l : c.variables()) {
                     grEl.addElement("class").addAttribute("id", getId("class", l.getClassId()));

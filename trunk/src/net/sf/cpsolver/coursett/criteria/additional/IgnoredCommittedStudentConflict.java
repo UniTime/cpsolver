@@ -1,19 +1,22 @@
-package net.sf.cpsolver.coursett.criteria;
+package net.sf.cpsolver.coursett.criteria.additional;
 
 import java.util.Collection;
 import java.util.Set;
 
+import net.sf.cpsolver.coursett.criteria.StudentConflict;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
+import net.sf.cpsolver.coursett.model.Student;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
- * Student committed conflicts. This criterion counts student conflicts between pairs of classes where
- * one the classes is committed (i.e., fixed in time and room, belonging to another problem).
+ * Ignored committed student conflicts. This criterion counts committed student conflicts (both overlapping and distance) between classes
+ * which are connected by a {@link IgnoredStudentConflict} constraint. This criterion was created mostly for debugging
+ * as these student conflicts are to be ignored.
  * <br>
  * 
  * @version CourseTT 1.2 (University Course Timetabling)<br>
- *          Copyright (C) 2006 - 2011 Tomas Muller<br>
+ *          Copyright (C) 2013 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>
  * <br>
@@ -31,27 +34,51 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class StudentCommittedConflict extends StudentConflict {
+public class IgnoredCommittedStudentConflict extends StudentConflict {
 
     @Override
     public double getWeightDefault(DataProperties config) {
-        return config.getPropertyDouble("Comparator.CommitedStudentConflictWeight", 1.0);
+        return config.getPropertyDouble("Comparator.IgnoredCommitedStudentConflictWeight", 0.0);
     }
 
     @Override
     public String getPlacementSelectionWeightName() {
-        return "Placement.NrCommitedStudConfsWeight";
+        return "Placement.NrIgnoredCommitedStudConfsWeight";
     }
     
     @Override
     public boolean isApplicable(Lecture l1, Lecture l2) {
-        return !ignore(l1, l2) && committed(l1, l2); // only committed student conflicts
+        return ignore(l1, l2) && committed(l1, l2); // only committed student conflicts
     }
 
 
     @Override
     public boolean inConflict(Placement p1, Placement p2) {
-        return !ignore(p1, p2) && committed(p1, p2) && super.inConflict(p1, p2);
+        return ignore(p1, p2) && committed(p1, p2) && super.inConflict(p1, p2);
+    }
+    
+    public int countCommittedConflicts(Student student, Placement placement) {
+        if (student.getCommitedPlacements() == null) return 0;
+        int conflicts = 0;
+        Lecture lecture = placement.variable();
+        for (Placement commitedPlacement : student.getCommitedPlacements()) {
+            Lecture commitedLecture = commitedPlacement.variable();
+            if (lecture.getSchedulingSubpartId() != null && lecture.getSchedulingSubpartId().equals(commitedLecture.getSchedulingSubpartId())) continue;
+            if (ignore(placement, commitedPlacement) && (overlaps(placement, commitedPlacement) || distance(getMetrics(), placement, commitedPlacement)))
+                conflicts ++;
+        }
+        if (conflicts == 0) return 0;
+        double w = student.getOfferingWeight((placement.variable()).getConfiguration());
+        return (int) Math.round(student.avg(w, 1.0) * conflicts);
+    }
+    
+    public double countCommittedConflicts(Placement placement) {
+        double ret = 0;
+        Lecture lecture = placement.variable();
+        for (Student student : lecture.students()) {
+            ret += countCommittedConflicts(student, placement);
+        }
+        return ret;
     }
         
     @Override
@@ -60,8 +87,8 @@ public class StudentCommittedConflict extends StudentConflict {
         for (Lecture lecture: variables) {
             Double max = null;
             for (Placement placement: lecture.values()) {
-                if (max == null) { max = new Double(lecture.getCommitedConflicts(placement)); continue; }
-                max = Math.max(max, lecture.getCommitedConflicts(placement));
+                if (max == null) { max = new Double(countCommittedConflicts(placement)); continue; }
+                max = Math.max(max, countCommittedConflicts(placement));
             }
             if (max != null) bounds[0] += max;
         }
@@ -71,10 +98,10 @@ public class StudentCommittedConflict extends StudentConflict {
     @Override
     public double getValue(Placement value, Set<Placement> conflicts) {
         double ret = super.getValue(value, conflicts);
-        ret += value.variable().getCommitedConflicts(value);
+        ret += countCommittedConflicts(value);
         if (iIncludeConflicts && conflicts != null)
             for (Placement conflict: conflicts)
-                ret -= value.variable().getCommitedConflicts(conflict);
+                ret -= countCommittedConflicts(conflict);
         return ret;
     }
     
@@ -83,7 +110,7 @@ public class StudentCommittedConflict extends StudentConflict {
         double ret = super.getValue(variables);
         for (Lecture lect: variables)
             if (lect.getAssignment() != null)
-                ret += lect.getCommitedConflicts(lect.getAssignment());
+                ret += countCommittedConflicts(lect.getAssignment());
         return Math.round(ret);
     }
 }

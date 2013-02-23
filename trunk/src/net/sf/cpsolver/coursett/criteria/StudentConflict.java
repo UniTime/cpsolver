@@ -97,6 +97,14 @@ public class StudentConflict extends TimetablingCriterion {
         return false;
     }
     
+    public static boolean ignore(Placement p1, Placement p2) {
+        return p1 != null && p2 != null && p1.variable().isToIgnoreStudentConflictsWith(p2.variable());
+    }
+    
+    public static boolean ignore(Lecture l1, Lecture l2) {
+        return l1 != null && l2 != null && l1.isToIgnoreStudentConflictsWith(l2);
+    }
+    
     public static boolean committed(Placement p1, Placement p2) {
         return p1 != null && p2 != null && committed(p1.variable(), p2.variable());
     }
@@ -122,11 +130,11 @@ public class StudentConflict extends TimetablingCriterion {
     }
     
     public boolean isApplicable(Lecture l1, Lecture l2) {
-        return applicable(l1, l2) && !committed(l1, l2); // exclude committed and outside student conflicts
+        return !ignore(l1, l2) && applicable(l1, l2) && !committed(l1, l2); // exclude committed and outside student conflicts
     }
 
     public boolean inConflict(Placement p1, Placement p2) {
-        return (overlaps(p1, p2) || distance(getMetrics(), p1, p2)) && isApplicable(p1.variable(), p2.variable());
+        return !ignore(p1, p2) && (overlaps(p1, p2) || distance(getMetrics(), p1, p2)) && isApplicable(p1.variable(), p2.variable());
     }
     
     @Override
