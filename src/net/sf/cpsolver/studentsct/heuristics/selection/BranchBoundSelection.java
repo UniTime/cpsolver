@@ -521,8 +521,9 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                 @Override
                 public int compare(Enrollment e1, Enrollment e2) {
                     if (e1.equals(request.getAssignment())) return -1;
-                    if (e2.equals(request.getAssignment())) return -1;
-                    return value(e2).compareTo(value(e1));
+                    if (e2.equals(request.getAssignment())) return 1;
+                    Double v1 = value(e1), v2 = value(e2);
+                    return v1.equals(v2) ? e1.compareTo(e2) : v2.compareTo(v1);
                 }
                 
             });
