@@ -157,8 +157,8 @@ public class ClassLimitConstraint extends Constraint<Lecture, Placement> {
         public int compare(Placement p1, Placement p2) {
             Lecture l1 = p1.variable();
             Lecture l2 = p2.variable();
-            int cl1 = Math.min(l1.maxClassLimit(), (int) Math.ceil(p1.minRoomSize() / l1.roomToLimitRatio()));
-            int cl2 = Math.min(l2.maxClassLimit(), (int) Math.ceil(p2.minRoomSize() / l2.roomToLimitRatio()));
+            int cl1 = Math.min(l1.maxClassLimit(), (int) Math.floor(p1.getRoomSize() / l1.roomToLimitRatio()));
+            int cl2 = Math.min(l2.maxClassLimit(), (int) Math.floor(p2.getRoomSize() / l2.roomToLimitRatio()));
             int cmp = -Double.compare(l1.maxAchievableClassLimit() - cl1, l2.maxAchievableClassLimit() - cl2);
             if (cmp != 0)
                 return cmp;

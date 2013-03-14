@@ -309,23 +309,10 @@ public class Placement extends Value<Lecture, Placement> {
 
     public int getRoomSize() {
         if (isMultiRoom()) {
-            int roomSize = 0;
-            for (RoomLocation r : getRoomLocations()) {
-                roomSize += r.getRoomSize();
-            }
-            return roomSize;
-        } else {
-            return getRoomLocation().getRoomSize();
-        }
-    }
-
-    public int minRoomSize() {
-        if (isMultiRoom()) {
-            if (getRoomLocations().isEmpty())
-                return 0;
+            if (getRoomLocations().isEmpty()) return 0;
             int roomSize = Integer.MAX_VALUE;
             for (RoomLocation r : getRoomLocations()) {
-                roomSize += Math.min(roomSize, r.getRoomSize());
+                roomSize = Math.min(roomSize, r.getRoomSize());
             }
             return roomSize;
         } else {
