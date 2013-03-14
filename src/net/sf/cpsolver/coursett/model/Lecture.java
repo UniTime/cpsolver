@@ -2,13 +2,13 @@ package net.sf.cpsolver.coursett.model;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 
 import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.constraint.ClassLimitConstraint;
@@ -748,9 +748,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
             a = assignment;
         if (conflicts != null && a != null && conflicts.contains(a))
             a = null;
-        int classLimit = (a == null ? maxAchievableClassLimit() : Math.min(maxClassLimit(), (int) Math.floor(a
-                .minRoomSize()
-                / roomToLimitRatio())));
+        int classLimit = (a == null ? maxAchievableClassLimit() : Math.min(maxClassLimit(), (int) Math.floor(a.getRoomSize() / roomToLimitRatio())));
 
         if (!hasAnyChildren())
             return classLimit;
@@ -1012,23 +1010,25 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         if (getNrRooms() <= 1) {
             int min = Integer.MAX_VALUE;
             for (RoomLocation r : roomLocations()) {
-                if (Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(r.getPreference())))
-                    continue;
-                min = Math.min(min, r.getRoomSize());
+                if (r.getPreference() <= Constants.sPreferenceLevelProhibited / 2)
+                    min = Math.min(min, r.getRoomSize());
             }
             iCacheMinRoomSize = new Integer(min);
             return min;
         } else {
-            TreeSet<RoomLocation> rl = new TreeSet<RoomLocation>(roomLocations());
-            int min = 0;
-            int i = 0;
-            for (Iterator<RoomLocation> e = rl.iterator(); e.hasNext() && i < getNrRooms();) {
-                RoomLocation r = e.next();
-                if (Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(r.getPreference())))
-                    continue;
-                min += r.getRoomSize();
-                i++;
-            }
+            List<RoomLocation> rooms = new ArrayList<RoomLocation>();
+            for (RoomLocation r: roomLocations())
+                if (r.getPreference() <= Constants.sPreferenceLevelProhibited / 2)
+                    rooms.add(r);
+            Collections.sort(rooms, new Comparator<RoomLocation>() {
+                @Override
+                public int compare(RoomLocation r1, RoomLocation r2) {
+                    if (r1.getRoomSize() < r2.getRoomSize()) return -1;
+                    if (r1.getRoomSize() > r2.getRoomSize()) return 1;
+                    return r1.compareTo(r2);
+                }
+            });
+            int min = rooms.isEmpty() ? 0 : rooms.get(Math.min(getNrRooms(), rooms.size()) - 1).getRoomSize();
             iCacheMinRoomSize = new Integer(min);
             return min;
         }
@@ -1040,24 +1040,24 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         if (getNrRooms() <= 1) {
             int max = Integer.MIN_VALUE;
             for (RoomLocation r : roomLocations()) {
-                if (Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(r.getPreference())))
-                    continue;
-                max = Math.max(max, r.getRoomSize());
+                if (r.getPreference() <= Constants.sPreferenceLevelProhibited / 2) 
+                    max = Math.max(max, r.getRoomSize());
             }
             iCacheMaxRoomSize = new Integer(max);
             return max;
         } else {
-            List<RoomLocation> rl = new ArrayList<RoomLocation>(roomLocations());
-            Collections.sort(rl, Collections.reverseOrder());
-            int max = 0;
-            int i = 0;
-            for (Iterator<RoomLocation> e = rl.iterator(); e.hasNext() && i < getNrRooms();) {
-                RoomLocation r = e.next();
-                if (Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(r.getPreference())))
-                    continue;
-                max += r.getRoomSize();
-                i++;
-            }
+            List<RoomLocation> rooms = new ArrayList<RoomLocation>();
+            for (RoomLocation r: roomLocations())
+                if (r.getPreference() <= Constants.sPreferenceLevelProhibited / 2) rooms.add(r);
+            Collections.sort(rooms, new Comparator<RoomLocation>() {
+                @Override
+                public int compare(RoomLocation r1, RoomLocation r2) {
+                    if (r1.getRoomSize() > r2.getRoomSize()) return -1;
+                    if (r1.getRoomSize() < r2.getRoomSize()) return 1;
+                    return r1.compareTo(r2);
+                }
+            });
+            int max = rooms.isEmpty() ? 0 : rooms.get(Math.min(getNrRooms(), rooms.size()) - 1).getRoomSize();
             iCacheMaxRoomSize = new Integer(max);
             return max;
         }
