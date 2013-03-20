@@ -260,7 +260,9 @@ public class Progress {
                 sLogger.fatal(message, t);
                 break;
         }
-        iLog.add(m);
+        synchronized (iLog) {
+            iLog.add(m);
+        }
         fireMessagePrinted(m);
     }
 
@@ -344,10 +346,12 @@ public class Progress {
      */
     public String getLog(int level) {
         StringBuffer sb = new StringBuffer();
-        for (Message m : iLog) {
-            String s = m.toString(level);
-            if (s != null)
-                sb.append(s + "\n");
+        synchronized (iLog) {
+            for (Message m : iLog) {
+                String s = m.toString(level);
+                if (s != null)
+                    sb.append(s + "\n");
+            }
         }
         return sb.toString();
     }
@@ -355,10 +359,12 @@ public class Progress {
     /** Returns log in HTML format */
     public String getHtmlLog(int level, boolean includeDate) {
         StringBuffer sb = new StringBuffer();
-        for (Message m : iLog) {
-            String s = m.toHtmlString(level, includeDate);
-            if (s != null)
-                sb.append(s + "<br>");
+        synchronized (iLog) {
+            for (Message m : iLog) {
+                String s = m.toHtmlString(level, includeDate);
+                if (s != null)
+                    sb.append(s + "<br>");
+            }
         }
         return sb.toString();
     }
@@ -369,19 +375,23 @@ public class Progress {
      */
     public String getHtmlLog(int level, boolean includeDate, String fromStage) {
         StringBuffer sb = new StringBuffer();
-        for (Message m : iLog) {
-            if (m.getLevel() == MSGLEVEL_STAGE && m.getMessage().equals(fromStage))
-                sb = new StringBuffer();
-            String s = m.toHtmlString(level, includeDate);
-            if (s != null)
-                sb.append(s + "<br>");
+        synchronized (iLog) {
+            for (Message m : iLog) {
+                if (m.getLevel() == MSGLEVEL_STAGE && m.getMessage().equals(fromStage))
+                    sb = new StringBuffer();
+                String s = m.toHtmlString(level, includeDate);
+                if (s != null)
+                    sb.append(s + "<br>");
+            }
         }
         return sb.toString();
     }
 
     /** Clear the log */
     public void clear() {
-        iLog.clear();
+        synchronized (iLog) {
+            iLog.clear();
+        }
     }
 
     private void fireStatusChanged() {
@@ -595,19 +605,23 @@ public class Progress {
     /** Saves the message log into the given XML element */
     public void save(Element root) {
         Element log = root.addElement("log");
-        for (Message m : iLog) {
-            m.save(log.addElement("msg"));
+        synchronized (iLog) {
+            for (Message m : iLog) {
+                m.save(log.addElement("msg"));
+            }
         }
     }
 
     /** Restores the message log from the given XML element */
     public void load(Element root, boolean clear) {
-        if (clear)
-            iLog.clear();
-        Element log = root.element("log");
-        if (log != null) {
-            for (Iterator<?> i = log.elementIterator("msg"); i.hasNext();)
-                iLog.add(new Message((Element) i.next()));
+        synchronized (iLog) {
+            if (clear)
+                iLog.clear();
+            Element log = root.element("log");
+            if (log != null) {
+                for (Iterator<?> i = log.elementIterator("msg"); i.hasNext();)
+                    iLog.add(new Message((Element) i.next()));
+            }
         }
     }
 }
