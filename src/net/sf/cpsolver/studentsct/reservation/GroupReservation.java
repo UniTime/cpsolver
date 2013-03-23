@@ -84,6 +84,13 @@ public class GroupReservation extends IndividualReservation {
     }
     
     /**
+     * Set reservation limit (-1 for unlimited)
+     */
+    public void setReservationLimit(double limit) {
+        iLimit = limit;
+    }
+    
+    /**
      * Overlaps are allowed for individual reservations. 
      */
     @Override
