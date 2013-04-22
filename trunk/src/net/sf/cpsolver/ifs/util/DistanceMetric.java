@@ -330,7 +330,7 @@ public class DistanceMetric {
         if (lat1 == null || lat2 == null || lon1 == null || lon2 == null)
             return getMaxTravelDistanceInMinutes();
         else 
-            return (int) Math.round(getDistanceInMeters(lat1, lon1, lat2, lon2) / iSpeed);
+            return (int) Math.min(getMaxTravelDistanceInMinutes(), Math.round(getDistanceInMeters(lat1, lon1, lat2, lon2) / iSpeed));
     }
     
     /** Return travel distance between two locations.  Travel times are used when available, use coordinates otherwise. */
