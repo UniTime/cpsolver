@@ -513,8 +513,12 @@ public class Test implements SolutionListener<Lecture, Placement> {
             students.addAll(lect.students());
             nrValues += lect.values().size();
             nrReqRooms += lect.getNrRooms();
-            nrTimes += lect.timeLocations().size();
-            nrRooms += lect.roomLocations().size();
+            for (RoomLocation room: lect.roomLocations())
+                if (room.getPreference() < Constants.sPreferenceLevelProhibited / 2)
+                    nrRooms++;
+            for (TimeLocation time: lect.timeLocations())
+                if (time.getPreference() < Constants.sPreferenceLevelProhibited / 2)
+                    nrTimes ++;
             totalMinLimit += lect.minClassLimit();
             totalMaxLimit += lect.maxClassLimit();
             if (!lect.values().isEmpty()) {
@@ -664,7 +668,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
         pw.println("Average maximal requested room size: "
                 + sDoubleFormat.format(1.0 * totalAvailableMaxRoomSize / nrOneOrMoreRoomVariables));
         pw.println("Average requested room sizes: " + sDoubleFormat.format(1.0 * totalRoomSize / nrRooms));
-        pw.println("Average requested room size," + sDoubleFormat.format(1.0 * totalRoomSize / nrRooms));
+        pwi.println("Average requested room size," + sDoubleFormat.format(1.0 * totalRoomSize / nrRooms));
         pw.println("Average maximum normalized time preference: "
                 + sDoubleFormat.format(totalMaxNormTimePref / model.variables().size()));
         pw.println("Average minimum normalized time preference: "
@@ -678,11 +682,11 @@ public class Test implements SolutionListener<Lecture, Placement> {
         pw.println("Average room preferences," + sDoubleFormat.format(1.0 * totalRoomPref / nrOneOrMoreRoomVariables));
         pw.println("Total number of students:" + students.size());
         pwi.println("Number of students," + students.size());
-        pw.println("Number of inevitable student conflicts," + nrInevitableStudentConflicts);
+        pwi.println("Number of inevitable student conflicts," + nrInevitableStudentConflicts);
         pw.println("Total amount of student enrollments: " + nrStudentEnrls);
-        pw.println("Number of student enrollments," + nrStudentEnrls);
+        pwi.println("Number of student enrollments," + nrStudentEnrls);
         pw.println("Total amount of joined enrollments: " + nrJenrls);
-        pw.println("Number of joint student enrollments," + nrJenrls);
+        pwi.println("Number of joint student enrollments," + nrJenrls);
         pw.println("Average number of students: "
                 + sDoubleFormat.format(1.0 * students.size() / model.variables().size()));
         pw.println("Average number of enrollemnts (per student): "
@@ -711,8 +715,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
         int nrOfRooms = 0;
         totalRoomSize = 0;
         for (RoomConstraint rc : model.getRoomConstraints()) {
-            if (!rc.getConstraint() || rc.variables().isEmpty())
-                continue;
+            if (rc.variables().isEmpty()) continue;
             nrOfRooms++;
             minRoomSize = Math.min(minRoomSize, rc.getCapacity());
             maxRoomSize = Math.max(maxRoomSize, rc.getCapacity());
@@ -734,7 +737,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
             if (rc.getPosX() != null && rc.getPosY() != null) {
                 for (RoomConstraint rc2 : model.getRoomConstraints()) {
                     if (rc2.getResourceId().compareTo(rc.getResourceId()) > 0 && rc2.getPosX() != null && rc2.getPosY() != null) {
-                        double distance = ((TimetableModel)solution.getModel()).getDistanceMetric().getDistanceInMeters(rc.getId(), rc.getPosX(), rc.getPosY(), rc2.getId(), rc2.getPosX(), rc2.getPosY());
+                        double distance = ((TimetableModel)solution.getModel()).getDistanceMetric().getDistanceInMinutes(rc.getId(), rc.getPosX(), rc.getPosY(), rc2.getId(), rc2.getPosX(), rc2.getPosY());
                         totalRoomDistance += distance;
                         nrDistancePairs++;
                         maxRoomDistance = Math.max(maxRoomDistance, distance);
@@ -761,13 +764,13 @@ public class Test implements SolutionListener<Lecture, Placement> {
         pwi.println("Room size min/max," + minRoomSize + "/" + maxRoomSize);
         pw.println("Average room size: "
                 + sDoubleFormat.format(1.0 * totalRoomSize / model.getRoomConstraints().size()));
-        pw.println("Maximal distance between two rooms: " + sDoubleFormat.format(5.0 * maxRoomDistance));
+        pw.println("Maximal distance between two rooms: " + sDoubleFormat.format(maxRoomDistance));
         pw.println("Average distance between two rooms: "
-                + sDoubleFormat.format(5.0 * totalRoomDistance / nrDistancePairs));
-        pw.println("Average distance between two rooms [m],"
-                + sDoubleFormat.format(5.0 * totalRoomDistance / nrDistancePairs));
-        pw.println("Maximal distance between two rooms [m]," + sDoubleFormat.format(5.0 * maxRoomDistance));
-        for (int l = 0; l < 1; l++) {// sizeLimits.length;l++) {
+                + sDoubleFormat.format(totalRoomDistance / nrDistancePairs));
+        pwi.println("Average distance between two rooms [min],"
+                + sDoubleFormat.format(totalRoomDistance / nrDistancePairs));
+        pwi.println("Maximal distance between two rooms [min]," + sDoubleFormat.format(maxRoomDistance));
+        for (int l = 0; l < sizeLimits.length; l++) {// sizeLimits.length;l++) {
             pwi.println("\"Room frequency (size>=" + sizeLimits[l] + ", used/avaiable times)\","
                     + sDoubleFormat.format(100.0 * totalUsedSlots[l] / totalAvailableSlots[l]) + "%");
             pwi.println("\"Room utilization (size>=" + sizeLimits[l] + ", used/available seats)\","
@@ -778,7 +781,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
             // pwi.println("\"Room utilization (size>="+sizeLimits[l]+", minRoomSize)\","+sDoubleFormat.format(100.0*totalUsedSeats2[l]/totalAvailableSeats[l])+"%");
         }
         pw.println("Average hours available: "
-                + sDoubleFormat.format(1.0 * totalAvailableSlots[0] / model.getRoomConstraints().size() / 12.0));
+                + sDoubleFormat.format(1.0 * totalAvailableSlots[0] / nrOfRooms / 12.0));
         int totalInstructedClasses = 0;
         for (InstructorConstraint ic : model.getInstructorConstraints()) {
             totalInstructedClasses += ic.variables().size();
