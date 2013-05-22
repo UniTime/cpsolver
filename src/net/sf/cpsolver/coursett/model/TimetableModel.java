@@ -1,6 +1,7 @@
 package net.sf.cpsolver.coursett.model;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.HashMap;
@@ -15,6 +16,7 @@ import net.sf.cpsolver.coursett.constraint.DepartmentSpreadConstraint;
 import net.sf.cpsolver.coursett.constraint.GroupConstraint;
 import net.sf.cpsolver.coursett.constraint.InstructorConstraint;
 import net.sf.cpsolver.coursett.constraint.JenrlConstraint;
+import net.sf.cpsolver.coursett.constraint.FlexibleConstraint;
 import net.sf.cpsolver.coursett.constraint.RoomConstraint;
 import net.sf.cpsolver.coursett.constraint.SpreadConstraint;
 import net.sf.cpsolver.coursett.constraint.WeakeningConstraint;
@@ -22,6 +24,7 @@ import net.sf.cpsolver.coursett.criteria.BackToBackInstructorPreferences;
 import net.sf.cpsolver.coursett.criteria.BrokenTimePatterns;
 import net.sf.cpsolver.coursett.criteria.DepartmentBalancingPenalty;
 import net.sf.cpsolver.coursett.criteria.DistributionPreferences;
+import net.sf.cpsolver.coursett.criteria.FlexibleConstraintCriterion;
 import net.sf.cpsolver.coursett.criteria.Perturbations;
 import net.sf.cpsolver.coursett.criteria.RoomPreferences;
 import net.sf.cpsolver.coursett.criteria.RoomViolations;
@@ -82,8 +85,10 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
     private List<SpreadConstraint> iSpreadConstraints = new ArrayList<SpreadConstraint>();
     private List<GroupConstraint> iGroupConstraints = new ArrayList<GroupConstraint>();
     private List<ClassLimitConstraint> iClassLimitConstraints = new ArrayList<ClassLimitConstraint>();
+    private List<FlexibleConstraint> iFlexibleConstraints = new ArrayList<FlexibleConstraint>();
     private DataProperties iProperties = null;
     private int iYear = -1;
+    private List<BitSet> iWeeks = null;
 
     private HashSet<Student> iAllStudents = new HashSet<Student>();
     
@@ -118,7 +123,8 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
                 DeltaTimePreference.class.getName() + ";" +
                 HardConflicts.class.getName() + ";" +
                 PotentialHardConflicts.class.getName() + ";" +
-                WeightedHardConflicts.class.getName());
+                FlexibleConstraintCriterion.class.getName() + ";" +
+                WeightedHardConflicts.class.getName());                
         // Interactive mode -- count time / room violations
         if (properties.getPropertyBoolean("General.InteractiveMode", false))
             criteria += ";" + TimeViolations.class.getName() + ";" + RoomViolations.class.getName();
@@ -296,6 +302,8 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
             iClassLimitConstraints.add((ClassLimitConstraint) constraint);
         } else if (constraint instanceof GroupConstraint) {
             iGroupConstraints.add((GroupConstraint) constraint);
+        } else if (constraint instanceof FlexibleConstraint) {
+            iFlexibleConstraints.add((FlexibleConstraint) constraint);
         }
     }
 
@@ -316,6 +324,8 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
             iClassLimitConstraints.remove(constraint);
         } else if (constraint instanceof GroupConstraint) {
             iGroupConstraints.remove(constraint);
+        } else if (constraint instanceof FlexibleConstraint) {
+            iFlexibleConstraints.remove(constraint);
         }
     }
 
@@ -351,6 +361,11 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
     public List<ClassLimitConstraint> getClassLimitConstraints() {
         return iClassLimitConstraints;
     }
+    
+    public List<FlexibleConstraint> getFlexibleConstraints() {
+        return iFlexibleConstraints;
+    }
+    
     @Override
     public double getTotalValue() {
         double ret = 0;
@@ -432,5 +447,43 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
             if (constraint instanceof WeakeningConstraint)
                 ((WeakeningConstraint)constraint).weaken(value);
         }
+    }
+    
+    /**
+     * The method creates date patterns (bitsets) which represent the weeks of a
+     * semester.
+     *      
+     * @return a list of BitSets which represents the weeks of a semester.
+     */
+    public List<BitSet> getWeeks() {
+        if (iWeeks == null) {
+            String defaultDatePattern = getProperties().getProperty("DatePattern.CustomDatePattern", null);
+            if (defaultDatePattern == null){                
+                defaultDatePattern = getProperties().getProperty("DatePattern.Default");
+            }
+            if (defaultDatePattern == null) return null;
+            
+            // Create default date pattern
+            BitSet fullTerm = new BitSet(defaultDatePattern.length());
+            for (int i = 0; i < defaultDatePattern.length(); i++) {
+                if (defaultDatePattern.charAt(i) == 49) {
+                    fullTerm.set(i);
+                }
+            }
+            
+            // Cut date pattern into weeks (every week contains 7 positive bits)
+            iWeeks = new ArrayList<BitSet>();
+            int cnt = 0;
+            for (int i = 0; i < fullTerm.length(); i++) {
+                if (fullTerm.get(i)) {
+                    int w = (cnt++) / 7;
+                    if (iWeeks.size() == w) {
+                        iWeeks.add(new BitSet(fullTerm.length()));
+                    }
+                    iWeeks.get(w).set(i);
+                }
+            }
+        }
+        return iWeeks;            
     }
 }

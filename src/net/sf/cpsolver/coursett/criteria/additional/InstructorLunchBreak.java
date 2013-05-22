@@ -1,6 +1,5 @@
 package net.sf.cpsolver.coursett.criteria.additional;
 
-import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashMap;
@@ -23,7 +22,7 @@ import net.sf.cpsolver.ifs.solver.Solver;
  * instructors. The criteria are checked and updated when a variable is
  * (un)assigned.
  * <br>
- * implemented criteria: lunch break
+ * implemented criterion: lunch break
  * <br>
  * @version CourseTT 1.2 (University Course Timetabling)<br>
  *          Copyright (C) 2012 Matej Lukac<br>
@@ -42,16 +41,16 @@ import net.sf.cpsolver.ifs.solver.Solver;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class CompactTimetable extends AbstractCriterion<Lecture, Placement> {
+public class InstructorLunchBreak extends AbstractCriterion<Lecture, Placement> {
     // lunch attributes
-    private double iMultiplier, iLunchWeight;
+    private double iMultiplier;
     private int iLunchStart, iLunchEnd, iLunchLength;
-    private boolean iCheckLunchBreak, iFullInfo;
+    private boolean iFullInfo;
     private List<BitSet> iWeeks = null;
     
     private Map<InstructorConstraint, CompactInfo> iCompactInfos = new HashMap<InstructorConstraint, CompactInfo>();
 
-    public CompactTimetable() {
+    public InstructorLunchBreak() {
         iValueUpdateType = ValueUpdateType.NoUpdate;
     }
 
@@ -59,16 +58,14 @@ public class CompactTimetable extends AbstractCriterion<Lecture, Placement> {
     public boolean init(Solver<Lecture, Placement> solver) {
         super.init(solver);
 
-        iWeight = solver.getProperties().getPropertyDouble("CompactTimetable.Weight", 1.0d);
+        iWeight = solver.getProperties().getPropertyDouble("InstructorLunch.Weight", 0.3d);
 
         // lunch parameters
         iLunchStart = solver.getProperties().getPropertyInt("InstructorLunch.StartSlot", (11 * 60) / 5);
         iLunchEnd = solver.getProperties().getPropertyInt("InstructorLunch.EndSlot", (13 * 60 + 30) / 5);
         iLunchLength = solver.getProperties().getPropertyInt("InstructorLunch.Length", 30 / 5);
-        iMultiplier = solver.getProperties().getPropertyDouble("InstructorLunch.Multiplier", 1.35d);
-        iLunchWeight = solver.getProperties().getPropertyDouble("InstructorLunch.Weight", 0.3d);
-        iCheckLunchBreak = solver.getProperties().getPropertyBoolean("InstructorLunch.Enabled", true);
-        iFullInfo = solver.getProperties().getPropertyBoolean("InstructorLunch.InfoShowViolations", true);
+        iMultiplier = solver.getProperties().getPropertyDouble("InstructorLunch.Multiplier", 1.2d);
+        iFullInfo = solver.getProperties().getPropertyBoolean("InstructorLunch.InfoShowViolations", false);
 
         return true;
     }
@@ -110,33 +107,12 @@ public class CompactTimetable extends AbstractCriterion<Lecture, Placement> {
      * The method creates date patterns (bitsets) which represent the weeks of a
      * semester.
      * 
-     * @param s
-     *            default date pattern as combination of "0" and "1".
      * @return a list of BitSets which represents the weeks of a semester.
      */
     protected List<BitSet> getWeeks() {
         if (iWeeks == null) {
-            String defaultDatePattern = ((TimetableModel)getModel()).getProperties().getProperty("DatePattern.Default");
-            if (defaultDatePattern == null) return null;
-            // Create default date pattern
-            BitSet fullTerm = new BitSet(defaultDatePattern.length());
-            for (int i = 0; i < defaultDatePattern.length(); i++) {
-                if (defaultDatePattern.charAt(i) == 49) {
-                    fullTerm.set(i);
-                }
-            }
-            // Cut date pattern into weeks (every week contains 7 positive bits)
-            iWeeks = new ArrayList<BitSet>();
-            int cnt = 0;
-            for (int i = 0; i < fullTerm.length(); i++) {
-                if (fullTerm.get(i)) {
-                    int w = (cnt++) / 7;
-                    if (iWeeks.size() == w) {
-                        iWeeks.add(new BitSet(fullTerm.length()));
-                    }
-                    iWeeks.get(w).set(i);
-                }
-            }
+            TimetableModel model = (TimetableModel) getModel();
+            iWeeks = model.getWeeks();
         }
         return iWeeks;            
     }
@@ -201,13 +177,10 @@ public class CompactTimetable extends AbstractCriterion<Lecture, Placement> {
      * @param placement
      *            placement of a lecture currently (un)assigned
      */
-    public void updateCriterion(InstructorConstraint instructorConstraint, Placement placement) {
-        // manage lunch criterion
-        if (iCheckLunchBreak) {
-            iValue -= getLunchPreference(instructorConstraint) * iLunchWeight;
+    public void updateCriterion(InstructorConstraint instructorConstraint, Placement placement) {        
+            iValue -= getLunchPreference(instructorConstraint);
             updateLunchPenalty(instructorConstraint, placement);
-            iValue += getLunchPreference(instructorConstraint) * iLunchWeight;
-        }
+            iValue += getLunchPreference(instructorConstraint);       
     }
     
     /**
@@ -249,20 +222,7 @@ public class CompactTimetable extends AbstractCriterion<Lecture, Placement> {
         for (InstructorConstraint instructor : constraints) {
             lunchValue += getLunchPreference(instructor);
         }
-        return lunchValue * iLunchWeight;
-    }
-
-    @Override
-    public double getWeightedValue(Collection<Lecture> variables) {
-        double lunchValue = 0.0d;
-        Set<InstructorConstraint> constraints = new HashSet<InstructorConstraint>();
-        for (Lecture lecture : variables) {
-            constraints.addAll(lecture.getInstructorConstraints());
-        }
-        for (InstructorConstraint instructor : constraints) {
-            lunchValue += getLunchPreference(instructor);
-        }
-        return lunchValue * iLunchWeight * iWeight;
+        return lunchValue;
     }
 
     @Override
@@ -321,15 +281,15 @@ public class CompactTimetable extends AbstractCriterion<Lecture, Placement> {
             if (iFullInfo && !violatedLunchBreaks.isEmpty()) {
                 String message = "";
                 for (String s: violatedLunchBreaks)
-                    message += (message.isEmpty() ? "" : "<br>") + s;
+                    message += (message.isEmpty() ? "" : "; ") + s;
                 info.put("Lunch break violations", message);
             }
         }
     }
     
     /**
-     * The class is used as a container of information concerning compact
-     * timetables of instructors. It is designed as an attribute of an
+     * The class is used as a container of information concerning lunch break
+     * of instructors. It is designed as an attribute of an
      * InstructorConstraint.
      */
     public static class CompactInfo {

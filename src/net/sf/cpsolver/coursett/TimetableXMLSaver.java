@@ -18,6 +18,7 @@ import java.util.TreeSet;
 
 import net.sf.cpsolver.coursett.constraint.ClassLimitConstraint;
 import net.sf.cpsolver.coursett.constraint.DiscouragedRoomConstraint;
+import net.sf.cpsolver.coursett.constraint.FlexibleConstraint;
 import net.sf.cpsolver.coursett.constraint.GroupConstraint;
 import net.sf.cpsolver.coursett.constraint.IgnoreStudentConflictsConstraint;
 import net.sf.cpsolver.coursett.constraint.InstructorConstraint;
@@ -130,6 +131,8 @@ public class TimetableXMLSaver extends TimetableSaver {
 
     public TimetableXMLSaver(Solver<Lecture, Placement> solver) {
         super(solver);
+        
+        
         iOutputFolder = new File(getModel().getProperties().getProperty("General.Output",
                 "." + File.separator + "output"));
         iShowNames = getModel().getProperties().getPropertyBoolean("Xml.ShowNames", false);
@@ -441,7 +444,7 @@ public class TimetableXMLSaver extends TimetableSaver {
             for (Lecture l : gc.variables()) {
                 grEl.addElement("class").addAttribute("id", getId("class", l.getClassId()));
             }
-        }
+        }       
         for (SpreadConstraint spread : getModel().getSpreadConstraints()) {
             Element grEl = grConstraintsEl.addElement("constraint").addAttribute("id",
                     getId("gr", String.valueOf(spread.getId())));
@@ -496,6 +499,17 @@ public class TimetableXMLSaver extends TimetableSaver {
                 grEl.addAttribute("name", clc.getName());
             for (Lecture l : clc.variables()) {
                 grEl.addElement("class").addAttribute("id", getId("class", l.getClassId()));
+            }
+        }
+        for (FlexibleConstraint gc : getModel().getFlexibleConstraints()) {
+            Element flEl = grConstraintsEl.addElement("constraint").addAttribute("id",
+                    getId("gr", String.valueOf(gc.getId())));
+            flEl.addAttribute("reference", gc.getReference());
+            flEl.addAttribute("owner", gc.getOwner());
+            flEl.addAttribute("pref", gc.getPrologPreference());  
+            flEl.addAttribute("type", gc.getType().toString());  
+            for (Lecture l : gc.variables()) {
+                flEl.addElement("class").addAttribute("id", getId("class", l.getClassId()));
             }
         }
 

@@ -13,6 +13,7 @@ import java.util.Set;
 import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.constraint.ClassLimitConstraint;
 import net.sf.cpsolver.coursett.constraint.DepartmentSpreadConstraint;
+import net.sf.cpsolver.coursett.constraint.FlexibleConstraint;
 import net.sf.cpsolver.coursett.constraint.GroupConstraint;
 import net.sf.cpsolver.coursett.constraint.IgnoreStudentConflictsConstraint;
 import net.sf.cpsolver.coursett.constraint.InstructorConstraint;
@@ -87,6 +88,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
     private Set<GroupConstraint> iGroupConstraints = new HashSet<GroupConstraint>();
     private Set<GroupConstraint> iHardGroupSoftConstraints = new HashSet<GroupConstraint>();
     private Set<GroupConstraint> iCanShareRoomGroupConstraints = new HashSet<GroupConstraint>();
+    private Set<FlexibleConstraint> iFlexibleGroupConstraints = new HashSet<FlexibleConstraint>();    
 
     public boolean iCommitted = false;
 
@@ -626,6 +628,9 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
 
         if (constraint instanceof WeakeningConstraint)
             iWeakeningConstraints.add(constraint);
+        
+        if (constraint instanceof FlexibleConstraint)
+            iFlexibleGroupConstraints.add((FlexibleConstraint) constraint);
 
         if (constraint instanceof JenrlConstraint) {
             JenrlConstraint jenrl = (JenrlConstraint) constraint;
@@ -666,6 +671,9 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
 
         if (constraint instanceof WeakeningConstraint)
             iWeakeningConstraints.remove(constraint);
+        
+        if (constraint instanceof FlexibleConstraint)
+            iFlexibleGroupConstraints.remove(constraint);
 
         if (constraint instanceof JenrlConstraint) {
             JenrlConstraint jenrl = (JenrlConstraint) constraint;
@@ -829,6 +837,10 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
 
     public Set<SpreadConstraint> getSpreadConstraints() {
         return iSpreadConstraints;
+    }
+    
+    public Set<FlexibleConstraint> getFlexibleGroupConstraints() {
+        return iFlexibleGroupConstraints;
     }
 
     public Set<Constraint<Lecture, Placement>> getWeakeningConstraints() {
