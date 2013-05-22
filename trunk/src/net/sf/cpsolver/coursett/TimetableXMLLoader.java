@@ -18,6 +18,7 @@ import java.util.Set;
 import net.sf.cpsolver.coursett.constraint.ClassLimitConstraint;
 import net.sf.cpsolver.coursett.constraint.DepartmentSpreadConstraint;
 import net.sf.cpsolver.coursett.constraint.DiscouragedRoomConstraint;
+import net.sf.cpsolver.coursett.constraint.FlexibleConstraint.FlexibleConstraintType;
 import net.sf.cpsolver.coursett.constraint.GroupConstraint;
 import net.sf.cpsolver.coursett.constraint.IgnoreStudentConflictsConstraint;
 import net.sf.cpsolver.coursett.constraint.InstructorConstraint;
@@ -622,10 +623,25 @@ public class TimetableXMLLoader extends TimetableLoader {
             } else if (IgnoreStudentConflictsConstraint.REFERENCE.equals(grConstraintEl.attributeValue("type"))) {
                 c = new IgnoreStudentConflictsConstraint();
             } else {
-                c = new GroupConstraint(
-                        Long.valueOf(grConstraintEl.attributeValue("id")),
-                        GroupConstraint.ConstraintType.get(grConstraintEl.attributeValue("type")),
-                        grConstraintEl.attributeValue("pref"));
+                try {
+                    FlexibleConstraintType f = FlexibleConstraintType.valueOf(grConstraintEl.attributeValue("type"));
+                    try {
+                        c = f.create(
+                                Long.valueOf(grConstraintEl.attributeValue("id")),
+                                grConstraintEl.attributeValue("owner"),
+                                grConstraintEl.attributeValue("pref"),
+                                grConstraintEl.attributeValue("reference"));
+                    } catch (IllegalArgumentException e) {
+                            iProgress.warn("Failed to create flexible constraint " + grConstraintEl.attributeValue("type") + ": " + e.getMessage(), e);
+                            continue;
+                    }
+                } catch (IllegalArgumentException e) {
+                    // type did not match, continue with group constraint types
+                    c = new GroupConstraint(
+                            Long.valueOf(grConstraintEl.attributeValue("id")),
+                            GroupConstraint.ConstraintType.get(grConstraintEl.attributeValue("type")),
+                            grConstraintEl.attributeValue("pref"));
+                }
             }
             getModel().addConstraint(c);
             for (Iterator<?> i2 = grConstraintEl.elementIterator("class"); i2.hasNext();) {
@@ -639,7 +655,7 @@ public class TimetableXMLLoader extends TimetableLoader {
             grConstraintElements.put(grConstraintEl.attributeValue("id"), grConstraintEl);
             groupConstraints.put(grConstraintEl.attributeValue("id"), c);
             iProgress.incProgress();
-        }
+        }   
 
         iProgress.setPhase("Loading students ...", root.element("students").elements("student").size());
         boolean initialSectioning = true;
