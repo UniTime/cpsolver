@@ -210,7 +210,7 @@
        	<group title="Student Sectioning" packages="net.sf.cpsolver.studentsct*"/>
     	<group title="Examination Timetabling" packages="net.sf.cpsolver.exam*"/>
  	   	<link href="http://java.sun.com/j2se/1.5.0/docs/api/"/>
- 	   	<link href="http://logging.apache.org/log4j/docs/api/"/>
+ 	   	<link href="http://logging.apache.org/log4j/1.2/apidocs/"/>
  	   	<fileset dir="src" includes="**/*.java"/>
     	<packageset dir="src" includes="**/package.html"/>
  	   	<classpath>
