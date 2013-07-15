@@ -78,13 +78,20 @@ public class IdConvertor {
             return newId;
         }
     }
+    
+    /**
+     * Clear id conversion table.
+     */
+    public void clear() {
+        iConversion.clear();
+    }
 
     /**
-     * Save id conversion file. Name of the file needs to be provided by system
-     * property IdConvertor.File
+     * Save id conversion file.
+     * @param file id file to save
      */
-    public void save() {
-        (new File(iFile)).getParentFile().mkdirs();
+    public void save(File file) {
+        file.getParentFile().mkdirs();
         Document document = DocumentHelper.createDocument();
         Element root = document.addElement("id-convertor");
         synchronized (iConversion) {
@@ -100,7 +107,7 @@ public class IdConvertor {
         }
         FileOutputStream fos = null;
         try {
-            fos = new FileOutputStream(iFile);
+            fos = new FileOutputStream(file);
             (new XMLWriter(fos, OutputFormat.createPrettyPrint())).write(document);
             fos.flush();
             fos.close();
@@ -115,18 +122,25 @@ public class IdConvertor {
             }
         }
     }
-
+    
     /**
-     * Load id conversion file. Name of the file needs to be provided by system
+     * Save id conversion file. Name of the file needs to be provided by system
      * property IdConvertor.File
      */
-    public void load() {
+    public void save() {
+        if (iFile == null)
+            iFile = System.getProperty("IdConvertor.File");
+        if (iFile != null) save(new File(iFile));
+    }
+
+    /**
+     * Load id conversion file.
+     * @param file id file to load
+     */
+    public void load(File file) {
+        if (!file.exists()) return;
         try {
-            if (iFile == null)
-                iFile = System.getProperty("IdConvertor.File", "idconv.xml");
-            if (iFile == null || !(new File(iFile)).exists())
-                return;
-            Document document = (new SAXReader()).read(iFile);
+            Document document = (new SAXReader()).read(file);
             Element root = document.getRootElement();
             synchronized (iConversion) {
                 iConversion.clear();
@@ -143,5 +157,15 @@ public class IdConvertor {
         } catch (Exception e) {
             sLogger.error("Unable to load id conversions, reason: " + e.getMessage(), e);
         }
+    }
+    
+    /**
+     * Load id conversion file. Name of the file needs to be provided by system
+     * property IdConvertor.File
+     */
+    public void load() {
+        if (iFile == null)
+            iFile = System.getProperty("IdConvertor.File");
+        if (iFile != null) load(new File(iFile));
     }
 }
