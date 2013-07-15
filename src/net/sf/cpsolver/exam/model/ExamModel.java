@@ -522,6 +522,7 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
         boolean saveConflictTable = getProperties().getPropertyBoolean("Xml.SaveConflictTable", false);
         boolean saveParams = getProperties().getPropertyBoolean("Xml.SaveParameters", true);
         boolean anonymize = getProperties().getPropertyBoolean("Xml.Anonymize", false);
+        boolean idconv = getProperties().getPropertyBoolean("Xml.ConvertIds", anonymize);
         Document document = DocumentHelper.createDocument();
         document.addComment("Examination Timetable");
         if (nrAssignedVariables() > 0) {
@@ -554,7 +555,7 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
         }
         Element periods = root.addElement("periods");
         for (ExamPeriod period : getPeriods()) {
-            periods.addElement("period").addAttribute("id", getId(anonymize, "period", String.valueOf(period.getId())))
+            periods.addElement("period").addAttribute("id", getId(idconv, "period", String.valueOf(period.getId())))
                     .addAttribute("length", String.valueOf(period.getLength())).addAttribute("day", period.getDayStr())
                     .addAttribute("time", period.getTimeStr()).addAttribute("penalty",
                             String.valueOf(period.getPenalty()));
@@ -562,7 +563,7 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
         Element rooms = root.addElement("rooms");
         for (ExamRoom room : getRooms()) {
             Element r = rooms.addElement("room");
-            r.addAttribute("id", getId(anonymize, "room", String.valueOf(room.getId())));
+            r.addAttribute("id", getId(idconv, "room", String.valueOf(room.getId())));
             if (!anonymize && room.hasName())
                 r.addAttribute("name", room.getName());
             r.addAttribute("size", String.valueOf(room.getSize()));
@@ -572,22 +573,22 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
             for (ExamPeriod period : getPeriods()) {
                 if (!room.isAvailable(period))
                     r.addElement("period").addAttribute("id",
-                            getId(anonymize, "period", String.valueOf(period.getId()))).addAttribute("available",
+                            getId(idconv, "period", String.valueOf(period.getId()))).addAttribute("available",
                             "false");
                 else if (room.getPenalty(period) != 0)
                     r.addElement("period").addAttribute("id",
-                            getId(anonymize, "period", String.valueOf(period.getId()))).addAttribute("penalty",
+                            getId(idconv, "period", String.valueOf(period.getId()))).addAttribute("penalty",
                             String.valueOf(room.getPenalty(period)));
             }
             Map<Long, Integer> travelTimes = getDistanceMetric().getTravelTimes().get(room.getId());
             if (travelTimes != null)
                 for (Map.Entry<Long, Integer> time: travelTimes.entrySet())
-                    r.addElement("travel-time").addAttribute("id", getId(anonymize, "room", time.getKey().toString())).addAttribute("minutes", time.getValue().toString());
+                    r.addElement("travel-time").addAttribute("id", getId(idconv, "room", time.getKey().toString())).addAttribute("minutes", time.getValue().toString());
         }
         Element exams = root.addElement("exams");
         for (Exam exam : variables()) {
             Element ex = exams.addElement("exam");
-            ex.addAttribute("id", getId(anonymize, "exam", String.valueOf(exam.getId())));
+            ex.addAttribute("id", getId(idconv, "exam", String.valueOf(exam.getId())));
             if (!anonymize && exam.hasName())
                 ex.addAttribute("name", exam.getName());
             ex.addAttribute("length", String.valueOf(exam.getLength()));
@@ -605,19 +606,19 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
             if (!anonymize)
                 for (ExamOwner owner : exam.getOwners()) {
                     Element o = ex.addElement("owner");
-                    o.addAttribute("id", getId(anonymize, "owner", String.valueOf(owner.getId())));
+                    o.addAttribute("id", getId(idconv, "owner", String.valueOf(owner.getId())));
                     o.addAttribute("name", owner.getName());
                 }
             for (ExamPeriodPlacement period : exam.getPeriodPlacements()) {
                 Element pe = ex.addElement("period").addAttribute("id",
-                        getId(anonymize, "period", String.valueOf(period.getId())));
+                        getId(idconv, "period", String.valueOf(period.getId())));
                 int penalty = period.getPenalty() - period.getPeriod().getPenalty();
                 if (penalty != 0)
                     pe.addAttribute("penalty", String.valueOf(penalty));
             }
             for (ExamRoomPlacement room : exam.getRoomPlacements()) {
                 Element re = ex.addElement("room").addAttribute("id",
-                        getId(anonymize, "room", String.valueOf(room.getId())));
+                        getId(idconv, "room", String.valueOf(room.getId())));
                 if (room.getPenalty() != 0)
                     re.addAttribute("penalty", String.valueOf(room.getPenalty()));
                 if (room.getMaxPenalty() != 100)
@@ -629,27 +630,27 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
             if (p != null && saveSolution) {
                 Element asg = ex.addElement("assignment");
                 asg.addElement("period").addAttribute("id",
-                        getId(anonymize, "period", String.valueOf(p.getPeriod().getId())));
+                        getId(idconv, "period", String.valueOf(p.getPeriod().getId())));
                 for (ExamRoomPlacement r : p.getRoomPlacements()) {
-                    asg.addElement("room").addAttribute("id", getId(anonymize, "room", String.valueOf(r.getId())));
+                    asg.addElement("room").addAttribute("id", getId(idconv, "room", String.valueOf(r.getId())));
                 }
             }
             p = exam.getInitialAssignment();
             if (p != null && saveInitial) {
                 Element ini = ex.addElement("initial");
                 ini.addElement("period").addAttribute("id",
-                        getId(anonymize, "period", String.valueOf(p.getPeriod().getId())));
+                        getId(idconv, "period", String.valueOf(p.getPeriod().getId())));
                 for (ExamRoomPlacement r : p.getRoomPlacements()) {
-                    ini.addElement("room").addAttribute("id", getId(anonymize, "room", String.valueOf(r.getId())));
+                    ini.addElement("room").addAttribute("id", getId(idconv, "room", String.valueOf(r.getId())));
                 }
             }
             p = exam.getBestAssignment();
             if (p != null && saveBest) {
                 Element ini = ex.addElement("best");
                 ini.addElement("period").addAttribute("id",
-                        getId(anonymize, "period", String.valueOf(p.getPeriod().getId())));
+                        getId(idconv, "period", String.valueOf(p.getPeriod().getId())));
                 for (ExamRoomPlacement r : p.getRoomPlacements()) {
-                    ini.addElement("room").addAttribute("id", getId(anonymize, "room", String.valueOf(r.getId())));
+                    ini.addElement("room").addAttribute("id", getId(idconv, "room", String.valueOf(r.getId())));
                 }
             }
             if (iRoomSharing != null)
@@ -658,55 +659,55 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
         Element students = root.addElement("students");
         for (ExamStudent student : getStudents()) {
             Element s = students.addElement("student");
-            s.addAttribute("id", getId(anonymize, "student", String.valueOf(student.getId())));
+            s.addAttribute("id", getId(idconv, "student", String.valueOf(student.getId())));
             for (Exam ex : student.variables()) {
                 Element x = s.addElement("exam").addAttribute("id",
-                        getId(anonymize, "exam", String.valueOf(ex.getId())));
+                        getId(idconv, "exam", String.valueOf(ex.getId())));
                 if (!anonymize)
                     for (ExamOwner owner : ex.getOwners(student)) {
                         x.addElement("owner").addAttribute("id",
-                                getId(anonymize, "owner", String.valueOf(owner.getId())));
+                                getId(idconv, "owner", String.valueOf(owner.getId())));
                     }
             }
             for (ExamPeriod period : getPeriods()) {
                 if (!student.isAvailable(period))
                     s.addElement("period").addAttribute("id",
-                            getId(anonymize, "period", String.valueOf(period.getId()))).addAttribute("available",
+                            getId(idconv, "period", String.valueOf(period.getId()))).addAttribute("available",
                             "false");
             }
         }
         Element instructors = root.addElement("instructors");
         for (ExamInstructor instructor : getInstructors()) {
             Element i = instructors.addElement("instructor");
-            i.addAttribute("id", getId(anonymize, "instructor", String.valueOf(instructor.getId())));
+            i.addAttribute("id", getId(idconv, "instructor", String.valueOf(instructor.getId())));
             if (!anonymize && instructor.hasName())
                 i.addAttribute("name", instructor.getName());
             for (Exam ex : instructor.variables()) {
                 Element x = i.addElement("exam").addAttribute("id",
-                        getId(anonymize, "exam", String.valueOf(ex.getId())));
+                        getId(idconv, "exam", String.valueOf(ex.getId())));
                 if (!anonymize)
                     for (ExamOwner owner : ex.getOwners(instructor)) {
                         x.addElement("owner").addAttribute("id",
-                                getId(anonymize, "owner", String.valueOf(owner.getId())));
+                                getId(idconv, "owner", String.valueOf(owner.getId())));
                     }
             }
             for (ExamPeriod period : getPeriods()) {
                 if (!instructor.isAvailable(period))
                     i.addElement("period").addAttribute("id",
-                            getId(anonymize, "period", String.valueOf(period.getId()))).addAttribute("available",
+                            getId(idconv, "period", String.valueOf(period.getId()))).addAttribute("available",
                             "false");
             }
         }
         Element distConstraints = root.addElement("constraints");
         for (ExamDistributionConstraint distConstraint : getDistributionConstraints()) {
             Element dc = distConstraints.addElement(distConstraint.getTypeString());
-            dc.addAttribute("id", getId(anonymize, "constraint", String.valueOf(distConstraint.getId())));
+            dc.addAttribute("id", getId(idconv, "constraint", String.valueOf(distConstraint.getId())));
             if (!distConstraint.isHard()) {
                 dc.addAttribute("hard", "false");
                 dc.addAttribute("weight", String.valueOf(distConstraint.getWeight()));
             }
             for (Exam exam : distConstraint.variables()) {
-                dc.addElement("exam").addAttribute("id", getId(anonymize, "exam", String.valueOf(exam.getId())));
+                dc.addElement("exam").addAttribute("id", getId(idconv, "exam", String.valueOf(exam.getId())));
             }
         }
         if (saveConflictTable) {
@@ -716,10 +717,10 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
                     int nrExams = student.getExams(period).size();
                     if (nrExams > 1) {
                         Element dir = conflicts.addElement("direct").addAttribute("student",
-                                getId(anonymize, "student", String.valueOf(student.getId())));
+                                getId(idconv, "student", String.valueOf(student.getId())));
                         for (Exam exam : student.getExams(period)) {
                             dir.addElement("exam").addAttribute("id",
-                                    getId(anonymize, "exam", String.valueOf(exam.getId())));
+                                    getId(idconv, "exam", String.valueOf(exam.getId())));
                         }
                     }
                     if (nrExams > 0) {
@@ -728,11 +729,11 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
                             for (Exam ex1 : student.getExams(period)) {
                                 for (Exam ex2 : student.getExams(period.next())) {
                                     Element btb = conflicts.addElement("back-to-back").addAttribute("student",
-                                            getId(anonymize, "student", String.valueOf(student.getId())));
+                                            getId(idconv, "student", String.valueOf(student.getId())));
                                     btb.addElement("exam").addAttribute("id",
-                                            getId(anonymize, "exam", String.valueOf(ex1.getId())));
+                                            getId(idconv, "exam", String.valueOf(ex1.getId())));
                                     btb.addElement("exam").addAttribute("id",
-                                            getId(anonymize, "exam", String.valueOf(ex2.getId())));
+                                            getId(idconv, "exam", String.valueOf(ex2.getId())));
                                     if (getBackToBackDistance() >= 0) {
                                         double dist = (ex1.getAssignment()).getDistanceInMeters(ex2.getAssignment());
                                         if (dist > 0)
@@ -746,10 +747,10 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
                         int nrExamsADay = student.getExamsADay(period.getDay()).size();
                         if (nrExamsADay > 2) {
                             Element mt2 = conflicts.addElement("more-2-day").addAttribute("student",
-                                    getId(anonymize, "student", String.valueOf(student.getId())));
+                                    getId(idconv, "student", String.valueOf(student.getId())));
                             for (Exam exam : student.getExamsADay(period.getDay())) {
                                 mt2.addElement("exam").addAttribute("id",
-                                        getId(anonymize, "exam", String.valueOf(exam.getId())));
+                                        getId(idconv, "exam", String.valueOf(exam.getId())));
                             }
                         }
                     }
