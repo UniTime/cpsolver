@@ -572,6 +572,9 @@ public class TimetableXMLSaver extends TimetableSaver {
                     stEl.addElement("class").addAttribute("id", getId("class", placement.variable().getClassId()));
                 }
             }
+            
+            if (student.getInstructor() != null)
+                stEl.addAttribute("instructor", getId("inst", student.getInstructor().getResourceId()));
         }
 
         if (getModel().getProperties().getPropertyInt("MPP.GenTimePert", 0) > 0) {

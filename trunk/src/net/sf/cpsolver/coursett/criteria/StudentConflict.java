@@ -8,6 +8,7 @@ import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.constraint.JenrlConstraint;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
+import net.sf.cpsolver.coursett.model.Student;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.coursett.model.TimetableModel;
 import net.sf.cpsolver.ifs.solver.Solver;
@@ -199,7 +200,7 @@ public class StudentConflict extends TimetablingCriterion {
         return bounds;
     }
     
-    public void incJenrl(JenrlConstraint jenrl, double studentWeight, Double conflictPriority) {
+    public void incJenrl(JenrlConstraint jenrl, double studentWeight, Double conflictPriority, Student student) {
         if (inConflict(jenrl.first().getAssignment(), jenrl.second().getAssignment()))
             iValue += studentWeight;
     }
