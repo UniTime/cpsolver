@@ -12,14 +12,19 @@ import net.sf.cpsolver.ifs.criteria.Criterion;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
- * Important student conflicts. Some student conflicts can be counted differently,
- * using Comparator.ImportantStudentConflictWeight. Importance of a conflict is
- * defined by the student - offering request priority {@link Student#getPriority(Long)}.
+ * Instructor student conflicts. This criterion penalizes cases when an instructor (of a class) is attending some 
+ * other class as a student and there is a conflict between the two classes.
+ * <br>
+ * To enable instructor student conflicts, set solver parameter Global.LoadStudentInstructorConflicts to true. Also
+ * student course requests should be used in this case (to be able to match an instructor external id to a student 
+ * external id).
+ * <br>
+ * Instructor student conflicts are weighted by Comparator.InstructorStudentConflictWeight.
  *   
  * <br>
  * 
  * @version CourseTT 1.2 (University Course Timetabling)<br>
- *          Copyright (C) 2006 - 2011 Tomas Muller<br>
+ *          Copyright (C) 2006 - 2013 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>
  * <br>
@@ -37,38 +42,51 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class ImportantStudentConflict extends StudentConflict {
+public class InstructorStudentConflict extends StudentConflict {
     
+    /**
+     * Only count students that are instructors assigned to one of the two classes and enrolled in the other.
+     */
     @Override
     protected double jointEnrollment(JenrlConstraint jenrl) {
-        return jenrl.priority();
+        double ret = 0.0;
+        for (Student student: jenrl.getInstructors())
+            ret += student.getJenrlWeight(jenrl.first(), jenrl.second());
+        return ret;
     }
     
     @Override
     public boolean inConflict(Placement p1, Placement p2) {
-        return super.inConflict(p1, p2) && important(p1, p2); 
+        return super.inConflict(p1, p2) && instructor(p1, p2); 
     }
     
-    public boolean important(Placement p1, Placement p2) {
+    /**
+     * True if there is at least one student teaching one of the two placements and enrolled in the other.
+     */
+    public boolean instructor(Placement p1, Placement p2) {
         JenrlConstraint jenrl = (p1 == null || p2 == null ? null : p1.variable().jenrlConstraint(p2.variable()));
-        return jenrl != null && jenrl.priority() > 0.0; 
+        if (jenrl == null) return false;
+        return jenrl.getNrInstructors() > 0;
     }
     
+    /**
+     * 
+     */
     @Override
     public void incJenrl(JenrlConstraint jenrl, double studentWeight, Double conflictPriority, Student student) {
-        if (super.inConflict(jenrl.first().getAssignment(), jenrl.second().getAssignment()) && conflictPriority != null)
-            iValue += studentWeight * conflictPriority;
+        if (super.inConflict(jenrl.first().getAssignment(), jenrl.second().getAssignment()) && student.getInstructor() != null
+                && (student.getInstructor().variables().contains(jenrl.first()) || student.getInstructor().variables().contains(jenrl.second())))
+            iValue += studentWeight; 
     }
     
     @Override
     public double getWeightDefault(DataProperties config) {
-        return config.getPropertyDouble("Comparator.ImportantStudentConflictWeight",
-                3.0 * config.getPropertyDouble("Comparator.StudentConflictWeight", 1.0));
+        return config.getPropertyDouble("Comparator.InstructorStudentConflictWeight", 10.0 * config.getPropertyDouble("Comparator.StudentConflictWeight", 1.0));
     }
     
     @Override
     public String getPlacementSelectionWeightName() {
-        return "Placement.NrImportantStudConfsWeight";
+        return "Placement.NrInstructorStudConfsWeight";
     }
 
     @Override
@@ -76,9 +94,9 @@ public class ImportantStudentConflict extends StudentConflict {
         super.getInfo(info);
         double conf = getValue();
         if (conf > 0.0) {
-            Criterion<Lecture, Placement> c = getModel().getCriterion(ImportantStudentHardConflict.class);
+            Criterion<Lecture, Placement> c = getModel().getCriterion(InstructorStudentHardConflict.class);
             double hard = (c == null ? 0.0 : c.getValue());
-            info.put("Important student conflicts", sDoubleFormat.format(conf) + (hard > 0.0 ? " [hard: " + sDoubleFormat.format(hard) + "]" : ""));
+            info.put("Instructor student conflicts", sDoubleFormat.format(conf) + (hard > 0.0 ? " [hard: " + sDoubleFormat.format(hard) + "]" : ""));
         }
     }
     
@@ -87,9 +105,9 @@ public class ImportantStudentConflict extends StudentConflict {
         super.getInfo(info, variables);
         double conf = getValue(variables);
         if (conf > 0.0) {
-            Criterion<Lecture, Placement> c = getModel().getCriterion(ImportantStudentHardConflict.class);
+            Criterion<Lecture, Placement> c = getModel().getCriterion(InstructorStudentHardConflict.class);
             double hard = (c == null ? 0.0 : c.getValue(variables));
-            info.put("Important student conflicts", sDoubleFormat.format(conf) + (hard > 0.0 ? " [hard: " + sDoubleFormat.format(hard) + "]" : ""));
+            info.put("Instructor student conflicts", sDoubleFormat.format(conf) + (hard > 0.0 ? " [hard: " + sDoubleFormat.format(hard) + "]" : ""));
         }
     }
 

@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import net.sf.cpsolver.coursett.constraint.InstructorConstraint;
 import net.sf.cpsolver.coursett.constraint.JenrlConstraint;
 
 /**
@@ -42,6 +43,7 @@ public class Student implements Comparable<Student> {
     HashSet<Placement> iCommitedPlacements = null;
     private String iAcademicArea = null, iAcademicClassification = null, iMajor = null, iCurriculum = null;
     HashMap<Long, Double> iOfferingPriority = new HashMap<Long, Double>();
+    private InstructorConstraint iInstructor = null;
 
     public Student(Long studentId) {
         iStudentId = studentId;
@@ -67,6 +69,10 @@ public class Student implements Comparable<Student> {
     public boolean hasOffering(Long offeringId) {
         return iOfferings.containsKey(offeringId);
     }
+    
+    public InstructorConstraint getInstructor() { return iInstructor; }
+    
+    public void setInstructor(InstructorConstraint instructor) { iInstructor = instructor; }
     
     /**
      * Priority of an offering (for the student). Null if not used, or between
@@ -100,6 +106,12 @@ public class Student implements Comparable<Student> {
     public double getOfferingWeight(Long offeringId) {
         Double weight = iOfferings.get(offeringId);
         return (weight == null ? 0.0 : weight.doubleValue());
+    }
+    
+    public boolean canUnenroll(Lecture lecture) {
+        if (getInstructor() != null)
+            return !getInstructor().variables().contains(lecture);
+        return true;
     }
 
     public boolean canEnroll(Lecture lecture) {
@@ -281,6 +293,8 @@ public class Student implements Comparable<Student> {
     }
 
     public double getJenrlWeight(Lecture l1, Lecture l2) {
+        if (getInstructor() != null && (getInstructor().variables().contains(l1) || getInstructor().variables().contains(l2)))
+            return 1.0;
         return avg(getOfferingWeight(l1.getConfiguration()), getOfferingWeight(l2.getConfiguration()));
     }
 
