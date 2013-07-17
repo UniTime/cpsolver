@@ -170,7 +170,7 @@ public class FinalSectioning implements Runnable {
         if (lecture.sameSubpartLectures().size() > 1) {
             for (Student student : conflictStudents) {
                 if (lecture.getAssignment() == null)
-                    continue;
+                	continue;
                 Move m = findMove(lecture, student);
                 if (m != null) {
                     if (m.perform())
@@ -194,7 +194,7 @@ public class FinalSectioning implements Runnable {
         for (Student student : configuration.students()) {
             if (!configuration.hasConflict(student))
                 continue;
-
+            
             MoveBetweenCfgs m = findMove(configuration, student);
 
             if (m != null) {
@@ -208,6 +208,8 @@ public class FinalSectioning implements Runnable {
         List<Move> bestMoves = null;
         double bestDelta = 0;
         for (Student student : lecture.students()) {
+            if (!student.canUnenroll(lecture))
+                continue;
             for (Lecture sameLecture : lecture.sameSubpartLectures()) {
                 double studentWeight = student.getOfferingWeight(sameLecture.getConfiguration());
                 if (!student.canEnroll(sameLecture))
@@ -242,6 +244,7 @@ public class FinalSectioning implements Runnable {
     }
 
     public Move findMove(Lecture lecture, Student student) {
+        if (!student.canUnenroll(lecture)) return null;
         double bestDelta = 0;
         List<Move> bestMoves = null;
         double studentWeight = student.getOfferingWeight(lecture.getConfiguration());
@@ -269,9 +272,9 @@ public class FinalSectioning implements Runnable {
                 }
             }
             for (Student anotherStudent : sameLecture.students()) {
-                double anotherStudentWeight = anotherStudent.getOfferingWeight(lecture.getConfiguration());
-                if (!anotherStudent.canEnroll(lecture))
+                if (!anotherStudent.canUnenroll(sameLecture) || !anotherStudent.canEnroll(lecture))
                     continue;
+                double anotherStudentWeight = anotherStudent.getOfferingWeight(lecture.getConfiguration());
                 if (anotherStudentWeight != studentWeight) {
                     if (sameLecture.nrWeightedStudents() - anotherStudentWeight + studentWeight > sEps
                             + sameLecture.classLimit())
@@ -331,9 +334,10 @@ public class FinalSectioning implements Runnable {
                 }
             }
 
-            for (Student anotherStudent : config.students()) {
+            for (Student anotherStudent : altConfig.students()) {
                 if (bestDelta < -sEps && bestMoves != null && bestMoves.size() > 10)
                     break;
+
                 m = createMove(config, student, altConfig, anotherStudent);
                 if (m != null && !m.isTabu()) {
                     double delta = m.getDelta();
@@ -364,9 +368,9 @@ public class FinalSectioning implements Runnable {
     }
 
     public Move createMove(Lecture firstLecture, Student firstStudent, Lecture secondLecture, Student secondStudent, Move parentMove) {
-        if (!firstStudent.canEnroll(secondLecture))
+        if (!firstStudent.canUnenroll(firstLecture) || !firstStudent.canEnroll(secondLecture))
             return null;
-        if (secondStudent != null && !secondStudent.canEnroll(firstLecture))
+        if (secondStudent != null && (!secondStudent.canUnenroll(secondLecture) || !secondStudent.canEnroll(firstLecture)))
             return null;
         if (firstLecture.getParent() != null && secondLecture.getParent() == null)
             return null;
@@ -389,7 +393,7 @@ public class FinalSectioning implements Runnable {
                     if (p2.nrWeightedStudents() - w2 + w1 > sEps + p2.classLimit())
                         return null;
                 }
-                if (firstStudent.canEnroll(p1) && (secondStudent == null || secondStudent.canEnroll(p2))) {
+                if (firstStudent.canUnenroll(p2) && firstStudent.canEnroll(p1) && (secondStudent == null || (secondStudent.canUnenroll(p1) && secondStudent.canEnroll(p2)))) {
                     move.addChildMove(new Move(p1, firstStudent, p2, secondStudent));
                 } else {
                     return null;
@@ -693,6 +697,7 @@ public class FinalSectioning implements Runnable {
             for (Lecture l : lectures) {
                 if (l.students().contains(student)) {
                     lecture = l;
+                    if (!student.canUnenroll(lecture)) return false;
                     break;
                 }
             }

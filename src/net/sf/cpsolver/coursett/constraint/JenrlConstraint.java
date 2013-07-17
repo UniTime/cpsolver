@@ -47,6 +47,7 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> implem
     private double iJenrl = 0.0;
     private double iPriority = 0.0;
     private Set<Student> iStudents = new HashSet<Student>();
+    private Set<Student> iInstructors = new HashSet<Student>();
     private boolean iAdded = false;
     private Double iJenrlLimit = null;
     private double iTwiggle = 0.0;
@@ -148,9 +149,12 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> implem
         Double conflictPriority = student.getConflictingPriorty(first(), second());
         if (conflictPriority != null) iPriority += conflictPriority * jenrlWeight;
         iStudents.add(student);
+        if (student.getInstructor() != null && (student.getInstructor().variables().contains(first()) ||
+                student.getInstructor().variables().contains(second())))
+            iInstructors.add(student);
         for (Criterion<Lecture, Placement> criterion: getModel().getCriteria())
             if (criterion instanceof StudentConflict)
-                ((StudentConflict)criterion).incJenrl(this, jenrlWeight, conflictPriority);
+                ((StudentConflict)criterion).incJenrl(this, jenrlWeight, conflictPriority, student);
         if (!hard && isOverLimit() && first() != null && first().getAssignment() != null && second() != null && second().getAssignment() != null)
             iJenrlLimit += jenrlWeight;
     }
@@ -170,9 +174,10 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> implem
         Double conflictPriority = student.getConflictingPriorty(first(), second());
         if (conflictPriority != null) iPriority -= conflictPriority * jenrlWeight;
         iStudents.remove(student);
+        iInstructors.remove(student);
         for (Criterion<Lecture, Placement> criterion: getModel().getCriteria())
             if (criterion instanceof StudentConflict)
-                ((StudentConflict)criterion).incJenrl(this, -jenrlWeight, conflictPriority);
+                ((StudentConflict)criterion).incJenrl(this, -jenrlWeight, conflictPriority, student);
         if (hard && !isOverLimit()) {
             double maxConflicts = ((TimetableModel)second().getModel()).getProperties().getPropertyDouble("General.JenrlMaxConflicts", 1.0) + iTwiggle;
             if (maxConflicts >= 0.0 && maxConflicts < 1.0) {
@@ -202,6 +207,14 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> implem
     
     public Set<Student> getStudents() {
         return iStudents;
+    }
+    
+    public int getNrInstructors() {
+        return iInstructors.size();
+    }
+    
+    public Set<Student> getInstructors() {
+        return iInstructors;
     }
 
     @Override

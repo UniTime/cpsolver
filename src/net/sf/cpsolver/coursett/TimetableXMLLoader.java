@@ -721,6 +721,9 @@ public class TimetableXMLLoader extends TimetableLoader {
                 else
                     iProgress.warn("Class " + classId + " does not exists, but it is referred from student " + student.getId());
             }
+            
+            if (studentEl.attributeValue("instructor") != null)
+                student.setInstructor(instructorConstraints.get(studentEl.attributeValue("instructor")));
 
             iProgress.incProgress();
         }
@@ -741,8 +744,14 @@ public class TimetableXMLLoader extends TimetableLoader {
                         studentsThisOffering, altConfigs);
                 iProgress.incProgress();
             }
-            for (Student student: students.values())
+            for (Student student: students.values()) {
                 student.clearDistanceCache();
+                if (student.getInstructor() != null)
+                    for (Lecture lecture: student.getInstructor().variables()) {
+                        student.addLecture(lecture);
+                        lecture.addStudent(student);
+                    }
+            }
         }
 
         iProgress.setPhase("Computing jenrl ...", students.size());
