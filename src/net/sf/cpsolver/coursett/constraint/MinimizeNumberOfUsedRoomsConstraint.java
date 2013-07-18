@@ -14,6 +14,7 @@ import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.model.WeakeningConstraint;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -44,7 +45,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class MinimizeNumberOfUsedRoomsConstraint extends Constraint<Lecture, Placement> implements WeakeningConstraint {
+public class MinimizeNumberOfUsedRoomsConstraint extends Constraint<Lecture, Placement> implements WeakeningConstraint<Lecture, Placement> {
     private int iUnassignmentsToWeaken = 250;
     private long iUnassignment = 0;
     private int iLimit = 1;

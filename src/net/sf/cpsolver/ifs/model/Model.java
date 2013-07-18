@@ -501,6 +501,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     }
 
     /** Restore the best ever found assignment into the current assignment */
+    @SuppressWarnings("unchecked")
     protected void restoreBest(Comparator<V> assignmentOrder) {
         TreeSet<V> sortedVariables = new TreeSet<V>(assignmentOrder);
         for (V variable : iVariables) {
@@ -523,16 +524,24 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
                     Set<T> x = new HashSet<T>();
                     c.computeConflicts(variable.getBestAssignment(), x);
                     if (!x.isEmpty()) {
-                        sLogger.error("  constraint " + c.getClass().getName() + " " + c.getName()
-                                + " causes the following conflicts " + x);
+                        if (c instanceof WeakeningConstraint) {
+                            ((WeakeningConstraint<V, T>)c).weaken(variable.getBestAssignment());
+                            sLogger.info("  constraint " + c.getClass().getName() + " " + c.getName() + " had to be weakened");
+                        } else {
+                            sLogger.error("  constraint " + c.getClass().getName() + " " + c.getName() + " causes the following conflicts " + x);
+                        }
                     }
                 }
                 for (GlobalConstraint<V, T> c : globalConstraints()) {
                     Set<T> x = new HashSet<T>();
                     c.computeConflicts(variable.getBestAssignment(), x);
                     if (!x.isEmpty()) {
-                        sLogger.error("  global constraint " + c.getClass().getName() + " " + c.getName()
-                                + " causes the following conflicts " + x);
+                        if (c instanceof WeakeningConstraint) {
+                            ((WeakeningConstraint<V, T>)c).weaken(variable.getBestAssignment());
+                            sLogger.info("  constraint " + c.getClass().getName() + " " + c.getName() + " had to be weakened");
+                        } else {
+                            sLogger.error("  global constraint " + c.getClass().getName() + " " + c.getName() + " causes the following conflicts " + x);
+                        }
                     }
                 }
                 problems.add(variable.getBestAssignment());
@@ -745,5 +754,23 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     /** List all registered criteria */
     public Collection<Criterion<V, T>> getCriteria() {
         return iCriteria.values();
+    }
+    
+    /**
+     * Weaken all weakening constraint so that the given value can be assigned without
+     * them creating a conflict using {@link WeakeningConstraint#weaken(Value)}.
+     * This method is handy for instance when an existing solution is being loaded
+     * into the solver.
+     */
+    @SuppressWarnings("unchecked")
+    public void weaken(T value) {
+        for (Constraint<V, T> constraint : value.variable().hardConstraints()) {
+            if (constraint instanceof WeakeningConstraint)
+                ((WeakeningConstraint<V,T>)constraint).weaken(value);
+        }
+        for (GlobalConstraint<V, T> constraint : globalConstraints()) {
+            if (constraint instanceof WeakeningConstraint)
+                ((WeakeningConstraint<V,T>)constraint).weaken(value);
+        }
     }
 }

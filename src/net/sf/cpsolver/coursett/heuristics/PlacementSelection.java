@@ -5,7 +5,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
-import net.sf.cpsolver.coursett.constraint.WeakeningConstraint;
 import net.sf.cpsolver.coursett.criteria.TimetablingCriterion;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
@@ -15,6 +14,7 @@ import net.sf.cpsolver.ifs.extension.Extension;
 import net.sf.cpsolver.ifs.extension.MacPropagation;
 import net.sf.cpsolver.ifs.heuristics.ValueSelection;
 import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.model.WeakeningConstraint;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
@@ -401,7 +401,7 @@ public class PlacementSelection implements ValueSelection<Lecture, Placement> {
             return null;
         for (Constraint<Lecture, Placement> c : aValue.variable().getWeakeningConstraints()) {
             if (c.inConflict(aValue))
-                ((WeakeningConstraint) c).weaken();
+                ((WeakeningConstraint<?,?>) c).weaken();
         }
         return aValue;
     }
