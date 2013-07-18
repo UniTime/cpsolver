@@ -5,6 +5,7 @@ import java.util.Set;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomSharingModel;
+import net.sf.cpsolver.ifs.model.WeakeningConstraint;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -31,7 +32,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class DiscouragedRoomConstraint extends RoomConstraint implements WeakeningConstraint {
+public class DiscouragedRoomConstraint extends RoomConstraint implements WeakeningConstraint<Lecture, Placement> {
     int iUsage = 0;
     int iLimit = 0;
     boolean iEnabled = false;

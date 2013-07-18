@@ -1,6 +1,4 @@
-package net.sf.cpsolver.coursett.constraint;
-
-import net.sf.cpsolver.coursett.model.Placement;
+package net.sf.cpsolver.ifs.model;
 
 /**
  * Interface of a constraint that weakens with the time.
@@ -25,7 +23,7 @@ import net.sf.cpsolver.coursett.model.Placement;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public interface WeakeningConstraint {
+public interface WeakeningConstraint<V extends Variable<V, T>, T extends Value<V, T>> {
     /**
      * Weaken the constraint. This method is called if the constraint
      * participates in an unassigned of a variable.
@@ -37,5 +35,5 @@ public interface WeakeningConstraint {
      * Weaken the constraint enough so that it can assign the given
      * value.
      */
-    public void weaken(Placement value);
+    public void weaken(T value);
 }
