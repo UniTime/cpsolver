@@ -13,6 +13,7 @@ import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.ifs.criteria.Criterion;
 import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.model.WeakeningConstraint;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
@@ -40,7 +41,7 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class SpreadConstraint extends Constraint<Lecture, Placement> implements WeakeningConstraint {
+public class SpreadConstraint extends Constraint<Lecture, Placement> implements WeakeningConstraint<Lecture, Placement> {
     private int iMaxCourses[][] = null;
     private int iCurrentPenalty = 0;
     private int iMaxAllowedPenalty = 0;

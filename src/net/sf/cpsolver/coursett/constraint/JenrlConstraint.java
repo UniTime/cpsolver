@@ -10,6 +10,7 @@ import net.sf.cpsolver.coursett.model.Student;
 import net.sf.cpsolver.coursett.model.TimetableModel;
 import net.sf.cpsolver.ifs.criteria.Criterion;
 import net.sf.cpsolver.ifs.model.BinaryConstraint;
+import net.sf.cpsolver.ifs.model.WeakeningConstraint;
 import net.sf.cpsolver.ifs.util.DistanceMetric;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
@@ -43,7 +44,7 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> implements WeakeningConstraint {
+public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> implements WeakeningConstraint<Lecture, Placement> {
     private double iJenrl = 0.0;
     private double iPriority = 0.0;
     private Set<Student> iStudents = new HashSet<Student>();
@@ -130,7 +131,7 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> implem
     }
     
     private DistanceMetric getDistanceMetric() {
-        return ((TimetableModel)getModel()).getDistanceMetric();
+        return (getModel() == null ? null : ((TimetableModel)getModel()).getDistanceMetric());
     }
 
     /** True if the given two lectures overlap in time */
@@ -155,8 +156,9 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> implem
         for (Criterion<Lecture, Placement> criterion: getModel().getCriteria())
             if (criterion instanceof StudentConflict)
                 ((StudentConflict)criterion).incJenrl(this, jenrlWeight, conflictPriority, student);
-        if (!hard && isOverLimit() && first() != null && first().getAssignment() != null && second() != null && second().getAssignment() != null)
+        if (!hard && isOverLimit() && isInConflict()) {
             iJenrlLimit += jenrlWeight;
+        }
     }
 
     public double getJenrlWeight(Student student) {
