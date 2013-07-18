@@ -76,7 +76,7 @@
 	<scm>
 		<connection>scm:svn:http://cpsolver.googlecode.com/svn/trunk/</connection>
 		<developerConnection>scm:svn:https://cpsolver.googlecode.com/svn/trunk/</developerConnection>
-		<url>http://code.google.com/p/cpsolver/source</url>
+		<url>http://code.google.com/p/cpsolver/source/browse</url>
 	</scm>
 	
 	<build>
