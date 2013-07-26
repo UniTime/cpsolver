@@ -66,6 +66,11 @@ public interface StudentWeights extends SolutionComparator<Request, Enrollment> 
     public double getTimeOverlapConflictWeight(Enrollment enrollment, TimeOverlapsCounter.Conflict timeOverlap);
     
     /**
+     * Return true if free time requests allow overlaps
+     */
+    public boolean isFreeTimeAllowOverlaps();
+    
+    /**
      * Registered implementation
      */
     public static enum Implementation {

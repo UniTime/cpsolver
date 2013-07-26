@@ -237,5 +237,10 @@ public class OriginalStudentWeights implements StudentWeights {
             }
             System.out.println(cr + ": " + df.format(w[0]) + "  " + df.format(w[1]) + "  " + df.format(w[2]));
         }
-    }    
+    }
+
+    @Override
+    public boolean isFreeTimeAllowOverlaps() {
+        return true;
+    }
 }

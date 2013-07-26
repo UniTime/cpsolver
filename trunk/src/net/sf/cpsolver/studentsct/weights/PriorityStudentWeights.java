@@ -203,6 +203,11 @@ public class PriorityStudentWeights implements StudentWeights {
         return currentSolution.getBestInfo() == null || currentSolution.getModel().getTotalValue() < currentSolution.getBestValue();
     }
     
+    @Override
+    public boolean isFreeTimeAllowOverlaps() {
+        return false;
+    }
+    
     /**
      * Test case -- run to see the weights for a few courses
      */

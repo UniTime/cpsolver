@@ -174,7 +174,7 @@ public class FreeTimeRequest extends Request implements Assignment {
     /** Free time request generally allow overlaps. */
     @Override
     public boolean isAllowOverlap() {
-        return false;
+        return (getModel() == null ? true : ((StudentSectioningModel)getModel()).getStudentWeights().isFreeTimeAllowOverlaps());
     }
     
     /** Sections first, then by {@link FreeTimeRequest#getId()} */
