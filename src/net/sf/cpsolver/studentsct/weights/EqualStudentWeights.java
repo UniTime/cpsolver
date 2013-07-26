@@ -50,7 +50,7 @@ import net.sf.cpsolver.studentsct.model.Subpart;
  */
 
 public class EqualStudentWeights extends PriorityStudentWeights {
-    
+
     public EqualStudentWeights(DataProperties config) {
         super(config);
     }
@@ -76,6 +76,11 @@ public class EqualStudentWeights extends PriorityStudentWeights {
         if (currentSolution.getModel().getBestUnassignedVariables() != unassigned)
             return currentSolution.getModel().getBestUnassignedVariables() > unassigned;
         return currentSolution.getModel().getTotalValue() < currentSolution.getBestValue();
+    }
+    
+    @Override
+    public boolean isFreeTimeAllowOverlaps() {
+        return true;
     }
     
     /**
