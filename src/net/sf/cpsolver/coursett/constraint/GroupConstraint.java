@@ -106,7 +106,7 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  */
 
 public class GroupConstraint extends Constraint<Lecture, Placement> {
-    private Long iId;
+    private Long iConstraintId;
     private int iPreference;
     private ConstraintType iType;
     private boolean iIsRequired;
@@ -717,7 +717,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
      *            "-1", "1", "2" for soft preference)
      */
     public GroupConstraint(Long id, ConstraintType type, String preference) {
-        iId = id;
+        iConstraintId = id;
         iType = type;
         iIsRequired = preference.equals(Constants.sPreferenceRequired);
         iIsProhibited = preference.equals(Constants.sPreferenceProhibited);
@@ -726,12 +726,17 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
 
     /** Constraint id */
     public Long getConstraintId() {
-        return iId;
+        return iConstraintId;
     }
 
     @Override
     public long getId() {
-        return (iId == null ? -1 : iId.longValue());
+        return (iConstraintId == null ? -1 : iConstraintId.longValue());
+    }
+    
+    /** Generated unique id */
+    protected long getGeneratedId() {
+        return iId;
     }
 
     /** ConstraString type (e.g, {@link ConstraintType#SAME_TIME}) */
@@ -1440,5 +1445,9 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         return slots.size();
     }
 
-    
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || !(o instanceof GroupConstraint)) return false;
+        return getGeneratedId() == ((GroupConstraint) o).getGeneratedId();
+    }
 }
