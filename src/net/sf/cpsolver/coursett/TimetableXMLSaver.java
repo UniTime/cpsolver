@@ -310,8 +310,8 @@ public class TimetableXMLSaver extends TimetableSaver {
                     classEl.addAttribute("minClassLimit", String.valueOf(lecture.minClassLimit()));
                     classEl.addAttribute("maxClassLimit", String.valueOf(lecture.maxClassLimit()));
                 }
-                if (lecture.roomToLimitRatio() != 1.0)
-                    classEl.addAttribute("roomToLimitRatio", String.valueOf(lecture.roomToLimitRatio()));
+                if (lecture.roomToLimitRatio() != 1.0f)
+                    classEl.addAttribute("roomToLimitRatio", sStudentWeightFormat.format(lecture.roomToLimitRatio()));
             }
             if (lecture.getNrRooms() != 1)
                 classEl.addAttribute("nrRooms", String.valueOf(lecture.getNrRooms()));
