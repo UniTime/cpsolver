@@ -64,7 +64,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
 
     private int iMinClassLimit;
     private int iMaxClassLimit;
-    private double iRoomToLimitRatio;
+    private float iRoomToLimitRatio;
     private int iNrRooms;
     private int iOrd;
 
@@ -124,7 +124,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         iName = name;
         iMinClassLimit = minClassLimit;
         iMaxClassLimit = maxClassLimit;
-        iRoomToLimitRatio = room2limitRatio;
+        iRoomToLimitRatio = (float)room2limitRatio;
         iNrRooms = nrRooms;
         iSolverGroupId = solverGroupId;
     }

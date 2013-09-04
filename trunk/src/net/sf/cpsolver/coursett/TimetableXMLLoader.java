@@ -484,7 +484,7 @@ public class TimetableXMLLoader extends TimetableLoader {
 
             int minClassLimit = 0;
             int maxClassLimit = 0;
-            double room2limitRatio = 1.0;
+            float room2limitRatio = 1.0f;
             if (!"true".equals(classEl.attributeValue("committed"))) {
                 if (classEl.attributeValue("expectedCapacity") != null) {
                     minClassLimit = maxClassLimit = Integer.parseInt(classEl.attributeValue("expectedCapacity"));
@@ -492,7 +492,7 @@ public class TimetableXMLLoader extends TimetableLoader {
                             .attributeValue("expectedCapacity")));
                     if (minClassLimit == 0)
                         minClassLimit = maxClassLimit = roomCapacity;
-                    room2limitRatio = (minClassLimit == 0 ? 1.0 : ((double) roomCapacity) / minClassLimit);
+                    room2limitRatio = (minClassLimit == 0 ? 1.0f : ((float) roomCapacity) / minClassLimit);
                 } else {
                     if (classEl.attribute("classLimit") != null) {
                         minClassLimit = maxClassLimit = Integer.parseInt(classEl.attributeValue("classLimit"));
@@ -500,7 +500,7 @@ public class TimetableXMLLoader extends TimetableLoader {
                         minClassLimit = Integer.parseInt(classEl.attributeValue("minClassLimit"));
                         maxClassLimit = Integer.parseInt(classEl.attributeValue("maxClassLimit"));
                     }
-                    room2limitRatio = Double.parseDouble(classEl.attributeValue("roomToLimitRatio", "1.0"));
+                    room2limitRatio = Float.parseFloat(classEl.attributeValue("roomToLimitRatio", "1.0"));
                 }
             }
 
