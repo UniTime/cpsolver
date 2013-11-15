@@ -322,6 +322,8 @@ public abstract class Reservation implements Comparable<Reservation> {
     private double getLimitCapNoCache() {
         if (getConfigs().isEmpty()) return -1; // no config -> can be unlimited
         
+        if (canAssignOverLimit()) return -1; // can assign over limit -> no cap
+        
         // config cap
         double cap = 0;
         for (Config config: iConfigs)
