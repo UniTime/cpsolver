@@ -202,9 +202,11 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
      *            output file
      */
     public void save(File outFile) throws Exception {
-        if (outFile == null)
+        if (outFile == null) {
             outFile = new File(iOutputFolder, "solution.xml");
-        outFile.getParentFile().mkdirs();
+        } else if (outFile.getParentFile() != null) {
+            outFile.getParentFile().mkdirs();
+        }
         sLogger.debug("Writting XML data to:" + outFile);
 
         Document document = DocumentHelper.createDocument();
