@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.ConstraintListener;
@@ -823,6 +824,8 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         double disbWeight = 0;
         int disbSections = 0;
         int disb10Sections = 0;
+        int disb10Limit = getProperties().getPropertyInt("Info.ListDisbalancedSections", 0);
+        Set<String> disb10SectionList = (disb10Limit == 0 ? null : new TreeSet<String>()); 
         for (Offering offering: getOfferings()) {
             for (Config config: offering.getConfigs()) {
                 double enrl = config.getEnrollmentWeight(null);
@@ -835,8 +838,11 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
                             double desired = ratio * section.getLimit();
                             disbWeight += Math.abs(section.getEnrollmentWeight(null) - desired);
                             disbSections ++;
-                            if (Math.abs(desired - section.getEnrollmentWeight(null)) >= Math.max(1.0, 0.1 * section.getLimit()))
+                            if (Math.abs(desired - section.getEnrollmentWeight(null)) >= Math.max(1.0, 0.1 * section.getLimit())) {
                                 disb10Sections++;
+                                if (disb10SectionList != null)
+                                	disb10SectionList.add(section.getSubpart().getConfig().getOffering().getName() + " " + section.getSubpart().getName() + " " + section.getName()); 
+                            }
                         }
                     } else {
                         // unlimited sections -> desired size is total enrollment / number of sections
@@ -844,8 +850,11 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
                             double desired = enrl / subpart.getSections().size();
                             disbWeight += Math.abs(section.getEnrollmentWeight(null) - desired);
                             disbSections ++;
-                            if (Math.abs(desired - section.getEnrollmentWeight(null)) >= Math.max(1.0, 0.1 * desired))
+                            if (Math.abs(desired - section.getEnrollmentWeight(null)) >= Math.max(1.0, 0.1 * desired)) {
                                 disb10Sections++;
+                                if (disb10SectionList != null)
+                                	disb10SectionList.add(section.getSubpart().getConfig().getOffering().getName() + " " + section.getSubpart().getName() + " " + section.getName());
+                            }
                         }
                     }
                 }
@@ -854,7 +863,19 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         if (disbSections != 0) {
             info.put("Average disbalance", sDecimalFormat.format(disbWeight / disbSections) +
                     " (" + sDecimalFormat.format(iAssignedCRWeight == 0 ? 0.0 : 100.0 * disbWeight / iAssignedCRWeight) + "%)");
-            info.put("Sections disbalanced by 10% or more", disb10Sections + " (" + sDecimalFormat.format(disbSections == 0 ? 0.0 : 100.0 * disb10Sections / disbSections) + "%)");
+            String list = "";
+            if (disb10SectionList != null) {
+                int i = 0;
+                for (String section: disb10SectionList) {
+                    if (i == disb10Limit) {
+                        list += "<br>...";
+                        break;
+                    }
+                    list += "<br>" + section;
+                    i++;
+                }
+            }
+            info.put("Sections disbalanced by 10% or more", disb10Sections + " (" + sDecimalFormat.format(disbSections == 0 ? 0.0 : 100.0 * disb10Sections / disbSections) + "%)" + list);
         }
         return info;
     }
