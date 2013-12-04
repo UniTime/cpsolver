@@ -70,7 +70,7 @@ import net.sf.cpsolver.studentsct.model.Student;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class CourseConflictTable {
+public class CourseConflictTable implements StudentSectioningReport {
     private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(CourseConflictTable.class);
     private static DecimalFormat sDF = new DecimalFormat("0.000");
 
@@ -300,5 +300,10 @@ public class CourseConflictTable {
                 }
             });
         return csv;
+    }
+    
+    @Override
+    public CSVFile create(DataProperties properties) {
+        return createTable(properties.getPropertyBoolean("lastlike", false), properties.getPropertyBoolean("real", true));
     }
 }

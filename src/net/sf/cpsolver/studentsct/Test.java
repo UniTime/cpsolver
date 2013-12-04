@@ -57,8 +57,11 @@ import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Offering;
 import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Student;
+import net.sf.cpsolver.studentsct.report.SectionConflictTable;
 import net.sf.cpsolver.studentsct.report.CourseConflictTable;
 import net.sf.cpsolver.studentsct.report.DistanceConflictTable;
+import net.sf.cpsolver.studentsct.report.TimeOverlapConflictTable;
+import net.sf.cpsolver.studentsct.report.UnbalancedSectionsTable;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -543,6 +546,26 @@ public class Test {
                     DistanceConflictTable dct = new DistanceConflictTable((StudentSectioningModel) solution.getModel());
                     dct.createTable(true, false).save(new File(outDir, "distances-lastlike.csv"));
                     dct.createTable(false, true).save(new File(outDir, "distances-real.csv"));
+                    
+                    SectionConflictTable sct = new SectionConflictTable((StudentSectioningModel) solution.getModel(), SectionConflictTable.Type.OVERLAPS);
+                    sct.createTable(true, false).save(new File(outDir, "time-conflicts-lastlike.csv"));
+                    sct.createTable(false, true).save(new File(outDir, "time-conflicts-real.csv"));
+                    
+                    SectionConflictTable ust = new SectionConflictTable((StudentSectioningModel) solution.getModel(), SectionConflictTable.Type.UNAVAILABILITIES);
+                    ust.createTable(true, false).save(new File(outDir, "availability-conflicts-lastlike.csv"));
+                    ust.createTable(false, true).save(new File(outDir, "availability-conflicts-real.csv"));
+                    
+                    SectionConflictTable ct = new SectionConflictTable((StudentSectioningModel) solution.getModel(), SectionConflictTable.Type.OVERLAPS_AND_UNAVAILABILITIES);
+                    ct.createTable(true, false).save(new File(outDir, "section-conflicts-lastlike.csv"));
+                    ct.createTable(false, true).save(new File(outDir, "section-conflicts-real.csv"));
+                    
+                    UnbalancedSectionsTable ubt = new UnbalancedSectionsTable((StudentSectioningModel) solution.getModel());
+                    ubt.createTable(true, false).save(new File(outDir, "unbalanced-lastlike.csv"));
+                    ubt.createTable(false, true).save(new File(outDir, "unbalanced-real.csv"));
+                    
+                    TimeOverlapConflictTable toc = new TimeOverlapConflictTable((StudentSectioningModel) solution.getModel());
+                    toc.createTable(true, false).save(new File(outDir, "time-overlaps-lastlike.csv"));
+                    toc.createTable(false, true).save(new File(outDir, "time-overlaps-real.csv"));
                 } catch (IOException e) {
                     sLog.error(e.getMessage(), e);
                 }
