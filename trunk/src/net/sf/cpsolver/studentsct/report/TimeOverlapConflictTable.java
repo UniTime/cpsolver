@@ -3,37 +3,34 @@ package net.sf.cpsolver.studentsct.report;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import net.sf.cpsolver.coursett.model.Placement;
-import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.DataProperties;
-import net.sf.cpsolver.ifs.util.DistanceMetric;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
-import net.sf.cpsolver.studentsct.extension.DistanceConflict;
-import net.sf.cpsolver.studentsct.extension.DistanceConflict.Conflict;
+import net.sf.cpsolver.studentsct.extension.TimeOverlapsCounter;
+import net.sf.cpsolver.studentsct.extension.TimeOverlapsCounter.Conflict;
+import net.sf.cpsolver.studentsct.model.Assignment;
 import net.sf.cpsolver.studentsct.model.Course;
-import net.sf.cpsolver.studentsct.model.Enrollment;
+import net.sf.cpsolver.studentsct.model.FreeTimeRequest;
 import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Section;
 import net.sf.cpsolver.studentsct.model.Student;
 
 /**
- * This class lists distance student conflicts in a {@link CSVFile} comma
- * separated text file. Two sections that are attended by the same student are
- * considered in a distance conflict if they are back-to-back taught in
- * locations that are two far away. See {@link DistanceConflict} for more
+ * This class lists time overlapping conflicts in a {@link CSVFile} comma
+ * separated text file. Only sections that allow overlaps
+ * (see {@link Assignment#isAllowOverlap()}) can overlap. See {@link TimeOverlapsCounter} for more
  * details. <br>
  * <br>
  * 
- * Each line represent a pair if classes that are in a distance conflict and have
- * one or more students in common.
+ * Each line represent a pair if classes that overlap in time and have one
+ * or more students in common.
  * 
  * <br>
  * <br>
@@ -44,7 +41,7 @@ import net.sf.cpsolver.studentsct.model.Student;
  * <br>
  * 
  * @version StudentSct 1.2 (Student Sectioning)<br>
- *          Copyright (C) 2007 - 2013 Tomas Muller<br>
+ *          Copyright (C) 2013 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>
  * <br>
@@ -62,13 +59,11 @@ import net.sf.cpsolver.studentsct.model.Student;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class DistanceConflictTable implements StudentSectioningReport {
-    private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(DistanceConflictTable.class);
+public class TimeOverlapConflictTable implements StudentSectioningReport {
     private static DecimalFormat sDF = new DecimalFormat("0.000");
 
     private StudentSectioningModel iModel = null;
-    private DistanceConflict iDC = null;
-    private DistanceMetric iDM = null;
+    private TimeOverlapsCounter iTOC = null;
 
     /**
      * Constructor
@@ -76,14 +71,11 @@ public class DistanceConflictTable implements StudentSectioningReport {
      * @param model
      *            student sectioning model
      */
-    public DistanceConflictTable(StudentSectioningModel model) {
+    public TimeOverlapConflictTable(StudentSectioningModel model) {
         iModel = model;
-        iDC = model.getDistanceConflict();
-        if (iDC == null) {
-            iDM = new DistanceMetric(model.getProperties());
-            iDC = new DistanceConflict(iDM, model.getProperties());
-        } else {
-            iDM = iDC.getDistanceMetric();
+        iTOC = model.getTimeOverlaps();
+        if (iTOC == null) {
+            iTOC = new TimeOverlapsCounter(null, model.getProperties());
         }
     }
 
@@ -106,12 +98,12 @@ public class DistanceConflictTable implements StudentSectioningReport {
     public CSVFile createTable(boolean includeLastLikeStudents, boolean includeRealStudents) {
         CSVFile csv = new CSVFile();
         csv.setHeader(new CSVFile.CSVField[] { new CSVFile.CSVField("Course"), new CSVFile.CSVField("Total\nConflicts"),
-                new CSVFile.CSVField("Class"), new CSVFile.CSVField("Meeting Time"), new CSVFile.CSVField("Room"),
-                new CSVFile.CSVField("Distance\nConflicts"), new CSVFile.CSVField("% of Total\nConflicts"),
-                new CSVFile.CSVField("Conflicting\nClass"), new CSVFile.CSVField("Conflicting\nMeeting Time"), new CSVFile.CSVField("Conflicting\nRoom"),
-                new CSVFile.CSVField("Distance [m]"), new CSVFile.CSVField("Distance [min]"), new CSVFile.CSVField("Joined\nConflicts"), new CSVFile.CSVField("% of Total\nConflicts")
+                new CSVFile.CSVField("Class"), new CSVFile.CSVField("Meeting Time"),
+                new CSVFile.CSVField("Time\nConflicts"), new CSVFile.CSVField("% of Total\nConflicts"),
+                new CSVFile.CSVField("Conflicting\nClass"), new CSVFile.CSVField("Conflicting\nMeeting Time"),
+                new CSVFile.CSVField("Overlap [min]"), new CSVFile.CSVField("Joined\nConflicts"), new CSVFile.CSVField("% of Total\nConflicts")
                 });
-        Set<Conflict> confs = iDC.computeAllConflicts();
+        Set<Conflict> confs = iTOC.computeAllConflicts();
         
         HashMap<Course, Set<Long>> totals = new HashMap<Course, Set<Long>>();
         HashMap<CourseSection, Map<CourseSection, Double>> conflictingPairs = new HashMap<CourseSection, Map<CourseSection,Double>>();
@@ -120,43 +112,27 @@ public class DistanceConflictTable implements StudentSectioningReport {
         for (Conflict conflict : confs) {
             if (conflict.getStudent().isDummy() && !includeLastLikeStudents) continue;
             if (!conflict.getStudent().isDummy() && !includeRealStudents) continue;
-            Section s1 = conflict.getS1(), s2 = conflict.getS2();
-            Course c1 = null, c2 = null;
-            Request r1 = null, r2 = null;
-            for (Request request : conflict.getStudent().getRequests()) {
-                Enrollment enrollment = request.getAssignment();
-                if (enrollment == null || !enrollment.isCourseRequest()) continue;
-                if (c1 == null && enrollment.getAssignments().contains(s1)) {
-                    c1 = enrollment.getCourse();
-                    r1 = request;
-                    Set<Long> total = totals.get(enrollment.getCourse());
-                    if (total == null) {
-                        total = new HashSet<Long>();
-                        totals.put(enrollment.getCourse(), total);
-                    }
-                    total.add(enrollment.getStudent().getId());
-                }
-                if (c2 == null && enrollment.getAssignments().contains(s2)) {
-                    c2 = enrollment.getCourse();
-                    r2 = request;
-                    Set<Long> total = totals.get(enrollment.getCourse());
-                    if (total == null) {
-                        total = new HashSet<Long>();
-                        totals.put(enrollment.getCourse(), total);
-                    }
-                    total.add(enrollment.getStudent().getId());
-                }
-            }
-            if (c1 == null) {
-                sLog.error("Unable to find a course for " + s1);
-                continue;
-            }
-            if (c2 == null) {
-                sLog.error("Unable to find a course for " + s2);
-                continue;
-            }
+            if (conflict.getR1() instanceof FreeTimeRequest || conflict.getR2() instanceof FreeTimeRequest) continue;
+            Section s1 = (Section)conflict.getS1(), s2 = (Section)conflict.getS2();
+            Request r1 = conflict.getR1();
+            Course c1 = conflict.getR1().getAssignment().getCourse();
+            Request r2 = conflict.getR2();
+            Course c2 = conflict.getR2().getAssignment().getCourse();
             CourseSection a = new CourseSection(c1, s1);
             CourseSection b = new CourseSection(c2, s2);
+            
+            Set<Long> students = totals.get(c1);
+            if (students == null) {
+                students = new HashSet<Long>();
+                totals.put(c1, students);
+            }
+            students.add(r1.getStudent().getId());
+            students = totals.get(c2);
+            if (students == null) {
+                students = new HashSet<Long>();
+                totals.put(c2, students);
+            }
+            students.add(r2.getStudent().getId());
             
             Set<Long> total = sectionOverlaps.get(a);
             if (total == null) {
@@ -224,13 +200,6 @@ public class DistanceConflictTable implements StudentSectioningReport {
                 Map<CourseSection, Double> pair = conflictingPairs.get(new CourseSection(course, section));
                 boolean firstClass = true;
                 
-                String rooms = "";
-                if (section.getRooms() != null)
-                    for (RoomLocation r: section.getRooms()) {
-                        if (!rooms.isEmpty()) rooms += "\n";
-                        rooms += r.getName();
-                    }
-
                 for (CourseSection other: new TreeSet<CourseSection>(pair.keySet())) {
                     List<CSVFile.CSVField> line = new ArrayList<CSVFile.CSVField>();
                     line.add(new CSVFile.CSVField(firstCourse && firstClass ? course.getName() : ""));
@@ -239,24 +208,13 @@ public class DistanceConflictTable implements StudentSectioningReport {
                     line.add(new CSVFile.CSVField(firstClass ? section.getSubpart().getName() + " " + section.getName(course.getId()): ""));
                     line.add(new CSVFile.CSVField(firstClass ? section.getTime() == null ? "" : section.getTime().getDayHeader() + " " + section.getTime().getStartTimeHeader() + " - " + section.getTime().getEndTimeHeader(): ""));
                         
-                    line.add(new CSVFile.CSVField(firstClass ? rooms : ""));
-                    
                     line.add(new CSVFile.CSVField(firstClass && sectionOverlap != null ? sDF.format(sectionOverlap.size()): ""));
                     line.add(new CSVFile.CSVField(firstClass && sectionOverlap != null ? sDF.format(((double)sectionOverlap.size()) / total.size()) : ""));
 
                     line.add(new CSVFile.CSVField(other.getCourse().getName() + " " + other.getSection().getSubpart().getName() + " " + other.getSection().getName(other.getCourse().getId())));
                     line.add(new CSVFile.CSVField(other.getSection().getTime().getDayHeader() + " " + other.getSection().getTime().getStartTimeHeader() + " - " + other.getSection().getTime().getEndTimeHeader()));
                     
-                    String or = "";
-                    if (other.getSection().getRooms() != null)
-                        for (RoomLocation r: other.getSection().getRooms()) {
-                            if (!or.isEmpty()) or += "\n";
-                            or += r.getName();
-                        }
-                    line.add(new CSVFile.CSVField(or));
-                    
-                    line.add(new CSVFile.CSVField(sDF.format(Placement.getDistanceInMeters(iDM, section.getPlacement(), other.getSection().getPlacement()))));
-                    line.add(new CSVFile.CSVField(sDF.format(Placement.getDistanceInMinutes(iDM, section.getPlacement(), other.getSection().getPlacement()))));
+                    line.add(new CSVFile.CSVField(sDF.format(5 * iTOC.share(section, other.getSection()))));
                     line.add(new CSVFile.CSVField(sDF.format(pair.get(other))));
                     line.add(new CSVFile.CSVField(sDF.format(pair.get(other) / total.size())));
                     
