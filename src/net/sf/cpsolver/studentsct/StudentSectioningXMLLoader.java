@@ -200,7 +200,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             return;
         }
         
-        if (getModel().getDistanceConflict() != null && root.element("travel-times") != null) {
+        if (iLoadOfferings && getModel().getDistanceConflict() != null && root.element("travel-times") != null) {
             for (Iterator<?> i = root.element("travel-times").elementIterator("travel-time"); i.hasNext();) {
                 Element travelTimeEl = (Element)i.next();
                 getModel().getDistanceConflict().getDistanceMetric().addTravelTime(
@@ -619,7 +619,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             }
         }
         
-        if (root.element("constraints") != null) {
+        if (iLoadOfferings && root.element("constraints") != null) {
             for (Iterator<?> i = root.element("constraints").elementIterator("linked-sections"); i.hasNext();) {
                 Element linkedEl = (Element) i.next();
                 List<Section> sections = new ArrayList<Section>();
