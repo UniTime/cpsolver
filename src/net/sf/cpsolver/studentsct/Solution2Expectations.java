@@ -46,26 +46,71 @@ public class Solution2Expectations {
             
             DataProperties config = new DataProperties();
             
-            StudentSectioningModel model = new StudentSectioningModel(config);
-            StudentSectioningXMLLoader loader = new StudentSectioningXMLLoader(model);
-            loader.setInputFile(new File(args[0]));
-            loader.load();
-            
-            sLog.info("Loaded: " + ToolBox.dict2string(model.getExtendedInfo(), 2));
-            
-            for (Student s: model.getStudents()) s.setDummy(true);
-            model.computeOnlineSectioningInfos();
-            for (Student s: model.getStudents()) s.setDummy(false);
-            for (Request request: model.variables())
-                if (request.getAssignment() != null) request.unassign(0);
-            
-            Solution<Request, Enrollment> solution = new Solution<Request, Enrollment>(model, 0, 0);
-            Solver<Request, Enrollment> solver = new Solver<Request, Enrollment>(config);
-            solver.setInitalSolution(solution);
-            new StudentSectioningXMLSaver(solver).save(new File(args[1]));
-            
-            sLog.info("Saved: " + ToolBox.dict2string(model.getExtendedInfo(), 2));
-            
+            String command = args[0];
+            if ("real2exp".equals(command)) {
+                StudentSectioningModel model = new StudentSectioningModel(config);
+                StudentSectioningXMLLoader loader = new StudentSectioningXMLLoader(model);
+                loader.setInputFile(new File(args[1]));
+                loader.load();
+                
+                sLog.info("Loaded: " + ToolBox.dict2string(model.getExtendedInfo(), 2));
+                
+                for (Student s: model.getStudents()) s.setDummy(true);
+                model.computeOnlineSectioningInfos();
+                for (Student s: model.getStudents()) s.setDummy(false);
+                for (Request request: model.variables())
+                    if (request.getAssignment() != null) request.unassign(0);
+                
+                Solution<Request, Enrollment> solution = new Solution<Request, Enrollment>(model, 0, 0);
+                Solver<Request, Enrollment> solver = new Solver<Request, Enrollment>(config);
+                solver.setInitalSolution(solution);
+                new StudentSectioningXMLSaver(solver).save(new File(args[2]));
+                
+                sLog.info("Saved: " + ToolBox.dict2string(model.getExtendedInfo(), 2));                
+            } else if ("ll2exp".equals(command)) {
+                StudentSectioningModel model = new StudentSectioningModel(config);
+                StudentSectioningXMLLoader loader = new StudentSectioningXMLLoader(model);
+                loader.setInputFile(new File(args[1]));
+                loader.load();
+                
+                sLog.info("Loaded: " + ToolBox.dict2string(model.getExtendedInfo(), 2));
+                
+                model.computeOnlineSectioningInfos();
+                for (Request request: model.variables())
+                    if (request.getAssignment() != null) request.unassign(0);
+                
+                Solution<Request, Enrollment> solution = new Solution<Request, Enrollment>(model, 0, 0);
+                Solver<Request, Enrollment> solver = new Solver<Request, Enrollment>(config);
+                solver.setInitalSolution(solution);
+                new StudentSectioningXMLSaver(solver).save(new File(args[2]));
+                
+                sLog.info("Saved: " + ToolBox.dict2string(model.getExtendedInfo(), 2));    
+            } else if ("students".equals(command)) {
+                StudentSectioningModel model = new StudentSectioningModel(config);
+                StudentSectioningXMLLoader loader = new StudentSectioningXMLLoader(model);
+                loader.setInputFile(new File(args[1]));
+                loader.setLoadStudents(false);
+                loader.load();
+                
+                sLog.info("Loaded [1]: " + ToolBox.dict2string(model.getExtendedInfo(), 2));
+
+                StudentSectioningXMLLoader loder2 = new StudentSectioningXMLLoader(model);
+                loder2.setInputFile(new File(args[2]));
+                loder2.setLoadOfferings(false);
+                loder2.setLoadStudents(true);
+                loder2.load();
+                
+                sLog.info("Loaded [2]: " + ToolBox.dict2string(model.getExtendedInfo(), 2));
+
+                Solution<Request, Enrollment> solution = new Solution<Request, Enrollment>(model, 0, 0);
+                Solver<Request, Enrollment> solver = new Solver<Request, Enrollment>(config);
+                solver.setInitalSolution(solution);
+                new StudentSectioningXMLSaver(solver).save(new File(args[3]));
+                
+                sLog.info("Saved [3]: " + ToolBox.dict2string(model.getExtendedInfo(), 2));
+            } else {
+                sLog.error("Unknown command: " + command);
+            }
         } catch (Exception e) {
             sLog.error(e.getMessage(), e);
         }
