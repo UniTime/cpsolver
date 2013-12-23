@@ -19,6 +19,7 @@ import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict.Conflict;
 import net.sf.cpsolver.studentsct.model.Course;
+import net.sf.cpsolver.studentsct.model.CourseRequest;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Section;
@@ -64,7 +65,8 @@ import net.sf.cpsolver.studentsct.model.Student;
  */
 public class DistanceConflictTable implements StudentSectioningReport {
     private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(DistanceConflictTable.class);
-    private static DecimalFormat sDF = new DecimalFormat("0.000");
+    private static DecimalFormat sDF1 = new DecimalFormat("0.####");
+    private static DecimalFormat sDF2 = new DecimalFormat("0.0000");
 
     private StudentSectioningModel iModel = null;
     private DistanceConflict iDC = null;
@@ -111,7 +113,18 @@ public class DistanceConflictTable implements StudentSectioningReport {
                 new CSVFile.CSVField("Conflicting\nClass"), new CSVFile.CSVField("Conflicting\nMeeting Time"), new CSVFile.CSVField("Conflicting\nRoom"),
                 new CSVFile.CSVField("Distance [m]"), new CSVFile.CSVField("Distance [min]"), new CSVFile.CSVField("Joined\nConflicts"), new CSVFile.CSVField("% of Total\nConflicts")
                 });
-        Set<Conflict> confs = iDC.computeAllConflicts();
+        
+        Set<Conflict> confs = new HashSet<Conflict>();
+        for (Request r1 : getModel().variables()) {
+            if (r1.getAssignment() == null || !(r1 instanceof CourseRequest))
+                continue;
+            confs.addAll(iDC.conflicts(r1.getAssignment()));
+            for (Request r2 : r1.getStudent().getRequests()) {
+                if (r2.getAssignment() == null || r1.getId() >= r2.getId() || !(r2 instanceof CourseRequest))
+                    continue;
+                confs.addAll(iDC.conflicts(r1.getAssignment(), r2.getAssignment()));
+            }
+        }
         
         HashMap<Course, Set<Long>> totals = new HashMap<Course, Set<Long>>();
         HashMap<CourseSection, Map<CourseSection, Double>> conflictingPairs = new HashMap<CourseSection, Map<CourseSection,Double>>();
@@ -241,8 +254,8 @@ public class DistanceConflictTable implements StudentSectioningReport {
                         
                     line.add(new CSVFile.CSVField(firstClass ? rooms : ""));
                     
-                    line.add(new CSVFile.CSVField(firstClass && sectionOverlap != null ? sDF.format(sectionOverlap.size()): ""));
-                    line.add(new CSVFile.CSVField(firstClass && sectionOverlap != null ? sDF.format(((double)sectionOverlap.size()) / total.size()) : ""));
+                    line.add(new CSVFile.CSVField(firstClass && sectionOverlap != null ? String.valueOf(sectionOverlap.size()): ""));
+                    line.add(new CSVFile.CSVField(firstClass && sectionOverlap != null ? sDF2.format(((double)sectionOverlap.size()) / total.size()) : ""));
 
                     line.add(new CSVFile.CSVField(other.getCourse().getName() + " " + other.getSection().getSubpart().getName() + " " + other.getSection().getName(other.getCourse().getId())));
                     line.add(new CSVFile.CSVField(other.getSection().getTime().getDayHeader() + " " + other.getSection().getTime().getStartTimeHeader() + " - " + other.getSection().getTime().getEndTimeHeader()));
@@ -255,10 +268,10 @@ public class DistanceConflictTable implements StudentSectioningReport {
                         }
                     line.add(new CSVFile.CSVField(or));
                     
-                    line.add(new CSVFile.CSVField(sDF.format(Placement.getDistanceInMeters(iDM, section.getPlacement(), other.getSection().getPlacement()))));
-                    line.add(new CSVFile.CSVField(sDF.format(Placement.getDistanceInMinutes(iDM, section.getPlacement(), other.getSection().getPlacement()))));
-                    line.add(new CSVFile.CSVField(sDF.format(pair.get(other))));
-                    line.add(new CSVFile.CSVField(sDF.format(pair.get(other) / total.size())));
+                    line.add(new CSVFile.CSVField(sDF2.format(Placement.getDistanceInMeters(iDM, section.getPlacement(), other.getSection().getPlacement()))));
+                    line.add(new CSVFile.CSVField(String.valueOf(Placement.getDistanceInMinutes(iDM, section.getPlacement(), other.getSection().getPlacement()))));
+                    line.add(new CSVFile.CSVField(sDF1.format(pair.get(other))));
+                    line.add(new CSVFile.CSVField(sDF2.format(pair.get(other) / total.size())));
                     
                     csv.addLine(line);
                     firstClass = false;
