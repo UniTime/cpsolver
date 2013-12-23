@@ -48,7 +48,8 @@ import net.sf.cpsolver.studentsct.model.Subpart;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class UnbalancedSectionsTable implements StudentSectioningReport {
-    private static DecimalFormat sDF = new DecimalFormat("0.###");
+    private static DecimalFormat sDF1 = new DecimalFormat("0.####");
+    private static DecimalFormat sDF2 = new DecimalFormat("0.0000");
 
     private StudentSectioningModel iModel = null;
 
@@ -123,10 +124,10 @@ public class UnbalancedSectionsTable implements StudentSectioningReport {
                                         new CSVFile.CSVField(offering.equals(last) ? "" : offering.getName()),
                                         new CSVFile.CSVField(section.getSubpart().getName() + " " + section.getName()),
                                         new CSVFile.CSVField(section.getTime() == null ? "" : section.getTime().getDayHeader() + " " + section.getTime().getStartTimeHeader() + " - " + section.getTime().getEndTimeHeader()),
-                                        new CSVFile.CSVField(sDF.format(enrl)),
-                                        new CSVFile.CSVField(sDF.format(desired)),
-                                        new CSVFile.CSVField(sDF.format(section.getLimit())),
-                                        new CSVFile.CSVField(sDF.format(Math.min(1.0, Math.max(-1.0, (enrl - desired) / section.getLimit()))))
+                                        new CSVFile.CSVField(sDF1.format(enrl)),
+                                        new CSVFile.CSVField(sDF2.format(desired)),
+                                        new CSVFile.CSVField(sDF1.format(section.getLimit())),
+                                        new CSVFile.CSVField(sDF2.format(Math.min(1.0, Math.max(-1.0, (enrl - desired) / section.getLimit()))))
                                 });
                                 last = offering;
                             }
@@ -147,10 +148,10 @@ public class UnbalancedSectionsTable implements StudentSectioningReport {
                                         new CSVFile.CSVField(offering.equals(last) ? "" : offering.getName()),
                                         new CSVFile.CSVField(section.getSubpart().getName() + " " + section.getName()),
                                         new CSVFile.CSVField(section.getTime() == null ? "" : section.getTime().getDayHeader() + " " + section.getTime().getStartTimeHeader() + " - " + section.getTime().getEndTimeHeader()),
-                                        new CSVFile.CSVField(sDF.format(enrl)),
-                                        new CSVFile.CSVField(sDF.format(desired)),
+                                        new CSVFile.CSVField(sDF1.format(enrl)),
+                                        new CSVFile.CSVField(sDF2.format(desired)),
                                         new CSVFile.CSVField(""),
-                                        new CSVFile.CSVField(sDF.format(Math.min(1.0, Math.max(-1.0, (enrl - desired) / desired))))
+                                        new CSVFile.CSVField(sDF2.format(Math.min(1.0, Math.max(-1.0, (enrl - desired) / desired))))
                                 });
                                 last = offering;
                             }
