@@ -60,7 +60,8 @@ import net.sf.cpsolver.studentsct.model.Student;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class TimeOverlapConflictTable implements StudentSectioningReport {
-    private static DecimalFormat sDF = new DecimalFormat("0.000");
+    private static DecimalFormat sDF1 = new DecimalFormat("0.####");
+    private static DecimalFormat sDF2 = new DecimalFormat("0.0000");
 
     private StudentSectioningModel iModel = null;
     private TimeOverlapsCounter iTOC = null;
@@ -103,7 +104,20 @@ public class TimeOverlapConflictTable implements StudentSectioningReport {
                 new CSVFile.CSVField("Conflicting\nClass"), new CSVFile.CSVField("Conflicting\nMeeting Time"),
                 new CSVFile.CSVField("Overlap [min]"), new CSVFile.CSVField("Joined\nConflicts"), new CSVFile.CSVField("% of Total\nConflicts")
                 });
-        Set<Conflict> confs = iTOC.computeAllConflicts();
+        
+        Set<Conflict> confs = new HashSet<Conflict>();
+        for (Request r1 : getModel().variables()) {
+            if (r1.getAssignment() == null || r1 instanceof FreeTimeRequest)
+                continue;
+            for (Request r2 : r1.getStudent().getRequests()) {
+                if (r2 instanceof FreeTimeRequest) {
+                    FreeTimeRequest ft = (FreeTimeRequest)r2;
+                    confs.addAll(iTOC.conflicts(r1.getAssignment(), ft.createEnrollment()));
+                } else if (r2.getAssignment() != null && r1.getId() < r2.getId()) {
+                    confs.addAll(iTOC.conflicts(r1.getAssignment(), r2.getAssignment()));
+                }
+            }
+        }
         
         HashMap<Course, Set<Long>> totals = new HashMap<Course, Set<Long>>();
         HashMap<CourseSection, Map<CourseSection, Double>> conflictingPairs = new HashMap<CourseSection, Map<CourseSection,Double>>();
@@ -208,15 +222,15 @@ public class TimeOverlapConflictTable implements StudentSectioningReport {
                     line.add(new CSVFile.CSVField(firstClass ? section.getSubpart().getName() + " " + section.getName(course.getId()): ""));
                     line.add(new CSVFile.CSVField(firstClass ? section.getTime() == null ? "" : section.getTime().getDayHeader() + " " + section.getTime().getStartTimeHeader() + " - " + section.getTime().getEndTimeHeader(): ""));
                         
-                    line.add(new CSVFile.CSVField(firstClass && sectionOverlap != null ? sDF.format(sectionOverlap.size()): ""));
-                    line.add(new CSVFile.CSVField(firstClass && sectionOverlap != null ? sDF.format(((double)sectionOverlap.size()) / total.size()) : ""));
+                    line.add(new CSVFile.CSVField(firstClass && sectionOverlap != null ? String.valueOf(sectionOverlap.size()): ""));
+                    line.add(new CSVFile.CSVField(firstClass && sectionOverlap != null ? sDF2.format(((double)sectionOverlap.size()) / total.size()) : ""));
 
                     line.add(new CSVFile.CSVField(other.getCourse().getName() + " " + other.getSection().getSubpart().getName() + " " + other.getSection().getName(other.getCourse().getId())));
                     line.add(new CSVFile.CSVField(other.getSection().getTime().getDayHeader() + " " + other.getSection().getTime().getStartTimeHeader() + " - " + other.getSection().getTime().getEndTimeHeader()));
                     
-                    line.add(new CSVFile.CSVField(sDF.format(5 * iTOC.share(section, other.getSection()))));
-                    line.add(new CSVFile.CSVField(sDF.format(pair.get(other))));
-                    line.add(new CSVFile.CSVField(sDF.format(pair.get(other) / total.size())));
+                    line.add(new CSVFile.CSVField(sDF1.format(5 * iTOC.share(section, other.getSection()))));
+                    line.add(new CSVFile.CSVField(sDF1.format(pair.get(other))));
+                    line.add(new CSVFile.CSVField(sDF2.format(pair.get(other) / total.size())));
                     
                     csv.addLine(line);
                     firstClass = false;

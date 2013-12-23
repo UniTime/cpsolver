@@ -71,10 +71,12 @@ import net.sf.cpsolver.studentsct.model.Student;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class SectionConflictTable implements StudentSectioningReport {
-    private static DecimalFormat sDF = new DecimalFormat("0.0000");
+    private static DecimalFormat sDF1 = new DecimalFormat("0.####");
+    private static DecimalFormat sDF2 = new DecimalFormat("0.0000");
 
     private StudentSectioningModel iModel = null;
     private Type iType;
+    private boolean iOverlapsAllEnrollments = true;
     
     /**
      * Report type
@@ -199,50 +201,85 @@ public class SectionConflictTable implements StudentSectioningReport {
                         notOverlappingEnrollments.add(enrollment);
                     }
                     
-                    if (notOverlappingEnrollments.isEmpty()) continue;
-                    
-                    double fraction = request.getWeight() / notOverlappingEnrollments.size();
-                    Set<CourseSection> ones = new HashSet<CourseSection>();
-                    for (Enrollment enrollment: notOverlappingEnrollments) {
-                        boolean hasConflict = false;
-                        for (Section s: enrollment.getSections()) {
-                            if (s.getLimit() >= 0 && s.getEnrollmentWeight(request) + request.getWeight() > s.getLimit()) {
-                                hasConflict = true;
-                                break;
+                    if (notOverlappingEnrollments.isEmpty()  && availableValues.isEmpty() && iOverlapsAllEnrollments) {
+                        double fraction = request.getWeight() / notAvailableValues.size();
+                        Set<CourseSection> ones = new HashSet<CourseSection>();
+                        for (Enrollment enrollment: notAvailableValues) {
+                            boolean hasConflict = false;
+                            for (Section s: enrollment.getSections()) {
+                                if (s.getLimit() >= 0 && s.getEnrollmentWeight(request) + request.getWeight() > s.getLimit()) {
+                                    hasConflict = true;
+                                    break;
+                                }
                             }
+                            
+                            Map<Section, Double[]> sections = unavailabilities.get(enrollment.getCourse());
+                            if (sections == null) {
+                                sections = new HashMap<Section, Double[]>();
+                                unavailabilities.put(enrollment.getCourse(), sections);
+                            }
+                            for (Section s: enrollment.getSections()) {
+                                if (hasConflict && s.getLimit() < 0 || s.getEnrollmentWeight(request) + request.getWeight() <= s.getLimit()) continue;
+                                Double[] total = sections.get(s);
+                                sections.put(s, new Double[] {
+                                            fraction + (total == null ? 0.0 : total[0].doubleValue()),
+                                            (total == null ? 0.0 : total[1].doubleValue())
+                                        });
+                                ones.add(new CourseSection(enrollment.getCourse(), s));
+                            }
+                            Set<Long> total = totals.get(enrollment.getCourse());
+                            if (total == null) {
+                                total = new HashSet<Long>();
+                                totals.put(enrollment.getCourse(), total);
+                            }
+                            total.add(enrollment.getStudent().getId());
                         }
-                        
-                        Map<Section, Double[]> sections = unavailabilities.get(enrollment.getCourse());
-                        if (sections == null) {
-                            sections = new HashMap<Section, Double[]>();
-                            unavailabilities.put(enrollment.getCourse(), sections);
+                    } else if (!notOverlappingEnrollments.isEmpty()) {
+                        double fraction = request.getWeight() / notOverlappingEnrollments.size();
+                        Set<CourseSection> ones = new HashSet<CourseSection>();
+                        for (Enrollment enrollment: notOverlappingEnrollments) {
+                            boolean hasConflict = false;
+                            for (Section s: enrollment.getSections()) {
+                                if (s.getLimit() >= 0 && s.getEnrollmentWeight(request) + request.getWeight() > s.getLimit()) {
+                                    hasConflict = true;
+                                    break;
+                                }
+                            }
+                            
+                            Map<Section, Double[]> sections = unavailabilities.get(enrollment.getCourse());
+                            if (sections == null) {
+                                sections = new HashMap<Section, Double[]>();
+                                unavailabilities.put(enrollment.getCourse(), sections);
+                            }
+                            for (Section s: enrollment.getSections()) {
+                                if (hasConflict && s.getLimit() < 0 || s.getEnrollmentWeight(request) + request.getWeight() <= s.getLimit()) continue;
+                                Double[] total = sections.get(s);
+                                sections.put(s, new Double[] {
+                                            fraction + (total == null ? 0.0 : total[0].doubleValue()),
+                                            (total == null ? 0.0 : total[1].doubleValue())
+                                        });
+                                ones.add(new CourseSection(enrollment.getCourse(), s));
+                            }
+                            Set<Long> total = totals.get(enrollment.getCourse());
+                            if (total == null) {
+                                total = new HashSet<Long>();
+                                totals.put(enrollment.getCourse(), total);
+                            }
+                            total.add(enrollment.getStudent().getId());
                         }
-                        for (Section s: enrollment.getSections()) {
-                            if (hasConflict && s.getLimit() < 0 || s.getEnrollmentWeight(request) + request.getWeight() <= s.getLimit()) continue;
-                            Double[] total = sections.get(s);
-                            sections.put(s, new Double[] {
-                                        fraction + (total == null ? 0.0 : total[0].doubleValue()),
-                                        (total == null ? 0.0 : total[1].doubleValue())
-                                    });
-                            ones.add(new CourseSection(enrollment.getCourse(), s));
-                        }
-                        Set<Long> total = totals.get(enrollment.getCourse());
-                        if (total == null) {
-                            total = new HashSet<Long>();
-                            totals.put(enrollment.getCourse(), total);
-                        }
-                        total.add(enrollment.getStudent().getId());
+                        for (CourseSection section: ones) {
+                            Map<Section, Double[]> sections = unavailabilities.get(section.getCourse());
+                            Double[] total = sections.get(section.getSection());
+                            sections.put(section.getSection(), new Double[] {
+                                    (total == null ? 0.0 : total[0].doubleValue()),
+                                    request.getWeight() + (total == null ? 0.0 : total[1].doubleValue())
+                                });
+                        }                        
                     }
-                    for (CourseSection section: ones) {
-                        Map<Section, Double[]> sections = unavailabilities.get(section.getCourse());
-                        Double[] total = sections.get(section.getSection());
-                        sections.put(section.getSection(), new Double[] {
-                                (total == null ? 0.0 : total[0].doubleValue()),
-                                request.getWeight() + (total == null ? 0.0 : total[1].doubleValue())
-                            });
-                    }                    
                 }
                 
+                if (iOverlapsAllEnrollments)
+                    availableValues = values;
                 if (!availableValues.isEmpty() && iType.hasOverlaps()) {
                     List<Map<CourseSection, List<CourseSection>>> conflicts = new ArrayList<Map<CourseSection, List<CourseSection>>>();
                     for (Enrollment enrollment: availableValues) {
@@ -368,26 +405,26 @@ public class SectionConflictTable implements StudentSectioningReport {
                     line.add(new CSVFile.CSVField(firstCourse ? course.getName() : ""));
                     line.add(new CSVFile.CSVField(firstCourse ? total.size() : ""));
                     if (iType.hasUnavailabilities()) {
-                        line.add(new CSVFile.CSVField(firstCourse ? sDF.format(course.getEnrollmentWeight(null)) : ""));
-                        line.add(new CSVFile.CSVField(firstCourse ? course.getLimit() < 0 ? "-" : String.valueOf(course.getLimit()) : ""));
+                        line.add(new CSVFile.CSVField(firstCourse ? sDF1.format(course.getEnrollmentWeight(null)) : ""));
+                        line.add(new CSVFile.CSVField(firstCourse ? course.getLimit() < 0 ? "" : String.valueOf(course.getLimit()) : ""));
                     }
                     
                     line.add(new CSVFile.CSVField(section.getSubpart().getName() + " " + section.getName(course.getId())));
                     line.add(new CSVFile.CSVField(section.getTime() == null ? "" : section.getTime().getDayHeader() + " " + section.getTime().getStartTimeHeader() + " - " + section.getTime().getEndTimeHeader()));
                     
                     if (iType.hasUnavailabilities()) {
-                        line.add(new CSVFile.CSVField(sectionUnavailable != null ? sDF.format(sectionUnavailable[0]) : ""));
-                        line.add(new CSVFile.CSVField(sectionUnavailable != null ? sDF.format(sectionUnavailable[0] / total.size()) : ""));
+                        line.add(new CSVFile.CSVField(sectionUnavailable != null ? sDF2.format(sectionUnavailable[0]) : ""));
+                        line.add(new CSVFile.CSVField(sectionUnavailable != null ? sDF2.format(sectionUnavailable[0] / total.size()) : ""));
                     }
                     if (iType.hasOverlaps()) {
-                        line.add(new CSVFile.CSVField(sectionOverlap != null ? sDF.format(sectionOverlap) : ""));
-                        line.add(new CSVFile.CSVField(sectionOverlap != null ? sDF.format(sectionOverlap / total.size()) : ""));
+                        line.add(new CSVFile.CSVField(sectionOverlap != null ? sDF2.format(sectionOverlap) : ""));
+                        line.add(new CSVFile.CSVField(sectionOverlap != null ? sDF2.format(sectionOverlap / total.size()) : ""));
                     }
                     if (iType.hasUnavailabilities()) {
-                        line.add(new CSVFile.CSVField(sDF.format(section.getEnrollmentWeight(null))));
-                        line.add(new CSVFile.CSVField(section.getLimit() < 0 ? "-" : String.valueOf(section.getLimit())));
+                        line.add(new CSVFile.CSVField(sDF1.format(section.getEnrollmentWeight(null))));
+                        line.add(new CSVFile.CSVField(section.getLimit() < 0 ? "" : String.valueOf(section.getLimit())));
                         if (!iType.hasOverlaps())
-                            line.add(new CSVFile.CSVField(sectionUnavailable != null ? sDF.format(sectionUnavailable[1]) : ""));
+                            line.add(new CSVFile.CSVField(sectionUnavailable != null ? sDF1.format(sectionUnavailable[1]) : ""));
                     }
                     
                     csv.addLine(line);
@@ -398,28 +435,28 @@ public class SectionConflictTable implements StudentSectioningReport {
                         line.add(new CSVFile.CSVField(firstCourse && firstClass ? course.getName() : ""));
                         line.add(new CSVFile.CSVField(firstCourse && firstClass ? total.size() : ""));
                         if (iType.hasUnavailabilities()) {
-                            line.add(new CSVFile.CSVField(firstCourse && firstClass ? sDF.format(course.getEnrollmentWeight(null)) : ""));
-                            line.add(new CSVFile.CSVField(firstCourse && firstClass ? course.getLimit() < 0 ? "-" : String.valueOf(course.getLimit()) : ""));
+                            line.add(new CSVFile.CSVField(firstCourse && firstClass ? sDF1.format(course.getEnrollmentWeight(null)) : ""));
+                            line.add(new CSVFile.CSVField(firstCourse && firstClass ? course.getLimit() < 0 ? "" : String.valueOf(course.getLimit()) : ""));
                         }
                         
                         line.add(new CSVFile.CSVField(firstClass ? section.getSubpart().getName() + " " + section.getName(course.getId()): ""));
                         line.add(new CSVFile.CSVField(firstClass ? section.getTime() == null ? "" : section.getTime().getDayHeader() + " " + section.getTime().getStartTimeHeader() + " - " + section.getTime().getEndTimeHeader(): ""));
                         
                         if (iType.hasUnavailabilities()) {
-                            line.add(new CSVFile.CSVField(firstClass && sectionUnavailable != null ? sDF.format(sectionUnavailable[0]): ""));
-                            line.add(new CSVFile.CSVField(sectionUnavailable != null ? sDF.format(sectionUnavailable[0] / total.size()) : ""));
+                            line.add(new CSVFile.CSVField(firstClass && sectionUnavailable != null ? sDF2.format(sectionUnavailable[0]): ""));
+                            line.add(new CSVFile.CSVField(sectionUnavailable != null ? sDF2.format(sectionUnavailable[0] / total.size()) : ""));
                         }
-                        line.add(new CSVFile.CSVField(firstClass && sectionOverlap != null ? sDF.format(sectionOverlap): ""));
-                        line.add(new CSVFile.CSVField(firstClass && sectionOverlap != null ? sDF.format(sectionOverlap / total.size()) : ""));
+                        line.add(new CSVFile.CSVField(firstClass && sectionOverlap != null ? sDF2.format(sectionOverlap): ""));
+                        line.add(new CSVFile.CSVField(firstClass && sectionOverlap != null ? sDF2.format(sectionOverlap / total.size()) : ""));
                         if (iType.hasUnavailabilities()) {
-                            line.add(new CSVFile.CSVField(firstClass ? sDF.format(section.getEnrollmentWeight(null)): ""));
-                            line.add(new CSVFile.CSVField(firstClass ? section.getLimit() < 0 ? "-" : String.valueOf(section.getLimit()): ""));
+                            line.add(new CSVFile.CSVField(firstClass ? sDF1.format(section.getEnrollmentWeight(null)): ""));
+                            line.add(new CSVFile.CSVField(firstClass ? section.getLimit() < 0 ? "" : String.valueOf(section.getLimit()): ""));
                         }
                         
                         line.add(new CSVFile.CSVField(other.getCourse().getName() + " " + other.getSection().getSubpart().getName() + " " + other.getSection().getName(other.getCourse().getId())));
                         line.add(new CSVFile.CSVField(other.getSection().getTime().getDayHeader() + " " + other.getSection().getTime().getStartTimeHeader() + " - " + other.getSection().getTime().getEndTimeHeader()));
-                        line.add(new CSVFile.CSVField(sDF.format(pair.get(other))));
-                        line.add(new CSVFile.CSVField(sDF.format(pair.get(other) / total.size())));
+                        line.add(new CSVFile.CSVField(sDF2.format(pair.get(other))));
+                        line.add(new CSVFile.CSVField(sDF2.format(pair.get(other) / total.size())));
                         
                         csv.addLine(line);
                         firstClass = false;
@@ -437,6 +474,7 @@ public class SectionConflictTable implements StudentSectioningReport {
     @Override
     public CSVFile create(DataProperties properties) {
         iType = Type.valueOf(properties.getProperty("type", iType.name()));
+        iOverlapsAllEnrollments = properties.getPropertyBoolean("overlapsIncludeAll", true);
         return createTable(properties.getPropertyBoolean("lastlike", false), properties.getPropertyBoolean("real", true));
     }
 }
