@@ -20,7 +20,7 @@ import net.sf.cpsolver.ifs.util.Progress;
  * enrolled in it.
  * <li>A student must be enrolled in exactly one class for each subpart of a
  * course.
- * <li>If two subparts of a course have a parent�child relationship, a student
+ * <li>If two subparts of a course have a parent-child relationship, a student
  * enrolled in the parent class must also be enrolled in one of the child
  * classes.
  * </ul>
@@ -28,7 +28,7 @@ import net.sf.cpsolver.ifs.util.Progress;
  * for certain students, based on reservations that can be set on an offering, a
  * configuration, or a class. <br>
  * Before implementing the solver, an initial sectioning of students into
- * classes is processed. This sectioning is based on Carter�s homogeneous
+ * classes is processed. This sectioning is based on Carter's homogeneous
  * sectioning and is intended to minimize future student conflicts. However, it
  * is still possible to improve on the number of student conflicts in the
  * solution. This can be accomplished by moving students between alternative
@@ -55,10 +55,10 @@ import net.sf.cpsolver.ifs.util.Progress;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class InitialSectioning {
-    Collection<Student> iStudents = null;
-    Group[] iGroups = null;
-    Long iOfferingId = null;
-    Progress iProgress = null;
+    protected Collection<Student> iStudents = null;
+    protected Group[] iGroups = null;
+    protected Long iOfferingId = null;
+    protected Progress iProgress = null;
 
     public InitialSectioning(Progress progress, Long offeringId, Collection<?> lectureOrConfigurations,
             Collection<Student> students) {
@@ -82,8 +82,18 @@ public class InitialSectioning {
             total += iGroups[idx].getMaxSize();
         }
 
+        tweakSizes(total);
+
+        progress.trace("Initial sectioning:");
+        progress.trace("  going to section " + iStudents.size() + " into " + total + " seats");
+        for (idx = 0; idx < iGroups.length; idx++)
+            progress.trace("    " + (idx + 1) + ". group can accomodate <" + iGroups[idx].getMinSize() + ","
+                    + iGroups[idx].getMaxSize() + "> students");
+    }
+    
+    protected void tweakSizes(double total) {
         if (total == 0) {
-            for (idx = 0; idx < iGroups.length; idx++) {
+            for (int idx = 0; idx < iGroups.length; idx++) {
                 iGroups[idx].setMaxSize(1);
                 total++;
             }
@@ -95,16 +105,10 @@ public class InitialSectioning {
         }
 
         double factor = studentsWeight / total;
-        for (idx = 0; idx < iGroups.length; idx++) {
+        for (int idx = 0; idx < iGroups.length; idx++) {
             iGroups[idx].setMaxSize(factor * iGroups[idx].getMaxSize());
             iGroups[idx].setMinSize(Math.min(iGroups[idx].getMinSize(), 0.9 * iGroups[idx].getMaxSize()));
         }
-
-        progress.trace("Initial sectioning:");
-        progress.trace("  going to section " + iStudents.size() + " into " + total + " seats");
-        for (idx = 0; idx < iGroups.length; idx++)
-            progress.trace("    " + (idx + 1) + ". group can accomodate <" + iGroups[idx].getMinSize() + ","
-                    + iGroups[idx].getMaxSize() + "> students");
     }
 
     public void addStudent(Student student) {
