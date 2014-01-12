@@ -93,7 +93,8 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
     private HashSet<Student> iAllStudents = new HashSet<Student>();
     
     private DistanceMetric iDistanceMetric = null;
-
+    
+    private StudentSectioning iStudentSectioning = null;
 
     public TimetableModel(DataProperties properties) {
         super();
@@ -140,10 +141,26 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
                 sLogger.error("Unable to use " + criterion + ": " + e.getMessage());
             }
         }
+        try {
+            String studentSectioningClassName = properties.getProperty("StudentSectioning.Class", DefaultStudentSectioning.class.getName());
+            Class<?> studentSectioningClass = Class.forName(studentSectioningClassName);
+            iStudentSectioning = (StudentSectioning)studentSectioningClass.getConstructor(TimetableModel.class).newInstance(this);
+        } catch (Exception e) {
+            sLogger.error("Failed to load custom student sectioning class: " + e.getMessage());
+            iStudentSectioning = new DefaultStudentSectioning(this);
+        }
     }
 
     public DistanceMetric getDistanceMetric() {
         return iDistanceMetric;
+    }
+    
+    /**
+     * Returns interface to the student sectioning functions needed during course timetabling.
+     * Defaults to an instance of {@link DefaultStudentSectioning}, can be changed using the StudentSectioning.Class parameter.
+     */
+    public StudentSectioning getStudentSectioning() {
+        return iStudentSectioning;
     }
 
     public DataProperties getProperties() {
@@ -155,8 +172,7 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
      * class in order to minimize overall number of student conflicts)
      */
     public void switchStudents() {
-        FinalSectioning sect = new FinalSectioning(this);
-        sect.run();
+        getStudentSectioning().switchStudents(this);
     }
 
     @Override
