@@ -28,7 +28,6 @@ import net.sf.cpsolver.coursett.constraint.MinimizeNumberOfUsedRoomsConstraint;
 import net.sf.cpsolver.coursett.constraint.RoomConstraint;
 import net.sf.cpsolver.coursett.constraint.SpreadConstraint;
 import net.sf.cpsolver.coursett.model.Configuration;
-import net.sf.cpsolver.coursett.model.InitialSectioning;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomLocation;
@@ -740,8 +739,7 @@ public class TimetableXMLLoader extends TimetableLoader {
                 Long offeringId = entry.getKey();
                 Set<Student> studentsThisOffering = entry.getValue();
                 List<Configuration> altConfigs = alternativeConfigurations.get(offeringId);
-                InitialSectioning.initialSectioningCfg(iProgress, offeringId, String.valueOf(offeringId),
-                        studentsThisOffering, altConfigs);
+                getModel().getStudentSectioning().initialSectioning(offeringId, String.valueOf(offeringId), studentsThisOffering, altConfigs);
                 iProgress.incProgress();
             }
             for (Student student: students.values()) {

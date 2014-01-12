@@ -60,7 +60,7 @@ import net.sf.cpsolver.ifs.solver.Solver;
  */
 
 public class OnFlySectioning implements ModelListener<Lecture, Placement> {
-    private FinalSectioning iFinalSectioning;
+    private TimetableModel iModel;
     private boolean iRecursive = true;
     private boolean iConfigAsWell = false;
 
@@ -71,7 +71,7 @@ public class OnFlySectioning implements ModelListener<Lecture, Placement> {
      *            timetabling model
      */
     public OnFlySectioning(TimetableModel model) {
-        iFinalSectioning = new FinalSectioning(model);
+        iModel = model;
     }
 
     @Override
@@ -105,7 +105,7 @@ public class OnFlySectioning implements ModelListener<Lecture, Placement> {
     @Override
     public void afterAssigned(long iteration, Placement value) {
         if (iteration > 0)
-            iFinalSectioning.resection(value.variable(), iRecursive, iConfigAsWell);
+            iModel.getStudentSectioning().resection(value.variable(), iRecursive, iConfigAsWell);
     }
 
     @Override
