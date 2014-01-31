@@ -9,6 +9,7 @@ import net.sf.cpsolver.exam.model.ExamOwner;
 import net.sf.cpsolver.exam.model.ExamPeriod;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamRoomPlacement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.CSVFile.CSVField;
 
@@ -57,7 +58,7 @@ public class ExamInstructorConflicts {
     /**
      * generate report
      */
-    public CSVFile report() {
+    public CSVFile report(Assignment<Exam, ExamPlacement> assignment) {
         CSVFile csv = new CSVFile();
         csv.setHeader(new CSVField[] { new CSVField("Instructor"), new CSVField("Type"),
                 new CSVField("Section/Course"), new CSVField("Period"), new CSVField("Day"), new CSVField("Time"),
@@ -66,15 +67,15 @@ public class ExamInstructorConflicts {
         double backToBackDistance = ((InstructorDistanceBackToBackConflicts)iModel.getCriterion(InstructorDistanceBackToBackConflicts.class)).getBackToBackDistance();
         for (ExamInstructor instructor : iModel.getInstructors()) {
             for (ExamPeriod period : iModel.getPeriods()) {
-                int nrExams = instructor.getExams(period).size();
+                int nrExams = instructor.getExams(assignment, period).size();
                 if (nrExams > 1) {
                     String sections = "";
                     String rooms = "";
                     String periods = String.valueOf(period.getIndex() + 1);
                     String periodDays = period.getDayStr();
                     String periodTimes = period.getTimeStr();
-                    for (Exam exam : instructor.getExams(period)) {
-                        ExamPlacement placement = exam.getAssignment();
+                    for (Exam exam : instructor.getExams(assignment, period)) {
+                        ExamPlacement placement = assignment.getValue(exam);
                         String roomsThisExam = "";
                         for (ExamRoomPlacement room : placement.getRoomPlacements()) {
                             if (roomsThisExam.length() > 0)
@@ -105,11 +106,11 @@ public class ExamInstructorConflicts {
                             new CSVField(periodTimes), new CSVField(rooms) });
                 }
                 if (nrExams > 0) {
-                    if (period.next() != null && !instructor.getExams(period.next()).isEmpty()
+                    if (period.next() != null && !instructor.getExams(assignment, period.next()).isEmpty()
                             && (!isDayBreakBackToBack || period.next().getDay() == period.getDay())) {
-                        for (Exam ex1 : instructor.getExams(period)) {
-                            for (Exam ex2 : instructor.getExams(period.next())) {
-                                ExamPlacement placement = ex1.getAssignment();
+                        for (Exam ex1 : instructor.getExams(assignment, period)) {
+                            for (Exam ex2 : instructor.getExams(assignment, period.next())) {
+                                ExamPlacement placement = assignment.getValue(ex1);
                                 String sections = "";
                                 String rooms = "";
                                 String roomsThisExam = "";
@@ -139,7 +140,7 @@ public class ExamInstructorConflicts {
                                     sections += ex1.getName();
                                     rooms += roomsThisExam;
                                 }
-                                placement = ex2.getAssignment();
+                                placement = assignment.getValue(ex2);
                                 roomsThisExam = "";
                                 for (ExamRoomPlacement room : placement.getRoomPlacements()) {
                                     if (roomsThisExam.length() > 0)
@@ -176,7 +177,7 @@ public class ExamInstructorConflicts {
                                 }
                                 String distStr = "";
                                 if (backToBackDistance >= 0) {
-                                    double dist = (ex1.getAssignment()).getDistanceInMeters(ex2.getAssignment());
+                                    double dist = (assignment.getValue(ex1)).getDistanceInMeters(assignment.getValue(ex2));
                                     if (dist > 0)
                                         distStr = String.valueOf(dist);
                                 }
@@ -189,15 +190,15 @@ public class ExamInstructorConflicts {
                     }
                 }
                 if (period.next() == null || period.next().getDay() != period.getDay()) {
-                    int nrExamsADay = instructor.getExamsADay(period.getDay()).size();
+                    int nrExamsADay = instructor.getExamsADay(assignment, period.getDay()).size();
                     if (nrExamsADay > 2) {
                         String sections = "";
                         String periods = "";
                         String periodDays = "";
                         String periodTimes = "";
                         String rooms = "";
-                        for (Exam exam : instructor.getExamsADay(period.getDay())) {
-                            ExamPlacement placement = exam.getAssignment();
+                        for (Exam exam : instructor.getExamsADay(assignment, period.getDay())) {
+                            ExamPlacement placement = assignment.getValue(exam);
                             String roomsThisExam = "";
                             for (ExamRoomPlacement room : placement.getRoomPlacements()) {
                                 if (roomsThisExam.length() > 0)

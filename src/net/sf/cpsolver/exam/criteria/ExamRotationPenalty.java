@@ -3,7 +3,9 @@ package net.sf.cpsolver.exam.criteria;
 import java.util.Map;
 import java.util.Set;
 
+import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamPlacement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -36,9 +38,12 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class ExamRotationPenalty extends ExamCriterion {
-    private int iAssignedExamsWithAvgPeriod = 0;
-    private double iAveragePeriod = 0.0;
     
+    @Override
+    public ValueContext createAssignmentContext(Assignment<Exam, ExamPlacement> assignment) {
+        return new RotationContext(assignment);
+    }
+        
     @Override
     public String getWeightName() {
         return "Exams.RotationWeight";
@@ -55,46 +60,65 @@ public class ExamRotationPenalty extends ExamCriterion {
     }
 
     @Override
-    public double getValue(ExamPlacement value, Set<ExamPlacement> conflicts) {
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value, Set<ExamPlacement> conflicts) {
         if (value.variable().getAveragePeriod() < 0) return 0;
         return (1 + value.getPeriod().getIndex()) * (1 + value.variable().getAveragePeriod());
     }
     
+    public int nrAssignedExamsWithAvgPeriod(Assignment<Exam, ExamPlacement> assignment) {
+        return ((RotationContext)getContext(assignment)).nrAssignedExamsWithAvgPeriod();
+    }
+    
+    public double averagePeriod(Assignment<Exam, ExamPlacement> assignment) {
+        return ((RotationContext)getContext(assignment)).averagePeriod();
+    }
+    
     @Override
-    public void beforeUnassigned(long iteration, ExamPlacement value) {
-        super.beforeUnassigned(iteration, value);
-        if (value.variable().getAveragePeriod() >= 0) {
-            iAssignedExamsWithAvgPeriod --;
-            iAveragePeriod -= value.variable().getAveragePeriod();
+    public void getInfo(Assignment<Exam, ExamPlacement> assignment, Map<String, String> info) {
+        if (getValue(assignment) != 0.0) {
+            info.put(getName(), sDoubleFormat.format(Math.sqrt(getValue(assignment) / nrAssignedExamsWithAvgPeriod(assignment)) - 1));
         }
     }
     
     @Override
-    public void afterAssigned(long iteration, ExamPlacement value) {
-        super.afterAssigned(iteration, value);
-        if (value.variable().getAveragePeriod() >= 0) {
-            iAssignedExamsWithAvgPeriod ++;
-            iAveragePeriod += value.variable().getAveragePeriod();
+    public String toString(Assignment<Exam, ExamPlacement> assignment) {
+        return "@P:" + sDoubleFormat.format((Math.sqrt(getValue(assignment) / nrAssignedExamsWithAvgPeriod(assignment)) - 1));
+    }
+    
+    protected class RotationContext extends ValueContext {
+        private int iAssignedExamsWithAvgPeriod = 0;
+        private double iAveragePeriod = 0.0;
+
+        public RotationContext(Assignment<Exam, ExamPlacement> assignment) {
+            super(assignment);
+            for (ExamPlacement value: assignment.assignedValues())
+                assigned(assignment, value);
         }
-    }
-    
-    public int nrAssignedExamsWithAvgPeriod() {
-        return iAssignedExamsWithAvgPeriod;
-    }
-    
-    public double averagePeriod() {
-        return iAveragePeriod / iAssignedExamsWithAvgPeriod;
-    }
-    
-    @Override
-    public void getInfo(Map<String, String> info) {
-        if (getValue() != 0.0) {
-            info.put(getName(), sDoubleFormat.format(Math.sqrt(getValue() / iAssignedExamsWithAvgPeriod) - 1));
+
+        @Override
+        public void assigned(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value) {
+            super.assigned(assignment, value);
+            if (value.variable().getAveragePeriod() >= 0) {
+                iAssignedExamsWithAvgPeriod ++;
+                iAveragePeriod += value.variable().getAveragePeriod();
+            }
         }
-    }
-    
-    @Override
-    public String toString() {
-        return "@P:" + sDoubleFormat.format((Math.sqrt(getValue() / iAssignedExamsWithAvgPeriod) - 1));
+
+        @Override
+        public void unassigned(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value) {
+            super.unassigned(assignment, value);
+            if (value.variable().getAveragePeriod() >= 0) {
+                iAssignedExamsWithAvgPeriod --;
+                iAveragePeriod -= value.variable().getAveragePeriod();
+            }
+        }
+        
+        public int nrAssignedExamsWithAvgPeriod() {
+            return iAssignedExamsWithAvgPeriod;
+        }
+        
+        public double averagePeriod() {
+            return iAveragePeriod / iAssignedExamsWithAvgPeriod;
+        }
     }
 }

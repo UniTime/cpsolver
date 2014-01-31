@@ -7,6 +7,7 @@ import net.sf.cpsolver.exam.criteria.additional.PeriodViolation;
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamPeriodPlacement;
 import net.sf.cpsolver.exam.model.ExamPlacement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
@@ -69,12 +70,12 @@ public class PeriodPenalty extends ExamCriterion {
     }
     
     @Override
-    public double getValue(ExamPlacement value, Set<ExamPlacement> conflicts) {
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value, Set<ExamPlacement> conflicts) {
         return (iSoftPeriods == null || (value.getPeriodPlacement().getExamPenalty() != iSoftPeriods &&  value.getPeriodPlacement().getPeriod().getPenalty() != iSoftPeriods) ? value.getPeriodPlacement().getPenalty() : 0.0);
     }
 
     @Override
-    public double[] getBounds(Collection<Exam> variables) {
+    public double[] getBounds(Assignment<Exam, ExamPlacement> assignment, Collection<Exam> variables) {
         double[] bounds = new double[] { 0.0, 0.0 };
         for (Exam exam : variables) {
             if (!exam.getPeriodPlacements().isEmpty()) {
@@ -92,7 +93,7 @@ public class PeriodPenalty extends ExamCriterion {
     }
     
     @Override
-    public String toString() {
-        return "PP:" + sDoubleFormat.format(getValue());
+    public String toString(Assignment<Exam, ExamPlacement> assignment) {
+        return "PP:" + sDoubleFormat.format(getValue(assignment));
     }
 }

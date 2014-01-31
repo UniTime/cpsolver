@@ -4,9 +4,11 @@ import java.util.Map;
 import java.util.Set;
 
 import net.sf.cpsolver.exam.model.Exam;
+import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPeriod;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamStudent;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
@@ -109,25 +111,46 @@ public class StudentBackToBackConflicts extends ExamCriterion {
     }
     
     @Override
-    public double getValue(ExamPlacement value, Set<ExamPlacement> conflicts) {
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value, Set<ExamPlacement> conflicts) {
         Exam exam = value.variable();
         int penalty = 0;
+        ExamPeriod period = value.getPeriod();
+        Map<ExamStudent, Set<Exam>> prev = (period.prev() != null && (isDayBreakBackToBack() || period.prev().getDay() == period.getDay()) ? ((ExamModel)getModel()).getStudentsOfPeriod(assignment, period.prev()) : null);
+        Map<ExamStudent, Set<Exam>> next = (period.next() != null && (isDayBreakBackToBack() || period.next().getDay() == period.getDay()) ? ((ExamModel)getModel()).getStudentsOfPeriod(assignment, period.next()) : null);
         for (ExamStudent s : exam.getStudents()) {
-            if (value.getPeriod().prev() != null) {
-                if (isDayBreakBackToBack() || value.getPeriod().prev().getDay() == value.getPeriod().getDay()) {
-                    Set<Exam> exams = s.getExams(value.getPeriod().prev());
+            if (prev != null) {
+                Set<Exam> exams = prev.get(s);
+                if (exams != null) {
                     int nrExams = exams.size() + (exams.contains(exam) ? -1 : 0);
                     penalty += nrExams;
                 }
             }
-            if (value.getPeriod().next() != null) {
-                if (isDayBreakBackToBack() || value.getPeriod().next().getDay() == value.getPeriod().getDay()) {
-                    Set<Exam> exams = s.getExams(value.getPeriod().next());
+            if (next != null) {
+                Set<Exam> exams = next.get(s);
+                if (exams != null) {
                     int nrExams = exams.size() + (exams.contains(exam) ? -1 : 0);
                     penalty += nrExams;
                 }
             }
         }
+        /*
+        for (ExamStudent s : exam.getStudents()) {
+            if (period.prev() != null) {
+                if (isDayBreakBackToBack() || period.prev().getDay() == period.getDay()) {
+                    Set<Exam> exams = s.getExams(assignment, period.prev());
+                    int nrExams = exams.size() + (exams.contains(exam) ? -1 : 0);
+                    penalty += nrExams;
+                }
+            }
+            if (period.next() != null) {
+                if (isDayBreakBackToBack() || period.next().getDay() == period.getDay()) {
+                    Set<Exam> exams = s.getExams(assignment, period.next());
+                    int nrExams = exams.size() + (exams.contains(exam) ? -1 : 0);
+                    penalty += nrExams;
+                }
+            }
+        }
+        */
         return penalty;
     }
     
@@ -137,13 +160,13 @@ public class StudentBackToBackConflicts extends ExamCriterion {
     }
     
     @Override
-    public void getInfo(Map<String, String> info) {
-        if (getValue() != 0.0)
-            info.put(getName(), sDoubleFormat.format(getValue()));
+    public void getInfo(Assignment<Exam, ExamPlacement> assignment, Map<String, String> info) {
+        if (getValue(assignment) != 0.0)
+            info.put(getName(), sDoubleFormat.format(getValue(assignment)));
     }
     
     @Override
-    public String toString() {
-        return "BTB:" + sDoubleFormat.format(getValue());
+    public String toString(Assignment<Exam, ExamPlacement> assignment) {
+        return "BTB:" + sDoubleFormat.format(getValue(assignment));
     }
 }

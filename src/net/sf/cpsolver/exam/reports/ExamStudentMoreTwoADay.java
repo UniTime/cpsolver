@@ -7,6 +7,7 @@ import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamStudent;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.CSVFile.CSVField;
 
@@ -55,7 +56,7 @@ public class ExamStudentMoreTwoADay {
     /**
      * generate report
      */
-    public CSVFile report() {
+    public CSVFile report(Assignment<Exam, ExamPlacement> assignment) {
         CSVFile csv = new CSVFile();
         csv.setHeader(new CSVField[] { new CSVField("Exam 1"), new CSVField("Enrl 1"), new CSVField("Period 1"),
                 new CSVField("Date 1"), new CSVField("Time 1"), new CSVField("Exam 2"), new CSVField("Enrl 2"),
@@ -64,13 +65,13 @@ public class ExamStudentMoreTwoADay {
                 new CSVField("More-2-Day [%]") });
         DecimalFormat df = new DecimalFormat("0.0");
         for (Exam ex1 : iModel.variables()) {
-            ExamPlacement p1 = ex1.getAssignment();
+            ExamPlacement p1 = assignment.getValue(ex1);
             if (p1 == null)
                 continue;
             for (Exam ex2 : iModel.variables()) {
                 if (ex2.equals(ex1))
                     continue;
-                ExamPlacement p2 = ex2.getAssignment();
+                ExamPlacement p2 = assignment.getValue(ex2);
                 if (p2 == null || p2.getPeriod().getDay() != p1.getPeriod().getDay()
                         || p2.getPeriod().getIndex() < p1.getPeriod().getIndex())
                     continue;
@@ -82,7 +83,7 @@ public class ExamStudentMoreTwoADay {
                 for (Exam ex3 : iModel.variables()) {
                     if (ex3.equals(ex2) || ex3.equals(ex1))
                         continue;
-                    ExamPlacement p3 = ex3.getAssignment();
+                    ExamPlacement p3 = assignment.getValue(ex3);
                     if (p3 == null || p3.getPeriod().getDay() != p2.getPeriod().getDay()
                             || p3.getPeriod().getIndex() < p2.getPeriod().getIndex())
                         continue;

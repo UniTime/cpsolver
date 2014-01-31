@@ -11,6 +11,9 @@ import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPeriodPlacement;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamRoomPlacement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentContext;
+import net.sf.cpsolver.ifs.assignment.context.NeighbourSelectionWithContext;
 import net.sf.cpsolver.ifs.extension.ConflictStatistics;
 import net.sf.cpsolver.ifs.extension.Extension;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
@@ -77,7 +80,7 @@ import org.apache.log4j.Logger;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class ExamTabuSearch implements NeighbourSelection<Exam, ExamPlacement>, ValueSelection<Exam, ExamPlacement> {
+public class ExamTabuSearch extends NeighbourSelectionWithContext<Exam, ExamPlacement, ExamTabuSearch.TabuList> implements ValueSelection<Exam, ExamPlacement> {
     private static Logger sLog = Logger.getLogger(ExamTabuSearch.class);
     private ConflictStatistics<Exam, ExamPlacement> iStat = null;
 
@@ -86,7 +89,6 @@ public class ExamTabuSearch implements NeighbourSelection<Exam, ExamPlacement>, 
 
     private int iTabuMinSize = 0;
     private int iTabuMaxSize = 0;
-    private TabuList iTabu = null;
 
     private double iConflictWeight = 1000000;
     private double iValueWeight = 1;
@@ -100,15 +102,13 @@ public class ExamTabuSearch implements NeighbourSelection<Exam, ExamPlacement>, 
      * <li>Value.ValueWeight ... weight of a value (i.e.,
      * {@link Value#toDouble()})
      * <li>Value.ConflictWeight ... weight of a conflicting value (see
-     * {@link Model#conflictValues(Value)}), it is also weighted by the past
+     * {@link Model#conflictValues(Assignment, Value)}), it is also weighted by the past
      * occurrences when conflict-based statistics is used
      * </ul>
      */
     public ExamTabuSearch(DataProperties properties) throws Exception {
         iTabuMinSize = properties.getPropertyInt("TabuSearch.MinSize", iTabuMinSize);
         iTabuMaxSize = properties.getPropertyInt("TabuSearch.MaxSize", iTabuMaxSize);
-        if (iTabuMaxSize > 0)
-            iTabu = new TabuList(iTabuMinSize);
         iMaxIdleIterations = properties.getPropertyLong("TabuSearch.MaxIdle", iMaxIdleIterations);
         iConflictWeight = properties.getPropertyDouble("Value.ConflictWeight", iConflictWeight);
         iValueWeight = properties.getPropertyDouble("Value.ValueWeight", iValueWeight);
@@ -130,57 +130,59 @@ public class ExamTabuSearch implements NeighbourSelection<Exam, ExamPlacement>, 
     public Neighbour<Exam, ExamPlacement> selectNeighbour(Solution<Exam, ExamPlacement> solution) {
         if (iFirstIteration < 0)
             iFirstIteration = solution.getIteration();
+        TabuList tabu = getContext(solution.getAssignment());
         long idle = solution.getIteration() - Math.max(iFirstIteration, solution.getBestIteration());
         if (idle > iMaxIdleIterations) {
             sLog.debug("  [tabu]    max idle iterations reached");
             iFirstIteration = -1;
-            if (iTabu != null)
-                iTabu.clear();
+            if (tabu.size() > 0)
+                tabu.clear();
             return null;
         }
-        if (iTabu != null && iTabuMaxSize > iTabuMinSize) {
+        if (tabu.size() > 0 && iTabuMaxSize > iTabuMinSize) {
             if (idle == 0) {
-                iTabu.resize(iTabuMinSize);
+                tabu.resize(iTabuMinSize);
             } else if (idle % (iMaxIdleIterations / (iTabuMaxSize - iTabuMinSize)) == 0) {
-                iTabu.resize(Math.min(iTabuMaxSize, iTabu.size() + 1));
+                tabu.resize(Math.min(iTabuMaxSize, tabu.size() + 1));
             }
         }
 
         boolean acceptConflicts = solution.getModel().getBestUnassignedVariables() > 0;
         ExamModel model = (ExamModel) solution.getModel();
+        Assignment<Exam, ExamPlacement> assignment = solution.getAssignment();
         double bestEval = 0.0;
         List<ExamPlacement> best = null;
         for (Exam exam : model.variables()) {
-            ExamPlacement assigned = exam.getAssignment();
-            double assignedVal = (assigned == null ? iConflictWeight : iValueWeight * assigned.toDouble());
+            ExamPlacement assigned = assignment.getValue(exam);
+            double assignedVal = (assigned == null ? iConflictWeight : iValueWeight * assigned.toDouble(assignment));
             for (ExamPeriodPlacement period : exam.getPeriodPlacements()) {
-                Set<ExamRoomPlacement> rooms = exam.findBestAvailableRooms(period);
+                Set<ExamRoomPlacement> rooms = exam.findBestAvailableRooms(assignment, period);
                 if (rooms == null)
-                    rooms = exam.findRoomsRandom(period, false);
+                    rooms = exam.findRoomsRandom(assignment, period, false);
                 if (rooms == null)
                     continue;
                 ExamPlacement value = new ExamPlacement(exam, period, rooms);
                 if (value.equals(assigned))
                     continue;
-                double eval = iValueWeight * value.toDouble() - assignedVal;
+                double eval = iValueWeight * value.toDouble(assignment) - assignedVal;
                 if (acceptConflicts) {
-                    Set<ExamPlacement> conflicts = model.conflictValues(value);
+                    Set<ExamPlacement> conflicts = model.conflictValues(assignment, value);
                     for (ExamPlacement conflict : conflicts) {
-                        eval -= iValueWeight * conflict.toDouble();
+                        eval -= iValueWeight * conflict.toDouble(assignment);
                         eval += iConflictWeight
                                 * (1.0 + (iStat == null ? 0.0 : iStat.countRemovals(solution.getIteration(), conflict,
                                         value)));
                     }
                 } else {
-                    if (model.inConflict(value))
+                    if (model.inConflict(assignment, value))
                         continue;
                 }
-                if (iTabu != null && iTabu.contains(exam.getId() + ":" + value.getPeriod().getIndex())) {
-                    int un = model.nrUnassignedVariables() - (assigned == null ? 0 : 1);
+                if (tabu.size() > 0 && tabu.contains(exam.getId() + ":" + value.getPeriod().getIndex())) {
+                    int un = model.variables().size() - assignment.nrAssignedVariables() - (assigned == null ? 0 : 1);
                     if (un > model.getBestUnassignedVariables())
                         continue;
                     if (un == model.getBestUnassignedVariables()
-                            && model.getTotalValue() + eval >= solution.getBestValue())
+                            && model.getTotalValue(assignment) + eval >= solution.getBestValue())
                         continue;
                 }
                 if (best == null || bestEval > eval) {
@@ -199,25 +201,22 @@ public class ExamTabuSearch implements NeighbourSelection<Exam, ExamPlacement>, 
         if (best == null) {
             sLog.debug("  [tabu] --none--");
             iFirstIteration = -1;
-            if (iTabu != null)
-                iTabu.clear();
+            if (tabu.size() > 0)
+                tabu.clear();
             return null;
         }
         ExamPlacement bestVal = ToolBox.random(best);
 
         if (sLog.isDebugEnabled()) {
-            Set<ExamPlacement> conflicts = model.conflictValues(bestVal);
+            Set<ExamPlacement> conflicts = model.conflictValues(assignment, bestVal);
             double wconf = (iStat == null ? 0.0 : iStat.countRemovals(solution.getIteration(), conflicts, bestVal));
-            sLog.debug("  [tabu] "
-                    + bestVal
-                    + " ("
-                    + (bestVal.variable().getAssignment() == null ? "" : "was=" + bestVal.variable().getAssignment()
-                            + ", ") + "val=" + bestEval
+            sLog.debug("  [tabu] " + bestVal + " ("
+                    + (assignment.getValue(bestVal.variable()) == null ? "" : "was=" + assignment.getValue(bestVal.variable()) + ", ") + "val=" + bestEval
                     + (conflicts.isEmpty() ? "" : ", conf=" + (wconf + conflicts.size()) + "/" + conflicts) + ")");
         }
 
-        if (iTabu != null)
-            iTabu.add(bestVal.variable().getId() + ":" + bestVal.getPeriod().getIndex());
+        if (tabu.size() > 0)
+            tabu.add(bestVal.variable().getId() + ":" + bestVal.getPeriod().getIndex());
 
         return new SimpleNeighbour<Exam, ExamPlacement>(bestVal.variable(), bestVal);
     }
@@ -229,34 +228,36 @@ public class ExamTabuSearch implements NeighbourSelection<Exam, ExamPlacement>, 
     public ExamPlacement selectValue(Solution<Exam, ExamPlacement> solution, Exam exam) {
         if (iFirstIteration < 0)
             iFirstIteration = solution.getIteration();
+        TabuList tabu = getContext(solution.getAssignment());
         long idle = solution.getIteration() - Math.max(iFirstIteration, solution.getBestIteration());
         if (idle > iMaxIdleIterations) {
             sLog.debug("  [tabu]    max idle iterations reached");
             iFirstIteration = -1;
-            if (iTabu != null)
-                iTabu.clear();
+            if (tabu.size() > 0)
+                tabu.clear();
             return null;
         }
-        if (iTabu != null && iTabuMaxSize > iTabuMinSize) {
+        if (tabu.size() > 0 && iTabuMaxSize > iTabuMinSize) {
             if (idle == 0) {
-                iTabu.resize(iTabuMinSize);
+                tabu.resize(iTabuMinSize);
             } else if (idle % (iMaxIdleIterations / (iTabuMaxSize - iTabuMinSize)) == 0) {
-                iTabu.resize(Math.min(iTabuMaxSize, iTabu.size() + 1));
+                tabu.resize(Math.min(iTabuMaxSize, tabu.size() + 1));
             }
         }
 
         ExamModel model = (ExamModel) solution.getModel();
+        Assignment<Exam, ExamPlacement> assignment = solution.getAssignment();
         double bestEval = 0.0;
         List<ExamPlacement> best = null;
 
-        ExamPlacement assigned = exam.getAssignment();
+        ExamPlacement assigned = assignment.getValue(exam);
         // double assignedVal =
         // (assigned==null?-iConflictWeight:iValueWeight*assigned.toDouble());
-        double assignedVal = (assigned == null ? iConflictWeight : iValueWeight * assigned.toDouble());
+        double assignedVal = (assigned == null ? iConflictWeight : iValueWeight * assigned.toDouble(assignment));
         for (ExamPeriodPlacement period : exam.getPeriodPlacements()) {
-            Set<ExamRoomPlacement> rooms = exam.findBestAvailableRooms(period);
+            Set<ExamRoomPlacement> rooms = exam.findBestAvailableRooms(assignment, period);
             if (rooms == null)
-                rooms = exam.findRoomsRandom(period, false);
+                rooms = exam.findRoomsRandom(assignment, period, false);
             if (rooms == null) {
                 sLog.info("Exam " + exam.getName() + " has no rooms for period " + period);
                 continue;
@@ -264,18 +265,18 @@ public class ExamTabuSearch implements NeighbourSelection<Exam, ExamPlacement>, 
             ExamPlacement value = new ExamPlacement(exam, period, rooms);
             if (value.equals(assigned))
                 continue;
-            Set<ExamPlacement> conflicts = model.conflictValues(value);
-            double eval = iValueWeight * value.toDouble() - assignedVal;
+            Set<ExamPlacement> conflicts = model.conflictValues(assignment, value);
+            double eval = iValueWeight * value.toDouble(assignment) - assignedVal;
             for (ExamPlacement conflict : conflicts) {
-                eval -= iValueWeight * conflict.toDouble();
+                eval -= iValueWeight * conflict.toDouble(assignment);
                 eval += iConflictWeight
                         * (1.0 + (iStat == null ? 0.0 : iStat.countRemovals(solution.getIteration(), conflict, value)));
             }
-            if (iTabu != null && iTabu.contains(exam.getId() + ":" + value.getPeriod().getIndex())) {
-                int un = model.nrUnassignedVariables() - (assigned == null ? 0 : 1);
+            if (tabu.size() > 0 && tabu.contains(exam.getId() + ":" + value.getPeriod().getIndex())) {
+                int un = model.variables().size() - assignment.nrAssignedVariables() - (assigned == null ? 0 : 1);
                 if (un > model.getBestUnassignedVariables())
                     continue;
-                if (un == model.getBestUnassignedVariables() && model.getTotalValue() + eval >= solution.getBestValue())
+                if (un == model.getBestUnassignedVariables() && model.getTotalValue(assignment) + eval >= solution.getBestValue())
                     continue;
             }
             if (best == null || bestEval > eval) {
@@ -295,24 +296,21 @@ public class ExamTabuSearch implements NeighbourSelection<Exam, ExamPlacement>, 
         ExamPlacement bestVal = ToolBox.random(best);
 
         if (sLog.isDebugEnabled()) {
-            Set<ExamPlacement> conflicts = model.conflictValues(bestVal);
+            Set<ExamPlacement> conflicts = model.conflictValues(assignment, bestVal);
             double wconf = (iStat == null ? 0.0 : iStat.countRemovals(solution.getIteration(), conflicts, bestVal));
-            sLog.debug("  [tabu] "
-                    + bestVal
-                    + " ("
-                    + (bestVal.variable().getAssignment() == null ? "" : "was=" + bestVal.variable().getAssignment()
-                            + ", ") + "val=" + bestEval
+            sLog.debug("  [tabu] " + bestVal + " ("
+                    + (assignment.getValue(bestVal.variable()) == null ? "" : "was=" + assignment.getValue(bestVal.variable()) + ", ") + "val=" + bestEval
                     + (conflicts.isEmpty() ? "" : ", conf=" + (wconf + conflicts.size()) + "/" + conflicts) + ")");
         }
 
-        if (iTabu != null)
-            iTabu.add(exam.getId() + ":" + bestVal.getPeriod().getIndex());
+        if (tabu.size() > 0)
+            tabu.add(exam.getId() + ":" + bestVal.getPeriod().getIndex());
 
         return bestVal;
     }
 
     /** Tabu-list */
-    private static class TabuList {
+    public static class TabuList implements AssignmentContext {
         private HashSet<TabuItem> iList = new HashSet<TabuItem>();
         private int iSize;
         private long iIteration = 0;
@@ -412,5 +410,10 @@ public class ExamTabuSearch implements NeighbourSelection<Exam, ExamPlacement>, 
         public String toString() {
             return getObject().toString();
         }
+    }
+
+    @Override
+    public TabuList createAssignmentContext(Assignment<Exam, ExamPlacement> assignment) {
+        return new TabuList(iTabuMinSize);
     }
 }

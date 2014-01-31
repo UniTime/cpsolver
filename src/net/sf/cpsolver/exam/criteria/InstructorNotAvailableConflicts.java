@@ -6,6 +6,7 @@ import java.util.Set;
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamInstructor;
 import net.sf.cpsolver.exam.model.ExamPlacement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 
 /**
  * Number of direct instructor conflicts caused by the fact that an instructor is
@@ -39,7 +40,7 @@ import net.sf.cpsolver.exam.model.ExamPlacement;
 public class InstructorNotAvailableConflicts extends InstructorDirectConflicts {
 
     @Override
-    public double getValue(ExamPlacement value, Set<ExamPlacement> conflicts) {
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value, Set<ExamPlacement> conflicts) {
         Exam exam = value.variable();
         // if (!exam.isAllowDirectConflicts()) return 0;
         int penalty = 0;
@@ -56,11 +57,11 @@ public class InstructorNotAvailableConflicts extends InstructorDirectConflicts {
     }
     
     @Override
-    public void getInfo(Map<String, String> info) {
+    public void getInfo(Assignment<Exam, ExamPlacement> assignment, Map<String, String> info) {
     }
 
     @Override
-    public String toString() {
-        return (getValue() <= 0.0 ? "" : "iNA:" + sDoubleFormat.format(getValue()));
+    public String toString(Assignment<Exam, ExamPlacement> assignment) {
+        return (getValue(assignment) <= 0.0 ? "" : "iNA:" + sDoubleFormat.format(getValue(assignment)));
     }
 }

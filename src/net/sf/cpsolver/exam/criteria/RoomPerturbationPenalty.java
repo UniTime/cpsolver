@@ -5,6 +5,7 @@ import java.util.Set;
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamRoomPlacement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -56,7 +57,7 @@ public class RoomPerturbationPenalty extends PerturbationPenalty {
     }
 
     @Override
-    public double getValue(ExamPlacement value, Set<ExamPlacement> conflicts) {
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value, Set<ExamPlacement> conflicts) {
         if (!isMPP()) return 0;
         Exam exam = value.variable();
         ExamPlacement initial = exam.getInitialAssignment();
@@ -72,8 +73,8 @@ public class RoomPerturbationPenalty extends PerturbationPenalty {
 
 
     @Override
-    public String toString() {
-        return (isMPP() ? "IRP:" + sDoubleFormat.format(getValue()) : "");
+    public String toString(Assignment<Exam, ExamPlacement> assignment) {
+        return (isMPP() ? "IRP:" + sDoubleFormat.format(getValue(assignment)) : "");
     }
 
     @Override

@@ -8,6 +8,7 @@ import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamRoomPlacement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.CSVFile.CSVField;
 
@@ -55,14 +56,14 @@ public class ExamRoomSplit {
     /**
      * generate report
      */
-    public CSVFile report() {
+    public CSVFile report(Assignment<Exam, ExamPlacement> assignment) {
         CSVFile csv = new CSVFile();
         csv.setHeader(new CSVField[] { new CSVField("Exam"), new CSVField("Enrl"), new CSVField("Period"),
                 new CSVField("Date"), new CSVField("Time"), new CSVField("Room 1"), new CSVField("Cap 1"),
                 new CSVField("Room 2"), new CSVField("Cap 2"), new CSVField("Room 3"), new CSVField("Cap 3"),
                 new CSVField("Room 4"), new CSVField("Cap 4") });
         for (Exam exam : iModel.variables()) {
-            ExamPlacement placement = exam.getAssignment();
+            ExamPlacement placement = assignment.getValue(exam);
             if (placement == null || placement.getRoomPlacements().size() <= 1)
                 continue;
             List<CSVField> fields = new ArrayList<CSVField>();

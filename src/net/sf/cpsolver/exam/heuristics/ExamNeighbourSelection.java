@@ -4,7 +4,9 @@ import org.apache.log4j.Logger;
 
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamPlacement;
-import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentContext;
+import net.sf.cpsolver.ifs.assignment.context.NeighbourSelectionWithContext;
 import net.sf.cpsolver.ifs.heuristics.StandardNeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
@@ -55,8 +57,7 @@ import net.sf.cpsolver.ifs.util.Progress;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class ExamNeighbourSelection implements NeighbourSelection<Exam, ExamPlacement>,
-        TerminationCondition<Exam, ExamPlacement> {
+public class ExamNeighbourSelection extends NeighbourSelectionWithContext<Exam, ExamPlacement, ExamNeighbourSelection.Context> implements TerminationCondition<Exam, ExamPlacement> {
     private static Logger sLog = Logger.getLogger(ExamNeighbourSelection.class);
     private ExamColoringConstruction iColor = null;
     private ExamConstruction iCon = null;
@@ -65,12 +66,11 @@ public class ExamNeighbourSelection implements NeighbourSelection<Exam, ExamPlac
     private ExamHillClimbing iHC = null;
     private ExamHillClimbing iFin = null;
     private ExamGreatDeluge iGD = null;
-    private int iPhase = -1;
     private boolean iUseGD = false;
     private Progress iProgress = null;
     private Callback iFinalPhaseFinished = null;
-    private boolean iCanContinue = true;
     private TerminationCondition<Exam, ExamPlacement> iTerm = null;
+    private boolean iFinalPhase = false;
 
     /**
      * Constructor
@@ -102,6 +102,7 @@ public class ExamNeighbourSelection implements NeighbourSelection<Exam, ExamPlac
      */
     @Override
     public void init(Solver<Exam, ExamPlacement> solver) {
+        super.init(solver);
         if (iColor != null)
             iColor.init(solver);
         iCon.init(solver);
@@ -114,7 +115,7 @@ public class ExamNeighbourSelection implements NeighbourSelection<Exam, ExamPlac
             iTerm = solver.getTerminationCondition();
             solver.setTerminalCondition(this);
         }
-        iCanContinue = true;
+        iFinalPhase = false;
         iProgress = Progress.getInstance(solver.currentSolution().getModel());
     }
 
@@ -131,13 +132,14 @@ public class ExamNeighbourSelection implements NeighbourSelection<Exam, ExamPlac
      */
     @SuppressWarnings("fallthrough")
     @Override
-    public synchronized Neighbour<Exam, ExamPlacement> selectNeighbour(Solution<Exam, ExamPlacement> solution) {
+    public Neighbour<Exam, ExamPlacement> selectNeighbour(Solution<Exam, ExamPlacement> solution) {
         Neighbour<Exam, ExamPlacement> n = null;
-        if (!isFinalPhase() && !iTerm.canContinue(solution))
-            setFinalPhase(null);
-        switch (iPhase) {
+        Context phase = getContext(solution.getAssignment());
+        if (isFinalPhase())
+            phase.setPhase(9999);
+        switch (phase.getPhase()) {
             case -1:
-                iPhase++;
+                phase.incPhase();
                 sLog.info("***** construction phase *****");
                 if (iColor != null) {
                     n = iColor.selectNeighbour(solution);
@@ -147,25 +149,24 @@ public class ExamNeighbourSelection implements NeighbourSelection<Exam, ExamPlac
                 n = iCon.selectNeighbour(solution);
                 if (n != null)
                     return n;
-                if (solution.getModel().nrUnassignedVariables() > 0)
+                if (solution.getAssignment().nrAssignedVariables() > 0)
                     iProgress.setPhase("Searching for initial solution...", solution.getModel().variables().size());
-                iPhase++;
+                phase.incPhase();
                 sLog.info("***** cbs/tabu-search phase *****");
             case 1:
-                if (iStd != null && solution.getModel().nrUnassignedVariables() > 0) {
-                    iProgress.setProgress(solution.getModel().variables().size()
-                            - solution.getModel().getBestUnassignedVariables());
+                if (iStd != null && solution.getModel().variables().size() > solution.getAssignment().nrAssignedVariables()) {
+                    iProgress.setProgress(solution.getModel().variables().size() - solution.getModel().getBestUnassignedVariables());
                     n = iStd.selectNeighbour(solution);
                     if (n != null)
                         return n;
                 }
-                iPhase++;
+                phase.incPhase();
                 sLog.info("***** hill climbing phase *****");
             case 2:
                 n = iHC.selectNeighbour(solution);
                 if (n != null)
                     return n;
-                iPhase++;
+                phase.incPhase();
                 sLog.info("***** " + (iUseGD ? "great deluge" : "simulated annealing") + " phase *****");
             case 3:
                 if (iUseGD)
@@ -176,10 +177,10 @@ public class ExamNeighbourSelection implements NeighbourSelection<Exam, ExamPlac
                 n = iFin.selectNeighbour(solution);
                 if (n != null)
                     return n;
-                iPhase = -1;
-                if (iFinalPhaseFinished != null)
+                phase.setPhase(-1);
+                if (iFinalPhaseFinished != null && iTerm.canContinue(solution))
                     iFinalPhaseFinished.execute();
-                iCanContinue = false;
+                phase.setCanContinue(false);
             default:
                 return null;
         }
@@ -191,21 +192,37 @@ public class ExamNeighbourSelection implements NeighbourSelection<Exam, ExamPlac
      * @param finalPhaseFinished
      *            to be called when the final phase is finished
      **/
-    public synchronized void setFinalPhase(Callback finalPhaseFinished) {
+    public void setFinalPhase(Callback finalPhaseFinished) {
         sLog.info("***** final phase *****");
         iFinalPhaseFinished = finalPhaseFinished;
-        iPhase = 9999;
+        iFinalPhase = true;
     }
 
     /** Is final phase */
     public boolean isFinalPhase() {
-        return iPhase == 9999;
+        return iFinalPhase;
     }
 
     /** Termination condition (i.e., has final phase finished) */
     @Override
     public boolean canContinue(Solution<Exam, ExamPlacement> currentSolution) {
-        return iCanContinue;
+        return getContext(currentSolution.getAssignment()).isCanContinue();
+    }
+    
+    @Override
+    public Context createAssignmentContext(Assignment<Exam, ExamPlacement> assignment) {
+        return new Context();
     }
 
+    public class Context implements AssignmentContext {
+        private int iPhase = -1;
+        private boolean iCanContinue = true;
+
+        public int getPhase() { return iPhase; }
+        public void incPhase() { iPhase ++; }
+        public void setPhase(int phase) { iPhase = phase; }
+        
+        public boolean isCanContinue() { return iCanContinue; }
+        public void setCanContinue(boolean canContinue) { iCanContinue = canContinue; }
+    }
 }

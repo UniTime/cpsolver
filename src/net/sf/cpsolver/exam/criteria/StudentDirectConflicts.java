@@ -4,8 +4,11 @@ import java.util.Map;
 import java.util.Set;
 
 import net.sf.cpsolver.exam.model.Exam;
+import net.sf.cpsolver.exam.model.ExamModel;
+import net.sf.cpsolver.exam.model.ExamPeriod;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamStudent;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -56,15 +59,27 @@ public class StudentDirectConflicts extends ExamCriterion {
     }
     
     @Override
-    public double getValue(ExamPlacement value, Set<ExamPlacement> conflicts) {
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value, Set<ExamPlacement> conflicts) {
         Exam exam = value.variable();
         int penalty = 0;
+        ExamPeriod period = value.getPeriod();
+        Map<ExamStudent, Set<Exam>> students = ((ExamModel)getModel()).getStudentsOfPeriod(assignment, period);
         for (ExamStudent s : exam.getStudents()) {
-            Set<Exam> exams = s.getExams(value.getPeriod());
+            Set<Exam> exams = students.get(s);
+            if (exams == null) continue;
             int nrExams = exams.size() + (exams.contains(exam) ? 0 : 1);
             if (nrExams > 1)
                 penalty++;
         }
+        /*
+        for (ExamStudent s : exam.getStudents()) {
+            Set<Exam> exams = s.getExams(assignment, period);
+            if (exams.isEmpty()) continue;
+            int nrExams = exams.size() + (exams.contains(exam) ? 0 : 1);
+            if (nrExams > 1)
+                penalty++;
+        }
+        */
         return penalty;
     }
 
@@ -74,15 +89,15 @@ public class StudentDirectConflicts extends ExamCriterion {
     }
     
     @Override
-    public void getInfo(Map<String, String> info) {
+    public void getInfo(Assignment<Exam, ExamPlacement> assignment, Map<String, String> info) {
         StudentNotAvailableConflicts na = (StudentNotAvailableConflicts)getModel().getCriterion(StudentNotAvailableConflicts.class);
-        if (getValue() != 0.0 || (na != null && na.getValue() != 0.0))
-            info.put(getName(), sDoubleFormat.format(getValue() + (na == null ? 0.0 : na.getValue())) +
-                    (na == null || na.getValue() == 0.0 ? "" : " (" + sDoubleFormat.format(na.getValue()) + " N/A)"));
+        if (getValue(assignment) != 0.0 || (na != null && na.getValue(assignment) != 0.0))
+            info.put(getName(), sDoubleFormat.format(getValue(assignment) + (na == null ? 0.0 : na.getValue(assignment))) +
+                    (na == null || na.getValue(assignment) == 0.0 ? "" : " (" + sDoubleFormat.format(na.getValue(assignment)) + " N/A)"));
     }
 
     @Override
-    public String toString() {
-        return "DC:" + sDoubleFormat.format(getValue());
+    public String toString(Assignment<Exam, ExamPlacement> assignment) {
+        return "DC:" + sDoubleFormat.format(getValue(assignment));
     }
 }
