@@ -1,5 +1,6 @@
 package net.sf.cpsolver.ifs.model;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.solver.Solver;
 
 /**
@@ -68,7 +69,7 @@ public interface ModelListener<V extends Variable<V, T>, T extends Value<V, T>> 
      * @param value
      *            value to be assigned
      */
-    public void beforeAssigned(long iteration, T value);
+    public void beforeAssigned(Assignment<V, T> assignment, long iteration, T value);
 
     /**
      * Called before a value is unassigned from its variable (
@@ -79,7 +80,7 @@ public interface ModelListener<V extends Variable<V, T>, T extends Value<V, T>> 
      * @param value
      *            value to be unassigned
      */
-    public void beforeUnassigned(long iteration, T value);
+    public void beforeUnassigned(Assignment<V, T> assignment, long iteration, T value);
 
     /**
      * Called after a value is assigned to its variable (
@@ -90,7 +91,7 @@ public interface ModelListener<V extends Variable<V, T>, T extends Value<V, T>> 
      * @param value
      *            value to be assigned
      */
-    public void afterAssigned(long iteration, T value);
+    public void afterAssigned(Assignment<V, T> assignment,  long iteration, T value);
 
     /**
      * Called after a value is unassigned from its variable (
@@ -101,7 +102,7 @@ public interface ModelListener<V extends Variable<V, T>, T extends Value<V, T>> 
      * @param value
      *            value to be unassigned
      */
-    public void afterUnassigned(long iteration, T value);
+    public void afterUnassigned(Assignment<V, T> assignment, long iteration, T value);
 
     /**
      * Notification that the model was initialized by the solver.

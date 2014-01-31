@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.heuristics.ValueSelection;
 import net.sf.cpsolver.ifs.heuristics.VariableSelection;
 import net.sf.cpsolver.ifs.model.Constraint;
@@ -55,7 +56,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  * caused them. Let us consider a variable Va selected by the
  * {@link VariableSelection#selectVariable(Solution)} function and a value va
  * selected by {@link ValueSelection#selectValue(Solution, Variable)}. Once the
- * assignment Vb = vb is selected by {@link Model#conflictValues(Value)} to be
+ * assignment Vb = vb is selected by {@link Model#conflictValues(Assignment, Value)} to be
  * unassigned, the array cell CBS[Va = va, Vb != vb] is incremented by one. <br>
  * <br>
  * The data structure is implemented as a hash table, storing information for
@@ -152,8 +153,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>> extends Extension<V, T> implements
-        ConstraintListener<T> {
+public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>> extends Extension<V, T> implements ConstraintListener<V, T> {
     private static final String PARAM_AGEING = "ConflictStatistics.Ageing";
     private static final String PARAM_HALF_AGE = "ConflictStatistics.AgeingHalfTime";
     private static final String PARAM_PRINT = "ConflictStatistics.Print";
@@ -161,9 +161,9 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
     private double iAgeing = 1.0;
     private boolean iPrint = false;
 
-    private Map<Assignment<T>, List<Assignment<T>>> iAssignments = new HashMap<Assignment<T>, List<Assignment<T>>>();
-    private Map<V, List<Assignment<T>>> iUnassignedVariables = new HashMap<V, List<Assignment<T>>>();
-    private Map<Assignment<T>, List<Assignment<T>>> iNoGoods = new HashMap<Assignment<T>, List<Assignment<T>>>();
+    private Map<AssignedValue<T>, List<AssignedValue<T>>> iAssignments = new HashMap<AssignedValue<T>, List<AssignedValue<T>>>();
+    private Map<V, List<AssignedValue<T>>> iUnassignedVariables = new HashMap<V, List<AssignedValue<T>>>();
+    private Map<AssignedValue<T>, List<AssignedValue<T>>> iNoGoods = new HashMap<AssignedValue<T>, List<AssignedValue<T>>>();
 
     public ConflictStatistics(Solver<V, T> solver, DataProperties properties) {
         super(solver, properties);
@@ -184,61 +184,65 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
         super.unregister(model);
     }
 
-    private void variableUnassigned(long iteration, T unassignedValue, Assignment<T> noGood) {
-        if (iteration <= 0)
-            return;
-        Assignment<T> unass = new Assignment<T>(iteration, unassignedValue, iAgeing);
-        List<Assignment<T>> noGoodsForUnassignment = iNoGoods.get(unass);
-        if (noGoodsForUnassignment != null) {
-            if (noGoodsForUnassignment.contains(noGood)) {
-                (noGoodsForUnassignment.get(noGoodsForUnassignment.indexOf(noGood))).incCounter(iteration);
+    private void variableUnassigned(long iteration, T unassignedValue, AssignedValue<T> noGood) {
+        synchronized (iAssignments) {
+            if (iteration <= 0) return;
+            AssignedValue<T> unass = new AssignedValue<T>(iteration, unassignedValue, iAgeing);
+            List<AssignedValue<T>> noGoodsForUnassignment = iNoGoods.get(unass);
+            if (noGoodsForUnassignment != null) {
+                if (noGoodsForUnassignment.contains(noGood)) {
+                    (noGoodsForUnassignment.get(noGoodsForUnassignment.indexOf(noGood))).incCounter(iteration);
+                } else {
+                    noGoodsForUnassignment.add(noGood);
+                }
             } else {
+                noGoodsForUnassignment = new ArrayList<AssignedValue<T>>();
                 noGoodsForUnassignment.add(noGood);
+                iNoGoods.put(unass, noGoodsForUnassignment);
             }
-        } else {
-            noGoodsForUnassignment = new ArrayList<Assignment<T>>();
-            noGoodsForUnassignment.add(noGood);
-            iNoGoods.put(unass, noGoodsForUnassignment);
         }
     }
 
     public void reset() {
-        iUnassignedVariables.clear();
-        iAssignments.clear();
+        synchronized (iAssignments) {
+            iUnassignedVariables.clear();
+            iAssignments.clear();
+        }
     }
 
-    public Map<Assignment<T>, List<Assignment<T>>> getNoGoods() {
+    public Map<AssignedValue<T>, List<AssignedValue<T>>> getNoGoods() {
         return iNoGoods;
     }
 
     public void variableUnassigned(long iteration, T unassignedValue, T assignedValue) {
-        if (iteration <= 0)
-            return;
-        Assignment<T> ass = new Assignment<T>(iteration, assignedValue, iAgeing);
-        Assignment<T> unass = new Assignment<T>(iteration, unassignedValue, iAgeing);
-        if (iAssignments.containsKey(unass)) {
-            List<Assignment<T>> asss = iAssignments.get(unass);
-            if (asss.contains(ass)) {
-                asss.get(asss.indexOf(ass)).incCounter(iteration);
+        if (iteration <= 0) return;
+        AssignedValue<T> ass = new AssignedValue<T>(iteration, assignedValue, iAgeing);
+        AssignedValue<T> unass = new AssignedValue<T>(iteration, unassignedValue, iAgeing);
+        synchronized (iAssignments) {
+            if (iAssignments.containsKey(unass)) {
+                List<AssignedValue<T>> asss = iAssignments.get(unass);
+                if (asss.contains(ass)) {
+                    asss.get(asss.indexOf(ass)).incCounter(iteration);
+                } else {
+                    asss.add(ass);
+                }
             } else {
+                List<AssignedValue<T>> asss = new ArrayList<AssignedValue<T>>();
                 asss.add(ass);
+                iAssignments.put(unass, asss);
             }
-        } else {
-            List<Assignment<T>> asss = new ArrayList<Assignment<T>>();
-            asss.add(ass);
-            iAssignments.put(unass, asss);
-        }
-        if (iUnassignedVariables.containsKey(unassignedValue.variable())) {
-            List<Assignment<T>> asss = iUnassignedVariables.get(unassignedValue.variable());
-            if (asss.contains(ass)) {
-                (asss.get(asss.indexOf(ass))).incCounter(iteration);
+            if (iUnassignedVariables.containsKey(unassignedValue.variable())) {
+                List<AssignedValue<T>> asss = iUnassignedVariables.get(unassignedValue.variable());
+                if (asss.contains(ass)) {
+                    (asss.get(asss.indexOf(ass))).incCounter(iteration);
+                } else {
+                    asss.add(ass);
+                }
             } else {
+                List<AssignedValue<T>> asss = new ArrayList<AssignedValue<T>>();
                 asss.add(ass);
+                iUnassignedVariables.put(unassignedValue.variable(), asss);
             }
-        } else {
-            List<Assignment<T>> asss = new ArrayList<Assignment<T>>();
-            asss.add(ass);
-            iUnassignedVariables.put(unassignedValue.variable(), asss);
         }
     }
 
@@ -260,94 +264,99 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
      * the assignment of the given value.
      */
     public double countRemovals(long iteration, T conflictValue, T value) {
-        List<Assignment<T>> asss = iUnassignedVariables.get(conflictValue.variable());
-        if (asss == null)
-            return 0;
-        Assignment<T> ass = new Assignment<T>(iteration, value, iAgeing);
-        int idx = asss.indexOf(ass);
-        if (idx < 0)
-            return 0;
-        return (asss.get(idx)).getCounter(iteration);
+        synchronized (iAssignments) {
+            List<AssignedValue<T>> asss = iUnassignedVariables.get(conflictValue.variable());
+            if (asss == null)
+                return 0;
+            AssignedValue<T> ass = new AssignedValue<T>(iteration, value, iAgeing);
+            int idx = asss.indexOf(ass);
+            if (idx < 0)
+                return 0;
+            return (asss.get(idx)).getCounter(iteration);
+        }
     }
 
     /**
      * Counts potential number of unassignments of if the given value is
      * selected.
      */
-    public long countPotentialConflicts(long iteration, T value, int limit) {
-        List<Assignment<T>> asss = iAssignments.get(new Assignment<T>(iteration, value, iAgeing));
-        if (asss == null)
-            return 0;
-        long count = 0;
-        for (Assignment<T> ass : asss) {
-            if (ass.getValue().variable().getAssignment() == null) {
-                if (limit >= 0) {
-                    count += ass.getCounter(iteration)
-                            * Math
-                                    .max(0, 1 + limit
-                                            - value.variable().getModel().conflictValues(ass.getValue()).size());
-                } else {
-                    count += ass.getCounter(iteration);
+    public long countPotentialConflicts(Assignment<V, T> assignment, long iteration, T value, int limit) {
+        synchronized (iAssignments) {
+            List<AssignedValue<T>> asss = iAssignments.get(new AssignedValue<T>(iteration, value, iAgeing));
+            if (asss == null)
+                return 0;
+            long count = 0;
+            for (AssignedValue<T> ass : asss) {
+                if (ass.getValue().variable().getAssignment(assignment) == null) {
+                    if (limit >= 0) {
+                        count += ass.getCounter(iteration) * Math.max(0, 1 + limit - value.variable().getModel().conflictValues(assignment, ass.getValue()).size());
+                    } else {
+                        count += ass.getCounter(iteration);
+                    }
                 }
             }
+            return count;            
         }
-        return count;
     }
     
     private int countAssignments(V variable) {
-        List<Assignment<T>> assignments = iUnassignedVariables.get(variable);
-        if (assignments == null || assignments.isEmpty()) return 0;
-        int ret = 0;
-        for (Assignment<T> assignment: assignments) {
-            ret += assignment.getCounter(0);
+        synchronized (iAssignments) {
+            List<AssignedValue<T>> assignments = iUnassignedVariables.get(variable);
+            if (assignments == null || assignments.isEmpty()) return 0;
+            int ret = 0;
+            for (AssignedValue<T> assignment: assignments) {
+                ret += assignment.getCounter(0);
+            }
+            return ret;
         }
-        return ret;
     }
 
     @Override
     public String toString() {
-        StringBuffer sb = new StringBuffer("Statistics{");
-        TreeSet<V> sortedUnassignedVariables = new TreeSet<V>(new Comparator<V>() {
-            @Override
-            public int compare(V v1, V v2) {
-                int cmp = Double.compare(countAssignments(v1), countAssignments(v2));
-                if (cmp != 0)
-                    return -cmp;
-                return v1.compareTo(v2);
-            }
-        });
-        sortedUnassignedVariables.addAll(iUnassignedVariables.keySet());
-        int printedVariables = 0;
-        for (V variable : sortedUnassignedVariables) {
-            sb.append("\n      ").append(countAssignments(variable) + "x ").append(variable.getName()).append(" <= {");
-            TreeSet<Assignment<T>> sortedAssignments = new TreeSet<Assignment<T>>(
-                    new Assignment.AssignmentComparator<T>(0));
-            sortedAssignments.addAll(iUnassignedVariables.get(variable));
-            int printedAssignments = 0;
-            for (Assignment<T> x : sortedAssignments) {
-                sb.append("\n        ").append(x.toString(0, true));
-                if (++printedAssignments == 20) {
-                    sb.append("\n        ...");
+        synchronized (iAssignments) {
+            StringBuffer sb = new StringBuffer("Statistics{");
+            TreeSet<V> sortedUnassignedVariables = new TreeSet<V>(new Comparator<V>() {
+                @Override
+                public int compare(V v1, V v2) {
+                    int cmp = Double.compare(countAssignments(v1), countAssignments(v2));
+                    if (cmp != 0)
+                        return -cmp;
+                    return v1.compareTo(v2);
+                }
+            });
+            sortedUnassignedVariables.addAll(iUnassignedVariables.keySet());
+            int printedVariables = 0;
+            for (V variable : sortedUnassignedVariables) {
+                sb.append("\n      ").append(countAssignments(variable) + "x ").append(variable.getName()).append(" <= {");
+                TreeSet<AssignedValue<T>> sortedAssignments = new TreeSet<AssignedValue<T>>(
+                        new AssignedValue.AssignmentComparator<T>(0));
+                sortedAssignments.addAll(iUnassignedVariables.get(variable));
+                int printedAssignments = 0;
+                for (AssignedValue<T> x : sortedAssignments) {
+                    sb.append("\n        ").append(x.toString(0, true));
+                    if (++printedAssignments == 20) {
+                        sb.append("\n        ...");
+                        break;
+                    }
+                }
+                sb.append("\n      }");
+                if (++printedVariables == 100) {
+                    sb.append("\n      ...");
                     break;
                 }
             }
-            sb.append("\n      }");
-            if (++printedVariables == 100) {
-                sb.append("\n      ...");
-                break;
-            }
+            sb.append("\n    }");
+            return sb.toString();            
         }
-        sb.append("\n    }");
-        return sb.toString();
     }
 
     @Override
-    public void constraintBeforeAssigned(long iteration, Constraint<?, T> constraint, T assigned, Set<T> unassigned) {
+    public void constraintBeforeAssigned(Assignment<V, T> assignment, long iteration, Constraint<V, T> constraint, T assigned, Set<T> unassigned) {
     }
 
     /** Increments appropriate counters when there is a value unassigned */
     @Override
-    public void constraintAfterAssigned(long iteration, Constraint<?, T> constraint, T assigned, Set<T> unassigned) {
+    public void constraintAfterAssigned(Assignment<V, T> assignment, long iteration, Constraint<V, T> constraint, T assigned, Set<T> unassigned) {
         if (iteration <= 0)
             return;
         if (unassigned == null || unassigned.isEmpty())
@@ -357,7 +366,7 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
             // AssignmentSet.createAssignmentSet(iteration,unassigned, iAgeing);
             // noGoods.addAssignment(iteration, assigned, iAgeing);
             // noGoods.setConstraint(constraint);
-            Assignment<T> noGood = new Assignment<T>(iteration, assigned, iAgeing);
+            AssignedValue<T> noGood = new AssignedValue<T>(iteration, assigned, iAgeing);
             noGood.setConstraint(constraint);
             for (T unassignedValue : unassigned) {
                 variableUnassigned(iteration, unassignedValue, noGood);

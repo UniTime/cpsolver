@@ -90,8 +90,7 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see <http://www.gnu.org/licenses/>.
  **/
-public class GeneralVariableSelection<V extends Variable<V, T>, T extends Value<V, T>> implements
-        VariableSelection<V, T> {
+public class GeneralVariableSelection<V extends Variable<V, T>, T extends Value<V, T>> implements VariableSelection<V, T> {
     private boolean iUnassignWhenNotGood = false;
     private double iUnassignWhenNotGoodRandWalk = 0.02;
     private boolean iRandomSelection = true;
@@ -126,49 +125,48 @@ public class GeneralVariableSelection<V extends Variable<V, T>, T extends Value<
     /** Variable selection */
     @Override
     public V selectVariable(Solution<V, T> solution) {
-        if (solution.getModel().nrUnassignedVariables() == 0) {
-            if (!solution.getModel().perturbVariables().isEmpty())
-                return ToolBox.random(solution.getModel().perturbVariables());
+        if (solution.getModel().variables().size() == solution.getAssignment().nrAssignedVariables()) {
+            if (!solution.getModel().perturbVariables(solution.getAssignment()).isEmpty())
+                return ToolBox.random(solution.getModel().perturbVariables(solution.getAssignment()));
             else
-                return ToolBox.random(solution.getModel().assignedVariables());
+                return ToolBox.random(solution.getAssignment().assignedVariables());
         } else {
             if (iProp != null && iUnassignWhenNotGood) {
                 List<V> noGoodVariables = new ArrayList<V>();
-                for (V variable : solution.getModel().unassignedVariables()) {
-                    if (iProp.goodValues(variable).isEmpty())
+                for (V variable : solution.getAssignment().unassignedVariables(solution.getModel())) {
+                    if (iProp.goodValues(solution.getAssignment(), variable).isEmpty())
                         noGoodVariables.add(variable);
                 }
                 if (!noGoodVariables.isEmpty()) {
                     if (ToolBox.random() < iUnassignWhenNotGoodRandWalk)
-                        return ToolBox.random(solution.getModel().assignedVariables());
+                        return ToolBox.random(solution.getAssignment().assignedVariables());
                     for (int attempt = 0; attempt < 10; attempt++) {
                         V noGoodVariable = ToolBox.random(noGoodVariables);
                         T noGoodValue = ToolBox.random(noGoodVariable.values());
-                        Set<T> noGood = iProp.noGood(noGoodValue);
+                        Set<T> noGood = iProp.noGood(solution.getAssignment(), noGoodValue);
                         if (noGood != null && !noGood.isEmpty())
                             return ToolBox.random(noGood).variable();
                     }
                 }
             }
             if (iRandomSelection)
-                return ToolBox.random(solution.getModel().unassignedVariables());
+                return ToolBox.random(solution.getAssignment().unassignedVariables(solution.getModel()));
             List<Integer> points = new ArrayList<Integer>();
             int totalPoints = 0;
-            for (V variable : solution.getModel().unassignedVariables()) {
-                int pointsThisVariable = (variable.getInitialAssignment() != null ? 3 * (1 + solution.getModel()
-                        .conflictValues(variable.getInitialAssignment()).size()) : 1);
+            for (V variable : solution.getAssignment().unassignedVariables(solution.getModel())) {
+                int pointsThisVariable = (variable.getInitialAssignment() != null ? 3 * (1 + solution.getModel().conflictValues(solution.getAssignment(), variable.getInitialAssignment()).size()) : 1);
                 totalPoints += pointsThisVariable;
                 points.add(totalPoints);
             }
             int rndPoints = ToolBox.random(totalPoints);
-            Iterator<V> x = solution.getModel().unassignedVariables().iterator();
+            Iterator<V> x = solution.getAssignment().unassignedVariables(solution.getModel()).iterator();
             for (int i = 0; x.hasNext() && i < points.size(); i++) {
                 V variable = x.next();
                 int tp = points.get(i);
                 if (tp > rndPoints)
                     return variable;
             }
-            return ToolBox.random(solution.getModel().unassignedVariables());
+            return ToolBox.random(solution.getAssignment().unassignedVariables(solution.getModel()));
         }
     }
 

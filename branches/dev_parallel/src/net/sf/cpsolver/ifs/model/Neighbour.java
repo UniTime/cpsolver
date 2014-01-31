@@ -1,5 +1,7 @@
 package net.sf.cpsolver.ifs.model;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
+
 /**
  * IFS neighbour.
  * 
@@ -27,8 +29,8 @@ package net.sf.cpsolver.ifs.model;
 
 public abstract class Neighbour<V extends Variable<V, T>, T extends Value<V, T>> {
     /** Perform assignmnet */
-    public abstract void assign(long iteration);
+    public abstract void assign(Assignment<V, T> assignment, long iteration);
 
     /** Difference in the evaluation function, if this neighnour is assigned. */
-    public abstract double value();
+    public abstract double value(Assignment<V, T> assignment);
 }

@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.StringTokenizer;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
@@ -49,8 +51,7 @@ public class Test {
 
     public static void test2(DataProperties properties) throws Exception {
         int nrTests = properties.getPropertyInt("Test.NrTests", 1);
-        PrintWriter logStat = new PrintWriter(new FileWriter(properties.getProperty("General.Output") + File.separator
-                + "output.csv"));
+        PrintWriter logStat = new PrintWriter(new FileWriter(properties.getProperty("General.Output") + File.separator + "output.csv"));
         PrintWriter logAvgStat = new PrintWriter(new FileWriter(properties.getProperty("General.Output")
                 + File.separator + "avg_stat.csv"));
         logStat.println("fillFact;nrResources;testNr;time[s];iters;speed[it/s];assigned;assigned[%];value;totalValue");
@@ -87,11 +88,12 @@ public class Test {
                     if (fillFactor >= 0.0) {
                         properties.setProperty("Generator.FillFactor", String.valueOf(fillFactor));
                     }
-                    TimetableModel m = TimetableModel.generate(properties);
+                    Assignment<Activity, Location> assignment = new DefaultSingleAssignment<Activity, Location>();
+                    TimetableModel m = TimetableModel.generate(properties, assignment);
 
                     Solver<Activity, Location> s = new Solver<Activity, Location>(properties);
                     if (saveInit)
-                        m.saveAsXML(properties, true, null, new File(properties.getProperty("General.Output")
+                        m.saveAsXML(properties, true, null, assignment, new File(properties.getProperty("General.Output")
                                 + File.separator
                                 + "SimpleTT("
                                 + (nrResources < 0 ? properties.getPropertyInt("Generator.NrRooms", 20) : nrResources)
@@ -99,7 +101,7 @@ public class Test {
                                 + ((int) (100.0 * (fillFactor < 0.0 ? properties.getPropertyDouble(
                                         "Generator.FillFactor", 0.8) : fillFactor) + 0.5)) + ","
                                 + properties.getPropertyInt("Generator.NrDependencies", 50) + ")_" + test + ".xml"));
-                    s.setInitalSolution(m);
+                    s.setInitalSolution(new Solution<Activity, Location>(m, assignment));
                     s.currentSolution().clearBest();
                     s.start();
                     try {
@@ -114,20 +116,14 @@ public class Test {
                     sLogger.debug("Best solution:" + s.lastSolution().getBestInfo());
                     best.restoreBest();
                     int val = 0;
-                    for (Activity var : ((TimetableModel) best.getModel()).assignedVariables())
-                        val += (int) var.getAssignment().toDouble();
+                    for (Activity var : ((TimetableModel) best.getModel()).assignedVariables(best.getAssignment()))
+                        val += (int) var.getAssignment(best.getAssignment()).toDouble();
                     if (saveSol)
-                        m
-                                .saveAsXML(properties, true, best, new File(properties.getProperty("General.Output")
-                                        + File.separator
-                                        + "SimpleTT("
-                                        + (nrResources < 0 ? properties.getPropertyInt("Generator.NrRooms", 20)
-                                                : nrResources)
-                                        + ","
-                                        + ((int) (100.0 * (fillFactor < 0.0 ? properties.getPropertyDouble(
-                                                "Generator.FillFactor", 0.8) : fillFactor) + 0.5)) + ","
-                                        + properties.getPropertyInt("Generator.NrDependencies", 50) + ")_" + test
-                                        + "_sol.xml"));
+                        m.saveAsXML(properties, true, best, best.getAssignment(), new File(properties.getProperty("General.Output") +
+                                File.separator + "SimpleTT(" +
+                                (nrResources < 0 ? properties.getPropertyInt("Generator.NrRooms", 20) : nrResources) + "," +
+                                ((int) (100.0 * (fillFactor < 0.0 ? properties.getPropertyDouble("Generator.FillFactor", 0.8) : fillFactor) + 0.5)) + "," +
+                                properties.getPropertyInt("Generator.NrDependencies", 50) + ")_" + test + "_sol.xml"));
                     sLogger.debug("Last solution:" + best.getInfo());
                     logStat.println(sDoubleFormat.format(properties.getPropertyDouble("Generator.FillFactor", 0.0))
                             + ";"
@@ -141,27 +137,27 @@ public class Test {
                             + ";"
                             + sDoubleFormat.format((best.getIteration()) / best.getTime())
                             + ";"
-                            + best.getModel().assignedVariables().size()
+                            + best.getModel().assignedVariables(best.getAssignment()).size()
                             + ";"
-                            + sDoubleFormat.format(100.0 * best.getModel().assignedVariables().size()
+                            + sDoubleFormat.format(100.0 * best.getModel().assignedVariables(best.getAssignment()).size()
                                     / best.getModel().variables().size()) + ";" + val);
                     sLogger.debug("    time:         " + sDoubleFormat.format(best.getTime()) + " s");
                     sLogger.debug("    iteration:    " + best.getIteration());
                     sLogger.debug("    speed:        " + sDoubleFormat.format((best.getIteration()) / best.getTime())
                             + " it/s");
                     sLogger.debug("    assigned:     "
-                            + best.getModel().assignedVariables().size()
+                            + best.getModel().assignedVariables(best.getAssignment()).size()
                             + " ("
-                            + sDoubleFormat.format(100.0 * best.getModel().assignedVariables().size()
+                            + sDoubleFormat.format(100.0 * best.getModel().assignedVariables(best.getAssignment()).size()
                                     / best.getModel().variables().size()) + "%)");
                     sLogger.debug("    value:        " + val);
                     sumTime += best.getTime();
                     sumTime2 += best.getTime() * best.getTime();
                     sumIters += best.getIteration();
                     sumIters2 += best.getIteration() * best.getIteration();
-                    sumAssign += best.getModel().assignedVariables().size();
-                    sumAssign2 += best.getModel().assignedVariables().size()
-                            * best.getModel().assignedVariables().size();
+                    sumAssign += best.getModel().assignedVariables(best.getAssignment()).size();
+                    sumAssign2 += best.getModel().assignedVariables(best.getAssignment()).size()
+                            * best.getModel().assignedVariables(best.getAssignment()).size();
                     sumVal += val;
                     sumVal2 += val * val;
                     sumVar += m.variables().size();
@@ -197,7 +193,8 @@ public class Test {
         int forcedPerturbances = properties.getPropertyInt("General.ForcedPerturbances", 0);
 
         for (int test = 1; test <= nrTests; test++) {
-            TimetableModel m = TimetableModel.loadFromXML(xmlFile, assign);
+            Assignment<Activity, Location> assignment = new DefaultSingleAssignment<Activity, Location>();
+            TimetableModel m = TimetableModel.loadFromXML(xmlFile, assign ? assignment : null);
 
             if (forcedPerturbances > 0) {
                 List<Activity> initialVariables = new ArrayList<Activity>();
@@ -215,7 +212,7 @@ public class Test {
             }
 
             Solver<Activity, Location> s = new Solver<Activity, Location>(properties);
-            s.setInitalSolution(m);
+            s.setInitalSolution(new Solution<Activity, Location>(m, assignment));
             s.currentSolution().clearBest();
             s.start();
             try {
@@ -230,10 +227,10 @@ public class Test {
             sLogger.debug("Best solution:" + s.lastSolution().getBestInfo());
             best.restoreBest();
             int val = 0;
-            for (Activity var : ((TimetableModel) best.getModel()).assignedVariables())
-                val += (int) var.getAssignment().toDouble();
+            for (Location loc : best.getAssignment().assignedValues())
+                val += (int) loc.toDouble();
             if (saveSol)
-                m.saveAsXML(properties, false, best, new File(properties.getProperty("General.Output") + File.separator
+                m.saveAsXML(properties, false, best, best.getAssignment(), new File(properties.getProperty("General.Output") + File.separator
                         + "solution_" + test + ".xml"));
             sLogger.debug("Last solution:" + best.getInfo());
             logStat.println(sDoubleFormat.format(properties.getPropertyDouble("Generator.FillFactor", 0.0))
@@ -248,9 +245,9 @@ public class Test {
                     + ";"
                     + sDoubleFormat.format((best.getIteration()) / best.getTime())
                     + ";"
-                    + best.getModel().assignedVariables().size()
+                    + best.getAssignment().nrAssignedVariables()
                     + ";"
-                    + sDoubleFormat.format(100.0 * best.getModel().assignedVariables().size()
+                    + sDoubleFormat.format(100.0 * best.getAssignment().nrAssignedVariables()
                             / best.getModel().variables().size()) + ";" + val);
             sLogger.debug("    time:         " + sDoubleFormat.format(best.getTime()) + " s");
             sLogger.debug("    iteration:    " + best.getIteration());
@@ -258,9 +255,9 @@ public class Test {
                     .debug("    speed:        " + sDoubleFormat.format((best.getIteration()) / best.getTime())
                             + " it/s");
             sLogger.debug("    assigned:     "
-                    + best.getModel().assignedVariables().size()
+                    + best.getAssignment().nrAssignedVariables()
                     + " ("
-                    + sDoubleFormat.format(100.0 * best.getModel().assignedVariables().size()
+                    + sDoubleFormat.format(100.0 * best.getAssignment().nrAssignedVariables()
                             / best.getModel().variables().size()) + "%)");
             sLogger.debug("    value:        " + val);
             logStat.flush();
@@ -338,6 +335,15 @@ public class Test {
     public static void main(String[] args) {
         try {
             Progress.getInstance().addProgressListener(new ProgressWriter(System.out));
+            if (args.length == 0) {
+                ToolBox.configureLogging();
+                DataProperties config = new DataProperties(System.getProperties());
+                config.setProperty("Termination.StopWhenComplete", "false");
+                config.setProperty("Termination.TimeOut", "60");
+                config.setProperty("General.Output", System.getProperty("user.dir"));
+                test2(config);
+                return;
+            }
             File inputCfg = new File(args[0]);
             DataProperties properties = ToolBox.loadProperties(inputCfg);
             if (args.length == 3) {

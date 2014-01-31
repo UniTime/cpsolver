@@ -5,6 +5,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.extension.Extension;
 import net.sf.cpsolver.ifs.extension.ViolatedInitials;
 import net.sf.cpsolver.ifs.model.Model;
@@ -66,11 +67,9 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Value<V, T>> implements
-        PerturbationsCounter<V, T> {
+public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Value<V, T>> implements PerturbationsCounter<V, T> {
     private ViolatedInitials<V, T> iViolatedInitials = null;
-    protected static java.text.DecimalFormat sDoubleFormat = new java.text.DecimalFormat("0.00",
-            new java.text.DecimalFormatSymbols(Locale.US));
+    protected static java.text.DecimalFormat sDoubleFormat = new java.text.DecimalFormat("0.00", new java.text.DecimalFormatSymbols(Locale.US));
 
     /**
      * Constructor
@@ -91,23 +90,23 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
     }
 
     @Override
-    public double getPerturbationPenalty(Model<V, T> model) {
+    public double getPerturbationPenalty(Assignment<V, T> assignment, Model<V, T> model) {
         double penalty = 0.0;
-        for (V variable : model.perturbVariables()) {
-            if (variable.getAssignment() != null && variable.getInitialAssignment() != null
-                    && !variable.getAssignment().equals(variable.getInitialAssignment()))
-                penalty += getPenaltyD(variable.getAssignment(), variable.getInitialAssignment());
+        for (V variable : model.variablesWithInitialValue()) {
+            T value = assignment.getValue(variable);
+            if (value != null && variable.getInitialAssignment() != null && !value.equals(variable.getInitialAssignment()))
+                penalty += getPenaltyD(value, variable.getInitialAssignment());
         }
         return penalty;
     }
 
     @Override
-    public double getPerturbationPenalty(Model<V, T> model, Collection<V> variables) {
+    public double getPerturbationPenalty(Assignment<V, T> assignment, Model<V, T> model, Collection<V> variables) {
         double penalty = 0.0;
         for (V variable : variables) {
-            if (variable.getAssignment() != null && variable.getInitialAssignment() != null
-                    && !variable.getAssignment().equals(variable.getInitialAssignment()))
-                penalty += getPenaltyD(variable.getAssignment(), variable.getInitialAssignment());
+            T value = assignment.getValue(variable);
+            if (value != null && variable.getInitialAssignment() != null && !value.equals(variable.getInitialAssignment()))
+                penalty += getPenaltyD(value, variable.getInitialAssignment());
         }
         return penalty;
     }
@@ -190,13 +189,12 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
     }
 
     @Override
-    public double getPerturbationPenalty(Model<V, T> model, T selectedValue, Collection<T> conflicts) {
+    public double getPerturbationPenalty(Assignment<V, T> assignment, Model<V, T> model, T selectedValue, Collection<T> conflicts) {
         double penalty = 0;
-        Set<T> violations = (getViolatedInitials() == null ? null : getViolatedInitials().getViolatedInitials(
-                selectedValue));
+        Set<T> violations = (getViolatedInitials() == null ? null : getViolatedInitials().getViolatedInitials(selectedValue));
         if (violations != null)
             for (T aValue : violations) {
-                if (aValue.variable().getAssignment() == null)
+                if (assignment.getValue(aValue.variable()) == null)
                     penalty += getPenaltyA(selectedValue, aValue);
             }
         if (conflicts != null) {
@@ -212,21 +210,20 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
                 }
             }
         }
-        if (selectedValue.variable().getInitialAssignment() != null
-                && !selectedValue.equals(selectedValue.variable().getInitialAssignment()))
+        if (selectedValue.variable().getInitialAssignment() != null && !selectedValue.equals(selectedValue.variable().getInitialAssignment()))
             penalty += getPenaltyD(selectedValue, selectedValue.variable().getInitialAssignment());
         return penalty;
     }
 
     @Override
-    public void getInfo(Map<String, String> info, Model<V, T> model) {
+    public void getInfo(Assignment<V, T> assignment, Model<V, T> model, Map<String, String> info) {
         if (model.variablesWithInitialValue().size() > 0)
-            info.put("Perturbations: Total penalty", sDoubleFormat.format(getPerturbationPenalty(model)));
+            info.put("Perturbations: Total penalty", sDoubleFormat.format(getPerturbationPenalty(assignment, model)));
     }
 
     @Override
-    public void getInfo(Map<String, String> info, Model<V, T> model, Collection<V> variables) {
+    public void getInfo(Assignment<V, T> assignment, Model<V, T> model, Map<String, String> info, Collection<V> variables) {
         if (model.variablesWithInitialValue().size() > 0)
-            info.put("Perturbations: Total penalty", sDoubleFormat.format(getPerturbationPenalty(model, variables)));
+            info.put("Perturbations: Total penalty", sDoubleFormat.format(getPerturbationPenalty(assignment, model, variables)));
     }
 }

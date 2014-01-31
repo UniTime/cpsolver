@@ -2,6 +2,7 @@ package net.sf.cpsolver.ifs.example.tt;
 
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.BinaryConstraint;
 
 /**
@@ -51,10 +52,10 @@ public class Dependence extends BinaryConstraint<Activity, Location> {
     }
 
     @Override
-    public void computeConflicts(Location location, Set<Location> conflicts) {
+    public void computeConflicts(Assignment<Activity, Location> assignment, Location location, Set<Location> conflicts) {
         Activity activity = location.variable();
         Activity another = another(activity);
-        Location anotherLocation = another.getAssignment();
+        Location anotherLocation = assignment.getValue(another);
         if (anotherLocation == null)
             return;
         if (isFirst(activity)) {
@@ -84,10 +85,10 @@ public class Dependence extends BinaryConstraint<Activity, Location> {
     }
 
     @Override
-    public boolean inConflict(Location location) {
+    public boolean inConflict(Assignment<Activity, Location> assignment, Location location) {
         Activity activity = location.variable();
         Activity another = another(activity);
-        Location anotherLocation = another.getAssignment();
+        Location anotherLocation = assignment.getValue(another);
         if (anotherLocation == null)
             return false;
         if (isFirst(activity)) {

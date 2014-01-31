@@ -3,6 +3,7 @@ package net.sf.cpsolver.ifs.perturbations;
 import java.util.Collection;
 import java.util.Map;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
@@ -61,7 +62,7 @@ public interface PerturbationsCounter<V extends Variable<V, T>, T extends Value<
      * @param model
      *            current model
      */
-    public double getPerturbationPenalty(Model<V, T> model);
+    public double getPerturbationPenalty(Assignment<V, T> assignment, Model<V, T> model);
 
     /**
      * Returns perturbation penalty, i.e., the distance between current solution
@@ -71,7 +72,7 @@ public interface PerturbationsCounter<V extends Variable<V, T>, T extends Value<
      * @param model
      *            current model
      */
-    public double getPerturbationPenalty(Model<V, T> model, Collection<V> variables);
+    public double getPerturbationPenalty(Assignment<V, T> assignment, Model<V, T> model, Collection<V> variables);
 
     /**
      * Returns perturbation penalty of the solution which become from the
@@ -89,7 +90,7 @@ public interface PerturbationsCounter<V extends Variable<V, T>, T extends Value<
      * @param conflicts
      *            conflicting values to be unassigned in the next iteration
      */
-    public double getPerturbationPenalty(Model<V, T> model, T selectedValue, Collection<T> conflicts);
+    public double getPerturbationPenalty(Assignment<V, T> assignment, Model<V, T> model, T selectedValue, Collection<T> conflicts);
 
     /**
      * Some (perturbation) information about the solution might be returned
@@ -100,7 +101,7 @@ public interface PerturbationsCounter<V extends Variable<V, T>, T extends Value<
      * @param model
      *            current model
      */
-    public void getInfo(Map<String, String> info, Model<V, T> model);
+    public void getInfo(Assignment<V, T> assignment, Model<V, T> model, Map<String, String> info);
 
     /**
      * Some (perturbation) information about the solution might be returned here
@@ -111,5 +112,5 @@ public interface PerturbationsCounter<V extends Variable<V, T>, T extends Value<
      * @param model
      *            current model
      */
-    public void getInfo(Map<String, String> info, Model<V, T> model, Collection<V> variables);
+    public void getInfo(Assignment<V, T> assignment, Model<V, T> model, Map<String, String> info, Collection<V> variables);
 }

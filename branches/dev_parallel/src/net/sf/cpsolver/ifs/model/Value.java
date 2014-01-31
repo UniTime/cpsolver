@@ -3,6 +3,9 @@ package net.sf.cpsolver.ifs.model;
 import java.util.HashSet;
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.ValueComparator;
+import net.sf.cpsolver.ifs.assignment.context.ExtensionWithContext;
 import net.sf.cpsolver.ifs.util.IdGenerator;
 
 /**
@@ -41,10 +44,6 @@ public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements C
 
     private long iId;
     private V iVariable = null;
-
-    private long iAssignmentCounter = 0;
-    private long iLastAssignmentIteration = -1;
-    private long iLastUnassignmentIteration = -1;
 
     /** Integer value */
     protected double iValue = 0;
@@ -90,45 +89,6 @@ public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements C
         iVariable = (V) variable;
     }
 
-    /**
-     * Notification (called by variable) that this value is assigned
-     * 
-     * @param iteration
-     *            current iteration
-     */
-    public void assigned(long iteration) {
-        iAssignmentCounter++;
-        iLastAssignmentIteration = iteration;
-    }
-
-    /**
-     * Notification (called by variable) that this value is unassigned
-     * 
-     * @param iteration
-     *            current iteration
-     */
-    public void unassigned(long iteration) {
-        iLastUnassignmentIteration = iteration;
-    }
-
-    /** Returns the iteration when the value was assigned at last (-1 if never). */
-    public long lastAssignmentIteration() {
-        return iLastAssignmentIteration;
-    }
-
-    /**
-     * Returns the iteration when the value was unassigned at last (-1 if
-     * never).
-     */
-    public long lastUnassignmentIteration() {
-        return iLastUnassignmentIteration;
-    }
-
-    /** Returns the number of assignments of this value to its variable. */
-    public long countAssignments() {
-        return iAssignmentCounter;
-    }
-
     /** Unique id */
     public long getId() {
         return iId;
@@ -145,10 +105,21 @@ public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements C
     }
 
     /**
-     * Dobouble representaion. This allows us to have generic optimization
+     * Double representation. This allows us to have generic optimization
      * criteria. The task is than to minimize total value of assigned variables
      * of a solution.
      */
+    public double toDouble(Assignment<V, T> assignment) {
+        return iValue;
+    }
+    
+    /**
+     * Double representation. This allows us to have generic optimization
+     * criteria. The task is than to minimize total value of assigned variables
+     * of a solution.
+     * If the value may depend on other values of the assignment, use {@link Value#toDouble(Assignment)} instead.
+     */
+    @Deprecated
     public double toDouble() {
         return iValue;
     }
@@ -165,22 +136,44 @@ public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements C
 
     /**
      * Comparison of two values which is based only on the value (not
-     * appropriate variable etc.). toDouble() is compared by default.
+     * appropriate variable etc.). {@link Value#toDouble(Assignment)} is compared by default.
      */
-    public boolean valueEquals(T value) {
+    public boolean valueEquals(Assignment<V, T> assignment, T value) {
         if (value == null)
             return false;
-        return toDouble() == value.toDouble();
+        return toDouble(assignment) == value.toDouble(assignment);
     }
 
-    @Override
-    public int compareTo(T value) {
+    /**
+     * Comparison of two values which is based only on the value (not
+     * appropriate variable etc.). {@link Value#toDouble(Assignment)} is compared by default.
+     * Use {@link Value#valueEquals(Assignment, Value)} instead.
+     */
+    @Deprecated
+    public boolean valueEquals(T value) {
+    	return valueEquals(variable().getModel().getDefaultAssignment(), value);
+    }
+
+    /**
+     * Compare two values by their value
+     */
+    public int compareTo(Assignment<V, T> assignment, T value) {
         if (value == null)
             return -1;
-        int cmp = Double.compare(toDouble(), value.toDouble());
+        int cmp = Double.compare(toDouble(assignment), value.toDouble(assignment));
         if (cmp != 0)
             return cmp;
         return Double.compare(getId(), value.getId());
+    }
+    
+    /**
+     * Compare two values by their value.
+     * Use {@link Value#compareTo(Assignment, Value)} and {@link ValueComparator} instead.
+     */
+    @Override
+    @Deprecated
+    public int compareTo(T value) {
+    	return compareTo(variable().getModel().getDefaultAssignment(), value);
     }
 
     /** By default, comparison is made on unique ids */
@@ -194,7 +187,9 @@ public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements C
     /**
      * Extra information to which can be used by an extension (see
      * {@link net.sf.cpsolver.ifs.extension.Extension}).
+     * Use {@link ExtensionWithContext} instead.
      */
+    @Deprecated
     public Object getExtra() {
         return iExtra;
     }
@@ -202,7 +197,9 @@ public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements C
     /**
      * Extra information to which can be used by an extension (see
      * {@link net.sf.cpsolver.ifs.extension.Extension}).
+     * Use {@link ExtensionWithContext} instead.
      */
+    @Deprecated
     public void setExtra(Object object) {
         iExtra = object;
     }
@@ -226,16 +223,26 @@ public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements C
      * value is consistent with the existing assignment.
      */
     @SuppressWarnings("unchecked")
-    public Set<T> conflicts() {
+    public Set<T> conflicts(Assignment<V, T> assignment) {
         HashSet<T> conflicts = new HashSet<T>();
         for (Constraint<V, T> constraint : iVariable.constraints()) {
-            constraint.computeConflicts((T) this, conflicts);
+            constraint.computeConflicts(assignment, (T) this, conflicts);
         }
         for (Constraint<V, T> constraint : iVariable.getModel().globalConstraints()) {
-            constraint.computeConflicts((T) this, conflicts);
+            constraint.computeConflicts(assignment, (T) this, conflicts);
         }
         if (!conflicts.isEmpty())
             return conflicts;
         return null;
+    }
+    
+    /**
+     * Returns a set of conflicting values with this value. When empty, the
+     * value is consistent with the existing assignment.
+     * Use {@link Value#conflicts(Assignment)} instead.
+     */
+    @Deprecated
+    public Set<T> conflicts() {
+    	return conflicts(variable().getModel().getDefaultAssignment());
     }
 }

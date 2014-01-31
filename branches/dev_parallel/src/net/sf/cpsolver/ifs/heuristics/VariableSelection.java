@@ -19,7 +19,7 @@ import net.sf.cpsolver.ifs.solver.Solver;
  * variable with the smallest domain, etc. <br>
  * <br>
  * We can split the variable selection criterion into two cases. If some
- * variables remain unassigned, the �worst� variable among them is selected,
+ * variables remain unassigned, the "worst" variable among them is selected,
  * i.e., first-fail principle is applied. This may, for example, be the variable
  * with the smallest domain or with the highest number of hard and/or soft
  * constraints. <br>

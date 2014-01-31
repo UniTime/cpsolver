@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.extension.ConflictStatistics;
 import net.sf.cpsolver.ifs.extension.Extension;
 import net.sf.cpsolver.ifs.extension.MacPropagation;
@@ -99,12 +100,7 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  * <tr>
  * <td>Value.WeightConflicts</td>
  * <td>{@link Double}</td>
- * <td>Number of conflicting variables {@link Model#conflictValues(Value)}.</td>
- * </tr>
- * <tr>
- * <td>Value.WeightNrAssignments</td>
- * <td>{@link Double}</td>
- * <td>Number of previous assignments of the value</td>
+ * <td>Number of conflicting variables {@link Model#conflictValues(Assignment, Value)}.</td>
  * </tr>
  * <tr>
  * <td>Value.WeightValue</td>
@@ -145,7 +141,6 @@ public class GeneralValueSelection<V extends Variable<V, T>, T extends Value<V, 
     private double iWeightPotentialConflicts = 0.0;
     private double iWeightWeightedCoflicts = 0.0;
     private double iWeightCoflicts = 1.0;
-    private double iWeightNrAssignments = 0.5;
     private double iWeightValue = 0.0;
 
     protected int iTabuSize = 0;
@@ -179,7 +174,6 @@ public class GeneralValueSelection<V extends Variable<V, T>, T extends Value<V, 
 
         iRandomWalkProb = properties.getPropertyDouble("Value.RandomWalkProb", 0.0);
         iWeightCoflicts = properties.getPropertyDouble("Value.WeightConflicts", 1.0);
-        iWeightNrAssignments = properties.getPropertyDouble("Value.WeightNrAssignments", 0.5);
         iWeightValue = properties.getPropertyDouble("Value.WeightValue", 0.0);
         iTabuSize = properties.getPropertyInt("Value.Tabu", 0);
         if (iTabuSize > 0)
@@ -204,22 +198,23 @@ public class GeneralValueSelection<V extends Variable<V, T>, T extends Value<V, 
     public T selectValue(Solution<V, T> solution, V selectedVariable) {
         if (iMPP) {
             if (selectedVariable.getInitialAssignment() != null) {
-                if (solution.getModel().nrUnassignedVariables() == 0) {
-                    if (solution.getModel().perturbVariables().size() <= iMPPLimit)
-                        iMPPLimit = solution.getModel().perturbVariables().size() - 1;
+                if (solution.getModel().variables().size() == solution.getAssignment().nrAssignedVariables()) {
+                    if (solution.getModel().perturbVariables(solution.getAssignment()).size() <= iMPPLimit)
+                        iMPPLimit = solution.getModel().perturbVariables(solution.getAssignment()).size() - 1;
                 }
-                if (iMPPLimit >= 0 && solution.getModel().perturbVariables().size() > iMPPLimit)
+                if (iMPPLimit >= 0 && solution.getModel().perturbVariables(solution.getAssignment()).size() > iMPPLimit)
                     return selectedVariable.getInitialAssignment();
                 if (selectedVariable.getInitialAssignment() != null && ToolBox.random() <= iInitialSelectionProb)
                     return selectedVariable.getInitialAssignment();
             }
         }
 
+        T oldValue = solution.getAssignment().getValue(selectedVariable);
         List<T> values = selectedVariable.values();
         if (ToolBox.random() <= iRandomWalkProb)
             return ToolBox.random(values);
-        if (iProp != null && selectedVariable.getAssignment() == null && ToolBox.random() <= iGoodSelectionProb) {
-            Collection<T> goodValues = iProp.goodValues(selectedVariable);
+        if (iProp != null && oldValue == null && ToolBox.random() <= iGoodSelectionProb) {
+            Collection<T> goodValues = iProp.goodValues(solution.getAssignment(), selectedVariable);
             if (!goodValues.isEmpty())
                 values = new ArrayList<T>(goodValues);
         }
@@ -232,17 +227,15 @@ public class GeneralValueSelection<V extends Variable<V, T>, T extends Value<V, 
         for (T value : values) {
             if (iTabu != null && iTabu.contains(value))
                 continue;
-            if (selectedVariable.getAssignment() != null && selectedVariable.getAssignment().equals(value))
+            if (oldValue != null && oldValue.equals(value))
                 continue;
 
-            Collection<T> conf = solution.getModel().conflictValues(value);
+            Collection<T> conf = solution.getModel().conflictValues(solution.getAssignment(), value);
             if (conf.contains(value))
                 continue;
 
-            double weightedConflicts = (iStat == null || iWeightWeightedCoflicts == 0.0 ? 0.0 : iStat.countRemovals(
-                    solution.getIteration(), conf, value));
-            double potentialConflicts = (iStat == null || iWeightPotentialConflicts == 0.0 ? 0.0 : iStat
-                    .countPotentialConflicts(solution.getIteration(), value, 3));
+            double weightedConflicts = (iStat == null || iWeightWeightedCoflicts == 0.0 ? 0.0 : iStat.countRemovals(solution.getIteration(), conf, value));
+            double potentialConflicts = (iStat == null || iWeightPotentialConflicts == 0.0 ? 0.0 : iStat.countPotentialConflicts(solution.getAssignment(), solution.getIteration(), value, 3));
 
             long deltaInitialAssignments = 0;
             if (iMPP && iWeightDeltaInitialAssignment != 0.0) {
@@ -250,8 +243,8 @@ public class GeneralValueSelection<V extends Variable<V, T>, T extends Value<V, 
                     Set<T> violations = iViolatedInitials.getViolatedInitials(value);
                     if (violations != null) {
                         for (T aValue : violations) {
-                            if (aValue.variable().getAssignment() == null
-                                    || aValue.variable().getAssignment().equals(aValue))
+                            T aOld = solution.getAssignment().getValue(aValue.variable());
+                            if (aOld == null || aOld.equals(aValue))
                                 deltaInitialAssignments += 2;
                         }
                     }
@@ -265,15 +258,13 @@ public class GeneralValueSelection<V extends Variable<V, T>, T extends Value<V, 
                         && !selectedVariable.getInitialAssignment().equals(value)) {
                     deltaInitialAssignments++;
                 }
-                if (iMPPLimit >= 0
-                        && (solution.getModel().perturbVariables().size() + deltaInitialAssignments) > iMPPLimit)
+                if (iMPPLimit >= 0 && (solution.getModel().perturbVariables(solution.getAssignment()).size() + deltaInitialAssignments) > iMPPLimit)
                     continue;
             }
 
             double weightedSum = (iWeightDeltaInitialAssignment * deltaInitialAssignments)
                     + (iWeightPotentialConflicts * potentialConflicts) + (iWeightWeightedCoflicts * weightedConflicts)
-                    + (iWeightCoflicts * conf.size()) + (iWeightNrAssignments * value.countAssignments())
-                    + (iWeightValue * value.toDouble());
+                    + (iWeightCoflicts * conf.size()) + (iWeightValue * value.toDouble(solution.getAssignment()));
 
             if (bestValues == null || bestWeightedSum > weightedSum) {
                 bestWeightedSum = weightedSum;

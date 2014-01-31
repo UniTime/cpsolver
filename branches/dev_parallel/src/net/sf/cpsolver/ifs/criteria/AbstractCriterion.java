@@ -6,6 +6,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentContext;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentContextReference;
+import net.sf.cpsolver.ifs.assignment.context.CanHoldContext;
+import net.sf.cpsolver.ifs.assignment.context.ConstraintWithContext;
+import net.sf.cpsolver.ifs.assignment.context.HasAssignmentContext;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Value;
@@ -20,7 +27,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  * and modeled as a weighted sum of these. This makes the implementation of a particular problem
  * more versatile as it allows for an easier modification of the optimization objective.
  * <br>
- * This class implements most of the {@link Criterion} except of the {@link Criterion#getValue(Value, Set)}.
+ * This class implements most of the {@link Criterion} except of the {@link Criterion#getValue(Assignment, Value, Set)}.
  * 
  * @version IFS 1.2 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2011 Tomas Muller<br>
@@ -41,15 +48,18 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Value<V, T>> implements Criterion<V, T> {
+public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Value<V, T>> implements Criterion<V, T>, HasAssignmentContext<V, T, AbstractCriterion<V,T>.ValueContext>, CanHoldContext {
     private Model<V, T> iModel;
-    protected double iBest = 0.0, iValue = 0.0, iWeight = 0.0;
-    private double[] iBounds = null;
+    protected double iBest = 0.0, iWeight = 0.0;
     protected static java.text.DecimalFormat sDoubleFormat = new java.text.DecimalFormat("0.##",
             new java.text.DecimalFormatSymbols(Locale.US));
     protected static java.text.DecimalFormat sPercentFormat = new java.text.DecimalFormat("0.##",
             new java.text.DecimalFormatSymbols(Locale.US));
     protected boolean iDebug = false;
+    
+    private AssignmentContextReference<V, T, ValueContext> iContextReference = null;
+    private AssignmentContext[] iContext = null;
+
     
     /**
      * Defines how the overall value of the criterion should be automatically updated (using {@link Criterion#getValue(Value, Set)}).
@@ -63,7 +73,7 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
         BeforeUnassignedAfterAssigned,
         /** Update is done after an unassignment (decrement) and after an assignment (increment). This is the default. */
         AfterUnassignedAfterAssigned,
-        /** Criterion is to be updated manually (e.g., using {@link Criterion#inc(double)}). */
+        /** Criterion is to be updated manually (e.g., using {@link Criterion#inc(Assignment, double)}). */
         NoUpdate
     }
     protected ValueUpdateType iValueUpdateType = ValueUpdateType.BeforeUnassignedAfterAssigned;
@@ -85,15 +95,56 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
         iDebug = solver.getProperties().getPropertyBoolean(
                 "Debug." + getClass().getName().substring(1 + getClass().getName().lastIndexOf('.')),
                 solver.getProperties().getPropertyBoolean("Debug.Criterion", false));
+        iContextReference = iModel.createReference(this);
         return true;
     }
     
     /** Returns current model */
     public Model<V, T> getModel() { return iModel; }
     
+    /**
+     * Returns an assignment context associated with this criterion. If there is no 
+     * assignment context associated with this criterion yet, one is created using the
+     * {@link ConstraintWithContext#createAssignmentContext(Assignment)} method. From that time on,
+     * this context is kept with the assignment and automatically updated by calling the
+     * {@link AssignmentConstraintContext#assigned(Assignment, Value)} and {@link AssignmentConstraintContext#unassigned(Assignment, Value)}
+     * whenever a variable is changed as given by the {@link ValueUpdateType}.
+     * @param assignment given assignment
+     * @return assignment context associated with this constraint and the given assignment
+     */
+    @SuppressWarnings("unchecked")
+    public ValueContext getContext(Assignment<V, T> assignment) {
+        if (iContext != null && assignment.getIndex() >= 0 && assignment.getIndex() < iContext.length) {
+            AssignmentContext c = iContext[assignment.getIndex()];
+            if (c != null) return (ValueContext) c;
+        }
+        return assignment.getAssignmentContext(getAssignmentContextReference());
+    }
+    
     @Override
-    public double getValue() {
-        return iValue;
+    public ValueContext createAssignmentContext(Assignment<V,T> assignment) {
+        return new ValueContext(assignment);
+    }
+
+    @Override
+    public AssignmentContextReference<V, T, ValueContext> getAssignmentContextReference() { return iContextReference; }
+
+    @Override
+    public void setAssignmentContextReference(AssignmentContextReference<V, T, ValueContext> reference) { iContextReference = reference; }
+
+    @Override
+    public AssignmentContext[] getContext() {
+        return iContext;
+    }
+
+    @Override
+    public void setContext(AssignmentContext[] context) {
+        iContext = context;
+    }
+    
+    @Override
+    public double getValue(Assignment<V, T> assignment) {
+        return getContext(assignment).getTotal();
     }
     
     @Override
@@ -102,11 +153,11 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
     }
     
     @Override
-    public double getValue(Collection<V> variables) {
+    public double getValue(Assignment<V, T> assignment, Collection<V> variables) {
         double ret = 0;
         for (V v: variables) {
-            T t = v.getAssignment();
-            if (t != null) ret += getValue(t, null);
+            T t = assignment.getValue(v);
+            if (t != null) ret += getValue(assignment, t, null);
         }
         return ret;
     }
@@ -123,38 +174,37 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
     }
     
     @Override
-    public double getWeightedValue() {
-        return (getWeight() == 0.0 ? 0.0 : getWeight() * getValue());
+    public double getWeightedValue(Assignment<V, T> assignment) {
+        return (getWeight() == 0.0 ? 0.0 : getWeight() * getValue(assignment));
     }
     
     @Override
-    public double getWeightedValue(T value, Set<T> conflicts) {
-        return (getWeight() == 0.0 ? 0.0 : getWeight() * getValue(value, conflicts));
+    public double getWeightedValue(Assignment<V, T> assignment, T value, Set<T> conflicts) {
+        return (getWeight() == 0.0 ? 0.0 : getWeight() * getValue(assignment, value, conflicts));
     }
     
     @Override
-    public double getWeightedValue(Collection<V> variables) {
-        return (getWeight() == 0.0 ? 0.0 : getWeight() * getValue(variables));
+    public double getWeightedValue(Assignment<V, T> assignment, Collection<V> variables) {
+        return (getWeight() == 0.0 ? 0.0 : getWeight() * getValue(assignment, variables));
     }
 
     /** Compute bounds (bounds are being cached by default). */
-    protected double[] computeBounds() {
-        return getBounds(new ArrayList<V>(getModel().variables()));
+    protected double[] computeBounds(Assignment<V, T> assignment) {
+        return getBounds(assignment, new ArrayList<V>(getModel().variables()));
     }
 
     @Override
-    public double[] getBounds() {
-        if (iBounds == null) iBounds = computeBounds();
-        return (iBounds == null ? new double[] {0.0, 0.0} : iBounds);
+    public double[] getBounds(Assignment<V, T> assignment) {
+        return getContext(assignment).getBounds(assignment);
     }
 
     @Override
-    public double[] getBounds(Collection<V> variables) {
+    public double[] getBounds(Assignment<V, T> assignment, Collection<V> variables) {
         double[] bounds = new double[] { 0.0, 0.0 };
         for (V v: variables) {
             Double min = null, max = null;
             for (T t: v.values()) {
-                double value = getValue(t, null);
+                double value = getValue(assignment, t, null);
                 if (min == null) { min = value; max = value; continue; }
                 min = Math.min(min, value);
                 max = Math.max(max, value);
@@ -168,54 +218,54 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
     }
 
     @Override
-    public void beforeAssigned(long iteration, T value) {
+    public void beforeAssigned(Assignment<V, T> assignment, long iteration, T value) {
         switch (iValueUpdateType) {
             case AfterUnassignedBeforeAssigned:
             case BeforeUnassignedBeforeAssigned:
-                iValue += getValue(value, null);
+                getContext(assignment).assigned(assignment, value);
         }
     }
 
     @Override
-    public void afterAssigned(long iteration, T value) {
+    public void afterAssigned(Assignment<V, T> assignment, long iteration, T value) {
         switch (iValueUpdateType) {
             case AfterUnassignedAfterAssigned:
             case BeforeUnassignedAfterAssigned:
-                iValue += getValue(value, null);
+                getContext(assignment).assigned(assignment, value);
         }
     }
 
     @Override
-    public void beforeUnassigned(long iteration, T value) {
+    public void beforeUnassigned(Assignment<V, T> assignment, long iteration, T value) {
         switch (iValueUpdateType) {
             case BeforeUnassignedAfterAssigned:
             case BeforeUnassignedBeforeAssigned:
-                iValue -= getValue(value, null);
+                getContext(assignment).unassigned(assignment, value);
         }
     }
 
     @Override
-    public void afterUnassigned(long iteration, T value) {
+    public void afterUnassigned(Assignment<V, T> assignment, long iteration, T value) {
         switch (iValueUpdateType) {
             case AfterUnassignedAfterAssigned:
             case AfterUnassignedBeforeAssigned:
-                iValue -= getValue(value, null);
+                getContext(assignment).unassigned(assignment, value);
         }
     }
 
     @Override
-    public void bestSaved() {
-        iBest = iValue;
+    public void bestSaved(Assignment<V, T> assignment) {
+        iBest = getContext(assignment).getTotal();
     }
 
     @Override
-    public void bestRestored() {
-        iValue = iBest;
+    public void bestRestored(Assignment<V, T> assignment) {
+        getContext(assignment).setTotal(iBest);
     }
     
     @Override
-    public void inc(double value) {
-        iValue += value;
+    public void inc(Assignment<V, T> assignment, double value) {
+        getContext(assignment).inc(value);
     }   
 
     @Override
@@ -224,25 +274,28 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
     }
     
     /** Clear bounds cache */
-    protected void clearCache() {
-        iBounds = null;
+    protected void clearCache(Assignment<V, T> assignment) {
+        getContext(assignment).setBounds(null);
     }
     
     @Override
     public void variableAdded(V variable) {
-        clearCache();
+        // clearCache();
     }
+    
     @Override
     public void variableRemoved(V variable) {
-        clearCache();
+        // clearCache();
     }
+    
     @Override
     public void constraintAdded(Constraint<V, T> constraint) {
-        clearCache();
+        // clearCache();
     }
+    
     @Override
     public void constraintRemoved(Constraint<V, T> constraint) {
-        clearCache();
+        // clearCache();
     }
     
     protected String getPerc(double value, double min, double max) {
@@ -258,10 +311,10 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
     }
 
     @Override
-    public void getInfo(Map<String, String> info) {
+    public void getInfo(Assignment<V, T> assignment, Map<String, String> info) {
         if (iDebug) {
-            double val = getValue(), w = getWeightedValue(), prec = getValue(getModel().variables());
-            double[] bounds = getBounds();
+            double val = getValue(assignment), w = getWeightedValue(assignment), prec = getValue(assignment, getModel().variables());
+            double[] bounds = getBounds(assignment);
             if (bounds[0] <= val && val <= bounds[1] && bounds[0] < bounds[1])
                 info.put("[C] " + getName(),
                         getPerc(val, bounds[0], bounds[1]) + "% (value: " + sDoubleFormat.format(val) +
@@ -285,10 +338,10 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
     }
     
     @Override
-    public void getInfo(Map<String, String> info, Collection<V> variables) {
+    public void getInfo(Assignment<V, T> assignment, Map<String, String> info, Collection<V> variables) {
         if (iDebug) {
-            double val = getValue(variables), w = getWeightedValue(variables);
-            double[] bounds = getBounds(variables);
+            double val = getValue(assignment, variables), w = getWeightedValue(assignment, variables);
+            double[] bounds = getBounds(assignment, variables);
             if (bounds[0] <= val && val <= bounds[1])
                 info.put("[C] " + getName(),
                         getPerc(val, bounds[0], bounds[1]) + "% (value: " + sDoubleFormat.format(val) +
@@ -305,5 +358,96 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
                         (bounds[0] != bounds[1] ? ", bounds: " + sDoubleFormat.format(bounds[0]) + "&hellip;" + sDoubleFormat.format(bounds[1]) : "") +
                         ")");
         }
+    }
+    
+    /**
+     * Assignment context holding current value and the cached bounds.
+     */
+    public class ValueContext implements AssignmentContext {
+        protected double iTotal = 0.0;
+        private double[] iBounds = null;
+
+        /** Create from an assignment */
+        protected ValueContext(Assignment<V, T> assignment) {
+            iTotal = AbstractCriterion.this.getValue(assignment, assignment.assignedVariables());
+        }
+        
+        /** Update value when unassigned */
+        protected void unassigned(Assignment<V, T> assignment, T value) {
+            iTotal -= getValue(assignment, value, null);
+        }
+        
+        /** Update value when assigned */
+        protected void assigned(Assignment<V, T> assignment, T value) {
+            iTotal += getValue(assignment, value, null);
+        }
+
+        /** Return value */
+        protected double getTotal() { return iTotal; }
+        
+        /** Set value */
+        protected void setTotal(double value) { iTotal = value; }
+        
+        /** Increment value */
+        protected void inc(double value) { iTotal += value; }
+        
+        /** Return bounds */
+        protected double[] getBounds(Assignment<V, T> assignment) {
+            if (iBounds == null) iBounds = computeBounds(assignment);
+            return (iBounds == null ? new double[] {0.0, 0.0} : iBounds);
+        }
+        
+        /** Set bounds */
+        protected void setBounds(double[] bounds) {
+            iBounds = bounds;
+        }
+    }
+
+    @Override
+    @Deprecated
+    public double getWeightedValue() {
+        return getWeightedValue(getModel().getDefaultAssignment());
+    }
+
+    @Override
+    @Deprecated
+    public double[] getBounds() {
+        return getBounds(getModel().getDefaultAssignment());
+    }
+
+    @Override
+    @Deprecated
+    public double getWeightedValue(T value, Set<T> conflicts) {
+        return getWeightedValue(getModel().getDefaultAssignment(), value, conflicts);
+    }
+    
+    @Override
+    @Deprecated
+    public double getValue(T value, Set<T> conflicts) {
+        return getValue(getModel().getDefaultAssignment(), value, conflicts);
+    }
+
+    @Override
+    @Deprecated
+    public double getWeightedValue(Collection<V> variables) {
+        return getWeightedValue(getModel().getDefaultAssignment(), variables);
+    }
+
+    @Override
+    @Deprecated
+    public double getValue(Collection<V> variables) {
+        return getValue(getModel().getDefaultAssignment(), variables);
+    }
+
+    @Override
+    @Deprecated
+    public double[] getBounds(Collection<V> variables) {
+        return getBounds(getModel().getDefaultAssignment(), variables);
+    }
+    
+    @Override
+    @Deprecated
+    public void inc(double value) {
+        inc(getModel().getDefaultAssignment(), value);
     }
 }

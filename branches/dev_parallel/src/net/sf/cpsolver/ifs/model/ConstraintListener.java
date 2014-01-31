@@ -2,6 +2,8 @@ package net.sf.cpsolver.ifs.model;
 
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
+
 /**
  * IFS constraint listener.
  * 
@@ -26,7 +28,7 @@ import java.util.Set;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public interface ConstraintListener<T extends Value<?, T>> {
+public interface ConstraintListener<V extends Variable<V, T>, T extends Value<V, T>> {
     /**
      * Called by the constraint, before a value is assigned to its variable.
      * 
@@ -41,7 +43,7 @@ public interface ConstraintListener<T extends Value<?, T>> {
      *            set of conflicting values which will be unassigned by the
      *            constraint before it assigns the given value
      */
-    public void constraintBeforeAssigned(long iteration, Constraint<?, T> constraint, T assigned, Set<T> unassigned);
+    public void constraintBeforeAssigned(Assignment<V, T> assignment, long iteration, Constraint<V, T> constraint, T assigned, Set<T> unassigned);
 
     /**
      * Called by the constraint, after a value is assigned to its variable.
@@ -57,5 +59,5 @@ public interface ConstraintListener<T extends Value<?, T>> {
      *            set of conflicting values which were unassigned by the
      *            constraint before it assigned the given value
      */
-    public void constraintAfterAssigned(long iteration, Constraint<?, T> constraint, T assigned, Set<T> unassigned);
+    public void constraintAfterAssigned(Assignment<V, T> assignment, long iteration, Constraint<V, T> constraint, T assigned, Set<T> unassigned);
 }

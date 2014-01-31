@@ -1,5 +1,6 @@
 package net.sf.cpsolver.ifs.model;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
@@ -27,7 +28,7 @@ import net.sf.cpsolver.ifs.model.Variable;
  * <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class LazySwap<V extends Variable<V, T>, T extends Value<V, T>> extends LazyNeighbour<V, T> {
-    private T iV1, iV2, iOldV1, iOldV2; 
+    private T iV1, iV2, iOldV1 = null, iOldV2 = null; 
     
     /**
      * Constructor
@@ -37,26 +38,26 @@ public class LazySwap<V extends Variable<V, T>, T extends Value<V, T>> extends L
     public LazySwap(T v1, T v2) {
         iV1 = v1;
         iV2 = v2;
-        iOldV1 = v1.variable().getAssignment();
-        iOldV2 = v2.variable().getAssignment();
     }
     
     /** Perform swap */
     @Override
-    protected void doAssign(long iteration) {
-        if (iOldV1!=null) iOldV1.variable().unassign(iteration);
-        if (iOldV2!=null) iOldV2.variable().unassign(iteration);
-        iV1.variable().assign(iteration, iV1);
-        iV2.variable().assign(iteration, iV2);
+    protected void doAssign(Assignment<V, T> assignment, long iteration) {
+        iOldV1 = assignment.getValue(iV1.variable());
+        iOldV2 = assignment.getValue(iV2.variable());
+        if (iOldV1 != null) assignment.unassign(iteration, iV1.variable());
+        if (iOldV2 != null) assignment.unassign(iteration, iV2.variable());
+        assignment.assign(iteration, iV1);
+        assignment.assign(iteration, iV2);
     }
     
     /** Undo the swap */
     @Override
-    protected void undoAssign(long iteration) {
-        iV1.variable().unassign(iteration);
-        iV2.variable().unassign(iteration);
-        if (iOldV1!=null) iOldV1.variable().assign(iteration, iOldV1);
-        if (iOldV2!=null) iOldV2.variable().assign(iteration, iOldV2);
+    protected void undoAssign(Assignment<V, T> assignment, long iteration) {
+        assignment.unassign(iteration, iV1.variable());
+        assignment.unassign(iteration, iV2.variable());
+        if (iOldV1 != null) assignment.assign(iteration, iOldV1);
+        if (iOldV2 != null) assignment.assign(iteration, iOldV2);
     }
     /** Return problem model */
     @Override
