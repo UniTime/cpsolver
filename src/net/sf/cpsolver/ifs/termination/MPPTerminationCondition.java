@@ -99,14 +99,14 @@ public class MPPTerminationCondition<V extends Variable<V, T>, T extends Value<V
 
     @Override
     public boolean canContinue(Solution<V, T> currentSolution) {
-        if (iMinPerturbances >= 0 && currentSolution.getModel().nrUnassignedVariables() == 0
-                && currentSolution.getModel().perturbVariables().size() <= iMinPerturbances) {
+        if (iMinPerturbances >= 0 && currentSolution.getAssignment().nrUnassignedVariables(currentSolution.getModel()) == 0
+                && currentSolution.getModel().perturbVariables(currentSolution.getAssignment()).size() <= iMinPerturbances) {
             sLogger.info("A complete solution with allowed number of perturbances found.");
             return false;
         }
         if (iMinPertPenalty >= 0.0
-                && currentSolution.getModel().nrUnassignedVariables() == 0
-                && currentSolution.getPerturbationsCounter().getPerturbationPenalty(currentSolution.getModel()) <= iMinPertPenalty) {
+                && currentSolution.getAssignment().nrUnassignedVariables(currentSolution.getModel()) == 0
+                && currentSolution.getPerturbationsCounter().getPerturbationPenalty(currentSolution.getAssignment(), currentSolution.getModel()) <= iMinPertPenalty) {
             sLogger.info("A complete solution with allowed perturbation penalty found.");
             return false;
         }
@@ -119,7 +119,7 @@ public class MPPTerminationCondition<V extends Variable<V, T>, T extends Value<V
             return false;
         }
         if (iStopWhenComplete || (iMaxIter < 0 && iTimeOut < 0)) {
-            boolean ret = (currentSolution.getModel().nrUnassignedVariables() != 0);
+            boolean ret = (currentSolution.getAssignment().nrUnassignedVariables(currentSolution.getModel()) != 0);
             if (!ret)
                 sLogger.info("Complete solution found.");
             return ret;

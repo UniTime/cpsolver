@@ -1,5 +1,6 @@
 package net.sf.cpsolver.ifs.solver;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
@@ -37,7 +38,7 @@ public interface SolverListener<V extends Variable<V, T>, T extends Value<V, T>>
      * @param variable
      *            selected variable
      */
-    public boolean variableSelected(long iteration, V variable);
+    public boolean variableSelected(Assignment<V, T> assignment, long iteration, V variable);
 
     /**
      * A value was selected
@@ -49,7 +50,7 @@ public interface SolverListener<V extends Variable<V, T>, T extends Value<V, T>>
      * @param value
      *            selected variable
      */
-    public boolean valueSelected(long iteration, V variable, T value);
+    public boolean valueSelected(Assignment<V, T> assignment, long iteration, V variable, T value);
 
     /**
      * A neighbour was selected
@@ -59,6 +60,6 @@ public interface SolverListener<V extends Variable<V, T>, T extends Value<V, T>>
      * @param neighbour
      *            neighbour
      */
-    public boolean neighbourSelected(long iteration, Neighbour<V, T> neighbour);
+    public boolean neighbourSelected(Assignment<V, T> assignment, long iteration, Neighbour<V, T> neighbour);
 
 }

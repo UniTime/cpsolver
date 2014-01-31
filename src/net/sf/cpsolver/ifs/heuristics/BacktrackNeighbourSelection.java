@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.constant.ConstantVariable;
 import net.sf.cpsolver.ifs.extension.ConflictStatistics;
 import net.sf.cpsolver.ifs.extension.Extension;
@@ -66,8 +67,7 @@ import org.apache.log4j.Logger;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Value<V, T>> extends
-        StandardNeighbourSelection<V, T> {
+public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Value<V, T>> extends StandardNeighbourSelection<V, T> {
     private ConflictStatistics<V, T> iStat = null;
     private static Logger sLog = Logger.getLogger(BacktrackNeighbourSelection.class);
     private int iTimeout = 5000;
@@ -129,8 +129,8 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
 
         iSolution = solution;
         iBackTrackNeighbour = null;
-        iValue = solution.getModel().getTotalValue();
-        iNrAssigned = solution.getModel().assignedVariables().size();
+        iValue = solution.getModel().getTotalValue(iSolution.getAssignment());
+        iNrAssigned = iSolution.getAssignment().nrAssignedVariables();
         iT0 = JProf.currentTimeMillis();
         iNrIters = 0;
         iTimeoutReached = false;
@@ -138,18 +138,14 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
 
         synchronized (solution) {
             if (sLog.isDebugEnabled())
-                sLog.debug("-- before BT (" + variable.getName() + "): nrAssigned="
-                        + iSolution.getModel().assignedVariables().size() + ",  value="
-                        + iSolution.getModel().getTotalValue());
+                sLog.debug("-- before BT (" + variable.getName() + "): nrAssigned=" + iSolution.getAssignment().nrAssignedVariables() + ",  value=" + iSolution.getModel().getTotalValue(iSolution.getAssignment()));
 
             List<V> variables2resolve = new ArrayList<V>(1);
             variables2resolve.add(variable);
             backtrack(variables2resolve, 0, iDepth);
 
             if (sLog.isDebugEnabled())
-                sLog.debug("-- after  BT (" + variable.getName() + "): nrAssigned="
-                        + iSolution.getModel().assignedVariables().size() + ",  value="
-                        + iSolution.getModel().getTotalValue());
+                sLog.debug("-- after  BT (" + variable.getName() + "): nrAssigned=" + iSolution.getAssignment().nrAssignedVariables() + ",  value=" + iSolution.getModel().getTotalValue(iSolution.getAssignment()));
         }
 
         iT1 = JProf.currentTimeMillis();
@@ -182,7 +178,7 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
 
     private boolean containsConstantValues(Collection<T> values) {
         for (T value : values) {
-            if (value.variable() instanceof ConstantVariable && ((ConstantVariable) value.variable()).isConstant())
+            if (value.variable() instanceof ConstantVariable && ((ConstantVariable<?>) value.variable()).isConstant())
                 return true;
         }
         return false;
@@ -257,9 +253,7 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
         if (nrUnassigned == 0) {
             if (sLog.isDebugEnabled())
                 sLog.debug("    -- all assigned");
-            if (iSolution.getModel().assignedVariables().size() > iNrAssigned
-                    || (iSolution.getModel().assignedVariables().size() == iNrAssigned && iValue > iSolution.getModel()
-                            .getTotalValue())) {
+            if (iSolution.getAssignment().nrAssignedVariables() > iNrAssigned || (iSolution.getAssignment().nrAssignedVariables() == iNrAssigned && iValue > iSolution.getModel().getTotalValue(iSolution.getAssignment()))) {
                 if (sLog.isDebugEnabled())
                     sLog.debug("    -- better than current");
                 if (iBackTrackNeighbour == null || iBackTrackNeighbour.compareTo(iSolution) >= 0) {
@@ -277,34 +271,34 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
             sLog.debug("    -- variable " + variable);
         for (Iterator<T> e = values(variable); canContinueEvaluation() && e.hasNext();) {
             T value = e.next();
-            if (value.equals(variable.getAssignment()))
+            T current = iSolution.getAssignment().getValue(variable);
+            if (value.equals(current))
                 continue;
             if (sLog.isDebugEnabled())
                 sLog.debug("      -- value " + value);
-            Set<T> conflicts = iSolution.getModel().conflictValues(value);
+            Set<T> conflicts = iSolution.getModel().conflictValues(iSolution.getAssignment(), value);
             if (sLog.isDebugEnabled())
                 sLog.debug("      -- conflicts " + conflicts);
             if (!checkBound(variables2resolve, idx, depth, value, conflicts))
                 continue;
-            T current = variable.getAssignment();
             List<V> newVariables2resolve = new ArrayList<V>(variables2resolve);
             for (Iterator<T> i = conflicts.iterator(); i.hasNext();) {
                 T conflict = i.next();
-                conflict.variable().unassign(0);
+                iSolution.getAssignment().unassign(0, conflict.variable());
                 if (!newVariables2resolve.contains(conflict.variable()))
                     newVariables2resolve.add(conflict.variable());
             }
             if (current != null)
-                current.variable().unassign(0);
-            value.variable().assign(0, value);
+                iSolution.getAssignment().unassign(0, current.variable());
+            iSolution.getAssignment().assign(0, value);
             backtrack(newVariables2resolve, idx + 1, depth - 1);
             if (current == null)
-                variable.unassign(0);
+                iSolution.getAssignment().unassign(0, variable);
             else
-                variable.assign(0, current);
+                iSolution.getAssignment().assign(0, value);
             for (Iterator<T> i = conflicts.iterator(); i.hasNext();) {
                 T conflict = i.next();
-                conflict.variable().assign(0, conflict);
+                iSolution.getAssignment().assign(0, conflict); 
             }
         }
     }
@@ -322,13 +316,13 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
          *            variables that has been changed
          */
         public BackTrackNeighbour(List<V> resolvedVariables) {
-            iTotalValue = iSolution.getModel().getTotalValue();
+            iTotalValue = iSolution.getModel().getTotalValue(iSolution.getAssignment());
             iValue = 0;
             iDifferentAssignments = new ArrayList<T>();
             for (V variable : resolvedVariables) {
-                T value = variable.getAssignment();
+                T value = variable.getAssignment(iSolution.getAssignment());
                 iDifferentAssignments.add(value);
-                iValue += value.toDouble();
+                iValue += value.toDouble(iSolution.getAssignment());
             }
         }
 
@@ -342,7 +336,7 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
          * values
          */
         @Override
-        public double value() {
+        public double value(Assignment<V, T> assignment) {
             return iValue;
         }
 
@@ -355,40 +349,38 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
          * Assign the neighbour
          */
         @Override
-        public void assign(long iteration) {
+        public void assign(Assignment<V, T> assignment, long iteration) {
             if (sLog.isDebugEnabled())
-                sLog.debug("-- before assignment: nrAssigned=" + iSolution.getModel().assignedVariables().size()
-                        + ",  value=" + iSolution.getModel().getTotalValue());
+                sLog.debug("-- before assignment: nrAssigned=" + assignment.nrAssignedVariables() + ",  value=" + iSolution.getModel().getTotalValue(assignment));
             if (sLog.isDebugEnabled())
                 sLog.debug("  " + this);
             int idx = 0;
             for (Iterator<T> e = iDifferentAssignments.iterator(); e.hasNext(); idx++) {
                 T p = e.next();
-                if (p.variable().getAssignment() != null) {
+                T o = assignment.getValue(p.variable());
+                if (o != null) {
                     if (idx > 0 && iStat != null)
-                        iStat.variableUnassigned(iteration, p.variable().getAssignment(), iDifferentAssignments.get(0));
-                    p.variable().unassign(iteration);
+                        iStat.variableUnassigned(iteration, o, iDifferentAssignments.get(0));
+                    assignment.unassign(iteration, p.variable());
                 }
             }
             for (T p : iDifferentAssignments) {
-                p.variable().assign(iteration, p);
+                assignment.assign(iteration, p);
             }
             if (sLog.isDebugEnabled())
-                sLog.debug("-- after assignment: nrAssigned=" + iSolution.getModel().assignedVariables().size()
-                        + ",  value=" + iSolution.getModel().getTotalValue());
+                sLog.debug("-- after assignment: nrAssigned=" + assignment.nrAssignedVariables() + ",  value=" + iSolution.getModel().getTotalValue(assignment));
         }
 
         /**
          * Compare two neighbours
          */
         public int compareTo(Solution<V, T> solution) {
-            return Double.compare(iTotalValue, solution.getModel().getTotalValue());
+            return Double.compare(iTotalValue, solution.getModel().getTotalValue(solution.getAssignment()));
         }
 
         @Override
         public String toString() {
-            StringBuffer sb = new StringBuffer("BT{value=" + (iTotalValue - iSolution.getModel().getTotalValue())
-                    + ": ");
+            StringBuffer sb = new StringBuffer("BT{value=" + (iTotalValue - iSolution.getModel().getTotalValue(iSolution.getAssignment())) + ": ");
             for (Iterator<T> e = iDifferentAssignments.iterator(); e.hasNext();) {
                 T p = e.next();
                 sb.append("\n    " + p.variable().getName() + " " + p.getName() + (e.hasNext() ? "," : ""));

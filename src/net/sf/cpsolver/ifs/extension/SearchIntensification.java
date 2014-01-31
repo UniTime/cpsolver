@@ -3,6 +3,7 @@ package net.sf.cpsolver.ifs.extension;
 import java.util.Collection;
 import java.util.Map;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
@@ -34,8 +35,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class SearchIntensification<V extends Variable<V, T>, T extends Value<V, T>> extends Extension<V, T> implements
-        SolutionListener<V, T> {
+public class SearchIntensification<V extends Variable<V, T>, T extends Value<V, T>> extends Extension<V, T> implements SolutionListener<V, T> {
     private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(SearchIntensification.class);
     private long iInitialIterationLimit = 100;
     private long iIterationLimit = 100;
@@ -82,7 +82,7 @@ public class SearchIntensification<V extends Variable<V, T>, T extends Value<V, 
     }
 
     @Override
-    public void afterAssigned(long iteration, T value) {
+    public void afterAssigned(Assignment<V, T> assignment, long iteration, T value) {
         if (iIterationLimit > 0 && iteration > 0) {
             Solution<V, T> solution = getSolver().currentSolution();
             if (solution.getBestIteration() < 0 || !solution.isBestComplete())

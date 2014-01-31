@@ -4,6 +4,7 @@ package net.sf.cpsolver.ifs.constant;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
@@ -53,20 +54,17 @@ public class ConstantModel<V extends Variable<V, T>, T extends Value<V, T>> exte
 
     /** True, if the given variable is constant. */
     public boolean isConstant(V variable) {
-        return (iConstantVariables != null && variable instanceof ConstantVariable && ((ConstantVariable) variable)
-                .isConstant());
+        return (iConstantVariables != null && variable instanceof ConstantVariable && ((ConstantVariable<?>) variable).isConstant());
     }
 
     /** Adds a variable to the model */
     @Override
     public void addVariable(V variable) {
-        if (variable instanceof ConstantVariable && ((ConstantVariable) variable).isConstant()) {
+        if (variable instanceof ConstantVariable && ((ConstantVariable<?>) variable).isConstant()) {
             if (iConstantVariables == null)
                 iConstantVariables = new ArrayList<V>();
             variable.setModel(this);
             iConstantVariables.add(variable);
-            if (variable.getAssignment() != null)
-                variable.assign(0L, variable.getAssignment());
         } else
             super.addVariable(variable);
     }
@@ -86,9 +84,9 @@ public class ConstantModel<V extends Variable<V, T>, T extends Value<V, T>> exte
      * excluded from (re)assignment.
      */
     @Override
-    public void beforeAssigned(long iteration, T value) {
+    public void beforeAssigned(Assignment<V, T> assignment, long iteration, T value) {
         if (!isConstant(value.variable()))
-            super.beforeAssigned(iteration, value);
+            super.beforeAssigned(assignment, iteration, value);
     }
 
     /**
@@ -96,9 +94,9 @@ public class ConstantModel<V extends Variable<V, T>, T extends Value<V, T>> exte
      * are excluded from (re)assignment.
      */
     @Override
-    public void beforeUnassigned(long iteration, T value) {
+    public void beforeUnassigned(Assignment<V, T> assignment, long iteration, T value) {
         if (!isConstant(value.variable()))
-            super.beforeUnassigned(iteration, value);
+            super.beforeUnassigned(assignment, iteration, value);
     }
 
     /**
@@ -106,9 +104,9 @@ public class ConstantModel<V extends Variable<V, T>, T extends Value<V, T>> exte
      * excluded from (re)assignment.
      */
     @Override
-    public void afterAssigned(long iteration, T value) {
+    public void afterAssigned(Assignment<V, T> assignment, long iteration, T value) {
         if (!isConstant(value.variable()))
-            super.afterAssigned(iteration, value);
+            super.afterAssigned(assignment, iteration, value);
     }
 
     /**
@@ -116,8 +114,8 @@ public class ConstantModel<V extends Variable<V, T>, T extends Value<V, T>> exte
      * are excluded from (re)assignment.
      */
     @Override
-    public void afterUnassigned(long iteration, T value) {
+    public void afterUnassigned(Assignment<V, T> assignment, long iteration, T value) {
         if (!isConstant(value.variable()))
-            super.afterUnassigned(iteration, value);
+            super.afterUnassigned(assignment, iteration, value);
     }
 }

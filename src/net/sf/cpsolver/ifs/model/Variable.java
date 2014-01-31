@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import net.sf.cpsolver.ifs.util.IdGenerator;
 
 /**
@@ -52,10 +54,7 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
     private List<T> iValues = null;
 
     private T iRecentlyRemovedValue = null;
-
-    private long iAssignmentCounter = 0;
-    private long iLastAssignmentIteration = -1;
-    private long iLastUnassignmentIteration = -1;
+    private long iLastIteration = 0;
     private Object iExtra = null;
 
     private List<Constraint<V, T>> iConstraints = new ArrayList<Constraint<V, T>>();
@@ -64,6 +63,7 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
     private List<VariableListener<T>> iVariableListeners = null;
 
     private Map<V, List<Constraint<V, T>>> iConstraintVariables = null;
+    protected int iIndex = -1;
 
     /** Constructor */
     public Variable() {
@@ -106,14 +106,42 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
         return !values().isEmpty();
     }
 
-    /** Returns current assignment */
+    /**
+     * Returns current assignment.
+     * Use {@link Assignment#getValue(Variable)} or {@link Variable#getAssignment(Assignment)} instead.
+     **/
+    @Deprecated
     public T getAssignment() {
         return iValue;
     }
 
-    /** Returns true if the variable is assigned */
+    /**
+     * Returns true if the variable is assigned.
+     * Use {@link Variable#hasAssignment(Assignment)} instead.
+     **/
+    @Deprecated
     public boolean hasAssignment() {
         return iValue != null;
+    }
+    
+    /** Returns current assignment */
+    @SuppressWarnings("unchecked")
+    public T getAssignment(Assignment<V, T> assignment) {
+        return assignment.getValue((V) this);
+    }
+    
+    /** Returns true if the variable is assigned */
+    public boolean hasAssignment(Assignment<V, T> assignment) {
+        return getAssignment(assignment) != null;
+    }
+    
+    /**
+     * Sets current assignment.
+     * BEWARE: Do not use outside of {@link DefaultSingleAssignment}.
+     **/
+    @Deprecated
+    public void setAssignment(T value) {
+        iValue = value;
     }
 
     /** Returns initial assignment */
@@ -139,74 +167,71 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
      * Assign value to this variable. If the variable has already assigned
      * another value, it is unassigned first. Also, all conflicting values are
      * unassigned before the given value is assigned to this variable.
+     * Use {@link Assignment#assign(long, Value)} instead.
      * 
      * @param iteration
      *            current iteration
      * @param value
      *            the value to be assigned
      */
-    public void assign(long iteration, T value) {
-        if (getModel() != null)
-            getModel().beforeAssigned(iteration, value);
-        iLastAssignmentIteration = iteration;
-        if (iValue != null)
-            unassign(iteration);
+    @Deprecated
+    public void assign(int iteration, T value) {
         if (iRecentlyRemovedValue != null && iRecentlyRemovedValue.equals(value)) {
             iRecentlyRemovedValue = null;
             return;
         }
-        if (value == null)
-            return;
-        iValue = value;
-        for (Constraint<?, T> constraint : iConstraints) {
-            constraint.assigned(iteration, value);
-        }
-        if (getModel() != null)
-            for (GlobalConstraint<?, T> constraint : getModel().globalConstraints()) {
-                constraint.assigned(iteration, value);
-            }
-        iAssignmentCounter++;
-        value.assigned(iteration);
-        if (iVariableListeners != null)
-            for (VariableListener<T> listener : iVariableListeners) {
-                listener.variableAssigned(iteration, value);
-            }
-        if (getModel() != null)
-            getModel().afterAssigned(iteration, value);
+        getModel().getDefaultAssignment().assign(iteration, value);
     }
-
+    
     /**
      * Unassign value from this variable.
+     * Use {@link Assignment#unassign(long, Variable)} instead.
      * 
      * @param iteration
      *            current iteration
      */
-    public void unassign(long iteration) {
-        if (iValue == null)
-            return;
-        if (getModel() != null)
-            getModel().beforeUnassigned(iteration, iValue);
-        iLastUnassignmentIteration = iteration;
-        T oldValue = iValue;
-        iValue = null;
-        for (Constraint<?, T> constraint : iConstraints) {
-            constraint.unassigned(iteration, oldValue);
-        }
-        if (getModel() != null)
-            for (GlobalConstraint<?, T> constraint : getModel().globalConstraints()) {
-                constraint.unassigned(iteration, oldValue);
-            }
-        oldValue.unassigned(iteration);
-        if (iVariableListeners != null)
-            for (VariableListener<T> listener : iVariableListeners)
-                listener.variableUnassigned(iteration, oldValue);
-        if (getModel() != null)
-            getModel().afterUnassigned(iteration, oldValue);
+    @Deprecated
+    @SuppressWarnings("unchecked")
+    public void unassign(int iteration) {
+        getModel().getDefaultAssignment().unassign(iteration, (V) this);
     }
 
-    /** Return how many times was this variable assigned in the past. */
-    public long countAssignments() {
-        return iAssignmentCounter;
+    
+    /**
+     * Returns iteration of the last assignment.
+     * Use {@link Assignment#getIteration(Variable)} instead.
+     **/
+    @Deprecated
+    public long getLastIteration() {
+        return iLastIteration;
+    }
+    
+    /**
+     * Sets iteration of the last assignment.
+     * BEWARE: Do not use outside of {@link DefaultSingleAssignment}.
+     **/
+    @Deprecated
+    public void setLastIteration(long iteration) {
+        iLastIteration = iteration;
+    }
+
+    /**
+     * A value was assigned to this variable
+     */
+    public void variableAssigned(Assignment<V, T> assignment, long iteration, T value) {
+        if (iVariableListeners != null)
+            for (VariableListener<T> listener : iVariableListeners) {
+                listener.variableAssigned(assignment, iteration, value);
+            }
+    }
+
+    /**
+     * A value was unassigned from this variable
+     */
+    public void variableUnassigned(Assignment<V, T> assignment, long iteration, T oldValue) {
+        if (iVariableListeners != null)
+            for (VariableListener<T> listener : iVariableListeners)
+                listener.variableUnassigned(assignment, iteration, oldValue);
     }
 
     /**
@@ -259,8 +284,8 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
 
     @Override
     public String toString() {
-        return "Variable{name=" + getName() + ", initial=" + getInitialAssignment() + ", current=" + getAssignment()
-                + ", values=" + values().size() + ", constraints=" + iConstraints.size() + "}";
+        return "Variable{name=" + getName() + ", initial=" + getInitialAssignment() + ", values=" + values().size() +
+        		", constraints=" + iConstraints.size() + "}";
     }
 
     /** Unique id */
@@ -285,11 +310,11 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
 
     /**
      * Sets variable's value of the best ever found solution. Called when
-     * {@link Model#saveBest()} is called.
+     * {@link Model#saveBest(Assignment)} is called.
      */
-    public void setBestAssignment(T value) {
+    public void setBestAssignment(T value, long iteration) {
         iBestValue = value;
-        iBestAssignmentIteration = (value == null ? 0l : value.lastAssignmentIteration());
+        iBestAssignmentIteration = iteration;
     }
 
     /** Returns the value from the best ever found soultion. */
@@ -300,22 +325,6 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
     /** Returns the iteration when the best value was assigned */
     public long getBestAssignmentIteration() {
         return iBestAssignmentIteration;
-    }
-
-    /**
-     * Returns the iteration when the variable was assigned for the last time
-     * (-1 if never)
-     */
-    public long lastAssignmentIteration() {
-        return iLastAssignmentIteration;
-    }
-
-    /**
-     * Returns the iteration when the variable was unassigned for the last time
-     * (-1 if never)
-     */
-    public long lastUnassignmentIteration() {
-        return iLastUnassignmentIteration;
     }
 
     @Override
@@ -369,10 +378,14 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
         return iExtra;
     }
 
-    /** Permanently remove a value from variables domain. */
+    /**
+     * Permanently remove a value from variables domain.
+     * The variable should not have this value assigned in any existing assignment.
+     **/
+    @SuppressWarnings({ "deprecation", "unchecked" })
     public void removeValue(long iteration, T value) {
-        if (iValue != null && iValue.equals(value))
-            unassign(iteration);
+    	if (value.equals(getModel().getDefaultAssignment().getValue((V) this)))
+    		getModel().getDefaultAssignment().unassign(iteration, (V) this);
         if (iValues == null)
             return;
         iValues.remove(value);
@@ -421,11 +434,21 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
             return;
         if (iValues == null)
             return;
-        if (getAssignment() != null && getAssignment().equals(iInitialValue))
-            unassign(0);
         iValues.remove(iInitialValue);
         if (iModel != null)
             iModel.invalidateVariablesWithInitialValueCache();
         iInitialValue = null;
     }
+ 
+    /**
+     * Unique index of a variable, only to be assigned by {@link Model#addVariable(Variable)}.
+     * @param index an index
+     */
+    public void setIndex(int index) { iIndex = index; }
+
+    /**
+     * Unique index of a variable that was assigned by {@link Model#addVariable(Variable)}.
+     * @return -1 if not in a model
+     */
+    public int getIndex() { return iIndex; }
 }

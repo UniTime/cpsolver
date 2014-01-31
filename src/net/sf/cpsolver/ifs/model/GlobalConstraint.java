@@ -4,6 +4,8 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
+
 /**
  * Generic global constraint. <br>
  * <br>
@@ -44,8 +46,14 @@ public abstract class GlobalConstraint<V extends Variable<V, T>, T extends Value
 
     /** The list of variables of this constraint that are assigned */
     @Override
-    public Collection<V> assignedVariables() {
-        return getModel().assignedVariables();
+    public Collection<V> assignedVariables(Assignment<V, T> assignment) {
+        return assignment.assignedVariables();
+    }
+    
+    /** The number of variables of this constraint that are assigned */
+    @Override
+    public int countAssignedVariables(Assignment<V, T> assignment) {
+        return assignment.nrAssignedVariables();
     }
 
     /** Add a variable to this constraint */
@@ -61,34 +69,34 @@ public abstract class GlobalConstraint<V extends Variable<V, T>, T extends Value
     }
 
     /**
-     * Given value is to be assigned to its varable. In this method, the
-     * constraint should unassigns all varaibles which are in conflict with the
+     * Given value is to be assigned to its variable. In this method, the
+     * constraint should unassigns all variables which are in conflict with the
      * given assignment because of this constraint.
      */
     @Override
-    public void assigned(long iteration, T value) {
+    public void assigned(Assignment<V, T> assignment, long iteration, T value) {
         HashSet<T> conf = null;
         if (isHard()) {
             conf = new HashSet<T>();
-            computeConflicts(value, conf);
+            computeConflicts(assignment, value, conf);
         }
         if (constraintListeners() != null)
-            for (ConstraintListener<T> listener : iConstraintListeners)
-                listener.constraintBeforeAssigned(iteration, this, value, conf);
+            for (ConstraintListener<V, T> listener : iConstraintListeners)
+                listener.constraintBeforeAssigned(assignment, iteration, this, value, conf);
         if (conf != null) {
             for (T conflictValue : conf) {
-                conflictValue.variable().unassign(iteration);
+                assignment.unassign(iteration, conflictValue.variable());
             }
         }
         if (constraintListeners() != null)
-            for (ConstraintListener<T> listener : iConstraintListeners)
-                listener.constraintAfterAssigned(iteration, this, value, conf);
+            for (ConstraintListener<V, T> listener : iConstraintListeners)
+                listener.constraintAfterAssigned(assignment, iteration, this, value, conf);
     }
 
     /**
      * Given value is unassigned from its varable.
      */
     @Override
-    public void unassigned(long iteration, T value) {
+    public void unassigned(Assignment<V, T> assignment, long iteration, T value) {
     }
 }

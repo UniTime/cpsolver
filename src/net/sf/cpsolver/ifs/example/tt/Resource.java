@@ -3,8 +3,9 @@ package net.sf.cpsolver.ifs.example.tt;
 import java.util.HashSet;
 import java.util.Set;
 
-import net.sf.cpsolver.ifs.model.Constraint;
-import net.sf.cpsolver.ifs.model.Model;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import net.sf.cpsolver.ifs.assignment.context.ConstraintWithContext;
 
 /**
  * Resource constraint
@@ -28,10 +29,9 @@ import net.sf.cpsolver.ifs.model.Model;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class Resource extends Constraint<Activity, Location> {
+public class Resource extends ConstraintWithContext<Activity, Location, Resource.Context> {
     private String iName = null;
     private String iResourceId = null;
-    private Activity[] iResource;
     private Set<Integer> iProhibitedSlots = new HashSet<Integer>();
     private Set<Integer> iDiscouragedSlots = new HashSet<Integer>();
     private int iType = TYPE_OTHER;
@@ -48,18 +48,9 @@ public class Resource extends Constraint<Activity, Location> {
         iType = type;
     }
     
-    @Override
-    public void setModel(Model<Activity, Location> model) {
-        super.setModel(model);
-        TimetableModel m = (TimetableModel)model;
-        iResource = new Activity[m.getNrDays() * m.getNrHours()];
-        for (int i=0;i<iResource.length;i++)
-                iResource[i] = null;
-    }
-    
     public String getResourceId() { return iResourceId; }
     @Override
-	public String getName() { return iName; }
+    public String getName() { return iName; }
     public int getType() { return iType; }
     public Set<Integer> getProhibitedSlots() { return iProhibitedSlots; }
     public Set<Integer> getDiscouragedSlots() { return iDiscouragedSlots; }
@@ -95,22 +86,24 @@ public class Resource extends Constraint<Activity, Location> {
     }
     
     @Override
-	public void computeConflicts(Location location, Set<Location> conflicts) {
+    public void computeConflicts(Assignment<Activity, Location> assignment, Location location, Set<Location> conflicts) {
         Activity activity = location.variable();
         if (!location.containResource(this)) return;
+        Context context = getContext(assignment);
         for (int i=location.getSlot(); i<location.getSlot()+activity.getLength(); i++) {
-            Activity conf = iResource[i];
+            Activity conf = context.getActivity(i);
             if (conf!=null && !activity.equals(conf)) 
-		conflicts.add(conf.getAssignment());
+		conflicts.add(assignment.getValue(conf));
         }
     }
     
     @Override
-	public boolean inConflict(Location location) {
+	public boolean inConflict(Assignment<Activity, Location> assignment, Location location) {
         Activity activity = location.variable();
         if (!location.containResource(this)) return false;
+        Context context = getContext(assignment);
         for (int i=location.getSlot(); i<location.getSlot()+activity.getLength(); i++) {
-            if (iResource[i]!=null) return true;
+            if (context.getActivity(i) != null) return true;
         }
         return false;
     }
@@ -121,21 +114,45 @@ public class Resource extends Constraint<Activity, Location> {
     }
     
     @Override
-	public void assigned(long iteration, Location location) {
-        super.assigned(iteration, location);
-        Activity activity = location.variable();
-        if (!location.containResource(this)) return;
-        for (int i=location.getSlot(); i<location.getSlot()+activity.getLength(); i++) {
-            iResource[i] = activity;
-        }
+    public Context createAssignmentContext(Assignment<Activity, Location> assignment) {
+        return new Context(assignment);
     }
-    @Override
-	public void unassigned(long iteration, Location location) {
-        super.unassigned(iteration, location);
-        Activity activity = location.variable();
-        if (!location.containResource(this)) return;
-        for (int i=location.getSlot(); i<location.getSlot()+activity.getLength(); i++) {
-            iResource[i] = null;
+    
+    /**
+     * Assignment context
+     */
+    public class Context implements AssignmentConstraintContext<Activity, Location> {
+        private Activity[] iResource;
+        
+        public Context(Assignment<Activity, Location> assignment) {
+            TimetableModel model = (TimetableModel)getModel();
+            iResource = new Activity[model.getNrDays() * model.getNrHours()];
+            for (int i=0;i<iResource.length;i++)
+                    iResource[i] = null;
+            for (Location location: assignment.assignedValues())
+                assigned(assignment, location);
+        }
+
+        @Override
+        public void assigned(Assignment<Activity, Location> assignment, Location location) {
+            Activity activity = location.variable();
+            if (!location.containResource(Resource.this)) return;
+            for (int i=location.getSlot(); i<location.getSlot()+activity.getLength(); i++) {
+                iResource[i] = activity;
+            }
+        }
+        
+        public Activity getActivity(int slot) {
+            return iResource[slot];
+        }
+
+        @Override
+        public void unassigned(Assignment<Activity, Location> assignment, Location location) {
+            Activity activity = location.variable();
+            if (!location.containResource(Resource.this)) return;
+            for (int i=location.getSlot(); i<location.getSlot()+activity.getLength(); i++) {
+                iResource[i] = null;
+            }
         }
     }
 }

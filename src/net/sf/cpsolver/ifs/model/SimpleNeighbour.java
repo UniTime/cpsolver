@@ -1,5 +1,7 @@
 package net.sf.cpsolver.ifs.model;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
+
 /**
  * A neighbour consisting of a change (either assignment or unassignment) of a
  * single variable.
@@ -56,26 +58,24 @@ public class SimpleNeighbour<V extends Variable<V, T>, T extends Value<V, T>> ex
 
     /** Perform assignment */
     @Override
-    public void assign(long iteration) {
+    public void assign(Assignment<V, T> assignment, long iteration) {
         if (iVariable == null)
             return;
         if (iValue != null)
-            iVariable.assign(iteration, iValue);
+            assignment.assign(iteration, iValue);
         else
-            iVariable.unassign(iteration);
+            assignment.unassign(iteration, iVariable);
     }
 
     /** Improvement in the solution value if this neighbour is accepted. */
     @Override
-    public double value() {
-        return (iValue == null ? 0 : iValue.toDouble())
-                - (iVariable == null || iVariable.getAssignment() == null ? 0 : iVariable.getAssignment().toDouble());
+    public double value(Assignment<V, T> assignment) {
+        T old = assignment.getValue(iVariable);
+        return (iValue == null ? 0 : iValue.toDouble(assignment)) - (iVariable == null || old == null ? 0 : old.toDouble(assignment));
     }
 
     @Override
     public String toString() {
-        return iVariable.getName() + " "
-                + (iVariable.getAssignment() == null ? "null" : iVariable.getAssignment().getName()) + " -> "
-                + (iValue == null ? "null" : iValue.getName());
+        return iVariable.getName() + " := " + (iValue == null ? "null" : iValue.getName());
     }
 }

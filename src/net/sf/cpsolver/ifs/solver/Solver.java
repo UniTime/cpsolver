@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
 
+import net.sf.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import net.sf.cpsolver.ifs.extension.ConflictStatistics;
 import net.sf.cpsolver.ifs.extension.Extension;
 import net.sf.cpsolver.ifs.extension.MacPropagation;
@@ -47,7 +48,7 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  * all variables are assigned but the solution is not good enough (for example,
  * when there are still many violations of soft constraints). Once a variable is
  * selected, a value from its domain is chosen for assignment. Even if the best
- * value is selected (whatever �best� means), its assignment to the selected
+ * value is selected (whatever "best" means), its assignment to the selected
  * variable may cause some hard conflicts with already assigned variables. Such
  * conflicting variables are removed from the solution and become unassigned.
  * Finally, the selected value is assigned to the selected variable. <br>
@@ -224,12 +225,12 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
     private PerturbationsCounter<V, T> iPerturbationsCounter = null;
     private NeighbourSelection<V, T> iNeighbourSelection = null;
     private List<Extension<V, T>> iExtensions = new ArrayList<Extension<V, T>>();
-    private List<SolverListener<V, T>> iSolverListeners = new ArrayList<SolverListener<V, T>>();
-    private int iSaveBestUnassigned = 0;
+    protected List<SolverListener<V, T>> iSolverListeners = new ArrayList<SolverListener<V, T>>();
+    protected int iSaveBestUnassigned = 0;
 
     private boolean iUpdateProgress = true;
 
-    private Progress iProgress;
+    protected Progress iProgress;
 
     /**
      * Constructor.
@@ -250,9 +251,6 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
         iPerturbationsCounter = null;
         iNeighbourSelection = null;
     }
-
-    private boolean iValueExtraUsed = false;
-    private boolean iVariableExtraUsed = false;
 
     /** Sets termination condition */
     public void setTerminalCondition(TerminationCondition<V, T> terminationCondition) {
@@ -276,16 +274,6 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
 
     /** Add an IFS extension */
     public void addExtension(Extension<V, T> extension) {
-        if (extension.useValueExtra() && iValueExtraUsed) {
-            sLogger.warn("Unable to add an extension " + extension + " -- value extra is already used.");
-            return;
-        }
-        if (extension.useVariableExtra() && iVariableExtraUsed) {
-            sLogger.warn("Unable to add extension " + extension + " -- variable extra is already used.");
-            return;
-        }
-        iValueExtraUsed = iValueExtraUsed | extension.useValueExtra();
-        iValueExtraUsed = iVariableExtraUsed | extension.useVariableExtra();
         iExtensions.add(extension);
     }
 
@@ -419,7 +407,7 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
 
     /** Sets initial solution */
     public void setInitalSolution(Model<V, T> model) {
-        iCurrentSolution = new Solution<V, T>(model, 0, 0);
+        iCurrentSolution = new Solution<V, T>(model, new DefaultSingleAssignment<V, T>(), 0, 0);
         iLastSolution = null;
     }
 
@@ -440,7 +428,7 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
     }
 
     /** True, when solver should update progress (see {@link Progress}) */
-    private boolean isUpdateProgress() {
+    protected boolean isUpdateProgress() {
         return iUpdateProgress;
     }
 
@@ -580,13 +568,10 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
                 }
                 long prog = 9999;
                 sLogger.info("Initial solution:" + ToolBox.dict2string(iCurrentSolution.getInfo(), 1));
-                if ((iSaveBestUnassigned < 0 || iSaveBestUnassigned >= iCurrentSolution.getModel()
-                        .nrUnassignedVariables())
-                        && (iCurrentSolution.getBestInfo() == null || getSolutionComparator().isBetterThanBestSolution(
-                                iCurrentSolution))) {
-                    if (iCurrentSolution.getModel().nrUnassignedVariables() == 0)
-                        sLogger.info("Complete solution " + ToolBox.dict2string(iCurrentSolution.getInfo(), 1)
-                                + " was found.");
+                if ((iSaveBestUnassigned < 0 || iSaveBestUnassigned >= iCurrentSolution.getAssignment().nrUnassignedVariables(iCurrentSolution.getModel()))
+                        && (iCurrentSolution.getBestInfo() == null || getSolutionComparator().isBetterThanBestSolution(iCurrentSolution))) {
+                    if (iCurrentSolution.getModel().variables().size() == iCurrentSolution.getAssignment().nrAssignedVariables())
+                        sLogger.info("Complete solution " + ToolBox.dict2string(iCurrentSolution.getInfo(), 1) + " was found.");
                     synchronized (iCurrentSolution) {
                         iCurrentSolution.saveBest();
                     }
@@ -602,7 +587,7 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
                     // Neighbour selection
                     Neighbour<V, T> neighbour = getNeighbourSelection().selectNeighbour(iCurrentSolution);
                     for (SolverListener<V, T> listener : iSolverListeners) {
-                        if (!listener.neighbourSelected(iCurrentSolution.getIteration(), neighbour)) {
+                        if (!listener.neighbourSelected(iCurrentSolution.getAssignment(), iCurrentSolution.getIteration(), neighbour)) {
                             neighbour = null;
                             continue;
                         }
@@ -619,20 +604,16 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
 
                     // Assign selected value to the selected variable
                     synchronized (iCurrentSolution) {
-                        neighbour.assign(iCurrentSolution.getIteration());
+                        neighbour.assign(iCurrentSolution.getAssignment(), iCurrentSolution.getIteration());
                         iCurrentSolution.update(JProf.currentTimeSec() - startTime);
                     }
 
                     onAssigned(startTime);
 
                     // Check if the solution is the best ever found one
-                    if ((iSaveBestUnassigned < 0 || iSaveBestUnassigned >= iCurrentSolution.getModel()
-                            .nrUnassignedVariables())
-                            && (iCurrentSolution.getBestInfo() == null || getSolutionComparator()
-                                    .isBetterThanBestSolution(iCurrentSolution))) {
-                        if (iCurrentSolution.getModel().nrUnassignedVariables() == 0) {
-                            iProgress.debug("Complete solution of value " + iCurrentSolution.getModel().getTotalValue()
-                                    + " was found.");
+                    if ((iSaveBestUnassigned < 0 || iSaveBestUnassigned >= iCurrentSolution.getAssignment().nrUnassignedVariables(iCurrentSolution.getModel())) && (iCurrentSolution.getBestInfo() == null || getSolutionComparator().isBetterThanBestSolution(iCurrentSolution))) {
+                        if (iCurrentSolution.getModel().variables().size() == iCurrentSolution.getAssignment().nrAssignedVariables()) {
+                            iProgress.debug("Complete solution of value " + iCurrentSolution.getModel().getTotalValue(iCurrentSolution.getAssignment()) + " was found.");
                         }
                         synchronized (iCurrentSolution) {
                             iCurrentSolution.saveBest();
@@ -641,8 +622,7 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
 
                     // Increment progress bar
                     if (isUpdateProgress()) {
-                        if (iCurrentSolution.getBestInfo() != null
-                                && iCurrentSolution.getModel().getBestUnassignedVariables() == 0) {
+                        if (iCurrentSolution.getBestInfo() != null && iCurrentSolution.getModel().getBestUnassignedVariables() == 0) {
                             prog++;
                             if (prog == 10000) {
                                 iProgress.setPhase("Improving found solution ...");
@@ -650,12 +630,8 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
                             } else {
                                 iProgress.setProgress(prog / 100);
                             }
-                        } else if ((iCurrentSolution.getBestInfo() == null || iCurrentSolution.getModel()
-                                .getBestUnassignedVariables() > 0)
-                                && (iCurrentSolution.getModel().variables().size() - iCurrentSolution.getModel()
-                                        .nrUnassignedVariables()) > iProgress.getProgress()) {
-                            iProgress.setProgress(iCurrentSolution.getModel().variables().size()
-                                    - iCurrentSolution.getModel().nrUnassignedVariables());
+                        } else if ((iCurrentSolution.getBestInfo() == null || iCurrentSolution.getModel().getBestUnassignedVariables() > 0) && (iCurrentSolution.getAssignment().nrAssignedVariables() > iProgress.getProgress())) {
+                            iProgress.setProgress(iCurrentSolution.getAssignment().nrAssignedVariables());
                         }
                     }
 

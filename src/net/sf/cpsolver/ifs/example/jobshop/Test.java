@@ -55,8 +55,7 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class Test {
-    private static java.text.SimpleDateFormat sDateFormat = new java.text.SimpleDateFormat("dd-MMM-yy_HHmmss",
-            java.util.Locale.US);
+    private static java.text.SimpleDateFormat sDateFormat = new java.text.SimpleDateFormat("dd-MMM-yy_HHmmss", java.util.Locale.US);
     private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(Test.class);
 
     public static void test(DataProperties properties) {
@@ -71,7 +70,7 @@ public class Test {
             best.restoreBest();
             sLogger.info("Best solution info:" + best.getInfo());
             sLogger.info("Best solution:" + model.toString());
-            model.save(properties.getProperty("General.Output") + File.separator + "solution.txt");
+            model.save(best.getAssignment(), properties.getProperty("General.Output") + File.separator + "solution.txt");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -83,9 +82,7 @@ public class Test {
 
             File inputCfg = new File(args[0]);
             DataProperties properties = ToolBox.loadProperties(inputCfg);
-            String outDir = properties.getProperty("General.Output", ".") + File.separator
-                    + inputCfg.getName().substring(0, inputCfg.getName().lastIndexOf('.')) + File.separator
-                    + sDateFormat.format(new Date());
+            String outDir = properties.getProperty("General.Output", ".") + File.separator + inputCfg.getName().substring(0, inputCfg.getName().lastIndexOf('.')) + File.separator + sDateFormat.format(new Date());
             (new File(outDir)).mkdirs();
             properties.setProperty("General.Output", outDir.toString());
             ToolBox.configureLogging(outDir, null);

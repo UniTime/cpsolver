@@ -2,16 +2,17 @@ package net.sf.cpsolver.ifs.criteria;
 
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
- * Simple Criterion: Sum of {@link Value#toDouble()}. <br>
+ * Simple Criterion: Sum of {@link Value#toDouble(Assignment)}. <br>
  * <br>
- * This criterion only counts a sum of values (see {@link Value#toDouble()}) of the assigned variables.
- * It is an alternative to the default {@link Model#getTotalValue()}.
+ * This criterion only counts a sum of values (see {@link Value#toDouble(Assignment)}) of the assigned variables.
+ * It is an alternative to the default {@link Model#getTotalValue(Assignment)}.
  * 
  * @version IFS 1.2 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2011 Tomas Muller<br>
@@ -40,11 +41,11 @@ public class AssignedValue<V extends Variable<V, T>, T extends Value<V, T>> exte
     }
 
     @Override
-    public double getValue(T value, Set<T> conflicts) {
-        double ret = value.toDouble();
+    public double getValue(Assignment<V, T> assignment, T value, Set<T> conflicts) {
+        double ret = value.toDouble(assignment);
         if (conflicts != null)
             for (T conflict: conflicts)
-                ret -= conflict.toDouble();
+                ret -= conflict.toDouble(assignment);
         return ret;
     }
 

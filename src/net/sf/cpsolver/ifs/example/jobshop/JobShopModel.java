@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
@@ -173,38 +174,38 @@ public class JobShopModel extends Model<Operation, Location> {
     }
 
     /** Get finishing time of the current (partial) solution */
-    public int getFinishingTime() {
+    public int getFinishingTime(Assignment<Operation, Location> assignment) {
         int ret = 0;
-        for (Operation op : assignedVariables()) {
-            ret = Math.max(ret, op.getAssignment().getFinishingTime());
+        for (Operation op : assignment.assignedVariables()) {
+            ret = Math.max(ret, assignment.getValue(op).getFinishingTime());
         }
         return ret;
     }
 
     /** Get information table */
     @Override
-    public Map<String, String> getInfo() {
-        Map<String, String> ret = super.getInfo();
-        ret.put("Finishing time", String.valueOf(getFinishingTime()));
+    public Map<String, String> getInfo(Assignment<Operation, Location> assignment) {
+        Map<String, String> ret = super.getInfo(assignment);
+        ret.put("Finishing time", String.valueOf(getFinishingTime(assignment)));
         return ret;
     }
 
     /** Save the solution into the given file */
-    public void save(String file) throws java.io.IOException {
+    public void save(Assignment<Operation, Location> assignment, String file) throws java.io.IOException {
         PrintWriter writer = new PrintWriter(new FileWriter(file));
         for (int i = 0; i < countMachines(); i++) {
             Machine m = getMachine(i);
             List<Operation> ops = new ArrayList<Operation>(m.variables());
-            Collections.sort(ops, new OperationComparator());
+            Collections.sort(ops, new OperationComparator(assignment));
             for (Operation var : ops) {
                 Operation op = var;
-                if (op.getAssignment() != null)
+                if (assignment.getValue(op) != null)
                     writer.print((op.getJobNumber() < 10 ? " " : "") + op.getJobNumber() + " ");
             }
             writer.println();
         }
         writer.println(";");
-        Map<String, String> info = getInfo();
+        Map<String, String> info = getInfo(assignment);
         for (String key : info.keySet()) {
             String value = info.get(key);
             writer.println("; " + key + ": " + value);
@@ -214,7 +215,7 @@ public class JobShopModel extends Model<Operation, Location> {
             Job job = getJob(i);
             writer.print("; ");
             for (Operation op : job.variables()) {
-                Location loc = op.getAssignment();
+                Location loc = assignment.getValue(op);
                 writer.print((loc == null ? "----" : ToolBox.trim(String.valueOf(loc.getStartTime()), 4)) + " ");
             }
             writer.println();
@@ -224,10 +225,16 @@ public class JobShopModel extends Model<Operation, Location> {
     }
 
     private static class OperationComparator implements Comparator<Operation> {
+        Assignment<Operation, Location> iAssignment;
+        
+        public OperationComparator(Assignment<Operation, Location> assignment) {
+            iAssignment = assignment;
+        }
+        
         @Override
         public int compare(Operation op1, Operation op2) {
-            Location loc1 = op1.getAssignment();
-            Location loc2 = op2.getAssignment();
+            Location loc1 = iAssignment.getValue(op1);
+            Location loc2 = iAssignment.getValue(op2);
             if (loc1 == null) {
                 if (loc2 == null)
                     return 0;

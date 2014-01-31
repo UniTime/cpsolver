@@ -65,10 +65,8 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see <http://www.gnu.org/licenses/>.
  **/
-public class StandardNeighbourSelection<V extends Variable<V, T>, T extends Value<V, T>> implements
-        NeighbourSelection<V, T> {
-    protected static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger
-            .getLogger(StandardNeighbourSelection.class);
+public class StandardNeighbourSelection<V extends Variable<V, T>, T extends Value<V, T>> implements NeighbourSelection<V, T> {
+    protected static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(StandardNeighbourSelection.class);
 
     private ValueSelection<V, T> iValueSelection = null;
     private VariableSelection<V, T> iVariableSelection = null;
@@ -103,22 +101,17 @@ public class StandardNeighbourSelection<V extends Variable<V, T>, T extends Valu
      */
     @SuppressWarnings("unchecked")
     public StandardNeighbourSelection(DataProperties properties) throws Exception {
-        String valueSelectionClassName = properties.getProperty("Value.Class",
-                "net.sf.cpsolver.ifs.heuristics.GeneralValueSelection");
+        String valueSelectionClassName = properties.getProperty("Value.Class", "net.sf.cpsolver.ifs.heuristics.GeneralValueSelection");
         sLogger.info("Using " + valueSelectionClassName);
         Class<?> valueSelectionClass = Class.forName(valueSelectionClassName);
-        Constructor<?> valueSelectionConstructor = valueSelectionClass
-                .getConstructor(new Class[] { DataProperties.class });
+        Constructor<?> valueSelectionConstructor = valueSelectionClass.getConstructor(new Class[] { DataProperties.class });
         setValueSelection((ValueSelection<V, T>) valueSelectionConstructor.newInstance(new Object[] { properties }));
 
-        String variableSelectionClassName = properties.getProperty("Variable.Class",
-                "net.sf.cpsolver.ifs.heuristics.GeneralVariableSelection");
+        String variableSelectionClassName = properties.getProperty("Variable.Class", "net.sf.cpsolver.ifs.heuristics.GeneralVariableSelection");
         sLogger.info("Using " + variableSelectionClassName);
         Class<?> variableSelectionClass = Class.forName(variableSelectionClassName);
-        Constructor<?> variableSelectionConstructor = variableSelectionClass
-                .getConstructor(new Class[] { DataProperties.class });
-        setVariableSelection((VariableSelection<V, T>) variableSelectionConstructor
-                .newInstance(new Object[] { properties }));
+        Constructor<?> variableSelectionConstructor = variableSelectionClass.getConstructor(new Class[] { DataProperties.class });
+        setVariableSelection((VariableSelection<V, T>) variableSelectionConstructor.newInstance(new Object[] { properties }));
     }
 
     /**
@@ -139,7 +132,7 @@ public class StandardNeighbourSelection<V extends Variable<V, T>, T extends Valu
         // Variable selection
         V variable = getVariableSelection().selectVariable(solution);
         for (SolverListener<V, T> listener : iSolver.getSolverListeners())
-            if (!listener.variableSelected(solution.getIteration(), variable))
+            if (!listener.variableSelected(solution.getAssignment(), solution.getIteration(), variable))
                 return null;
         if (variable == null)
             sLogger.debug("No variable selected.");
@@ -159,7 +152,7 @@ public class StandardNeighbourSelection<V extends Variable<V, T>, T extends Valu
         // Value selection
         T value = getValueSelection().selectValue(solution, variable);
         for (SolverListener<V, T> listener : iSolver.getSolverListeners())
-            if (!listener.valueSelected(solution.getIteration(), variable, value))
+            if (!listener.valueSelected(solution.getAssignment(), solution.getIteration(), variable, value))
                 return null;
 
         if (value == null) {
