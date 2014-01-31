@@ -3,6 +3,7 @@ package net.sf.cpsolver.exam.heuristics;
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPlacement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.heuristics.VariableSelection;
 import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.solution.Solution;
@@ -51,12 +52,20 @@ public class ExamUnassignedVariableSelection implements VariableSelection<Exam, 
     @Override
     public Exam selectVariable(Solution<Exam, ExamPlacement> solution) {
         ExamModel model = (ExamModel) solution.getModel();
-        if (model.nrUnassignedVariables() == 0)
+        Assignment<Exam, ExamPlacement> assignment = solution.getAssignment();
+        if (model.variables().size() == assignment.nrAssignedVariables())
             return null;
-        if (iRandomSelection)
-            return ToolBox.random(model.unassignedVariables());
+        if (iRandomSelection) {
+            int idx = ToolBox.random(model.variables().size() - assignment.nrAssignedVariables());
+            for (Exam v: model.variables()) {
+                if (assignment.getValue(v) != null) continue;
+                if (idx == 0) return v;
+                idx --;
+            }
+        }
         Exam variable = null;
-        for (Exam v : model.unassignedVariables()) {
+        for (Exam v : model.variables()) {
+            if (assignment.getValue(v) != null) continue;
             if (variable == null || v.compareTo(variable) < 0)
                 variable = v;
         }

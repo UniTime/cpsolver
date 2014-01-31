@@ -12,6 +12,7 @@ import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamRoomPlacement;
 import net.sf.cpsolver.exam.model.ExamRoomSharing;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Neighbour;
 
 /**
@@ -42,13 +43,13 @@ public class ExamRoomSwapNeighbour extends Neighbour<Exam, ExamPlacement> {
     private ExamPlacement iX1, iX2 = null;
     private ExamRoomPlacement iR1, iR2 = null;
 
-    public ExamRoomSwapNeighbour(ExamPlacement placement, ExamRoomPlacement current, ExamRoomPlacement swap) {
+    public ExamRoomSwapNeighbour(Assignment<Exam, ExamPlacement> assignment, ExamPlacement placement, ExamRoomPlacement current, ExamRoomPlacement swap) {
         if (placement.getRoomPlacements().contains(swap))
             return; // not an actual swap
         Exam exam = placement.variable();
         if (!swap.isAvailable(placement.getPeriod()))
             return; // room not available
-        if (!exam.checkDistributionConstraints(swap))
+        if (!exam.checkDistributionConstraints(assignment, swap))
             return; // a distribution constraint is violated
         int size = 0;
         for (ExamRoomPlacement r : placement.getRoomPlacements())
@@ -61,11 +62,11 @@ public class ExamRoomSwapNeighbour extends Neighbour<Exam, ExamPlacement> {
         ExamRoomSharing rs = ((ExamModel)exam.getModel()).getRoomSharing();
         if (rs != null && placement.getRoomPlacements().size() == 1) {
             Set<ExamPlacement> x = new HashSet<ExamPlacement>();
-            rs.computeConflicts(exam, swap.getRoom().getPlacements(placement.getPeriod()), swap.getRoom(), x);
+            rs.computeConflicts(exam, swap.getRoom().getPlacements(assignment, placement.getPeriod()), swap.getRoom(), x);
             if (x.size() > 1) return;
             else if (x.size() == 1) conflict = x.iterator().next();
         } else {
-            List<ExamPlacement> conf = swap.getRoom().getPlacements(placement.getPeriod());
+            List<ExamPlacement> conf = swap.getRoom().getPlacements(assignment, placement.getPeriod());
             if (conf.size() > 1) return;
             else if (conf.size() == 1) conflict = conf.get(0);
         }
@@ -83,14 +84,15 @@ public class ExamRoomSwapNeighbour extends Neighbour<Exam, ExamPlacement> {
                 }
             }
             iX1 = new ExamPlacement(exam, placement.getPeriodPlacement(), newRooms);
-            iValue = iX1.toDouble() - (exam.getAssignment() == null ? 0.0 : exam.getAssignment().toDouble());
+            ExamPlacement p = assignment.getValue(exam);
+            iValue = iX1.toDouble(assignment) - (p == null ? 0.0 : p.toDouble(assignment));
         } else {
             Exam x = conflict.variable();
             ExamRoomPlacement xNew = x.getRoomPlacement(current.getRoom());
             if (xNew == null)
                 return; // conflicting exam cannot be assigned in the current
                         // room
-            if (!x.checkDistributionConstraints(xNew))
+            if (!x.checkDistributionConstraints(assignment, xNew))
                 return; // conflicting exam has a distribution constraint
                         // violated
             int xSize = 0;
@@ -102,7 +104,7 @@ public class ExamRoomSwapNeighbour extends Neighbour<Exam, ExamPlacement> {
             if (xSize < x.getSize())
                 return; // current room is too small for the conflicting exam
             if (rs != null) {
-                List<ExamPlacement> other = new ArrayList<ExamPlacement>(current.getRoom().getPlacements(conflict.getPeriod()));
+                List<ExamPlacement> other = new ArrayList<ExamPlacement>(current.getRoom().getPlacements(assignment, conflict.getPeriod()));
                 other.remove(placement);
                 if (!other.isEmpty() && conflict.getRoomPlacements().size() > 1) return;
                 if (rs.inConflict(x, other, current.getRoom())) return;
@@ -133,8 +135,8 @@ public class ExamRoomSwapNeighbour extends Neighbour<Exam, ExamPlacement> {
                 }
             }
             iX2 = new ExamPlacement(x, conflict.getPeriodPlacement(), xRooms);
-            iValue = iX1.toDouble() - (exam.getAssignment() == null ? 0.0 : exam.getAssignment().toDouble())
-                    + iX2.toDouble() - conflict.toDouble();
+            ExamPlacement p = assignment.getValue(exam);
+            iValue = iX1.toDouble(assignment) - (p == null ? 0.0 : p.toDouble(assignment)) + iX2.toDouble(assignment) - conflict.toDouble(assignment);
         }
         iR1 = current;
         iR2 = swap;
@@ -145,25 +147,23 @@ public class ExamRoomSwapNeighbour extends Neighbour<Exam, ExamPlacement> {
     }
 
     @Override
-    public void assign(long iteration) {
+    public void assign(Assignment<Exam, ExamPlacement> assignment, long iteration) {
         if (iX2 == null) {
-            iX1.variable().assign(iteration, iX1);
+            assignment.assign(iteration, iX1);
         } else {
-            if (iX1.variable().getAssignment() != null)
-                iX1.variable().unassign(iteration);
-            iX2.variable().unassign(iteration);
-            iX1.variable().assign(iteration, iX1);
-            iX2.variable().assign(iteration, iX2);
+            assignment.unassign(iteration, iX1.variable());
+            assignment.unassign(iteration, iX2.variable());
+            assignment.assign(iteration, iX1);
+            assignment.assign(iteration, iX2);
         }
     }
 
     @Override
     public String toString() {
         if (iX2 == null) {
-            return iX1.variable().getAssignment() + " -> " + iX1.toString() + " / " + " (value:" + value() + ")";
+            return iX1.variable() + " := " + iX1.toString() + " / " + " (value:" + value(null) + ")";
         } else {
-            return iX1.variable().getName() + ": " + iR1.getRoom() + " <-> " + iR2.getRoom() + " (w "
-                    + iX2.variable().getName() + ", value:" + value() + ")";
+            return iX1.variable().getName() + ": " + iR1.getRoom() + " <-> " + iR2.getRoom() + " (w " + iX2.variable().getName() + ", value:" + value(null) + ")";
         }
     }
 
@@ -179,7 +179,7 @@ public class ExamRoomSwapNeighbour extends Neighbour<Exam, ExamPlacement> {
     }
 
     @Override
-    public double value() {
+    public double value(Assignment<Exam, ExamPlacement> assignment) {
         return iValue;
     }
 }

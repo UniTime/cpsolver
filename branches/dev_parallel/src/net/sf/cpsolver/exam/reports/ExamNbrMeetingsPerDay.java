@@ -5,9 +5,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.sf.cpsolver.exam.criteria.StudentBackToBackConflicts;
+import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPeriod;
+import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamStudent;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.CSVFile.CSVField;
 
@@ -56,7 +59,7 @@ public class ExamNbrMeetingsPerDay {
     /**
      * generate report
      */
-    public CSVFile report() {
+    public CSVFile report(Assignment<Exam, ExamPlacement> assignment) {
         CSVFile csv = new CSVFile();
         List<CSVField> header = new ArrayList<CSVField>();
         header.add(new CSVField("Date"));
@@ -83,11 +86,11 @@ public class ExamNbrMeetingsPerDay {
                 nrExams[i] = 0;
             int btb = 0;
             for (ExamStudent student : iModel.getStudents()) {
-                int ex = student.getExamsADay(d).size();
+                int ex = student.getExamsADay(assignment, d).size();
                 nrExams[ex <= 5 ? ex : 5]++;
                 ExamPeriod p = period;
                 while (p.next() != null && (isDayBreakBackToBack ? p : p.next()).getDay() == d) {
-                    btb += student.getExams(p).size() * student.getExams(p.next()).size();
+                    btb += student.getExams(assignment, p).size() * student.getExams(assignment, p.next()).size();
                     p = p.next();
                 }
             }

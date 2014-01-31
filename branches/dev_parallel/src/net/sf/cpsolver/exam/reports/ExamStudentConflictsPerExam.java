@@ -10,6 +10,7 @@ import net.sf.cpsolver.exam.criteria.StudentNotAvailableConflicts;
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPlacement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.CSVFile.CSVField;
 
@@ -58,7 +59,7 @@ public class ExamStudentConflictsPerExam {
     /**
      * generate report
      */
-    public CSVFile report() {
+    public CSVFile report(Assignment<Exam, ExamPlacement> assignment) {
         CSVFile csv = new CSVFile();
         csv.setHeader(new CSVField[] { new CSVField("Exam"), new CSVField("Enrl"), new CSVField("Direct"),
                 new CSVField("Direct [%]"), new CSVField("More-2-Day"), new CSVField("More-2-Day [%]"),
@@ -66,14 +67,14 @@ public class ExamStudentConflictsPerExam {
                 new CSVField("Dist Back-To-Back [%]") });
         DecimalFormat df = new DecimalFormat("0.0");
         for (Exam exam : iModel.variables()) {
-            ExamPlacement placement = exam.getAssignment();
+            ExamPlacement placement = assignment.getValue(exam);
             if (placement == null)
                 continue;
-            int dc = (int)iModel.getCriterion(StudentDirectConflicts.class).getValue(placement, null) +
-                     (int)iModel.getCriterion(StudentNotAvailableConflicts.class).getValue(placement, null);
-            int btb = (int)iModel.getCriterion(StudentBackToBackConflicts.class).getValue(placement, null);
-            int dbtb = (int)iModel.getCriterion(StudentDistanceBackToBackConflicts.class).getValue(placement, null);
-            int m2d = (int)iModel.getCriterion(StudentMoreThan2ADayConflicts.class).getValue(placement, null);
+            int dc = (int)iModel.getCriterion(StudentDirectConflicts.class).getValue(assignment, placement, null) +
+                     (int)iModel.getCriterion(StudentNotAvailableConflicts.class).getValue(assignment, placement, null);
+            int btb = (int)iModel.getCriterion(StudentBackToBackConflicts.class).getValue(assignment, placement, null);
+            int dbtb = (int)iModel.getCriterion(StudentDistanceBackToBackConflicts.class).getValue(assignment, placement, null);
+            int m2d = (int)iModel.getCriterion(StudentMoreThan2ADayConflicts.class).getValue(assignment, placement, null);
             if (dc == 0 && m2d == 0 && btb == 0 && dbtb == 0)
                 continue;
             /*

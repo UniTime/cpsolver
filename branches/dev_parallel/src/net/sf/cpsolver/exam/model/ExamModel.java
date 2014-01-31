@@ -35,6 +35,8 @@ import net.sf.cpsolver.exam.criteria.StudentDirectConflicts;
 import net.sf.cpsolver.exam.criteria.StudentMoreThan2ADayConflicts;
 import net.sf.cpsolver.exam.criteria.StudentDistanceBackToBackConflicts;
 import net.sf.cpsolver.exam.criteria.StudentNotAvailableConflicts;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.context.ModelWithContext;
 import net.sf.cpsolver.ifs.criteria.Criterion;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Model;
@@ -89,7 +91,7 @@ import org.dom4j.Element;
  * <li>Distribution penalty (total of distribution constraint weights
  * {@link ExamDistributionConstraint#getWeight()} of all soft distribution
  * constraints that are not satisfied, i.e.,
- * {@link ExamDistributionConstraint#isSatisfied()} = false; weighted by
+ * {@link ExamDistributionConstraint#isSatisfied(Assignment)} = false; weighted by
  * Exams.DistributionWeight).
  * <li>Direct instructor conflicts (an instructor is enrolled in two exams that
  * are scheduled at the same period, weighted by
@@ -129,7 +131,7 @@ import org.dom4j.Element;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class ExamModel extends Model<Exam, ExamPlacement> {
+public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext> {
     private static Logger sLog = Logger.getLogger(ExamModel.class);
     private DataProperties iProperties = null;
     private int iMaxRooms = 4;
@@ -149,9 +151,7 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      *            problem properties
      */
     public ExamModel(DataProperties properties) {
-        iAssignedVariables = null;
-        iUnassignedVariables = null;
-        iPerturbVariables = null;
+        super();
         iProperties = properties;
         iMaxRooms = properties.getPropertyInt("Exams.MaxRooms", iMaxRooms);
         iDistanceMetric = new DistanceMetric(properties);
@@ -337,46 +337,14 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
     }
 
     /**
-     * Called before a value is unassigned from its variable, optimization
-     * criteria are updated
-     */
-    @Override
-    public void beforeUnassigned(long iteration, ExamPlacement placement) {
-        super.beforeUnassigned(iteration, placement);
-        Exam exam = placement.variable();
-        for (ExamStudent s : exam.getStudents())
-            s.afterUnassigned(iteration, placement);
-        for (ExamInstructor i : exam.getInstructors())
-            i.afterUnassigned(iteration, placement);
-        for (ExamRoomPlacement r : placement.getRoomPlacements())
-            r.getRoom().afterUnassigned(iteration, placement);
-    }
-
-    /**
-     * Called after a value is assigned to its variable, optimization criteria
-     * are updated
-     */
-    @Override
-    public void afterAssigned(long iteration, ExamPlacement placement) {
-        super.afterAssigned(iteration, placement);
-        Exam exam = placement.variable();
-        for (ExamStudent s : exam.getStudents())
-            s.afterAssigned(iteration, placement);
-        for (ExamInstructor i : exam.getInstructors())
-            i.afterAssigned(iteration, placement);
-        for (ExamRoomPlacement r : placement.getRoomPlacements())
-            r.getRoom().afterAssigned(iteration, placement);
-    }
-
-    /**
      * Objective function.
      * @return weighted sum of objective criteria
      */
     @Override
-    public double getTotalValue() {
+    public double getTotalValue(Assignment<Exam, ExamPlacement> assignment) {
         double total = 0;
         for (Criterion<Exam, ExamPlacement> criterion: getCriteria())
-            total += criterion.getWeightedValue();
+            total += criterion.getWeightedValue(assignment);
         return total;
     }
 
@@ -384,22 +352,21 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * Return weighted individual objective criteria.
      * @return an array of weighted objective criteria
      */
-    public double[] getTotalMultiValue() {
+    public double[] getTotalMultiValue(Assignment<Exam, ExamPlacement> assignment) {
         double[] total = new double[getCriteria().size()];
         int i = 0;
         for (Criterion<Exam, ExamPlacement> criterion: getCriteria())
-            total[i++] = criterion.getWeightedValue();
+            total[i++] = criterion.getWeightedValue(assignment);
         return total;
     }
 
     /**
      * String representation -- returns a list of values of objective criteria
      */
-    @Override
-    public String toString() {
+    public String toString(Assignment<Exam, ExamPlacement> assignment) {
         Set<String> props = new TreeSet<String>();
         for (Criterion<Exam, ExamPlacement> criterion: getCriteria()) {
-            String val = criterion.toString();
+            String val = ((ExamCriterion)criterion).toString(assignment);
             if (!val.isEmpty())
                 props.add(val);
         }
@@ -410,8 +377,8 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
      * Extended info table
      */
     @Override
-    public Map<String, String> getExtendedInfo() {
-        Map<String, String> info = super.getExtendedInfo();
+    public Map<String, String> getExtendedInfo(Assignment<Exam, ExamPlacement> assignment) {
+        Map<String, String> info = super.getExtendedInfo(assignment);
         /*
         info.put("Direct Conflicts [p]", String.valueOf(getNrDirectConflicts(true)));
         info.put("More Than 2 A Day Conflicts [p]", String.valueOf(getNrMoreThanTwoADayConflicts(true)));
@@ -515,7 +482,7 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
     /**
      * Save model (including its solution) into XML.
      */
-    public Document save() {
+    public Document save(Assignment<Exam, ExamPlacement> assignment) {
         boolean saveInitial = getProperties().getPropertyBoolean("Xml.SaveInitial", true);
         boolean saveBest = getProperties().getPropertyBoolean("Xml.SaveBest", true);
         boolean saveSolution = getProperties().getPropertyBoolean("Xml.SaveSolution", true);
@@ -525,10 +492,9 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
         boolean idconv = getProperties().getPropertyBoolean("Xml.ConvertIds", anonymize);
         Document document = DocumentHelper.createDocument();
         document.addComment("Examination Timetable");
-        if (nrAssignedVariables() > 0) {
+        if (assignment != null && assignment.nrAssignedVariables() > 0) {
             StringBuffer comments = new StringBuffer("Solution Info:\n");
-            Map<String, String> solutionInfo = (getProperties().getPropertyBoolean("Xml.ExtendedInfo", false) ? getExtendedInfo()
-                    : getInfo());
+            Map<String, String> solutionInfo = (getProperties().getPropertyBoolean("Xml.ExtendedInfo", false) ? getExtendedInfo(assignment) : getInfo(assignment));
             for (String key : new TreeSet<String>(solutionInfo.keySet())) {
                 String value = solutionInfo.get(key);
                 comments.append("    " + key + ": " + value + "\n");
@@ -626,7 +592,7 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
             }
             if (exam.hasAveragePeriod())
                 ex.addAttribute("average", String.valueOf(exam.getAveragePeriod()));
-            ExamPlacement p = exam.getAssignment();
+            ExamPlacement p = (assignment == null ? null : assignment.getValue(exam));
             if (p != null && saveSolution) {
                 Element asg = ex.addElement("assignment");
                 asg.addElement("period").addAttribute("id",
@@ -710,32 +676,73 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
                 dc.addElement("exam").addAttribute("id", getId(idconv, "exam", String.valueOf(exam.getId())));
             }
         }
-        if (saveConflictTable) {
+        if (saveConflictTable && assignment != null) {
+            Element conflicts = root.addElement("conflicts");
+            Map<ExamStudent, Set<Exam>> studentsOfPreviousPeriod = null;
+            for (ExamPeriod period : getPeriods()) {
+                Map<ExamStudent, Set<Exam>> studentsOfPeriod = getStudentsOfPeriod(assignment, period);
+                for (Map.Entry<ExamStudent, Set<Exam>> entry : studentsOfPeriod.entrySet()) {
+                    ExamStudent student = entry.getKey();
+                    Set<Exam> examsOfStudent = entry.getValue();
+                    if (examsOfStudent.size() > 1) {
+                        Element dir = conflicts.addElement("direct").addAttribute("student", getId(idconv, "student", String.valueOf(student.getId())));
+                        for (Exam exam : examsOfStudent) {
+                            dir.addElement("exam").addAttribute("id", getId(idconv, "exam", String.valueOf(exam.getId())));
+                        }
+                    }
+                    if (examsOfStudent.size() > 0 && studentsOfPreviousPeriod != null && (isDayBreakBackToBack() || period.prev().getDay() == period.getDay())) {
+                        Set<Exam> previousExamsOfStudent = studentsOfPreviousPeriod.get(student);
+                        if (previousExamsOfStudent != null) {
+                            for (Exam ex1 : previousExamsOfStudent)
+                                for (Exam ex2 : examsOfStudent) {
+                                    Element btb = conflicts.addElement("back-to-back").addAttribute("student", getId(idconv, "student", String.valueOf(student.getId())));
+                                    btb.addElement("exam").addAttribute("id", getId(idconv, "exam", String.valueOf(ex1.getId())));
+                                    btb.addElement("exam").addAttribute("id", getId(idconv, "exam", String.valueOf(ex2.getId())));
+                                    if (getBackToBackDistance() >= 0 && period.prev().getDay() == period.getDay()) {
+                                        double dist = (assignment.getValue(ex1)).getDistanceInMeters(assignment.getValue(ex2));
+                                        if (dist > 0)
+                                            btb.addAttribute("distance", String.valueOf(dist));
+                                    }
+                                }
+                        }
+                    }
+                }
+                if (period.next() == null || period.next().getDay() != period.getDay()) {
+                    Map<ExamStudent, Set<Exam>> studentsOfDay = getStudentsOfDay(assignment, period);
+                    for (Map.Entry<ExamStudent, Set<Exam>> entry : studentsOfDay.entrySet()) {
+                        ExamStudent student = entry.getKey();
+                        Set<Exam> examsOfStudent = entry.getValue();
+                        if (examsOfStudent.size() > 2) {
+                            Element mt2 = conflicts.addElement("more-2-day").addAttribute("student", getId(idconv, "student", String.valueOf(student.getId())));
+                            for (Exam exam : examsOfStudent) {
+                                mt2.addElement("exam").addAttribute("id", getId(idconv, "exam", String.valueOf(exam.getId())));
+                            }
+                        }
+                    }
+                }
+                studentsOfPreviousPeriod = studentsOfPeriod;
+            }
+            /*
             Element conflicts = root.addElement("conflicts");
             for (ExamStudent student : getStudents()) {
                 for (ExamPeriod period : getPeriods()) {
-                    int nrExams = student.getExams(period).size();
+                    int nrExams = student.getExams(assignment, period).size();
                     if (nrExams > 1) {
-                        Element dir = conflicts.addElement("direct").addAttribute("student",
-                                getId(idconv, "student", String.valueOf(student.getId())));
-                        for (Exam exam : student.getExams(period)) {
-                            dir.addElement("exam").addAttribute("id",
-                                    getId(idconv, "exam", String.valueOf(exam.getId())));
+                        Element dir = conflicts.addElement("direct").addAttribute("student", getId(idconv, "student", String.valueOf(student.getId())));
+                        for (Exam exam : student.getExams(assignment, period)) {
+                            dir.addElement("exam").addAttribute("id", getId(idconv, "exam", String.valueOf(exam.getId())));
                         }
                     }
                     if (nrExams > 0) {
-                        if (period.next() != null && !student.getExams(period.next()).isEmpty()
+                        if (period.next() != null && !student.getExams(assignment, period.next()).isEmpty()
                                 && (!isDayBreakBackToBack() || period.next().getDay() == period.getDay())) {
-                            for (Exam ex1 : student.getExams(period)) {
-                                for (Exam ex2 : student.getExams(period.next())) {
-                                    Element btb = conflicts.addElement("back-to-back").addAttribute("student",
-                                            getId(idconv, "student", String.valueOf(student.getId())));
-                                    btb.addElement("exam").addAttribute("id",
-                                            getId(idconv, "exam", String.valueOf(ex1.getId())));
-                                    btb.addElement("exam").addAttribute("id",
-                                            getId(idconv, "exam", String.valueOf(ex2.getId())));
+                            for (Exam ex1 : student.getExams(assignment, period)) {
+                                for (Exam ex2 : student.getExams(assignment, period.next())) {
+                                    Element btb = conflicts.addElement("back-to-back").addAttribute("student", getId(idconv, "student", String.valueOf(student.getId())));
+                                    btb.addElement("exam").addAttribute("id", getId(idconv, "exam", String.valueOf(ex1.getId())));
+                                    btb.addElement("exam").addAttribute("id", getId(idconv, "exam", String.valueOf(ex2.getId())));
                                     if (getBackToBackDistance() >= 0) {
-                                        double dist = (ex1.getAssignment()).getDistanceInMeters(ex2.getAssignment());
+                                        double dist = (assignment.getValue(ex1)).getDistanceInMeters(assignment.getValue(ex2));
                                         if (dist > 0)
                                             btb.addAttribute("distance", String.valueOf(dist));
                                     }
@@ -744,19 +751,17 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
                         }
                     }
                     if (period.next() == null || period.next().getDay() != period.getDay()) {
-                        int nrExamsADay = student.getExamsADay(period.getDay()).size();
+                        int nrExamsADay = student.getExamsADay(assignment, period.getDay()).size();
                         if (nrExamsADay > 2) {
-                            Element mt2 = conflicts.addElement("more-2-day").addAttribute("student",
-                                    getId(idconv, "student", String.valueOf(student.getId())));
-                            for (Exam exam : student.getExamsADay(period.getDay())) {
-                                mt2.addElement("exam").addAttribute("id",
-                                        getId(idconv, "exam", String.valueOf(exam.getId())));
+                            Element mt2 = conflicts.addElement("more-2-day").addAttribute("student", getId(idconv, "student", String.valueOf(student.getId())));
+                            for (Exam exam : student.getExamsADay(assignment, period.getDay())) {
+                                mt2.addElement("exam").addAttribute("id", getId(idconv, "exam", String.valueOf(exam.getId())));
                             }
                         }
                     }
                 }
             }
-
+            */
         }
         return document;
     }
@@ -764,14 +769,14 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
     /**
      * Load model (including its solution) from XML.
      */
-    public boolean load(Document document) {
-        return load(document, null);
+    public boolean load(Document document, Assignment<Exam, ExamPlacement> assignment) {
+        return load(document, assignment, null);
     }
 
     /**
      * Load model (including its solution) from XML.
      */
-    public boolean load(Document document, Callback saveBest) {
+    public boolean load(Document document, Assignment<Exam, ExamPlacement> assignment, Callback saveBest) {
         boolean loadInitial = getProperties().getPropertyBoolean("Xml.LoadInitial", true);
         boolean loadBest = getProperties().getPropertyBoolean("Xml.LoadBest", true);
         boolean loadSolution = getProperties().getPropertyBoolean("Xml.LoadSolution", true);
@@ -981,7 +986,7 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
                         rp.add(exam.getRoomPlacement(Long.parseLong(((Element) j.next()).attributeValue("id"))));
                     ExamPeriodPlacement pp = exam.getPeriodPlacement(Long.valueOf(per.attributeValue("id")));
                     if (pp != null)
-                        exam.setBestAssignment(new ExamPlacement(exam, pp, rp));
+                        exam.setBestAssignment(new ExamPlacement(exam, pp, rp), 0);
                 }
             }
             for (Iterator<?> j = e.elementIterator("owner"); j.hasNext();) {
@@ -1069,43 +1074,74 @@ public class ExamModel extends Model<Exam, ExamPlacement> {
                 getDistributionConstraints().add(dc);
             }
         init();
-        if (loadBest && saveBest != null) {
+        if (loadBest && saveBest != null && assignment != null) {
             for (Exam exam : variables()) {
                 ExamPlacement placement = exam.getBestAssignment();
                 if (placement == null)
                     continue;
-                exam.assign(0, placement);
+                assignment.assign(0, placement);
             }
             saveBest.execute();
             for (Exam exam : variables()) {
-                if (exam.getAssignment() != null)
-                    exam.unassign(0);
+                if (assignment.getValue(exam) != null)
+                    assignment.unassign(0, exam);
             }
         }
-        for (ExamPlacement placement : assignments) {
-            Exam exam = placement.variable();
-            Set<ExamPlacement> conf = conflictValues(placement);
-            if (!conf.isEmpty()) {
-                for (Map.Entry<Constraint<Exam, ExamPlacement>, Set<ExamPlacement>> entry : conflictConstraints(
-                        placement).entrySet()) {
-                    Constraint<Exam, ExamPlacement> constraint = entry.getKey();
-                    Set<ExamPlacement> values = entry.getValue();
-                    if (constraint instanceof ExamStudent) {
-                        ((ExamStudent) constraint).setAllowDirectConflicts(true);
-                        exam.setAllowDirectConflicts(true);
-                        for (ExamPlacement p : values)
-                            p.variable().setAllowDirectConflicts(true);
+        if (assignment != null) {
+            for (ExamPlacement placement : assignments) {
+                Exam exam = placement.variable();
+                Set<ExamPlacement> conf = conflictValues(assignment, placement);
+                if (!conf.isEmpty()) {
+                    for (Map.Entry<Constraint<Exam, ExamPlacement>, Set<ExamPlacement>> entry : conflictConstraints(assignment, placement).entrySet()) {
+                        Constraint<Exam, ExamPlacement> constraint = entry.getKey();
+                        Set<ExamPlacement> values = entry.getValue();
+                        if (constraint instanceof ExamStudent) {
+                            ((ExamStudent) constraint).setAllowDirectConflicts(true);
+                            exam.setAllowDirectConflicts(true);
+                            for (ExamPlacement p : values)
+                                p.variable().setAllowDirectConflicts(true);
+                        }
                     }
+                    conf = conflictValues(assignment, placement);
                 }
-                conf = conflictValues(placement);
-            }
-            if (conf.isEmpty()) {
-                exam.assign(0, placement);
-            } else {
-                sLog.error("Unable to assign " + exam.getInitialAssignment().getName() + " to exam " + exam.getName());
-                sLog.error("Conflicts:" + ToolBox.dict2string(conflictConstraints(exam.getInitialAssignment()), 2));
+                if (conf.isEmpty()) {
+                    assignment.assign(0, placement);
+                } else {
+                    sLog.error("Unable to assign " + exam.getInitialAssignment().getName() + " to exam " + exam.getName());
+                    sLog.error("Conflicts:" + ToolBox.dict2string(conflictConstraints(assignment, exam.getInitialAssignment()), 2));
+                }
             }
         }
         return true;
     }
+
+    @Override
+    public ExamContext createAssignmentContext(Assignment<Exam, ExamPlacement> assignment) {
+        return new ExamContext(this, assignment);
+    }
+    
+    public Map<ExamStudent, Set<Exam>> getStudentsOfPeriod(Assignment<Exam, ExamPlacement> assignment, ExamPeriod period) {
+        return getContext(assignment).getStudentsOfPeriod(period.getIndex());
+    }
+    
+    public Map<ExamStudent, Set<Exam>> getStudentsOfDay(Assignment<Exam, ExamPlacement> assignment, ExamPeriod period) {
+        return getContext(assignment).getStudentsOfDay(period.getDay());
+    }
+    
+    public Map<ExamStudent, Set<Exam>> getStudentsOfDay(Assignment<Exam, ExamPlacement> assignment, int day) {
+        return getContext(assignment).getStudentsOfDay(day);
+    }
+    
+    public Map<ExamInstructor, Set<Exam>> getInstructorsOfPeriod(Assignment<Exam, ExamPlacement> assignment, ExamPeriod period) {
+        return getContext(assignment).getInstructorsOfPeriod(period.getIndex());
+    }
+    
+    public Map<ExamInstructor, Set<Exam>> getInstructorsOfDay(Assignment<Exam, ExamPlacement> assignment, ExamPeriod period) {
+        return getContext(assignment).getInstructorsOfDay(period.getDay());
+    }
+    
+    public Map<ExamInstructor, Set<Exam>> getInstructorsOfDay(Assignment<Exam, ExamPlacement> assignment, int day) {
+        return getContext(assignment).getInstructorsOfDay(day);
+    }
+
 }

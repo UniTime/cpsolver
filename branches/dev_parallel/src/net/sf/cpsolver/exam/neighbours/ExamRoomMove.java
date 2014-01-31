@@ -9,6 +9,7 @@ import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPeriodPlacement;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamRoomPlacement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
@@ -54,10 +55,8 @@ public class ExamRoomMove implements NeighbourSelection<Exam, ExamPlacement> {
      *            problem properties
      */
     public ExamRoomMove(DataProperties properties) {
-        iCheckStudentConflicts = properties.getPropertyBoolean("ExamRoomMove.CheckStudentConflicts",
-                iCheckStudentConflicts);
-        iCheckDistributionConstraints = properties.getPropertyBoolean("ExamRoomMove.CheckDistributionConstraints",
-                iCheckDistributionConstraints);
+        iCheckStudentConflicts = properties.getPropertyBoolean("ExamRoomMove.CheckStudentConflicts", iCheckStudentConflicts);
+        iCheckDistributionConstraints = properties.getPropertyBoolean("ExamRoomMove.CheckDistributionConstraints", iCheckDistributionConstraints);
     }
 
     /**
@@ -70,23 +69,23 @@ public class ExamRoomMove implements NeighbourSelection<Exam, ExamPlacement> {
     /**
      * Select an exam randomly, select an available period randomly (if it is
      * not assigned, from {@link Exam#getPeriodPlacements()}), select rooms
-     * using {@link Exam#findRoomsRandom(ExamPeriodPlacement)}
+     * using {@link Exam#findRoomsRandom(Assignment, ExamPeriodPlacement)}
      */
     @Override
     public Neighbour<Exam, ExamPlacement> selectNeighbour(Solution<Exam, ExamPlacement> solution) {
         ExamModel model = (ExamModel) solution.getModel();
+        Assignment<Exam, ExamPlacement> assignment = solution.getAssignment();
         Exam exam = ToolBox.random(model.variables());
         if (exam.getMaxRooms() <= 0)
             return null;
-        ExamPlacement placement = exam.getAssignment();
+        ExamPlacement placement = assignment.getValue(exam);
         ExamPeriodPlacement period = (placement != null ? placement.getPeriodPlacement()
                 : (ExamPeriodPlacement) ToolBox.random(exam.getPeriodPlacements()));
-        if (iCheckStudentConflicts && placement == null && exam.countStudentConflicts(period) > 0)
+        if (iCheckStudentConflicts && placement == null && exam.countStudentConflicts(assignment, period) > 0)
             return null;
-        if (iCheckDistributionConstraints && placement == null && !exam.checkDistributionConstraints(period))
+        if (iCheckDistributionConstraints && placement == null && !exam.checkDistributionConstraints(assignment, period))
             return null;
-        Set<ExamRoomPlacement> rooms = (placement != null ? placement.getRoomPlacements() : exam
-                .findBestAvailableRooms(period));
+        Set<ExamRoomPlacement> rooms = (placement != null ? placement.getRoomPlacements() : exam.findBestAvailableRooms(assignment, period));
         if (rooms == null || rooms.isEmpty())
             return null;
         if (placement == null)
@@ -98,14 +97,14 @@ public class ExamRoomMove implements NeighbourSelection<Exam, ExamPlacement> {
             int mx = ToolBox.random(exam.getRoomPlacements().size());
             for (int m = 0; m < exam.getRoomPlacements().size(); m++) {
                 ExamRoomPlacement swap = exam.getRoomPlacements().get((m + mx) % exam.getRoomPlacements().size());
-                ExamRoomSwapNeighbour n = new ExamRoomSwapNeighbour(placement, current, swap);
+                ExamRoomSwapNeighbour n = new ExamRoomSwapNeighbour(assignment, placement, current, swap);
                 if (n.canDo())
                     return n;
             }
         }
-        rooms = exam.findRoomsRandom(period);
+        rooms = exam.findRoomsRandom(assignment, period);
         if (rooms == null)
             return null;
-        return new ExamSimpleNeighbour(new ExamPlacement(exam, period, rooms));
+        return new ExamSimpleNeighbour(assignment, new ExamPlacement(exam, period, rooms));
     }
 }

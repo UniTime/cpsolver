@@ -1,11 +1,15 @@
 package net.sf.cpsolver.exam.criteria.additional;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 
 import net.sf.cpsolver.exam.criteria.ExamCriterion;
+import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamDistributionConstraint;
 import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPlacement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 
 /**
  * Experimental criterion counting violations of hard distribution constraints.
@@ -47,20 +51,20 @@ public class DistributionViolation extends ExamCriterion {
     }
 
     @Override
-    public double getValue(ExamPlacement value, Set<ExamPlacement> conflicts) {
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value, Set<ExamPlacement> conflicts) {
         int penalty = 0;
         for (ExamDistributionConstraint dc : value.variable().getDistributionConstraints()) {
             if (dc.isHard() || getWeight() != dc.getWeight())
                 continue;
-            boolean sat = dc.isSatisfied(value);
-            if (sat != dc.isSatisfied())
+            boolean sat = dc.isSatisfied(assignment, value);
+            if (sat != dc.isSatisfied(assignment))
                 penalty += (sat ? -1.0 : 1.0);
         }
         return penalty;
     }
     
     @Override
-    protected double[] computeBounds() {
+    protected double[] computeBounds(Assignment<Exam, ExamPlacement> assignment) {
         double[] bounds = new double[] { 0.0, 0.0 };
         for (ExamDistributionConstraint dc : ((ExamModel)getModel()).getDistributionConstraints()) {
             if (!dc.isHard() && getWeight() == dc.getWeight())
@@ -73,13 +77,13 @@ public class DistributionViolation extends ExamCriterion {
     public boolean isRoomCriterion() { return true; }
     
     @Override
-    public double getRoomValue(ExamPlacement value) {
+    public double getRoomValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value) {
         int penalty = 0;
         for (ExamDistributionConstraint dc : value.variable().getDistributionConstraints()) {
             if (dc.isHard() || getWeight() != dc.getWeight() || !dc.isRoomRelated())
                 continue;
-            boolean sat = dc.isSatisfied(value);
-            if (sat != dc.isSatisfied())
+            boolean sat = dc.isSatisfied(assignment, value);
+            if (sat != dc.isSatisfied(assignment))
                 penalty += (sat ? -1.0 : 1.0);
         }
         return penalty;
@@ -89,20 +93,37 @@ public class DistributionViolation extends ExamCriterion {
     public boolean isPeriodCriterion() { return true; }
     
     @Override
-    public double getPeriodValue(ExamPlacement value) {
+    public double getPeriodValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value) {
         int penalty = 0;
         for (ExamDistributionConstraint dc : value.variable().getDistributionConstraints()) {
             if (dc.isHard() || getWeight() != dc.getWeight() || !dc.isPeriodRelated())
                 continue;
-            boolean sat = dc.isSatisfied(value);
-            if (sat != dc.isSatisfied())
+            boolean sat = dc.isSatisfied(assignment, value);
+            if (sat != dc.isSatisfied(assignment))
                 penalty += (sat ? -1.0 : 1.0);
+        }
+        return penalty;
+    }
+    
+    @Override
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, Collection<Exam> variables) {
+        int penalty = 0;
+        Set<ExamDistributionConstraint> added = new HashSet<ExamDistributionConstraint>();
+        for (Exam exam: variables) {
+            for (ExamDistributionConstraint dc : exam.getDistributionConstraints()) {
+                if (added.add(dc)) {
+                    if (dc.isHard() || getWeight() != dc.getWeight())
+                        continue;
+                    if (!dc.isSatisfied(assignment))
+                        penalty += 1;
+                }
+            }
         }
         return penalty;
     }
 
     @Override
-    public String toString() {
-        return (getValue() <= 0.0 ? "" : "!D:" + sDoubleFormat.format(getValue()));
+    public String toString(Assignment<Exam, ExamPlacement> assignment) {
+        return (getValue(assignment) <= 0.0 ? "" : "!D:" + sDoubleFormat.format(getValue(assignment)));
     }
 }

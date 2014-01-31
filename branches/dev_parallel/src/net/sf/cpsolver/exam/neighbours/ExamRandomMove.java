@@ -7,6 +7,7 @@ import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPeriodPlacement;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamRoomPlacement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
@@ -16,7 +17,7 @@ import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
  * A period is selected randomly for a randomly selected exam. Rooms are
- * computed using {@link Exam#findBestAvailableRooms(ExamPeriodPlacement)}. <br>
+ * computed using {@link Exam#findBestAvailableRooms(Assignment, ExamPeriodPlacement)}. <br>
  * <br>
  * 
  * @version ExamTT 1.2 (Examination Timetabling)<br>
@@ -49,10 +50,8 @@ public class ExamRandomMove implements NeighbourSelection<Exam, ExamPlacement> {
      *            problem properties
      */
     public ExamRandomMove(DataProperties properties) {
-        iCheckStudentConflicts = properties.getPropertyBoolean("ExamRandomMove.CheckStudentConflicts",
-                iCheckStudentConflicts);
-        iCheckDistributionConstraints = properties.getPropertyBoolean("ExamRandomMove.CheckDistributionConstraints",
-                iCheckDistributionConstraints);
+        iCheckStudentConflicts = properties.getPropertyBoolean("ExamRandomMove.CheckStudentConflicts", iCheckStudentConflicts);
+        iCheckDistributionConstraints = properties.getPropertyBoolean("ExamRandomMove.CheckDistributionConstraints", iCheckDistributionConstraints);
     }
 
     /**
@@ -65,23 +64,24 @@ public class ExamRandomMove implements NeighbourSelection<Exam, ExamPlacement> {
     /**
      * Select an exam randomly, select an available period randomly (from
      * {@link Exam#getPeriodPlacements()}), select rooms using
-     * {@link Exam#findBestAvailableRooms(ExamPeriodPlacement)}.
+     * {@link Exam#findBestAvailableRooms(Assignment, ExamPeriodPlacement)}.
      */
     @Override
     public Neighbour<Exam, ExamPlacement> selectNeighbour(Solution<Exam, ExamPlacement> solution) {
         ExamModel model = (ExamModel) solution.getModel();
+        Assignment<Exam, ExamPlacement> assignment = solution.getAssignment();
         Exam exam = ToolBox.random(model.variables());
         int px = ToolBox.random(exam.getPeriodPlacements().size());
         for (int p = 0; p < exam.getPeriodPlacements().size(); p++) {
             ExamPeriodPlacement period = exam.getPeriodPlacements().get((p + px) % exam.getPeriodPlacements().size());
-            if (iCheckStudentConflicts && exam.countStudentConflicts(period) > 0)
+            if (iCheckStudentConflicts && exam.countStudentConflicts(assignment, period) > 0)
                 continue;
-            if (iCheckDistributionConstraints && !exam.checkDistributionConstraints(period))
+            if (iCheckDistributionConstraints && !exam.checkDistributionConstraints(assignment, period))
                 continue;
-            Set<ExamRoomPlacement> rooms = exam.findBestAvailableRooms(period);
+            Set<ExamRoomPlacement> rooms = exam.findBestAvailableRooms(assignment, period);
             if (rooms == null)
                 continue;
-            return new ExamSimpleNeighbour(new ExamPlacement(exam, period, rooms));
+            return new ExamSimpleNeighbour(assignment, new ExamPlacement(exam, period, rooms));
         }
         return null;
     }
