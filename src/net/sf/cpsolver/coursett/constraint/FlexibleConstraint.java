@@ -68,6 +68,10 @@ public abstract class FlexibleConstraint extends Constraint<Lecture, Placement> 
          * There must be a break of a given length in a given time interval.
          */
         BREAK("_(Break):([0-9]+):([0-9]+):([0-9]+)_", BreakFlexibleConstraint.class, "Break"),
+        /**
+         * Limit number of breaks between adjacent classes on a day.
+         */
+        MAX_BREAKS("_(MaxBreaks):([0-9]+):([0-9]+)_", MaxBreaksFlexibleConstraint.class, "MaxBreaks"),
         ;
         
         private String iPattern;
