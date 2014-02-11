@@ -54,7 +54,7 @@ public class DeterministicStudentSectioning extends DefaultStudentSectioning {
     
     @Override
     protected Group[] studentsToConfigurations(Long offeringId, Collection<Student> students, Collection<Configuration> configurations) {
-        DeterministicInitialSectioning sect = new DeterministicInitialSectioning(iProgress, offeringId, configurations, students);
+        DeterministicInitialSectioning sect = new DeterministicInitialSectioning(getProgress(), offeringId, configurations, students);
         return sect.getGroups();
     }
     
@@ -67,7 +67,7 @@ public class DeterministicStudentSectioning extends DefaultStudentSectioning {
             }
         });
         sortedLectures.addAll(lectures);
-        DeterministicInitialSectioning sect = new DeterministicInitialSectioning(iProgress, offeringId, sortedLectures, students);
+        DeterministicInitialSectioning sect = new DeterministicInitialSectioning(getProgress(), offeringId, sortedLectures, students);
         return sect.getGroups();
     }
     
@@ -175,7 +175,7 @@ public class DeterministicStudentSectioning extends DefaultStudentSectioning {
                 }
 
                 // put the student into the first group
-                iProgress.debug("Unable to find a valid section for student " + student.getId() + ", enrolling to " + (iGroups[0].getLecture() != null ? iGroups[0].getLecture().getName() : iGroups[0].getConfiguration().getConfigId().toString()));
+                getProgress().debug("Unable to find a valid section for student " + student.getId() + ", enrolling to " + (iGroups[0].getLecture() != null ? iGroups[0].getLecture().getName() : iGroups[0].getConfiguration().getConfigId().toString()));
                 iGroups[0].addStudent(student);
             }
 

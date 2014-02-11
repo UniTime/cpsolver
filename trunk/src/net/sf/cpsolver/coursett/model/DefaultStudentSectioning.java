@@ -53,15 +53,21 @@ import net.sf.cpsolver.ifs.util.Progress;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class DefaultStudentSectioning implements StudentSectioning {
-    protected Progress iProgress = null;
+    protected TimetableModel iModel = null;
+    private Progress iProgress = null;
     protected FinalSectioning iFinalSectioning = null;
     
     /**
      * Constructor
      */
     public DefaultStudentSectioning(TimetableModel model) {
-        iProgress = Progress.getInstance(model);
+        iModel = model;
         iFinalSectioning = new FinalSectioning(model);
+    }
+    
+    public Progress getProgress() {
+        if (iProgress == null) iProgress = Progress.getInstance(iModel);
+        return iProgress;
     }
 
     /**
@@ -86,11 +92,11 @@ public class DefaultStudentSectioning implements StudentSectioning {
                 initialSectioningLectures(offeringId, courseName, students, cfg.getTopLectures(subpartId));
             }
         } else {
-            iProgress.trace("sectioning " + students.size() + " students of course " + courseName + " into " + configurations.size() + " configurations");
+            getProgress().trace("sectioning " + students.size() + " students of course " + courseName + " into " + configurations.size() + " configurations");
             Group[] studentsPerSection = studentsToConfigurations(offeringId, students, configurations);
             for (int i = 0; i < configurations.size(); i++) {
                 Group group = studentsPerSection[i];
-                iProgress.trace((i + 1) + ". configuration got " + group.getStudents().size() + " students (weighted=" + group.size() + ", cfgLimit=" + group.getConfiguration().getLimit() + ")");
+                getProgress().trace((i + 1) + ". configuration got " + group.getStudents().size() + " students (weighted=" + group.size() + ", cfgLimit=" + group.getConfiguration().getLimit() + ")");
                 for (Student st : group.getStudents()) {
                     st.addConfiguration(group.getConfiguration());
                 }
@@ -124,15 +130,15 @@ public class DefaultStudentSectioning implements StudentSectioning {
             return;
         for (Lecture lecture : lectures) {
             if (lecture.classLimit() == 0 && !lecture.isCommitted())
-                iProgress.warn("Class " + getClassLabel(lecture) + " has zero class limit.");
+                getProgress().warn("Class " + getClassLabel(lecture) + " has zero class limit.");
         }
 
-        iProgress.trace("sectioning " + students.size() + " students of course " + courseName + " into " + lectures.size() + " sections");
+        getProgress().trace("sectioning " + students.size() + " students of course " + courseName + " into " + lectures.size() + " sections");
         if (lectures.size() == 1) {
             Lecture lect = lectures.iterator().next();
             for (Student st : students) {
                 if (!st.canEnroll(lect)) {
-                    iProgress.info("Unable to enroll student " + st.getId() + " in class " + getClassLabel(lect));
+                    getProgress().info("Unable to enroll student " + st.getId() + " in class " + getClassLabel(lect));
                 }
                 lect.addStudent(st);
                 st.addLecture(lect);
@@ -149,14 +155,14 @@ public class DefaultStudentSectioning implements StudentSectioning {
                 Group group = studentsPerSection[i];
                 Lecture lect = group.getLecture();
                 if (group.getStudents().isEmpty()) {
-                    iProgress.trace("Lecture " + getClassLabel(lect) + " got no students (cl=" + lect.classLimit() + ")");
+                    getProgress().trace("Lecture " + getClassLabel(lect) + " got no students (cl=" + lect.classLimit() + ")");
                     continue;
                 }
-                iProgress.trace("Lecture " + getClassLabel(lect) + " got " + group.getStudents().size() + " students (weighted=" + group.size() + ", classLimit=" + lect.classLimit() + ")");
+                getProgress().trace("Lecture " + getClassLabel(lect) + " got " + group.getStudents().size() + " students (weighted=" + group.size() + ", classLimit=" + lect.classLimit() + ")");
                 List<Student> studentsThisSection = group.getStudents();
                 for (Student st : studentsThisSection) {
                     if (!st.canEnroll(lect)) {
-                        iProgress.info("Unable to enroll student " + st.getId() + " in class " + getClassLabel(lect));
+                        getProgress().info("Unable to enroll student " + st.getId() + " in class " + getClassLabel(lect));
                     }
                     lect.addStudent(st);
                     st.addLecture(lect);
@@ -179,7 +185,7 @@ public class DefaultStudentSectioning implements StudentSectioning {
      * @return list of {@link Group}
      */
     protected Group[] studentsToConfigurations(Long offeringId, Collection<Student> students, Collection<Configuration> configurations) {
-        InitialSectioning sect = new InitialSectioning(iProgress, offeringId, configurations, students);
+        InitialSectioning sect = new InitialSectioning(getProgress(), offeringId, configurations, students);
         return sect.getGroups();
     }
     
@@ -191,7 +197,7 @@ public class DefaultStudentSectioning implements StudentSectioning {
      * @return list of {@link Group}
      */
     protected Group[] studentsToLectures(Long offeringId, Collection<Student> students, Collection<Lecture> lectures) {
-        InitialSectioning sect = new InitialSectioning(iProgress, offeringId, lectures, students);
+        InitialSectioning sect = new InitialSectioning(getProgress(), offeringId, lectures, students);
         return sect.getGroups();
     }
     
