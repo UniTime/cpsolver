@@ -61,19 +61,18 @@ import net.sf.cpsolver.ifs.util.ToolBox;
 
 public class FinalSectioning implements Runnable {
     private TimetableModel iModel = null;
-    private Progress iProgress = null;
     public static double sEps = 0.0001;
     private boolean iWeighStudents = false;
 
     public FinalSectioning(TimetableModel model) {
         iModel = model;
-        iProgress = Progress.getInstance(iModel);
         iWeighStudents = model.getProperties().getPropertyBoolean("General.WeightStudents", iWeighStudents);
     }
 
     @Override
     public void run() {
-        iProgress.setStatus("Student Sectioning...");
+        Progress p = Progress.getInstance(iModel);
+        p.setStatus("Student Sectioning...");
         Collection<Lecture> variables = new ArrayList<Lecture>(iModel.variables());
         // include committed classes that have structure
         if (iModel.hasConstantVariables())
@@ -83,7 +82,7 @@ public class FinalSectioning implements Runnable {
             }
         while (!variables.isEmpty()) {
             // sLogger.debug("Shifting students ...");
-            iProgress.setPhase("moving students ...", variables.size());
+            p.setPhase("moving students ...", variables.size());
             HashSet<Lecture> lecturesToRecompute = new HashSet<Lecture>(variables.size());
 
             for (Lecture lecture : variables) {
@@ -95,7 +94,7 @@ public class FinalSectioning implements Runnable {
                 // sLogger.debug("Shifting students for "+lecture);
                 findAndPerformMoves(lecture, lecturesToRecompute);
                 // sLogger.debug("Lectures to recompute: "+lects);
-                iProgress.incProgress();
+                p.incProgress();
             }
             // sLogger.debug("Shifting done, "+getViolatedStudentConflictsCounter().get()+" conflicts.");
             variables = lecturesToRecompute;
