@@ -73,9 +73,9 @@ public class FlexibleConstraintCriterion extends TimetablingCriterion  {
                         violated++;
                         if (iDebug) {
                             if (debug == null)
-                                debug = new StringBuilder(c.getOwner());
+                                debug = new StringBuilder(c.getOwner() + " (" + sDoubleFormat.format(c.getNrViolations(new HashSet<Placement>(), null)) + ")");
                             else
-                                debug.append("; " + c.getOwner());
+                                debug.append("; " + c.getOwner() + " (" + sDoubleFormat.format(c.getNrViolations(new HashSet<Placement>(), null)) + ")");
                         }
                     }
                 }
