@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
@@ -12,6 +13,7 @@ import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -116,7 +118,7 @@ public class TimetableXMLSaver extends TimetableSaver {
     private static DecimalFormat[] sDF = { new DecimalFormat(""), new DecimalFormat("0"), new DecimalFormat("00"),
             new DecimalFormat("000"), new DecimalFormat("0000"), new DecimalFormat("00000"),
             new DecimalFormat("000000"), new DecimalFormat("0000000") };
-    private static DecimalFormat sStudentWeightFormat = new DecimalFormat("0.0000");
+    private static DecimalFormat sStudentWeightFormat = new DecimalFormat("0.0000", new DecimalFormatSymbols(Locale.US));
     public static boolean ANONYMISE = false;
 
     private boolean iConvertIds = false;
