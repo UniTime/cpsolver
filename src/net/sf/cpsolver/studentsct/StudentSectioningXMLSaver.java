@@ -5,8 +5,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.BitSet;
 import java.util.Date;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -129,7 +131,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
     private static DecimalFormat[] sDF = { new DecimalFormat(""), new DecimalFormat("0"), new DecimalFormat("00"),
             new DecimalFormat("000"), new DecimalFormat("0000"), new DecimalFormat("00000"),
             new DecimalFormat("000000"), new DecimalFormat("0000000") };
-    private static DecimalFormat sStudentWeightFormat = new DecimalFormat("0.0000");
+    private static DecimalFormat sStudentWeightFormat = new DecimalFormat("0.0000", new DecimalFormatSymbols(Locale.US));
     private File iOutputFolder = null;
 
     private boolean iSaveBest = false;
