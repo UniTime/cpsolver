@@ -936,7 +936,78 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                     return true;
             }
         }
+        
+        if (!forwardCheck(value, new HashSet<GroupConstraint>())) return true;
+        
         return false;
+    }
+    
+    public boolean forwardCheck(Placement value, Set<GroupConstraint> ignore) {
+        try {
+            ignore.add(this);
+            
+            int neededSize = value.variable().maxRoomUse();
+            
+            for (Lecture lecture: variables()) {
+                if (lecture.equals(value.variable())) continue; // Skip this lecture
+                if (lecture.getAssignment() != null) { // Has assignment, check whether it is conflicting
+                    if (isSatisfiedPair(value, lecture.getAssignment())) {
+                        // Increase needed size if the assignment is of the same room and overlapping in time
+                        if (getType().is(Flag.CAN_SHARE_ROOM) && sameRoomAndOverlaps(value, lecture.getAssignment())) {
+                            neededSize += lecture.maxRoomUse();
+                        }
+                        continue;
+                    }
+                    return false;
+                }
+                
+                // Look for supporting assignments assignment
+                boolean shareRoomAndOverlaps = true;
+                List<Placement> supporters = new ArrayList<Placement>();
+                for (Placement other: lecture.values()) {
+                    if (isSatisfiedPair(value, other)) {
+                        supporters.add(other);
+                        if (getType().is(Flag.CAN_SHARE_ROOM) && shareRoomAndOverlaps && !sameRoomAndOverlaps(value, other))
+                            shareRoomAndOverlaps = false;
+                    }
+                }
+                // No supporting assignment -> fail
+                if (supporters.isEmpty()) {
+                    return false; // other class cannot be assigned with this value
+                }
+                // Increase needed size if all supporters are of the same room and in overlapping times
+                if (getType().is(Flag.CAN_SHARE_ROOM) && shareRoomAndOverlaps) {
+                    neededSize += lecture.maxRoomUse();
+                }
+
+                // Only one supporter -> propagate the new assignment over other hard constraints of the lecture
+                if (supporters.size() == 1) {
+                    Placement supporter = supporters.get(0);
+                    for (Constraint<Lecture, Placement> other: lecture.hardConstraints()) {
+                        if (other instanceof WeakeningConstraint) continue;
+                        if (other instanceof GroupConstraint) {
+                            GroupConstraint gc = (GroupConstraint)other;
+                            if (!ignore.contains(gc) && !gc.forwardCheck(supporter, ignore)) return false;
+                        } else {
+                            if (other.inConflict(supporter)) return false;
+                        }
+                    }
+                    for (GlobalConstraint<Lecture, Placement> other: getModel().globalConstraints()) {
+                        if (other instanceof WeakeningConstraint) continue;
+                        if (other.inConflict(supporter)) return false;
+                    }
+                }
+            }
+            
+            if (getType().is(Flag.CAN_SHARE_ROOM) && neededSize > value.getRoomSize()) {
+                // room is too small to fit all meet with classes
+                return false;
+            }
+         
+            return true;
+        } finally {
+            ignore.remove(this);
+        }
     }
 
     /** Constraint preference (0 if prohibited or reqired) */
