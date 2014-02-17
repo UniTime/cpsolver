@@ -46,8 +46,7 @@ public class TimetableSolver extends Solver<Lecture, Placement> {
     @Override
     protected void onAssigned(double startTime) {
         // Check if the solution is the best ever found one
-        if (iCurrentSolution.getModel().unassignedVariables().isEmpty()
-                && getSolutionComparator().isBetterThanBestSolution(iCurrentSolution)) {
+        if (iCurrentSolution.getModel().unassignedVariables().isEmpty() && getSolutionComparator().isBetterThanBestSolution(iCurrentSolution) && iCurrentSolution.getIteration() - iCurrentSolution.getBestIteration() > 5000) {
             fixCompleteSolution(startTime);
         } /*
            * else { // If the solver is not able to improve solution in the last
