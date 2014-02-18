@@ -17,6 +17,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.studentsct.constraint.ConfigLimit;
 import net.sf.cpsolver.studentsct.constraint.CourseLimit;
 import net.sf.cpsolver.studentsct.constraint.LinkedSections;
+import net.sf.cpsolver.studentsct.constraint.RequiredReservation;
 import net.sf.cpsolver.studentsct.constraint.ReservationLimit;
 import net.sf.cpsolver.studentsct.constraint.SectionLimit;
 import net.sf.cpsolver.studentsct.constraint.StudentConflict;
@@ -132,6 +133,10 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         if (properties.getPropertyBoolean("Sectioning.ReservationLimit", true)) {
             ReservationLimit reservationLimit = new ReservationLimit(properties);
             addGlobalConstraint(reservationLimit);
+        }
+        if (properties.getPropertyBoolean("Sectioning.RequiredReservations", true)) {
+            RequiredReservation requiredReservation = new RequiredReservation();
+            addGlobalConstraint(requiredReservation);
         }
         try {
             Class<StudentWeights> studentWeightsClass = (Class<StudentWeights>)Class.forName(properties.getProperty("StudentWeights.Class", PriorityStudentWeights.class.getName()));
