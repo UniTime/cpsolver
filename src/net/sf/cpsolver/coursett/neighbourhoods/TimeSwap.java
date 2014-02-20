@@ -59,6 +59,7 @@ public class TimeSwap extends RandomSwapMove<Lecture, Placement> {
     @Override
     public Neighbour<Lecture, Placement> selectNeighbour(Solution<Lecture, Placement> solution) {
         TimetableModel model = (TimetableModel)solution.getModel();
+        double total = model.getTotalValue();
         int varIdx = ToolBox.random(model.variables().size());
         for (int i = 0; i < model.variables().size(); i++) {
             Lecture lecture = model.variables().get((i + varIdx) % model.variables().size());
@@ -99,7 +100,7 @@ public class TimeSwap extends RandomSwapMove<Lecture, Placement> {
                     conflict.variable().unassign(solution.getIteration());
                 lecture.assign(solution.getIteration(), placement);
                 
-                Double v = resolve(solution, assignments, new ArrayList<Placement>(conflicts), 0);
+                Double v = resolve(solution, total, assignments, new ArrayList<Placement>(conflicts), 0);
                 if (!conflicts.isEmpty())
                     attempts ++;
                 
@@ -108,11 +109,8 @@ public class TimeSwap extends RandomSwapMove<Lecture, Placement> {
                     conflict.variable().assign(solution.getIteration(), conflict);
                 lecture.assign(solution.getIteration(), old);
                 
-                if (v != null) {
-                    SwapNeighbour n = new SwapNeighbour(assignments.values(), v - model.getTotalValue());
-                    if (!iHC || n.value() <= 0) return n;
-                    else continue;
-                }
+                if (v != null)
+                    return new SwapNeighbour(assignments.values(), v);
                 
                 if (attempts >= iMaxAttempts) break;
             }
@@ -122,8 +120,8 @@ public class TimeSwap extends RandomSwapMove<Lecture, Placement> {
     
     
     @Override
-    public Double resolve(Solution<Lecture, Placement> solution, Map<Lecture, Placement> assignments, List<Placement> conflicts, int index) {
-        if (index == conflicts.size()) return solution.getModel().getTotalValue();
+    public Double resolve(Solution<Lecture, Placement> solution, double total, Map<Lecture, Placement> assignments, List<Placement> conflicts, int index) {
+        if (index == conflicts.size()) return solution.getModel().getTotalValue() - total;
         Placement conflict = conflicts.get(index);
         Lecture variable = conflict.variable();
         
@@ -147,11 +145,11 @@ public class TimeSwap extends RandomSwapMove<Lecture, Placement> {
             if (!value.isValid() || solution.getModel().inConflict(value)) continue;
             
             variable.assign(solution.getIteration(), value);
-            Double v = resolve(solution, assignments, conflicts, 1 + index);
+            Double v = resolve(solution, total, assignments, conflicts, 1 + index);
             variable.unassign(solution.getIteration());
             attempts ++;
             
-            if (v != null) {
+            if (v != null && (!iHC || v <= 0)) {
                 assignments.put(variable, value);
                 return v;
             }
