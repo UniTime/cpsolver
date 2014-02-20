@@ -9,6 +9,7 @@ import java.util.Map;
 
 import net.sf.cpsolver.ifs.algorithms.neighbourhoods.RandomMove;
 import net.sf.cpsolver.ifs.algorithms.neighbourhoods.RandomSwapMove;
+import net.sf.cpsolver.ifs.algorithms.neighbourhoods.SuggestionMove;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.LazyNeighbour;
 import net.sf.cpsolver.ifs.model.Neighbour;
@@ -123,7 +124,8 @@ public class GreatDeluge<V extends Variable<V, T>, T extends Value<V, T>> implem
         iLowerBoundRate = properties.getPropertyDouble("GreatDeluge.LowerBoundRate", iLowerBoundRate);
         iRandomSelection = properties.getPropertyBoolean("GreatDeluge.Random", iRandomSelection);
         iUpdatePoints = properties.getPropertyBoolean("GreatDeluge.Update", iUpdatePoints);
-        String neighbours = properties.getProperty("GreatDeluge.Neighbours", RandomMove.class.getName() + ";" + RandomSwapMove.class.getName() + "@0.1");
+        String neighbours = properties.getProperty("GreatDeluge.Neighbours",
+                RandomMove.class.getName() + ";" + RandomSwapMove.class.getName() + "@0.01;" + SuggestionMove.class.getName() + "@0.01");
         neighbours += ";" + properties.getProperty("GreatDeluge.AdditionalNeighbours", "");
         iNeighbours = new ArrayList<NeighbourSelector<V,T>>();
         for (String neighbour: neighbours.split("\\;")) {

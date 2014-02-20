@@ -11,6 +11,7 @@ import org.apache.log4j.Logger;
 
 import net.sf.cpsolver.ifs.algorithms.neighbourhoods.RandomMove;
 import net.sf.cpsolver.ifs.algorithms.neighbourhoods.RandomSwapMove;
+import net.sf.cpsolver.ifs.algorithms.neighbourhoods.SuggestionMove;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.LazyNeighbour;
 import net.sf.cpsolver.ifs.model.Neighbour;
@@ -114,7 +115,8 @@ public class HillClimber<V extends Variable<V, T>, T extends Value<V, T>> implem
         iMaxIdleIters = properties.getPropertyInt("HillClimber.MaxIdle", iMaxIdleIters);
         iRandomSelection = properties.getPropertyBoolean("HillClimber.Random", iRandomSelection);
         iUpdatePoints = properties.getPropertyBoolean("HillClimber.Update", iUpdatePoints);
-        String neighbours = properties.getProperty("HillClimber.Neighbours", RandomMove.class.getName() + ";" + RandomSwapMove.class.getName() + "@0.01");
+        String neighbours = properties.getProperty("HillClimber.Neighbours",
+                RandomMove.class.getName() + ";" + RandomSwapMove.class.getName() + "@0.01;" + SuggestionMove.class.getName() + "@0.01");
         neighbours += ";" + properties.getProperty("HillClimber.AdditionalNeighbours", "");
         iNeighbours = new ArrayList<NeighbourSelector<V,T>>();
         for (String neighbour: neighbours.split("\\;")) {
@@ -182,7 +184,7 @@ public class HillClimber<V extends Variable<V, T>, T extends Value<V, T>> implem
         }
         while (true) {
             iIter++;
-            if (iIter % 1000 == 0) {
+            if (iIter % 10000 == 0) {
                 sLog.info("Iter="+iIter/1000+"k, NonImpIter="+sDF2.format((iIter-iLastImprovingIter)/1000.0)+"k, Speed="+sDF2.format(1000.0*iIter/(System.currentTimeMillis()-iT0))+" it/s");
                 if (iUpdatePoints)
                     for (NeighbourSelector<V,T> ns: iNeighbours)

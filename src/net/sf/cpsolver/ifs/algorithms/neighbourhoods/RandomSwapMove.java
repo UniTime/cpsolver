@@ -66,6 +66,7 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
     @Override
     public Neighbour<V, T> selectNeighbour(Solution<V, T> solution) {
         Model<V, T> model = solution.getModel();
+        double total = model.getTotalValue();
         int varIdx = ToolBox.random(model.variables().size());
         for (int i = 0; i < model.variables().size(); i++) {
             V variable = model.variables().get((i + varIdx) % model.variables().size());
@@ -94,7 +95,7 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
                     conflict.variable().unassign(solution.getIteration());
                 variable.assign(solution.getIteration(), value);
                 
-                Double v = resolve(solution, assignments, new ArrayList<T>(conflicts), 0);
+                Double v = resolve(solution, total, assignments, new ArrayList<T>(conflicts), 0);
                 if (!conflicts.isEmpty())
                     attempts ++;
                 
@@ -103,11 +104,8 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
                     conflict.variable().assign(solution.getIteration(), conflict);
                 if (old != null) variable.assign(solution.getIteration(), old);
                 
-                if (v != null) {
-                    SwapNeighbour n = new SwapNeighbour(assignments.values(), v - model.getTotalValue());
-                    if (!iHC || n.value() <= 0) return n;
-                    else continue;
-                }
+                if (v != null)
+                    return new SwapNeighbour(assignments.values(), v);
                 
                 if (attempts >= iMaxAttempts) break;
             }
@@ -120,13 +118,14 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
      * value with no conflict that is compatible with some other assignment
      * of the other conflicting variables. 
      * @param solution current solution
+     * @param total original value of the current solution
      * @param assignments re-assignments to be made
      * @param conflicts list of conflicts to resolve
      * @param index index in the list of conflicts
      * @return value of the modified solution, null if cannot be resolved
      */
-    public Double resolve(Solution<V, T> solution, Map<V, T> assignments, List<T> conflicts, int index) {
-        if (index == conflicts.size()) return solution.getModel().getTotalValue();
+    public Double resolve(Solution<V, T> solution, double total, Map<V, T> assignments, List<T> conflicts, int index) {
+        if (index == conflicts.size()) return solution.getModel().getTotalValue() - total;
         T conflict = conflicts.get(index);
         V variable = conflict.variable();
         
@@ -140,11 +139,11 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
             if (value.equals(conflict) || solution.getModel().inConflict(value)) continue;
             
             variable.assign(solution.getIteration(), value);
-            Double v = resolve(solution, assignments, conflicts, 1 + index);
+            Double v = resolve(solution, total, assignments, conflicts, 1 + index);
             variable.unassign(solution.getIteration());
             attempts ++;
             
-            if (v != null) {
+            if (v != null && (!iHC || v <= 0)) {
                 assignments.put(variable, value);
                 return v;
             }
