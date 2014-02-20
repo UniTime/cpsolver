@@ -15,6 +15,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TreeSet;
 
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.FileAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
+
 import net.sf.cpsolver.coursett.constraint.DepartmentSpreadConstraint;
 import net.sf.cpsolver.coursett.constraint.GroupConstraint;
 import net.sf.cpsolver.coursett.constraint.InstructorConstraint;
@@ -125,6 +131,30 @@ public class Test implements SolutionListener<Lecture, Placement> {
         iSolver = solver;
         solver.currentSolution().addSolutionListener(this);
     }
+    
+    /**
+     * Setup log4j logging
+     * 
+     * @param logFile  log file
+     * @param debug true if debug messages should be logged (use -Ddebug=true to enable debug message)
+     */
+    public static void setupLogging(File logFile, boolean debug) {
+        Logger root = Logger.getRootLogger();
+        ConsoleAppender console = new ConsoleAppender(new PatternLayout("%m%n"));
+        console.setThreshold(Level.INFO);
+        root.addAppender(console);
+        if (logFile != null) {
+            try {
+                FileAppender file = new FileAppender(new PatternLayout("%d{dd-MMM-yy HH:mm:ss.SSS} [%t] %-5p %c{2}> %m%n"), logFile.getPath(), false);
+                file.setThreshold(Level.DEBUG);
+                root.addAppender(file);
+            } catch (IOException e) {
+                sLogger.fatal("Unable to configure logging, reason: " + e.getMessage(), e);
+            }
+        }
+        if (!debug)
+            root.setLevel(Level.INFO);
+    }
 
     /**
      * Return name of the class that is used for loading the data. This class
@@ -166,17 +196,15 @@ public class Test implements SolutionListener<Lecture, Placement> {
         try {
             DataProperties properties = ToolBox.loadProperties(new java.io.File(args[0]));
             properties.putAll(System.getProperties());
-            properties.setProperty("General.Output", properties.getProperty("General.Output", ".") + File.separator
-                    + (sDateFormat.format(new Date())));
+            properties.setProperty("General.Output", properties.getProperty("General.Output", ".") + File.separator + sDateFormat.format(new Date()));
             if (args.length > 1)
                 properties.setProperty("General.Input", args[1]);
             if (args.length > 2)
                 properties.setProperty("General.Output", args[2] + File.separator + (sDateFormat.format(new Date())));
             System.out.println("Output folder: " + properties.getProperty("General.Output"));
-            ToolBox.configureLogging(properties.getProperty("General.Output"), properties, false, false);
-
             File outDir = new File(properties.getProperty("General.Output", "."));
             outDir.mkdirs();
+            setupLogging(new File(outDir, "debug.log"), "true".equals(System.getProperty("debug", "false")));
 
             Solver<Lecture, Placement> solver = new TimetableSolver(properties);
             TimetableModel model = new TimetableModel(properties);
@@ -231,58 +259,14 @@ public class Test implements SolutionListener<Lecture, Placement> {
                     + (iProp != null ? colSeparator + "GoodVars" + colSeparator + "GoodVars[%]" + colSeparator
                             + "GoodVals" + colSeparator + "GoodVals[%]" : ""));
             iCSVFile.flush();
+            
+            Runtime.getRuntime().addShutdownHook(new ShutdownHook(solver));
 
             solver.start();
-            solver.getSolverThread().join();
-
-            long lastIt = solver.lastSolution().getIteration();
-            double lastTime = solver.lastSolution().getTime();
-
-            if (solver.lastSolution().getBestInfo() != null) {
-                Solution<Lecture, Placement> bestSolution = solver.lastSolution();// .cloneBest();
-                sLogger.info("Last solution: " + ToolBox.dict2string(bestSolution.getInfo(), 1));
-                sLogger.info("Best solution (before restore): " + ToolBox.dict2string(bestSolution.getBestInfo(), 1));
-                bestSolution.restoreBest();
-                sLogger.info("Best solution: " + ToolBox.dict2string(bestSolution.getInfo(), 1));
-                if (properties.getPropertyBoolean("General.SwitchStudents", true))
-                    ((TimetableModel) bestSolution.getModel()).switchStudents();
-                sLogger.info("Best solution: " + ToolBox.dict2string(bestSolution.getInfo(), 1));
-                saveOutputCSV(bestSolution, new File(outDir, "output.csv"));
-
-                printSomeStuff(bestSolution);
-
-                if (properties.getPropertyBoolean("General.Save", false)) {
-                    TimetableSaver saver = (TimetableSaver) Class.forName(getTimetableSaverClass(properties))
-                            .getConstructor(new Class[] { Solver.class }).newInstance(new Object[] { solver });
-                    if ((saver instanceof TimetableXMLSaver) && properties.getProperty("General.SolutionFile") != null)
-                        ((TimetableXMLSaver) saver).save(new File(properties.getProperty("General.SolutionFile")));
-                    else
-                        saver.save();
-                }
-            } else
-                sLogger.info("Last solution:" + ToolBox.dict2string(solver.lastSolution().getInfo(), 1));
-
-            iCSVFile.close();
-
-            sLogger.info("Total number of done iteration steps:" + lastIt);
-            sLogger.info("Achieved speed: " + sDoubleFormat.format(lastIt / lastTime) + " iterations/second");
-
-            PrintWriter out = new PrintWriter(new FileWriter(new File(outDir, "solver.html")));
-            out.println("<html><title>Save log</title><body>");
-            out.println(Progress.getInstance(model).getHtmlLog(Progress.MSGLEVEL_TRACE, true));
-            out.println("</html>");
-            out.flush();
-            out.close();
-            Progress.removeInstance(model);
-
-            if (iStat != null) {
-                PrintWriter cbs = new PrintWriter(new FileWriter(new File(outDir, "cbs.txt")));
-                cbs.println(iStat.toString());
-                cbs.flush(); cbs.close();
+            try {
+                solver.getSolverThread().join();
+            } catch (InterruptedException e) {
             }
-
-            System.out.println("Unassigned variables: " + model.nrUnassignedVariables());
-            System.exit(model.nrUnassignedVariables());
         } catch (Throwable t) {
             sLogger.error("Test failed.", t);
         }
@@ -303,6 +287,8 @@ public class Test implements SolutionListener<Lecture, Placement> {
     @Override
     public void bestSaved(Solution<Lecture, Placement> solution) {
         notify(solution);
+        if (sLogger.isInfoEnabled())
+            sLogger.info("**BEST[" + solution.getIteration() + "]** " + solution.getModel());
     }
 
     @Override
@@ -1090,6 +1076,76 @@ public class Test implements SolutionListener<Lecture, Placement> {
             w.close();
         } catch (java.io.IOException io) {
             sLogger.error(io.getMessage(), io);
+        }
+    }
+    
+    private class ShutdownHook extends Thread {
+        Solver<Lecture, Placement> iSolver = null;
+
+        private ShutdownHook(Solver<Lecture, Placement> solver) {
+            setName("ShutdownHook");
+            iSolver = solver;
+        }
+        
+        @Override
+        public void run() {
+            try {
+                if (iSolver.isRunning()) iSolver.stopSolver();
+                Solution<Lecture, Placement> solution = iSolver.lastSolution();
+                long lastIt = solution.getIteration();
+                double lastTime = solution.getTime();
+                DataProperties properties = iSolver.getProperties();
+                TimetableModel model = (TimetableModel) solution.getModel();
+                File outDir = new File(properties.getProperty("General.Output", "."));
+
+                if (solution.getBestInfo() != null) {
+                    Solution<Lecture, Placement> bestSolution = solution;// .cloneBest();
+                    sLogger.info("Last solution: " + ToolBox.dict2string(bestSolution.getInfo(), 1));
+                    sLogger.info("Best solution (before restore): " + ToolBox.dict2string(bestSolution.getBestInfo(), 1));
+                    bestSolution.restoreBest();
+                    sLogger.info("Best solution: " + ToolBox.dict2string(bestSolution.getInfo(), 1));
+                    if (properties.getPropertyBoolean("General.SwitchStudents", true))
+                        ((TimetableModel) bestSolution.getModel()).switchStudents();
+                    sLogger.info("Best solution: " + ToolBox.dict2string(bestSolution.getInfo(), 1));
+                    saveOutputCSV(bestSolution, new File(outDir, "output.csv"));
+
+                    printSomeStuff(bestSolution);
+
+                    if (properties.getPropertyBoolean("General.Save", false)) {
+                        TimetableSaver saver = (TimetableSaver) Class.forName(getTimetableSaverClass(properties))
+                                .getConstructor(new Class[] { Solver.class }).newInstance(new Object[] { iSolver });
+                        if ((saver instanceof TimetableXMLSaver) && properties.getProperty("General.SolutionFile") != null)
+                            ((TimetableXMLSaver) saver).save(new File(properties.getProperty("General.SolutionFile")));
+                        else
+                            saver.save();
+                    }
+                } else {
+                    sLogger.info("Last solution:" + ToolBox.dict2string(solution.getInfo(), 1));
+                }
+
+                iCSVFile.close();
+
+                sLogger.info("Total number of done iteration steps:" + lastIt);
+                sLogger.info("Achieved speed: " + sDoubleFormat.format(lastIt / lastTime) + " iterations/second");
+                
+                PrintWriter out = new PrintWriter(new FileWriter(new File(outDir, "solver.html")));
+                out.println("<html><title>Save log</title><body>");
+                out.println(Progress.getInstance(model).getHtmlLog(Progress.MSGLEVEL_TRACE, true));
+                out.println("</html>");
+                out.flush();
+                out.close();
+                Progress.removeInstance(model);
+
+                if (iStat != null) {
+                    PrintWriter cbs = new PrintWriter(new FileWriter(new File(outDir, "cbs.txt")));
+                    cbs.println(iStat.toString());
+                    cbs.flush(); cbs.close();
+                }
+
+                System.out.println("Unassigned variables: " + model.nrUnassignedVariables());
+            } catch (Throwable t) {
+                sLogger.error("Test failed.", t);
+            }
         }
     }
 }
