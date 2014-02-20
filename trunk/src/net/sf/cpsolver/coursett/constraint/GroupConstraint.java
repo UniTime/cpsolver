@@ -1048,6 +1048,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
 
     /** Current constraint preference (if given placement is assigned) */
     public int getCurrentPreference(Placement placement) {
+        if (isHard()) return 0;
         if (getType().is(Flag.MAX_HRS_DAY)) {
             if (placement.getTimeLocation() == null) return 0;
             HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
