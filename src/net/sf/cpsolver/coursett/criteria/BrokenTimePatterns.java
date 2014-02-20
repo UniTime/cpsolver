@@ -150,23 +150,34 @@ public class BrokenTimePatterns extends TimetablingCriterion {
         int days = time.getDayCode();
         if ((days & sDaysMWF) != 0 && (days & sDaysMWF) != sDaysMWF) {
             for (int s = slot; s < slot + time.getLength(); s++) {
-                if (days == Constants.DAY_CODES[0] && isEmpty(rc, s, 0, placement)) {
+                int d = (days & sDaysMWF);
+                if (d == Constants.DAY_CODES[0] && isEmpty(rc, s, 0, placement)) {
                     if (isEmpty(rc, s, 2, placement) != isEmpty(rc, s, 4, placement)) ret ++;
                     if (!isEmpty(rc, s, 2, placement) && !isEmpty(rc, s, 4, placement)) ret --;
-                } else if (days == Constants.DAY_CODES[2] && isEmpty(rc, s, 2, placement)) {
+                } else if (d == Constants.DAY_CODES[2] && isEmpty(rc, s, 2, placement)) {
                     if (isEmpty(rc, s, 0, placement) != isEmpty(rc, s, 4, placement)) ret ++;
                     if (!isEmpty(rc, s, 0, placement) && !isEmpty(rc, s, 4, placement)) ret --;
-                } else if (days == Constants.DAY_CODES[4] && isEmpty(rc, s, 4, placement)) {
+                } else if (d == Constants.DAY_CODES[4] && isEmpty(rc, s, 4, placement)) {
                     if (isEmpty(rc, s, 0, placement) != isEmpty(rc, s, 2, placement)) ret ++;
                     if (!isEmpty(rc, s, 0, placement) && !isEmpty(rc, s, 2, placement)) ret --;
+                } else if (d == (Constants.DAY_CODES[0] | Constants.DAY_CODES[2]) && isEmpty(rc, s, 0, placement) && isEmpty(rc, s, 2, placement)) {
+                    if (isEmpty(rc, s, 4, placement)) ret ++;
+                    else ret --;
+                } else if (d == (Constants.DAY_CODES[2] | Constants.DAY_CODES[4]) && isEmpty(rc, s, 2, placement) && isEmpty(rc, s, 4, placement)) {
+                    if (isEmpty(rc, s, 0, placement)) ret ++;
+                    else ret --;
+                } else if (d == (Constants.DAY_CODES[0] | Constants.DAY_CODES[4]) && isEmpty(rc, s, 0, placement) && isEmpty(rc, s, 4, placement)) {
+                    if (isEmpty(rc, s, 2, placement)) ret ++;
+                    else ret --;
                 }
             }
         }
         if ((days & sDaysTTh) != 0 && (days & sDaysTTh) != sDaysTTh) {
             for (int s = slot; s < slot + time.getLength(); s++) {
                 if (isEmpty(rc, s, 1, placement) && isEmpty(rc, s, 3, placement)) ret ++;
-                if (days == Constants.DAY_CODES[1] && isEmpty(rc, s, 1, placement) && !isEmpty(rc, s, 3, placement)) ret --;
-                if (days == Constants.DAY_CODES[3] && isEmpty(rc, s, 3, placement) && !isEmpty(rc, s, 1, placement)) ret --;
+                int d = (days & sDaysTTh);
+                if (d == Constants.DAY_CODES[1] && isEmpty(rc, s, 1, placement) && !isEmpty(rc, s, 3, placement)) ret --;
+                if (d == Constants.DAY_CODES[3] && isEmpty(rc, s, 3, placement) && !isEmpty(rc, s, 1, placement)) ret --;
             }
         }
         return ret;
