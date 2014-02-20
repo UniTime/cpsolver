@@ -311,6 +311,7 @@ public abstract class FlexibleConstraint extends Constraint<Lecture, Placement> 
      * @return the current preference of the flexible constraint
      */
     public double getCurrentPreference(Set<Placement> conflicts, HashMap<Lecture, Placement> assignments){
+        if (isHard()) return 0;
         double pref = getNrViolations(conflicts, assignments);
         if(pref == 0){
             return - Math.abs(iPreference);
