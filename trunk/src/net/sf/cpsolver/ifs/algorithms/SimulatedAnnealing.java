@@ -9,6 +9,7 @@ import java.util.Map;
 
 import net.sf.cpsolver.ifs.algorithms.neighbourhoods.RandomMove;
 import net.sf.cpsolver.ifs.algorithms.neighbourhoods.RandomSwapMove;
+import net.sf.cpsolver.ifs.algorithms.neighbourhoods.SuggestionMove;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.LazyNeighbour;
 import net.sf.cpsolver.ifs.model.Neighbour;
@@ -158,7 +159,8 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
             iRestoreBestLengthCoef = iReheatLengthCoef * iReheatLengthCoef;
         iRandomSelection = properties.getPropertyBoolean("SimulatedAnnealing.Random", iRandomSelection);
         iUpdatePoints = properties.getPropertyBoolean("SimulatedAnnealing.Update", iUpdatePoints);
-        String neighbours = properties.getProperty("SimulatedAnnealing.Neighbours", RandomMove.class.getName() + ";" + RandomSwapMove.class.getName());
+        String neighbours = properties.getProperty("SimulatedAnnealing.Neighbours",
+                RandomMove.class.getName() + ";" + RandomSwapMove.class.getName() + "@0.01;" + SuggestionMove.class.getName() + "@0.01");
         neighbours += ";" + properties.getProperty("SimulatedAnnealing.AdditionalNeighbours", "");
         iNeighbours = new ArrayList<NeighbourSelector<V,T>>();
         for (String neighbour: neighbours.split("\\;")) {
