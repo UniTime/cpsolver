@@ -2,6 +2,7 @@ package net.sf.cpsolver.coursett.criteria;
 
 import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.constraint.RoomConstraint;
+import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
@@ -42,13 +43,13 @@ public class UselessHalfHours extends BrokenTimePatterns {
     }
     
     @Override
-    protected int penalty(RoomConstraint rc) {
+    protected double penalty(RoomConstraint rc) {
         return countUselessSlotsHalfHours(rc);
     }
 
     @Override
-   protected int penalty(RoomConstraint rc, TimeLocation value) {
-        return countUselessSlotsHalfHours(rc, value);
+   protected double penalty(RoomConstraint rc, Placement value) {
+        return countUselessSlotsHalfHours(rc, value.getTimeLocation());
     }
     
     private static boolean isUselessBefore(RoomConstraint rc, int slot) {
