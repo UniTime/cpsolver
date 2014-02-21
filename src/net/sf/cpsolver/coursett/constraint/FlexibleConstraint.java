@@ -182,9 +182,12 @@ public abstract class FlexibleConstraint extends Constraint<Lecture, Placement> 
 
             // lecture might not have assignment if it is present in assignments
             if (assignments != null && assignments.containsKey(lecture)) {
-                TimeLocation t = assignments.get(lecture).getTimeLocation();
-                if (shareWeeksAndDay(t, week, dayCode))
-                    placements.add(assignments.get(lecture));
+                Placement p = assignments.get(lecture);
+                if (p != null) {
+                    TimeLocation t = p.getTimeLocation();
+                    if (shareWeeksAndDay(t, week, dayCode))
+                        placements.add(p);
+                }
                 continue;
             }
             if (lecture.getAssignment() == null || lecture.getAssignment().getTimeLocation() == null)
