@@ -671,6 +671,10 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
             iDayOfWeekOffset = config.getPropertyInt("DatePattern.DayOfWeekOffset", 0);
             iPrecedenceConsiderDatePatterns = config.getPropertyBoolean("Precedence.ConsiderDatePatterns", true);
         }
+        if (!isHard()) {
+            iLastPreference = getCurrentPreference();
+            getModel().getCriterion(DistributionPreferences.class).inc(iLastPreference);
+        }
     }
 
     @Override
@@ -1021,7 +1025,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
      */
     public int getCurrentPreference() {
         if (isHard()) return 0; // no preference
-        if (countAssignedVariables() < 2) return 0; // not enough variable
+        if (countAssignedVariables() < 2) return - Math.abs(iPreference); // not enough variable
         if (getType().is(Flag.MAX_HRS_DAY)) { // max hours a day
             int over = 0;
             for (int dayCode: Constants.DAY_CODES)
@@ -1046,34 +1050,60 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         return (nrViolatedPairs > 0 ? Math.abs(iPreference) * nrViolatedPairs : - Math.abs(iPreference));
     }
 
-    /** Current constraint preference (if given placement is assigned) */
+    /** Current constraint preference change (if given placement is assigned) */
     public int getCurrentPreference(Placement placement) {
-        if (isHard()) return 0;
+        if (isHard()) return 0; // no preference
+        if (countAssignedVariables() + (placement.variable().getAssignment() == null ? 1 : 0) < 2) return 0; // not enough variable
         if (getType().is(Flag.MAX_HRS_DAY)) {
-            if (placement.getTimeLocation() == null) return 0;
-            HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
-            assignments.put(placement.variable(), placement);
-            int over = 0;
-            for (int dayCode: Constants.DAY_CODES)
-                if ((placement.getTimeLocation().getDayCode() & dayCode) != 0)
-                    over += Math.min(Math.max(0, nrSlotsADay(dayCode, assignments, null) - getType().getMax()), placement.getTimeLocation().getLength());
-            return (over > 0 ? Math.abs(iPreference) * over / 12 : - Math.abs(iPreference));
+            HashMap<Lecture, Placement> assignment = new HashMap<Lecture, Placement>();
+            assignment.put(placement.variable(), placement);
+            HashMap<Lecture, Placement> unassignment = new HashMap<Lecture, Placement>();
+            unassignment.put(placement.variable(), null);
+            int after = 0;
+            int before = 0;
+            for (int dayCode: Constants.DAY_CODES) {
+                after += Math.max(0, nrSlotsADay(dayCode, assignment, null) - getType().getMax());
+                before += Math.max(0, nrSlotsADay(dayCode, unassignment, null) - getType().getMax());
+            }
+            return (after > 0 ? Math.abs(iPreference) * after / 12 : - Math.abs(iPreference)) - (before > 0 ? Math.abs(iPreference) * before / 12 : - Math.abs(iPreference));
         }
-        int nrViolatedPairs = 0;
+        
+        int nrViolatedPairsAfter = 0;
+        int nrViolatedPairsBefore = 0;
         for (Lecture v1 : variables()) {
-            if (v1.getAssignment() == null || v1.equals(placement.variable())) continue;
-            if (!isSatisfiedPair(v1.getAssignment(), placement)) nrViolatedPairs++;
+            for (Lecture v2 : variables()) {
+                if (v1.getId() >= v2.getId()) continue;
+                Placement p1 = (v1.equals(placement.variable()) ? null : v1.getAssignment());
+                Placement p2 = (v2.equals(placement.variable()) ? null : v2.getAssignment());
+                if (p1 != null && p2 != null && !isSatisfiedPair(p1, p2))
+                    nrViolatedPairsBefore ++;
+                if (v1.equals(placement.variable())) p1 = placement;
+                if (v2.equals(placement.variable())) p2 = placement;
+                if (p1 != null && p2 != null && !isSatisfiedPair(p1, p2))
+                    nrViolatedPairsAfter ++;
+            }
         }
+        
         if (getType().is(Flag.BACK_TO_BACK)) {
             HashMap<Lecture, Placement> assignment = new HashMap<Lecture, Placement>();
             assignment.put(placement.variable(), placement);
             Set<Placement> conflicts = new HashSet<Placement>();
             if (isSatisfiedSeq(assignment, true, conflicts))
-                nrViolatedPairs += conflicts.size();
+                nrViolatedPairsAfter += conflicts.size();
             else
-                nrViolatedPairs = variables().size();
+                nrViolatedPairsAfter = variables().size();
+            
+            HashMap<Lecture, Placement> unassignment = new HashMap<Lecture, Placement>();
+            unassignment.put(placement.variable(), null);
+            Set<Placement> previous = new HashSet<Placement>();
+            if (isSatisfiedSeq(unassignment, true, previous))
+                nrViolatedPairsBefore += previous.size();
+            else
+                nrViolatedPairsBefore = variables().size();
         }
-        return (nrViolatedPairs > 0 ? Math.abs(iPreference) * nrViolatedPairs : - Math.abs(iPreference));
+        
+        return (nrViolatedPairsAfter > 0 ? Math.abs(iPreference) * nrViolatedPairsAfter : - Math.abs(iPreference)) -
+                (nrViolatedPairsBefore > 0 ? Math.abs(iPreference) * nrViolatedPairsBefore : - Math.abs(iPreference));
     }
 
     @Override
@@ -1082,7 +1112,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         if (iIsRequired || iIsProhibited)
             return;
         getModel().getCriterion(DistributionPreferences.class).inc(-iLastPreference);
-        iLastPreference = Math.min(0, getCurrentPreference());
+        iLastPreference = getCurrentPreference();
         getModel().getCriterion(DistributionPreferences.class).inc(iLastPreference);
     }
 
@@ -1092,7 +1122,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         if (iIsRequired || iIsProhibited)
             return;
         getModel().getCriterion(DistributionPreferences.class).inc(-iLastPreference);
-        iLastPreference = Math.min(0, getCurrentPreference());
+        iLastPreference = getCurrentPreference();
         getModel().getCriterion(DistributionPreferences.class).inc(iLastPreference);
     }
 
@@ -1103,7 +1133,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         sb.append(" between ");
         for (Iterator<Lecture> e = variables().iterator(); e.hasNext();) {
             Lecture v = e.next();
-            sb.append(v.getName());
+            sb.append(v.getName() + " " + (v.getAssignment() == null ? "" : v.getAssignment().getName()));
             if (e.hasNext())
                 sb.append(", ");
         }
@@ -1345,10 +1375,12 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         bestConflicts = isSatisfiedRecursive(idx + 1, assignments, considerCurrentAssignments, conflicts, newConflicts,
                 bestConflicts);
         Lecture lecture = variables().get(idx);
+        //if (assignments != null && assignments.containsKey(lecture))
+        //    return bestConflicts;
+        Placement placement = null;
         if (assignments != null && assignments.containsKey(lecture))
-            return bestConflicts;
-        Placement placement = (assignments == null ? null : assignments.get(lecture));
-        if (placement == null && considerCurrentAssignments)
+            placement = assignments.get(lecture);
+        else if (considerCurrentAssignments)
             placement = lecture.getAssignment();
         if (placement == null)
             return bestConflicts;
@@ -1378,8 +1410,10 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         int nrLectures = 0;
 
         for (Lecture lecture : variables()) {
-            Placement placement = (assignments == null ? null : assignments.get(lecture));
-            if (placement == null && considerCurrentAssignments)
+            Placement placement = null;
+            if (assignments != null && assignments.containsKey(lecture))
+                placement = assignments.get(lecture);
+            else if (considerCurrentAssignments)
                 placement = lecture.getAssignment();
             if (placement == null) {
                 lengths.add(lecture.timeLocations().get(0).getLength());
@@ -1518,12 +1552,13 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
     private int nrSlotsADay(int dayCode, HashMap<Lecture, Placement> assignments, Set<Placement> conflicts) {
         Set<Integer> slots = new HashSet<Integer>();
         for (Lecture lecture: variables()) {
-            Placement placement = (assignments == null ? null : assignments.get(lecture));
-            if (placement == null) {
+            Placement placement = null;
+            if (assignments != null && assignments.containsKey(lecture))
+                placement = assignments.get(lecture);
+            else
                 placement = lecture.getAssignment();
-                if (conflicts != null && conflicts.contains(placement)) continue;
-            }
             if (placement == null || placement.getTimeLocation() == null) continue;
+            if (conflicts != null && conflicts.contains(placement)) continue;
             TimeLocation t = placement.getTimeLocation();
             if (t == null || (t.getDayCode() & dayCode) == 0) continue;
             for (int i = 0; i < t.getLength(); i++)
