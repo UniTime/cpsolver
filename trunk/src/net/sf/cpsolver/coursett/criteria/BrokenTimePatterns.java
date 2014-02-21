@@ -162,13 +162,10 @@ public class BrokenTimePatterns extends TimetablingCriterion {
                     if (!isEmpty(rc, s, 0, placement) && !isEmpty(rc, s, 2, placement)) ret --;
                 } else if (d == (Constants.DAY_CODES[0] | Constants.DAY_CODES[2]) && isEmpty(rc, s, 0, placement) && isEmpty(rc, s, 2, placement)) {
                     if (isEmpty(rc, s, 4, placement)) ret ++;
-                    else ret --;
                 } else if (d == (Constants.DAY_CODES[2] | Constants.DAY_CODES[4]) && isEmpty(rc, s, 2, placement) && isEmpty(rc, s, 4, placement)) {
                     if (isEmpty(rc, s, 0, placement)) ret ++;
-                    else ret --;
                 } else if (d == (Constants.DAY_CODES[0] | Constants.DAY_CODES[4]) && isEmpty(rc, s, 0, placement) && isEmpty(rc, s, 4, placement)) {
                     if (isEmpty(rc, s, 2, placement)) ret ++;
-                    else ret --;
                 }
             }
         }
