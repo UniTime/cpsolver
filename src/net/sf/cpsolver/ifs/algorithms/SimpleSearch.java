@@ -53,6 +53,7 @@ import net.sf.cpsolver.ifs.util.Progress;
 public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> implements NeighbourSelection<V, T>, TerminationCondition<V, T> {
     private static Logger sLog = Logger.getLogger(SimpleSearch.class);
     private NeighbourSelection<V, T> iCon = null;
+    private boolean iConstructionUntilComplete = false; 
     private StandardNeighbourSelection<V, T> iStd = null;
     private SimulatedAnnealing<V, T> iSA = null;
     private HillClimber<V, T> iHC = null;
@@ -78,6 +79,7 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> imple
                 @SuppressWarnings("unchecked")
                 Class<NeighbourSelection<V, T>> constructionClass = (Class<NeighbourSelection<V, T>>)Class.forName(properties.getProperty("Construction.Class"));
                 iCon = constructionClass.getConstructor(DataProperties.class).newInstance(properties);
+                iConstructionUntilComplete = properties.getPropertyBoolean("Construction.UntilComplete", iConstructionUntilComplete);
             } catch (Exception e) {
                 sLog.error("Unable to use " + construction + ": " + e.getMessage());
             }
@@ -95,7 +97,9 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> imple
      */
     @Override
     public void init(Solver<V, T> solver) {
-        iCon.init(solver);
+        iStd.init(solver);
+        if (iCon != null)
+            iCon.init(solver);
         iSA.init(solver);
         iHC.init(solver);
         iFin.init(solver);
@@ -132,7 +136,7 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> imple
                 if (iCon != null && solution.getModel().nrUnassignedVariables() > 0) {
                     iProgress.setProgress(solution.getModel().variables().size() - solution.getModel().getBestUnassignedVariables());
                     n = iCon.selectNeighbour(solution);
-                    if (n != null)
+                    if (n != null || iConstructionUntilComplete)
                         return n;
                 }
                 iPhase++;
@@ -140,9 +144,7 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> imple
             case 1:
                 if (iStd != null && solution.getModel().nrUnassignedVariables() > 0) {
                     iProgress.setProgress(solution.getModel().variables().size() - solution.getModel().getBestUnassignedVariables());
-                    n = iStd.selectNeighbour(solution);
-                    if (n != null)
-                        return n;
+                    return iStd.selectNeighbour(solution);
                 }
                 iPhase++;
                 sLog.info("***** hill climbing phase *****");
