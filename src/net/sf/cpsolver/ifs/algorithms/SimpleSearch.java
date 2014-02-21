@@ -149,12 +149,16 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> imple
                 iPhase++;
                 sLog.info("***** hill climbing phase *****");
             case 2:
+                if (solution.getModel().nrUnassignedVariables() > 0)
+                    return (iCon == null ? iStd : iCon).selectNeighbour(solution);
                 n = iHC.selectNeighbour(solution);
                 if (n != null)
                     return n;
                 iPhase++;
                 sLog.info("***** " + (iUseGD ? "great deluge" : "simulated annealing") + " phase *****");
             case 3:
+                if (solution.getModel().nrUnassignedVariables() > 0)
+                    return (iCon == null ? iStd : iCon).selectNeighbour(solution);
                 if (iUseGD)
                     return iGD.selectNeighbour(solution);
                 else

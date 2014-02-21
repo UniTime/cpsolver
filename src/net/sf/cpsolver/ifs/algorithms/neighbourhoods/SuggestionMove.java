@@ -66,7 +66,7 @@ public class SuggestionMove<V extends Variable<V, T>, T extends Value<V, T>> ext
     @Override
     public Neighbour<V, T> selectNeighbour(Solution<V, T> solution) {
         V variable = ToolBox.random(solution.getModel().variables());
-        SwapNeighbour n = backtrack(solution, solution.getModel().getTotalValue(), JProf.currentTimeMillis(), variable, new HashMap<V, T>(), new HashMap<V, T>(), iSuggestionDepth);
+        SwapNeighbour n = backtrack(solution, solution.getModel().getTotalValue(), solution.getModel().nrUnassignedVariables(), JProf.currentTimeMillis(), variable, new HashMap<V, T>(), new HashMap<V, T>(), iSuggestionDepth);
         return n;
     }
     
@@ -80,9 +80,10 @@ public class SuggestionMove<V extends Variable<V, T>, T extends Value<V, T>> ext
         return false;
     }
 
-    private SwapNeighbour backtrack(Solution<V, T> solution, double total, long startTime, V initial, Map<V, T> resolvedVariables, HashMap<V, T> conflictsToResolve, int depth) {
+    private SwapNeighbour backtrack(Solution<V, T> solution, double total, int un, long startTime, V initial, Map<V, T> resolvedVariables, HashMap<V, T> conflictsToResolve, int depth) {
         int nrUnassigned = conflictsToResolve.size();
         if (initial == null && nrUnassigned == 0) {
+            if (solution.getModel().nrUnassignedVariables() > un) return null;
             double value = solution.getModel().getTotalValue() - total;
             if (!iHC || value <= 0)
                 return new SwapNeighbour(new ArrayList<T>(resolvedVariables.values()), value);
@@ -132,7 +133,7 @@ public class SuggestionMove<V extends Variable<V, T>, T extends Value<V, T>> ext
             T resolvedConf = conflictsToResolve.remove(lecture);
             resolvedVariables.put(lecture, value);
             
-            SwapNeighbour n = backtrack(solution, total, startTime, null, resolvedVariables, conflictsToResolve, depth - 1);
+            SwapNeighbour n = backtrack(solution, total, un, startTime, null, resolvedVariables, conflictsToResolve, depth - 1);
             nrAttempts ++;
             
             resolvedVariables.remove(lecture);
