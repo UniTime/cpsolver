@@ -84,7 +84,7 @@ public class GreatDeluge<V extends Variable<V, T>, T extends Value<V, T>> implem
     private static DecimalFormat sDF2 = new DecimalFormat("0.00");
     private static DecimalFormat sDF5 = new DecimalFormat("0.00000");
     private double iBound = 0.0;
-    private double iCoolRate = 0.9999995;
+    private double iCoolRate = 0.9999999;
     private long iIter;
     private double iUpperBound;
     private double iUpperBoundRate = 1.05;
