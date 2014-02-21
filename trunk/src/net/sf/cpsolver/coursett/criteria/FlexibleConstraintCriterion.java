@@ -135,11 +135,16 @@ public class FlexibleConstraintCriterion extends TimetablingCriterion  {
     @Override
     public double getValue(Placement value, Set<Placement> conflicts) {
         HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
-        if (value != null) assignments.put(value.variable(), value);      
+        assignments.put(value.variable(), value);      
         
         double ret = 0.0;        
         for (FlexibleConstraint gc : value.variable().getFlexibleGroupConstraints())
             ret += gc.getCurrentPreference(conflicts, assignments);
+        
+        assignments.put(value.variable(), null);
+        for (FlexibleConstraint gc : value.variable().getFlexibleGroupConstraints())
+            ret -= gc.getCurrentPreference(conflicts, assignments);
+        
         return ret;
     }   
 }
