@@ -45,8 +45,13 @@ public class TimetableSolver extends Solver<Lecture, Placement> {
 
     public TimetableSolver(DataProperties properties) {
         super(properties);
-        iCompleteSolutionFixInterval = properties.getPropertyLong("General.CompleteSolutionFixInterval", iCompleteSolutionFixInterval);
-        iIncompleteSolutionFixInterval = properties.getPropertyLong("General.IncompleteSolutionFixInterval", iIncompleteSolutionFixInterval);
+    }
+    
+    @Override
+    public void initSolver() {
+        super.initSolver();
+        iCompleteSolutionFixInterval = getProperties().getPropertyLong("General.CompleteSolutionFixInterval", iCompleteSolutionFixInterval);
+        iIncompleteSolutionFixInterval = getProperties().getPropertyLong("General.IncompleteSolutionFixInterval", iIncompleteSolutionFixInterval);
     }
 
     @Override
