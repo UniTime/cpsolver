@@ -283,6 +283,8 @@ public class TimetableXMLSaver extends TimetableSaver {
                 classEl.addAttribute("note", lecture.getNote());
             if (iShowNames && !lecture.isCommitted())
                 classEl.addAttribute("ord", String.valueOf(lecture.getOrd()));
+            if (lecture.getWeight() != 1.0)
+                classEl.addAttribute("weight", String.valueOf(lecture.getWeight()));
             if (iShowNames && lecture.getSolverGroupId() != null)
                 classEl.addAttribute("solverGroup", getId("solverGroup", lecture.getSolverGroupId()));
             if (lecture.getParent() == null && lecture.getConfiguration() != null) {

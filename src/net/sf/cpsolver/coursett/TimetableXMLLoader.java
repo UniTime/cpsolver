@@ -520,6 +520,8 @@ public class TimetableXMLLoader extends TimetableLoader {
             else
                 lecture.setOrd(ord++);
 
+            lecture.setWeight(Double.parseDouble(classEl.attributeValue("weight", "1.0")));
+
             if (config != null)
                 lecture.setConfiguration(config);
 

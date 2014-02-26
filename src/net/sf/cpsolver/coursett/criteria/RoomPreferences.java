@@ -58,10 +58,10 @@ public class RoomPreferences extends TimetablingCriterion {
     @Override
     public double getValue(Placement value, Set<Placement> conflicts) {
         if (value.variable().isCommitted()) return 0.0;
-        double ret = preference(value);
+        double ret = value.variable().getWeight() * preference(value);
         if (conflicts != null)
             for (Placement conflict: conflicts)
-                ret -= preference(conflict);
+                ret -= conflict.variable().getWeight() * preference(conflict);
         return ret;
     }
 
@@ -71,8 +71,8 @@ public class RoomPreferences extends TimetablingCriterion {
         for (Lecture lect: variables) {
             if (lect.isCommitted()) continue;
             int[] p = lect.getMinMaxRoomPreference();
-            bounds[0] += p[0];
-            bounds[1] += p[1];
+            bounds[0] += lect.getWeight() * p[0];
+            bounds[1] += lect.getWeight() * p[1];
         }
         return bounds;
     }
