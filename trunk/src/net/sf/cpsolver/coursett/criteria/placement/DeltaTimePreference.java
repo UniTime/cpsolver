@@ -47,11 +47,11 @@ public class DeltaTimePreference extends PlacementSelectionCriterion {
 
     @Override
     public double getValue(Placement value, Set<Placement> conflicts) {
-        double ret = value.getTimeLocation().getNormalizedPreference() - value.variable().getBestTimePreference();
+        double ret = value.variable().getWeight() * (value.getTimeLocation().getNormalizedPreference() - value.variable().getBestTimePreference());
         if (conflicts != null)
             for (Placement placement : conflicts) {
                 double timePref = placement.getTimeLocation().getNormalizedPreference();
-                ret -= timePref - placement.variable().getBestTimePreference();
+                ret -= placement.variable().getWeight() * (timePref - placement.variable().getBestTimePreference());
             }
         return ret;
     }
