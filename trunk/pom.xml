@@ -25,7 +25,7 @@
 	
 	<groupId>org.unitime</groupId>
 	<artifactId>cpsolver</artifactId>
-	<version>1.2.143</version>
+	<version>1.2-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	
 	<name>CPSolver</name>
@@ -74,9 +74,9 @@
 	</dependencies>
 	
 	<scm>
-		<connection>scm:svn:http://cpsolver.googlecode.com/svn/tags/cpsolver-1.2.143</connection>
-		<developerConnection>scm:svn:https://cpsolver.googlecode.com/svn/tags/cpsolver-1.2.143</developerConnection>
-		<url>http://code.google.com/p/cpsolver/source/browse/tags/cpsolver-1.2.143</url>
+		<connection>scm:svn:http://cpsolver.googlecode.com/svn/trunk/</connection>
+		<developerConnection>scm:svn:https://cpsolver.googlecode.com/svn/trunk/</developerConnection>
+		<url>http://code.google.com/p/cpsolver/source/browse</url>
 	</scm>
 	
 	<build>
