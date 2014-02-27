@@ -41,10 +41,12 @@ import net.sf.cpsolver.studentsct.model.Subpart;
  */
 public class StudentChoiceOrder implements StudentOrder, Comparator<Student> {
     private boolean iReverse = false;
+    private boolean iFast = true;
     private HashMap<Config, Integer> iCache = new HashMap<Config, Integer>();
 
     public StudentChoiceOrder(DataProperties config) {
         iReverse = config.getPropertyBoolean("StudentChoiceOrder.Reverse", iReverse);
+        iFast = config.getPropertyBoolean("StudentChoiceOrder.Fast", iFast);
     }
 
     /** Is order reversed */
@@ -78,6 +80,14 @@ public class StudentChoiceOrder implements StudentOrder, Comparator<Student> {
     }
 
     private int nrChoices(Config config, int idx, HashSet<Section> sections) {
+        if (iFast) {
+            int nrChoices = 1;
+            for (Subpart subpart: config.getSubparts()) {
+                if (subpart.getChildren().isEmpty())
+                    nrChoices *= subpart.getSections().size();
+            }
+            return nrChoices;
+        }
         if (config.getSubparts().size() == idx) {
             return 1;
         } else {
@@ -95,7 +105,7 @@ public class StudentChoiceOrder implements StudentOrder, Comparator<Student> {
             return choicesThisSubpart;
         }
     }
-
+    
     /** Average number of choices for each student */
     public double avgNrChoices(Student student) {
         int nrRequests = 0;
