@@ -121,6 +121,14 @@ public class CourseRequest extends Request {
         return ret;
         
     }
+    
+    /**
+     * Maximal domain size (i.e., number of enrollments of a course request), -1 if there is no limit.
+     */
+    protected int getMaxDomainSize() {
+        StudentSectioningModel model = (StudentSectioningModel) getModel();
+        return model == null ? null : model.getMaxDomainSize();
+    }
 
     /**
      * Return all possible enrollments.
@@ -132,7 +140,7 @@ public class CourseRequest extends Request {
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
                 computeEnrollments(ret, idx, 0, course, config, new HashSet<Section>(), 0, false, false,
-                        false, false, -1);
+                        false, false, getMaxDomainSize() <= 0 ? -1 : ret.size() + getMaxDomainSize());
             }
             idx++;
         }
@@ -325,13 +333,11 @@ public class CourseRequest extends Request {
             Subpart subpart = config.getSubparts().get(idx);
             HashSet<TimeLocation> times = (skipSameTime ? new HashSet<TimeLocation>() : null);
             List<Section> sectionsThisSubpart = subpart.getSections();
-            if (random) {
-                sectionsThisSubpart = new ArrayList<Section>(subpart.getSections());
-                Collections.shuffle(sectionsThisSubpart);
-            } else if (skipSameTime) {
+            if (skipSameTime) {
                 sectionsThisSubpart = new ArrayList<Section>(subpart.getSections());
                 Collections.sort(sectionsThisSubpart);
             }
+            List<Section> matchingSectionsThisSubpart = new ArrayList<Section>(subpart.getSections().size());
             boolean hasChildren = !subpart.getChildren().isEmpty();
             for (Section section : sectionsThisSubpart) {
                 if (section.getParent() != null && !sections.contains(section.getParent()))
@@ -377,13 +383,21 @@ public class CourseRequest extends Request {
                             continue;
                     }
                 }
-                if (skipSameTime && section.getTime() != null && !hasChildren && !times.add(section.getTime())
-                        && !isSelected(section) && !isWaitlisted(section))
+                if (skipSameTime && section.getTime() != null && !hasChildren && !times.add(section.getTime()) && !isSelected(section) && !isWaitlisted(section))
                     continue;
+                matchingSectionsThisSubpart.add(section);
+            }
+            if (random || limit > 0)
+                Collections.shuffle(sectionsThisSubpart);
+            int i = 0;
+            for (Section section: matchingSectionsThisSubpart) {
                 sections.add(section);
                 computeEnrollments(enrollments, priority, penalty + section.getPenalty(), course, config, sections, idx + 1,
-                        availableOnly, skipSameTime, selectedOnly, random, limit);
+                        availableOnly, skipSameTime, selectedOnly, random,
+                        limit < 0 ? limit : Math.max(1, limit * (1 + i) / matchingSectionsThisSubpart.size())
+                        );
                 sections.remove(section);
+                i++;
             }
         }
     }
@@ -394,7 +408,8 @@ public class CourseRequest extends Request {
         int idx = 0;
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
-                computeEnrollments(ret, idx, 0, course, config, new HashSet<Section>(), 0, true, false, false, false, -1);
+                computeEnrollments(ret, idx, 0, course, config, new HashSet<Section>(), 0, true, false, false, false,
+                        getMaxDomainSize() <= 0 ? -1 : ret.size() + getMaxDomainSize());
             }
             idx++;
         }
@@ -429,17 +444,18 @@ public class CourseRequest extends Request {
      * comparator is used)
      */
     public List<Enrollment> getAvaiableEnrollmentsSkipSameTime() {
-        List<Enrollment> avaiableEnrollmentsSkipSameTime = new ArrayList<Enrollment>();
+        List<Enrollment> ret = new ArrayList<Enrollment>();
         if (getInitialAssignment() != null)
-            avaiableEnrollmentsSkipSameTime.add(getInitialAssignment());
+            ret.add(getInitialAssignment());
         int idx = 0;
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
-                computeEnrollments(avaiableEnrollmentsSkipSameTime, idx, 0, course, config, new HashSet<Section>(), 0, true, true, false, false, -1);
+                computeEnrollments(ret, idx, 0, course, config, new HashSet<Section>(), 0, true, true, false, false,
+                        getMaxDomainSize() <= 0 ? -1 : ret.size() + getMaxDomainSize());
             }
             idx++;
         }
-        return avaiableEnrollmentsSkipSameTime;
+        return ret;
     }
 
     /**
@@ -450,7 +466,8 @@ public class CourseRequest extends Request {
         int idx = 0;
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
-                computeEnrollments(ret, idx, 0, course, config, new HashSet<Section>(), 0, false, true, false, false, -1);
+                computeEnrollments(ret, idx, 0, course, config, new HashSet<Section>(), 0, false, true, false, false,
+                        getMaxDomainSize() <= 0 ? -1 : ret.size() + getMaxDomainSize());
             }
             idx++;
         }
