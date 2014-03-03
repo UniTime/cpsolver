@@ -85,6 +85,7 @@ public class HillClimber<V extends Variable<V, T>, T extends Value<V, T>> implem
     private boolean iUpdatePoints = false;
     private double iTotalBonus;
     private long iT0 = -1;
+    private boolean iSetHCMode = false;
 
     /**
      * Constructor
@@ -115,6 +116,7 @@ public class HillClimber<V extends Variable<V, T>, T extends Value<V, T>> implem
         iMaxIdleIters = properties.getPropertyInt("HillClimber.MaxIdle", iMaxIdleIters);
         iRandomSelection = properties.getPropertyBoolean("HillClimber.Random", iRandomSelection);
         iUpdatePoints = properties.getPropertyBoolean("HillClimber.Update", iUpdatePoints);
+        iSetHCMode = properties.getPropertyBoolean("HillClimber.SetHCMode", iSetHCMode);
         String neighbours = properties.getProperty("HillClimber.Neighbours",
                 RandomMove.class.getName() + ";" + RandomSwapMove.class.getName() + "@0.01;" + SuggestionMove.class.getName() + "@0.01");
         neighbours += ";" + properties.getProperty("HillClimber.AdditionalNeighbours", "");
@@ -164,7 +166,7 @@ public class HillClimber<V extends Variable<V, T>, T extends Value<V, T>> implem
         for (NeighbourSelector<V,T> s: iNeighbours) {
             s.init(solver);
             if (s.selection() instanceof HillClimberSelection)
-                ((HillClimberSelection)s.selection()).setHcMode(true);
+                ((HillClimberSelection)s.selection()).setHcMode(iSetHCMode);
             iTotalBonus += s.getBonus();
         }
     }
