@@ -18,6 +18,7 @@ import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.JProf;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
@@ -47,11 +48,13 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> implements NeighbourSelection<V, T>, HillClimberSelection {
-    protected int iMaxAttempts = 10;
+    protected int iMaxAttempts = 3;
     protected boolean iHC = false;
+    protected int iTimeLimit = 200;
 
     public RandomSwapMove(DataProperties config) {
         iMaxAttempts = config.getPropertyInt("RandomSwap.MaxAttempts", iMaxAttempts);
+        iTimeLimit = config.getPropertyInt("RandomSwap.TimeLimit", iTimeLimit);
     }
     
     @Override
@@ -76,6 +79,7 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
             T old = variable.getAssignment();
             
             int attempts = 0;
+            long startTime = JProf.currentTimeMillis();
             for (int j = 0; j < values.size(); j++) {
                 T value = values.get((j + valIdx) % values.size());
                 if (value.equals(old)) continue;
@@ -95,7 +99,7 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
                     conflict.variable().unassign(solution.getIteration());
                 variable.assign(solution.getIteration(), value);
                 
-                Double v = resolve(solution, total, assignments, new ArrayList<T>(conflicts), 0);
+                Double v = resolve(solution, total, startTime, assignments, new ArrayList<T>(conflicts), 0);
                 if (!conflicts.isEmpty())
                     attempts ++;
                 
@@ -114,6 +118,13 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
     }
     
     /**
+     * Return true if the time limit was reached, number of attempts are limited to 1 in such a case.
+     */
+    protected boolean isTimeLimitReached(long startTime) {
+        return iTimeLimit > 0 && (JProf.currentTimeMillis() - startTime) > iTimeLimit;
+    }
+    
+    /**
      * Try to resolve given conflicts. For each conflicting variable it tries to find a 
      * value with no conflict that is compatible with some other assignment
      * of the other conflicting variables. 
@@ -124,7 +135,7 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
      * @param index index in the list of conflicts
      * @return value of the modified solution, null if cannot be resolved
      */
-    public Double resolve(Solution<V, T> solution, double total, Map<V, T> assignments, List<T> conflicts, int index) {
+    public Double resolve(Solution<V, T> solution, double total, long startTime, Map<V, T> assignments, List<T> conflicts, int index) {
         if (index == conflicts.size()) return solution.getModel().getTotalValue() - total;
         T conflict = conflicts.get(index);
         V variable = conflict.variable();
@@ -139,7 +150,7 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
             if (value.equals(conflict) || solution.getModel().inConflict(value)) continue;
             
             variable.assign(solution.getIteration(), value);
-            Double v = resolve(solution, total, assignments, conflicts, 1 + index);
+            Double v = resolve(solution, total, startTime, assignments, conflicts, 1 + index);
             variable.unassign(solution.getIteration());
             attempts ++;
             
@@ -147,7 +158,7 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
                 assignments.put(variable, value);
                 return v;
             }
-            if (attempts >= iMaxAttempts) break;
+            if (attempts >= iMaxAttempts || isTimeLimitReached(startTime)) break;
         }
             
         return null;
