@@ -51,11 +51,13 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  */
 public class SuggestionMove<V extends Variable<V, T>, T extends Value<V, T>> extends RandomSwapMove<V, T> {
     protected int iSuggestionDepth = 3;
+    protected int iTimeLimit = 200;
     
     public SuggestionMove(DataProperties config) throws Exception {
         super(config);
         iMaxAttempts = config.getPropertyInt("SuggestionMove.MaxAttempts", iMaxAttempts);
         iSuggestionDepth = config.getPropertyInt("SuggestionMove.Depth", iSuggestionDepth);
+        iTimeLimit = config.getPropertyInt("SuggestionMove.TimeLimit", iTimeLimit);
     }
 
     @Override
@@ -109,7 +111,7 @@ public class SuggestionMove<V extends Variable<V, T>, T extends Value<V, T>> ext
         int idx = ToolBox.random(values.size());
         int nrAttempts = 0;
         values: for (int i = 0; i < values.size(); i++) {
-            if (nrAttempts >= iMaxAttempts) break;
+            if (nrAttempts >= iMaxAttempts || isTimeLimitReached(startTime)) break;
             T value = values.get((i + idx) % values.size());
             
             if (value.equals(lecture.getAssignment())) continue;
