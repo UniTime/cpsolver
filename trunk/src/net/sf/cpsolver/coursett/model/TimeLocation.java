@@ -431,4 +431,17 @@ public class TimeLocation {
         @Deprecated
         public Integer nextInt();
     }
+    
+    private Integer iFirstMeeting = null;
+    public int getFirstMeeting(int dayOfWeekOffset) {
+        if (iFirstMeeting == null) {
+            int idx = -1;
+            while ((idx = getWeekCode().nextSetBit(1 + idx)) >= 0) {
+                int dow = (idx + dayOfWeekOffset) % 7;
+                if ((getDayCode() & Constants.DAY_CODES[dow]) != 0) break;
+            }
+            iFirstMeeting = idx;
+        }
+        return iFirstMeeting;
+    }
 }

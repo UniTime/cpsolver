@@ -1191,20 +1191,11 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         if (considerDatePatterns && iPrecedenceConsiderDatePatterns) {
             boolean sameDatePattern = (t1.getDatePatternId() != null ? t1.getDatePatternId().equals(t2.getDatePatternId()) : t1.getWeekCode().equals(t2.getWeekCode()));
             if (!sameDatePattern) {
-            	int m1 = getFirstMeeting(t1), m2 = getFirstMeeting(t2);
+            	int m1 = t1.getFirstMeeting(iDayOfWeekOffset), m2 = t2.getFirstMeeting(iDayOfWeekOffset);
                 if (m1 != m2) return m1 < m2;
             }
         }
         return t1.getStartSlots().nextElement() + t1.getLength() <= t2.getStartSlots().nextElement();
-    }
-
-    private int getFirstMeeting(TimeLocation time) {
-        int idx = -1;
-        while ((idx = time.getWeekCode().nextSetBit(1 + idx)) >= 0) {
-            int dow = (idx + iDayOfWeekOffset) % 7;
-            if ((time.getDayCode() & Constants.DAY_CODES[dow]) != 0) break;
-        }
-        return idx;
     }
 
     private static boolean isBackToBackDays(TimeLocation t1, TimeLocation t2) {
