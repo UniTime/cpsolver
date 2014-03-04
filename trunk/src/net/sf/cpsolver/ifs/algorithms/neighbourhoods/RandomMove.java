@@ -2,7 +2,6 @@ package net.sf.cpsolver.ifs.algorithms.neighbourhoods;
 
 import java.util.List;
 
-import net.sf.cpsolver.ifs.algorithms.HillClimber.HillClimberSelection;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Neighbour;

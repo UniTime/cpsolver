@@ -1,30 +1,15 @@
 package net.sf.cpsolver.ifs.algorithms;
 
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 
-import net.sf.cpsolver.ifs.algorithms.neighbourhoods.RandomMove;
-import net.sf.cpsolver.ifs.algorithms.neighbourhoods.RandomSwapMove;
-import net.sf.cpsolver.ifs.algorithms.neighbourhoods.SuggestionMove;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
-import net.sf.cpsolver.ifs.model.LazyNeighbour;
+import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Neighbour;
-import net.sf.cpsolver.ifs.model.LazyNeighbour.LazyNeighbourAcceptanceCriterion;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.solution.Solution;
-import net.sf.cpsolver.ifs.solution.SolutionListener;
-import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.JProf;
-import net.sf.cpsolver.ifs.util.Progress;
-import net.sf.cpsolver.ifs.util.ToolBox;
-
-import org.apache.log4j.Logger;
 
 /**
  * Great deluge. In each iteration, one of the given neighbourhoods is selected first,
@@ -79,28 +64,19 @@ import org.apache.log4j.Logger;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class GreatDeluge<V extends Variable<V, T>, T extends Value<V, T>> implements NeighbourSelection<V, T>, SolutionListener<V, T>, LazyNeighbourAcceptanceCriterion<V, T> {
-    private static Logger sLog = Logger.getLogger(GreatDeluge.class);
-    private static DecimalFormat sDF2 = new DecimalFormat("0.00");
-    private static DecimalFormat sDF5 = new DecimalFormat("0.00000");
+public class GreatDeluge<V extends Variable<V, T>, T extends Value<V, T>> extends NeighbourSearch<V, T> {
+    private DecimalFormat sDF2 = new DecimalFormat("0.00");
+    private DecimalFormat sDF5 = new DecimalFormat("0.00000");
     private double iBound = 0.0;
     private double iCoolRate = 0.9999999;
-    private long iIter;
     private double iUpperBound;
     private double iUpperBoundRate = 1.05;
     private double iLowerBoundRate = 0.95;
     private int iMoves = 0;
     private int iAcceptedMoves = 0;
     private int iNrIdle = 0;
-    private long iT0 = -1;
     private long iLastImprovingIter = 0;
     private double iBestValue = 0;
-    private Progress iProgress = null;
-
-    private List<NeighbourSelector<V, T>> iNeighbours = null;
-    private boolean iRandomSelection = false;
-    private boolean iUpdatePoints = false;
-    private double iTotalBonus;
 
     /**
      * Constructor. Following problem properties are considered:
@@ -117,165 +93,68 @@ public class GreatDeluge<V extends Variable<V, T>, T extends Value<V, T>> implem
      * @param properties
      *            problem properties
      */
-    @SuppressWarnings("unchecked")
     public GreatDeluge(DataProperties properties) {
-        iCoolRate = properties.getPropertyDouble("GreatDeluge.CoolRate", iCoolRate);
-        iUpperBoundRate = properties.getPropertyDouble("GreatDeluge.UpperBoundRate", iUpperBoundRate);
-        iLowerBoundRate = properties.getPropertyDouble("GreatDeluge.LowerBoundRate", iLowerBoundRate);
-        iRandomSelection = properties.getPropertyBoolean("GreatDeluge.Random", iRandomSelection);
-        iUpdatePoints = properties.getPropertyBoolean("GreatDeluge.Update", iUpdatePoints);
-        String neighbours = properties.getProperty("GreatDeluge.Neighbours",
-                RandomMove.class.getName() + ";" + RandomSwapMove.class.getName() + "@0.01;" + SuggestionMove.class.getName() + "@0.01");
-        neighbours += ";" + properties.getProperty("GreatDeluge.AdditionalNeighbours", "");
-        iNeighbours = new ArrayList<NeighbourSelector<V,T>>();
-        for (String neighbour: neighbours.split("\\;")) {
-            if (neighbour == null || neighbour.isEmpty()) continue;
-            try {
-                double bonus = 1.0;
-                if (neighbour.indexOf('@')>=0) {
-                    bonus = Double.parseDouble(neighbour.substring(neighbour.indexOf('@') + 1));
-                    neighbour = neighbour.substring(0, neighbour.indexOf('@'));
-                }
-                Class<NeighbourSelection<V, T>> clazz = (Class<NeighbourSelection<V, T>>)Class.forName(neighbour);
-                NeighbourSelection<V, T> selection = clazz.getConstructor(DataProperties.class).newInstance(properties);
-                addNeighbourSelection(selection, bonus);
-            } catch (Exception e) {
-                sLog.error("Unable to use " + neighbour + ": " + e.getMessage());
-            }
-        }
+        super(properties);
+        iCoolRate = properties.getPropertyDouble(getParameterBaseName() + ".CoolRate", iCoolRate);
+        iUpperBoundRate = properties.getPropertyDouble(getParameterBaseName() + ".UpperBoundRate", iUpperBoundRate);
+        iLowerBoundRate = properties.getPropertyDouble(getParameterBaseName() + ".LowerBoundRate", iLowerBoundRate);
     }
 
-    private void addNeighbourSelection(NeighbourSelection<V,T> ns, double bonus) {
-        iNeighbours.add(new NeighbourSelector<V,T>(ns, bonus, iUpdatePoints));
-    }
-    
-    private double totalPoints() {
-        if (!iUpdatePoints) return iTotalBonus;
-        double total = 0;
-        for (NeighbourSelector<V,T> ns: iNeighbours)
-            total += ns.getPoints();
-        return total;
-    }
-    
-    /** Initialization */
+    /** Accept the given neighbour if it does not worsen the current solution or when the new solution is below the bound */
     @Override
-    public void init(Solver<V, T> solver) {
-        iIter = -1;
-        solver.currentSolution().addSolutionListener(this);
-        for (NeighbourSelection<V, T> neighbour: iNeighbours)
-            neighbour.init(solver);
-        solver.setUpdateProgress(false);
-        iProgress = Progress.getInstance(solver.currentSolution().getModel());
-        iTotalBonus = 0;
-        for (NeighbourSelector<V,T> s: iNeighbours) {
-            s.init(solver);
-            iTotalBonus += s.getBonus();
-        }
-    }
-
-    /** Print some information */
-    protected void info(Solution<V, T> solution) {
-        sLog.info("Iter=" + iIter / 1000 + "k, NonImpIter=" + sDF2.format((iIter - iLastImprovingIter) / 1000.0)
-                + "k, Speed=" + sDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s");
-        sLog.info("Bound is " + sDF2.format(iBound) + ", " + "best value is " + sDF2.format(solution.getBestValue())
-                + " (" + sDF2.format(100.0 * iBound / solution.getBestValue()) + "%), " + "current value is "
-                + sDF2.format(solution.getModel().getTotalValue()) + " ("
-                + sDF2.format(100.0 * iBound / solution.getModel().getTotalValue()) + "%), " + "#idle=" + iNrIdle
-                + ", " + "Pacc=" + sDF5.format(100.0 * iAcceptedMoves / iMoves) + "%");
-        if (iUpdatePoints)
-            for (NeighbourSelector<V,T> ns: iNeighbours)
-                sLog.info("  "+ns+" ("+sDF2.format(ns.getPoints())+" pts, "+sDF2.format(100.0*(iUpdatePoints?ns.getPoints():ns.getBonus())/totalPoints())+"%)");
-        iAcceptedMoves = iMoves = 0;
-    }
-
-    /**
-     * Generate neighbour -- select neighbourhood randomly, select neighbour
-     */
-    public Neighbour<V, T> genMove(Solution<V, T> solution) {
-        while (true) {
-            incIter(solution);
-            NeighbourSelector<V,T> ns = null;
-            if (iRandomSelection) {
-                ns = ToolBox.random(iNeighbours);
-            } else {
-                double points = (ToolBox.random()*totalPoints());
-                for (Iterator<NeighbourSelector<V,T>> i = iNeighbours.iterator(); i.hasNext(); ) {
-                    ns = i.next();
-                    points -= (iUpdatePoints?ns.getPoints():ns.getBonus());
-                    if (points<=0) break;
-                }
-            }
-            Neighbour<V, T> n = ns.selectNeighbour(solution);
-            if (n != null)
-                return n;
-        }
-    }
-
-    /** Accept neighbour */
-    protected boolean accept(Solution<V, T> solution, Neighbour<V, T> neighbour) {
-        if (neighbour instanceof LazyNeighbour) {
-            ((LazyNeighbour<V, T>)neighbour).setAcceptanceCriterion(this);
+    protected boolean accept(Model<V, T> model, Neighbour<V, T> neighbour, double value, boolean lazy) {
+        iMoves ++;
+        if (value <= 0.0 || (lazy ? model.getTotalValue() : value + model.getTotalValue()) < iBound) {
+            iAcceptedMoves ++;
             return true;
         }
-        return (neighbour.value() <= 0 || solution.getModel().getTotalValue() + neighbour.value() <= iBound);
+        return false;
     }
     
-    /** Accept lazy neighbour */
+    /** Setup the bound */
     @Override
-    public boolean accept(LazyNeighbour<V, T> neighbour, double value) {
-        return (value <= 0.0 || neighbour.getModel().getTotalValue() <= iBound);
+    protected void activate(Solution<V, T> solution) {
+        super.activate(solution);
+        iNrIdle = 0;
+        iLastImprovingIter = 0;
+        iBound = (solution.getBestValue() > 0.0 ? iUpperBoundRate * solution.getBestValue() : solution.getBestValue() / iUpperBoundRate);
+        iUpperBound = iBound;
     }
-
+    
     /** Increment iteration count, update bound */
-    protected void incIter(Solution<V, T> solution) {
-        if (iIter < 0) {
-            iIter = 0;
-            iLastImprovingIter = 0;
-            iT0 = JProf.currentTimeMillis();
-            iBound = (solution.getBestValue() > 0.0 ? iUpperBoundRate * solution.getBestValue() : solution.getBestValue() / iUpperBoundRate);
-            iUpperBound = iBound;
-            iNrIdle = 0;
-            iProgress.setPhase("Great deluge [" + (1 + iNrIdle) + "]...");
-        } else {
-            iIter++;
-            if (solution.getBestValue() >= 0.0)
-                iBound *= iCoolRate;
-            else
-                iBound /= iCoolRate;
-        }
+    @Override
+    protected void incIteration(Solution<V, T> solution) {
+        super.incIteration(solution);
+        if (solution.getBestValue() >= 0.0)
+            iBound *= iCoolRate;
+        else
+            iBound /= iCoolRate;
         if (iIter % 10000 == 0) {
-            info(solution);
+            iLog.info("Iter=" + iIter / 1000 + "k, NonImpIter=" + sDF2.format((iIter - iLastImprovingIter) / 1000.0)
+                    + "k, Speed=" + sDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s");
+            iLog.info("Bound is " + sDF2.format(iBound) + ", " + "best value is " + sDF2.format(solution.getBestValue())
+                    + " (" + sDF2.format(100.0 * iBound / solution.getBestValue()) + "%), " + "current value is "
+                    + sDF2.format(solution.getModel().getTotalValue()) + " ("
+                    + sDF2.format(100.0 * iBound / solution.getModel().getTotalValue()) + "%), " + "#idle=" + iNrIdle
+                    + ", " + "Pacc=" + sDF5.format(100.0 * iAcceptedMoves / iMoves) + "%");
+            logNeibourStatus();
+            iAcceptedMoves = iMoves = 0;
         }
-        double lowerBound = (solution.getBestValue() >= 0.0 ? Math.pow(iLowerBoundRate, 1 + iNrIdle)
-                * solution.getBestValue() : solution.getBestValue() / Math.pow(iLowerBoundRate, 1 + iNrIdle));
+        double lowerBound = (solution.getBestValue() >= 0.0
+                ? Math.pow(iLowerBoundRate, 1 + iNrIdle) * solution.getBestValue()
+                : solution.getBestValue() / Math.pow(iLowerBoundRate, 1 + iNrIdle));
         if (iBound < lowerBound) {
             iNrIdle++;
-            sLog.info(" -<[" + iNrIdle + "]>- ");
             iBound = Math.max(solution.getBestValue() + 2.0,(solution.getBestValue() >= 0.0 ?
                     Math.pow(iUpperBoundRate, iNrIdle) * solution.getBestValue() :
                     solution.getBestValue() / Math.pow(iUpperBoundRate, iNrIdle)));
             iUpperBound = iBound;
-            iProgress.setPhase("Great deluge [" + (1 + iNrIdle) + "]...");
+            iProgress.setPhase("Great Deluge [" + (1 + iNrIdle) + "]...");
         }
         iProgress.setProgress(100 - Math.round(100.0 * (iBound - lowerBound) / (iUpperBound - lowerBound)));
+        iMoves++;
     }
-
-    /**
-     * A neighbour is generated randomly untill an acceptable one is found.
-     */
-    @Override
-    public Neighbour<V, T> selectNeighbour(Solution<V, T> solution) {
-        Neighbour<V, T> neighbour = null;
-        while ((neighbour = genMove(solution)) != null) {
-            iMoves++;
-            if (accept(solution, neighbour)) {
-                iAcceptedMoves++;
-                break;
-            }
-        }
-        return (neighbour == null ? null : neighbour);
-    }
-
+    
     /** Update last improving iteration count */
     @Override
     public void bestSaved(Solution<V, T> solution) {
@@ -287,22 +166,5 @@ public class GreatDeluge<V extends Variable<V, T>, T extends Value<V, T>> implem
     }
 
     @Override
-    public void solutionUpdated(Solution<V, T> solution) {
-    }
-
-    @Override
-    public void getInfo(Solution<V, T> solution, Map<String, String> info) {
-    }
-
-    @Override
-    public void getInfo(Solution<V, T> solution, Map<String, String> info, Collection<V> variables) {
-    }
-
-    @Override
-    public void bestCleared(Solution<V, T> solution) {
-    }
-
-    @Override
-    public void bestRestored(Solution<V, T> solution) {
-    }
+    public String getParameterBaseName() { return "GreatDeluge"; }
 }
