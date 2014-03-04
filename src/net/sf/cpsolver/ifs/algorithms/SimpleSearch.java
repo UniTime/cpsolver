@@ -51,7 +51,7 @@ import net.sf.cpsolver.ifs.util.Progress;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> implements NeighbourSelection<V, T>, TerminationCondition<V, T> {
-    private static Logger sLog = Logger.getLogger(SimpleSearch.class);
+    private Logger iLog = Logger.getLogger(SimpleSearch.class);
     private NeighbourSelection<V, T> iCon = null;
     private boolean iConstructionUntilComplete = false; 
     private StandardNeighbourSelection<V, T> iStd = null;
@@ -81,13 +81,16 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> imple
                 iCon = constructionClass.getConstructor(DataProperties.class).newInstance(properties);
                 iConstructionUntilComplete = properties.getPropertyBoolean("Construction.UntilComplete", iConstructionUntilComplete);
             } catch (Exception e) {
-                sLog.error("Unable to use " + construction + ": " + e.getMessage());
+                iLog.error("Unable to use " + construction + ": " + e.getMessage());
             }
         }
         iStd = new StandardNeighbourSelection<V, T>(properties);
         iSA = new SimulatedAnnealing<V, T>(properties);
-        iHC = new HillClimber<V, T>(properties, "Hill Climbing");
-        iFin = new HillClimber<V, T>(properties, "Finalization");
+        if (properties.getPropertyBoolean("Search.CountSteps", false))
+            iHC = new StepCountingHillClimber<V, T>(properties, "Step Counting Hill Climbing");
+        else
+            iHC = new HillClimber<V, T>(properties);
+        iFin = new HillClimber<V, T>(properties); iFin.setPhase("Finalization");
         iGD = new GreatDeluge<V, T>(properties);
         iUseGD = properties.getPropertyBoolean("Search.GreatDeluge", iUseGD);
     }
@@ -129,7 +132,7 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> imple
         switch (iPhase) {
             case -1:
                 iPhase++;
-                sLog.info("***** construction phase *****");
+                iLog.info("***** construction phase *****");
                 if (solution.getModel().nrUnassignedVariables() > 0)
                     iProgress.setPhase("Searching for initial solution...", solution.getModel().variables().size());
             case 0:
@@ -140,14 +143,14 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> imple
                         return n;
                 }
                 iPhase++;
-                sLog.info("***** ifs phase *****");
+                iLog.info("***** ifs phase *****");
             case 1:
                 if (iStd != null && solution.getModel().nrUnassignedVariables() > 0) {
                     iProgress.setProgress(solution.getModel().variables().size() - solution.getModel().getBestUnassignedVariables());
                     return iStd.selectNeighbour(solution);
                 }
                 iPhase++;
-                sLog.info("***** hill climbing phase *****");
+                iLog.info("***** hill climbing phase *****");
             case 2:
                 if (solution.getModel().nrUnassignedVariables() > 0)
                     return (iCon == null ? iStd : iCon).selectNeighbour(solution);
@@ -155,7 +158,7 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> imple
                 if (n != null)
                     return n;
                 iPhase++;
-                sLog.info("***** " + (iUseGD ? "great deluge" : "simulated annealing") + " phase *****");
+                iLog.info("***** " + (iUseGD ? "great deluge" : "simulated annealing") + " phase *****");
             case 3:
                 if (solution.getModel().nrUnassignedVariables() > 0)
                     return (iCon == null ? iStd : iCon).selectNeighbour(solution);
@@ -183,7 +186,7 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> imple
      *            to be called when the final phase is finished
      **/
     public synchronized void setFinalPhase(Callback finalPhaseFinished) {
-        sLog.info("***** final phase *****");
+        iLog.info("***** final phase *****");
         iFinalPhaseFinished = finalPhaseFinished;
         iPhase = 9999;
     }
