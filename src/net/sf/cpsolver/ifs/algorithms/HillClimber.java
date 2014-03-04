@@ -1,29 +1,13 @@
 package net.sf.cpsolver.ifs.algorithms;
 
-import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.log4j.Logger;
-
-import net.sf.cpsolver.ifs.algorithms.neighbourhoods.RandomMove;
-import net.sf.cpsolver.ifs.algorithms.neighbourhoods.RandomSwapMove;
-import net.sf.cpsolver.ifs.algorithms.neighbourhoods.SuggestionMove;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
-import net.sf.cpsolver.ifs.model.LazyNeighbour;
+import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
-import net.sf.cpsolver.ifs.model.LazyNeighbour.LazyNeighbourAcceptanceCriterion;
 import net.sf.cpsolver.ifs.solution.Solution;
-import net.sf.cpsolver.ifs.solution.SolutionListener;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
-import net.sf.cpsolver.ifs.util.Progress;
-import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
  * Hill climber. In each iteration, one of the given neighbourhoods is selected first,
@@ -69,23 +53,11 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class HillClimber<V extends Variable<V, T>, T extends Value<V, T>> implements NeighbourSelection<V, T>, SolutionListener<V, T>, LazyNeighbourAcceptanceCriterion<V, T> {
-    private static Logger sLog = Logger.getLogger(HillClimber.class);
-    private static DecimalFormat sDF2 = new DecimalFormat("0.00");
-   
-    private List<NeighbourSelector<V, T>> iNeighbours = null;
-    private int iMaxIdleIters = 10000;
-    private int iLastImprovingIter = 0;
-    private double iBestValue = 0;
-    private int iIter = 0;
-    private Progress iProgress = null;
-    private boolean iActive;
-    private String iName = "Hill climbing";
-    private boolean iRandomSelection = false;
-    private boolean iUpdatePoints = false;
-    private double iTotalBonus;
-    private long iT0 = -1;
-    private boolean iSetHCMode = false;
+public class HillClimber<V extends Variable<V, T>, T extends Value<V, T>> extends NeighbourSearch<V, T> {
+    protected int iMaxIdleIters = 10000;
+    protected int iLastImprovingIter = 0;
+    protected double iBestValue = 0;
+    protected boolean iSetHCMode = false;
 
     /**
      * Constructor
@@ -98,57 +70,16 @@ public class HillClimber<V extends Variable<V, T>, T extends Value<V, T>> implem
      * </ul>
      */
     public HillClimber(DataProperties properties) {
-        this(properties, "Hill Climbing");
+        super(properties);
+        iMaxIdleIters = properties.getPropertyInt(getParameterBaseName() + ".MaxIdle", iMaxIdleIters);
+        iSetHCMode = properties.getPropertyBoolean(getParameterBaseName() + ".SetHCMode", iSetHCMode);
     }
-
+    
     /**
-     * Constructor
-     * <ul>
-     * <li>HillClimber.MaxIdle ... maximum number of idle iterations (default is 200000)
-     * <li>HillClimber.Neighbours ... semicolon separated list of classes implementing {@link NeighbourSelection}
-     * <li>HillClimber.AdditionalNeighbours ... semicolon separated list of classes implementing {@link NeighbourSelection}
-     * <li>HillClimber.Random ... when true, a neighbour selector is selected randomly
-     * <li>HillClimber.Update ... when true, a neighbour selector is selected using {@link NeighbourSelector#getPoints()} weights (roulette wheel selection)
-     * </ul>
+     * Set progress phase name
      */
-    @SuppressWarnings("unchecked")
-    public HillClimber(DataProperties properties, String name) {
-        iMaxIdleIters = properties.getPropertyInt("HillClimber.MaxIdle", iMaxIdleIters);
-        iRandomSelection = properties.getPropertyBoolean("HillClimber.Random", iRandomSelection);
-        iUpdatePoints = properties.getPropertyBoolean("HillClimber.Update", iUpdatePoints);
-        iSetHCMode = properties.getPropertyBoolean("HillClimber.SetHCMode", iSetHCMode);
-        String neighbours = properties.getProperty("HillClimber.Neighbours",
-                RandomMove.class.getName() + ";" + RandomSwapMove.class.getName() + "@0.01;" + SuggestionMove.class.getName() + "@0.01");
-        neighbours += ";" + properties.getProperty("HillClimber.AdditionalNeighbours", "");
-        iNeighbours = new ArrayList<NeighbourSelector<V,T>>();
-        for (String neighbour: neighbours.split("\\;")) {
-            if (neighbour == null || neighbour.isEmpty()) continue;
-            try {
-                double bonus = 1.0;
-                if (neighbour.indexOf('@')>=0) {
-                    bonus = Double.parseDouble(neighbour.substring(neighbour.indexOf('@') + 1));
-                    neighbour = neighbour.substring(0, neighbour.indexOf('@'));
-                }
-                Class<NeighbourSelection<V, T>> clazz = (Class<NeighbourSelection<V, T>>)Class.forName(neighbour);
-                NeighbourSelection<V, T> selection = clazz.getConstructor(DataProperties.class).newInstance(properties);
-                addNeighbourSelection(selection, bonus);
-            } catch (Exception e) {
-                sLog.error("Unable to use " + neighbour + ": " + e.getMessage());
-            }
-        }
-        iName = name;
-    }
-    
-    private void addNeighbourSelection(NeighbourSelection<V,T> ns, double bonus) {
-        iNeighbours.add(new NeighbourSelector<V,T>(ns, bonus, iUpdatePoints));
-    }
-    
-    private double totalPoints() {
-        if (!iUpdatePoints) return iTotalBonus;
-        double total = 0;
-        for (NeighbourSelector<V,T> ns: iNeighbours)
-            total += ns.getPoints();
-        return total;
+    public void setPhase(String phase) {
+        iPhase = phase;
     }
 
     /**
@@ -156,70 +87,41 @@ public class HillClimber<V extends Variable<V, T>, T extends Value<V, T>> implem
      */
     @Override
     public void init(Solver<V, T> solver) {
-        solver.currentSolution().addSolutionListener(this);
-        for (NeighbourSelection<V, T> neighbour: iNeighbours)
-            neighbour.init(solver);
-        solver.setUpdateProgress(false);
-        iProgress = Progress.getInstance(solver.currentSolution().getModel());
-        iActive = false;
-        iTotalBonus = 0;
-        for (NeighbourSelector<V,T> s: iNeighbours) {
-            s.init(solver);
-            if (s.selection() instanceof HillClimberSelection)
-                ((HillClimberSelection)s.selection()).setHcMode(iSetHCMode);
-            iTotalBonus += s.getBonus();
-        }
+        super.init(solver);
+        if (iSetHCMode)
+            setHCMode(true);
     }
-
+    
     /**
-     * Select one of the given neighbourhoods randomly, select neighbour, return
-     * it if its value is below or equal to zero (continue with the next
-     * selection otherwise). Return null when the given number of idle
-     * iterations is reached.
+     * Increase iteration counter
      */
     @Override
-    public Neighbour<V, T> selectNeighbour(Solution<V, T> solution) {
-        if (iT0 < 0) iT0 = System.currentTimeMillis();
-        if (!iActive) {
-            iProgress.setPhase(iName + "...");
-            iActive = true;
+    protected void incIteration(Solution<V, T> solution) {
+        super.incIteration(solution);
+        if (iIter % 10000 == 0) {
+            iLog.info("Iter=" + (iIter / 1000)+"k, NonImpIter=" + iDF2.format((iIter-iLastImprovingIter)/1000.0)+"k, Speed="+iDF2.format(1000.0*iIter/getTimeMillis())+" it/s");
+            logNeibourStatus();
         }
-        while (true) {
-            iIter++;
-            if (iIter % 10000 == 0) {
-                sLog.info("Iter="+iIter/1000+"k, NonImpIter="+sDF2.format((iIter-iLastImprovingIter)/1000.0)+"k, Speed="+sDF2.format(1000.0*iIter/(System.currentTimeMillis()-iT0))+" it/s");
-                if (iUpdatePoints)
-                    for (NeighbourSelector<V,T> ns: iNeighbours)
-                        sLog.info("  "+ns+" ("+sDF2.format(ns.getPoints())+" pts, "+sDF2.format(100.0*(iUpdatePoints?ns.getPoints():ns.getBonus())/totalPoints())+"%)");
-            }
-            iProgress.setProgress(Math.round(100.0 * (iIter - iLastImprovingIter) / iMaxIdleIters));
-            if (iIter - iLastImprovingIter >= iMaxIdleIters)
-                break;
-            NeighbourSelector<V,T> ns = null;
-            if (iRandomSelection) {
-                ns = ToolBox.random(iNeighbours);
-            } else {
-                double points = (ToolBox.random() * totalPoints());
-                for (Iterator<NeighbourSelector<V,T>> i = iNeighbours.iterator(); i.hasNext(); ) {
-                    ns = i.next();
-                    points -= (iUpdatePoints ? ns.getPoints() : ns.getBonus());
-                    if (points <= 0) break;
-                }
-            }
-            Neighbour<V, T> n = ns.selectNeighbour(solution);
-            if (n != null) {
-                if (n instanceof LazyNeighbour) {
-                    ((LazyNeighbour<V,T>)n).setAcceptanceCriterion(this);
-                    return n;
-                } else if (n.value() <= 0.0) return n;
-            }
-        }
-        iIter = 0;
-        iLastImprovingIter = 0;
-        iActive = false;
-        return null;
+        iProgress.setProgress(Math.round(100.0 * (iIter - iLastImprovingIter) / iMaxIdleIters));
     }
-
+    
+    /**
+     * Stop the search after a given number of idle (not improving) iterations
+     */
+    @Override
+    protected boolean canContinue(Solution<V, T> solution) {
+        return iIter - iLastImprovingIter < iMaxIdleIters;
+    }
+    
+    /**
+     * Reset the idle iterations counter
+     */
+    @Override
+    protected void activate(Solution<V, T> solution) {
+        super.activate(solution);
+        iLastImprovingIter = iIter;
+    }
+    
     /**
      * Memorize the iteration when the last best solution was found.
      */
@@ -230,41 +132,18 @@ public class HillClimber<V extends Variable<V, T>, T extends Value<V, T>> implem
             iBestValue = solution.getBestValue();
         }
     }
-
-    @Override
-    public void solutionUpdated(Solution<V, T> solution) {
-    }
-
-    @Override
-    public void getInfo(Solution<V, T> solution, Map<String, String> info) {
-    }
-
-    @Override
-    public void getInfo(Solution<V, T> solution, Map<String, String> info, Collection<V> variables) {
-    }
-
-    @Override
-    public void bestCleared(Solution<V, T> solution) {
-    }
-
-    @Override
-    public void bestRestored(Solution<V, T> solution) {
-    }
-
-    /** Accept lazy neighbour */
-    @Override
-    public boolean accept(LazyNeighbour<V, T> neighbour, double value) {
-        return value <= 0.0;
-    }
     
     /**
-     * This interface may be implemented by a {@link NeighbourSelection} to indicate that it is employed by a hill climber.
-     *
+     * Accept any move that does not worsen the solution (value <= 0)
      */
-    public static interface HillClimberSelection {
-        /**
-         * True if employed by a hill climber, e.g., worsening moves may be skipped.
-         */
-        public void setHcMode(boolean hcMode);
+    @Override
+    protected boolean accept(Model<V, T> model, Neighbour<V, T> neighbour, double value, boolean lazy) {
+        return value <= 0;
     }
+
+    /**
+     * All parameters start with HillClimber base name, e.g., HillClimber.MaxIdle 
+     */
+    @Override
+    public String getParameterBaseName() { return "HillClimber"; }
 }

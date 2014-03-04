@@ -1,30 +1,16 @@
 package net.sf.cpsolver.ifs.algorithms;
 
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 
-import net.sf.cpsolver.ifs.algorithms.neighbourhoods.RandomMove;
-import net.sf.cpsolver.ifs.algorithms.neighbourhoods.RandomSwapMove;
-import net.sf.cpsolver.ifs.algorithms.neighbourhoods.SuggestionMove;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
-import net.sf.cpsolver.ifs.model.LazyNeighbour;
+import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
-import net.sf.cpsolver.ifs.model.LazyNeighbour.LazyNeighbourAcceptanceCriterion;
 import net.sf.cpsolver.ifs.solution.Solution;
-import net.sf.cpsolver.ifs.solution.SolutionListener;
-import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.JProf;
-import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.ifs.util.ToolBox;
-
-import org.apache.log4j.Logger;
 
 /**
  * Simulated annealing. In each iteration, one of the given neighbourhoods is selected first,
@@ -89,21 +75,18 @@ import org.apache.log4j.Logger;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>> implements NeighbourSelection<V, T>, SolutionListener<V, T>, LazyNeighbourAcceptanceCriterion<V, T> {
-    private static Logger sLog = Logger.getLogger(SimulatedAnnealing.class);
-    private static DecimalFormat sDF2 = new DecimalFormat("0.00");
-    private static DecimalFormat sDF5 = new DecimalFormat("0.00000");
-    private static DecimalFormat sDF10 = new DecimalFormat("0.0000000000");
+public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>> extends NeighbourSearch<V,T> {
+    private DecimalFormat iDF5 = new DecimalFormat("0.00000");
+    private DecimalFormat iDF10 = new DecimalFormat("0.0000000000");
     private double iInitialTemperature = 1.5;
     private double iCoolingRate = 0.95;
     private double iReheatRate = -1;
-    private long iTemperatureLength = 250000;
+    private long iTemperatureLength = 25000;
     private long iReheatLength = 0;
     private long iRestoreBestLength = 0;
     private double iTemperature = 0.0;
     private double iReheatLengthCoef = 5.0;
     private double iRestoreBestLengthCoef = -1;
-    private long iIter = 0;
     private long iLastImprovingIter = 0;
     private long iLastReheatIter = 0;
     private long iLastCoolingIter = 0;
@@ -111,15 +94,7 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
     private boolean iStochasticHC = false;
     private int iMoves = 0;
     private double iAbsValue = 0;
-    private long iT0 = -1;
     private double iBestValue = 0;
-    private Progress iProgress = null;
-    private boolean iActive;
-
-    private List<NeighbourSelector<V, T>> iNeighbours = null;
-    private boolean iRandomSelection = false;
-    private boolean iUpdatePoints = false;
-    private double iTotalBonus;
 
     private boolean iRelativeAcceptance = true;
 
@@ -143,74 +118,30 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
      * @param properties
      *            problem properties
      */
-    @SuppressWarnings("unchecked")
     public SimulatedAnnealing(DataProperties properties) {
-        iInitialTemperature = properties.getPropertyDouble("SimulatedAnnealing.InitialTemperature", iInitialTemperature);
-        iReheatRate = properties.getPropertyDouble("SimulatedAnnealing.ReheatRate", iReheatRate);
-        iCoolingRate = properties.getPropertyDouble("SimulatedAnnealing.CoolingRate", iCoolingRate);
-        iRelativeAcceptance = properties.getPropertyBoolean("SimulatedAnnealing.RelativeAcceptance", iRelativeAcceptance);
-        iStochasticHC = properties.getPropertyBoolean("SimulatedAnnealing.StochasticHC", iStochasticHC);
-        iTemperatureLength = properties.getPropertyLong("SimulatedAnnealing.TemperatureLength", iTemperatureLength);
-        iReheatLengthCoef = properties.getPropertyDouble("SimulatedAnnealing.ReheatLengthCoef", iReheatLengthCoef);
-        iRestoreBestLengthCoef = properties.getPropertyDouble("SimulatedAnnealing.RestoreBestLengthCoef", iRestoreBestLengthCoef);
+        super(properties);
+        iInitialTemperature = properties.getPropertyDouble(getParameterBaseName() + ".InitialTemperature", iInitialTemperature);
+        iReheatRate = properties.getPropertyDouble(getParameterBaseName() + ".ReheatRate", iReheatRate);
+        iCoolingRate = properties.getPropertyDouble(getParameterBaseName() + ".CoolingRate", iCoolingRate);
+        iRelativeAcceptance = properties.getPropertyBoolean(getParameterBaseName() + ".RelativeAcceptance", iRelativeAcceptance);
+        iStochasticHC = properties.getPropertyBoolean(getParameterBaseName() + ".StochasticHC", iStochasticHC);
+        iTemperatureLength = properties.getPropertyLong(getParameterBaseName() + ".TemperatureLength", iTemperatureLength);
+        iReheatLengthCoef = properties.getPropertyDouble(getParameterBaseName() + ".ReheatLengthCoef", iReheatLengthCoef);
+        iRestoreBestLengthCoef = properties.getPropertyDouble(getParameterBaseName() + ".RestoreBestLengthCoef", iRestoreBestLengthCoef);
         if (iReheatRate < 0)
             iReheatRate = Math.pow(1 / iCoolingRate, iReheatLengthCoef * 1.7);
         if (iRestoreBestLengthCoef < 0)
             iRestoreBestLengthCoef = iReheatLengthCoef * iReheatLengthCoef;
-        iRandomSelection = properties.getPropertyBoolean("SimulatedAnnealing.Random", iRandomSelection);
-        iUpdatePoints = properties.getPropertyBoolean("SimulatedAnnealing.Update", iUpdatePoints);
-        String neighbours = properties.getProperty("SimulatedAnnealing.Neighbours",
-                RandomMove.class.getName() + ";" + RandomSwapMove.class.getName() + "@0.01;" + SuggestionMove.class.getName() + "@0.01");
-        neighbours += ";" + properties.getProperty("SimulatedAnnealing.AdditionalNeighbours", "");
-        iNeighbours = new ArrayList<NeighbourSelector<V,T>>();
-        for (String neighbour: neighbours.split("\\;")) {
-            if (neighbour == null || neighbour.isEmpty()) continue;
-            try {
-                double bonus = 1.0;
-                if (neighbour.indexOf('@')>=0) {
-                    bonus = Double.parseDouble(neighbour.substring(neighbour.indexOf('@') + 1));
-                    neighbour = neighbour.substring(0, neighbour.indexOf('@'));
-                }
-                Class<NeighbourSelection<V, T>> clazz = (Class<NeighbourSelection<V, T>>)Class.forName(neighbour);
-                NeighbourSelection<V, T> selection = clazz.getConstructor(DataProperties.class).newInstance(properties);
-                addNeighbourSelection(selection, bonus);
-            } catch (Exception e) {
-                sLog.error("Unable to use " + neighbour + ": " + e.getMessage());
-            }
-        }
     }
     
-    private void addNeighbourSelection(NeighbourSelection<V,T> ns, double bonus) {
-        iNeighbours.add(new NeighbourSelector<V,T>(ns, bonus, iUpdatePoints));
-    }
-    
-    private double totalPoints() {
-        if (!iUpdatePoints) return iTotalBonus;
-        double total = 0;
-        for (NeighbourSelector<V,T> ns: iNeighbours)
-            total += ns.getPoints();
-        return total;
-    }
-
-    /**
-     * Initialization
-     */
+    /** Setup the temperature */
     @Override
-    public void init(Solver<V, T> solver) {
+    protected void activate(Solution<V, T> solution) {
+        super.activate(solution);
         iTemperature = iInitialTemperature;
         iReheatLength = Math.round(iReheatLengthCoef * iTemperatureLength);
         iRestoreBestLength = Math.round(iRestoreBestLengthCoef * iTemperatureLength);
-        solver.currentSolution().addSolutionListener(this);
-        for (NeighbourSelection<V, T> neighbour: iNeighbours)
-            neighbour.init(solver);
-        solver.setUpdateProgress(false);
-        iProgress = Progress.getInstance(solver.currentSolution().getModel());
-        iActive = false;
-        iTotalBonus = 0;
-        for (NeighbourSelector<V,T> s: iNeighbours) {
-            s.init(solver);
-            iTotalBonus += s.getBonus();
-        }
+        iLastImprovingIter = iIter;
     }
 
     /**
@@ -218,18 +149,18 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
      */
     protected void cool(Solution<V, T> solution) {
         iTemperature *= iCoolingRate;
-        sLog.info("Iter=" + iIter / 1000 + "k, NonImpIter=" + sDF2.format((iIter - iLastImprovingIter) / 1000.0)
-                + "k, Speed=" + sDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s");
-        sLog.info("Temperature decreased to " + sDF5.format(iTemperature) + " " + "(#moves=" + iMoves + ", rms(value)="
-                + sDF2.format(Math.sqrt(iAbsValue / iMoves)) + ", " + "accept=-"
-                + sDF2.format(100.0 * iAcceptIter[0] / iTemperatureLength) + "/"
-                + sDF2.format(100.0 * iAcceptIter[1] / iTemperatureLength) + "/+"
-                + sDF2.format(100.0 * iAcceptIter[2] / iTemperatureLength) + "%, "
-                + (prob(-1) < 1.0 ? "p(-1)=" + sDF2.format(100.0 * prob(-1)) + "%, " : "") + "p(+1)="
-                + sDF2.format(100.0 * prob(1)) + "%, " + "p(+10)=" + sDF5.format(100.0 * prob(10)) + "%)");
-        if (iUpdatePoints)
-            for (NeighbourSelector<V,T> ns: iNeighbours)
-                sLog.info("  "+ns+" ("+sDF2.format(ns.getPoints())+" pts, "+sDF2.format(100.0*(iUpdatePoints?ns.getPoints():ns.getBonus())/totalPoints())+"%)");
+        iLog.info("Iter=" + iIter / 1000 + "k, NonImpIter=" + iDF2.format((iIter - iLastImprovingIter) / 1000.0)
+                + "k, Speed=" + iDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s");
+        iLog.info("Temperature decreased to " + iDF5.format(iTemperature) + " " + "(#moves=" + iMoves + ", rms(value)="
+                + iDF2.format(Math.sqrt(iAbsValue / iMoves)) + ", " + "accept=-"
+                + iDF2.format(100.0 * iAcceptIter[0] / iMoves) + "/"
+                + iDF2.format(100.0 * iAcceptIter[1] / iMoves) + "/+"
+                + iDF2.format(100.0 * iAcceptIter[2] / iMoves) + "%, "
+                + (prob(-1) < 1.0 ? "p(-1)=" + iDF2.format(100.0 * prob(-1)) + "%, " : "") + 
+                "p(+0.1)=" + iDF2.format(100.0 * prob(0.1)) + "%, " +
+                "p(+1)=" + iDF2.format(100.0 * prob(1)) + "%, " +
+                "p(+10)=" + iDF5.format(100.0 * prob(10)) + "%)");
+        logNeibourStatus();
         iLastCoolingIter = iIter;
         iAcceptIter = new int[] { 0, 0, 0 };
         iMoves = 0;
@@ -241,48 +172,23 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
      */
     protected void reheat(Solution<V, T> solution) {
         iTemperature *= iReheatRate;
-        sLog.info("Iter=" + iIter / 1000 + "k, NonImpIter=" + sDF2.format((iIter - iLastImprovingIter) / 1000.0)
-                + "k, Speed=" + sDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s");
-        sLog.info("Temperature increased to " + sDF5.format(iTemperature) + " "
-                + (prob(-1) < 1.0 ? "p(-1)=" + sDF2.format(100.0 * prob(-1)) + "%, " : "") + "p(+1)="
-                + sDF2.format(100.0 * prob(1)) + "%, " + "p(+10)=" + sDF5.format(100.0 * prob(10)) + "%, " + "p(+100)="
-                + sDF10.format(100.0 * prob(100)) + "%)");
-        if (iUpdatePoints)
-            for (NeighbourSelector<V,T> ns: iNeighbours)
-                sLog.info("  "+ns+" ("+sDF2.format(ns.getPoints())+" pts, "+sDF2.format(100.0*(iUpdatePoints?ns.getPoints():ns.getBonus())/totalPoints())+"%)");
+        iLog.info("Iter=" + iIter / 1000 + "k, NonImpIter=" + iDF2.format((iIter - iLastImprovingIter) / 1000.0)
+                + "k, Speed=" + iDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s");
+        iLog.info("Temperature increased to " + iDF5.format(iTemperature) + " "
+                + (prob(-1) < 1.0 ? "p(-1)=" + iDF2.format(100.0 * prob(-1)) + "%, " : "") + "p(+1)="
+                + iDF2.format(100.0 * prob(1)) + "%, " + "p(+10)=" + iDF5.format(100.0 * prob(10)) + "%, " + "p(+100)="
+                + iDF10.format(100.0 * prob(100)) + "%)");
+        logNeibourStatus();
         iLastReheatIter = iIter;
-        iProgress.setPhase("Simulated Annealing [" + sDF2.format(iTemperature) + "]...");
+        iProgress.setPhase("Simulated Annealing [" + iDF2.format(iTemperature) + "]...");
     }
 
     /**
      * restore best ever found solution
      */
     protected void restoreBest(Solution<V, T> solution) {
-        sLog.info("Best restored");
+        iLog.info("Best restored");
         iLastImprovingIter = iIter;
-    }
-
-    /**
-     * Generate neighbour -- select neighbourhood randomly, select neighbour
-     */
-    public Neighbour<V, T> genMove(Solution<V, T> solution) {
-        while (true) {
-            incIter(solution);
-            NeighbourSelector<V,T> ns = null;
-            if (iRandomSelection) {
-                ns = ToolBox.random(iNeighbours);
-            } else {
-                double points = (ToolBox.random()*totalPoints());
-                for (Iterator<NeighbourSelector<V,T>> i = iNeighbours.iterator(); i.hasNext(); ) {
-                    ns = i.next();
-                    points -= (iUpdatePoints?ns.getPoints():ns.getBonus());
-                    if (points<=0) break;
-                }
-            }
-            Neighbour<V, T> n = ns.selectNeighbour(solution);
-            if (n != null)
-                return n;
-        }
     }
 
     /**
@@ -300,7 +206,7 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
     }
 
     /**
-     * True if the given neighboir is to be be accepted
+     * True if the given neighbour is to be be accepted
      * 
      * @param solution
      *            current solution
@@ -309,24 +215,11 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
      * @return true if generated random number is below
      *         {@link SimulatedAnnealing#prob(double)}
      */
-    protected boolean accept(Solution<V, T> solution, Neighbour<V, T> neighbour) {
-        if (neighbour instanceof LazyNeighbour) {
-            ((LazyNeighbour<V, T>)neighbour).setAcceptanceCriterion(this);
-            return true;
-        }
-        double value = (iRelativeAcceptance ? neighbour.value() : solution.getModel().getTotalValue() + neighbour.value() - solution.getBestValue());
-        double prob = prob(value);
-        if (prob >= 1.0 || ToolBox.random() < prob) {
-            iAcceptIter[neighbour.value() < 0.0 ? 0 : neighbour.value() > 0.0 ? 2 : 1]++;
-            return true;
-        }
-        return false;
-    }
-    
-    /** Accept lazy neighbour */
     @Override
-    public boolean accept(LazyNeighbour<V, T> neighbour, double value) {
-        double prob = prob(value);
+    protected boolean accept(Model<V, T> model, Neighbour<V, T> neighbour, double value, boolean lazy) {
+        iMoves ++;
+        iAbsValue += value * value;
+        double prob = prob(iRelativeAcceptance ? value : (lazy ? model.getTotalValue() : value + model.getTotalValue()) - iBestValue);
         if (prob >= 1.0 || ToolBox.random() < prob) {
             iAcceptIter[value < 0.0 ? 0 : value > 0.0 ? 2 : 1]++;
             return true;
@@ -337,9 +230,9 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
     /**
      * Increment iteration counter, cool/reheat/restoreBest if necessary
      */
-    protected void incIter(Solution<V, T> solution) {
-        if (iT0 < 0)
-            iT0 = JProf.currentTimeMillis();
+    @Override
+    protected void incIteration(Solution<V, T> solution) {
+        super.incIteration(solution);
         iIter++;
         if (iIter > iLastImprovingIter + iRestoreBestLength)
             restoreBest(solution);
@@ -347,33 +240,7 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
             reheat(solution);
         if (iIter > iLastCoolingIter + iTemperatureLength)
             cool(solution);
-        iProgress.setProgress(Math.round(100.0 * (iIter - Math.max(iLastReheatIter, iLastImprovingIter))
-                / iReheatLength));
-    }
-
-    /**
-     * Select neighbour -- generate a move
-     * {@link SimulatedAnnealing#genMove(Solution)} until an acceptable
-     * neighbour is found
-     * {@link SimulatedAnnealing#accept(Solution, Neighbour)}, keep
-     * increasing iteration {@link SimulatedAnnealing#incIter(Solution)}.
-     */
-    @Override
-    public Neighbour<V, T> selectNeighbour(Solution<V, T> solution) {
-        if (!iActive) {
-            iProgress.setPhase("Simulated Annealing [" + sDF2.format(iTemperature) + "]...");
-            iActive = true;
-        }
-        Neighbour<V, T> neighbour = null;
-        while ((neighbour = genMove(solution)) != null) {
-            iMoves++;
-            iAbsValue += neighbour.value() * neighbour.value();
-            if (accept(solution, neighbour))
-                break;
-        }
-        if (neighbour == null)
-            iActive = false;
-        return (neighbour == null ? null : neighbour);
+        iProgress.setProgress(Math.round(100.0 * (iIter - Math.max(iLastReheatIter, iLastImprovingIter)) / iReheatLength));
     }
 
     /**
@@ -389,22 +256,5 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
     }
 
     @Override
-    public void solutionUpdated(Solution<V, T> solution) {
-    }
-
-    @Override
-    public void getInfo(Solution<V, T> solution, Map<String, String> info) {
-    }
-
-    @Override
-    public void getInfo(Solution<V, T> solution, Map<String, String> info, Collection<V> variables) {
-    }
-
-    @Override
-    public void bestCleared(Solution<V, T> solution) {
-    }
-
-    @Override
-    public void bestRestored(Solution<V, T> solution) {
-    }
+    public String getParameterBaseName() { return "SimulatedAnnealing"; }
 }
