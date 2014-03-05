@@ -57,7 +57,7 @@ import org.apache.log4j.Logger;
  * solution based on online penalties is computed first, this solution (and the
  * given epsilon) is then used to setup bounds on online penalties for the
  * solution that minimizes student preference penalties. Limit on online penalty
- * is computed as (1+Section.Epsilon) {@link Selection#getPenalty}, i.e., only
+ * is computed as (1+Section.Epsilon) {@link BranchBoundSelection.Selection#getPenalty()}, i.e., only
  * sections with penalty equal or below this limit can be used -- among these
  * the solution that minimizes student preference penalties is computed.</td>
  * </tr>

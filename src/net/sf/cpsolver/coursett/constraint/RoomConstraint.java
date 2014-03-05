@@ -56,7 +56,7 @@ public class RoomConstraint extends Constraint<Lecture, Placement> {
 
     private Long iType = null;
     private int iLastUselessHalfHours = 0;
-    private int iLastBrokenTimePatterns = 0;
+    private double iLastBrokenTimePatterns = 0;
 
     /**
      * Constructor
@@ -260,7 +260,7 @@ public class RoomConstraint extends Constraint<Lecture, Placement> {
         iLastUselessHalfHours = UselessHalfHours.countUselessSlotsHalfHours(this);
         getModel().getCriterion(UselessHalfHours.class).inc(iLastUselessHalfHours);
         getModel().getCriterion(BrokenTimePatterns.class).inc(-iLastBrokenTimePatterns);
-        iLastBrokenTimePatterns = BrokenTimePatterns.countUselessSlotsBrokenTimePatterns(this);
+        iLastBrokenTimePatterns = BrokenTimePatterns.countUselessSlotsBrokenTimePatterns(this) / 6.0;
         getModel().getCriterion(BrokenTimePatterns.class).inc(iLastBrokenTimePatterns);
     }
 
@@ -277,9 +277,8 @@ public class RoomConstraint extends Constraint<Lecture, Placement> {
         iLastUselessHalfHours = UselessHalfHours.countUselessSlotsHalfHours(this);
         getModel().getCriterion(UselessHalfHours.class).inc(iLastUselessHalfHours);
         getModel().getCriterion(BrokenTimePatterns.class).inc(-iLastBrokenTimePatterns);
-        iLastBrokenTimePatterns = BrokenTimePatterns.countUselessSlotsBrokenTimePatterns(this);
+        iLastBrokenTimePatterns = BrokenTimePatterns.countUselessSlotsBrokenTimePatterns(this) / 6.0;
         getModel().getCriterion(BrokenTimePatterns.class).inc(iLastBrokenTimePatterns);
-
     }
 
     /**

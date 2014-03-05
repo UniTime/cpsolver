@@ -2,6 +2,7 @@ package net.sf.cpsolver.coursett.criteria;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import net.sf.cpsolver.coursett.Constants;
@@ -56,26 +57,26 @@ public class BrokenTimePatterns extends TimetablingCriterion {
         return "Placement.UselessSlotsWeight";
     }
     
-    protected int penalty(Placement value) {
+    protected double penalty(Placement value) {
         if (value.isMultiRoom()) {
             int ret = 0;
             for (RoomLocation r : value.getRoomLocations()) {
                 if (r.getRoomConstraint() == null)
                     continue;
-                ret += penalty(r.getRoomConstraint(), value.getTimeLocation());
+                ret += penalty(r.getRoomConstraint(), value);
             }
             return ret;
         } else {
-            return (value.getRoomLocation().getRoomConstraint() == null ? 0 : penalty(value.getRoomLocation().getRoomConstraint(), value.getTimeLocation()));
+            return (value.getRoomLocation().getRoomConstraint() == null ? 0 : penalty(value.getRoomLocation().getRoomConstraint(), value));
         }
     }
     
-    protected int penalty(RoomConstraint rc) {
-        return countUselessSlotsBrokenTimePatterns(rc);
+    protected double penalty(RoomConstraint rc) {
+        return countUselessSlotsBrokenTimePatterns(rc) / 6.0;
     }
     
-   protected int penalty(RoomConstraint rc, TimeLocation value) {
-        return countUselessSlotsBrokenTimePatterns(rc, value);
+   protected double penalty(RoomConstraint rc, Placement value) {
+        return countUselessSlotsBrokenTimePatterns(rc, value) / 6.0;
     }
 
    @Override
@@ -135,37 +136,48 @@ public class BrokenTimePatterns extends TimetablingCriterion {
     
     private static int sDaysMWF = Constants.DAY_CODES[0] + Constants.DAY_CODES[2] + Constants.DAY_CODES[4];
     private static int sDaysTTh = Constants.DAY_CODES[1] + Constants.DAY_CODES[3];
+    
+    private static boolean isEmpty(RoomConstraint rc, int s, int d, Placement placement) {
+        List<Placement> assigned = rc.getResource(d * Constants.SLOTS_PER_DAY + s);
+        return assigned.isEmpty() || (placement != null && assigned.size() == 1 && assigned.get(0).variable().equals(placement.variable()));
+    }
 
     /** Number of broken time patterns for this room */
-    protected static int countUselessSlotsBrokenTimePatterns(RoomConstraint rc, TimeLocation time) {
+    protected static int countUselessSlotsBrokenTimePatterns(RoomConstraint rc, Placement placement) {
         int ret = 0;
+        TimeLocation time = placement.getTimeLocation();
         int slot = time.getStartSlot() % Constants.SLOTS_PER_DAY;
         int days = time.getDayCode();
         if ((days & sDaysMWF) != 0 && (days & sDaysMWF) != sDaysMWF) {
             for (int s = slot; s < slot + time.getLength(); s++) {
-                int nrEmpty = 0;
-                if ((Constants.DAY_CODES[0] & days) == 0 && rc.getResource(0 * Constants.SLOTS_PER_DAY + s).isEmpty())
-                    nrEmpty++;
-                if ((Constants.DAY_CODES[2] & days) == 0 && rc.getResource(2 * Constants.SLOTS_PER_DAY + s).isEmpty())
-                    nrEmpty++;
-                if ((Constants.DAY_CODES[4] & days) == 0 && rc.getResource(4 * Constants.SLOTS_PER_DAY + s).isEmpty())
-                    nrEmpty++;
-                if (nrEmpty > 0)
-                    ret ++;
+                int d = (days & sDaysMWF);
+                if (d == Constants.DAY_CODES[0] && isEmpty(rc, s, 0, placement)) {
+                    if (isEmpty(rc, s, 2, placement) != isEmpty(rc, s, 4, placement)) ret ++;
+                    if (!isEmpty(rc, s, 2, placement) && !isEmpty(rc, s, 4, placement)) ret --;
+                } else if (d == Constants.DAY_CODES[2] && isEmpty(rc, s, 2, placement)) {
+                    if (isEmpty(rc, s, 0, placement) != isEmpty(rc, s, 4, placement)) ret ++;
+                    if (!isEmpty(rc, s, 0, placement) && !isEmpty(rc, s, 4, placement)) ret --;
+                } else if (d == Constants.DAY_CODES[4] && isEmpty(rc, s, 4, placement)) {
+                    if (isEmpty(rc, s, 0, placement) != isEmpty(rc, s, 2, placement)) ret ++;
+                    if (!isEmpty(rc, s, 0, placement) && !isEmpty(rc, s, 2, placement)) ret --;
+                } else if (d == (Constants.DAY_CODES[0] | Constants.DAY_CODES[2]) && isEmpty(rc, s, 0, placement) && isEmpty(rc, s, 2, placement)) {
+                    if (isEmpty(rc, s, 4, placement)) ret ++;
+                } else if (d == (Constants.DAY_CODES[2] | Constants.DAY_CODES[4]) && isEmpty(rc, s, 2, placement) && isEmpty(rc, s, 4, placement)) {
+                    if (isEmpty(rc, s, 0, placement)) ret ++;
+                } else if (d == (Constants.DAY_CODES[0] | Constants.DAY_CODES[4]) && isEmpty(rc, s, 0, placement) && isEmpty(rc, s, 4, placement)) {
+                    if (isEmpty(rc, s, 2, placement)) ret ++;
+                }
             }
         }
         if ((days & sDaysTTh) != 0 && (days & sDaysTTh) != sDaysTTh) {
             for (int s = slot; s < slot + time.getLength(); s++) {
-                int nrEmpty = 0;
-                if ((Constants.DAY_CODES[1] & days) == 0 && rc.getResource(1 * Constants.SLOTS_PER_DAY + s).isEmpty())
-                    nrEmpty++;
-                if ((Constants.DAY_CODES[3] & days) == 0 && rc.getResource(3 * Constants.SLOTS_PER_DAY + s).isEmpty())
-                    nrEmpty++;
-                if (nrEmpty > 0)
-                    ret ++;
+                if (isEmpty(rc, s, 1, placement) && isEmpty(rc, s, 3, placement)) ret ++;
+                int d = (days & sDaysTTh);
+                if (d == Constants.DAY_CODES[1] && isEmpty(rc, s, 1, placement) && !isEmpty(rc, s, 3, placement)) ret --;
+                if (d == Constants.DAY_CODES[3] && isEmpty(rc, s, 3, placement) && !isEmpty(rc, s, 1, placement)) ret --;
             }
         }
-        return ret / 6;
+        return ret;
     }
     
     /** Number of useless slots for this room */
@@ -177,8 +189,7 @@ public class BrokenTimePatterns extends TimetablingCriterion {
                 if (rc.getResource(slot).isEmpty()) {
                     switch (d) {
                         case 0:
-                            if (!rc.getResource(2 * Constants.SLOTS_PER_DAY + s).isEmpty()
-                                    && !rc.getResource(4 * Constants.SLOTS_PER_DAY + s).isEmpty())
+                            if (!rc.getResource(2 * Constants.SLOTS_PER_DAY + s).isEmpty() && !rc.getResource(4 * Constants.SLOTS_PER_DAY + s).isEmpty())
                                 ret++;
                             break;
                         case 1:
@@ -186,8 +197,7 @@ public class BrokenTimePatterns extends TimetablingCriterion {
                                 ret++;
                             break;
                         case 2:
-                            if (!rc.getResource(0 * Constants.SLOTS_PER_DAY + s).isEmpty()
-                                    && !rc.getResource(4 * Constants.SLOTS_PER_DAY + s).isEmpty())
+                            if (!rc.getResource(0 * Constants.SLOTS_PER_DAY + s).isEmpty() && !rc.getResource(4 * Constants.SLOTS_PER_DAY + s).isEmpty())
                                 ret++;
                             break;
                         case 3:
@@ -195,14 +205,13 @@ public class BrokenTimePatterns extends TimetablingCriterion {
                                 ret++;
                             break;
                         case 4:
-                            if (!rc.getResource(0 * Constants.SLOTS_PER_DAY + s).isEmpty()
-                                    && !rc.getResource(2 * Constants.SLOTS_PER_DAY + s).isEmpty())
+                            if (!rc.getResource(0 * Constants.SLOTS_PER_DAY + s).isEmpty() && !rc.getResource(2 * Constants.SLOTS_PER_DAY + s).isEmpty())
                                 ret++;
                             break;
                     }
                 }
             }
         }
-        return Math.round((1.0f / 6.0f) * ret);
+        return ret;
     }
 }

@@ -55,4 +55,24 @@ public abstract class TimetablingCriterion extends AbstractCriterion<Lecture, Pl
     public double getPlacementSelectionWeightDefault(int level) {
         return (level <= 1 ? getWeight() : 0.0);
     }
+
+    /** Abbreviated name of the criterion for {@link TimetablingCriterion#toString()}. */
+    public String getAbbreviation() {
+        return getName().replaceAll("[a-z ]","");
+    }
+    
+    @Override
+    public String toString() {
+        double val = getValue();
+        if (Math.abs(val) < 0.005 || getWeight() <= 0.01) return "";
+        double[] bounds = getBounds();
+        if (bounds[0] <= val && val <= bounds[1] && bounds[0] < bounds[1] && getName().endsWith(" Preferences"))
+            return getAbbreviation() + ":" + getPerc(val, bounds[0], bounds[1]) + "%";
+        else if (bounds[1] <= val && val <= bounds[0] && bounds[1] < bounds[0] && getName().endsWith(" Preferences"))
+            return getAbbreviation() + ":" + getPercRev(val, bounds[1], bounds[0]) + "%";
+        else if (bounds[0] != val || val != bounds[1])
+            return getAbbreviation() + ":" + sDoubleFormat.format(getValue());
+        else
+            return "";
+    }
 }

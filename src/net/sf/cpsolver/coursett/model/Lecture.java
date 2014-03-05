@@ -67,6 +67,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
     private float iRoomToLimitRatio;
     private int iNrRooms;
     private int iOrd;
+    private double iWeight = 1.0;
 
     private Set<Student> iStudents = new HashSet<Student>();
     private DepartmentSpreadConstraint iDeptSpreadConstraint = null;
@@ -1326,4 +1327,15 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         }
         return iIgnoreStudentConflictsWith.contains(other.getClassId());
     }
+   
+   /**
+    * Get class weight. This weight is used with the criteria. E.g., class that is not meeting all the
+    * semester can have a lower weight. Defaults to 1.0
+    */
+   public double getWeight() { return iWeight; }
+   /**
+    * Set class weight. This weight is used with the criteria. E.g., class that is not meeting all the
+    * semester can have a lower weight.
+    */
+   public void setWeight(double weight) { iWeight = weight; }
 }

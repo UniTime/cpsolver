@@ -223,12 +223,15 @@ public class TimeLocation {
         return new DaysEnum();
     }
 
+    private int[] iDaysCache = null;
     public int[] getDaysArray() {
-        int[] days = new int[getNrMeetings()];
-        int i = 0;
-        for (Enumeration<Integer> e = getDays(); e.hasMoreElements();)
-            days[i++] = e.nextElement();
-        return days;
+        if (iDaysCache == null) {
+            iDaysCache = new int[getNrMeetings()];
+            int i = 0;
+            for (Enumeration<Integer> e = getDays(); e.hasMoreElements();)
+                iDaysCache[i++] = e.nextElement();
+        }
+        return iDaysCache;
     }
 
     /** Text representation */
@@ -427,5 +430,18 @@ public class TimeLocation {
     public interface IntEnumeration extends Enumeration<Integer> {
         @Deprecated
         public Integer nextInt();
+    }
+    
+    private Integer iFirstMeeting = null;
+    public int getFirstMeeting(int dayOfWeekOffset) {
+        if (iFirstMeeting == null) {
+            int idx = -1;
+            while ((idx = getWeekCode().nextSetBit(1 + idx)) >= 0) {
+                int dow = (idx + dayOfWeekOffset) % 7;
+                if ((getDayCode() & Constants.DAY_CODES[dow]) != 0) break;
+            }
+            iFirstMeeting = idx;
+        }
+        return iFirstMeeting;
     }
 }

@@ -38,26 +38,57 @@ import net.sf.cpsolver.ifs.util.Progress;
  */
 
 public class TimetableSolver extends Solver<Lecture, Placement> {
+    private long iLastCompleteSolutionFixIteration = -1;
+    private long iLastIncompleteSolutionFixIteration = -1;
+    private long iCompleteSolutionFixInterval = 1;
+    private long iIncompleteSolutionFixInterval = 5000;
 
     public TimetableSolver(DataProperties properties) {
         super(properties);
     }
+    
+    @Override
+    public void initSolver() {
+        super.initSolver();
+        iCompleteSolutionFixInterval = getProperties().getPropertyLong("General.CompleteSolutionFixInterval", iCompleteSolutionFixInterval);
+        iIncompleteSolutionFixInterval = getProperties().getPropertyLong("General.IncompleteSolutionFixInterval", iIncompleteSolutionFixInterval);
+    }
 
     @Override
     protected void onAssigned(double startTime) {
-        // Check if the solution is the best ever found one
-        if (iCurrentSolution.getModel().unassignedVariables().isEmpty()
-                && getSolutionComparator().isBetterThanBestSolution(iCurrentSolution)) {
-            fixCompleteSolution(startTime);
-        } /*
-           * else { // If the solver is not able to improve solution in the last
-           * 5000 iterations, take the best one and try to fix it if
-           * (iCurrentSolution.getBestInfo()!=null &&
-           * iCurrentSolution.getModel().getBestUnassignedVariables()>0 &&
-           * iCurrentSolution
-           * .getIteration()==iCurrentSolution.getBestIteration()+5000) {
-           * iCurrentSolution.restoreBest(); fixCompleteSolution(startTime); } }
-           */
+        if (iCurrentSolution.getModel().nrUnassignedVariables() == 0) {
+            // complete solution was found
+            if (iCompleteSolutionFixInterval < 0) {
+             // feature disabled
+                return;
+            } else if (iCompleteSolutionFixInterval == 0) {
+                // only run first time a complete solution is found
+                if (iLastCompleteSolutionFixIteration >= 0) return;
+            } else {
+                // run first time and if not run for a given number of iterations
+                if (iLastCompleteSolutionFixIteration >= 0 && iCurrentSolution.getIteration() - iLastCompleteSolutionFixIteration < iCompleteSolutionFixInterval) return;
+            }
+            if (getSolutionComparator().isBetterThanBestSolution(iCurrentSolution)) {
+                fixCompleteSolution(startTime);
+                iLastCompleteSolutionFixIteration = iCurrentSolution.getIteration();
+            }
+        } else if (iCurrentSolution.getBestInfo() == null) {
+            // complete solution has not been found yet
+            if (iIncompleteSolutionFixInterval < 0) {
+                // feature disabled
+                   return;
+            } else if (iIncompleteSolutionFixInterval == 0) {
+                // only run first time a complete solution is found
+                if (iLastIncompleteSolutionFixIteration >= 0) return;
+            } else {
+                // run first time and if not run for a given number of iterations
+                if (iLastIncompleteSolutionFixIteration >= 0 && iCurrentSolution.getIteration() - iLastIncompleteSolutionFixIteration < iIncompleteSolutionFixInterval) return;
+            }
+            if (getSolutionComparator().isBetterThanBestSolution(iCurrentSolution)) {
+                fixCompleteSolution(startTime);
+                iLastIncompleteSolutionFixIteration = iCurrentSolution.getIteration();
+            }
+        }
     }
 
     /**

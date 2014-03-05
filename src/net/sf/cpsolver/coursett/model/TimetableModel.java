@@ -3,6 +3,8 @@ package net.sf.cpsolver.coursett.model;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.List;
@@ -175,14 +177,28 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
         getStudentSectioning().switchStudents(this);
     }
 
+    /**
+     * String representation -- returns a list of values of objective criteria
+     */
     @Override
     public String toString() {
-        return "TimetableModel{" + "\n  super=" + super.toString()
-                + "\n  studentConflicts=" + sDoubleFormat.format(getCriterion(StudentConflict.class).getValue())
-                + "\n  roomPreferences=" + sDoubleFormat.format(getCriterion(RoomPreferences.class).getValue())
-                + "\n  timePreferences=" + sDoubleFormat.format(getCriterion(TimePreferences.class).getValue())
-                + "\n  groupConstraintPreferences=" + sDoubleFormat.format(getCriterion(DistributionPreferences.class).getValue())
-                + "\n}";
+        List<Criterion<Lecture, Placement>> criteria = new ArrayList<Criterion<Lecture,Placement>>(getCriteria());
+        Collections.sort(criteria, new Comparator<Criterion<Lecture, Placement>>() {
+            @Override
+            public int compare(Criterion<Lecture, Placement> c1, Criterion<Lecture, Placement> c2) {
+                int cmp = -Double.compare(c1.getWeight(), c2.getWeight());
+                if (cmp != 0) return cmp;
+                return c1.getName().compareTo(c2.getName());
+            }
+        });
+        String ret = "";
+        for (Criterion<Lecture, Placement> criterion: criteria) {
+            String val = criterion.toString();
+            if (!val.isEmpty())
+                ret += ", " + val;
+        }
+        return (nrUnassignedVariables() == 0 ? "" : "V:" + nrAssignedVariables() + "/" + variables().size() + ", ") + 
+                "T:" + sDoubleFormat.format(getTotalValue()) + ret;
     }
 
     public Map<String, String> getBounds() {
