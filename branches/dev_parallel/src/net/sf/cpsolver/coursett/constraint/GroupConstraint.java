@@ -671,6 +671,10 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
             iDayOfWeekOffset = config.getPropertyInt("DatePattern.DayOfWeekOffset", 0);
             iPrecedenceConsiderDatePatterns = config.getPropertyBoolean("Precedence.ConsiderDatePatterns", true);
         }
+        if (!isHard()) {
+            iLastPreference = getCurrentPreference();
+            getModel().getCriterion(DistributionPreferences.class).inc(iLastPreference);
+        }
     }
 
     @Override
@@ -831,60 +835,89 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
             }
         }
         
-        if (iType == ConstraintType.MEET_WITH && !conflicts.contains(value)) {
-            // Check the room size
-            int neededSize = 0;
-            for (Lecture lecture: variables())
-                neededSize += lecture.maxRoomUse();
-            if (neededSize > value.getRoomSize()) {
-                conflicts.add(value); // room is too small to fit all meet with classes
-                return;
-            }
+        // Forward checking
+        forwardCheck(value, conflicts, new HashSet<GroupConstraint>());
+    }
+    
+    public void forwardCheck(Placement value, Set<Placement> conflicts, Set<GroupConstraint> ignore) {
+        try {
+            ignore.add(this);
+            
+            int neededSize = value.variable().maxRoomUse();
+            
             for (Lecture lecture: variables()) {
+                if (conflicts.contains(value)) break; // already conflicting
+
                 if (lecture.equals(value.variable())) continue; // Skip this lecture
                 if (lecture.getAssignment() != null) { // Has assignment, check whether it is conflicting
-                    Placement other = lecture.getAssignment();
-                    if (other.sameRooms(value) && sameHours(value.getTimeLocation(), other.getTimeLocation()) &&
-                        sameDays(value.getTimeLocation(), other.getTimeLocation()))
+                    if (isSatisfiedPair(value, lecture.getAssignment())) {
+                        // Increase needed size if the assignment is of the same room and overlapping in time
+                        if (canShareRoom() && sameRoomAndOverlaps(value, lecture.getAssignment())) {
+                            neededSize += lecture.maxRoomUse();
+                        }
                         continue;
+                    }
                     conflicts.add(lecture.getAssignment());
                 }
-                // Look for a matching assignment
-                List<Placement> sameAssignments = new ArrayList<Placement>();
+                
+                // Look for supporting assignments assignment
+                boolean shareRoomAndOverlaps = canShareRoom();
+                Placement support = null;
+                int nrSupports = 0;
                 for (Placement other: lecture.values()) {
-                    if (other.sameRooms(value) && sameHours(value.getTimeLocation(), other.getTimeLocation()) &&
-                            sameDays(value.getTimeLocation(), other.getTimeLocation())) {
-                        sameAssignments.add(other);
+                    if (nrSupports < 2) {
+                        if (isSatisfiedPair(value, other)) {
+                            if (support == null) support = other;
+                            nrSupports ++;
+                            if (shareRoomAndOverlaps && !sameRoomAndOverlaps(value, other))
+                                shareRoomAndOverlaps = false;
+                        }
+                    } else if (shareRoomAndOverlaps && !sameRoomAndOverlaps(value, other) && isSatisfiedPair(value, other)) {
+                        shareRoomAndOverlaps = false;
                     }
+                    if (nrSupports > 1 && !shareRoomAndOverlaps)
+                        break;
                 }
-                // No matching assignment -> fail
-                if (sameAssignments.isEmpty()) {
-                    conflicts.add(value); // other meet with class cannot be assigned with this value
+                
+                // No supporting assignment -> fail
+                if (nrSupports == 0) {
+                    conflicts.add(value); // other class cannot be assigned with this value
                     return;
                 }
-                // Propagate the new assignment over other hard constraints of the lecture
-                if (sameAssignments.size() == 1) {
-                    Placement sameAssignment = sameAssignments.get(0);
+                // Increase needed size if all supporters are of the same room and in overlapping times
+                if (shareRoomAndOverlaps) {
+                    neededSize += lecture.maxRoomUse();
+                }
+
+                // Only one supporter -> propagate the new assignment over other hard constraints of the lecture
+                if (nrSupports == 1) {
                     for (Constraint<Lecture, Placement> other: lecture.hardConstraints()) {
-                        if (other.equals(this)) continue;
-                        if (other instanceof GroupConstraint && ((GroupConstraint)other).getType() == ConstraintType.MEET_WITH) continue;
                         if (other instanceof WeakeningConstraint) continue;
-                        other.computeConflicts(sameAssignment, conflicts);
-                        if (conflicts.contains(value)) return;
-                        if (conflicts.contains(sameAssignment)) {
-                            conflicts.add(value); return;
+                        if (other instanceof GroupConstraint) {
+                            GroupConstraint gc = (GroupConstraint)other;
+                            if (!ignore.contains(gc))
+                                gc.forwardCheck(support, conflicts, ignore);
+                        } else {
+                            other.computeConflicts(support, conflicts);
                         }
                     }
                     for (GlobalConstraint<Lecture, Placement> other: getModel().globalConstraints()) {
                         if (other instanceof WeakeningConstraint) continue;
-                        other.computeConflicts(sameAssignment, conflicts);
-                        if (conflicts.contains(value)) return;
-                        if (conflicts.contains(sameAssignment)) {
-                            conflicts.add(value); return;
-                        }
-                    }   
+                        other.computeConflicts(support, conflicts);
+                    }
+
+                    if (conflicts.contains(support))
+                        conflicts.add(value);
                 }
             }
+            
+            if (canShareRoom() && neededSize > value.getRoomSize()) {
+                // room is too small to fit all meet with classes
+                conflicts.add(value);
+            }
+            
+        } finally {
+            ignore.remove(this);
         }
     }
 
@@ -915,7 +948,86 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                     return true;
             }
         }
+        
+        if (!forwardCheck(value, new HashSet<GroupConstraint>())) return true;
+        
         return false;
+    }
+    
+    public boolean forwardCheck(Placement value, Set<GroupConstraint> ignore) {
+        try {
+            ignore.add(this);
+            
+            int neededSize = value.variable().maxRoomUse();
+            
+            for (Lecture lecture: variables()) {
+                if (lecture.equals(value.variable())) continue; // Skip this lecture
+                if (lecture.getAssignment() != null) { // Has assignment, check whether it is conflicting
+                    if (isSatisfiedPair(value, lecture.getAssignment())) {
+                        // Increase needed size if the assignment is of the same room and overlapping in time
+                        if (canShareRoom() && sameRoomAndOverlaps(value, lecture.getAssignment())) {
+                            neededSize += lecture.maxRoomUse();
+                        }
+                        continue;
+                    }
+                    return false;
+                }
+                
+                // Look for supporting assignments assignment
+                boolean shareRoomAndOverlaps = canShareRoom();
+                Placement support = null;
+                int nrSupports = 0;
+                for (Placement other: lecture.values()) {
+                    if (nrSupports < 2) {
+                        if (isSatisfiedPair(value, other)) {
+                            if (support == null) support = other;
+                            nrSupports ++;
+                            if (shareRoomAndOverlaps && !sameRoomAndOverlaps(value, other))
+                                shareRoomAndOverlaps = false;
+                        }
+                    } else if (shareRoomAndOverlaps && !sameRoomAndOverlaps(value, other) && isSatisfiedPair(value, other)) {
+                        shareRoomAndOverlaps = false;
+                    }
+                    if (nrSupports > 1 && !shareRoomAndOverlaps)
+                        break;
+                }
+
+                // No supporting assignment -> fail
+                if (nrSupports == 0) {
+                    return false; // other class cannot be assigned with this value
+                }
+                // Increase needed size if all supporters are of the same room and in overlapping times
+                if (shareRoomAndOverlaps) {
+                    neededSize += lecture.maxRoomUse();
+                }
+
+                // Only one supporter -> propagate the new assignment over other hard constraints of the lecture
+                if (nrSupports == 1) {
+                    for (Constraint<Lecture, Placement> other: lecture.hardConstraints()) {
+                        if (other instanceof WeakeningConstraint) continue;
+                        if (other instanceof GroupConstraint) {
+                            GroupConstraint gc = (GroupConstraint)other;
+                            if (!ignore.contains(gc) && !gc.forwardCheck(support, ignore)) return false;
+                        } else {
+                            if (other.inConflict(support)) return false;
+                        }
+                    }
+                    for (GlobalConstraint<Lecture, Placement> other: getModel().globalConstraints()) {
+                        if (other instanceof WeakeningConstraint) continue;
+                        if (other.inConflict(support)) return false;
+                    }
+                }
+            }
+            
+            if (canShareRoom() && neededSize > value.getRoomSize()) {
+                // room is too small to fit all meet with classes
+                return false;
+            }
+         
+            return true;
+        } finally {
+            ignore.remove(this);
+        }
     }
 
     /** Constraint preference (0 if prohibited or reqired) */
@@ -929,7 +1041,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
      */
     public int getCurrentPreference() {
         if (isHard()) return 0; // no preference
-        if (countAssignedVariables() < 2) return 0; // not enough variable
+        if (countAssignedVariables() < 2) return - Math.abs(iPreference); // not enough variable
         if (getType().is(Flag.MAX_HRS_DAY)) { // max hours a day
             int over = 0;
             for (int dayCode: Constants.DAY_CODES)
@@ -954,33 +1066,60 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         return (nrViolatedPairs > 0 ? Math.abs(iPreference) * nrViolatedPairs : - Math.abs(iPreference));
     }
 
-    /** Current constraint preference (if given placement is assigned) */
+    /** Current constraint preference change (if given placement is assigned) */
     public int getCurrentPreference(Placement placement) {
+        if (isHard()) return 0; // no preference
+        if (countAssignedVariables() + (placement.variable().getAssignment() == null ? 1 : 0) < 2) return 0; // not enough variable
         if (getType().is(Flag.MAX_HRS_DAY)) {
-            if (placement.getTimeLocation() == null) return 0;
-            HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
-            assignments.put(placement.variable(), placement);
-            int over = 0;
-            for (int dayCode: Constants.DAY_CODES)
-                if ((placement.getTimeLocation().getDayCode() & dayCode) != 0)
-                    over += Math.min(Math.max(0, nrSlotsADay(dayCode, assignments, null) - getType().getMax()), placement.getTimeLocation().getLength());
-            return (over > 0 ? Math.abs(iPreference) * over / 12 : - Math.abs(iPreference));
+            HashMap<Lecture, Placement> assignment = new HashMap<Lecture, Placement>();
+            assignment.put(placement.variable(), placement);
+            HashMap<Lecture, Placement> unassignment = new HashMap<Lecture, Placement>();
+            unassignment.put(placement.variable(), null);
+            int after = 0;
+            int before = 0;
+            for (int dayCode: Constants.DAY_CODES) {
+                after += Math.max(0, nrSlotsADay(dayCode, assignment, null) - getType().getMax());
+                before += Math.max(0, nrSlotsADay(dayCode, unassignment, null) - getType().getMax());
+            }
+            return (after > 0 ? Math.abs(iPreference) * after / 12 : - Math.abs(iPreference)) - (before > 0 ? Math.abs(iPreference) * before / 12 : - Math.abs(iPreference));
         }
-        int nrViolatedPairs = 0;
+        
+        int nrViolatedPairsAfter = 0;
+        int nrViolatedPairsBefore = 0;
         for (Lecture v1 : variables()) {
-            if (v1.getAssignment() == null || v1.equals(placement.variable())) continue;
-            if (!isSatisfiedPair(v1.getAssignment(), placement)) nrViolatedPairs++;
+            for (Lecture v2 : variables()) {
+                if (v1.getId() >= v2.getId()) continue;
+                Placement p1 = (v1.equals(placement.variable()) ? null : v1.getAssignment());
+                Placement p2 = (v2.equals(placement.variable()) ? null : v2.getAssignment());
+                if (p1 != null && p2 != null && !isSatisfiedPair(p1, p2))
+                    nrViolatedPairsBefore ++;
+                if (v1.equals(placement.variable())) p1 = placement;
+                if (v2.equals(placement.variable())) p2 = placement;
+                if (p1 != null && p2 != null && !isSatisfiedPair(p1, p2))
+                    nrViolatedPairsAfter ++;
+            }
         }
+        
         if (getType().is(Flag.BACK_TO_BACK)) {
             HashMap<Lecture, Placement> assignment = new HashMap<Lecture, Placement>();
             assignment.put(placement.variable(), placement);
             Set<Placement> conflicts = new HashSet<Placement>();
             if (isSatisfiedSeq(assignment, true, conflicts))
-                nrViolatedPairs += conflicts.size();
+                nrViolatedPairsAfter += conflicts.size();
             else
-                nrViolatedPairs = variables().size();
+                nrViolatedPairsAfter = variables().size();
+            
+            HashMap<Lecture, Placement> unassignment = new HashMap<Lecture, Placement>();
+            unassignment.put(placement.variable(), null);
+            Set<Placement> previous = new HashSet<Placement>();
+            if (isSatisfiedSeq(unassignment, true, previous))
+                nrViolatedPairsBefore += previous.size();
+            else
+                nrViolatedPairsBefore = variables().size();
         }
-        return (nrViolatedPairs > 0 ? Math.abs(iPreference) * nrViolatedPairs : - Math.abs(iPreference));
+        
+        return (nrViolatedPairsAfter > 0 ? Math.abs(iPreference) * nrViolatedPairsAfter : - Math.abs(iPreference)) -
+                (nrViolatedPairsBefore > 0 ? Math.abs(iPreference) * nrViolatedPairsBefore : - Math.abs(iPreference));
     }
 
     @Override
@@ -989,7 +1128,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         if (iIsRequired || iIsProhibited)
             return;
         getModel().getCriterion(DistributionPreferences.class).inc(-iLastPreference);
-        iLastPreference = Math.min(0, getCurrentPreference());
+        iLastPreference = getCurrentPreference();
         getModel().getCriterion(DistributionPreferences.class).inc(iLastPreference);
     }
 
@@ -999,7 +1138,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         if (iIsRequired || iIsProhibited)
             return;
         getModel().getCriterion(DistributionPreferences.class).inc(-iLastPreference);
-        iLastPreference = Math.min(0, getCurrentPreference());
+        iLastPreference = getCurrentPreference();
         getModel().getCriterion(DistributionPreferences.class).inc(iLastPreference);
     }
 
@@ -1010,7 +1149,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         sb.append(" between ");
         for (Iterator<Lecture> e = variables().iterator(); e.hasNext();) {
             Lecture v = e.next();
-            sb.append(v.getName());
+            sb.append(v.getName() + " " + (v.getAssignment() == null ? "" : v.getAssignment().getName()));
             if (e.hasNext())
                 sb.append(", ");
         }
@@ -1052,20 +1191,11 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         if (considerDatePatterns && iPrecedenceConsiderDatePatterns) {
             boolean sameDatePattern = (t1.getDatePatternId() != null ? t1.getDatePatternId().equals(t2.getDatePatternId()) : t1.getWeekCode().equals(t2.getWeekCode()));
             if (!sameDatePattern) {
-                int m1 = getFirstMeeting(t1), m2 = getFirstMeeting(t2);
+            	int m1 = t1.getFirstMeeting(iDayOfWeekOffset), m2 = t2.getFirstMeeting(iDayOfWeekOffset);
                 if (m1 != m2) return m1 < m2;
             }
         }
         return t1.getStartSlots().nextElement() + t1.getLength() <= t2.getStartSlots().nextElement();
-    }
-    
-    private int getFirstMeeting(TimeLocation time) {
-        int idx = -1;
-        while ((idx = time.getWeekCode().nextSetBit(1 + idx)) >= 0) {
-            int dow = (idx + iDayOfWeekOffset) % 7;
-            if ((time.getDayCode() & Constants.DAY_CODES[dow]) != 0) break;
-        }
-        return idx;
     }
 
     private static boolean isBackToBackDays(TimeLocation t1, TimeLocation t2) {
@@ -1195,9 +1325,8 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         return true;
     }
     
-    private static boolean sameDays(TimeLocation t1, TimeLocation t2) {
-        if (t1 == null || t2 == null) return false;
-        return sameDays(t1.getDaysArray(), t2.getDaysArray());
+    private static boolean sameRoomAndOverlaps(Placement p1, Placement p2) {
+        return p1.shareRooms(p2) && p1.getTimeLocation() != null && p2.getTimeLocation() != null && p1.getTimeLocation().hasIntersection(p2.getTimeLocation());
     }
 
     private static boolean sameHours(int start1, int len1, int start2, int len2) {
@@ -1208,11 +1337,6 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         return (start1 >= start2 && start1 + len1 <= start2 + len2);
     }
     
-    private static boolean sameHours(TimeLocation t1, TimeLocation t2) {
-        if (t1 == null || t2 == null) return false;
-        return sameHours(t1.getStartSlot(), t1.getLength(), t2.getStartSlot(), t2.getLength());
-    }
-
     private static boolean canFill(int totalGap, int gapMin, int gapMax, List<Integer> lengths) {
         if (gapMin <= totalGap && totalGap <= gapMax)
             return true;
@@ -1258,10 +1382,12 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         bestConflicts = isSatisfiedRecursive(idx + 1, assignments, considerCurrentAssignments, conflicts, newConflicts,
                 bestConflicts);
         Lecture lecture = variables().get(idx);
+        //if (assignments != null && assignments.containsKey(lecture))
+        //    return bestConflicts;
+        Placement placement = null;
         if (assignments != null && assignments.containsKey(lecture))
-            return bestConflicts;
-        Placement placement = (assignments == null ? null : assignments.get(lecture));
-        if (placement == null && considerCurrentAssignments)
+            placement = assignments.get(lecture);
+        else if (considerCurrentAssignments)
             placement = lecture.getAssignment();
         if (placement == null)
             return bestConflicts;
@@ -1291,8 +1417,10 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         int nrLectures = 0;
 
         for (Lecture lecture : variables()) {
-            Placement placement = (assignments == null ? null : assignments.get(lecture));
-            if (placement == null && considerCurrentAssignments)
+            Placement placement = null;
+            if (assignments != null && assignments.containsKey(lecture))
+                placement = assignments.get(lecture);
+            else if (considerCurrentAssignments)
                 placement = lecture.getAssignment();
             if (placement == null) {
                 lengths.add(lecture.timeLocations().get(0).getLength());
@@ -1431,12 +1559,13 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
     private int nrSlotsADay(int dayCode, HashMap<Lecture, Placement> assignments, Set<Placement> conflicts) {
         Set<Integer> slots = new HashSet<Integer>();
         for (Lecture lecture: variables()) {
-            Placement placement = (assignments == null ? null : assignments.get(lecture));
-            if (placement == null) {
+            Placement placement = null;
+            if (assignments != null && assignments.containsKey(lecture))
+                placement = assignments.get(lecture);
+            else
                 placement = lecture.getAssignment();
-                if (conflicts != null && conflicts.contains(placement)) continue;
-            }
             if (placement == null || placement.getTimeLocation() == null) continue;
+            if (conflicts != null && conflicts.contains(placement)) continue;
             TimeLocation t = placement.getTimeLocation();
             if (t == null || (t.getDayCode() & dayCode) == 0) continue;
             for (int i = 0; i < t.getLength(); i++)

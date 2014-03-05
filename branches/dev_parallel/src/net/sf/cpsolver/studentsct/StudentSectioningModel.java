@@ -17,6 +17,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.studentsct.constraint.ConfigLimit;
 import net.sf.cpsolver.studentsct.constraint.CourseLimit;
 import net.sf.cpsolver.studentsct.constraint.LinkedSections;
+import net.sf.cpsolver.studentsct.constraint.RequiredReservation;
 import net.sf.cpsolver.studentsct.constraint.ReservationLimit;
 import net.sf.cpsolver.studentsct.constraint.SectionLimit;
 import net.sf.cpsolver.studentsct.constraint.StudentConflict;
@@ -80,6 +81,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
     private StudentWeights iStudentWeights = null;
     private boolean iReservationCanAssignOverTheLimit;
     protected double iProjectedStudentWeight = 0.0100;
+    private int iMaxDomainSize = -1; 
 
 
     /**
@@ -96,6 +98,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         iUnassignedVariables = new HashSet<Request>();
         iPerturbVariables = new HashSet<Request>();
         iStudentWeights = new PriorityStudentWeights(properties);
+        iMaxDomainSize = properties.getPropertyInt("Sectioning.MaxDomainSize", iMaxDomainSize);
         if (properties.getPropertyBoolean("Sectioning.SectionLimit", true)) {
             SectionLimit sectionLimit = new SectionLimit(properties);
             addGlobalConstraint(sectionLimit);
@@ -132,6 +135,10 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         if (properties.getPropertyBoolean("Sectioning.ReservationLimit", true)) {
             ReservationLimit reservationLimit = new ReservationLimit(properties);
             addGlobalConstraint(reservationLimit);
+        }
+        if (properties.getPropertyBoolean("Sectioning.RequiredReservations", true)) {
+            RequiredReservation requiredReservation = new RequiredReservation();
+            addGlobalConstraint(requiredReservation);
         }
         try {
             Class<StudentWeights> studentWeightsClass = (Class<StudentWeights>)Class.forName(properties.getProperty("StudentWeights.Class", PriorityStudentWeights.class.getName()));
@@ -938,4 +945,14 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         iTotalValue -= c.getR1().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(c.getE1(), c);
         iTotalValue -= c.getR2().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(c.getE2(), c);
     }
+    
+    /**
+     * Maximal domain size (i.e., number of enrollments of a course request), -1 if there is no limit.
+     */
+    public int getMaxDomainSize() { return iMaxDomainSize; }
+
+    /**
+     * Maximal domain size (i.e., number of enrollments of a course request), -1 if there is no limit.
+     */
+    public void setMaxDomainSize(int maxDomainSize) { iMaxDomainSize = maxDomainSize; }
 }

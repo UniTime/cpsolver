@@ -68,6 +68,10 @@ public abstract class FlexibleConstraint extends Constraint<Lecture, Placement> 
          * There must be a break of a given length in a given time interval.
          */
         BREAK("_(Break):([0-9]+):([0-9]+):([0-9]+)_", BreakFlexibleConstraint.class, "Break"),
+        /**
+         * Limit number of breaks between adjacent classes on a day.
+         */
+        MAX_BREAKS("_(MaxBreaks):([0-9]+):([0-9]+)_", MaxBreaksFlexibleConstraint.class, "MaxBreaks"),
         ;
         
         private String iPattern;
@@ -178,9 +182,12 @@ public abstract class FlexibleConstraint extends Constraint<Lecture, Placement> 
 
             // lecture might not have assignment if it is present in assignments
             if (assignments != null && assignments.containsKey(lecture)) {
-                TimeLocation t = assignments.get(lecture).getTimeLocation();
-                if (shareWeeksAndDay(t, week, dayCode))
-                    placements.add(assignments.get(lecture));
+                Placement p = assignments.get(lecture);
+                if (p != null) {
+                    TimeLocation t = p.getTimeLocation();
+                    if (shareWeeksAndDay(t, week, dayCode))
+                        placements.add(p);
+                }
                 continue;
             }
             if (lecture.getAssignment() == null || lecture.getAssignment().getTimeLocation() == null)
@@ -307,6 +314,7 @@ public abstract class FlexibleConstraint extends Constraint<Lecture, Placement> 
      * @return the current preference of the flexible constraint
      */
     public double getCurrentPreference(Set<Placement> conflicts, HashMap<Lecture, Placement> assignments){
+        if (isHard()) return 0;
         double pref = getNrViolations(conflicts, assignments);
         if(pref == 0){
             return - Math.abs(iPreference);
