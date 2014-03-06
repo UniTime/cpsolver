@@ -33,5 +33,5 @@ public interface ConstantVariable<T extends Value<?, T>> {
     public boolean isConstant();
     
     /** Return assignment if constant */
-    public T getValue();
+    public T getConstantValue();
 }

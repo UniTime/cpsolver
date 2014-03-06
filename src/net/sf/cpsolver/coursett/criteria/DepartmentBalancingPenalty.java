@@ -7,6 +7,7 @@ import java.util.Set;
 import net.sf.cpsolver.coursett.constraint.DepartmentSpreadConstraint;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -48,17 +49,17 @@ public class DepartmentBalancingPenalty extends SameSubpartBalancingPenalty {
     }
 
     @Override
-    public double getValue(Placement value, Set<Placement> conflicts) {
-        return (value.variable().getDeptSpreadConstraint() == null ? 0.0 : value.variable().getDeptSpreadConstraint().getPenalty(value)) / 12.0;
+    public double getValue(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
+        return (value.variable().getDeptSpreadConstraint() == null ? 0.0 : value.variable().getDeptSpreadConstraint().getPenalty(assignment, value)) / 12.0;
     }
     
     @Override
-    public double getValue(Collection<Lecture> variables) {
+    public double getValue(Assignment<Lecture, Placement> assignment, Collection<Lecture> variables) {
         double ret = 0;
         Set<DepartmentSpreadConstraint> constraints = new HashSet<DepartmentSpreadConstraint>();
         for (Lecture lect: variables)
             if (lect.getDeptSpreadConstraint() != null && constraints.add(lect.getDeptSpreadConstraint()))
-                ret += lect.getDeptSpreadConstraint().getPenalty();
+                ret += lect.getDeptSpreadConstraint().getPenalty(assignment);
         return ret / 12.0;
     }
 }

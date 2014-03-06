@@ -48,6 +48,8 @@ import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.Student;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.coursett.model.TimetableModel;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import net.sf.cpsolver.ifs.extension.ConflictStatistics;
 import net.sf.cpsolver.ifs.extension.Extension;
 import net.sf.cpsolver.ifs.extension.MacPropagation;
@@ -208,13 +210,14 @@ public class Test implements SolutionListener<Lecture, Placement> {
 
             Solver<Lecture, Placement> solver = new TimetableSolver(properties);
             TimetableModel model = new TimetableModel(properties);
+            Assignment<Lecture, Placement> assignment = new DefaultSingleAssignment<Lecture, Placement>();
             Progress.getInstance(model).addProgressListener(new ProgressWriter(System.out));
 
             TimetableLoader loader = (TimetableLoader) Class.forName(getTimetableLoaderClass(properties))
-                    .getConstructor(new Class[] { TimetableModel.class }).newInstance(new Object[] { model });
+                    .getConstructor(new Class[] { TimetableModel.class, Assignment.class }).newInstance(new Object[] { model, assignment });
             loader.load();
 
-            solver.setInitalSolution(model);
+            solver.setInitalSolution(new Solution<Lecture, Placement>(model, assignment));
             init(solver);
 
             iCSVFile = new PrintWriter(new FileWriter(outDir.toString() + File.separator + "stat.csv"));
@@ -288,7 +291,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
     public void bestSaved(Solution<Lecture, Placement> solution) {
         notify(solution);
         if (sLogger.isInfoEnabled())
-            sLogger.info("**BEST[" + solution.getIteration() + "]** " + solution.getModel());
+            sLogger.info("**BEST[" + solution.getIteration() + "]** " + ((TimetableModel)solution.getModel()).toString(solution.getAssignment()));
     }
 
     @Override
@@ -315,67 +318,64 @@ public class Test implements SolutionListener<Lecture, Placement> {
     /** Add a line into the output CSV file when a enw best solution is found. */
     public void notify(Solution<Lecture, Placement> solution) {
         String colSeparator = ";";
-        if (!solution.getModel().unassignedVariables().isEmpty()
-                && iLastNotified == solution.getModel().assignedVariables().size())
+        Assignment<Lecture, Placement> assignment = solution.getAssignment();
+        if (assignment.nrAssignedVariables() < solution.getModel().countVariables() && iLastNotified == assignment.nrAssignedVariables())
             return;
-        iLastNotified = solution.getModel().assignedVariables().size();
+        iLastNotified = assignment.nrAssignedVariables();
         if (iCSVFile != null) {
             TimetableModel model = (TimetableModel) solution.getModel();
-            iCSVFile.print(model.variables().size() - model.unassignedVariables().size());
+            iCSVFile.print(model.variables().size() - model.nrUnassignedVariables(assignment));
             iCSVFile.print(colSeparator);
-            iCSVFile.print(sDoubleFormat.format(100.0 * (model.variables().size() - model.unassignedVariables().size())
-                    / model.variables().size()));
+            iCSVFile.print(sDoubleFormat.format(100.0 * assignment.nrAssignedVariables() / model.variables().size()));
             iCSVFile.print(colSeparator);
             iCSVFile.print(sDoubleFormat.format((solution.getTime()) / 60.0));
             iCSVFile.print(colSeparator);
             iCSVFile.print(solution.getIteration());
             iCSVFile.print(colSeparator);
-            iCSVFile.print(sDoubleFormat.format(100.0 * (model.variables().size() - model.unassignedVariables().size())
-                    / solution.getIteration()));
+            iCSVFile.print(sDoubleFormat.format(100.0 * assignment.nrAssignedVariables() / solution.getIteration()));
             iCSVFile.print(colSeparator);
             iCSVFile.print(sDoubleFormat.format((solution.getIteration()) / solution.getTime()));
             iCSVFile.print(colSeparator);
-            iCSVFile.print(model.perturbVariables().size());
+            iCSVFile.print(model.perturbVariables(assignment).size());
             iCSVFile.print(colSeparator);
-            iCSVFile.print(sDoubleFormat.format(100.0 * model.perturbVariables().size() / model.variables().size()));
+            iCSVFile.print(sDoubleFormat.format(100.0 * model.perturbVariables(assignment).size() / model.variables().size()));
             iCSVFile.print(colSeparator);
-            iCSVFile.print(Math.round(solution.getModel().getCriterion(StudentHardConflict.class).getValue()));
+            iCSVFile.print(Math.round(solution.getModel().getCriterion(StudentHardConflict.class).getValue(assignment)));
             iCSVFile.print(colSeparator);
-            iCSVFile.print(Math.round(solution.getModel().getCriterion(StudentConflict.class).getValue()));
+            iCSVFile.print(Math.round(solution.getModel().getCriterion(StudentConflict.class).getValue(assignment)));
             iCSVFile.print(colSeparator);
-            iCSVFile.print(Math.round(solution.getModel().getCriterion(StudentDistanceConflict.class).getValue()));
+            iCSVFile.print(Math.round(solution.getModel().getCriterion(StudentDistanceConflict.class).getValue(assignment)));
             iCSVFile.print(colSeparator);
-            iCSVFile.print(Math.round(solution.getModel().getCriterion(StudentCommittedConflict.class).getValue()));
+            iCSVFile.print(Math.round(solution.getModel().getCriterion(StudentCommittedConflict.class).getValue(assignment)));
             iCSVFile.print(colSeparator);
-            iCSVFile.print(sDoubleFormat.format(solution.getModel().getCriterion(TimePreferences.class).getValue()));
+            iCSVFile.print(sDoubleFormat.format(solution.getModel().getCriterion(TimePreferences.class).getValue(assignment)));
             iCSVFile.print(colSeparator);
-            iCSVFile.print(Math.round(solution.getModel().getCriterion(RoomPreferences.class).getValue()));
+            iCSVFile.print(Math.round(solution.getModel().getCriterion(RoomPreferences.class).getValue(assignment)));
             iCSVFile.print(colSeparator);
-            iCSVFile.print(Math.round(solution.getModel().getCriterion(BackToBackInstructorPreferences.class).getValue()));
+            iCSVFile.print(Math.round(solution.getModel().getCriterion(BackToBackInstructorPreferences.class).getValue(assignment)));
             iCSVFile.print(colSeparator);
-            iCSVFile.print(Math.round(solution.getModel().getCriterion(DistributionPreferences.class).getValue()));
+            iCSVFile.print(Math.round(solution.getModel().getCriterion(DistributionPreferences.class).getValue(assignment)));
             iCSVFile.print(colSeparator);
-            iCSVFile.print(Math.round(solution.getModel().getCriterion(UselessHalfHours.class).getValue()));
+            iCSVFile.print(Math.round(solution.getModel().getCriterion(UselessHalfHours.class).getValue(assignment)));
             iCSVFile.print(colSeparator);
-            iCSVFile.print(Math.round(solution.getModel().getCriterion(BrokenTimePatterns.class).getValue()));
+            iCSVFile.print(Math.round(solution.getModel().getCriterion(BrokenTimePatterns.class).getValue(assignment)));
             iCSVFile.print(colSeparator);
-            iCSVFile.print(Math.round(solution.getModel().getCriterion(TooBigRooms.class).getValue()));
+            iCSVFile.print(Math.round(solution.getModel().getCriterion(TooBigRooms.class).getValue(assignment)));
             if (iProp != null) {
-                if (solution.getModel().unassignedVariables().size() > 0) {
+                if (solution.getModel().nrUnassignedVariables(assignment) > 0) {
                     int goodVariables = 0;
                     long goodValues = 0;
                     long allValues = 0;
-                    for (Lecture variable : ((TimetableModel) solution.getModel()).unassignedVariables()) {
-                        goodValues += iProp.goodValues(variable).size();
+                    for (Lecture variable : ((TimetableModel) solution.getModel()).unassignedVariables(assignment)) {
+                        goodValues += iProp.goodValues(assignment, variable).size();
                         allValues += variable.values().size();
-                        if (!iProp.goodValues(variable).isEmpty())
+                        if (!iProp.goodValues(assignment, variable).isEmpty())
                             goodVariables++;
                     }
                     iCSVFile.print(colSeparator);
                     iCSVFile.print(goodVariables);
                     iCSVFile.print(colSeparator);
-                    iCSVFile.print(sDoubleFormat.format(100.0 * goodVariables
-                            / solution.getModel().unassignedVariables().size()));
+                    iCSVFile.print(sDoubleFormat.format(100.0 * goodVariables / solution.getModel().nrUnassignedVariables(assignment)));
                     iCSVFile.print(colSeparator);
                     iCSVFile.print(goodValues);
                     iCSVFile.print(colSeparator);
@@ -393,7 +393,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
     }
 
     /** Print room utilization */
-    public static void printRoomInfo(PrintWriter pw, TimetableModel model) {
+    public static void printRoomInfo(PrintWriter pw, TimetableModel model, Assignment<Lecture, Placement> assignment) {
         pw.println("Room info:");
         pw.println("id, name, size, used_day, used_total");
         for (RoomConstraint rc : model.getRoomConstraints()) {
@@ -401,18 +401,17 @@ public class Test implements SolutionListener<Lecture, Placement> {
             int used_total = 0;
             for (int day = 0; day < Constants.NR_DAYS_WEEK; day++) {
                 for (int time = 0; time < Constants.SLOTS_PER_DAY_NO_EVENINGS; time++) {
-                    if (!rc.getResource(day * Constants.SLOTS_PER_DAY + time + Constants.DAY_SLOTS_FIRST).isEmpty())
+                    if (!rc.getContext(assignment).getPlacements(day * Constants.SLOTS_PER_DAY + time + Constants.DAY_SLOTS_FIRST).isEmpty())
                         used_day++;
                 }
             }
             for (int day = 0; day < Constants.DAY_CODES.length; day++) {
                 for (int time = 0; time < Constants.SLOTS_PER_DAY; time++) {
-                    if (!rc.getResource(day * Constants.SLOTS_PER_DAY + time).isEmpty())
+                    if (!rc.getContext(assignment).getPlacements(day * Constants.SLOTS_PER_DAY + time).isEmpty())
                         used_total++;
                 }
             }
-            pw.println(rc.getResourceId() + "," + rc.getName() + "," + rc.getCapacity() + "," + used_day + ","
-                    + used_total);
+            pw.println(rc.getResourceId() + "," + rc.getName() + "," + rc.getCapacity() + "," + used_day + "," + used_total);
         }
     }
 
@@ -431,13 +430,14 @@ public class Test implements SolutionListener<Lecture, Placement> {
     /** Create info.txt with some more information about the problem */
     public static void printSomeStuff(Solution<Lecture, Placement> solution) throws IOException {
         TimetableModel model = (TimetableModel) solution.getModel();
+        Assignment<Lecture, Placement> assignment = solution.getAssignment();
         File outDir = new File(model.getProperties().getProperty("General.Output", "."));
         PrintWriter pw = new PrintWriter(new FileWriter(outDir.toString() + File.separator + "info.txt"));
         PrintWriter pwi = new PrintWriter(new FileWriter(outDir.toString() + File.separator + "info.csv"));
         String name = new File(model.getProperties().getProperty("General.Input")).getName();
         pwi.println("Instance," + name.substring(0, name.lastIndexOf('.')));
         pw.println("Solution info: " + ToolBox.dict2string(solution.getInfo(), 1));
-        pw.println("Bounds: " + ToolBox.dict2string(model.getBounds(), 1));
+        pw.println("Bounds: " + ToolBox.dict2string(model.getBounds(assignment), 1));
         Map<String, String> info = solution.getInfo();
         for (String key : new TreeSet<String>(info.keySet())) {
             if (key.equals("Memory usage"))
@@ -451,7 +451,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
                 value = value.substring(0, value.indexOf(' '));
             pwi.println(key + "," + value);
         }
-        printRoomInfo(pw, model);
+        printRoomInfo(pw, model, assignment);
         printClassInfo(pw, model);
         long nrValues = 0;
         long nrTimes = 0;
@@ -533,7 +533,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
                             for (int l = 0; l < sizeLimits.length; l++) {
                                 if (sizeLimits[l] <= lect.minRoomSize()) {
                                     totalUsedSlots[l] += lect.getNrRooms();
-                                    totalUsedSeats[l] += lect.classLimit();
+                                    totalUsedSeats[l] += lect.classLimit(assignment);
                                     totalUsedSeats2[l] += lect.minRoomSize() * lect.getNrRooms();
                                 }
                             }
@@ -817,40 +817,41 @@ public class Test implements SolutionListener<Lecture, Placement> {
             DecimalFormat dx = new DecimalFormat("000");
             PrintWriter w = new PrintWriter(new FileWriter(file));
             TimetableModel m = (TimetableModel) s.getModel();
+            Assignment<Lecture, Placement> a = s.getAssignment();
             int idx = 1;
-            w.println("000." + dx.format(idx++) + " Assigned variables," + m.assignedVariables().size());
+            w.println("000." + dx.format(idx++) + " Assigned variables," + a.nrAssignedVariables());
             w.println("000." + dx.format(idx++) + " Time [sec]," + sDoubleFormat.format(s.getBestTime()));
-            w.println("000." + dx.format(idx++) + " Hard student conflicts," + Math.round(m.getCriterion(StudentHardConflict.class).getValue()));
+            w.println("000." + dx.format(idx++) + " Hard student conflicts," + Math.round(m.getCriterion(StudentHardConflict.class).getValue(a)));
             if (m.getProperties().getPropertyBoolean("General.UseDistanceConstraints", true))
-                w.println("000." + dx.format(idx++) + " Distance student conf.," + Math.round(m.getCriterion(StudentDistanceConflict.class).getValue()));
-            w.println("000." + dx.format(idx++) + " Student conflicts," + Math.round(m.getCriterion(StudentConflict.class).getValue()));
-            w.println("000." + dx.format(idx++) + " Committed student conflicts," + Math.round(m.getCriterion(StudentCommittedConflict.class).getValue()));
+                w.println("000." + dx.format(idx++) + " Distance student conf.," + Math.round(m.getCriterion(StudentDistanceConflict.class).getValue(a)));
+            w.println("000." + dx.format(idx++) + " Student conflicts," + Math.round(m.getCriterion(StudentConflict.class).getValue(a)));
+            w.println("000." + dx.format(idx++) + " Committed student conflicts," + Math.round(m.getCriterion(StudentCommittedConflict.class).getValue(a)));
             w.println("000." + dx.format(idx++) + " All Student conflicts,"
-                    + Math.round(m.getCriterion(StudentConflict.class).getValue() + m.getCriterion(StudentCommittedConflict.class).getValue()));
+                    + Math.round(m.getCriterion(StudentConflict.class).getValue(a) + m.getCriterion(StudentCommittedConflict.class).getValue(a)));
             w.println("000." + dx.format(idx++) + " Time preferences,"
-                    + sDoubleFormat.format( m.getCriterion(TimePreferences.class).getValue()));
-            w.println("000." + dx.format(idx++) + " Room preferences," + Math.round(m.getCriterion(RoomPreferences.class).getValue()));
-            w.println("000." + dx.format(idx++) + " Useless half-hours," + Math.round(m.getCriterion(UselessHalfHours.class).getValue()));
-            w.println("000." + dx.format(idx++) + " Broken time patterns," + Math.round(m.getCriterion(BrokenTimePatterns.class).getValue()));
-            w.println("000." + dx.format(idx++) + " Too big room," + Math.round(m.getCriterion(TooBigRooms.class).getValue()));
-            w.println("000." + dx.format(idx++) + " Distribution preferences," + sDoubleFormat.format(m.getCriterion(DistributionPreferences.class).getValue()));
+                    + sDoubleFormat.format( m.getCriterion(TimePreferences.class).getValue(a)));
+            w.println("000." + dx.format(idx++) + " Room preferences," + Math.round(m.getCriterion(RoomPreferences.class).getValue(a)));
+            w.println("000." + dx.format(idx++) + " Useless half-hours," + Math.round(m.getCriterion(UselessHalfHours.class).getValue(a)));
+            w.println("000." + dx.format(idx++) + " Broken time patterns," + Math.round(m.getCriterion(BrokenTimePatterns.class).getValue(a)));
+            w.println("000." + dx.format(idx++) + " Too big room," + Math.round(m.getCriterion(TooBigRooms.class).getValue(a)));
+            w.println("000." + dx.format(idx++) + " Distribution preferences," + sDoubleFormat.format(m.getCriterion(DistributionPreferences.class).getValue(a)));
             if (m.getProperties().getPropertyBoolean("General.UseDistanceConstraints", true))
-                w.println("000." + dx.format(idx++) + " Back-to-back instructor pref.," + Math.round(m.getCriterion(BackToBackInstructorPreferences.class).getValue()));
+                w.println("000." + dx.format(idx++) + " Back-to-back instructor pref.," + Math.round(m.getCriterion(BackToBackInstructorPreferences.class).getValue(a)));
             if (m.getProperties().getPropertyBoolean("General.DeptBalancing", true)) {
-                w.println("000." + dx.format(idx++) + " Dept. balancing penalty," + sDoubleFormat.format(m.getCriterion(DepartmentBalancingPenalty.class).getValue()));
+                w.println("000." + dx.format(idx++) + " Dept. balancing penalty," + sDoubleFormat.format(m.getCriterion(DepartmentBalancingPenalty.class).getValue(a)));
             }
-            w.println("000." + dx.format(idx++) + " Same subpart balancing penalty," + sDoubleFormat.format(m.getCriterion(SameSubpartBalancingPenalty.class).getValue()));
+            w.println("000." + dx.format(idx++) + " Same subpart balancing penalty," + sDoubleFormat.format(m.getCriterion(SameSubpartBalancingPenalty.class).getValue(a)));
             if (m.getProperties().getPropertyBoolean("General.MPP", false)) {
-                Map<String, Double> mppInfo = ((UniversalPerturbationsCounter)((Perturbations)m.getCriterion(Perturbations.class)).getPerturbationsCounter()).getCompactInfo(m, false, false);
+                Map<String, Double> mppInfo = ((UniversalPerturbationsCounter)((Perturbations)m.getCriterion(Perturbations.class)).getPerturbationsCounter()).getCompactInfo(a, m, false, false);
                 int pidx = 51;
-                w.println("000." + dx.format(pidx++) + " Perturbation penalty," + sDoubleFormat.format(m.getCriterion(Perturbations.class).getValue()));
-                w.println("000." + dx.format(pidx++) + " Additional perturbations," + m.perturbVariables().size());
+                w.println("000." + dx.format(pidx++) + " Perturbation penalty," + sDoubleFormat.format(m.getCriterion(Perturbations.class).getValue(a)));
+                w.println("000." + dx.format(pidx++) + " Additional perturbations," + m.perturbVariables(a).size());
                 int nrPert = 0, nrStudentPert = 0;
                 for (Lecture lecture : m.variables()) {
                     if (lecture.getInitialAssignment() != null)
                         continue;
                     nrPert++;
-                    nrStudentPert += lecture.classLimit();
+                    nrStudentPert += lecture.classLimit(a);
                 }
                 w.println("000." + dx.format(pidx++) + " Given perturbations," + nrPert);
                 w.println("000." + dx.format(pidx++) + " Given student perturbations," + nrStudentPert);
@@ -958,7 +959,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
                     if (lecture.isCommitted())
                         continue;
                     enrls += lecture.students().size();
-                    Placement placement = lecture.getAssignment();
+                    Placement placement = a.getValue(lecture);
                     if (placement != null) {
                         nrAssg++;
                     }
@@ -983,16 +984,16 @@ public class Test implements SolutionListener<Lecture, Placement> {
 
                         if (c instanceof InstructorConstraint) {
                             InstructorConstraint ic = (InstructorConstraint) c;
-                            instPref += ic.getPreference();
+                            instPref += ic.getPreference(a);
                             worstInstrPref += ic.getWorstPreference();
                         }
 
                         if (c instanceof DepartmentSpreadConstraint) {
                             DepartmentSpreadConstraint dsc = (DepartmentSpreadConstraint) c;
-                            deptSpreadPen += dsc.getPenalty();
+                            deptSpreadPen += dsc.getPenalty(a);
                         } else if (c instanceof SpreadConstraint) {
                             SpreadConstraint sc = (SpreadConstraint) c;
-                            spreadPen += sc.getPenalty();
+                            spreadPen += sc.getPenalty(a);
                         }
 
                         if (c instanceof GroupConstraint) {
@@ -1001,7 +1002,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
                                 continue;
                             minGrPref -= Math.abs(gc.getPreference());
                             maxGrPref += 0;
-                            grPref += Math.min(0, gc.getCurrentPreference());
+                            grPref += Math.min(0, gc.getCurrentPreference(a));
                             // minGrPref += Math.min(gc.getPreference(), 0);
                             // maxGrPref += Math.max(gc.getPreference(), 0);
                             // grPref += gc.getCurrentPreference();
@@ -1009,22 +1010,22 @@ public class Test implements SolutionListener<Lecture, Placement> {
 
                         if (c instanceof JenrlConstraint) {
                             JenrlConstraint jc = (JenrlConstraint) c;
-                            if (!jc.isInConflict() || !jc.isOfTheSameProblem())
+                            if (!jc.isInConflict(a) || !jc.isOfTheSameProblem())
                                 continue;
                             Lecture l1 = jc.first();
                             Lecture l2 = jc.second();
                             allSC += jc.getJenrl();
                             if (l1.areStudentConflictsHard(l2))
                                 hardSC += jc.getJenrl();
-                            Placement p1 = l1.getAssignment();
-                            Placement p2 = l2.getAssignment();
+                            Placement p1 = a.getValue(l1);
+                            Placement p2 = a.getValue(l2);
                             if (!p1.getTimeLocation().hasIntersection(p2.getTimeLocation()))
                                 distSC += jc.getJenrl();
                         }
 
                         if (c instanceof RoomConstraint) {
                             RoomConstraint rc = (RoomConstraint) c;
-                            uselessSlots += UselessHalfHours.countUselessSlotsHalfHours(rc) + BrokenTimePatterns.countUselessSlotsBrokenTimePatterns(rc);
+                            uselessSlots += UselessHalfHours.countUselessSlotsHalfHours(rc.getContext(a)) + BrokenTimePatterns.countUselessSlotsBrokenTimePatterns(rc.getContext(a));
                             rcs++;
                         }
                     }
@@ -1105,7 +1106,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
                     bestSolution.restoreBest();
                     sLogger.info("Best solution: " + ToolBox.dict2string(bestSolution.getInfo(), 1));
                     if (properties.getPropertyBoolean("General.SwitchStudents", true))
-                        ((TimetableModel) bestSolution.getModel()).switchStudents();
+                        ((TimetableModel) bestSolution.getModel()).switchStudents(bestSolution.getAssignment());
                     sLogger.info("Best solution: " + ToolBox.dict2string(bestSolution.getInfo(), 1));
                     saveOutputCSV(bestSolution, new File(outDir, "output.csv"));
 
@@ -1142,7 +1143,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
                     cbs.flush(); cbs.close();
                 }
 
-                System.out.println("Unassigned variables: " + model.nrUnassignedVariables());
+                System.out.println("Unassigned variables: " + model.nrUnassignedVariables(solution.getAssignment()));
             } catch (Throwable t) {
                 sLogger.error("Test failed.", t);
             }

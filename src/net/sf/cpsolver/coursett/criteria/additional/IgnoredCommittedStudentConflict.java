@@ -7,6 +7,7 @@ import net.sf.cpsolver.coursett.criteria.StudentConflict;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.Student;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -82,8 +83,8 @@ public class IgnoredCommittedStudentConflict extends StudentConflict {
     }
         
     @Override
-    public double[] getBounds(Collection<Lecture> variables) {
-        double[] bounds = super.getBounds(variables);
+    public double[] getBounds(Assignment<Lecture, Placement> assignment, Collection<Lecture> variables) {
+        double[] bounds = super.getBounds(assignment, variables);
         for (Lecture lecture: variables) {
             Double max = null;
             for (Placement placement: lecture.values()) {
@@ -96,8 +97,8 @@ public class IgnoredCommittedStudentConflict extends StudentConflict {
     }
     
     @Override
-    public double getValue(Placement value, Set<Placement> conflicts) {
-        double ret = super.getValue(value, conflicts);
+    public double getValue(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
+        double ret = super.getValue(assignment, value, conflicts);
         ret += countCommittedConflicts(value);
         if (iIncludeConflicts && conflicts != null)
             for (Placement conflict: conflicts)
@@ -106,11 +107,13 @@ public class IgnoredCommittedStudentConflict extends StudentConflict {
     }
     
     @Override
-    public double getValue(Collection<Lecture> variables) {
-        double ret = super.getValue(variables);
-        for (Lecture lect: variables)
-            if (lect.getAssignment() != null)
-                ret += countCommittedConflicts(lect.getAssignment());
+    public double getValue(Assignment<Lecture, Placement> assignment, Collection<Lecture> variables) {
+        double ret = super.getValue(assignment, variables);
+        for (Lecture lect: variables) {
+            Placement plac = assignment.getValue(lect);
+            if (plac != null)
+                ret += countCommittedConflicts(plac);
+        }
         return Math.round(ret);
     }
 }

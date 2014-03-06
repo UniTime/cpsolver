@@ -6,6 +6,7 @@ import java.util.Set;
 import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 
 /**
  * Room violations. This criterion counts how many times a prohibited room is assigned
@@ -39,7 +40,7 @@ public class RoomViolations extends TimetablingCriterion {
     }
     
     @Override
-    public double getValue(Placement value, Set<Placement> conflicts) {
+    public double getValue(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
         if (value.variable().isCommitted()) return 0.0;
         double ret = (violation(value) ? 1.0 : 0.0);
         if (conflicts != null)
@@ -49,12 +50,12 @@ public class RoomViolations extends TimetablingCriterion {
     }
     
     @Override
-    public double[] getBounds() {
+    public double[] getBounds(Assignment<Lecture, Placement> assignment) {
         return new double[] { getModel().variables().size(), 0.0 };
     }
         
     @Override
-    public double[] getBounds(Collection<Lecture> variables) {
+    public double[] getBounds(Assignment<Lecture, Placement> assignment, Collection<Lecture> variables) {
         return new double[] { variables.size(), 0.0 };
     }
 

@@ -1,18 +1,14 @@
 package net.sf.cpsolver.ifs.assignment.context;
 
 import net.sf.cpsolver.ifs.assignment.Assignment;
-import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.model.BinaryConstraint;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
 
 /**
- * A constraint with an assignment context. In order to be able to hold multiple assignments in memory
- * it is desired for all the assignment dependent data a constraint may need (to effectively enumerate
- * conflicting values), to store these data in a separate class (implementing the 
- * {@link AssignmentConstraintContext} interface). This context is created by calling
- * {@link ConstraintWithContext#createAssignmentContext(Assignment)} and accessed by
- * {@link ConstraintWithContext#getContext(Assignment)}.
+ * A binary constraint with an assignment context. This is a variant of the {@link ConstraintWithContext} that extends the
+ * {@link BinaryConstraint} class.
  * 
  * 
  * @see AssignmentContext
@@ -35,11 +31,11 @@ import net.sf.cpsolver.ifs.model.Variable;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see <http://www.gnu.org/licenses/>.
  **/
-public abstract class ConstraintWithContext<V extends Variable<V, T>, T extends Value<V, T>, C extends AssignmentConstraintContext<V, T>> extends Constraint<V, T> implements HasAssignmentContext<V, T, C>, CanHoldContext {
+public abstract class BinaryConstraintWithContext<V extends Variable<V, T>, T extends Value<V, T>, C extends AssignmentConstraintContext<V, T>> extends BinaryConstraint<V, T> implements HasAssignmentContext<V, T, C>, CanHoldContext {
     private AssignmentContextReference<V, T, C> iContextReference = null;
     private AssignmentContext[] iContext = null;
     
-    public ConstraintWithContext() {
+    public BinaryConstraintWithContext() {
         super();
     }
     

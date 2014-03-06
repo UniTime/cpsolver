@@ -37,18 +37,21 @@ import net.sf.cpsolver.coursett.criteria.StudentHardConflict;
 import net.sf.cpsolver.coursett.criteria.StudentOverlapConflict;
 import net.sf.cpsolver.coursett.criteria.TimePreferences;
 import net.sf.cpsolver.coursett.criteria.TimeViolations;
+import net.sf.cpsolver.coursett.criteria.TimetablingCriterion;
 import net.sf.cpsolver.coursett.criteria.TooBigRooms;
 import net.sf.cpsolver.coursett.criteria.UselessHalfHours;
-import net.sf.cpsolver.coursett.criteria.placement.AssignmentCount;
 import net.sf.cpsolver.coursett.criteria.placement.DeltaTimePreference;
 import net.sf.cpsolver.coursett.criteria.placement.HardConflicts;
 import net.sf.cpsolver.coursett.criteria.placement.PotentialHardConflicts;
 import net.sf.cpsolver.coursett.criteria.placement.WeightedHardConflicts;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.EmptyAssignment;
 import net.sf.cpsolver.ifs.constant.ConstantModel;
 import net.sf.cpsolver.ifs.criteria.Criterion;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.GlobalConstraint;
 import net.sf.cpsolver.ifs.model.WeakeningConstraint;
+import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.DistanceMetric;
 
@@ -91,6 +94,7 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
     private DataProperties iProperties = null;
     private int iYear = -1;
     private List<BitSet> iWeeks = null;
+    private EmptyAssignment<Lecture, Placement> iEmptyAssignment = new EmptyAssignment<Lecture, Placement>();
 
     private HashSet<Student> iAllStudents = new HashSet<Student>();
     
@@ -122,7 +126,7 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
                 BackToBackInstructorPreferences.class.getName() + ";" +
                 Perturbations.class.getName() + ";" +
                 // Additional placement selection criteria
-                AssignmentCount.class.getName() + ";" +
+                // AssignmentCount.class.getName() + ";" +
                 DeltaTimePreference.class.getName() + ";" +
                 HardConflicts.class.getName() + ";" +
                 PotentialHardConflicts.class.getName() + ";" +
@@ -173,15 +177,14 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
      * Student final sectioning (switching students between sections of the same
      * class in order to minimize overall number of student conflicts)
      */
-    public void switchStudents() {
-        getStudentSectioning().switchStudents(this);
+    public void switchStudents(Assignment<Lecture, Placement> assignment) {
+        getStudentSectioning().switchStudents(new Solution<Lecture, Placement>(this, assignment));
     }
 
     /**
      * String representation -- returns a list of values of objective criteria
      */
-    @Override
-    public String toString() {
+    public String toString(Assignment<Lecture, Placement> assignment) {
         List<Criterion<Lecture, Placement>> criteria = new ArrayList<Criterion<Lecture,Placement>>(getCriteria());
         Collections.sort(criteria, new Comparator<Criterion<Lecture, Placement>>() {
             @Override
@@ -193,127 +196,126 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
         });
         String ret = "";
         for (Criterion<Lecture, Placement> criterion: criteria) {
-            String val = criterion.toString();
+            String val = ((TimetablingCriterion)criterion).toString(assignment);
             if (!val.isEmpty())
                 ret += ", " + val;
         }
-        return (nrUnassignedVariables() == 0 ? "" : "V:" + nrAssignedVariables() + "/" + variables().size() + ", ") + 
-                "T:" + sDoubleFormat.format(getTotalValue()) + ret;
+        return (nrUnassignedVariables(assignment) == 0 ? "" : "V:" + nrAssignedVariables(assignment) + "/" + variables().size() + ", ") + "T:" + sDoubleFormat.format(getTotalValue(assignment)) + ret;
     }
 
-    public Map<String, String> getBounds() {
+    public Map<String, String> getBounds(Assignment<Lecture, Placement> assignment) {
         Map<String, String> ret = new HashMap<String, String>();
-        ret.put("Room preferences min", "" + getCriterion(RoomPreferences.class).getBounds()[0]);
-        ret.put("Room preferences max", "" + getCriterion(RoomPreferences.class).getBounds()[1]);
-        ret.put("Time preferences min", "" + getCriterion(TimePreferences.class).getBounds()[0]);
-        ret.put("Time preferences max", "" + getCriterion(TimePreferences.class).getBounds()[1]);
-        ret.put("Distribution preferences min", "" + getCriterion(DistributionPreferences.class).getBounds()[0]);
-        ret.put("Distribution preferences max", "" + getCriterion(DistributionPreferences.class).getBounds()[1]);
+        ret.put("Room preferences min", "" + getCriterion(RoomPreferences.class).getBounds(assignment)[0]);
+        ret.put("Room preferences max", "" + getCriterion(RoomPreferences.class).getBounds(assignment)[1]);
+        ret.put("Time preferences min", "" + getCriterion(TimePreferences.class).getBounds(assignment)[0]);
+        ret.put("Time preferences max", "" + getCriterion(TimePreferences.class).getBounds(assignment)[1]);
+        ret.put("Distribution preferences min", "" + getCriterion(DistributionPreferences.class).getBounds(assignment)[0]);
+        ret.put("Distribution preferences max", "" + getCriterion(DistributionPreferences.class).getBounds(assignment)[1]);
         if (getProperties().getPropertyBoolean("General.UseDistanceConstraints", false)) {
-            ret.put("Back-to-back instructor preferences max", "" + getCriterion(BackToBackInstructorPreferences.class).getBounds()[1]);
+            ret.put("Back-to-back instructor preferences max", "" + getCriterion(BackToBackInstructorPreferences.class).getBounds(assignment)[1]);
         }
-        ret.put("Too big rooms max", "" + getCriterion(TooBigRooms.class).getBounds()[0]);
-        ret.put("Useless half-hours", "" + getCriterion(UselessHalfHours.class).getBounds()[0]);
+        ret.put("Too big rooms max", "" + getCriterion(TooBigRooms.class).getBounds(assignment)[0]);
+        ret.put("Useless half-hours", "" + getCriterion(UselessHalfHours.class).getBounds(assignment)[0]);
         return ret;
     }
 
     /** Global info */
     @Override
-    public Map<String, String> getInfo() {
-        Map<String, String> ret = super.getInfo();
+    public Map<String, String> getInfo(Assignment<Lecture, Placement> assignment) {
+        Map<String, String> ret = super.getInfo(assignment);
         ret.put("Memory usage", getMem());
         
         Criterion<Lecture, Placement> rp = getCriterion(RoomPreferences.class);
         Criterion<Lecture, Placement> rv = getCriterion(RoomViolations.class);
-        ret.put("Room preferences", getPerc(rp.getValue(), rp.getBounds()[0], rp.getBounds()[1]) + "% (" + Math.round(rp.getValue()) + ")"
-                + (rv != null && rv.getValue() >= 0.5 ? " [hard:" + Math.round(rv.getValue()) + "]" : ""));
+        ret.put("Room preferences", getPerc(rp.getValue(assignment), rp.getBounds(assignment)[0], rp.getBounds(assignment)[1]) + "% (" + Math.round(rp.getValue(assignment)) + ")"
+                + (rv != null && rv.getValue(assignment) >= 0.5 ? " [hard:" + Math.round(rv.getValue(assignment)) + "]" : ""));
         
         Criterion<Lecture, Placement> tp = getCriterion(TimePreferences.class);
         Criterion<Lecture, Placement> tv = getCriterion(TimeViolations.class);
-        ret.put("Time preferences", getPerc(tp.getValue(), tp.getBounds()[0], tp.getBounds()[1]) + "% (" + sDoubleFormat.format(tp.getValue()) + ")"
-                + (tv != null && tv.getValue() >= 0.5 ? " [hard:" + Math.round(tv.getValue()) + "]" : ""));
+        ret.put("Time preferences", getPerc(tp.getValue(assignment), tp.getBounds(assignment)[0], tp.getBounds(assignment)[1]) + "% (" + sDoubleFormat.format(tp.getValue(assignment)) + ")"
+                + (tv != null && tv.getValue(assignment) >= 0.5 ? " [hard:" + Math.round(tv.getValue(assignment)) + "]" : ""));
 
         Criterion<Lecture, Placement> dp = getCriterion(DistributionPreferences.class);
-        ret.put("Distribution preferences", getPerc(dp.getValue(), dp.getBounds()[0], dp.getBounds()[1]) + "% (" + sDoubleFormat.format(dp.getValue()) + ")");
+        ret.put("Distribution preferences", getPerc(dp.getValue(assignment), dp.getBounds(assignment)[0], dp.getBounds(assignment)[1]) + "% (" + sDoubleFormat.format(dp.getValue(assignment)) + ")");
         
         Criterion<Lecture, Placement> sc = getCriterion(StudentConflict.class);
         Criterion<Lecture, Placement> shc = getCriterion(StudentHardConflict.class);
         Criterion<Lecture, Placement> sdc = getCriterion(StudentDistanceConflict.class);
         Criterion<Lecture, Placement> scc = getCriterion(StudentCommittedConflict.class);
-        ret.put("Student conflicts", Math.round(scc.getValue() + sc.getValue()) +
-                " [committed:" + Math.round(scc.getValue()) +
-                ", distance:" + Math.round(sdc.getValue()) +
-                ", hard:" + Math.round(shc.getValue()) + "]");
+        ret.put("Student conflicts", Math.round(scc.getValue(assignment) + sc.getValue(assignment)) +
+                " [committed:" + Math.round(scc.getValue(assignment)) +
+                ", distance:" + Math.round(sdc.getValue(assignment)) +
+                ", hard:" + Math.round(shc.getValue(assignment)) + "]");
         
         if (!getSpreadConstraints().isEmpty()) {
             Criterion<Lecture, Placement> ip = getCriterion(BackToBackInstructorPreferences.class);
-            ret.put("Back-to-back instructor preferences", getPerc(ip.getValue(), ip.getBounds()[0], ip.getBounds()[1]) + "% (" + Math.round(ip.getValue()) + ")");
+            ret.put("Back-to-back instructor preferences", getPerc(ip.getValue(assignment), ip.getBounds(assignment)[0], ip.getBounds(assignment)[1]) + "% (" + Math.round(ip.getValue(assignment)) + ")");
         }
 
         if (!getDepartmentSpreadConstraints().isEmpty()) {
             Criterion<Lecture, Placement> dbp = getCriterion(DepartmentBalancingPenalty.class);
-            ret.put("Department balancing penalty", sDoubleFormat.format(dbp.getValue()));
+            ret.put("Department balancing penalty", sDoubleFormat.format(dbp.getValue(assignment)));
         }
         
         Criterion<Lecture, Placement> sbp = getCriterion(SameSubpartBalancingPenalty.class);
-        ret.put("Same subpart balancing penalty", sDoubleFormat.format(sbp.getValue()));
+        ret.put("Same subpart balancing penalty", sDoubleFormat.format(sbp.getValue(assignment)));
         
         Criterion<Lecture, Placement> tbr = getCriterion(TooBigRooms.class);
-        ret.put("Too big rooms", getPercRev(tbr.getValue(), tbr.getBounds()[1], tbr.getBounds()[0]) + "% (" + Math.round(tbr.getValue()) + ")");
+        ret.put("Too big rooms", getPercRev(tbr.getValue(assignment), tbr.getBounds(assignment)[1], tbr.getBounds(assignment)[0]) + "% (" + Math.round(tbr.getValue(assignment)) + ")");
         
         Criterion<Lecture, Placement> uh = getCriterion(UselessHalfHours.class);
         Criterion<Lecture, Placement> bt = getCriterion(BrokenTimePatterns.class);
 
-        ret.put("Useless half-hours", getPercRev(uh.getValue() + bt.getValue(), 0, Constants.sPreferenceLevelStronglyDiscouraged * bt.getBounds()[0]) +
-                "% (" + Math.round(uh.getValue()) + " + " + Math.round(bt.getValue()) + ")");
+        ret.put("Useless half-hours", getPercRev(uh.getValue(assignment) + bt.getValue(assignment), 0, Constants.sPreferenceLevelStronglyDiscouraged * bt.getBounds(assignment)[0]) +
+                "% (" + Math.round(uh.getValue(assignment)) + " + " + Math.round(bt.getValue(assignment)) + ")");
         return ret;
     }
 
     @Override
-    public Map<String, String> getInfo(Collection<Lecture> variables) {
-        Map<String, String> ret = super.getInfo(variables);
+    public Map<String, String> getInfo(Assignment<Lecture, Placement> assignment, Collection<Lecture> variables) {
+        Map<String, String> ret = super.getInfo(assignment, variables);
         
         ret.put("Memory usage", getMem());
         
         Criterion<Lecture, Placement> rp = getCriterion(RoomPreferences.class);
-        ret.put("Room preferences", getPerc(rp.getValue(variables), rp.getBounds(variables)[0], rp.getBounds(variables)[1]) + "% (" + Math.round(rp.getValue(variables)) + ")");
+        ret.put("Room preferences", getPerc(rp.getValue(assignment, variables), rp.getBounds(assignment, variables)[0], rp.getBounds(assignment, variables)[1]) + "% (" + Math.round(rp.getValue(assignment, variables)) + ")");
         
         Criterion<Lecture, Placement> tp = getCriterion(TimePreferences.class);
-        ret.put("Time preferences", getPerc(tp.getValue(variables), tp.getBounds(variables)[0], tp.getBounds(variables)[1]) + "% (" + sDoubleFormat.format(tp.getValue(variables)) + ")"); 
+        ret.put("Time preferences", getPerc(tp.getValue(assignment, variables), tp.getBounds(assignment, variables)[0], tp.getBounds(assignment, variables)[1]) + "% (" + sDoubleFormat.format(tp.getValue(assignment, variables)) + ")"); 
 
         Criterion<Lecture, Placement> dp = getCriterion(DistributionPreferences.class);
-        ret.put("Distribution preferences", getPerc(dp.getValue(variables), dp.getBounds(variables)[0], dp.getBounds(variables)[1]) + "% (" + sDoubleFormat.format(dp.getValue(variables)) + ")");
+        ret.put("Distribution preferences", getPerc(dp.getValue(assignment, variables), dp.getBounds(assignment, variables)[0], dp.getBounds(assignment, variables)[1]) + "% (" + sDoubleFormat.format(dp.getValue(assignment, variables)) + ")");
         
         Criterion<Lecture, Placement> sc = getCriterion(StudentConflict.class);
         Criterion<Lecture, Placement> shc = getCriterion(StudentHardConflict.class);
         Criterion<Lecture, Placement> sdc = getCriterion(StudentDistanceConflict.class);
         Criterion<Lecture, Placement> scc = getCriterion(StudentCommittedConflict.class);
-        ret.put("Student conflicts", Math.round(scc.getValue(variables) + sc.getValue(variables)) +
-                " [committed:" + Math.round(scc.getValue(variables)) +
-                ", distance:" + Math.round(sdc.getValue(variables)) +
-                ", hard:" + Math.round(shc.getValue(variables)) + "]");
+        ret.put("Student conflicts", Math.round(scc.getValue(assignment, variables) + sc.getValue(assignment, variables)) +
+                " [committed:" + Math.round(scc.getValue(assignment, variables)) +
+                ", distance:" + Math.round(sdc.getValue(assignment, variables)) +
+                ", hard:" + Math.round(shc.getValue(assignment, variables)) + "]");
         
         if (!getSpreadConstraints().isEmpty()) {
             Criterion<Lecture, Placement> ip = getCriterion(BackToBackInstructorPreferences.class);
-            ret.put("Back-to-back instructor preferences", getPerc(ip.getValue(variables), ip.getBounds(variables)[0], ip.getBounds(variables)[1]) + "% (" + Math.round(ip.getValue(variables)) + ")");
+            ret.put("Back-to-back instructor preferences", getPerc(ip.getValue(assignment, variables), ip.getBounds(assignment, variables)[0], ip.getBounds(assignment, variables)[1]) + "% (" + Math.round(ip.getValue(assignment, variables)) + ")");
         }
 
         if (!getDepartmentSpreadConstraints().isEmpty()) {
             Criterion<Lecture, Placement> dbp = getCriterion(DepartmentBalancingPenalty.class);
-            ret.put("Department balancing penalty", sDoubleFormat.format(dbp.getValue(variables)));
+            ret.put("Department balancing penalty", sDoubleFormat.format(dbp.getValue(assignment, variables)));
         }
         
         Criterion<Lecture, Placement> sbp = getCriterion(SameSubpartBalancingPenalty.class);
-        ret.put("Same subpart balancing penalty", sDoubleFormat.format(sbp.getValue(variables)));
+        ret.put("Same subpart balancing penalty", sDoubleFormat.format(sbp.getValue(assignment, variables)));
         
         Criterion<Lecture, Placement> tbr = getCriterion(TooBigRooms.class);
-        ret.put("Too big rooms", getPercRev(tbr.getValue(variables), tbr.getBounds(variables)[1], tbr.getBounds(variables)[0]) + "% (" + Math.round(tbr.getValue(variables)) + ")");
+        ret.put("Too big rooms", getPercRev(tbr.getValue(assignment, variables), tbr.getBounds(assignment, variables)[1], tbr.getBounds(assignment, variables)[0]) + "% (" + Math.round(tbr.getValue(assignment, variables)) + ")");
         
         Criterion<Lecture, Placement> uh = getCriterion(UselessHalfHours.class);
         Criterion<Lecture, Placement> bt = getCriterion(BrokenTimePatterns.class);
 
-        ret.put("Useless half-hours", getPercRev(uh.getValue(variables) + bt.getValue(variables), 0, Constants.sPreferenceLevelStronglyDiscouraged * bt.getBounds(variables)[0]) +
-                "% (" + Math.round(uh.getValue(variables)) + " + " + Math.round(bt.getValue(variables)) + ")");
+        ret.put("Useless half-hours", getPercRev(uh.getValue(assignment, variables) + bt.getValue(assignment, variables), 0, Constants.sPreferenceLevelStronglyDiscouraged * bt.getBounds(assignment, variables)[0]) +
+                "% (" + Math.round(uh.getValue(assignment, variables)) + " + " + Math.round(bt.getValue(assignment, variables)) + ")");
         return ret;
     }
 
@@ -399,18 +401,18 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
     }
     
     @Override
-    public double getTotalValue() {
+    public double getTotalValue(Assignment<Lecture, Placement> assignment) {
         double ret = 0;
         for (Criterion<Lecture, Placement> criterion: getCriteria())
-            ret += criterion.getWeightedValue();
+            ret += criterion.getWeightedValue(assignment);
         return ret;
     }
 
     @Override
-    public double getTotalValue(Collection<Lecture> variables) {
+    public double getTotalValue(Assignment<Lecture, Placement> assignment, Collection<Lecture> variables) {
         double ret = 0;
         for (Criterion<Lecture, Placement> criterion: getCriteria())
-            ret += criterion.getWeightedValue(variables);
+            ret += criterion.getWeightedValue(assignment, variables);
         return ret;
     }
 
@@ -450,15 +452,15 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
      * assigned to its variable. Conflicts with constraints that implement
      * {@link WeakeningConstraint} are ignored.
      */
-    public Set<Placement> conflictValuesSkipWeakeningConstraints(Placement value) {
+    public Set<Placement> conflictValuesSkipWeakeningConstraints(Assignment<Lecture, Placement> assignment, Placement value) {
         Set<Placement> conflictValues = new HashSet<Placement>();
         for (Constraint<Lecture, Placement> constraint : value.variable().hardConstraints()) {
             if (constraint instanceof WeakeningConstraint) continue;
-            constraint.computeConflicts(value, conflictValues);
+            constraint.computeConflicts(assignment, value, conflictValues);
         }
         for (GlobalConstraint<Lecture, Placement> constraint : globalConstraints()) {
             if (constraint instanceof WeakeningConstraint) continue;
-            constraint.computeConflicts(value, conflictValues);
+            constraint.computeConflicts(assignment, value, conflictValues);
         }
         return conflictValues;
     }
@@ -499,5 +501,9 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
             }
         }
         return iWeeks;            
+    }
+    
+    public EmptyAssignment<Lecture, Placement> getEmptyAssignment() {
+        return iEmptyAssignment;
     }
 }

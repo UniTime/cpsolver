@@ -7,6 +7,7 @@ import net.sf.cpsolver.coursett.criteria.TimetablingCriterion;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomLocation;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
@@ -64,7 +65,7 @@ public class RoomSizePenalty extends TimetablingCriterion {
     }
     
     @Override
-    public double getValue(Placement value, Set<Placement> conflicts) {
+    public double getValue(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
         if (value.variable().getNrRooms() <= 0) return 0.0;
         double size = 0;
         if (value.getRoomLocation() != null)
@@ -79,9 +80,9 @@ public class RoomSizePenalty extends TimetablingCriterion {
     }
     
     @Override
-    public void getInfo(Map<String, String> info) {
-        if (getValue() != 0.0)
-            info.put(getName(), sDoubleFormat.format(Math.pow(getValue() / getModel().nrAssignedVariables(), 1.0 / iRoomSizeFactor)));
+    public void getInfo(Assignment<Lecture, Placement> assignment, Map<String, String> info) {
+        if (getValue(assignment) != 0.0)
+            info.put(getName(), sDoubleFormat.format(Math.pow(getValue(assignment) / getModel().nrAssignedVariables(assignment), 1.0 / iRoomSizeFactor)));
     }
 
 }

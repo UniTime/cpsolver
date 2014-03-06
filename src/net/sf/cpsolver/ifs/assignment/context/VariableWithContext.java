@@ -1,16 +1,15 @@
 package net.sf.cpsolver.ifs.assignment.context;
 
 import net.sf.cpsolver.ifs.assignment.Assignment;
-import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
 
 /**
- * A constraint with an assignment context. In order to be able to hold multiple assignments in memory
- * it is desired for all the assignment dependent data a constraint may need (to effectively enumerate
- * conflicting values), to store these data in a separate class (implementing the 
- * {@link AssignmentConstraintContext} interface). This context is created by calling
+ * A variable with an assignment context. In order to be able to hold multiple assignments in memory
+ * it is desired for all the assignment dependent data a variable may need (to effectively enumerate
+ * its objectives), to store these data in a separate class (implementing the 
+ * {@link AssignmentContext} interface). This context is created by calling
  * {@link ConstraintWithContext#createAssignmentContext(Assignment)} and accessed by
  * {@link ConstraintWithContext#getContext(Assignment)}.
  * 
@@ -35,30 +34,36 @@ import net.sf.cpsolver.ifs.model.Variable;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see <http://www.gnu.org/licenses/>.
  **/
-public abstract class ConstraintWithContext<V extends Variable<V, T>, T extends Value<V, T>, C extends AssignmentConstraintContext<V, T>> extends Constraint<V, T> implements HasAssignmentContext<V, T, C>, CanHoldContext {
+public abstract class VariableWithContext<V extends Variable<V, T>, T extends Value<V, T>, C extends AssignmentContext> extends Variable<V, T> implements HasAssignmentContext<V, T, C>, CanHoldContext {
     private AssignmentContextReference<V, T, C> iContextReference = null;
     private AssignmentContext[] iContext = null;
     
-    public ConstraintWithContext() {
+    /** Constructor */
+    public VariableWithContext() {
         super();
+    }
+
+    /**
+     * Constructor
+     * @param initialValue initial value (minimal-perturbation problem)
+     */
+    public VariableWithContext(T initialValue) {
+        super(initialValue);
     }
     
     @Override
     public void setModel(Model<V, T> model) {
         super.setModel(model);
-        if (model != null)
-            iContextReference = model.createReference(this);
+        iContextReference = model.createReference(this);
     }
     
     /**
-     * Returns an assignment context associated with this constraint. If there is no 
-     * assignment context associated with this constraint yet, one is created using the
+     * Returns an assignment context associated with this extension. If there is no 
+     * assignment context associated with this extension yet, one is created using the
      * {@link ConstraintWithContext#createAssignmentContext(Assignment)} method. From that time on,
-     * this context is kept with the assignment and automatically updated by calling the
-     * {@link AssignmentConstraintContext#assigned(Assignment, Value)} and {@link AssignmentConstraintContext#unassigned(Assignment, Value)}
-     * whenever a variable of this constraint is changed.
+     * this context is kept with the assignment.
      * @param assignment given assignment
-     * @return assignment context associated with this constraint and the given assignment
+     * @return assignment context associated with this extension and the given assignment
      */
     @SuppressWarnings("unchecked")
     public C getContext(Assignment<V, T> assignment) {
@@ -80,16 +85,4 @@ public abstract class ConstraintWithContext<V extends Variable<V, T>, T extends 
 
     @Override
     public void setContext(AssignmentContext[] context) { iContext = context; }
-    
-    @Override
-    public void assigned(Assignment<V, T> assignment, long iteration, T value) {
-        super.assigned(assignment, iteration, value);
-        getContext(assignment).assigned(assignment, value);
-    }
-    
-    @Override
-    public void unassigned(Assignment<V, T> assignment, long iteration, T value) {
-        super.unassigned(assignment, iteration, value);
-        getContext(assignment).unassigned(assignment, value);
-    }
 }

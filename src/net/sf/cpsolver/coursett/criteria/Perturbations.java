@@ -5,6 +5,7 @@ import java.util.Set;
 
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.perturbations.PerturbationsCounter;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
@@ -62,27 +63,27 @@ public class Perturbations extends TimetablingCriterion {
     }
 
     @Override
-    public double getValue(Placement value, Set<Placement> conflicts) {
-        return getPerturbationsCounter().getPerturbationPenalty(getModel(), value, conflicts);
+    public double getValue(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
+        return getPerturbationsCounter().getPerturbationPenalty(assignment, getModel(), value, conflicts);
     }
     
     @Override
-    public double getValue() {
-        return getPerturbationsCounter().getPerturbationPenalty(getModel());
+    public double getValue(Assignment<Lecture, Placement> assignment) {
+        return getPerturbationsCounter().getPerturbationPenalty(assignment, getModel());
     }
 
     @Override
-    public double getValue(Collection<Lecture> variables) {
-        return getPerturbationsCounter().getPerturbationPenalty(getModel(), variables);
+    public double getValue(Assignment<Lecture, Placement> assignment, Collection<Lecture> variables) {
+        return getPerturbationsCounter().getPerturbationPenalty(assignment, getModel(), variables);
     }
 
     @Override
-    public double[] getBounds() {
+    public double[] getBounds(Assignment<Lecture, Placement> assignment) {
         return new double[] { 0.0, 0.0 };
     }
     
     @Override
-    public double[] getBounds(Collection<Lecture> variables) {
+    public double[] getBounds(Assignment<Lecture, Placement> assignment, Collection<Lecture> variables) {
         return new double[] { 0.0, 0.0 };
     }
 }

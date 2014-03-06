@@ -12,9 +12,12 @@ import net.sf.cpsolver.coursett.model.DefaultStudentSectioning;
 import net.sf.cpsolver.coursett.model.InitialSectioning;
 import net.sf.cpsolver.coursett.model.InitialSectioning.Group;
 import net.sf.cpsolver.coursett.model.Lecture;
+import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.Student;
 import net.sf.cpsolver.coursett.model.StudentSectioning;
 import net.sf.cpsolver.coursett.model.TimetableModel;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.util.Progress;
 
 /**
@@ -83,14 +86,14 @@ public class DeterministicStudentSectioning extends DefaultStudentSectioning {
      * No re-sectioning (final sectioning) during deterministic student sectioning.
      */
     @Override
-    public void switchStudents(TimetableModel model) {
+    public void switchStudents(Solution<Lecture, Placement> solution) {
     }
 
     /**
      * No re-sectioning (final sectioning) during deterministic student sectioning.
      */
     @Override
-    public void resection(Lecture lecture, boolean recursive, boolean configAsWell) {
+    public void resection(Assignment<Lecture, Placement> assignment, Lecture lecture, boolean recursive, boolean configAsWell) {
     }
 
     /**

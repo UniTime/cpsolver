@@ -6,6 +6,7 @@ import java.util.Set;
 
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.extension.ConflictStatistics;
 import net.sf.cpsolver.ifs.extension.Extension;
 import net.sf.cpsolver.ifs.solution.Solution;
@@ -37,7 +38,6 @@ import net.sf.cpsolver.ifs.solver.Solver;
  */
 public class WeightedHardConflicts extends PlacementSelectionCriterion implements SolutionListener<Lecture, Placement> {
     protected ConflictStatistics<Lecture, Placement> iStat = null;
-    protected long iIteration = 0;
     
     @Override
     public boolean init(Solver<Lecture, Placement> solver) {
@@ -56,8 +56,12 @@ public class WeightedHardConflicts extends PlacementSelectionCriterion implement
     }
 
     @Override
-    public double getValue(Placement value, Set<Placement> conflicts) {
-        return (iStat == null || conflicts == null ? 0.0 : iStat.countRemovals(iIteration, conflicts, value));
+    public double getValue(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
+        if (iStat != null && conflicts != null && !conflicts.isEmpty()) {
+            return iStat.countRemovals(((IterationContext)getContext(assignment)).getIteration(), conflicts, value);
+        } else {
+            return 0.0;
+        }
     }
 
     @Override
@@ -67,7 +71,7 @@ public class WeightedHardConflicts extends PlacementSelectionCriterion implement
 
     @Override
     public void solutionUpdated(Solution<Lecture, Placement> solution) {
-        iIteration = solution.getIteration();
+        ((IterationContext)getContext(solution.getAssignment())).setIteration(solution.getIteration());
     }
 
     @Override
@@ -80,17 +84,37 @@ public class WeightedHardConflicts extends PlacementSelectionCriterion implement
 
     @Override
     public void bestCleared(Solution<Lecture, Placement> solution) {
-        iIteration = solution.getIteration();        
+        ((IterationContext)getContext(solution.getAssignment())).setIteration(solution.getIteration());
     }
 
     @Override
     public void bestSaved(Solution<Lecture, Placement> solution) {
-        iIteration = solution.getIteration();
+        ((IterationContext)getContext(solution.getAssignment())).setIteration(solution.getIteration());
     }
 
     @Override
     public void bestRestored(Solution<Lecture, Placement> solution) {
-        iIteration = solution.getIteration();
+        ((IterationContext)getContext(solution.getAssignment())).setIteration(solution.getIteration());
+    }
+    
+    @Override
+    public ValueContext createAssignmentContext(Assignment<Lecture, Placement> assignment) {
+        return new IterationContext(assignment);
     }
 
+    public class IterationContext extends ValueContext {
+        protected long iIteration = 0;
+
+        protected IterationContext(Assignment<Lecture, Placement> assignment) {
+            super(assignment);
+        }
+        
+        public void setIteration(long iteration) {
+            iIteration = iteration;
+        }
+        
+        public long getIteration() {
+            return iIteration;
+        }
+    }
 }

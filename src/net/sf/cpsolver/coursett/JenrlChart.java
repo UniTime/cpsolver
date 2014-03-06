@@ -56,7 +56,7 @@ public class JenrlChart extends DomainChart {
                 int cmp = -Double.compare(l1.students().size(), l2.students().size());
                 if (cmp != 0)
                     return cmp;
-                cmp = -Double.compare(l1.classLimit(), l2.classLimit());
+                cmp = -Double.compare(l1.maxClassLimit(), l2.maxClassLimit());
                 if (cmp != 0)
                     return cmp;
                 return Double.compare(l1.getId(), l2.getId());

@@ -2,7 +2,9 @@ package net.sf.cpsolver.coursett.criteria.placement;
 
 import java.util.Set;
 
+import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 
 /**
  * Number of values (of other variables) that have to be unassigned in order before
@@ -36,7 +38,7 @@ public class HardConflicts extends PlacementSelectionCriterion {
     }
 
     @Override
-    public double getValue(Placement value, Set<Placement> conflicts) {
+    public double getValue(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
         return (conflicts == null ? 0 : conflicts.size());
     }
     

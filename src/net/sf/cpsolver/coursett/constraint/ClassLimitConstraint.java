@@ -8,6 +8,7 @@ import java.util.TreeSet;
 
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Constraint;
 
 /**
@@ -67,30 +68,30 @@ public class ClassLimitConstraint extends Constraint<Lecture, Placement> {
         return iParent;
     }
 
-    public int currentClassLimit(Placement value, Set<Placement> conflicts) {
+    public int currentClassLimit(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
         int limit = 0;
         for (Lecture lecture : variables()) {
-            limit += lecture.classLimit(value, conflicts);
+            limit += lecture.classLimit(assignment, value, conflicts);
         }
         return limit;
     }
 
     @Override
-    public void computeConflicts(Placement value, Set<Placement> conflicts) {
+    public void computeConflicts(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
         if (!iEnabled)
             return;
-        int currentLimit = currentClassLimit(value, conflicts);
+        int currentLimit = currentClassLimit(assignment, value, conflicts);
         int classLimit = classLimit();
         if (currentLimit < classLimit) {
             // System.out.println(getName()+"> "+currentLimit+"<"+classLimit+" ("+value+")");
             TreeSet<Placement> adepts = new TreeSet<Placement>(new ClassLimitComparator());
-            computeAdepts(adepts, variables(), value, conflicts);
-            addParentAdepts(adepts, iParent, value, conflicts);
+            computeAdepts(assignment, adepts, variables(), value, conflicts);
+            addParentAdepts(assignment, adepts, iParent, value, conflicts);
             // System.out.println(" -- found "+adepts.size()+" adepts");
             for (Placement adept : adepts) {
                 // System.out.println("   -- selected "+adept);
                 conflicts.add(adept);
-                currentLimit = currentClassLimit(value, conflicts);
+                currentLimit = currentClassLimit(assignment, value, conflicts);
                 // System.out.println("   -- new current limit "+currentLimit);
                 if (currentLimit >= classLimit)
                     break;
@@ -102,47 +103,47 @@ public class ClassLimitConstraint extends Constraint<Lecture, Placement> {
             conflicts.add(value);
 
         if (iParent != null && iParent.getClassLimitConstraint() != null)
-            iParent.getClassLimitConstraint().computeConflicts(value, conflicts);
+            iParent.getClassLimitConstraint().computeConflicts(assignment, value, conflicts);
     }
 
-    public void computeAdepts(Collection<Placement> adepts, List<Lecture> variables, Placement value,
+    public void computeAdepts(Assignment<Lecture, Placement> assignment, Collection<Placement> adepts, List<Lecture> variables, Placement value,
             Set<Placement> conflicts) {
         for (Lecture lecture : variables) {
             if (lecture.isCommitted()) continue;
-            Placement placement = lecture.getAssignment();
+            Placement placement = assignment.getValue(lecture);
             if (placement != null && !placement.equals(value) && !conflicts.contains(placement)) {
                 adepts.add(placement);
             }
             if (lecture.hasAnyChildren()) {
                 for (Long subpartId: lecture.getChildrenSubpartIds()) {
-                    computeAdepts(adepts, lecture.getChildren(subpartId), value, conflicts);
+                    computeAdepts(assignment, adepts, lecture.getChildren(subpartId), value, conflicts);
                 }
             }
 
         }
     }
 
-    public void addParentAdepts(Collection<Placement> adepts, Lecture parent, Placement value, Set<Placement> conflicts) {
+    public void addParentAdepts(Assignment<Lecture, Placement> assignment, Collection<Placement> adepts, Lecture parent, Placement value, Set<Placement> conflicts) {
         if (parent == null || parent.isCommitted() || parent.minClassLimit() == parent.maxClassLimit())
             return;
-        Placement placement = parent.getAssignment();
+        Placement placement = assignment.getValue(parent);
         if (placement != null && !placement.equals(value) && !conflicts.contains(placement)) {
             adepts.add(placement);
         }
-        addParentAdepts(adepts, parent.getParent(), value, conflicts);
+        addParentAdepts(assignment, adepts, parent.getParent(), value, conflicts);
     }
 
     @Override
-    public boolean inConflict(Placement value) {
+    public boolean inConflict(Assignment<Lecture, Placement> assignment, Placement value) {
         if (!iEnabled)
             return false;
-        int currentLimit = currentClassLimit(value, null);
+        int currentLimit = currentClassLimit(assignment, value, null);
         int classLimit = classLimit();
         if (currentLimit < classLimit)
             return true;
 
         if (iParent != null && iParent.getClassLimitConstraint() != null)
-            return iParent.getClassLimitConstraint().inConflict(value);
+            return iParent.getClassLimitConstraint().inConflict(assignment, value);
 
         return false;
     }

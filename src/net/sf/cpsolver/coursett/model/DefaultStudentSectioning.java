@@ -4,6 +4,8 @@ import java.util.Collection;
 import java.util.List;
 
 import net.sf.cpsolver.coursett.model.InitialSectioning.Group;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.util.Progress;
 
 /**
@@ -78,7 +80,7 @@ public class DefaultStudentSectioning implements StudentSectioning {
      * @param configurations list of configurations the students are to be sectioned into
      */
     @Override
-    public void initialSectioning(Long offeringId, String courseName, Collection<Student> students, Collection<Configuration> configurations) {
+    public void initialSectioning(Assignment<Lecture, Placement> assignment, Long offeringId, String courseName, Collection<Student> students, Collection<Configuration> configurations) {
         if (students == null || students.isEmpty())
             return;
         if (configurations == null || configurations.isEmpty())
@@ -89,7 +91,7 @@ public class DefaultStudentSectioning implements StudentSectioning {
                 st.addConfiguration(cfg);
             }
             for (Long subpartId: cfg.getTopSubpartIds()) {
-                initialSectioningLectures(offeringId, courseName, students, cfg.getTopLectures(subpartId));
+                initialSectioningLectures(assignment, offeringId, courseName, students, cfg.getTopLectures(subpartId));
             }
         } else {
             getProgress().trace("sectioning " + students.size() + " students of course " + courseName + " into " + configurations.size() + " configurations");
@@ -101,7 +103,7 @@ public class DefaultStudentSectioning implements StudentSectioning {
                     st.addConfiguration(group.getConfiguration());
                 }
                 for (Long subpartId: group.getConfiguration().getTopSubpartIds()) {
-                    initialSectioningLectures(offeringId, courseName, group.getStudents(), group.getConfiguration().getTopLectures(subpartId));
+                    initialSectioningLectures(assignment, offeringId, courseName, group.getStudents(), group.getConfiguration().getTopLectures(subpartId));
                 }
             }
         }
@@ -123,13 +125,13 @@ public class DefaultStudentSectioning implements StudentSectioning {
      * @param students list of students to be sectioned
      * @param lectures list of lectures the students are to be sectioned into
      */
-    protected void initialSectioningLectures(Long offeringId, String courseName, Collection<Student> students, Collection<Lecture> lectures) {
+    protected void initialSectioningLectures(Assignment<Lecture, Placement> assignment, Long offeringId, String courseName, Collection<Student> students, Collection<Lecture> lectures) {
         if (lectures == null || lectures.isEmpty())
             return;
         if (students == null || students.isEmpty())
             return;
         for (Lecture lecture : lectures) {
-            if (lecture.classLimit() == 0 && !lecture.isCommitted())
+            if (lecture.classLimit(assignment) == 0 && !lecture.isCommitted())
                 getProgress().warn("Class " + getClassLabel(lecture) + " has zero class limit.");
         }
 
@@ -140,13 +142,13 @@ public class DefaultStudentSectioning implements StudentSectioning {
                 if (!st.canEnroll(lect)) {
                     getProgress().info("Unable to enroll student " + st.getId() + " in class " + getClassLabel(lect));
                 }
-                lect.addStudent(st);
+                lect.addStudent(assignment, st);
                 st.addLecture(lect);
             }
             if (lect.hasAnyChildren()) {
                 for (Long subpartId: lect.getChildrenSubpartIds()) {
                     List<Lecture> children = lect.getChildren(subpartId);
-                    initialSectioningLectures(offeringId, lect.getName(), students, children);
+                    initialSectioningLectures(assignment, offeringId, lect.getName(), students, children);
                 }
             }
         } else {
@@ -155,22 +157,22 @@ public class DefaultStudentSectioning implements StudentSectioning {
                 Group group = studentsPerSection[i];
                 Lecture lect = group.getLecture();
                 if (group.getStudents().isEmpty()) {
-                    getProgress().trace("Lecture " + getClassLabel(lect) + " got no students (cl=" + lect.classLimit() + ")");
+                    getProgress().trace("Lecture " + getClassLabel(lect) + " got no students (cl=" + lect.classLimit(assignment) + ")");
                     continue;
                 }
-                getProgress().trace("Lecture " + getClassLabel(lect) + " got " + group.getStudents().size() + " students (weighted=" + group.size() + ", classLimit=" + lect.classLimit() + ")");
+                getProgress().trace("Lecture " + getClassLabel(lect) + " got " + group.getStudents().size() + " students (weighted=" + group.size() + ", classLimit=" + lect.classLimit(assignment) + ")");
                 List<Student> studentsThisSection = group.getStudents();
                 for (Student st : studentsThisSection) {
                     if (!st.canEnroll(lect)) {
                         getProgress().info("Unable to enroll student " + st.getId() + " in class " + getClassLabel(lect));
                     }
-                    lect.addStudent(st);
+                    lect.addStudent(assignment, st);
                     st.addLecture(lect);
                 }
                 if (lect.hasAnyChildren()) {
                     for (Long subpartId: lect.getChildrenSubpartIds()) {
                         List<Lecture> children = lect.getChildren(subpartId);
-                        initialSectioningLectures(offeringId, lect.getName(), studentsThisSection, children);
+                        initialSectioningLectures(assignment, offeringId, lect.getName(), studentsThisSection, children);
                     }
                 }
             }
@@ -214,8 +216,8 @@ public class DefaultStudentSectioning implements StudentSectioning {
      * class in order to minimize overall number of student conflicts).
      */
     @Override
-    public void switchStudents(TimetableModel model) {
-        iFinalSectioning.run();
+    public void switchStudents(Solution<Lecture, Placement> solution) {
+        iFinalSectioning.execute(solution.getAssignment());
     }
     
     /**
@@ -225,8 +227,8 @@ public class DefaultStudentSectioning implements StudentSectioning {
      * @param configAsWell resection students between configurations as well
      **/
     @Override
-    public void resection(Lecture lecture, boolean recursive, boolean configAsWell) {
-        iFinalSectioning.resection(lecture, recursive, configAsWell);
+    public void resection(Assignment<Lecture, Placement> assignment, Lecture lecture, boolean recursive, boolean configAsWell) {
+        iFinalSectioning.resection(assignment, lecture, recursive, configAsWell);
     }
 
 }
