@@ -50,7 +50,7 @@ public class StepCountingHillClimber<V extends Variable<V, T>, T extends Value<V
      * <li>HillClimber.CounterMode ... counter mode (all: count all moves, accepted: count accepted moves, improving: count improving moves)
      * </ul>
      */
-    public StepCountingHillClimber(DataProperties properties, String name) {
+    public StepCountingHillClimber(DataProperties properties) {
         super(properties);
         iSetHCMode = false;
     }
