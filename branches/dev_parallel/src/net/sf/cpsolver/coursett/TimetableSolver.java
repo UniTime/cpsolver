@@ -1,5 +1,6 @@
 package net.sf.cpsolver.coursett;
 
+import net.sf.cpsolver.coursett.heuristics.FixCompleteSolutionNeighbourSelection;
 import net.sf.cpsolver.coursett.heuristics.NeighbourSelectionWithSuggestions;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
@@ -17,7 +18,9 @@ import net.sf.cpsolver.ifs.util.Progress;
  * <br>
  * When a complete solution is found, it is improved by limited depth
  * backtracking search. This way it is ensured that the fund solution is at
- * least locally optimal.
+ * least locally optimal.<br>
+ * <br>
+ * Deprecated: use {@link FixCompleteSolutionNeighbourSelection} instead.
  * 
  * @version CourseTT 1.2 (University Course Timetabling)<br>
  *          Copyright (C) 2006 - 2010 Tomas Muller<br>
@@ -39,6 +42,7 @@ import net.sf.cpsolver.ifs.util.Progress;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
+@Deprecated
 public class TimetableSolver extends Solver<Lecture, Placement> {
     private long iLastCompleteSolutionFixIteration = -1;
     private long iLastIncompleteSolutionFixIteration = -1;

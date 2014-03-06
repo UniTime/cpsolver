@@ -49,6 +49,7 @@ import net.sf.cpsolver.coursett.model.Student;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.coursett.model.TimetableModel;
 import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.DefaultParallelAssignment;
 import net.sf.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import net.sf.cpsolver.ifs.extension.ConflictStatistics;
 import net.sf.cpsolver.ifs.extension.Extension;
@@ -56,6 +57,7 @@ import net.sf.cpsolver.ifs.extension.MacPropagation;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solution.SolutionListener;
+import net.sf.cpsolver.ifs.solver.ParallelSolver;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.Progress;
@@ -142,7 +144,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
      */
     public static void setupLogging(File logFile, boolean debug) {
         Logger root = Logger.getRootLogger();
-        ConsoleAppender console = new ConsoleAppender(new PatternLayout("%m%n"));
+        ConsoleAppender console = new ConsoleAppender(new PatternLayout("[%t] %m%n"));
         console.setThreshold(Level.INFO);
         root.addAppender(console);
         if (logFile != null) {
@@ -208,10 +210,11 @@ public class Test implements SolutionListener<Lecture, Placement> {
             outDir.mkdirs();
             setupLogging(new File(outDir, "debug.log"), "true".equals(System.getProperty("debug", "false")));
 
-            Solver<Lecture, Placement> solver = new TimetableSolver(properties);
             TimetableModel model = new TimetableModel(properties);
-            Assignment<Lecture, Placement> assignment = new DefaultSingleAssignment<Lecture, Placement>();
+            int nrSolvers = properties.getPropertyInt("Parallel.NrSolvers", 1);
+            Assignment<Lecture, Placement> assignment = (nrSolvers <= 1 ? new DefaultSingleAssignment<Lecture, Placement>() : new DefaultParallelAssignment<Lecture, Placement>());
             Progress.getInstance(model).addProgressListener(new ProgressWriter(System.out));
+            Solver<Lecture, Placement> solver = (nrSolvers <= 1 ? new Solver<Lecture, Placement>(properties) : new ParallelSolver<Lecture, Placement>(properties));
 
             TimetableLoader loader = (TimetableLoader) Class.forName(getTimetableLoaderClass(properties))
                     .getConstructor(new Class[] { TimetableModel.class, Assignment.class }).newInstance(new Object[] { model, assignment });
@@ -1112,7 +1115,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
 
                     printSomeStuff(bestSolution);
 
-                    if (properties.getPropertyBoolean("General.Save", false)) {
+                    if (properties.getPropertyBoolean("General.Save", true)) {
                         TimetableSaver saver = (TimetableSaver) Class.forName(getTimetableSaverClass(properties))
                                 .getConstructor(new Class[] { Solver.class }).newInstance(new Object[] { iSolver });
                         if ((saver instanceof TimetableXMLSaver) && properties.getProperty("General.SolutionFile") != null)

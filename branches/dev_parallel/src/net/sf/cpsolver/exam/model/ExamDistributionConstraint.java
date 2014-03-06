@@ -382,6 +382,8 @@ public class ExamDistributionConstraint extends ConstraintWithContext<Exam, Exam
         
         public Context(Assignment<Exam, ExamPlacement> assignment) {
             iIsSatisfied = isSatisfied(assignment);
+            if (!iIsSatisfied)
+                ((DistributionPenalty)getModel().getCriterion(DistributionPenalty.class)).inc(assignment, getWeight());
         }
 
         @Override

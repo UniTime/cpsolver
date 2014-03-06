@@ -243,6 +243,11 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
                 listener.bestCleared(this);
         }
     }
+    
+    /** True if the solution is complete, i.e., all the variables are assigned */
+    public boolean isComplete() {
+        return getAssignment().nrAssignedVariables() == getModel().variables().size();
+    }
 
     /**
      * Save the current solution as the best ever found solution (it also calls
@@ -255,7 +260,7 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
             iBestInfo = getInfo();
             iBestTime = getTime();
             iBestIteration = getIteration();
-            iBestComplete = iAssignment.nrAssignedVariables() == getModel().variables().size();
+            iBestComplete = isComplete();
             iBestPerturbationsPenaly = (iPerturbationsCounter == null ? 0.0 : iPerturbationsCounter.getPerturbationPenalty(getAssignment(), getModel()));
             for (SolutionListener<V, T> listener : iSolutionListeners)
                 listener.bestSaved(this);
