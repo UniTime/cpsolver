@@ -8,6 +8,7 @@ import net.sf.cpsolver.coursett.constraint.SpreadConstraint;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -52,38 +53,38 @@ public class SameSubpartBalancingPenalty extends TimetablingCriterion {
     }
 
     @Override
-    public double getValue(Placement value, Set<Placement> conflicts) {
+    public double getValue(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
         double ret = 0.0;
         for (SpreadConstraint sc: value.variable().getSpreadConstraints())
-            ret += sc.getPenalty(value);
+            ret += sc.getPenalty(assignment, value);
         return ret / 12.0;
     }
     
     @Override
-    public double getValue() {
-        return iValue / 12.0;
+    public double getValue(Assignment<Lecture, Placement> assignment) {
+        return super.getValue(assignment) / 12.0;
     }
     
     @Override
-    public double getValue(Collection<Lecture> variables) {
+    public double getValue(Assignment<Lecture, Placement> assignment, Collection<Lecture> variables) {
         double ret = 0;
         Set<SpreadConstraint> constraints = new HashSet<SpreadConstraint>();
         for (Lecture lect: variables) {
             for (SpreadConstraint sc: lect.getSpreadConstraints()) {
                 if (!constraints.add(sc)) continue;
-                ret += sc.getPenalty();
+                ret += sc.getPenalty(assignment);
             }
         }
         return ret / 12.0;
     }
     
     @Override
-    public double[] getBounds() {
+    public double[] getBounds(Assignment<Lecture, Placement> assignment) {
         return new double[] { 0.0, 0.0 };
     }
     
     @Override
-    public double[] getBounds(Collection<Lecture> variables) {
+    public double[] getBounds(Assignment<Lecture, Placement> assignment, Collection<Lecture> variables) {
         return new double[] { 0.0, 0.0 };
     }
 }

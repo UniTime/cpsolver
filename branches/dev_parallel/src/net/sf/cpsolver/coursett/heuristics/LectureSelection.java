@@ -8,6 +8,7 @@ import java.util.List;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimetableModel;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.extension.Extension;
 import net.sf.cpsolver.ifs.extension.MacPropagation;
 import net.sf.cpsolver.ifs.heuristics.VariableSelection;
@@ -177,7 +178,6 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
     private double iRandomWalkProb;
     private double iDomainSizeWeight;
     private double iGoodValuesWeight;
-    private double iNrAssignmentsWeight;
     private double iConstraintsWeight;
     private double iInitialAssignmentWeight;
     private boolean iRouletteWheelSelection;
@@ -197,9 +197,6 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
     private ArrayList<Lecture> iTabu = null;
     private int iTabuPos = 0;
 
-    private int iVariableChanceIteration = 1000;
-    private double iVariableChanceProb = 0.05;
-
     public LectureSelection(DataProperties properties) {
         iRouletteWheelSelection = properties.getPropertyBoolean("Lecture.RouletteWheelSelection", true);
         iUnassignWhenNotGood = properties.getPropertyBoolean("Lecture.UnassignWhenNotGood", false);
@@ -210,7 +207,6 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
 
         iInteractiveMode = properties.getPropertyBoolean("General.InteractiveMode", false);
 
-        iNrAssignmentsWeight = properties.getPropertyDouble("Lecture.NrAssignmentsWeight", 10.0);
         iConstraintsWeight = properties.getPropertyDouble("Lecture.NrConstraintsWeight", 0.0);
         iMPP = properties.getPropertyBoolean("General.MPP", false);
         iInitialAssignmentWeight = (!iMPP ? 0.0 : properties.getPropertyDouble("Lecture.InitialAssignmentWeight", 20.0));
@@ -222,9 +218,6 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
         iTabuSize = properties.getPropertyInt("Lecture.TabuSize", 20);
         if (iTabuSize > 0)
             iTabu = new ArrayList<Lecture>(iTabuSize);
-
-        iVariableChanceIteration = properties.getPropertyInt("Lecture.VariableChanceIteration", 1000);
-        iVariableChanceProb = properties.getPropertyDouble("Lecture.VariableChanceProb", 0.05);
     }
 
     @Override
@@ -238,20 +231,21 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
     @Override
     public Lecture selectVariable(Solution<Lecture, Placement> solution) {
         TimetableModel model = (TimetableModel) solution.getModel();
-        Collection<Lecture> unassignedVariables = model.unassignedVariables();
+        Assignment<Lecture, Placement> assignment = solution.getAssignment();
+        Collection<Lecture> unassignedVariables = model.unassignedVariables(assignment);
         if (iInteractiveMode) {
             // remove variables that have no values
             unassignedVariables = new ArrayList<Lecture>(unassignedVariables.size());
-            for (Lecture variable : model.unassignedVariables()) {
+            for (Lecture variable : model.unassignedVariables(assignment)) {
                 if (!variable.values().isEmpty())
                     unassignedVariables.add(variable);
             }
         }
 
         if (unassignedVariables.isEmpty()) {
-            Collection<Lecture> variables = model.perturbVariables();
+            Collection<Lecture> variables = model.perturbVariables(assignment);
             if (variables.isEmpty())
-                variables = model.assignedVariables();
+                variables = model.assignedVariables(assignment);
 
             if (iRW && ToolBox.random() <= iRandomWalkProb)
                 return ToolBox.random(variables);
@@ -259,14 +253,13 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
             List<Lecture> selectionVariables = new ArrayList<Lecture>();
             double worstValue = 0.0; 
 
-            for (Iterator<Lecture> i1 = (iSubSetSelection ? ToolBox.subSet(variables, iSelectionSubSetPart,
-                    iSelectionSubSetMinSize) : variables).iterator(); i1.hasNext();) {
+            for (Iterator<Lecture> i1 = (iSubSetSelection ? ToolBox.subSet(variables, iSelectionSubSetPart, iSelectionSubSetMinSize) : variables).iterator(); i1.hasNext();) {
                 Lecture selectedVariable = i1.next();
 
                 if (iTabu != null && iTabu.contains(selectedVariable))
                     continue;
 
-                double value = selectedVariable.getAssignment().toDouble();
+                double value = assignment.getValue(selectedVariable).toDouble(assignment);
                 
                 if (selectionVariables.isEmpty() || value > worstValue) {
                     selectionVariables.clear();
@@ -292,45 +285,24 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
 
             return selectedVariable;
         } else {
-            if (iVariableChanceIteration > 0) {
-                List<Lecture> variablesWithChance = new ArrayList<Lecture>(unassignedVariables.size());
-                for (Lecture v : unassignedVariables) {
-                    if (v.countAssignments() > iVariableChanceIteration)
-                        continue;
-                    variablesWithChance.add(v);
-                }
-
-                if (variablesWithChance.isEmpty() && ToolBox.random() <= iVariableChanceProb
-                        && !model.assignedVariables().isEmpty())
-                    return ToolBox.random(model.assignedVariables());
-
-                if (ToolBox.random() <= iRandomWalkProb) {
-                    if (!variablesWithChance.isEmpty())
-                        return ToolBox.random(variablesWithChance);
-                    else
-                        return ToolBox.random(unassignedVariables);
-                }
-            } else {
-                if (ToolBox.random() <= iRandomWalkProb)
-                    return ToolBox.random(unassignedVariables);
-            }
+            if (ToolBox.random() <= iRandomWalkProb)
+                return ToolBox.random(unassignedVariables);
 
             if (iProp != null && iUnassignWhenNotGood) {
                 List<Lecture> noGoodVariables = new ArrayList<Lecture>();
-                for (Iterator<Lecture> i1 = ToolBox.subSet(unassignedVariables, iSelectionSubSetPart,
-                        iSelectionSubSetMinSize).iterator(); i1.hasNext();) {
+                for (Iterator<Lecture> i1 = ToolBox.subSet(unassignedVariables, iSelectionSubSetPart, iSelectionSubSetMinSize).iterator(); i1.hasNext();) {
                     Lecture variable = i1.next();
-                    if (iProp.goodValues(variable).isEmpty())
+                    if (iProp.goodValues(assignment, variable).isEmpty())
                         noGoodVariables.add(variable);
                 }
                 if (!noGoodVariables.isEmpty()) {
                     if (ToolBox.random() < 0.02)
-                        return ToolBox.random(model.assignedVariables());
+                        return ToolBox.random(assignment.assignedVariables());
                     for (int attempt = 0; attempt < 10; attempt++) {
                         Lecture noGoodVariable = ToolBox.random(noGoodVariables);
                         Placement noGoodValue = ToolBox.random(noGoodVariable.values());
-                        if (!iProp.noGood(noGoodValue).isEmpty())
-                            return ToolBox.random(iProp.noGood(noGoodValue)).variable();
+                        if (!iProp.noGood(assignment, noGoodValue).isEmpty())
+                            return ToolBox.random(iProp.noGood(assignment, noGoodValue)).variable();
                     }
                 }
             }
@@ -339,19 +311,15 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
                 int iMaxDomainSize = 0;
                 int iMaxGoodDomainSize = 0;
                 int iMaxConstraints = 0;
-                long iMaxNrAssignments = 0;
-                Collection<Lecture> variables = (iSubSetSelection ? ToolBox.subSet(unassignedVariables,
-                        iSelectionSubSetPart, iSelectionSubSetMinSize) : unassignedVariables);
+                Collection<Lecture> variables = (iSubSetSelection ? ToolBox.subSet(unassignedVariables, iSelectionSubSetPart, iSelectionSubSetMinSize) : unassignedVariables);
                 for (Lecture variable : variables) {
 
                     if (iTabu != null && iTabu.contains(variable))
                         continue;
 
                     iMaxDomainSize = Math.max(iMaxDomainSize, variable.values().size());
-                    iMaxGoodDomainSize = (iProp == null ? 0 : Math.max(iMaxGoodDomainSize, iProp.goodValues(variable)
-                            .size()));
+                    iMaxGoodDomainSize = (iProp == null ? 0 : Math.max(iMaxGoodDomainSize, iProp.goodValues(assignment, variable).size()));
                     iMaxConstraints = Math.max(iMaxConstraints, variable.constraints().size());
-                    iMaxNrAssignments = Math.max(iMaxNrAssignments, variable.countAssignments());
                 }
 
                 List<Integer> points = new ArrayList<Integer>();
@@ -359,20 +327,11 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
 
                 for (Lecture variable : variables) {
 
-                    long pointsThisVariable = Math
-                            .round(iDomainSizeWeight
-                                    * (((double) (iMaxDomainSize - variable.values().size())) / ((double) iMaxDomainSize))
-                                    + (iProp == null ? 0.0
-                                            : iGoodValuesWeight
-                                                    * (((double) (iMaxGoodDomainSize - iProp.goodValues(variable)
-                                                            .size())) / ((double) iMaxGoodDomainSize)))
-                                    + iNrAssignmentsWeight
-                                    * (((double) variable.countAssignments()) / ((double) iMaxNrAssignments))
-                                    + iConstraintsWeight
-                                    * (((double) (iMaxConstraints - variable.constraints().size())) / ((double) iMaxConstraints))
-                                    + iInitialAssignmentWeight
-                                    * (variable.getInitialAssignment() != null ? model.conflictValues(
-                                            variable.getInitialAssignment()).size() : 0.0));
+                    long pointsThisVariable = Math.round(
+                            iDomainSizeWeight * (((double) (iMaxDomainSize - variable.values().size())) / ((double) iMaxDomainSize)) +
+                            (iProp == null ? 0.0 : iGoodValuesWeight * (((double) (iMaxGoodDomainSize - iProp.goodValues(assignment, variable).size())) / ((double) iMaxGoodDomainSize))) +
+                            iConstraintsWeight * (((double) (iMaxConstraints - variable.constraints().size())) / ((double) iMaxConstraints)) +
+                            iInitialAssignmentWeight * (variable.getInitialAssignment() != null ? model.conflictValues(assignment, variable.getInitialAssignment()).size() : 0.0));
                     if (pointsThisVariable > 0) {
                         totalPoints += pointsThisVariable;
                         points.add(totalPoints);
@@ -409,11 +368,10 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
                     if (iTabu != null && iTabu.contains(variable))
                         continue;
 
-                    long good = (long) (iDomainSizeWeight * variable.values().size() + iGoodValuesWeight
-                            * (iProp == null ? 0 : iProp.goodValues(variable).size()) + iNrAssignmentsWeight
-                            * variable.countAssignments() + iConstraintsWeight * variable.constraints().size() + iInitialAssignmentWeight
-                            * (variable.getInitialAssignment() != null ? model.conflictValues(
-                                    variable.getInitialAssignment()).size() : 0.0));
+                    long good = (long) (iDomainSizeWeight * variable.values().size() +
+                            iGoodValuesWeight * (iProp == null ? 0 : iProp.goodValues(assignment, variable).size()) +
+                            iConstraintsWeight * variable.constraints().size() +
+                            iInitialAssignmentWeight * (variable.getInitialAssignment() != null ? model.conflictValues(assignment, variable.getInitialAssignment()).size() : 0.0));
                     if (selectionVariables == null || bestGood > good) {
                         if (selectionVariables == null)
                             selectionVariables = new ArrayList<Lecture>();

@@ -1,5 +1,6 @@
 package net.sf.cpsolver.coursett.model;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.ModelListener;
 import net.sf.cpsolver.ifs.solver.Solver;
@@ -91,25 +92,25 @@ public class OnFlySectioning implements ModelListener<Lecture, Placement> {
     }
 
     @Override
-    public void beforeAssigned(long iteration, Placement value) {
+    public void beforeAssigned(Assignment<Lecture, Placement> assignment, long iteration, Placement value) {
     }
 
     @Override
-    public void beforeUnassigned(long iteration, Placement value) {
+    public void beforeUnassigned(Assignment<Lecture, Placement> assignment, long iteration, Placement value) {
     }
 
     /**
-     * {@link FinalSectioning#resection(Lecture, boolean, boolean)} is called
+     * {@link FinalSectioning#resection(Assignment, Lecture, boolean, boolean)} is called
      * when given iteration number is greater than zero.
      */
     @Override
-    public void afterAssigned(long iteration, Placement value) {
+    public void afterAssigned(Assignment<Lecture, Placement> assignment, long iteration, Placement value) {
         if (iteration > 0)
-            iModel.getStudentSectioning().resection(value.variable(), iRecursive, iConfigAsWell);
+            iModel.getStudentSectioning().resection(assignment, value.variable(), iRecursive, iConfigAsWell);
     }
 
     @Override
-    public void afterUnassigned(long iteration, Placement value) {
+    public void afterUnassigned(Assignment<Lecture, Placement> assignment, long iteration, Placement value) {
     }
 
     /**

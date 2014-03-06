@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.Progress;
 
 /**
@@ -60,8 +61,7 @@ public class InitialSectioning {
     protected Long iOfferingId = null;
     protected Progress iProgress = null;
 
-    public InitialSectioning(Progress progress, Long offeringId, Collection<?> lectureOrConfigurations,
-            Collection<Student> students) {
+    public InitialSectioning(Progress progress, Long offeringId, Collection<?> lectureOrConfigurations, Collection<Student> students) {
         iOfferingId = offeringId;
         iStudents = new HashSet<Student>(students);
         iProgress = progress;
@@ -466,7 +466,7 @@ public class InitialSectioning {
         }
     }
 
-    public static void initialSectioningCfg(Progress p, Long offeringId, String courseName, Collection<Student> students,
+    public static void initialSectioningCfg(Assignment<Lecture, Placement> assignment, Progress p, Long offeringId, String courseName, Collection<Student> students,
             List<Configuration> configurations) {
         if (students == null || students.isEmpty())
             return;
@@ -478,7 +478,7 @@ public class InitialSectioning {
                 st.addConfiguration(cfg);
             }
             for (Long subpartId: cfg.getTopSubpartIds()) {
-                initialSectioning(p, offeringId, courseName, students, cfg.getTopLectures(subpartId));
+                initialSectioning(assignment, p, offeringId, courseName, students, cfg.getTopLectures(subpartId));
             }
         } else {
             p.trace("sectioning " + students.size() + " students of course " + courseName + " into "
@@ -493,8 +493,7 @@ public class InitialSectioning {
                     st.addConfiguration(group.getConfiguration());
                 }
                 for (Long subpartId: group.getConfiguration().getTopSubpartIds()) {
-                    initialSectioning(p, offeringId, courseName, group.getStudents(), group.getConfiguration()
-                            .getTopLectures(subpartId));
+                    initialSectioning(assignment, p, offeringId, courseName, group.getStudents(), group.getConfiguration().getTopLectures(subpartId));
                 }
             }
         }
@@ -504,14 +503,14 @@ public class InitialSectioning {
         return "<A href='classDetail.do?cid=" + lecture.getClassId() + "'>" + lecture.getName() + "</A>";
     }
 
-    private static void initialSectioning(Progress p, Long offeringId, String parentName, Collection<Student> students,
+    private static void initialSectioning(Assignment<Lecture, Placement> assignment, Progress p, Long offeringId, String parentName, Collection<Student> students,
             Collection<Lecture> lectures) {
         if (lectures == null || lectures.isEmpty())
             return;
         if (students == null || students.isEmpty())
             return;
         for (Lecture lecture : lectures) {
-            if (lecture.classLimit() == 0 && !lecture.isCommitted())
+            if (lecture.classLimit(assignment) == 0 && !lecture.isCommitted())
                 p.warn("Class " + getClassLabel(lecture) + " has zero class limit.");
         }
 
@@ -523,13 +522,13 @@ public class InitialSectioning {
                 if (!st.canEnroll(lect)) {
                     p.info("Unable to enroll student " + st.getId() + " in class " + getClassLabel(lect));
                 }
-                lect.addStudent(st);
+                lect.addStudent(assignment, st);
                 st.addLecture(lect);
             }
             if (lect.hasAnyChildren()) {
                 for (Long subpartId: lect.getChildrenSubpartIds()) {
                     List<Lecture> children = lect.getChildren(subpartId);
-                    initialSectioning(p, offeringId, lect.getName(), students, children);
+                    initialSectioning(assignment, p, offeringId, lect.getName(), students, children);
                 }
             }
         } else {
@@ -539,23 +538,23 @@ public class InitialSectioning {
                 Group group = studentsPerSection[i];
                 Lecture lect = group.getLecture();
                 if (group.getStudents().isEmpty()) {
-                    p.trace("Lecture " + getClassLabel(lect) + " got no students (cl=" + lect.classLimit() + ")");
+                    p.trace("Lecture " + getClassLabel(lect) + " got no students (cl=" + lect.classLimit(assignment) + ")");
                     continue;
                 }
                 p.trace("Lecture " + getClassLabel(lect) + " got " + group.getStudents().size()
-                        + " students (weighted=" + group.size() + ", classLimit=" + lect.classLimit() + ")");
+                        + " students (weighted=" + group.size() + ", classLimit=" + lect.classLimit(assignment) + ")");
                 List<Student> studentsThisSection = group.getStudents();
                 for (Student st : studentsThisSection) {
                     if (!st.canEnroll(lect)) {
                         p.info("Unable to enroll student " + st.getId() + " in class " + getClassLabel(lect));
                     }
-                    lect.addStudent(st);
+                    lect.addStudent(assignment, st);
                     st.addLecture(lect);
                 }
                 if (lect.hasAnyChildren()) {
                     for (Long subpartId: lect.getChildrenSubpartIds()) {
                         List<Lecture> children = lect.getChildren(subpartId);
-                        initialSectioning(p, offeringId, lect.getName(), studentsThisSection, children);
+                        initialSectioning(assignment, p, offeringId, lect.getName(), studentsThisSection, children);
                     }
                 }
             }

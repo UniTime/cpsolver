@@ -648,7 +648,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
                     c.computeConflicts(assignment, variable.getBestAssignment(), x);
                     if (!x.isEmpty()) {
                         if (c instanceof WeakeningConstraint) {
-                            ((WeakeningConstraint<V, T>)c).weaken(variable.getBestAssignment());
+                            ((WeakeningConstraint<V, T>)c).weaken(assignment, variable.getBestAssignment());
                             sLogger.info("  constraint " + c.getClass().getName() + " " + c.getName() + " had to be weakened");
                         } else {
                             sLogger.error("  constraint " + c.getClass().getName() + " " + c.getName() + " causes the following conflicts " + x);
@@ -660,7 +660,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
                     c.computeConflicts(assignment, variable.getBestAssignment(), x);
                     if (!x.isEmpty()) {
                         if (c instanceof WeakeningConstraint) {
-                            ((WeakeningConstraint<V, T>)c).weaken(variable.getBestAssignment());
+                            ((WeakeningConstraint<V, T>)c).weaken(assignment, variable.getBestAssignment());
                             sLogger.info("  constraint " + c.getClass().getName() + " " + c.getName() + " had to be weakened");
                         } else {
                             sLogger.error("  global constraint " + c.getClass().getName() + " " + c.getName() + " causes the following conflicts " + x);
@@ -888,12 +888,14 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     /** Register a new criterion */
     public void addCriterion(Criterion<V,T> criterion) {
         iCriteria.put(criterion.getClass().getName(), criterion);
+        criterion.setModel(this);
         addModelListener(criterion);
     }
     
     /** Unregister an existing criterion */
     public void removeCriterion(Criterion<V,T> criterion) {
         iCriteria.remove(criterion.getClass().getName());
+        criterion.setModel(null);
         removeModelListener(criterion);
     }
     
@@ -916,19 +918,19 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     
     /**
      * Weaken all weakening constraint so that the given value can be assigned without
-     * them creating a conflict using {@link WeakeningConstraint#weaken(Value)}.
+     * them creating a conflict using {@link WeakeningConstraint#weaken(Assignment, Value)}.
      * This method is handy for instance when an existing solution is being loaded
      * into the solver.
      */
     @SuppressWarnings("unchecked")
-    public void weaken(T value) {
+    public void weaken(Assignment<V, T> assignment, T value) {
         for (Constraint<V, T> constraint : value.variable().hardConstraints()) {
             if (constraint instanceof WeakeningConstraint)
-                ((WeakeningConstraint<V,T>)constraint).weaken(value);
+                ((WeakeningConstraint<V,T>)constraint).weaken(assignment, value);
         }
         for (GlobalConstraint<V, T> constraint : globalConstraints()) {
             if (constraint instanceof WeakeningConstraint)
-                ((WeakeningConstraint<V,T>)constraint).weaken(value);
+                ((WeakeningConstraint<V,T>)constraint).weaken(assignment, value);
         }
     }
     

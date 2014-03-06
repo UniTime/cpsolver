@@ -5,6 +5,7 @@ import java.util.Set;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomSharingModel;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.WeakeningConstraint;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
@@ -33,12 +34,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class DiscouragedRoomConstraint extends RoomConstraint implements WeakeningConstraint<Lecture, Placement> {
-    int iUsage = 0;
-    int iLimit = 0;
-    boolean iEnabled = false;
-
     private int iUnassignmentsToWeaken = 1000;
-    private long iUnassignment = 0;
 
     public DiscouragedRoomConstraint(DataProperties config, Long id, String name, Long buildingId, int capacity,
             RoomSharingModel roomSharingModel, Double x, Double y, boolean ignoreTooFar, boolean constraint) {
@@ -46,84 +42,18 @@ public class DiscouragedRoomConstraint extends RoomConstraint implements Weakeni
         iUnassignmentsToWeaken = config.getPropertyInt("DiscouragedRoom.Unassignments2Weaken", iUnassignmentsToWeaken);
     }
 
-    public int getLimit() {
-        return iLimit;
-    }
-
-    public int getUsage() {
-        return iUsage;
-    }
-
-    public boolean isOverLimit(Placement value) {
-        if (!iEnabled)
-            return false; // not enabled
-        if (iUnassignmentsToWeaken == 0)
-            return false; // not working
-        Placement placement = value;
-        if (!placement.hasRoomLocation(getResourceId()))
-            return false; // different room
-        Lecture lecture = placement.variable();
-        if (lecture.roomLocations().size() == lecture.getNrRooms())
-            return false; // required room
-        if (lecture.isCommitted())
-            return false; // commited class
-        if (lecture.getAssignment() != null && (lecture.getAssignment()).hasRoomLocation(getResourceId()))
-            return false; // already assigned in this room
-        if (iUsage + 1 <= iLimit)
-            return false; // under the limit
-        return true;
-    }
-
     @Override
-    public void computeConflicts(Placement value, Set<Placement> conflicts) {
-        if (!getConstraint())
-            return;
-        super.computeConflicts(value, conflicts);
-        if (isOverLimit(value))
+    public void computeConflicts(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
+        if (!getConstraint() || !value.hasRoomLocation(getResourceId())) return;
+        super.computeConflicts(assignment, value, conflicts);
+        if (((DiscouragedRoomConstraintContext)getContext(assignment)).isOverLimit(assignment, value))
             conflicts.add(value);
     }
 
     @Override
-    public boolean inConflict(Placement value) {
-        if (!getConstraint())
-            return false;
-        if (isOverLimit(value))
-            return true;
-        return super.inConflict(value);
-    }
-
-    @Override
-    public boolean isConsistent(Placement value1, Placement value2) {
-        if (!getConstraint())
-            return true;
-        if (isOverLimit(value1) || isOverLimit(value2))
-            return false;
-        return super.isConsistent(value1, value2);
-    }
-
-    @Override
-    public void assigned(long iteration, Placement value) {
-        super.assigned(iteration, value);
-        Placement placement = value;
-        if (!placement.hasRoomLocation(getResourceId()))
-            return;
-        Lecture lecture = placement.variable();
-        if (lecture.isCommitted())
-            return;
-        iUsage++;
-    }
-
-    @Override
-    public void unassigned(long iteration, Placement value) {
-        super.unassigned(iteration, value);
-        Placement placement = value;
-        if (!placement.hasRoomLocation(getResourceId())) {
-            iUnassignment++;
-            if (iUnassignmentsToWeaken > 0 && iUnassignment % iUnassignmentsToWeaken == 0)
-                iLimit++;
-        } else {
-            iUsage--;
-        }
+    public boolean inConflict(Assignment<Lecture, Placement> assignment, Placement value) {
+        if (!getConstraint() || !value.hasRoomLocation(getResourceId())) return false;
+        return ((DiscouragedRoomConstraintContext)getContext(assignment)).isOverLimit(assignment, value) || super.inConflict(assignment, value);
     }
 
     @Override
@@ -136,22 +66,80 @@ public class DiscouragedRoomConstraint extends RoomConstraint implements Weakeni
         return "Discouraged " + super.toString();
     }
 
-    public void setEnabled(boolean enabled) {
-        iEnabled = enabled;
-        iLimit = Math.max(iUsage, iLimit);
-    }
-
-    public boolean isEnabled() {
-        return iEnabled;
+    @Override
+    public void weaken(Assignment<Lecture, Placement> assignment) {
+        weaken(assignment, null);
     }
 
     @Override
-    public void weaken() {
-        iLimit ++;
+    public void weaken(Assignment<Lecture, Placement> assignment, Placement value) {
+        DiscouragedRoomConstraintContext context = (DiscouragedRoomConstraintContext)getContext(assignment);
+        if (value == null || context.isOverLimit(assignment, value))
+            context.weaken();
+    }
+    
+    @Override
+    public RoomConstraintContext createAssignmentContext(Assignment<Lecture, Placement> assignment) {
+        return new DiscouragedRoomConstraintContext(assignment);
     }
 
-    @Override
-    public void weaken(Placement value) {
-        while (isOverLimit(value)) iLimit ++;
+    public class DiscouragedRoomConstraintContext extends RoomConstraintContext {
+        int iUsage = 0;
+        int iLimit = 0;
+        private long iUnassignment = 0;
+
+        public DiscouragedRoomConstraintContext(Assignment<Lecture, Placement> assignment) {
+            super(assignment);
+        }
+
+        @Override
+        public void assigned(Assignment<Lecture, Placement> assignment, Placement placement) {
+            super.assigned(assignment, placement);
+            if (placement.hasRoomLocation(getResourceId()) && !placement.variable().isCommitted())
+                iUsage ++;
+        }
+        
+        @Override
+        public void unassigned(Assignment<Lecture, Placement> assignment, Placement placement) {
+            super.unassigned(assignment, placement);
+            if (placement.hasRoomLocation(getResourceId()) && !placement.variable().isCommitted()) {
+                iUsage --;
+            } else {
+                iUnassignment++;
+                if (iUnassignmentsToWeaken > 0 && iUnassignment % iUnassignmentsToWeaken == 0)
+                    iLimit++;
+            }
+        }
+
+        public int getLimit() {
+            return iLimit;
+        }
+
+        public int getUsage() {
+            return iUsage;
+        }
+
+        public boolean isOverLimit(Assignment<Lecture, Placement> assignment, Placement value) {
+            if (iUnassignmentsToWeaken == 0)
+                return false; // not working
+            Placement placement = value;
+            if (!placement.hasRoomLocation(getResourceId()))
+                return false; // different room
+            Lecture lecture = placement.variable();
+            if (lecture.roomLocations().size() == lecture.getNrRooms())
+                return false; // required room
+            if (lecture.isCommitted())
+                return false; // commited class
+            Placement current = assignment.getValue(lecture);
+            if (current != null && current.hasRoomLocation(getResourceId()))
+                return false; // already assigned in this room
+            if (iUsage + 1 <= iLimit)
+                return false; // under the limit
+            return true;
+        }
+        
+        public void weaken() {
+            iLimit ++;
+        }
     }
 }

@@ -87,15 +87,20 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
     public double getWeightDefault(DataProperties config) {
         return 0.0;
     }
+    
+    @Override
+    public void setModel(Model<V,T> model) {
+        iModel = model;
+        if (model != null)
+            iContextReference = model.createReference(this);
+    }
 
     @Override
     public boolean init(Solver<V, T> solver) {
-        iModel = solver.currentSolution().getModel();
         iWeight = solver.getProperties().getPropertyDouble(getWeightName(), getWeightDefault(solver.getProperties()));
         iDebug = solver.getProperties().getPropertyBoolean(
                 "Debug." + getClass().getName().substring(1 + getClass().getName().lastIndexOf('.')),
                 solver.getProperties().getPropertyBoolean("Debug.Criterion", false));
-        iContextReference = iModel.createReference(this);
         return true;
     }
     
@@ -369,7 +374,8 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
 
         /** Create from an assignment */
         protected ValueContext(Assignment<V, T> assignment) {
-            iTotal = AbstractCriterion.this.getValue(assignment, assignment.assignedVariables());
+            if (iValueUpdateType != ValueUpdateType.NoUpdate)
+                iTotal = AbstractCriterion.this.getValue(assignment, assignment.assignedVariables());
         }
         
         /** Update value when unassigned */
@@ -383,13 +389,13 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
         }
 
         /** Return value */
-        protected double getTotal() { return iTotal; }
+        public double getTotal() { return iTotal; }
         
         /** Set value */
-        protected void setTotal(double value) { iTotal = value; }
+        public void setTotal(double value) { iTotal = value; }
         
         /** Increment value */
-        protected void inc(double value) { iTotal += value; }
+        public void inc(double value) { iTotal += value; }
         
         /** Return bounds */
         protected double[] getBounds(Assignment<V, T> assignment) {

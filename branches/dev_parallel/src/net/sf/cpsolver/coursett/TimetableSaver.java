@@ -5,6 +5,7 @@ import org.apache.log4j.Logger;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimetableModel;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.Callback;
@@ -47,7 +48,7 @@ public abstract class TimetableSaver implements Runnable {
     public Solver<Lecture, Placement> getSolver() {
         return iSolver;
     }
-
+    
     /** Solution to be saved */
     protected Solution<Lecture, Placement> getSolution() {
         return iSolver.currentSolution();
@@ -56,6 +57,11 @@ public abstract class TimetableSaver implements Runnable {
     /** Model of the solution */
     protected TimetableModel getModel() {
         return (TimetableModel) iSolver.currentSolution().getModel();
+    }
+
+    /** Current assignment */
+    public Assignment<Lecture, Placement> getAssignment() {
+        return getSolution().getAssignment();
     }
 
     /** Save the solution */

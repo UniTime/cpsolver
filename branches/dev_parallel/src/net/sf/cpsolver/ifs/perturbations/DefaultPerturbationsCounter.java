@@ -32,7 +32,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  * This implementation is easily extendable. It disassemble all the available
  * cases into a comparison of the initial and the assigned value different each
  * other. So, the only method which is needed to be changed is
- * {@link DefaultPerturbationsCounter#getPenalty(Value, Value)}. Its current
+ * {@link DefaultPerturbationsCounter#getPenalty(Assignment, Value, Value)}. Its current
  * implementation is:
  * <ul>
  * <code>
@@ -95,7 +95,7 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
         for (V variable : model.variablesWithInitialValue()) {
             T value = assignment.getValue(variable);
             if (value != null && variable.getInitialAssignment() != null && !value.equals(variable.getInitialAssignment()))
-                penalty += getPenaltyD(value, variable.getInitialAssignment());
+                penalty += getPenaltyD(assignment, value, variable.getInitialAssignment());
         }
         return penalty;
     }
@@ -106,7 +106,7 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
         for (V variable : variables) {
             T value = assignment.getValue(variable);
             if (value != null && variable.getInitialAssignment() != null && !value.equals(variable.getInitialAssignment()))
-                penalty += getPenaltyD(value, variable.getInitialAssignment());
+                penalty += getPenaltyD(assignment, value, variable.getInitialAssignment());
         }
         return penalty;
     }
@@ -126,7 +126,7 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
      * @param initialValue
      *            initial value of the same varaible (always not null)
      */
-    protected double getPenalty(T assignedValue, T initialValue) {
+    protected double getPenalty(Assignment<V, T> assignment, T assignedValue, T initialValue) {
         return 1.0;
     }
 
@@ -142,8 +142,8 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
      *            unassigned and whose initial value is in conflict with the
      *            selected value.
      */
-    protected double getPenaltyA(T selectedValue, T initialValue) {
-        return getPenalty(null, initialValue);
+    protected double getPenaltyA(Assignment<V, T> assignment, T selectedValue, T initialValue) {
+        return getPenalty(assignment, null, initialValue);
     }
 
     /**
@@ -157,8 +157,8 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
      * @param initialValue
      *            initial value of the conflicting variable of assignedValue
      */
-    protected double getPenaltyB(T selectedValue, T assignedValue, T initialValue) {
-        return getPenalty(assignedValue, initialValue);
+    protected double getPenaltyB(Assignment<V, T> assignment, T selectedValue, T assignedValue, T initialValue) {
+        return getPenalty(assignment, assignedValue, initialValue);
     }
 
     /**
@@ -172,8 +172,8 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
      * @param initialValue
      *            initial value of the conflicting variable of assignedValue
      */
-    protected double getPenaltyC(T selectedValue, T assignedValue, T initialValue) {
-        return -getPenalty(assignedValue, initialValue);
+    protected double getPenaltyC(Assignment<V, T> assignment, T selectedValue, T assignedValue, T initialValue) {
+        return -getPenalty(assignment, assignedValue, initialValue);
     }
 
     /**
@@ -184,8 +184,8 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
      * @param initialValue
      *            initial value of the same variable
      */
-    protected double getPenaltyD(T selectedValue, T initialValue) {
-        return getPenalty(selectedValue, initialValue);
+    protected double getPenaltyD(Assignment<V, T> assignment, T selectedValue, T initialValue) {
+        return getPenalty(assignment, selectedValue, initialValue);
     }
 
     @Override
@@ -195,23 +195,23 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
         if (violations != null)
             for (T aValue : violations) {
                 if (assignment.getValue(aValue.variable()) == null)
-                    penalty += getPenaltyA(selectedValue, aValue);
+                    penalty += getPenaltyA(assignment, selectedValue, aValue);
             }
         if (conflicts != null) {
             for (T conflictValue : conflicts) {
                 T initialValue = conflictValue.variable().getInitialAssignment();
                 if (initialValue != null) {
                     if (initialValue.equals(conflictValue))
-                        penalty += getPenaltyB(selectedValue, conflictValue, initialValue);
+                        penalty += getPenaltyB(assignment, selectedValue, conflictValue, initialValue);
                     else {
                         if (violations == null || !violations.contains(initialValue))
-                            penalty += getPenaltyC(selectedValue, conflictValue, initialValue);
+                            penalty += getPenaltyC(assignment, selectedValue, conflictValue, initialValue);
                     }
                 }
             }
         }
         if (selectedValue.variable().getInitialAssignment() != null && !selectedValue.equals(selectedValue.variable().getInitialAssignment()))
-            penalty += getPenaltyD(selectedValue, selectedValue.variable().getInitialAssignment());
+            penalty += getPenaltyD(assignment, selectedValue, selectedValue.variable().getInitialAssignment());
         return penalty;
     }
 

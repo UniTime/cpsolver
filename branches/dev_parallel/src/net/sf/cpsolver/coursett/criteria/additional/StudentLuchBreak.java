@@ -7,6 +7,7 @@ import net.sf.cpsolver.coursett.criteria.StudentConflict;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimeLocation;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
@@ -87,17 +88,17 @@ public class StudentLuchBreak extends StudentConflict {
     }
     
     @Override
-    public void getInfo(Map<String, String> info) {
-        super.getInfo(info);
-        double conf = getValue();
+    public void getInfo(Assignment<Lecture, Placement> assignment, Map<String, String> info) {
+        super.getInfo(assignment, info);
+        double conf = getValue(assignment);
         if (conf > 0.0)
             info.put("Student lunch conflicts", String.valueOf(Math.round(conf)));
     }
     
     @Override
-    public void getInfo(Map<String, String> info, Collection<Lecture> variables) {
-        super.getInfo(info, variables);
-        double conf = getValue(variables);
+    public void getInfo(Assignment<Lecture, Placement> assignment, Map<String, String> info, Collection<Lecture> variables) {
+        super.getInfo(assignment, info, variables);
+        double conf = getValue(assignment, variables);
         if (conf > 0.0)
             info.put("Student lunch conflicts", String.valueOf(Math.round(conf)));
     }

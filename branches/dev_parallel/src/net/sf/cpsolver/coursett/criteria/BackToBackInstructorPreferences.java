@@ -10,6 +10,7 @@ import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimetableModel;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -54,38 +55,38 @@ public class BackToBackInstructorPreferences extends TimetablingCriterion {
         return "Placement.DistanceInstructorPreferenceWeight";
     }
     
-    protected int penalty(Placement value) {
+    protected int penalty(Assignment<Lecture, Placement> assignment, Placement value) {
         int ret = 0;
         for (InstructorConstraint ic: value.variable().getInstructorConstraints()) {
-            ret += ic.getPreference(value);
+            ret += ic.getPreference(assignment, value);
         }
         return ret;
     }
     
     @Override
-    public double getValue(Placement value, Set<Placement> conflicts) {
-        double ret = penalty(value);
+    public double getValue(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
+        double ret = penalty(assignment, value);
         if (conflicts != null)
             for (Placement conflict: conflicts)
-                ret -= penalty(conflict);
+                ret -= penalty(assignment, conflict);
         return ret;
     }
 
     @Override
-    public double getValue(Collection<Lecture> variables) {
+    public double getValue(Assignment<Lecture, Placement> assignment, Collection<Lecture> variables) {
         double ret = 0;
         Set<InstructorConstraint> constraints = new HashSet<InstructorConstraint>();
         for (Lecture lect: variables) {
             for (InstructorConstraint ic: lect.getInstructorConstraints()) {
                 if (!constraints.add(ic)) continue;
-                ret += ic.getPreference();
+                ret += ic.getPreference(assignment);
             }
         }
         return ret;
     }
     
     @Override
-    protected double[] computeBounds() {
+    protected double[] computeBounds(Assignment<Lecture, Placement> assignment) {
         double[] bounds = new double[] { 0.0, 0.0 };
         for (InstructorConstraint ic: ((TimetableModel)getModel()).getInstructorConstraints())
             bounds[1] += ic.getWorstPreference();
@@ -93,7 +94,7 @@ public class BackToBackInstructorPreferences extends TimetablingCriterion {
     }
     
     @Override
-    public double[] getBounds(Collection<Lecture> variables) {
+    public double[] getBounds(Assignment<Lecture, Placement> assignment, Collection<Lecture> variables) {
         double[] bounds = new double[] { 0.0, 0.0 };
         Set<InstructorConstraint> constraints = new HashSet<InstructorConstraint>();
         for (Lecture lect: variables) {

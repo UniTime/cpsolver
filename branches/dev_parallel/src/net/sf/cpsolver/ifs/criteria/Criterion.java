@@ -5,6 +5,7 @@ import java.util.Set;
 
 import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.InfoProvider;
+import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.ModelListener;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
@@ -36,6 +37,9 @@ import net.sf.cpsolver.ifs.model.Variable;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public interface Criterion<V extends Variable<V, T>, T extends Value<V, T>> extends ModelListener<V, T>, InfoProvider<V, T> {
+    
+    /** called when the criterion is added to a model */
+    public void setModel(Model<V,T> model);
     
     /** Current value of the criterion (optimization objective) */
     public double getValue(Assignment<V, T> assignment);

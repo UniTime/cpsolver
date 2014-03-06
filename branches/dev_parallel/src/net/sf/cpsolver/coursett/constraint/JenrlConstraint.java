@@ -8,8 +8,10 @@ import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.Student;
 import net.sf.cpsolver.coursett.model.TimetableModel;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import net.sf.cpsolver.ifs.assignment.context.BinaryConstraintWithContext;
 import net.sf.cpsolver.ifs.criteria.Criterion;
-import net.sf.cpsolver.ifs.model.BinaryConstraint;
 import net.sf.cpsolver.ifs.model.WeakeningConstraint;
 import net.sf.cpsolver.ifs.util.DistanceMetric;
 import net.sf.cpsolver.ifs.util.ToolBox;
@@ -44,14 +46,11 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> implements WeakeningConstraint<Lecture, Placement> {
+public class JenrlConstraint extends BinaryConstraintWithContext<Lecture, Placement, JenrlConstraint.JenrlConstraintContext> implements WeakeningConstraint<Lecture, Placement> {
     private double iJenrl = 0.0;
     private double iPriority = 0.0;
     private Set<Student> iStudents = new HashSet<Student>();
     private Set<Student> iInstructors = new HashSet<Student>();
-    private boolean iAdded = false;
-    private Double iJenrlLimit = null;
-    private double iTwiggle = 0.0;
 
     /**
      * Constructor
@@ -61,42 +60,22 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> implem
     }
     
     @Override
-    public void addVariable(Lecture variable) {
-        super.addVariable(variable);
-        if (second() != null && variable.getModel() != null && variable.getModel() instanceof TimetableModel) {
-            double maxConflicts = ((TimetableModel)variable.getModel()).getProperties().getPropertyDouble("General.JenrlMaxConflicts", 1.0);
-            if (maxConflicts >= 0.0 && maxConflicts < 1.0) {
-                iJenrlLimit = Math.min(first().maxClassLimit(), second().maxClassLimit()) * maxConflicts;
-            }
-        }
-    }
-    
-    @Override
-    public void computeConflicts(Placement value, Set<Placement> conflicts) {
-        if (inConflict(value))
-            conflicts.add(another(value.variable()).getAssignment());
-    }
-
-    @Override
-    public boolean inConflict(Placement value) {
-        if (!isOverLimit()) return false;
+    public void computeConflicts(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
+        if (!getContext(assignment).isOverLimit() || value.variable().isCommitted()) return;
         Lecture other = another(value.variable());
-        return other != null && other.getAssignment() != null && !other.isCommitted() && isInConflict(value, other.getAssignment(), getDistanceMetric());
+        if (other == null) return;
+        Placement otherPlacement = assignment.getValue(other);
+        if (otherPlacement != null && !other.isCommitted() && isInConflict(value, otherPlacement, getDistanceMetric()))
+            conflicts.add(otherPlacement);
     }
 
     @Override
-    public boolean isConsistent(Placement value1, Placement value2) {
-        return !isOverLimit() || !isInConflict(value1, value2, getDistanceMetric());
-    }
-
-    @Override
-    public void unassigned(long iteration, Placement value) {
-        super.unassigned(iteration, value);
-        if (iAdded) {
-            iAdded = false;
-            (first()).removeActiveJenrl(this);
-            (second()).removeActiveJenrl(this);
-        }
+    public boolean inConflict(Assignment<Lecture, Placement> assignment, Placement value) {
+        if (!getContext(assignment).isOverLimit() || value.variable().isCommitted()) return false;
+        Lecture other = another(value.variable());
+        if (other == null) return false;
+        Placement otherPlacement = assignment.getValue(other);
+        return otherPlacement != null && !other.isCommitted() && isInConflict(value, otherPlacement, getDistanceMetric());
     }
 
     /**
@@ -107,27 +86,14 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> implem
         return !StudentConflict.ignore(p1, p2) && (StudentConflict.distance(m, p1, p2) || StudentConflict.overlaps(p1, p2));
     }
 
-    @Override
-    public void assigned(long iteration, Placement value) {
-        super.assigned(iteration, value);
-        if (second() == null || first().getAssignment() == null || second().getAssignment() == null)
-            return;
-        if (isInConflict(first().getAssignment(), second().getAssignment(), getDistanceMetric())) {
-            iAdded = true;
-            (first()).addActiveJenrl(this);
-            (second()).addActiveJenrl(this);
-        }
-    }
-
     /**
      * Number of joined enrollments if the given value is assigned to the given
      * variable
      */
-    public long jenrl(Lecture variable, Placement value) {
-        Lecture anotherLecture = (first().equals(variable) ? second() : first());
-        if (anotherLecture.getAssignment() == null)
-            return 0;
-        return (isInConflict(anotherLecture.getAssignment(), value, getDistanceMetric()) ? Math.round(iJenrl) : 0);
+    public long jenrl(Assignment<Lecture, Placement> assignment, Lecture variable, Placement value) {
+        Lecture other = (first().equals(variable) ? second() : first());
+        Placement otherPlacement = (other == null ? null : assignment.getValue(other));
+        return (otherPlacement != null && isInConflict(value, otherPlacement, getDistanceMetric()) ? Math.round(iJenrl) : 0);
     }
     
     private DistanceMetric getDistanceMetric() {
@@ -135,16 +101,17 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> implem
     }
 
     /** True if the given two lectures overlap in time */
-    public boolean isInConflict() {
-        return iAdded;
+    public boolean isInConflict(Assignment<Lecture, Placement> assignment) {
+        return getContext(assignment).isConflicting();
     }
 
     /**
      * Increment the number of joined enrollments (during student final
      * sectioning)
      */
-    public void incJenrl(Student student) {
-        boolean hard = isOverLimit();
+    public void incJenrl(Assignment<Lecture, Placement> assignment, Student student) {
+        JenrlConstraintContext context = getContext(assignment);
+        boolean hard = context.isOverLimit();
         double jenrlWeight = student.getJenrlWeight(first(), second());
         iJenrl += jenrlWeight;
         Double conflictPriority = student.getConflictingPriorty(first(), second());
@@ -155,9 +122,9 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> implem
             iInstructors.add(student);
         for (Criterion<Lecture, Placement> criterion: getModel().getCriteria())
             if (criterion instanceof StudentConflict)
-                ((StudentConflict)criterion).incJenrl(this, jenrlWeight, conflictPriority, student);
-        if (!hard && isOverLimit() && isInConflict()) {
-            iJenrlLimit += jenrlWeight;
+                ((StudentConflict)criterion).incJenrl(assignment, this, jenrlWeight, conflictPriority, student);
+        if (!hard && context.isOverLimit() && isInConflict(assignment)) {
+            context.incLimit(jenrlWeight);
         }
     }
 
@@ -169,8 +136,9 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> implem
      * Decrement the number of joined enrollments (during student final
      * sectioning)
      */
-    public void decJenrl(Student student) {
-        boolean hard = isOverLimit();
+    public void decJenrl(Assignment<Lecture, Placement> assignment, Student student) {
+        JenrlConstraintContext context = getContext(assignment);
+        boolean hard = context.isOverLimit();
         double jenrlWeight = student.getJenrlWeight(first(), second());
         iJenrl -= jenrlWeight;
         Double conflictPriority = student.getConflictingPriorty(first(), second());
@@ -179,15 +147,9 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> implem
         iInstructors.remove(student);
         for (Criterion<Lecture, Placement> criterion: getModel().getCriteria())
             if (criterion instanceof StudentConflict)
-                ((StudentConflict)criterion).incJenrl(this, -jenrlWeight, conflictPriority, student);
-        if (hard && !isOverLimit()) {
-            double maxConflicts = ((TimetableModel)second().getModel()).getProperties().getPropertyDouble("General.JenrlMaxConflicts", 1.0) + iTwiggle;
-            if (maxConflicts >= 0.0 && maxConflicts < 1.0) {
-                iJenrlLimit = Math.max(Math.min(first().maxClassLimit(), second().maxClassLimit()) * maxConflicts, iJenrlLimit - jenrlWeight);
-            } else {
-                iJenrlLimit = null;
-            }
-        }
+                ((StudentConflict)criterion).incJenrl(assignment, this, -jenrlWeight, conflictPriority, student);
+        if (hard && !context.isOverLimit())
+            context.decLimit(jenrlWeight);
     }
 
     /** Number of joined enrollments (during student final sectioning) */
@@ -224,10 +186,6 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> implem
         return true;
     }
     
-    public boolean isOverLimit() {
-        return iJenrlLimit != null && iJenrl > iJenrlLimit;
-    }
-    
     @Override
     public String getName() {
         return "Join Enrollment";
@@ -242,16 +200,16 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> implem
         return StudentConflict.hard(first(), second());
     }
 
-    public boolean areStudentConflictsDistance() {
-        return StudentConflict.distance(getDistanceMetric(), first().getAssignment(), second().getAssignment());
+    public boolean areStudentConflictsDistance(Assignment<Lecture, Placement> assignment) {
+        return StudentConflict.distance(getDistanceMetric(), assignment.getValue(first()), assignment.getValue(second()));
     }
 
     public boolean areStudentConflictsCommitted() {
         return StudentConflict.committed(first(), second());
     }
 
-    public boolean areStudentConflictsDistance(Placement value) {
-        return StudentConflict.distance(getDistanceMetric(), value, another(value.variable()).getAssignment());
+    public boolean areStudentConflictsDistance(Assignment<Lecture, Placement> assignment, Placement value) {
+        return StudentConflict.distance(getDistanceMetric(), value, assignment.getValue(another(value.variable())));
     }
 
     public boolean isOfTheSameProblem() {
@@ -259,27 +217,13 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> implem
     }
 
     @Override
-    public void weaken() {
-        iTwiggle += ((TimetableModel)second().getModel()).getProperties().getPropertyDouble("General.JenrlMaxConflictsWeaken", 0.001);
-        double maxConflicts = ((TimetableModel)second().getModel()).getProperties().getPropertyDouble("General.JenrlMaxConflicts", 1.0) + iTwiggle;
-        if (maxConflicts >= 0.0 && maxConflicts < 1.0) {
-            iJenrlLimit = Math.min(first().maxClassLimit(), second().maxClassLimit()) * maxConflicts;
-        } else {
-            iJenrlLimit = null;
-        }
+    public void weaken(Assignment<Lecture, Placement> assignment) {
+        getContext(assignment).weaken();
     }
 
     @Override
-    public void weaken(Placement value) {
-        if (inConflict(value)) {
-            double maxConflicts = ((TimetableModel)second().getModel()).getProperties().getPropertyDouble("General.JenrlMaxConflicts", 1.0) + iTwiggle;
-            iTwiggle = (iJenrl + 0.00001) / Math.min(first().maxClassLimit(), second().maxClassLimit()) - maxConflicts;
-            if (maxConflicts + iTwiggle >= 0.0 && maxConflicts + iTwiggle < 1.0) {
-                iJenrlLimit = Math.min(first().maxClassLimit(), second().maxClassLimit()) * (maxConflicts + iTwiggle);
-            } else {
-                iJenrlLimit = null;
-            }
-        }
+    public void weaken(Assignment<Lecture, Placement> assignment, Placement value) {
+        getContext(assignment).weaken(assignment, value);
     }
     
     /**
@@ -287,5 +231,93 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> implem
      */
     public boolean isToBeIgnored() {
         return first().isToIgnoreStudentConflictsWith(second());
+    }
+    
+    @Override
+    public JenrlConstraintContext createAssignmentContext(Assignment<Lecture, Placement> assignment) {
+        return new JenrlConstraintContext(assignment);
+    }
+
+    public class JenrlConstraintContext implements AssignmentConstraintContext<Lecture, Placement> {
+        private boolean iAdded = false;
+        private Double iJenrlLimit = null;
+        private double iTwiggle = 0.0;
+
+        public JenrlConstraintContext(Assignment<Lecture, Placement> assignment) {
+            Placement p1 = assignment.getValue(first());
+            Placement p2 = assignment.getValue(second());
+            if (p1 != null && p2 != null && isInConflict(p1, p2, getDistanceMetric())) {
+                iAdded = true;
+                first().addActiveJenrl(assignment, JenrlConstraint.this);
+                second().addActiveJenrl(assignment, JenrlConstraint.this);
+            }
+            double maxConflicts = ((TimetableModel)first().getModel()).getProperties().getPropertyDouble("General.JenrlMaxConflicts", 1.0);
+            if (maxConflicts >= 0.0 && maxConflicts < 1.0)
+                iJenrlLimit = Math.min(first().maxClassLimit(), second().maxClassLimit()) * maxConflicts;
+        }
+
+        @Override
+        public void assigned(Assignment<Lecture, Placement> assignment, Placement value) {
+            Lecture other = another(value.variable());
+            if (other == null) return;
+            Placement otherValue = assignment.getValue(other);
+            if (!iAdded && otherValue != null && isInConflict(value, otherValue, getDistanceMetric())) {
+                iAdded = true;
+                first().addActiveJenrl(assignment, JenrlConstraint.this);
+                second().addActiveJenrl(assignment, JenrlConstraint.this);
+            }
+        }
+
+        @Override
+        public void unassigned(Assignment<Lecture, Placement> assignment, Placement value) {
+            if (iAdded) {
+                iAdded = false;
+                first().removeActiveJenrl(assignment, JenrlConstraint.this);
+                second().removeActiveJenrl(assignment, JenrlConstraint.this);
+            }
+        }
+        
+        public boolean isConflicting() {
+            return iAdded;
+        }
+        
+        public void weaken(Assignment<Lecture, Placement> assignment, Placement value) {
+            if (inConflict(assignment, value)) {
+                double maxConflicts = ((TimetableModel)second().getModel()).getProperties().getPropertyDouble("General.JenrlMaxConflicts", 1.0) + iTwiggle;
+                iTwiggle = (iJenrl + 0.00001) / Math.min(first().maxClassLimit(), second().maxClassLimit()) - maxConflicts;
+                if (maxConflicts + iTwiggle >= 0.0 && maxConflicts + iTwiggle < 1.0) {
+                    iJenrlLimit = Math.min(first().maxClassLimit(), second().maxClassLimit()) * (maxConflicts + iTwiggle);
+                } else {
+                    iJenrlLimit = null;
+                }
+            }
+        }
+        
+        public void weaken() {
+            iTwiggle += ((TimetableModel)second().getModel()).getProperties().getPropertyDouble("General.JenrlMaxConflictsWeaken", 0.001);
+            double maxConflicts = ((TimetableModel)second().getModel()).getProperties().getPropertyDouble("General.JenrlMaxConflicts", 1.0) + iTwiggle;
+            if (maxConflicts >= 0.0 && maxConflicts < 1.0) {
+                iJenrlLimit = Math.min(first().maxClassLimit(), second().maxClassLimit()) * maxConflicts;
+            } else {
+                iJenrlLimit = null;
+            }
+        }
+        
+        public boolean isOverLimit() {
+            return iJenrlLimit != null && iJenrl > iJenrlLimit;
+        }
+        
+        public void incLimit(double weight) {
+            if (iJenrlLimit != null) iJenrlLimit += weight;
+        }
+        
+        public void decLimit(double weight) {
+            double maxConflicts = ((TimetableModel)second().getModel()).getProperties().getPropertyDouble("General.JenrlMaxConflicts", 1.0) + iTwiggle;
+            if (maxConflicts >= 0.0 && maxConflicts < 1.0) {
+                iJenrlLimit = Math.max(Math.min(first().maxClassLimit(), second().maxClassLimit()) * maxConflicts, iJenrlLimit - weight);
+            } else {
+                iJenrlLimit = null;
+            }
+        }
     }
 }

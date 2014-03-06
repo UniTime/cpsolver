@@ -7,11 +7,13 @@ import java.util.Set;
 
 import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.constraint.RoomConstraint;
+import net.sf.cpsolver.coursett.constraint.RoomConstraint.RoomConstraintContext;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.coursett.model.TimetableModel;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -57,58 +59,59 @@ public class BrokenTimePatterns extends TimetablingCriterion {
         return "Placement.UselessSlotsWeight";
     }
     
-    protected double penalty(Placement value) {
+    protected double penalty(Assignment<Lecture, Placement> assignment, Placement value) {
         if (value.isMultiRoom()) {
             int ret = 0;
             for (RoomLocation r : value.getRoomLocations()) {
                 if (r.getRoomConstraint() == null)
                     continue;
-                ret += penalty(r.getRoomConstraint(), value);
+                ret += penalty(r.getRoomConstraint().getContext(assignment), value);
             }
             return ret;
         } else {
-            return (value.getRoomLocation().getRoomConstraint() == null ? 0 : penalty(value.getRoomLocation().getRoomConstraint(), value));
+            return (value.getRoomLocation().getRoomConstraint() == null ? 0 : penalty(value.getRoomLocation().getRoomConstraint().getContext(assignment), value));
         }
     }
     
-    protected double penalty(RoomConstraint rc) {
+    protected double penalty(RoomConstraintContext rc) {
         return countUselessSlotsBrokenTimePatterns(rc) / 6.0;
     }
     
-   protected double penalty(RoomConstraint rc, Placement value) {
+    protected double penalty(RoomConstraintContext rc, Placement value) {
         return countUselessSlotsBrokenTimePatterns(rc, value) / 6.0;
     }
 
    @Override
-    public double getValue(Placement value, Set<Placement> conflicts) {
-        double ret = penalty(value);
+    public double getValue(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
+        double ret = penalty(assignment, value);
         if (conflicts != null)
             for (Placement conflict: conflicts)
-                ret -= penalty(conflict);
+                ret -= penalty(assignment, conflict);
         return ret;
     }
     
     @Override
-    public double getValue(Collection<Lecture> variables) {
+    public double getValue(Assignment<Lecture, Placement> assignment, Collection<Lecture> variables) {
         double ret = 0;
         Set<RoomConstraint> constraints = new HashSet<RoomConstraint>();
         for (Lecture lect: variables) {
-            if (lect.getAssignment() == null) continue;
-            if (lect.getAssignment().isMultiRoom()) {
-                for (RoomLocation r : lect.getAssignment().getRoomLocations()) {
+            Placement placement = assignment.getValue(lect);
+            if (placement == null) continue;
+            if (placement.isMultiRoom()) {
+                for (RoomLocation r : placement.getRoomLocations()) {
                     if (r.getRoomConstraint() != null && constraints.add(r.getRoomConstraint()))
-                        ret += penalty(r.getRoomConstraint());
+                        ret += penalty(r.getRoomConstraint().getContext(assignment));
                 }
-            } else if (lect.getAssignment().getRoomLocation().getRoomConstraint() != null && 
-                    constraints.add(lect.getAssignment().getRoomLocation().getRoomConstraint())) {
-                ret += penalty(lect.getAssignment().getRoomLocation().getRoomConstraint());
+            } else if (placement.getRoomLocation().getRoomConstraint() != null && 
+                    constraints.add(placement.getRoomLocation().getRoomConstraint())) {
+                ret += penalty(placement.getRoomLocation().getRoomConstraint().getContext(assignment));
             }
         }
         return ret;
     }
     
     @Override
-    protected double[] computeBounds() {
+    protected double[] computeBounds(Assignment<Lecture, Placement> assignment) {
         return new double[] {
                 ((TimetableModel)getModel()).getRoomConstraints().size() * Constants.SLOTS_PER_DAY_NO_EVENINGS * Constants.NR_DAYS_WEEK,
                 0.0
@@ -116,17 +119,18 @@ public class BrokenTimePatterns extends TimetablingCriterion {
     }
     
     @Override
-    public double[] getBounds(Collection<Lecture> variables) {
+    public double[] getBounds(Assignment<Lecture, Placement> assignment, Collection<Lecture> variables) {
         Set<RoomConstraint> constraints = new HashSet<RoomConstraint>();
         for (Lecture lect: variables) {
-            if (lect.getAssignment() == null) continue;
-            if (lect.getAssignment().isMultiRoom()) {
-                for (RoomLocation r : lect.getAssignment().getRoomLocations()) {
+            Placement placement = assignment.getValue(lect);
+            if (placement == null) continue;
+            if (placement.isMultiRoom()) {
+                for (RoomLocation r : placement.getRoomLocations()) {
                     if (r.getRoomConstraint() != null)
                         constraints.add(r.getRoomConstraint());
                 }
-            } else if (lect.getAssignment().getRoomLocation().getRoomConstraint() != null) {
-                constraints.add(lect.getAssignment().getRoomLocation().getRoomConstraint());
+            } else if (placement.getRoomLocation().getRoomConstraint() != null) {
+                constraints.add(placement.getRoomLocation().getRoomConstraint());
             }
         }
         return new double[] {
@@ -137,13 +141,13 @@ public class BrokenTimePatterns extends TimetablingCriterion {
     private static int sDaysMWF = Constants.DAY_CODES[0] + Constants.DAY_CODES[2] + Constants.DAY_CODES[4];
     private static int sDaysTTh = Constants.DAY_CODES[1] + Constants.DAY_CODES[3];
     
-    private static boolean isEmpty(RoomConstraint rc, int s, int d, Placement placement) {
-        List<Placement> assigned = rc.getResource(d * Constants.SLOTS_PER_DAY + s);
+    private static boolean isEmpty(RoomConstraintContext rc, int s, int d, Placement placement) {
+        List<Placement> assigned = rc.getPlacements(d * Constants.SLOTS_PER_DAY + s);
         return assigned.isEmpty() || (placement != null && assigned.size() == 1 && assigned.get(0).variable().equals(placement.variable()));
     }
 
     /** Number of broken time patterns for this room */
-    protected static int countUselessSlotsBrokenTimePatterns(RoomConstraint rc, Placement placement) {
+    protected static int countUselessSlotsBrokenTimePatterns(RoomConstraintContext rc, Placement placement) {
         int ret = 0;
         TimeLocation time = placement.getTimeLocation();
         int slot = time.getStartSlot() % Constants.SLOTS_PER_DAY;
@@ -181,31 +185,31 @@ public class BrokenTimePatterns extends TimetablingCriterion {
     }
     
     /** Number of useless slots for this room */
-    public static int countUselessSlotsBrokenTimePatterns(RoomConstraint rc) {
+    public static int countUselessSlotsBrokenTimePatterns(RoomConstraintContext rc) {
         int ret = 0;
         for (int d = 0; d < Constants.NR_DAYS; d++) {
             for (int s = 0; s < Constants.SLOTS_PER_DAY; s++) {
                 int slot = d * Constants.SLOTS_PER_DAY + s;
-                if (rc.getResource(slot).isEmpty()) {
+                if (rc.getPlacements(slot).isEmpty()) {
                     switch (d) {
                         case 0:
-                            if (!rc.getResource(2 * Constants.SLOTS_PER_DAY + s).isEmpty() && !rc.getResource(4 * Constants.SLOTS_PER_DAY + s).isEmpty())
+                            if (!rc.getPlacements(2 * Constants.SLOTS_PER_DAY + s).isEmpty() && !rc.getPlacements(4 * Constants.SLOTS_PER_DAY + s).isEmpty())
                                 ret++;
                             break;
                         case 1:
-                            if (!rc.getResource(3 * Constants.SLOTS_PER_DAY + s).isEmpty())
+                            if (!rc.getPlacements(3 * Constants.SLOTS_PER_DAY + s).isEmpty())
                                 ret++;
                             break;
                         case 2:
-                            if (!rc.getResource(0 * Constants.SLOTS_PER_DAY + s).isEmpty() && !rc.getResource(4 * Constants.SLOTS_PER_DAY + s).isEmpty())
+                            if (!rc.getPlacements(0 * Constants.SLOTS_PER_DAY + s).isEmpty() && !rc.getPlacements(4 * Constants.SLOTS_PER_DAY + s).isEmpty())
                                 ret++;
                             break;
                         case 3:
-                            if (!rc.getResource(1 * Constants.SLOTS_PER_DAY + s).isEmpty())
+                            if (!rc.getPlacements(1 * Constants.SLOTS_PER_DAY + s).isEmpty())
                                 ret++;
                             break;
                         case 4:
-                            if (!rc.getResource(0 * Constants.SLOTS_PER_DAY + s).isEmpty() && !rc.getResource(2 * Constants.SLOTS_PER_DAY + s).isEmpty())
+                            if (!rc.getPlacements(0 * Constants.SLOTS_PER_DAY + s).isEmpty() && !rc.getPlacements(2 * Constants.SLOTS_PER_DAY + s).isEmpty())
                                 ret++;
                             break;
                     }

@@ -61,7 +61,7 @@ public class RoomSwap extends RandomSwapMove<Lecture, Placement> {
     public Neighbour<Lecture, Placement> selectNeighbour(Solution<Lecture, Placement> solution) {
         TimetableModel model = (TimetableModel)solution.getModel();
         Assignment<Lecture, Placement> assignment = solution.getAssignment();
-        double total = model.getTotalValue();
+        double total = model.getTotalValue(assignment);
         int varIdx = ToolBox.random(model.variables().size());
         for (int i = 0; i < model.variables().size(); i++) {
             Lecture lecture = model.variables().get((i + varIdx) % model.variables().size());

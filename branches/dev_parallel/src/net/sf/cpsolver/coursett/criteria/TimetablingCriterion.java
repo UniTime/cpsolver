@@ -3,6 +3,7 @@ package net.sf.cpsolver.coursett.criteria;
 import net.sf.cpsolver.coursett.heuristics.PlacementSelection;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.criteria.AbstractCriterion;
 import net.sf.cpsolver.ifs.solver.Solver;
 
@@ -61,17 +62,16 @@ public abstract class TimetablingCriterion extends AbstractCriterion<Lecture, Pl
         return getName().replaceAll("[a-z ]","");
     }
     
-    @Override
-    public String toString() {
-        double val = getValue();
+    public String toString(Assignment<Lecture, Placement> assignment) {
+        double val = getValue(assignment);
         if (Math.abs(val) < 0.005 || getWeight() <= 0.01) return "";
-        double[] bounds = getBounds();
+        double[] bounds = getBounds(assignment);
         if (bounds[0] <= val && val <= bounds[1] && bounds[0] < bounds[1] && getName().endsWith(" Preferences"))
             return getAbbreviation() + ":" + getPerc(val, bounds[0], bounds[1]) + "%";
         else if (bounds[1] <= val && val <= bounds[0] && bounds[1] < bounds[0] && getName().endsWith(" Preferences"))
             return getAbbreviation() + ":" + getPercRev(val, bounds[1], bounds[0]) + "%";
         else if (bounds[0] != val || val != bounds[1])
-            return getAbbreviation() + ":" + sDoubleFormat.format(getValue());
+            return getAbbreviation() + ":" + sDoubleFormat.format(getValue(assignment));
         else
             return "";
     }

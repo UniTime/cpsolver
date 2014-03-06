@@ -59,7 +59,7 @@ public abstract class AssignmentAbstract<V extends Variable<V, T>, T extends Val
     @SuppressWarnings("unchecked")
     public T getValue(V variable) {
         if (variable instanceof ConstantVariable<?> && ((ConstantVariable<?>)variable).isConstant())
-            return ((ConstantVariable<T>)variable).getValue();
+            return ((ConstantVariable<T>)variable).getConstantValue();
         return getValueInternal(variable);
     }
 
@@ -80,7 +80,11 @@ public abstract class AssignmentAbstract<V extends Variable<V, T>, T extends Val
      * @param value one of its values, null if the variable is to be unassigned
      * @return previous assignment of the variable 
      **/
+    @SuppressWarnings("unchecked")
     protected T assign(long iteration, V variable, T value) {
+        if (variable instanceof ConstantVariable<?> && ((ConstantVariable<?>)variable).isConstant())
+            return ((ConstantVariable<T>)variable).getConstantValue();
+
         assert variable.getModel() != null && (value == null || variable.equals(value.variable()));
         Model<V, T> model = variable.getModel();
         
