@@ -76,7 +76,7 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
         /** Criterion is to be updated manually (e.g., using {@link Criterion#inc(Assignment, double)}). */
         NoUpdate
     }
-    protected ValueUpdateType iValueUpdateType = ValueUpdateType.BeforeUnassignedAfterAssigned;
+    protected ValueUpdateType iValueUpdateType = ValueUpdateType.BeforeUnassignedBeforeAssigned;
 
     /** Defines weight name (to be used to get the criterion weight from the configuration). */
     public String getWeightName() {
@@ -323,21 +323,21 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
             if (bounds[0] <= val && val <= bounds[1] && bounds[0] < bounds[1])
                 info.put("[C] " + getName(),
                         getPerc(val, bounds[0], bounds[1]) + "% (value: " + sDoubleFormat.format(val) +
-                        (prec != val ? ", precise:" + sDoubleFormat.format(prec) : "") +
+                        (Math.abs(prec - val) > 0.0001 ? ", precise:" + sDoubleFormat.format(prec) : "") +
                         ", weighted:" + sDoubleFormat.format(w) +
-                        ", bounds: " + sDoubleFormat.format(bounds[0]) + "&hellip;" + sDoubleFormat.format(bounds[1]) + ")");
+                        ", bounds: " + sDoubleFormat.format(bounds[0]) + ".." + sDoubleFormat.format(bounds[1]) + ")");
             else if (bounds[1] <= val && val <= bounds[0] && bounds[1] < bounds[0])
                 info.put("[C] " + getName(),
                         getPercRev(val, bounds[1], bounds[0]) + "% (value: " + sDoubleFormat.format(val) +
-                        (prec != val ? ", precise:" + sDoubleFormat.format(prec) : "") +
+                        (Math.abs(prec - val) > 0.0001 ? ", precise:" + sDoubleFormat.format(prec) : "") +
                         ", weighted:" + sDoubleFormat.format(w) +
-                        ", bounds: " + sDoubleFormat.format(bounds[1]) + "&hellip;" + sDoubleFormat.format(bounds[0]) + ")");
+                        ", bounds: " + sDoubleFormat.format(bounds[1]) + ".." + sDoubleFormat.format(bounds[0]) + ")");
             else if (bounds[0] != val || val != bounds[1])
                 info.put("[C] " + getName(),
                         sDoubleFormat.format(val) + " (" +
-                        (prec != val ? "precise:" + sDoubleFormat.format(prec) + ", ": "") +
+                        (Math.abs(prec - val) > 0.0001 ? "precise:" + sDoubleFormat.format(prec) + ", ": "") +
                         "weighted:" + sDoubleFormat.format(w) +
-                        (bounds[0] != bounds[1] ? ", bounds: " + sDoubleFormat.format(bounds[0]) + "&hellip;" + sDoubleFormat.format(bounds[1]) : "") +
+                        (bounds[0] != bounds[1] ? ", bounds: " + sDoubleFormat.format(bounds[0]) + ".." + sDoubleFormat.format(bounds[1]) : "") +
                         ")");
         }
     }
@@ -351,16 +351,16 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
                 info.put("[C] " + getName(),
                         getPerc(val, bounds[0], bounds[1]) + "% (value: " + sDoubleFormat.format(val) +
                         ", weighted:" + sDoubleFormat.format(w) +
-                        ", bounds: " + sDoubleFormat.format(bounds[0]) + "&hellip;" + sDoubleFormat.format(bounds[1]) + ")");
+                        ", bounds: " + sDoubleFormat.format(bounds[0]) + ".." + sDoubleFormat.format(bounds[1]) + ")");
             else if (bounds[1] <= val && val <= bounds[0])
                 info.put("[C] " + getName(),
                         getPercRev(val, bounds[1], bounds[0]) + "% (value: " + sDoubleFormat.format(val) +
                         ", weighted:" + sDoubleFormat.format(w) +
-                        ", bounds: " + sDoubleFormat.format(bounds[1]) + "&hellip;" + sDoubleFormat.format(bounds[0]) + ")");
+                        ", bounds: " + sDoubleFormat.format(bounds[1]) + ".." + sDoubleFormat.format(bounds[0]) + ")");
             else if (bounds[0] != val || val != bounds[1])
                 info.put("[C] " + getName(),
                         sDoubleFormat.format(val) + " (weighted:" + sDoubleFormat.format(w) +
-                        (bounds[0] != bounds[1] ? ", bounds: " + sDoubleFormat.format(bounds[0]) + "&hellip;" + sDoubleFormat.format(bounds[1]) : "") +
+                        (bounds[0] != bounds[1] ? ", bounds: " + sDoubleFormat.format(bounds[0]) + ".." + sDoubleFormat.format(bounds[1]) : "") +
                         ")");
         }
     }

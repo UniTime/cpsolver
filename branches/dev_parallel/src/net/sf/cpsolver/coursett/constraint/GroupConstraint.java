@@ -1628,5 +1628,6 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             }
         }
         
+        public int getPreference() { return iLastPreference; }
     }
 }
