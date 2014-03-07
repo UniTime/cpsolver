@@ -128,7 +128,7 @@ public class FlexibleConstraintCriterion extends TimetablingCriterion  {
         }
         int ret = 0;
         for (FlexibleConstraint gc: flexibleConstraints){
-            ret += gc.getCurrentPreference(assignment, null, null);
+            ret += gc.getContext(assignment).getPreference();
         }       
         return ret;
     }  

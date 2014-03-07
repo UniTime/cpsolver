@@ -68,7 +68,7 @@ public class DistributionPreferences extends TimetablingCriterion {
         for (Lecture lect: variables) {
             for (GroupConstraint gc: lect.groupConstraints()) {
                 if (!constraints.add(gc)) continue;
-                ret += gc.getCurrentPreference(assignment);
+                ret += gc.getContext(assignment).getPreference();
             }
         }
         return ret;
