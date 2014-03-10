@@ -190,7 +190,7 @@ public class TimetableXMLSaver extends TimetableSaver {
 
         if (iSaveCurrent && getAssignment().nrAssignedVariables() != 0) {
             StringBuffer comments = new StringBuffer("Solution Info:\n");
-            Map<String, String> solutionInfo = (getSolution() == null ? getModel().getInfo(getAssignment()) : getSolution().getInfo());
+            Map<String, String> solutionInfo = (getSolution() == null ? getModel().getExtendedInfo(getAssignment()) : getSolution().getExtendedInfo());
             for (String key : new TreeSet<String>(solutionInfo.keySet())) {
                 String value = solutionInfo.get(key);
                 comments.append("    " + key + ": " + value + "\n");

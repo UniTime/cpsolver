@@ -491,7 +491,11 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * expensive to compute) might be added.
      */
     public Map<String, String> getExtendedInfo(Assignment<V, T> assignment) {
-        return getInfo(assignment);
+        Map<String, String> ret = getInfo(assignment);
+        for (InfoProvider<V, T> provider : iInfoProviders)
+            if (provider instanceof ExtendedInfoProvider)
+                ((ExtendedInfoProvider<V, T>)provider).getExtendedInfo(assignment, ret);
+        return ret;
     }
     
     /**
