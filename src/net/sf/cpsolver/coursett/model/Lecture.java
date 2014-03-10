@@ -712,7 +712,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         return iMaxClassLimit;
     }
 
-    public int maxAchievableClassLimit() {
+    public synchronized int maxAchievableClassLimit() {
         if (iCacheMaxAchievableClassLimit != null)
             return iCacheMaxAchievableClassLimit.intValue();
 
@@ -991,7 +991,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         return null;
     }
 
-    public int getCommitedConflicts(Placement placement) {
+    public synchronized int getCommitedConflicts(Placement placement) {
         Integer ret = iCommitedConflicts.get(placement);
         if (ret == null) {
             ret = new Integer(placement.getCommitedConflicts());
@@ -1008,7 +1008,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         return iGroupConstraints;
     }
 
-    public int minRoomSize() {
+    public synchronized int minRoomSize() {
         if (iCacheMinRoomSize != null)
             return iCacheMinRoomSize.intValue();
         if (getNrRooms() <= 1) {
@@ -1038,7 +1038,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         }
     }
 
-    public int maxRoomSize() {
+    public synchronized int maxRoomSize() {
         if (iCacheMaxRoomSize != null)
             return iCacheMaxRoomSize.intValue();
         if (getNrRooms() <= 1) {
@@ -1243,7 +1243,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
 
     private int[] iMinMaxRoomPreference = null;
 
-    public int[] getMinMaxRoomPreference() {
+    public synchronized  int[] getMinMaxRoomPreference() {
         if (iMinMaxRoomPreference == null) {
             if (getNrRooms() <= 0 || roomLocations().isEmpty()) {
                 iMinMaxRoomPreference = new int[] { 0, 0 };
@@ -1264,7 +1264,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
 
     private double[] iMinMaxTimePreference = null;
 
-    public double[] getMinMaxTimePreference() {
+    public synchronized double[] getMinMaxTimePreference() {
         if (iMinMaxTimePreference == null) {
             Double minTimePref = null, maxTimePref = null;
             for (TimeLocation t : timeLocations()) {
@@ -1308,14 +1308,14 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         return StudentConflict.hard(this, other);
     }
     
-    public void clearIgnoreStudentConflictsWithCache() {
+    public synchronized void clearIgnoreStudentConflictsWithCache() {
         iIgnoreStudentConflictsWith = null;
     }
     
     /**
      * Returns true if there is {@link IgnoreStudentConflictsConstraint} between the two lectures.
      */
-   public boolean isToIgnoreStudentConflictsWith(Lecture other) {
+   public synchronized boolean isToIgnoreStudentConflictsWith(Lecture other) {
         if (iIgnoreStudentConflictsWith == null) {
             iIgnoreStudentConflictsWith = new HashSet<Long>();
             for (Constraint<Lecture, Placement> constraint: constraints()) {
