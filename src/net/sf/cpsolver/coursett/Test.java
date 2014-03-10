@@ -1104,13 +1104,13 @@ public class Test implements SolutionListener<Lecture, Placement> {
 
                 if (solution.getBestInfo() != null) {
                     Solution<Lecture, Placement> bestSolution = solution;// .cloneBest();
-                    sLogger.info("Last solution: " + ToolBox.dict2string(bestSolution.getInfo(), 1));
+                    sLogger.info("Last solution: " + ToolBox.dict2string(bestSolution.getExtendedInfo(), 1));
                     sLogger.info("Best solution (before restore): " + ToolBox.dict2string(bestSolution.getBestInfo(), 1));
                     bestSolution.restoreBest();
-                    sLogger.info("Best solution: " + ToolBox.dict2string(bestSolution.getInfo(), 1));
+                    sLogger.info("Best solution: " + ToolBox.dict2string(bestSolution.getExtendedInfo(), 1));
                     if (properties.getPropertyBoolean("General.SwitchStudents", true))
                         ((TimetableModel) bestSolution.getModel()).switchStudents(bestSolution.getAssignment());
-                    sLogger.info("Best solution: " + ToolBox.dict2string(bestSolution.getInfo(), 1));
+                    sLogger.info("Best solution: " + ToolBox.dict2string(bestSolution.getExtendedInfo(), 1));
                     saveOutputCSV(bestSolution, new File(outDir, "output.csv"));
 
                     printSomeStuff(bestSolution);
@@ -1124,7 +1124,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
                             saver.save();
                     }
                 } else {
-                    sLogger.info("Last solution:" + ToolBox.dict2string(solution.getInfo(), 1));
+                    sLogger.info("Last solution:" + ToolBox.dict2string(solution.getExtendedInfo(), 1));
                 }
 
                 iCSVFile.close();

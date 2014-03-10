@@ -317,6 +317,14 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
 
     @Override
     public void getInfo(Assignment<V, T> assignment, Map<String, String> info) {
+    }
+    
+    @Override
+    public void getInfo(Assignment<V, T> assignment, Map<String, String> info, Collection<V> variables) {
+    }
+    
+    @Override
+    public void getExtendedInfo(Assignment<V, T> assignment, Map<String, String> info) {
         if (iDebug) {
             double val = getValue(assignment), w = getWeightedValue(assignment), prec = getValue(assignment, getModel().variables());
             double[] bounds = getBounds(assignment);
@@ -339,30 +347,7 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
                         "weighted:" + sDoubleFormat.format(w) +
                         (bounds[0] != bounds[1] ? ", bounds: " + sDoubleFormat.format(bounds[0]) + ".." + sDoubleFormat.format(bounds[1]) : "") +
                         ")");
-        }
-    }
-    
-    @Override
-    public void getInfo(Assignment<V, T> assignment, Map<String, String> info, Collection<V> variables) {
-        if (iDebug) {
-            double val = getValue(assignment, variables), w = getWeightedValue(assignment, variables);
-            double[] bounds = getBounds(assignment, variables);
-            if (bounds[0] <= val && val <= bounds[1])
-                info.put("[C] " + getName(),
-                        getPerc(val, bounds[0], bounds[1]) + "% (value: " + sDoubleFormat.format(val) +
-                        ", weighted:" + sDoubleFormat.format(w) +
-                        ", bounds: " + sDoubleFormat.format(bounds[0]) + ".." + sDoubleFormat.format(bounds[1]) + ")");
-            else if (bounds[1] <= val && val <= bounds[0])
-                info.put("[C] " + getName(),
-                        getPercRev(val, bounds[1], bounds[0]) + "% (value: " + sDoubleFormat.format(val) +
-                        ", weighted:" + sDoubleFormat.format(w) +
-                        ", bounds: " + sDoubleFormat.format(bounds[1]) + ".." + sDoubleFormat.format(bounds[0]) + ")");
-            else if (bounds[0] != val || val != bounds[1])
-                info.put("[C] " + getName(),
-                        sDoubleFormat.format(val) + " (weighted:" + sDoubleFormat.format(w) +
-                        (bounds[0] != bounds[1] ? ", bounds: " + sDoubleFormat.format(bounds[0]) + ".." + sDoubleFormat.format(bounds[1]) : "") +
-                        ")");
-        }
+        }        
     }
     
     /**
