@@ -11,6 +11,7 @@ import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.solution.Solution;
+import net.sf.cpsolver.ifs.solver.ParallelSolver;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.termination.TerminationCondition;
 import net.sf.cpsolver.ifs.util.DataProperties;
@@ -97,6 +98,8 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
     @Override
     public void init(Solver<V, T> solver) {
         super.init(solver);
+        if (solver instanceof ParallelSolver)
+            iCon = new ParallelConstruction<V, T>(solver.getProperties(), iCon == null ? iStd : iCon);
         iStd.init(solver);
         if (iCon != null)
             iCon.init(solver);
