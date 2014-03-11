@@ -104,7 +104,6 @@ public class HillClimber<V extends Variable<V, T>, T extends Value<V, T>> extend
     
     public class HillClimberContext extends NeighbourSearchContext {
         protected int iLastImprovingIter = 0;
-        protected double iBestValue = 0;
 
         /**
          * Increase iteration counter
@@ -137,22 +136,11 @@ public class HillClimber<V extends Variable<V, T>, T extends Value<V, T>> extend
         }
         
         /**
-         * Memorize the iteration when the last best solution was found.
-         */
-        @Override
-        public void bestSaved(Solution<V, T> solution) {
-            super.bestSaved(solution);
-            if (Math.abs(iBestValue - solution.getBestValue()) >= 1.0) {
-                iLastImprovingIter = iIter;
-                iBestValue = solution.getBestValue();
-            }
-        }
-        
-        /**
          * Accept any move that does not worsen the solution (value <= 0)
          */
         @Override
         protected boolean accept(Assignment<V, T> assignment, Model<V, T> model, Neighbour<V, T> neighbour, double value, boolean lazy) {
+            if (value < 0) iLastImprovingIter = iIter;
             return value <= 0;
         }
     }
