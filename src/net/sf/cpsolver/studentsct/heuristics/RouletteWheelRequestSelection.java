@@ -64,11 +64,11 @@ public class RouletteWheelRequestSelection implements VariableSelection<Request,
         iRoulette = new RouletteWheelSelection<Request>();
         for (Request request : ((StudentSectioningModel) solution.getModel()).variables()) {
             double points = 0;
-            if (request.getAssignment() == null)
+            if (solution.getAssignment().getValue(request) == null)
                 points += 10;
             else {
-                Enrollment enrollment = request.getAssignment();
-                if (enrollment.toDouble() > request.getBound())
+                Enrollment enrollment = solution.getAssignment().getValue(request);
+                if (enrollment.toDouble(solution.getAssignment()) > request.getBound())
                     points += 1;
             }
             if (points > 0)

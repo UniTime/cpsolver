@@ -9,6 +9,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.GlobalConstraint;
 import net.sf.cpsolver.ifs.model.Neighbour;
@@ -150,7 +151,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         while (iStudentsEnumeration.hasNext()) {
             Student student = iStudentsEnumeration.next();
             Progress.getInstance(solution.getModel()).incProgress();
-            Neighbour<Request, Enrollment> neighbour = getSelection(student).select();
+            Neighbour<Request, Enrollment> neighbour = getSelection(solution.getAssignment(), student).select();
             if (neighbour != null)
                 return neighbour;
         }
@@ -160,8 +161,8 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
     /**
      * Branch & bound selection for a student
      */
-    public Selection getSelection(Student student) {
-        return new Selection(student);
+    public Selection getSelection(Assignment<Request, Enrollment> assignment, Student student) {
+        return new Selection(student, assignment);
     }
 
     /**
@@ -184,6 +185,8 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         protected double iBestValue;
         /** Value cache */
         protected HashMap<CourseRequest, List<Enrollment>> iValues;
+        /** Current assignment */
+        protected Assignment<Request, Enrollment> iCurrentAssignment;
 
         /**
          * Constructor
@@ -191,8 +194,9 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
          * @param student
          *            selected student
          */
-        public Selection(Student student) {
+        public Selection(Student student, Assignment<Request, Enrollment> assignment) {
             iStudent = student;
+            iCurrentAssignment = assignment;
         }
 
         /**
@@ -208,7 +212,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             
             int i = 0;
             for (Request r: iStudent.getRequests())
-                iAssignment[i++] = r.getAssignment();
+                iAssignment[i++] = iCurrentAssignment.getValue(r);
             saveBest();
             for (int j = 0; j < iAssignment.length; j++)
                 iAssignment[j] = null;
@@ -314,16 +318,16 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
          * Weight of an assignment. Unlike {@link StudentWeights#getWeight(Enrollment, Set, Set)}, only count this side of distance conflicts and time overlaps.
          **/
         protected double getWeight(Enrollment enrollment, Set<DistanceConflict.Conflict> distanceConflicts, Set<TimeOverlapsCounter.Conflict> timeOverlappingConflicts) {
-            double weight = - iModel.getStudentWeights().getWeight(enrollment);
+            double weight = - iModel.getStudentWeights().getWeight(iCurrentAssignment, enrollment);
             if (distanceConflicts != null)
                 for (DistanceConflict.Conflict c: distanceConflicts) {
                     Enrollment other = (c.getE1().equals(enrollment) ? c.getE2() : c.getE1());
                     if (other.getRequest().getPriority() <= enrollment.getRequest().getPriority())
-                        weight += iModel.getStudentWeights().getDistanceConflictWeight(c);
+                        weight += iModel.getStudentWeights().getDistanceConflictWeight(iCurrentAssignment, c);
                 }
             if (timeOverlappingConflicts != null)
                 for (TimeOverlapsCounter.Conflict c: timeOverlappingConflicts) {
-                    weight += iModel.getStudentWeights().getTimeOverlapConflictWeight(enrollment, c);
+                    weight += iModel.getStudentWeights().getTimeOverlapConflictWeight(iCurrentAssignment, enrollment, c);
                 }
             return enrollment.getRequest().getWeight() * weight;
         }
@@ -429,10 +433,10 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         /** True if the enrollment is conflicting */
         public boolean inConflict(final int idx, final Enrollment enrollment) {
             for (GlobalConstraint<Request, Enrollment> constraint : enrollment.variable().getModel().globalConstraints())
-                if (constraint.inConflict(enrollment))
+                if (constraint.inConflict(iCurrentAssignment, enrollment))
                     return true;
             for (LinkedSections linkedSections: iStudent.getLinkedSections()) {
-                if (linkedSections.inConflict(enrollment, new LinkedSections.Assignment() {
+                if (linkedSections.inConflict(enrollment, new LinkedSections.EnrollmentAssignment() {
                     @Override
                     public Enrollment getEnrollment(Request request, int index) {
                         return (index == idx ? enrollment : iAssignment[index]);
@@ -447,7 +451,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
 
         /** First conflicting enrollment */
         public Enrollment firstConflict(int idx, Enrollment enrollment) {
-            Set<Enrollment> conflicts = enrollment.variable().getModel().conflictValues(enrollment);
+            Set<Enrollment> conflicts = enrollment.variable().getModel().conflictValues(iCurrentAssignment, enrollment);
             if (conflicts.contains(enrollment))
                 return enrollment;
             if (!conflicts.isEmpty()) {
@@ -502,7 +506,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         
         /** Returns list of available enrollments for a course request */
         protected List<Enrollment> values(final CourseRequest request) {
-            List<Enrollment> values = request.getAvaiableEnrollments();
+            List<Enrollment> values = request.getAvaiableEnrollments(iCurrentAssignment);
             Collections.sort(values, new Comparator<Enrollment>() {
                 
                 private HashMap<Enrollment, Double> iValues = new HashMap<Enrollment, Double>();
@@ -510,7 +514,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                 private Double value(Enrollment e) {
                     Double value = iValues.get(e);
                     if (value == null) {
-                        value = iModel.getStudentWeights().getWeight(e,
+                        value = iModel.getStudentWeights().getWeight(iCurrentAssignment, e,
                                         (iModel.getDistanceConflict() == null ? null : iModel.getDistanceConflict().conflicts(e)),
                                         (iModel.getTimeOverlaps() == null ? null : iModel.getTimeOverlaps().freeTimeConflicts(e)));
                         iValues.put(e, value);       
@@ -520,10 +524,10 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                 
                 @Override
                 public int compare(Enrollment e1, Enrollment e2) {
-                    if (e1.equals(request.getAssignment())) return -1;
-                    if (e2.equals(request.getAssignment())) return 1;
+                    if (e1.equals(iCurrentAssignment.getValue(request))) return -1;
+                    if (e2.equals(iCurrentAssignment.getValue(request))) return 1;
                     Double v1 = value(e1), v2 = value(e2);
-                    return v1.equals(v2) ? e1.compareTo(e2) : v2.compareTo(v1);
+                    return v1.equals(v2) ? e1.compareTo(iCurrentAssignment, e2) : v2.compareTo(v1);
                 }
                 
             });
@@ -588,7 +592,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                 if (!courseRequest.getSelectedChoices().isEmpty()) {
                     if (sDebug)
                         sLog.debug("    -- selection among selected enrollments");
-                    values = courseRequest.getSelectedEnrollments(true);
+                    values = courseRequest.getSelectedEnrollments(iCurrentAssignment, true);
                     if (values != null && !values.isEmpty()) {
                         boolean hasNoConflictValue = false;
                         for (Enrollment enrollment : values) {
@@ -611,7 +615,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                     iValues.put(courseRequest, values);
                 }
             } else {
-                values = request.computeEnrollments();
+                values = request.computeEnrollments(iCurrentAssignment);
             }
             if (sDebug) {
                 sLog.debug("  -- nrValues: " + values.size());
@@ -665,7 +669,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         }
 
         @Override
-        public double value() {
+        public double value(Assignment<Request, Enrollment> assignment) {
             return iValue;
         }
 
@@ -681,17 +685,17 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
 
         /** Assign the schedule */
         @Override
-        public void assign(long iteration) {
+        public void assign(Assignment<Request, Enrollment> assignment, long iteration) {
             for (Request r: iStudent.getRequests())
-                if (r.getAssignment() != null) r.unassign(iteration);
+                assignment.unassign(iteration, r);
             for (int i = 0; i < iAssignment.length; i++)
                 if (iAssignment[i] != null)
-                    iAssignment[i].variable().assign(iteration, iAssignment[i]);
+                    assignment.assign(iteration, iAssignment[i]);
         }
 
         @Override
         public String toString() {
-            StringBuffer sb = new StringBuffer("B&B{ " + iStudent + " " + sDF.format(-value() * 100.0) + "%");
+            StringBuffer sb = new StringBuffer("B&B{ " + iStudent + " " + sDF.format(-iValue * 100.0) + "%");
             int idx = 0;
             for (Iterator<Request> e = iStudent.getRequests().iterator(); e.hasNext(); idx++) {
                 Request request = e.next();

@@ -10,8 +10,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import net.sf.cpsolver.ifs.assignment.context.ModelWithContext;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.ConstraintListener;
+import net.sf.cpsolver.ifs.model.InfoProvider;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.studentsct.constraint.ConfigLimit;
@@ -63,21 +67,19 @@ import org.apache.log4j.Logger;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class StudentSectioningModel extends Model<Request, Enrollment> {
+public class StudentSectioningModel extends ModelWithContext<Request, Enrollment, StudentSectioningModel.StudentSectioningModelContext> {
     private static Logger sLog = Logger.getLogger(StudentSectioningModel.class);
     protected static DecimalFormat sDecimalFormat = new DecimalFormat("0.000");
     private List<Student> iStudents = new ArrayList<Student>();
     private List<Offering> iOfferings = new ArrayList<Offering>();
     private List<LinkedSections> iLinkedSections = new ArrayList<LinkedSections>();
-    private Set<Student> iCompleteStudents = new java.util.HashSet<Student>();
-    private double iTotalValue = 0.0;
     private DataProperties iProperties;
     private DistanceConflict iDistanceConflict = null;
     private TimeOverlapsCounter iTimeOverlaps = null;
-    private int iNrDummyStudents = 0, iNrDummyRequests = 0, iNrAssignedDummyRequests = 0, iNrCompleteDummyStudents = 0;
+    private int iNrDummyStudents = 0, iNrDummyRequests = 0;
     private double iTotalDummyWeight = 0.0;
-    private double iTotalCRWeight = 0.0, iTotalDummyCRWeight = 0.0, iAssignedCRWeight = 0.0, iAssignedDummyCRWeight = 0.0;
-    private double iReservedSpace = 0.0, iTotalReservedSpace = 0.0;
+    private double iTotalCRWeight = 0.0, iTotalDummyCRWeight = 0.0;
+    private double iTotalReservedSpace = 0.0;
     private StudentWeights iStudentWeights = null;
     private boolean iReservationCanAssignOverTheLimit;
     protected double iProjectedStudentWeight = 0.0100;
@@ -94,19 +96,15 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
     public StudentSectioningModel(DataProperties properties) {
         super();
         iReservationCanAssignOverTheLimit =  properties.getPropertyBoolean("Reservation.CanAssignOverTheLimit", false);
-        iAssignedVariables = new HashSet<Request>();
-        iUnassignedVariables = new HashSet<Request>();
-        iPerturbVariables = new HashSet<Request>();
         iStudentWeights = new PriorityStudentWeights(properties);
         iMaxDomainSize = properties.getPropertyInt("Sectioning.MaxDomainSize", iMaxDomainSize);
         if (properties.getPropertyBoolean("Sectioning.SectionLimit", true)) {
             SectionLimit sectionLimit = new SectionLimit(properties);
             addGlobalConstraint(sectionLimit);
             if (properties.getPropertyBoolean("Sectioning.SectionLimit.Debug", false)) {
-                sectionLimit.addConstraintListener(new ConstraintListener<Enrollment>() {
+                sectionLimit.addConstraintListener(new ConstraintListener<Request, Enrollment>() {
                     @Override
-                    public void constraintBeforeAssigned(long iteration, Constraint<?, Enrollment> constraint,
-                            Enrollment enrollment, Set<Enrollment> unassigned) {
+                    public void constraintBeforeAssigned(Assignment<Request, Enrollment> assignment, long iteration, Constraint<Request, Enrollment> constraint, Enrollment enrollment, Set<Enrollment> unassigned) {
                         if (enrollment.getStudent().isDummy())
                             for (Enrollment conflict : unassigned) {
                                 if (!conflict.getStudent().isDummy()) {
@@ -118,8 +116,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
                     }
 
                     @Override
-                    public void constraintAfterAssigned(long iteration, Constraint<?, Enrollment> constraint,
-                            Enrollment assigned, Set<Enrollment> unassigned) {
+                    public void constraintAfterAssigned(Assignment<Request, Enrollment> assignment, long iteration, Constraint<Request, Enrollment> constraint, Enrollment assigned, Set<Enrollment> unassigned) {
                     }
                 });
             }
@@ -180,13 +177,6 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
     }
 
     /**
-     * Students with complete schedules (see {@link Student#isComplete()})
-     */
-    public Set<Student> getCompleteStudents() {
-        return iCompleteStudents;
-    }
-
-    /**
      * Add a student into the model
      */
     public void addStudent(Student student) {
@@ -198,8 +188,6 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         if (getProperties().getPropertyBoolean("Sectioning.StudentConflict", true)) {
             addConstraint(new StudentConflict(student));
         }
-        if (student.isComplete())
-            iCompleteStudents.add(student);
     }
     
     @Override
@@ -218,37 +206,8 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
     /** 
      * Recompute cached request weights
      */
-    public void requestWeightsChanged() {
-        iTotalCRWeight = 0.0;
-        iTotalDummyWeight = 0.0; iTotalDummyCRWeight = 0.0;
-        iAssignedCRWeight = 0.0;
-        iAssignedDummyCRWeight = 0.0;
-        iNrDummyRequests = 0; iNrAssignedDummyRequests = 0;
-        iTotalReservedSpace = 0.0; iReservedSpace = 0.0;
-        for (Request request: variables()) {
-            boolean cr = (request instanceof CourseRequest);
-            if (cr)
-                iTotalCRWeight += request.getWeight();
-            if (request.getStudent().isDummy()) {
-                iTotalDummyWeight += request.getWeight();
-                iNrDummyRequests ++;
-                if (cr)
-                    iTotalDummyCRWeight += request.getWeight();
-            }
-            if (request.getAssignment() != null) {
-                if (cr)
-                    iAssignedCRWeight += request.getWeight();
-                if (request.getAssignment().getReservation() != null)
-                    iReservedSpace += request.getWeight();
-                if (cr && ((CourseRequest)request).hasReservations())
-                    iTotalReservedSpace += request.getWeight();
-                if (request.getStudent().isDummy()) {
-                    iNrAssignedDummyRequests ++;
-                    if (cr)
-                        iAssignedDummyCRWeight += request.getWeight();
-                }
-            }
-        }
+    public void requestWeightsChanged(Assignment<Request, Enrollment> assignment) {
+        getContext(assignment).requestWeightsChanged(assignment);
     }
 
     /**
@@ -258,8 +217,6 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         iStudents.remove(student);
         if (student.isDummy())
             iNrDummyStudents--;
-        if (student.isComplete())
-            iCompleteStudents.remove(student);
         StudentConflict conflict = null;
         for (Request request : student.getRequests()) {
             for (Constraint<Request, Enrollment> c : request.constraints()) {
@@ -307,6 +264,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
      */
     public void addOffering(Offering offering) {
         iOfferings.add(offering);
+        offering.setModel(this);
     }
     
     /**
@@ -335,30 +293,23 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
     }
 
     /**
-     * Number of students with complete schedule
-     */
-    public int nrComplete() {
-        return getCompleteStudents().size();
-    }
-
-    /**
      * Model info
      */
     @Override
-    public Map<String, String> getInfo() {
-        Map<String, String> info = super.getInfo();
+    public Map<String, String> getInfo(Assignment<Request, Enrollment> assignment) {
+        Map<String, String> info = super.getInfo(assignment);
+        StudentSectioningModelContext context = getContext(assignment);
         if (!getStudents().isEmpty())
-            info.put("Students with complete schedule", sDoubleFormat.format(100.0 * nrComplete() / getStudents().size())
-                    + "% (" + nrComplete() + "/" + getStudents().size() + ")");
-        if (getDistanceConflict() != null && getDistanceConflict().getTotalNrConflicts() != 0)
-            info.put("Student distance conflicts", String.valueOf(getDistanceConflict().getTotalNrConflicts()));
-        if (getTimeOverlaps() != null && getTimeOverlaps().getTotalNrConflicts() != 0)
-            info.put("Time overlapping conflicts", String.valueOf(getTimeOverlaps().getTotalNrConflicts()));
+            info.put("Students with complete schedule", sDoubleFormat.format(100.0 * context.nrComplete() / getStudents().size()) + "% (" + context.nrComplete() + "/" + getStudents().size() + ")");
+        if (getDistanceConflict() != null && getDistanceConflict().getTotalNrConflicts(assignment) != 0)
+            info.put("Student distance conflicts", String.valueOf(getDistanceConflict().getTotalNrConflicts(assignment)));
+        if (getTimeOverlaps() != null && getTimeOverlaps().getTotalNrConflicts(assignment) != 0)
+            info.put("Time overlapping conflicts", String.valueOf(getTimeOverlaps().getTotalNrConflicts(assignment)));
         int nrLastLikeStudents = getNrLastLikeStudents(false);
         if (nrLastLikeStudents != 0 && nrLastLikeStudents != getStudents().size()) {
             int nrRealStudents = getStudents().size() - nrLastLikeStudents;
-            int nrLastLikeCompleteStudents = getNrCompleteLastLikeStudents(false);
-            int nrRealCompleteStudents = getCompleteStudents().size() - nrLastLikeCompleteStudents;
+            int nrLastLikeCompleteStudents = getNrCompleteLastLikeStudents(assignment, false);
+            int nrRealCompleteStudents = context.nrComplete() - nrLastLikeCompleteStudents;
             if (nrLastLikeStudents > 0)
                 info.put("Projected students with complete schedule", sDecimalFormat.format(100.0
                         * nrLastLikeCompleteStudents / nrLastLikeStudents)
@@ -369,30 +320,20 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
                         + "% (" + nrRealCompleteStudents + "/" + nrRealStudents + ")");
             int nrLastLikeRequests = getNrLastLikeRequests(false);
             int nrRealRequests = variables().size() - nrLastLikeRequests;
-            int nrLastLikeAssignedRequests = getNrAssignedLastLikeRequests(false);
-            int nrRealAssignedRequests = assignedVariables().size() - nrLastLikeAssignedRequests;
+            int nrLastLikeAssignedRequests = context.getNrAssignedLastLikeRequests();
+            int nrRealAssignedRequests = assignment.nrAssignedVariables() - nrLastLikeAssignedRequests;
             if (nrLastLikeRequests > 0)
                 info.put("Projected assigned requests", sDecimalFormat.format(100.0 * nrLastLikeAssignedRequests / nrLastLikeRequests)
                         + "% (" + nrLastLikeAssignedRequests + "/" + nrLastLikeRequests + ")");
             if (nrRealRequests > 0)
                 info.put("Real assigned requests", sDecimalFormat.format(100.0 * nrRealAssignedRequests / nrRealRequests)
                         + "% (" + nrRealAssignedRequests + "/" + nrRealRequests + ")");
-            if (iTotalCRWeight > 0.0) {
-                info.put("Assigned course requests", sDecimalFormat.format(100.0 * iAssignedCRWeight / iTotalCRWeight) + "% (" + (int)Math.round(iAssignedCRWeight) + "/" + (int)Math.round(iTotalCRWeight) + ")");
-                if (iTotalDummyCRWeight != iTotalCRWeight) {
-                    if (iTotalDummyCRWeight > 0.0)
-                        info.put("Projected assigned course requests", sDecimalFormat.format(100.0 * iAssignedDummyCRWeight / iTotalDummyCRWeight) + "% (" + (int)Math.round(iAssignedDummyCRWeight) + "/" + (int)Math.round(iTotalDummyCRWeight) + ")");
-                    info.put("Real assigned course requests", sDecimalFormat.format(100.0 * (iAssignedCRWeight - iAssignedDummyCRWeight) / (iTotalCRWeight - iTotalDummyCRWeight)) +
-                            "% (" + (int)Math.round(iAssignedCRWeight - iAssignedDummyCRWeight) + "/" + (int)Math.round(iTotalCRWeight - iTotalDummyCRWeight) + ")");
-                }
-            }
-            if (getDistanceConflict() != null && getDistanceConflict().getTotalNrConflicts() > 0)
-                info.put("Student distance conflicts", String.valueOf(getDistanceConflict().getTotalNrConflicts()));
-            if (getTimeOverlaps() != null && getTimeOverlaps().getTotalNrConflicts() > 0)
-                info.put("Time overlapping conflicts", String.valueOf(getTimeOverlaps().getTotalNrConflicts()));
+            if (getDistanceConflict() != null && getDistanceConflict().getTotalNrConflicts(assignment) > 0)
+                info.put("Student distance conflicts", String.valueOf(getDistanceConflict().getTotalNrConflicts(assignment)));
+            if (getTimeOverlaps() != null && getTimeOverlaps().getTotalNrConflicts(assignment) > 0)
+                info.put("Time overlapping conflicts", String.valueOf(getTimeOverlaps().getTotalNrConflicts(assignment)));
         }
-        if (iTotalReservedSpace > 0.0)
-            info.put("Reservations", sDoubleFormat.format(100.0 * iReservedSpace / iTotalReservedSpace) + "% (" + Math.round(iReservedSpace) + "/" + Math.round(iTotalReservedSpace) + ")"); 
+        context.getInfo(assignment, info);
 
         return info;
     }
@@ -400,90 +341,30 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
     /**
      * Overall solution value
      */
-    public double getTotalValue(boolean precise) {
+    public double getTotalValue(Assignment<Request, Enrollment> assignment, boolean precise) {
         if (precise) {
             double total = 0;
-            for (Request r: assignedVariables())
-                total += r.getWeight() * iStudentWeights.getWeight(r.getAssignment());
+            for (Request r: assignment.assignedVariables())
+                total += r.getWeight() * iStudentWeights.getWeight(assignment, assignment.getValue(r));
             if (iDistanceConflict != null)
-                for (DistanceConflict.Conflict c: iDistanceConflict.computeAllConflicts())
-                    total -= avg(c.getR1().getWeight(), c.getR2().getWeight()) * iStudentWeights.getDistanceConflictWeight(c);
+                for (DistanceConflict.Conflict c: iDistanceConflict.computeAllConflicts(assignment))
+                    total -= avg(c.getR1().getWeight(), c.getR2().getWeight()) * iStudentWeights.getDistanceConflictWeight(assignment, c);
             if (iTimeOverlaps != null)
-                for (TimeOverlapsCounter.Conflict c: iTimeOverlaps.computeAllConflicts()) {
-                    total -= c.getR1().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(c.getE1(), c);
-                    total -= c.getR2().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(c.getE2(), c);
+                for (TimeOverlapsCounter.Conflict c: iTimeOverlaps.getContext(assignment).computeAllConflicts(assignment)) {
+                    total -= c.getR1().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE1(), c);
+                    total -= c.getR2().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE2(), c);
                 }
             return -total;
         }
-        return iTotalValue;
+        return getContext(assignment).getTotalValue();
     }
     
     /**
      * Overall solution value
      */
     @Override
-    public double getTotalValue() {
-        return iTotalValue;
-    }
-
-
-    /**
-     * Called after an enrollment was assigned to a request. The list of
-     * complete students and the overall solution value are updated.
-     */
-    @Override
-    public void afterAssigned(long iteration, Enrollment enrollment) {
-        super.afterAssigned(iteration, enrollment);
-        Student student = enrollment.getStudent();
-        if (student.isComplete())
-            iCompleteStudents.add(student);
-        double value = enrollment.getRequest().getWeight() * iStudentWeights.getWeight(enrollment);
-        iTotalValue -= value;
-        enrollment.setExtra(value);
-        if (enrollment.isCourseRequest())
-            iAssignedCRWeight += enrollment.getRequest().getWeight();
-        if (enrollment.getReservation() != null)
-            iReservedSpace += enrollment.getRequest().getWeight();
-        if (enrollment.isCourseRequest() && ((CourseRequest)enrollment.getRequest()).hasReservations())
-            iTotalReservedSpace += enrollment.getRequest().getWeight();
-        if (student.isDummy()) {
-            iNrAssignedDummyRequests++;
-            if (enrollment.isCourseRequest())
-                iAssignedDummyCRWeight += enrollment.getRequest().getWeight();
-            if (student.isComplete())
-                iNrCompleteDummyStudents++;
-        }
-    }
-
-    /**
-     * Called before an enrollment was unassigned from a request. The list of
-     * complete students and the overall solution value are updated.
-     */
-    @Override
-    public void afterUnassigned(long iteration, Enrollment enrollment) {
-        super.afterUnassigned(iteration, enrollment);
-        Student student = enrollment.getStudent();
-        if (iCompleteStudents.contains(student) && !student.isComplete()) {
-            iCompleteStudents.remove(student);
-            if (student.isDummy())
-                iNrCompleteDummyStudents--;
-        }
-        Double value = (Double)enrollment.getExtra();
-        if (value == null)
-            value = enrollment.getRequest().getWeight() * iStudentWeights.getWeight(enrollment);
-        iTotalValue += value;
-        enrollment.setExtra(null);
-        if (enrollment.isCourseRequest())
-            iAssignedCRWeight -= enrollment.getRequest().getWeight();
-        if (enrollment.getReservation() != null)
-            iReservedSpace -= enrollment.getRequest().getWeight();
-        if (enrollment.isCourseRequest() && ((CourseRequest)enrollment.getRequest()).hasReservations())
-            iTotalReservedSpace -= enrollment.getRequest().getWeight();
-        if (student.isDummy()) {
-            iNrAssignedDummyRequests--;
-            if (enrollment.isCourseRequest())
-                iAssignedDummyCRWeight -= enrollment.getRequest().getWeight();
-        }
+    public double getTotalValue(Assignment<Request, Enrollment> assignment) {
+        return getContext(assignment).getTotalValue();
     }
 
     /**
@@ -514,7 +395,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
      * Compute online student sectioning infos for all sections (see
      * {@link Section#getSpaceExpected()} and {@link Section#getSpaceHeld()}).
      */
-    public void computeOnlineSectioningInfos() {
+    public void computeOnlineSectioningInfos(Assignment<Request, Enrollment> assignment) {
         clearOnlineSectioningInfos();
         for (Student student : getStudents()) {
             if (!student.isDummy())
@@ -523,7 +404,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
                 if (!(request instanceof CourseRequest))
                     continue;
                 CourseRequest courseRequest = (CourseRequest) request;
-                Enrollment enrollment = courseRequest.getAssignment();
+                Enrollment enrollment = assignment.getValue(courseRequest);
                 if (enrollment != null) {
                     for (Section section : enrollment.getSections()) {
                         section.setSpaceHeld(courseRequest.getWeight() + section.getSpaceHeld());
@@ -536,7 +417,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
                     for (Request otherRequest : student.getRequests()) {
                         if (otherRequest.equals(courseRequest) || !(otherRequest instanceof CourseRequest))
                             continue;
-                        Enrollment otherErollment = otherRequest.getAssignment();
+                        Enrollment otherErollment = assignment.getValue(otherRequest);
                         if (otherErollment == null)
                             continue;
                         if (enrl.isOverlapping(otherErollment)) {
@@ -571,9 +452,9 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
      * Sum of weights of all requests that are not assigned (see
      * {@link Request#getWeight()}).
      */
-    public double getUnassignedRequestWeight() {
+    public double getUnassignedRequestWeight(Assignment<Request, Enrollment> assignment) {
         double weight = 0.0;
-        for (Request request : unassignedVariables()) {
+        for (Request request : assignment.unassignedVariables(this)) {
             weight += request.getWeight();
         }
         return weight;
@@ -584,7 +465,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
      */
     public double getTotalRequestWeight() {
         double weight = 0.0;
-        for (Request request : unassignedVariables()) {
+        for (Request request : variables()) {
             weight += request.getWeight();
         }
         return weight;
@@ -622,14 +503,14 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
      * Average priority of unassigned requests (see
      * {@link Request#getPriority()})
      */
-    public double avgUnassignPriority() {
+    public double avgUnassignPriority(Assignment<Request, Enrollment> assignment) {
         double totalPriority = 0.0;
-        for (Request request : unassignedVariables()) {
+        for (Request request : assignment.unassignedVariables(this)) {
             if (request.isAlternative())
                 continue;
             totalPriority += request.getPriority();
         }
-        return 1.0 + totalPriority / unassignedVariables().size();
+        return 1.0 + totalPriority / assignment.nrUnassignedVariables(this);
     }
 
     /**
@@ -674,14 +555,14 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
 
     /**
      * Number of last like ({@link Student#isDummy()} equals true) students with
-     * a complete schedule ({@link Student#isComplete()} equals true).
+     * a complete schedule ({@link Student#isComplete(Assignment)} equals true).
      */
-    public int getNrCompleteLastLikeStudents(boolean precise) {
+    public int getNrCompleteLastLikeStudents(Assignment<Request, Enrollment> assignment, boolean precise) {
         if (!precise)
-            return iNrCompleteDummyStudents;
+            return getContext(assignment).getNrCompleteLastLikeStudents();
         int nrLastLikeStudents = 0;
-        for (Student student : getCompleteStudents()) {
-            if (student.isDummy())
+        for (Student student : getStudents()) {
+            if (student.isComplete(assignment) && student.isDummy())
                 nrLastLikeStudents++;
         }
         return nrLastLikeStudents;
@@ -689,14 +570,14 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
 
     /**
      * Number of real ({@link Student#isDummy()} equals false) students with a
-     * complete schedule ({@link Student#isComplete()} equals true).
+     * complete schedule ({@link Student#isComplete(Assignment)} equals true).
      */
-    public int getNrCompleteRealStudents(boolean precise) {
+    public int getNrCompleteRealStudents(Assignment<Request, Enrollment> assignment, boolean precise) {
         if (!precise)
-            return getCompleteStudents().size() - iNrCompleteDummyStudents;
+            return getContext(assignment).nrComplete() - getContext(assignment).getNrCompleteLastLikeStudents();
         int nrRealStudents = 0;
-        for (Student student : getCompleteStudents()) {
-            if (!student.isDummy())
+        for (Student student : getStudents()) {
+            if (student.isComplete(assignment) && !student.isDummy())
                 nrRealStudents++;
         }
         return nrRealStudents;
@@ -736,11 +617,11 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
      * Number of requests from projected ({@link Student#isDummy()} equals true)
      * students that are assigned.
      */
-    public int getNrAssignedLastLikeRequests(boolean precise) {
+    public int getNrAssignedLastLikeRequests(Assignment<Request, Enrollment> assignment, boolean precise) {
         if (!precise)
-            return iNrAssignedDummyRequests;
+            return getContext(assignment).getNrAssignedLastLikeRequests();
         int nrLastLikeRequests = 0;
-        for (Request request : assignedVariables()) {
+        for (Request request : assignment.assignedVariables()) {
             if (request.getStudent().isDummy())
                 nrLastLikeRequests++;
         }
@@ -751,11 +632,11 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
      * Number of requests from real ({@link Student#isDummy()} equals false)
      * students that are assigned.
      */
-    public int getNrAssignedRealRequests(boolean precise) {
+    public int getNrAssignedRealRequests(Assignment<Request, Enrollment> assignment, boolean precise) {
         if (!precise)
-            return assignedVariables().size() - iNrAssignedDummyRequests;
+            return assignment.nrAssignedVariables() - getContext(assignment).getNrAssignedLastLikeRequests();
         int nrRealRequests = 0;
-        for (Request request : assignedVariables()) {
+        for (Request request : assignment.assignedVariables()) {
             if (!request.getStudent().isDummy())
                 nrRealRequests++;
         }
@@ -767,8 +648,8 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
      * compute) is added to an ordinary {@link Model#getInfo()}.
      */
     @Override
-    public Map<String, String> getExtendedInfo() {
-        Map<String, String> info = getInfo();
+    public Map<String, String> getExtendedInfo(Assignment<Request, Enrollment> assignment) {
+        Map<String, String> info = getInfo(assignment);
         /*
         int nrLastLikeStudents = getNrLastLikeStudents(true);
         if (nrLastLikeStudents != 0 && nrLastLikeStudents != getStudents().size()) {
@@ -802,20 +683,20 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
                 total += r.getWeight() * iStudentWeights.getWeight(r.getAssignment());
         */
         double dc = 0;
-        if (getDistanceConflict() != null && getDistanceConflict().getTotalNrConflicts() != 0) {
-            Set<DistanceConflict.Conflict> conf = getDistanceConflict().getAllConflicts();
+        if (getDistanceConflict() != null && getDistanceConflict().getTotalNrConflicts(assignment) != 0) {
+            Set<DistanceConflict.Conflict> conf = getDistanceConflict().getAllConflicts(assignment);
             for (DistanceConflict.Conflict c: conf)
-                dc += avg(c.getR1().getWeight(), c.getR2().getWeight()) * iStudentWeights.getDistanceConflictWeight(c);
+                dc += avg(c.getR1().getWeight(), c.getR2().getWeight()) * iStudentWeights.getDistanceConflictWeight(assignment, c);
             if (!conf.isEmpty())
                 info.put("Student distance conflicts", conf.size() + " (weighted: " + sDecimalFormat.format(dc) + ")");
         }
         double toc = 0;
-        if (getTimeOverlaps() != null && getTimeOverlaps().getTotalNrConflicts() != 0) {
-            Set<TimeOverlapsCounter.Conflict> conf = getTimeOverlaps().getAllConflicts();
+        if (getTimeOverlaps() != null && getTimeOverlaps().getTotalNrConflicts(assignment) != 0) {
+            Set<TimeOverlapsCounter.Conflict> conf = getTimeOverlaps().getAllConflicts(assignment);
             int share = 0;
             for (TimeOverlapsCounter.Conflict c: conf) {
-                toc += c.getR1().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(c.getE1(), c);
-                toc += c.getR2().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(c.getE2(), c);
+                toc += c.getR1().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE1(), c);
+                toc += c.getR2().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE2(), c);
                 share += c.getShare();
             }
             if (toc != 0.0)
@@ -835,7 +716,7 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         Set<String> disb10SectionList = (disb10Limit == 0 ? null : new TreeSet<String>()); 
         for (Offering offering: getOfferings()) {
             for (Config config: offering.getConfigs()) {
-                double enrl = config.getEnrollmentWeight(null);
+                double enrl = config.getEnrollmentWeight(assignment, null);
                 for (Subpart subpart: config.getSubparts()) {
                     if (subpart.getSections().size() <= 1) continue;
                     if (subpart.getLimit() > 0) {
@@ -843,9 +724,9 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
                         double ratio = enrl / subpart.getLimit();
                         for (Section section: subpart.getSections()) {
                             double desired = ratio * section.getLimit();
-                            disbWeight += Math.abs(section.getEnrollmentWeight(null) - desired);
+                            disbWeight += Math.abs(section.getEnrollmentWeight(assignment, null) - desired);
                             disbSections ++;
-                            if (Math.abs(desired - section.getEnrollmentWeight(null)) >= Math.max(1.0, 0.1 * section.getLimit())) {
+                            if (Math.abs(desired - section.getEnrollmentWeight(assignment, null)) >= Math.max(1.0, 0.1 * section.getLimit())) {
                                 disb10Sections++;
                                 if (disb10SectionList != null)
                                 	disb10SectionList.add(section.getSubpart().getConfig().getOffering().getName() + " " + section.getSubpart().getName() + " " + section.getName()); 
@@ -855,9 +736,9 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
                         // unlimited sections -> desired size is total enrollment / number of sections
                         for (Section section: subpart.getSections()) {
                             double desired = enrl / subpart.getSections().size();
-                            disbWeight += Math.abs(section.getEnrollmentWeight(null) - desired);
+                            disbWeight += Math.abs(section.getEnrollmentWeight(assignment, null) - desired);
                             disbSections ++;
-                            if (Math.abs(desired - section.getEnrollmentWeight(null)) >= Math.max(1.0, 0.1 * desired)) {
+                            if (Math.abs(desired - section.getEnrollmentWeight(assignment, null)) >= Math.max(1.0, 0.1 * desired)) {
                                 disb10Sections++;
                                 if (disb10SectionList != null)
                                 	disb10SectionList.add(section.getSubpart().getConfig().getOffering().getName() + " " + section.getSubpart().getName() + " " + section.getName());
@@ -868,8 +749,8 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
             }
         }
         if (disbSections != 0) {
-            info.put("Average disbalance", sDecimalFormat.format(disbWeight / disbSections) +
-                    " (" + sDecimalFormat.format(iAssignedCRWeight == 0 ? 0.0 : 100.0 * disbWeight / iAssignedCRWeight) + "%)");
+            double assignedCRWeight = getContext(assignment).getAssignedCourseRequestWeight();
+            info.put("Average disbalance", sDecimalFormat.format(disbWeight / disbSections) + " (" + sDecimalFormat.format(assignedCRWeight == 0 ? 0.0 : 100.0 * disbWeight / assignedCRWeight) + "%)");
             String list = "";
             if (disb10SectionList != null) {
                 int i = 0;
@@ -888,8 +769,8 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
     }
     
     @Override
-    public void restoreBest() {
-        restoreBest(new Comparator<Request>() {
+    public void restoreBest(Assignment<Request, Enrollment> assignment) {
+        restoreBest(assignment, new Comparator<Request>() {
             @Override
             public int compare(Request r1, Request r2) {
                 Enrollment e1 = r1.getBestAssignment();
@@ -906,17 +787,16 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         });
     }
         
-    @Override
-    public String toString() {
-        return   (getNrRealStudents(false) > 0 ? "RRq:" + getNrAssignedRealRequests(false) + "/" + getNrRealRequests(false) + ", " : "")
-                + (getNrLastLikeStudents(false) > 0 ? "DRq:" + getNrAssignedLastLikeRequests(false) + "/" + getNrLastLikeRequests(false) + ", " : "")
-                + (getNrRealStudents(false) > 0 ? "RS:" + getNrCompleteRealStudents(false) + "/" + getNrRealStudents(false) + ", " : "")
-                + (getNrLastLikeStudents(false) > 0 ? "DS:" + getNrCompleteLastLikeStudents(false) + "/" + getNrLastLikeStudents(false) + ", " : "")
+    public String toString(Assignment<Request, Enrollment> assignment) {
+        return   (getNrRealStudents(false) > 0 ? "RRq:" + getNrAssignedRealRequests(assignment, false) + "/" + getNrRealRequests(false) + ", " : "")
+                + (getNrLastLikeStudents(false) > 0 ? "DRq:" + getNrAssignedLastLikeRequests(assignment, false) + "/" + getNrLastLikeRequests(false) + ", " : "")
+                + (getNrRealStudents(false) > 0 ? "RS:" + getNrCompleteRealStudents(assignment, false) + "/" + getNrRealStudents(false) + ", " : "")
+                + (getNrLastLikeStudents(false) > 0 ? "DS:" + getNrCompleteLastLikeStudents(assignment, false) + "/" + getNrLastLikeStudents(false) + ", " : "")
                 + "V:"
-                + sDecimalFormat.format(-getTotalValue())
-                + (getDistanceConflict() == null ? "" : ", DC:" + getDistanceConflict().getTotalNrConflicts())
-                + (getTimeOverlaps() == null ? "" : ", TOC:" + getTimeOverlaps().getTotalNrConflicts())
-                + ", %:" + sDecimalFormat.format(-100.0 * getTotalValue() / (getStudents().size() - iNrDummyStudents + 
+                + sDecimalFormat.format(-getTotalValue(assignment))
+                + (getDistanceConflict() == null ? "" : ", DC:" + getDistanceConflict().getTotalNrConflicts(assignment))
+                + (getTimeOverlaps() == null ? "" : ", TOC:" + getTimeOverlaps().getTotalNrConflicts(assignment))
+                + ", %:" + sDecimalFormat.format(-100.0 * getTotalValue(assignment) / (getStudents().size() - iNrDummyStudents + 
                         (iProjectedStudentWeight < 0.0 ? iNrDummyStudents * (iTotalDummyWeight / iNrDummyRequests) :iProjectedStudentWeight * iTotalDummyWeight)));
 
     }
@@ -928,24 +808,6 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
         return Math.sqrt(w1 * w2);
     }
 
-    public void add(DistanceConflict.Conflict c) {
-        iTotalValue += avg(c.getR1().getWeight(), c.getR2().getWeight()) * iStudentWeights.getDistanceConflictWeight(c);
-    }
-
-    public void remove(DistanceConflict.Conflict c) {
-        iTotalValue -= avg(c.getR1().getWeight(), c.getR2().getWeight()) * iStudentWeights.getDistanceConflictWeight(c);
-    }
-    
-    public void add(TimeOverlapsCounter.Conflict c) {
-        iTotalValue += c.getR1().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(c.getE1(), c);
-        iTotalValue += c.getR2().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(c.getE2(), c);
-    }
-
-    public void remove(TimeOverlapsCounter.Conflict c) {
-        iTotalValue -= c.getR1().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(c.getE1(), c);
-        iTotalValue -= c.getR2().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(c.getE2(), c);
-    }
-    
     /**
      * Maximal domain size (i.e., number of enrollments of a course request), -1 if there is no limit.
      */
@@ -955,4 +817,195 @@ public class StudentSectioningModel extends Model<Request, Enrollment> {
      * Maximal domain size (i.e., number of enrollments of a course request), -1 if there is no limit.
      */
     public void setMaxDomainSize(int maxDomainSize) { iMaxDomainSize = maxDomainSize; }
+    
+
+    @Override
+    public StudentSectioningModelContext createAssignmentContext(Assignment<Request, Enrollment> assignment) {
+        return new StudentSectioningModelContext(assignment);
+    }
+    
+    public class StudentSectioningModelContext implements AssignmentConstraintContext<Request, Enrollment>, InfoProvider<Request, Enrollment>{
+        private Set<Student> iCompleteStudents = new HashSet<Student>();
+        private double iTotalValue = 0.0;
+        private int iNrAssignedDummyRequests = 0, iNrCompleteDummyStudents = 0;
+        private double iAssignedCRWeight = 0.0, iAssignedDummyCRWeight = 0.0;
+        private double iReservedSpace = 0.0;
+
+        public StudentSectioningModelContext(Assignment<Request, Enrollment> assignment) {
+            for (Enrollment enrollment: assignment.assignedValues())
+                assigned(assignment, enrollment);
+        }
+
+        /**
+         * Called after an enrollment was assigned to a request. The list of
+         * complete students and the overall solution value are updated.
+         */
+        @Override
+        public void assigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+            Student student = enrollment.getStudent();
+            if (student.isComplete(assignment))
+                iCompleteStudents.add(student);
+            double value = enrollment.getRequest().getWeight() * iStudentWeights.getWeight(assignment, enrollment);
+            iTotalValue -= value;
+            enrollment.variable().getContext(assignment).setLastWeight(value);
+            if (enrollment.isCourseRequest())
+                iAssignedCRWeight += enrollment.getRequest().getWeight();
+            if (enrollment.getReservation() != null)
+                iReservedSpace += enrollment.getRequest().getWeight();
+            if (enrollment.isCourseRequest() && ((CourseRequest)enrollment.getRequest()).hasReservations())
+                iTotalReservedSpace += enrollment.getRequest().getWeight();
+            if (student.isDummy()) {
+                iNrAssignedDummyRequests++;
+                if (enrollment.isCourseRequest())
+                    iAssignedDummyCRWeight += enrollment.getRequest().getWeight();
+                if (student.isComplete(assignment))
+                    iNrCompleteDummyStudents++;
+            }
+        }
+
+        /**
+         * Called before an enrollment was unassigned from a request. The list of
+         * complete students and the overall solution value are updated.
+         */
+        @Override
+        public void unassigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+            Student student = enrollment.getStudent();
+            if (iCompleteStudents.contains(student) && !student.isComplete(assignment)) {
+                iCompleteStudents.remove(student);
+                if (student.isDummy())
+                    iNrCompleteDummyStudents--;
+            }
+            Request.RequestContext cx = enrollment.variable().getContext(assignment);
+            Double value = cx.getLastWeight();
+            if (value == null)
+                value = enrollment.getRequest().getWeight() * iStudentWeights.getWeight(assignment, enrollment);
+            iTotalValue += value;
+            cx.setLastWeight(null);
+            if (enrollment.isCourseRequest())
+                iAssignedCRWeight -= enrollment.getRequest().getWeight();
+            if (enrollment.getReservation() != null)
+                iReservedSpace -= enrollment.getRequest().getWeight();
+            if (enrollment.isCourseRequest() && ((CourseRequest)enrollment.getRequest()).hasReservations())
+                iTotalReservedSpace -= enrollment.getRequest().getWeight();
+            if (student.isDummy()) {
+                iNrAssignedDummyRequests--;
+                if (enrollment.isCourseRequest())
+                    iAssignedDummyCRWeight -= enrollment.getRequest().getWeight();
+            }
+        }
+        
+        public void add(Assignment<Request, Enrollment> assignment, DistanceConflict.Conflict c) {
+            iTotalValue += avg(c.getR1().getWeight(), c.getR2().getWeight()) * iStudentWeights.getDistanceConflictWeight(assignment, c);
+        }
+
+        public void remove(Assignment<Request, Enrollment> assignment, DistanceConflict.Conflict c) {
+            iTotalValue -= avg(c.getR1().getWeight(), c.getR2().getWeight()) * iStudentWeights.getDistanceConflictWeight(assignment, c);
+        }
+        
+        public void add(Assignment<Request, Enrollment> assignment, TimeOverlapsCounter.Conflict c) {
+            iTotalValue += c.getR1().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE1(), c);
+            iTotalValue += c.getR2().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE2(), c);
+        }
+
+        public void remove(Assignment<Request, Enrollment> assignment, TimeOverlapsCounter.Conflict c) {
+            iTotalValue -= c.getR1().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE1(), c);
+            iTotalValue -= c.getR2().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE2(), c);
+        }
+        
+        /**
+         * Students with complete schedules (see {@link Student#isComplete(Assignment)})
+         */
+        public Set<Student> getCompleteStudents() {
+            return iCompleteStudents;
+        }
+        
+        /**
+         * Number of students with complete schedule
+         */
+        public int nrComplete() {
+            return getCompleteStudents().size();
+        }
+        
+        /** 
+         * Recompute cached request weights
+         */
+        public void requestWeightsChanged(Assignment<Request, Enrollment> assignment) {
+            iTotalCRWeight = 0.0;
+            iTotalDummyWeight = 0.0; iTotalDummyCRWeight = 0.0;
+            iAssignedCRWeight = 0.0;
+            iAssignedDummyCRWeight = 0.0;
+            iNrDummyRequests = 0; iNrAssignedDummyRequests = 0;
+            iTotalReservedSpace = 0.0; iReservedSpace = 0.0;
+            for (Request request: variables()) {
+                boolean cr = (request instanceof CourseRequest);
+                if (cr)
+                    iTotalCRWeight += request.getWeight();
+                if (request.getStudent().isDummy()) {
+                    iTotalDummyWeight += request.getWeight();
+                    iNrDummyRequests ++;
+                    if (cr)
+                        iTotalDummyCRWeight += request.getWeight();
+                }
+                if (assignment.getValue(request) != null) {
+                    if (cr)
+                        iAssignedCRWeight += request.getWeight();
+                    if (assignment.getValue(request).getReservation() != null)
+                        iReservedSpace += request.getWeight();
+                    if (cr && ((CourseRequest)request).hasReservations())
+                        iTotalReservedSpace += request.getWeight();
+                    if (request.getStudent().isDummy()) {
+                        iNrAssignedDummyRequests ++;
+                        if (cr)
+                            iAssignedDummyCRWeight += request.getWeight();
+                    }
+                }
+            }
+        }
+        
+        /**
+         * Overall solution value
+         */
+        public double getTotalValue() {
+            return iTotalValue;
+        }
+        
+        /**
+         * Number of last like ({@link Student#isDummy()} equals true) students with
+         * a complete schedule ({@link Student#isComplete(Assignment)} equals true).
+         */
+        public int getNrCompleteLastLikeStudents() {
+            return iNrCompleteDummyStudents;
+        }
+        
+        /**
+         * Number of requests from projected ({@link Student#isDummy()} equals true)
+         * students that are assigned.
+         */
+        public int getNrAssignedLastLikeRequests() {
+            return iNrAssignedDummyRequests;
+        }
+
+        @Override
+        public void getInfo(Assignment<Request, Enrollment> assignment, Map<String, String> info) {
+            if (iTotalCRWeight > 0.0) {
+                info.put("Assigned course requests", sDecimalFormat.format(100.0 * iAssignedCRWeight / iTotalCRWeight) + "% (" + (int)Math.round(iAssignedCRWeight) + "/" + (int)Math.round(iTotalCRWeight) + ")");
+                if (getNrLastLikeStudents(false) != getStudents().size() && iTotalCRWeight != iTotalDummyCRWeight) {
+                    if (iTotalDummyCRWeight > 0.0)
+                        info.put("Projected assigned course requests", sDecimalFormat.format(100.0 * iAssignedDummyCRWeight / iTotalDummyCRWeight) + "% (" + (int)Math.round(iAssignedDummyCRWeight) + "/" + (int)Math.round(iTotalDummyCRWeight) + ")");
+                    info.put("Real assigned course requests", sDecimalFormat.format(100.0 * (iAssignedCRWeight - iAssignedDummyCRWeight) / (iTotalCRWeight - iTotalDummyCRWeight)) +
+                            "% (" + (int)Math.round(iAssignedCRWeight - iAssignedDummyCRWeight) + "/" + (int)Math.round(iTotalCRWeight - iTotalDummyCRWeight) + ")");
+                }
+            }
+            if (iTotalReservedSpace > 0.0)
+                info.put("Reservations", sDoubleFormat.format(100.0 * iReservedSpace / iTotalReservedSpace) + "% (" + Math.round(iReservedSpace) + "/" + Math.round(iTotalReservedSpace) + ")"); 
+        }
+
+        @Override
+        public void getInfo(Assignment<Request, Enrollment> assignment, Map<String, String> info, Collection<Request> variables) {
+        }
+        
+        public double getAssignedCourseRequestWeight() {
+            return iAssignedCRWeight;
+        }
+    }
 }

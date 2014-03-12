@@ -97,10 +97,10 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
     @Override
     public Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
         if (iNrIterations < 0) {
-            iNrIterations = solution.getModel().unassignedVariables().size();
+            iNrIterations = solution.getModel().unassignedVariables(solution.getAssignment()).size();
             Progress.getInstance(solution.getModel()).setPhase("Ifs...", iNrIterations);
         }
-        if (solution.getModel().unassignedVariables().isEmpty()
+        if (solution.getModel().unassignedVariables(solution.getAssignment()).isEmpty()
                 || solution.getIteration() >= iIteration + iNrIterations)
             return null;
         Progress.getInstance(solution.getModel()).incProgress();
@@ -108,7 +108,7 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
             Request request = iVariableSelection.selectVariable(solution);
             Enrollment enrollment = (request == null ? null : (Enrollment) iValueSelection.selectValue(solution,
                     request));
-            if (enrollment != null && !enrollment.variable().getModel().conflictValues(enrollment).contains(enrollment))
+            if (enrollment != null && !enrollment.variable().getModel().conflictValues(solution.getAssignment(), enrollment).contains(enrollment))
                 return new SimpleNeighbour<Request, Enrollment>(request, enrollment);
         }
         return null;

@@ -13,6 +13,7 @@ import java.util.TreeSet;
 
 import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.assignment.DefaultSingleAssignment;
+import net.sf.cpsolver.ifs.assignment.EmptyAssignment;
 import net.sf.cpsolver.ifs.assignment.context.AssignmentContext;
 import net.sf.cpsolver.ifs.assignment.context.AssignmentContextReference;
 import net.sf.cpsolver.ifs.assignment.context.HasAssignmentContext;
@@ -95,6 +96,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     private int iNextVariableIndex = 0;
     @Deprecated
     private Assignment<V, T> iAssignment = null;
+    private Assignment<V, T> iEmptyAssignment = null;
 
     /** Constructor */
     public Model() {
@@ -966,5 +968,14 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     @Deprecated
     public void setDefaultAssignment(Assignment<V, T> assignment) {
         iAssignment = assignment;
+    }
+    
+    /**
+     * Returns an instance of an empty assignment (using {@link EmptyAssignment})
+     */
+    public Assignment<V, T> getEmptyAssignment() {
+        if (iEmptyAssignment == null)
+            iEmptyAssignment = new EmptyAssignment<V, T>();
+        return iEmptyAssignment;
     }
 }

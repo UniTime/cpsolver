@@ -1,16 +1,13 @@
 package net.sf.cpsolver.ifs.assignment;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
-import net.sf.cpsolver.ifs.solver.Solver;
 
 /**
- * A simple class comparing two values. Using {@link Value#compareTo(Assignment, Value)}.
- * This is to replace the {@link Comparable} interface on the {@link Value} which is
- * using the deprecated method {@link Value#compareTo(Value)}.
+ * Comparable interface for assignment-dependent objects. To be used by
+ * {@link AssignmentComparator}.
  * 
- * @see Assignment
- * @see Solver
  * 
  * @version IFS 1.2 (Iterative Forward Search)<br>
  *          Copyright (C) 2014 Tomas Muller<br>
@@ -30,10 +27,11 @@ import net.sf.cpsolver.ifs.solver.Solver;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see <http://www.gnu.org/licenses/>.
  **/
-public class ValueComparator<V extends Variable<V, T>, T extends Value<V, T>> extends AssignmentComparator<T, V, T> {
+public interface AssignmentComparable<X, V extends Variable<V, T>, T extends Value<V, T>> {
     
-    public ValueComparator(Assignment<V, T> assignment) {
-        super(assignment);
-    }
+	/**
+	 * Compare this object with a given one.
+	 */
+    public int compareTo(Assignment<V, T> assignment, X other);
 
 }

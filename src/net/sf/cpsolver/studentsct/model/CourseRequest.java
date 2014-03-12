@@ -12,6 +12,8 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import net.sf.cpsolver.coursett.model.TimeLocation;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.AssignmentComparator;
 import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.constraint.ConfigLimit;
@@ -96,7 +98,7 @@ public class CourseRequest extends Request {
      * needs to be correct, i.e., a section for each subpart of a configuration
      * of one of the requested courses.
      */
-    public Enrollment createEnrollment(Set<? extends Assignment> sections, Reservation reservation) {
+    public Enrollment createEnrollment(Set<? extends SctAssignment> sections, Reservation reservation) {
         if (sections == null || sections.isEmpty())
             return null;
         Config config = ((Section) sections.iterator().next()).getSubpart().getConfig();
@@ -115,9 +117,9 @@ public class CourseRequest extends Request {
      * needs to be correct, i.e., a section for each subpart of a configuration
      * of one of the requested courses.
      */
-    public Enrollment createEnrollment(Set<? extends Assignment> sections) {
+    public Enrollment createEnrollment(Assignment<Request, Enrollment> assignment, Set<? extends SctAssignment> sections) {
         Enrollment ret = createEnrollment(sections, null);
-        ret.guessReservation(true);
+        ret.guessReservation(assignment, true);
         return ret;
         
     }
@@ -134,12 +136,12 @@ public class CourseRequest extends Request {
      * Return all possible enrollments.
      */
     @Override
-    public List<Enrollment> computeEnrollments() {
+    public List<Enrollment> computeEnrollments(Assignment<Request, Enrollment> assignment) {
         List<Enrollment> ret = new ArrayList<Enrollment>();
         int idx = 0;
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
-                computeEnrollments(ret, idx, 0, course, config, new HashSet<Section>(), 0, false, false,
+                computeEnrollments(assignment, ret, idx, 0, course, config, new HashSet<Section>(), 0, false, false,
                         false, false, getMaxDomainSize() <= 0 ? -1 : ret.size() + getMaxDomainSize());
             }
             idx++;
@@ -151,12 +153,12 @@ public class CourseRequest extends Request {
      * Return a subset of all enrollments -- randomly select only up to
      * limitEachConfig enrollments of each config.
      */
-    public List<Enrollment> computeRandomEnrollments(int limitEachConfig) {
+    public List<Enrollment> computeRandomEnrollments(Assignment<Request, Enrollment> assignment, int limitEachConfig) {
         List<Enrollment> ret = new ArrayList<Enrollment>();
         int idx = 0;
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
-                computeEnrollments(ret, idx, 0, course, config, new HashSet<Section>(), 0, false, false,
+                computeEnrollments(assignment, ret, idx, 0, course, config, new HashSet<Section>(), 0, false, false,
                         false, true, (limitEachConfig <= 0 ? limitEachConfig : ret.size() + limitEachConfig));
             }
             idx++;
@@ -219,7 +221,7 @@ public class CourseRequest extends Request {
      * @param reservations
      *            list of applicable reservations
      */
-    private void computeEnrollments(Collection<Enrollment> enrollments, int priority, double penalty, Course course, Config config,
+    private void computeEnrollments(Assignment<Request, Enrollment> assignment, Collection<Enrollment> enrollments, int priority, double penalty, Course course, Config config,
             HashSet<Section> sections, int idx, boolean availableOnly, boolean skipSameTime, boolean selectedOnly,
             boolean random, int limit) {
         if (limit > 0 && enrollments.size() >= limit)
@@ -230,20 +232,20 @@ public class CourseRequest extends Request {
                 for (Reservation r: getReservations(course)) {
                     if (!r.canAssignOverLimit()) continue;
                     if (!r.getConfigs().isEmpty() && !r.getConfigs().contains(config)) continue;
-                    if (r.getReservedAvailableSpace(this) < getWeight()) continue;
+                    if (r.getReservedAvailableSpace(assignment, this) < getWeight()) continue;
                     canOverLimit = true; break;
                 }
             }
             if (!canOverLimit) {
-                if (availableOnly && config.getLimit() >= 0 && ConfigLimit.getEnrollmentWeight(config, this) > config.getLimit())
+                if (availableOnly && config.getLimit() >= 0 && ConfigLimit.getEnrollmentWeight(assignment, config, this) > config.getLimit())
                     return;
-                if (availableOnly && course.getLimit() >= 0 && CourseLimit.getEnrollmentWeight(course, this) > course.getLimit())
+                if (availableOnly && course.getLimit() >= 0 && CourseLimit.getEnrollmentWeight(assignment, course, this) > course.getLimit())
                     return;
                 if (config.getOffering().hasReservations()) {
                     boolean hasReservation = false, hasOtherReservation = false, hasConfigReservation = false, reservationMustBeUsed = false;
                     for (Reservation r: getReservations(course)) {
                         if (r.mustBeUsed()) reservationMustBeUsed = true;
-                        if (availableOnly && r.getReservedAvailableSpace(this) < getWeight()) continue;
+                        if (availableOnly && r.getReservedAvailableSpace(assignment, this) < getWeight()) continue;
                         if (r.getConfigs().isEmpty()) {
                             hasReservation = true;
                         } else if (r.getConfigs().contains(config)) {
@@ -259,9 +261,9 @@ public class CourseRequest extends Request {
                         return;
                     if (hasOtherReservation && !hasReservation)
                         return;
-                    if (availableOnly && !hasReservation && config.getOffering().getUnreservedSpace(this) < getWeight())
+                    if (availableOnly && !hasReservation && config.getOffering().getUnreservedSpace(assignment, this) < getWeight())
                         return;
-                    if (availableOnly && !hasConfigReservation && config.getUnreservedSpace(this) < getWeight())
+                    if (availableOnly && !hasConfigReservation && config.getUnreservedSpace(assignment, this) < getWeight())
                         return;
                     if (!hasReservation && reservationMustBeUsed)
                         return;
@@ -287,9 +289,9 @@ public class CourseRequest extends Request {
                 }
             }
             if (!config.getOffering().hasReservations()) {
-                enrollments.add(new Enrollment(this, priority, null, config, new HashSet<Assignment>(sections), null));
+                enrollments.add(new Enrollment(this, priority, null, config, new HashSet<SctAssignment>(sections), null));
             } else {
-                Enrollment e = new Enrollment(this, priority, null, config, new HashSet<Assignment>(sections), null);
+                Enrollment e = new Enrollment(this, priority, null, config, new HashSet<SctAssignment>(sections), null);
                 boolean mustHaveReservation = config.getOffering().getTotalUnreservedSpace() < getWeight();
                 boolean mustHaveConfigReservation = config.getTotalUnreservedSpace() < getWeight();
                 boolean mustHaveSectionReservation = false;
@@ -303,8 +305,8 @@ public class CourseRequest extends Request {
                 if (availableOnly &&  (getModel() == null || ((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit())) {
                     for (Reservation r: getReservations(course)) {
                         if (!r.canAssignOverLimit() || !r.isIncluded(e)) continue;
-                        if (r.getReservedAvailableSpace(this) < getWeight()) continue;
-                        enrollments.add(new Enrollment(this, priority, null, config, new HashSet<Assignment>(sections), r));
+                        if (r.getReservedAvailableSpace(assignment, this) < getWeight()) continue;
+                        enrollments.add(new Enrollment(this, priority, null, config, new HashSet<SctAssignment>(sections), r));
                         canOverLimit = true;
                     }
                 }
@@ -313,19 +315,19 @@ public class CourseRequest extends Request {
                     reservations: for (Reservation r: (availableOnly ? new TreeSet<Reservation>(getReservations(course)) : getReservations(course))) {
                         if (r.mustBeUsed()) reservationMustBeUsed = true;
                         if (!r.isIncluded(e)) continue;
-                        if (availableOnly && r.getReservedAvailableSpace(this) < getWeight()) continue;
+                        if (availableOnly && r.getReservedAvailableSpace(assignment, this) < getWeight()) continue;
                         if (mustHaveConfigReservation && r.getConfigs().isEmpty()) continue;
                         if (mustHaveSectionReservation)
                             for (Section s: sections)
                                 if (r.getSections(s.getSubpart()) == null && s.getTotalUnreservedSpace() < getWeight()) continue reservations;
-                        enrollments.add(new Enrollment(this, priority, null, config, new HashSet<Assignment>(sections), r));
+                        enrollments.add(new Enrollment(this, priority, null, config, new HashSet<SctAssignment>(sections), r));
                         if (availableOnly) return; // only one available reservation suffice (the best matching one)
                     }
                     // a case w/o reservation
                     if (!(mustHaveReservation || mustHaveConfigReservation || mustHaveSectionReservation) &&
-                        !(availableOnly && config.getOffering().getUnreservedSpace(this) < getWeight()) &&
+                        !(availableOnly && config.getOffering().getUnreservedSpace(assignment, this) < getWeight()) &&
                         !reservationMustBeUsed) {
-                        enrollments.add(new Enrollment(this, (getReservations(course).isEmpty() ? 0 : 1) + priority, null, config, new HashSet<Assignment>(sections), null));
+                        enrollments.add(new Enrollment(this, (getReservations(course).isEmpty() ? 0 : 1) + priority, null, config, new HashSet<SctAssignment>(sections), null));
                     }
                 }
             }
@@ -335,7 +337,7 @@ public class CourseRequest extends Request {
             List<Section> sectionsThisSubpart = subpart.getSections();
             if (skipSameTime) {
                 sectionsThisSubpart = new ArrayList<Section>(subpart.getSections());
-                Collections.sort(sectionsThisSubpart);
+                Collections.sort(sectionsThisSubpart, new AssignmentComparator<Section, Request, Enrollment>(assignment));
             }
             List<Section> matchingSectionsThisSubpart = new ArrayList<Section>(subpart.getSections().size());
             boolean hasChildren = !subpart.getChildren().isEmpty();
@@ -351,19 +353,19 @@ public class CourseRequest extends Request {
                     for (Reservation r: getReservations(course)) {
                         if (!r.canAssignOverLimit()) continue;
                         if (r.getSections(subpart) != null && !r.getSections(subpart).contains(section)) continue;
-                        if (r.getReservedAvailableSpace(this) < getWeight()) continue;
+                        if (r.getReservedAvailableSpace(assignment, this) < getWeight()) continue;
                         canOverLimit = true; break;
                     }
                 }
                 if (!canOverLimit) {
                     if (availableOnly && section.getLimit() >= 0
-                            && SectionLimit.getEnrollmentWeight(section, this) > section.getLimit())
+                            && SectionLimit.getEnrollmentWeight(assignment, section, this) > section.getLimit())
                         continue;
                     if (config.getOffering().hasReservations()) {
                         boolean hasReservation = false, hasSectionReservation = false, hasOtherReservation = false, reservationMustBeUsed = false;
                         for (Reservation r: getReservations(course)) {
                             if (r.mustBeUsed()) reservationMustBeUsed = true;
-                            if (availableOnly && r.getReservedAvailableSpace(this) < getWeight()) continue;
+                            if (availableOnly && r.getReservedAvailableSpace(assignment, this) < getWeight()) continue;
                             if (r.getSections(subpart) == null) {
                                 hasReservation = true;
                             } else if (r.getSections(subpart).contains(section)) {
@@ -377,7 +379,7 @@ public class CourseRequest extends Request {
                             continue;
                         if (hasOtherReservation && !hasReservation)
                             continue;
-                        if (availableOnly && !hasSectionReservation && section.getUnreservedSpace(this) < getWeight())
+                        if (availableOnly && !hasSectionReservation && section.getUnreservedSpace(assignment, this) < getWeight())
                             continue;
                         if (!hasReservation && reservationMustBeUsed)
                             continue;
@@ -392,7 +394,7 @@ public class CourseRequest extends Request {
             int i = 0;
             for (Section section: matchingSectionsThisSubpart) {
                 sections.add(section);
-                computeEnrollments(enrollments, priority, penalty + section.getPenalty(), course, config, sections, idx + 1,
+                computeEnrollments(assignment, enrollments, priority, penalty + section.getPenalty(), course, config, sections, idx + 1,
                         availableOnly, skipSameTime, selectedOnly, random,
                         limit < 0 ? limit : Math.max(1, limit * (1 + i) / matchingSectionsThisSubpart.size())
                         );
@@ -403,12 +405,12 @@ public class CourseRequest extends Request {
     }
 
     /** Return all enrollments that are available */
-    public List<Enrollment> getAvaiableEnrollments() {
+    public List<Enrollment> getAvaiableEnrollments(Assignment<Request, Enrollment> assignment) {
         List<Enrollment> ret = new ArrayList<Enrollment>();
         int idx = 0;
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
-                computeEnrollments(ret, idx, 0, course, config, new HashSet<Section>(), 0, true, false, false, false,
+                computeEnrollments(assignment, ret, idx, 0, course, config, new HashSet<Section>(), 0, true, false, false, false,
                         getMaxDomainSize() <= 0 ? -1 : ret.size() + getMaxDomainSize());
             }
             idx++;
@@ -423,7 +425,7 @@ public class CourseRequest extends Request {
      * @param availableOnly
      *            pick only available sections
      */
-    public List<Enrollment> getSelectedEnrollments(boolean availableOnly) {
+    public List<Enrollment> getSelectedEnrollments(Assignment<Request, Enrollment> assignment, boolean availableOnly) {
         if (getSelectedChoices().isEmpty())
             return null;
         Choice firstChoice = getSelectedChoices().iterator().next();
@@ -432,7 +434,7 @@ public class CourseRequest extends Request {
             if (!course.getOffering().equals(firstChoice.getOffering()))
                 continue;
             for (Config config : course.getOffering().getConfigs()) {
-                computeEnrollments(enrollments, 0, 0, course, config, new HashSet<Section>(), 0, availableOnly, false, true, false, -1);
+                computeEnrollments(assignment, enrollments, 0, 0, course, config, new HashSet<Section>(), 0, availableOnly, false, true, false, -1);
             }
         }
         return enrollments;
@@ -443,14 +445,14 @@ public class CourseRequest extends Request {
      * the sections with the same time (of each subpart, {@link Section}
      * comparator is used)
      */
-    public List<Enrollment> getAvaiableEnrollmentsSkipSameTime() {
+    public List<Enrollment> getAvaiableEnrollmentsSkipSameTime(Assignment<Request, Enrollment> assignment) {
         List<Enrollment> ret = new ArrayList<Enrollment>();
         if (getInitialAssignment() != null)
             ret.add(getInitialAssignment());
         int idx = 0;
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
-                computeEnrollments(ret, idx, 0, course, config, new HashSet<Section>(), 0, true, true, false, false,
+                computeEnrollments(assignment, ret, idx, 0, course, config, new HashSet<Section>(), 0, true, true, false, false,
                         getMaxDomainSize() <= 0 ? -1 : ret.size() + getMaxDomainSize());
             }
             idx++;
@@ -461,12 +463,12 @@ public class CourseRequest extends Request {
     /**
      * Return all possible enrollments.
      */
-    public List<Enrollment> getEnrollmentsSkipSameTime() {
+    public List<Enrollment> getEnrollmentsSkipSameTime(Assignment<Request, Enrollment> assignment) {
         List<Enrollment> ret = new ArrayList<Enrollment>();
         int idx = 0;
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
-                computeEnrollments(ret, idx, 0, course, config, new HashSet<Section>(), 0, false, true, false, false,
+                computeEnrollments(assignment, ret, idx, 0, course, config, new HashSet<Section>(), 0, false, true, false, false,
                         getMaxDomainSize() <= 0 ? -1 : ret.size() + getMaxDomainSize());
             }
             idx++;
@@ -657,8 +659,9 @@ public class CourseRequest extends Request {
 
     /** Return true if request is assigned. */
     @Override
-    public boolean isAssigned() {
-        return getAssignment() != null && !(getAssignment()).getAssignments().isEmpty();
+    public boolean isAssigned(Assignment<Request, Enrollment> assignment) {
+        Enrollment e = assignment.getValue(this);
+        return e != null && !e.getAssignments().isEmpty();
     }
 
     @Override
@@ -704,5 +707,4 @@ public class CourseRequest extends Request {
     public void clearReservationCache() {
         if (iReservations != null) iReservations.clear();
     }
-
 }

@@ -3,6 +3,7 @@ package net.sf.cpsolver.studentsct.heuristics.selection;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.studentsct.StudentPreferencePenalties;
@@ -133,7 +134,7 @@ public class OnlineSelection extends BranchBoundSelection {
      * Set online sectioning penalties to all sections of all courses of the
      * given student
      */
-    private static void setPenalties(Student student) {
+    private static void setPenalties(Assignment<Request, Enrollment> assignment, Student student) {
         for (Request request : student.getRequests()) {
             if (!(request instanceof CourseRequest))
                 continue;
@@ -142,7 +143,7 @@ public class OnlineSelection extends BranchBoundSelection {
                 for (Config config : course.getOffering().getConfigs()) {
                     for (Subpart subpart : config.getSubparts()) {
                         for (Section section : subpart.getSections()) {
-                            section.setPenalty(section.getOnlineSectioningPenalty());
+                            section.setPenalty(section.getOnlineSectioningPenalty(assignment));
                         }
                     }
                 }
@@ -152,14 +153,14 @@ public class OnlineSelection extends BranchBoundSelection {
     }
 
     /** Update online sectioning info after the given student is sectioned */
-    public void updateSpace(Student student) {
+    public void updateSpace(Assignment<Request, Enrollment> assignment, Student student) {
         for (Request request : student.getRequests()) {
             if (!(request instanceof CourseRequest))
                 continue;
             CourseRequest courseRequest = (CourseRequest) request;
-            if (courseRequest.getAssignment() == null)
+            Enrollment enrollment = assignment.getValue(courseRequest);
+            if (enrollment == null)
                 return; // not enrolled --> no update
-            Enrollment enrollment = courseRequest.getAssignment();
             for (Section section : enrollment.getSections()) {
                 section.setSpaceHeld(section.getSpaceHeld() - courseRequest.getWeight());
                 // sLog.debug("  -- space held for "+section+" decreased by 1 (to "+section.getSpaceHeld()+")");
@@ -170,7 +171,7 @@ public class OnlineSelection extends BranchBoundSelection {
                 for (Request otherRequest : courseRequest.getStudent().getRequests()) {
                     if (otherRequest.equals(courseRequest) || !(otherRequest instanceof CourseRequest))
                         continue;
-                    Enrollment otherErollment = otherRequest.getAssignment();
+                    Enrollment otherErollment = assignment.getValue(otherRequest);
                     if (otherErollment == null)
                         continue;
                     if (enrl.isOverlapping(otherErollment)) {
@@ -195,14 +196,14 @@ public class OnlineSelection extends BranchBoundSelection {
      * Branch & bound selection for a student
      */
     @Override
-    public Selection getSelection(Student student) {
+    public Selection getSelection(Assignment<Request, Enrollment> assignment, Student student) {
         if (iUsePenalties)
-            setPenalties(student);
+            setPenalties(assignment, student);
         Selection selection = null;
         if (iBranchBound != null)
-            selection = iBranchBound.getSelection(student);
+            selection = iBranchBound.getSelection(assignment, student);
         if (iUseStudentPrefPenalties)
-            selection = new EpsilonSelection(student, selection);
+            selection = new EpsilonSelection(student, assignment, selection);
         return selection;
     }
 
@@ -219,8 +220,8 @@ public class OnlineSelection extends BranchBoundSelection {
          * @param student
          *            selected student
          */
-        public EpsilonSelection(Student student, Selection selection) {
-            super(student);
+        public EpsilonSelection(Student student, Assignment<Request, Enrollment> assignment, Selection selection) {
+            super(student, assignment);
             iPenalties = new StudentPreferencePenalties(iDistributionType);
             iSelection = selection;
         }

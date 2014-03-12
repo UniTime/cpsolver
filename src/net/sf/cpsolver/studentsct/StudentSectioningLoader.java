@@ -2,7 +2,10 @@ package net.sf.cpsolver.studentsct;
 
 import org.apache.log4j.Logger;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.Callback;
+import net.sf.cpsolver.studentsct.model.Enrollment;
+import net.sf.cpsolver.studentsct.model.Request;
 
 /**
  * Abstract student sectioning loader class.
@@ -29,6 +32,7 @@ import net.sf.cpsolver.ifs.util.Callback;
 
 public abstract class StudentSectioningLoader implements Runnable {
     private StudentSectioningModel iModel = null;
+    private Assignment<Request, Enrollment> iAssignment = null;
     private Callback iCallback = null;
 
     /**
@@ -37,8 +41,9 @@ public abstract class StudentSectioningLoader implements Runnable {
      * @param model
      *            an empty instance of timetable model
      */
-    public StudentSectioningLoader(StudentSectioningModel model) {
+    public StudentSectioningLoader(StudentSectioningModel model, Assignment<Request, Enrollment> assignment) {
         iModel = model;
+        iAssignment = assignment;
     }
 
     /**
@@ -48,6 +53,15 @@ public abstract class StudentSectioningLoader implements Runnable {
      */
     protected StudentSectioningModel getModel() {
         return iModel;
+    }
+    
+    /**
+     * Returns provided assignment.
+     * 
+     * @return provided assignment
+     */
+    protected Assignment<Request, Enrollment> getAssignment() {
+        return iAssignment;
     }
 
     /**

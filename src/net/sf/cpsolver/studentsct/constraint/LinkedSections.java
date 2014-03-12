@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.studentsct.model.Course;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
@@ -148,8 +149,8 @@ public class LinkedSections {
      * @param enrollment given enrollment 
      * @param conflicts found conflicts are given to this interface, see {@link ConflictHandler#onConflict(Enrollment)}
      */
-    public void computeConflicts(Enrollment enrollment, ConflictHandler conflicts) {
-        computeConflicts(enrollment, new CurrentAssignment(), conflicts);
+    public void computeConflicts(Assignment<Request, Enrollment> assignment, Enrollment enrollment, ConflictHandler conflicts) {
+        computeConflicts(enrollment, new CurrentAssignment(assignment), conflicts);
     }
     
     /**
@@ -162,7 +163,7 @@ public class LinkedSections {
      * @param assignment custom assignment 
      * @param conflicts found conflicts are given to this interface, see {@link ConflictHandler#onConflict(Enrollment)}
      */
-    public void computeConflicts(Enrollment enrollment, Assignment assignment, ConflictHandler conflicts) {
+    public void computeConflicts(Enrollment enrollment, EnrollmentAssignment assignment, ConflictHandler conflicts) {
         if (enrollment == null || enrollment.getCourse() == null) return;
         Map<Subpart, Set<Section>> subparts = iSections.get(enrollment.getCourse().getOffering());
         if (subparts == null || subparts.isEmpty()) return;
@@ -218,8 +219,8 @@ public class LinkedSections {
      * @param enrollment given enrollment 
      * @return conflicting enrollment
      */
-    public Enrollment inConflict(Enrollment enrollment) {
-        return inConflict(enrollment, new CurrentAssignment());
+    public Enrollment inConflict(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+        return inConflict(enrollment, new CurrentAssignment(assignment));
     }
     
     /**
@@ -232,7 +233,7 @@ public class LinkedSections {
      * @param assignment custom assignment 
      * @return conflicting enrollment
      */
-    public Enrollment inConflict(Enrollment enrollment, Assignment assignment) {
+    public Enrollment inConflict(Enrollment enrollment, EnrollmentAssignment assignment) {
         final Toggle<Enrollment> ret = new Toggle<Enrollment>(null);
         computeConflicts(enrollment, assignment, new ConflictHandler() {
             @Override
@@ -245,9 +246,9 @@ public class LinkedSections {
     }
     
     /**
-     * Interface to be able to provide a custom assignment to {@link LinkedSections#computeConflicts(Enrollment, Assignment, ConflictHandler)}
+     * Interface to be able to provide a custom assignment to {@link LinkedSections#computeConflicts(Enrollment, EnrollmentAssignment, ConflictHandler)}
      */
-    public static interface Assignment {
+    public static interface EnrollmentAssignment {
         /**
          * Return enrollment of the given request
          */
@@ -255,7 +256,7 @@ public class LinkedSections {
     }
     
     /**
-     * Helper interface to process conflicts in {@link LinkedSections#computeConflicts(Enrollment, Assignment, ConflictHandler)}
+     * Helper interface to process conflicts in {@link LinkedSections#computeConflicts(Enrollment, EnrollmentAssignment, ConflictHandler)}
      */
     public static interface ConflictHandler {
         /**
@@ -265,15 +266,21 @@ public class LinkedSections {
     }
     
     /**
-     * Current assignment -- default for {@link LinkedSections#computeConflicts(Enrollment, Assignment, ConflictHandler)}
+     * Current assignment -- default for {@link LinkedSections#computeConflicts(Enrollment, EnrollmentAssignment, ConflictHandler)}
      */
-    public static class CurrentAssignment implements Assignment {
+    public static class CurrentAssignment implements EnrollmentAssignment {
+        protected Assignment<Request, Enrollment> iAssignment;
+        
+        public CurrentAssignment(Assignment<Request, Enrollment> assignment) {
+            iAssignment = assignment;
+        }
+        
         /**
          * Return {@link Request#getAssignment()}
          */
         @Override
         public Enrollment getEnrollment(Request request, int index) {
-            return request.getAssignment();
+            return iAssignment.getValue(request);
         }
     }
     
@@ -318,11 +325,11 @@ public class LinkedSections {
         public LinkedSections getLinkedSections() { return LinkedSections.this; }
 
         /**
-         * Compute conflicts using {@link LinkedSections#computeConflicts(Enrollment, ConflictHandler)}
+         * Compute conflicts using {@link LinkedSections#computeConflicts(Assignment, Enrollment, ConflictHandler)}
          */
         @Override
-        public void computeConflicts(Enrollment value, final Set<Enrollment> conflicts) {
-            getLinkedSections().computeConflicts(value, new ConflictHandler() {
+        public void computeConflicts(Assignment<Request, Enrollment> assignment, Enrollment value, final Set<Enrollment> conflicts) {
+            getLinkedSections().computeConflicts(assignment, value, new ConflictHandler() {
                 @Override
                 public boolean onConflict(Enrollment conflict) {
                     conflicts.add(conflict);
@@ -332,11 +339,11 @@ public class LinkedSections {
         }
         
         /**
-         * Check consistency using {@link LinkedSections#inConflict(Enrollment, Assignment)}
+         * Check consistency using {@link LinkedSections#inConflict(Enrollment, EnrollmentAssignment)}
          */
         @Override
         public boolean isConsistent(Enrollment enrollment, final Enrollment other) {
-            return getLinkedSections().inConflict(enrollment, new LinkedSections.Assignment() {
+            return getLinkedSections().inConflict(enrollment, new LinkedSections.EnrollmentAssignment() {
                 @Override
                 public Enrollment getEnrollment(Request request, int indext) {
                     return (request.equals(other.getRequest()) ? other : null);
@@ -345,11 +352,11 @@ public class LinkedSections {
         }
         
         /**
-         * Check for conflict using {@link LinkedSections#inConflict(Enrollment)}
+         * Check for conflict using {@link LinkedSections#inConflict(Assignment, Enrollment)}
          */
         @Override
-        public boolean inConflict(Enrollment value) {
-            return getLinkedSections().inConflict(value) != null;
+        public boolean inConflict(Assignment<Request, Enrollment> assignment, Enrollment value) {
+            return getLinkedSections().inConflict(assignment, value) != null;
         }
         
         @Override

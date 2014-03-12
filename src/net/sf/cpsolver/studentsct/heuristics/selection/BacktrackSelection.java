@@ -50,7 +50,7 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
     }
 
     public void init(Solver<Request, Enrollment> solver, String name) {
-        List<Request> unassigned = new ArrayList<Request>(solver.currentSolution().getModel().unassignedVariables());
+        List<Request> unassigned = new ArrayList<Request>(solver.currentSolution().getModel().unassignedVariables(solver.currentSolution().getAssignment()));
         Collections.shuffle(unassigned);
         iRequestIterator = unassigned.iterator();
         if (iRBtNSel == null) {
@@ -75,7 +75,7 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
             Request request = iRequestIterator.next();
             Progress.getInstance(solution.getModel()).incProgress();
             Neighbour<Request, Enrollment> n = iRBtNSel.selectNeighbour(solution, request);
-            if (n != null && n.value() <= 0.0)
+            if (n != null && n.value(solution.getAssignment()) <= 0.0)
                 return n;
         }
         return null;

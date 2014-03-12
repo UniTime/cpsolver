@@ -4,12 +4,14 @@ import java.text.DecimalFormat;
 import java.util.Comparator;
 import java.util.TreeSet;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.model.Config;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Offering;
+import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Section;
 import net.sf.cpsolver.studentsct.model.Student;
 import net.sf.cpsolver.studentsct.model.Subpart;
@@ -79,7 +81,7 @@ public class UnbalancedSectionsTable implements StudentSectioningReport {
      *            {@link Student#isDummy()} is false)
      * @return report as comma separated text file
      */
-    public CSVFile createTable(boolean includeLastLikeStudents, boolean includeRealStudents) {
+    public CSVFile createTable(Assignment<Request, Enrollment> assignment, boolean includeLastLikeStudents, boolean includeRealStudents) {
         CSVFile csv = new CSVFile();
         csv.setHeader(new CSVFile.CSVField[] { new CSVFile.CSVField("Course"), new CSVFile.CSVField("Class"),
                 new CSVFile.CSVField("Meeting Time"), new CSVFile.CSVField("Enrollment"),
@@ -99,12 +101,12 @@ public class UnbalancedSectionsTable implements StudentSectioningReport {
         for (Offering offering: offerings) {
             for (Config config: offering.getConfigs()) {
                 double configEnrl = 0;
-                for (Enrollment e: config.getEnrollments()) {
+                for (Enrollment e: config.getEnrollments(assignment)) {
                     if (e.getStudent().isDummy() && !includeLastLikeStudents) continue;
                     if (!e.getStudent().isDummy() && !includeRealStudents) continue;
                     configEnrl += e.getRequest().getWeight();
                 }
-                config.getEnrollmentWeight(null);
+                config.getEnrollmentWeight(assignment, null);
                 for (Subpart subpart: config.getSubparts()) {
                     if (subpart.getSections().size() <= 1) continue;
                     if (subpart.getLimit() > 0) {
@@ -112,7 +114,7 @@ public class UnbalancedSectionsTable implements StudentSectioningReport {
                         double ratio = configEnrl / subpart.getLimit();
                         for (Section section: subpart.getSections()) {
                             double enrl = 0.0;
-                            for (Enrollment e: section.getEnrollments()) {
+                            for (Enrollment e: section.getEnrollments(assignment)) {
                                 if (e.getStudent().isDummy() && !includeLastLikeStudents) continue;
                                 if (!e.getStudent().isDummy() && !includeRealStudents) continue;
                                 enrl += e.getRequest().getWeight();
@@ -136,7 +138,7 @@ public class UnbalancedSectionsTable implements StudentSectioningReport {
                         // unlimited sections -> desired size is total enrollment / number of sections
                         for (Section section: subpart.getSections()) {
                             double enrl = 0.0;
-                            for (Enrollment e: section.getEnrollments()) {
+                            for (Enrollment e: section.getEnrollments(assignment)) {
                                 if (e.getStudent().isDummy() && !includeLastLikeStudents) continue;
                                 if (!e.getStudent().isDummy() && !includeRealStudents) continue;
                                 enrl += e.getRequest().getWeight();
@@ -164,8 +166,8 @@ public class UnbalancedSectionsTable implements StudentSectioningReport {
     }
     
     @Override
-    public CSVFile create(DataProperties properties) {
-        return createTable(properties.getPropertyBoolean("lastlike", false), properties.getPropertyBoolean("real", true));
+    public CSVFile create(Assignment<Request, Enrollment> assignment, DataProperties properties) {
+        return createTable(assignment, properties.getPropertyBoolean("lastlike", false), properties.getPropertyBoolean("real", true));
     }
 
 }
