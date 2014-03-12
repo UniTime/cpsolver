@@ -7,12 +7,13 @@ import java.util.Set;
 
 import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.TimeLocation;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
 
 
 /**
  * Representation of a request of a student for free time. This class directly
- * implements {@link Assignment} API, with the appropriate free time. <br>
+ * implements {@link SctAssignment} API, with the appropriate free time. <br>
  * <br>
  * 
  * @version StudentSct 1.2 (Student Sectioning)<br>
@@ -34,9 +35,8 @@ import net.sf.cpsolver.studentsct.StudentSectioningModel;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class FreeTimeRequest extends Request implements Assignment {
+public class FreeTimeRequest extends Request implements SctAssignment {
     private TimeLocation iTime = null;
-    private HashSet<Enrollment> iEnrollments = new HashSet<Enrollment>();
 
     /**
      * Constructor
@@ -82,7 +82,7 @@ public class FreeTimeRequest extends Request implements Assignment {
      * assignment.
      */
     @Override
-    public boolean isOverlapping(Assignment assignment) {
+    public boolean isOverlapping(SctAssignment assignment) {
         if (isAllowOverlap() || assignment.isAllowOverlap()) return false;
         if (getTime() == null || assignment.getTime() == null)
             return false;
@@ -96,12 +96,12 @@ public class FreeTimeRequest extends Request implements Assignment {
      * set of assignments.
      */
     @Override
-    public boolean isOverlapping(Set<? extends Assignment> assignments) {
+    public boolean isOverlapping(Set<? extends SctAssignment> assignments) {
         if (isAllowOverlap())
             return false;
         if (getTime() == null)
             return false;
-        for (Assignment assignment : assignments) {
+        for (SctAssignment assignment : assignments) {
             if (assignment.isAllowOverlap())
                 continue;
             if (assignment.getTime() == null)
@@ -116,9 +116,9 @@ public class FreeTimeRequest extends Request implements Assignment {
 
     /** Create enrollment of this request */
     public Enrollment createEnrollment() {
-        HashSet<Assignment> assignments = new HashSet<Assignment>();
+        HashSet<SctAssignment> assignments = new HashSet<SctAssignment>();
         assignments.add(this);
-        return new Enrollment(this, 0, null, assignments);
+        return new Enrollment(this, 0, null, assignments, null);
     }
 
     /**
@@ -126,7 +126,7 @@ public class FreeTimeRequest extends Request implements Assignment {
      * possible enrollment: {@link FreeTimeRequest#createEnrollment()}
      */
     @Override
-    public List<Enrollment> computeEnrollments() {
+    public List<Enrollment> computeEnrollments(Assignment<Request, Enrollment> assignment) {
         List<Enrollment> enrollments = new ArrayList<Enrollment>(1);
         enrollments.add(createEnrollment());
         return enrollments;
@@ -134,20 +134,20 @@ public class FreeTimeRequest extends Request implements Assignment {
 
     /** Enrollment with this assignment was assigned to a {@link Request}. */
     @Override
-    public void assigned(Enrollment enrollment) {
-        iEnrollments.add(enrollment);
+    public void assigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+        ((FreeTimeRequestContext)getContext(assignment)).assigned(assignment, enrollment);
     }
 
     /** Enrollment with this assignment was unassigned from a {@link Request}. */
     @Override
-    public void unassigned(Enrollment enrollment) {
-        iEnrollments.remove(enrollment);
+    public void unassigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+        ((FreeTimeRequestContext)getContext(assignment)).unassigned(assignment, enrollment);
     }
 
     /** Return the list of assigned enrollments that contains this assignment. */
     @Override
-    public Set<Enrollment> getEnrollments() {
-        return iEnrollments;
+    public Set<Enrollment> getEnrollments(Assignment<Request, Enrollment> assignment) {
+        return ((FreeTimeRequestContext)getContext(assignment)).getEnrollments();
     }
 
     /**
@@ -179,7 +179,7 @@ public class FreeTimeRequest extends Request implements Assignment {
     
     /** Sections first, then by {@link FreeTimeRequest#getId()} */
     @Override
-    public int compareById(Assignment a) {
+    public int compareById(SctAssignment a) {
         if (a instanceof FreeTimeRequest) {
             return new Long(getId()).compareTo(((FreeTimeRequest)a).getId());
         } else {
@@ -197,5 +197,33 @@ public class FreeTimeRequest extends Request implements Assignment {
     public boolean equals(Object o) {
         return super.equals(o) && (o instanceof CourseRequest) && getTime().equals(((FreeTimeRequest)o).getTime());
     }
+    
+    public class FreeTimeRequestContext extends RequestContext {
+        private HashSet<Enrollment> iEnrollments = new HashSet<Enrollment>();
 
+        public FreeTimeRequestContext(Assignment<Request, Enrollment> assignment) {
+            super(assignment);
+        }
+
+        /** Enrollment with this assignment was assigned to a {@link Request}. */
+        public void assigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+            iEnrollments.add(enrollment);
+        }
+
+        /** Enrollment with this assignment was unassigned from a {@link Request}. */
+        public void unassigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+            iEnrollments.remove(enrollment);
+        }
+        
+        /** Return the list of assigned enrollments that contains this assignment. */
+        public Set<Enrollment> getEnrollments() {
+            return iEnrollments;
+        }
+        
+    }
+    
+    @Override
+    public RequestContext createAssignmentContext(Assignment<Request, Enrollment> assignment) {
+        return new FreeTimeRequestContext(assignment);
+    }
 }

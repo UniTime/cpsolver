@@ -12,12 +12,15 @@ import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.TimeLocation;
-import net.sf.cpsolver.ifs.extension.Extension;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import net.sf.cpsolver.ifs.assignment.context.ExtensionWithContext;
 import net.sf.cpsolver.ifs.model.ModelListener;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.DistanceMetric;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
+import net.sf.cpsolver.studentsct.StudentSectioningModel.StudentSectioningModelContext;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
@@ -57,13 +60,10 @@ import net.sf.cpsolver.studentsct.model.Student;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class DistanceConflict extends Extension<Request, Enrollment> implements ModelListener<Request, Enrollment> {
+public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, DistanceConflict.DistanceConflictContext> implements ModelListener<Request, Enrollment> {
     private static Logger sLog = Logger.getLogger(DistanceConflict.class);
-    private Set<Conflict> iAllConflicts = new HashSet<Conflict>();
     /** Debug flag */
     public static boolean sDebug = false;
-    private Request iOldVariable = null;
-    private Enrollment iUnassignedValue = null;
     private DistanceMetric iDistanceMetric = null;
 
     /**
@@ -91,18 +91,6 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
     public DistanceConflict(DistanceMetric metrics, DataProperties properties) {
         super(null, properties);
         iDistanceMetric = metrics;
-    }
-
-    /**
-     * Initialize extension
-     */
-    @Override
-    public boolean init(Solver<Request, Enrollment> solver) {
-        StudentSectioningModel m = (StudentSectioningModel)solver.currentSolution().getModel();
-        iAllConflicts = computeAllConflicts();
-        for (Conflict c: iAllConflicts)
-            m.add(c);
-        return true;
     }
 
     @Override
@@ -305,122 +293,47 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
     }
 
     /**
-     * Total sum of all conflict of the given enrollment and other enrollments
-     * that are assignmed to the same student.
-     */
-    public int nrAllConflicts(Enrollment enrollment) {
-        if (!enrollment.isCourseRequest())
-            return 0;
-        int cnt = nrConflicts(enrollment);
-        for (Request request : enrollment.getStudent().getRequests()) {
-            if (request.equals(enrollment.getRequest()) || request.getAssignment() == null
-                    || request.equals(iOldVariable))
-                continue;
-            cnt += nrConflicts(enrollment, request.getAssignment());
-        }
-        return cnt;
-    }
-
-    /**
      * The set of all conflicts ({@link Conflict} objects) of the given
      * enrollment and other enrollments that are assignmed to the same student.
      */
-    public Set<Conflict> allConflicts(Enrollment enrollment) {
+    public Set<Conflict> allConflicts(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
         Set<Conflict> ret = conflicts(enrollment);
         if (!enrollment.isCourseRequest())
             return ret;
         for (Request request : enrollment.getStudent().getRequests()) {
-            if (request.equals(enrollment.getRequest()) || request.getAssignment() == null)
+            if (request.equals(enrollment.getRequest()) || assignment.getValue(request) == null)
                 continue;
-            ret.addAll(conflicts(enrollment, request.getAssignment()));
+            ret.addAll(conflicts(enrollment, assignment.getValue(request)));
         }
         return ret;
     }
 
-    /**
-     * Called when a value is assigned to a variable. Internal number of
-     * distance conflicts is updated, see
-     * {@link DistanceConflict#getTotalNrConflicts()}.
-     */
-    public void assigned(long iteration, Enrollment value) {
-        StudentSectioningModel m = (StudentSectioningModel)value.variable().getModel();
-        for (Conflict c: allConflicts(value)) {
-            if (iAllConflicts.add(c))
-                m.add(c);
-        }
-        if (sDebug) {
-            sLog.debug("A:" + value.variable() + " := " + value);
-            int inc = nrConflicts(value);
-            if (inc != 0) {
-                sLog.debug("-- DC+" + inc + " A: " + value.variable() + " := " + value);
-                for (Iterator<Conflict> i = allConflicts(value).iterator(); i.hasNext();)
-                    sLog.debug("  -- " + i.next());
-            }
-        }
-    }
-
-    /**
-     * Called when a value is unassigned from a variable. Internal number of
-     * distance conflicts is updated, see
-     * {@link DistanceConflict#getTotalNrConflicts()}.
-     */
-    public void unassigned(long iteration, Enrollment value) {
-        if (value.variable().equals(iOldVariable))
-            return;
-        StudentSectioningModel m = (StudentSectioningModel)value.variable().getModel();
-        for (Conflict c: allConflicts(value)) {
-            if (iAllConflicts.remove(c))
-                m.remove(c);
-        }
-        if (sDebug) {
-            sLog.debug("U:" + value.variable() + " := " + value);
-            int dec = nrAllConflicts(value);
-            if (dec != 0) {
-                sLog.debug("-- DC+" + dec + " U: " + value.variable() + " := " + value);
-                Set<Conflict> confs = allConflicts(value);
-                for (Iterator<Conflict> i = confs.iterator(); i.hasNext();)
-                    sLog.debug("  -- " + i.next());
-            }
-        }
-    }
-
     /** Checks the counter counting all conflicts */
-    public void checkAllConflicts() {
-        Set<Conflict> allConfs = computeAllConflicts();
-        if (iAllConflicts.size() != allConfs.size()) {
-            sLog.error("Different number of conflicts " + iAllConflicts.size() + "!=" + allConfs.size());
-            for (Iterator<Conflict> i = allConfs.iterator(); i.hasNext();) {
-                Conflict c = i.next();
-                if (!iAllConflicts.contains(c))
-                    sLog.debug("  +add+ " + c);
-            }
-            for (Iterator<Conflict> i = iAllConflicts.iterator(); i.hasNext();) {
-                Conflict c = i.next();
-                if (!allConfs.contains(c))
-                    sLog.debug("  -rem- " + c);
-            }
-            iAllConflicts = allConfs;
-        }
+    public void checkAllConflicts(Assignment<Request, Enrollment> assignment) {
+        getContext(assignment).checkAllConflicts(assignment);
     }
+    
     /** Actual number of all distance conflicts */
-    public int getTotalNrConflicts() {
-        return iAllConflicts.size();
+    public int getTotalNrConflicts(Assignment<Request, Enrollment> assignment) {
+        return getContext(assignment).getTotalNrConflicts();
     }
 
     /**
      * Compute the actual number of all distance conflicts. Should be equal to
-     * {@link DistanceConflict#getTotalNrConflicts()}.
+     * {@link DistanceConflict#getTotalNrConflicts(Assignment)}.
      */
-    public int countTotalNrConflicts() {
+    public int countTotalNrConflicts(Assignment<Request, Enrollment> assignment) {
         int total = 0;
         for (Request r1 : getModel().variables()) {
-            if (r1.getAssignment() == null || !(r1 instanceof CourseRequest))
+            if (assignment.getValue(r1) == null || !(r1 instanceof CourseRequest))
                 continue;
-            total += nrConflicts(r1.getAssignment());
+            Enrollment e1 = assignment.getValue(r1);
+            total += nrConflicts(e1);
             for (Request r2 : r1.getStudent().getRequests()) {
-                if (r2.getAssignment() == null || r1.getId() >= r2.getId() || !(r2 instanceof CourseRequest))
+                Enrollment e2 = assignment.getValue(r2);
+                if (e2 == null || r1.getId() >= r2.getId() || !(r2 instanceof CourseRequest))
                     continue;
-                total += nrConflicts(r1.getAssignment(), r2.getAssignment());
+                total += nrConflicts(e1, e2);
             }
         }
         return total;
@@ -429,16 +342,18 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
     /**
      * Compute a set of all distance conflicts ({@link Conflict} objects).
      */
-    public Set<Conflict> computeAllConflicts() {
+    public Set<Conflict> computeAllConflicts(Assignment<Request, Enrollment> assignment) {
         Set<Conflict> ret = new HashSet<Conflict>();
         for (Request r1 : getModel().variables()) {
-            if (r1.getAssignment() == null || !(r1 instanceof CourseRequest))
+            Enrollment e1 = assignment.getValue(r1);
+            if (e1 == null || !(r1 instanceof CourseRequest))
                 continue;
-            ret.addAll(conflicts(r1.getAssignment()));
+            ret.addAll(conflicts(e1));
             for (Request r2 : r1.getStudent().getRequests()) {
-                if (r2.getAssignment() == null || r1.getId() >= r2.getId() || !(r2 instanceof CourseRequest))
+                Enrollment e2 = assignment.getValue(r2);
+                if (e2 == null || r1.getId() >= r2.getId() || !(r2 instanceof CourseRequest))
                     continue;
-                ret.addAll(conflicts(r1.getAssignment(), r2.getAssignment()));
+                ret.addAll(conflicts(e1, e2));
             }
         }
         return ret;
@@ -447,42 +362,32 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
     /**
      * Return a set of all distance conflicts ({@link Conflict} objects).
      */
-    public Set<Conflict> getAllConflicts() {
-        return iAllConflicts;
+    public Set<Conflict> getAllConflicts(Assignment<Request, Enrollment> assignment) {
+        return getContext(assignment).getAllConflicts();
     }
 
     /**
      * Called before a value is assigned to a variable.
      */
     @Override
-    public void beforeAssigned(long iteration, Enrollment value) {
-        if (value != null) {
-            if (value.variable().getAssignment() != null) {
-                unassigned(iteration, value.variable().getAssignment());
-                iUnassignedValue = value.variable().getAssignment();
-            }
-            iOldVariable = value.variable();
-        }
+    public void beforeAssigned(Assignment<Request, Enrollment> assignment, long iteration, Enrollment value) {
+        getContext(assignment).beforeAssigned(assignment, iteration, value);
     }
 
     /**
      * Called after a value is assigned to a variable.
      */
     @Override
-    public void afterAssigned(long iteration, Enrollment value) {
-        iOldVariable = null;
-        iUnassignedValue = null;
-        if (value != null)
-            assigned(iteration, value);
+    public void afterAssigned(Assignment<Request, Enrollment> assignment, long iteration, Enrollment value) {
+        getContext(assignment).afterAssigned(assignment, iteration, value);
     }
 
     /**
      * Called after a value is unassigned from a variable.
      */
     @Override
-    public void afterUnassigned(long iteration, Enrollment value) {
-        if (value != null && !value.equals(iUnassignedValue))
-            unassigned(iteration, value);
+    public void afterUnassigned(Assignment<Request, Enrollment> assignment, long iteration, Enrollment value) {
+        getContext(assignment).afterUnassigned(assignment, iteration, value);
     }
 
     /** A representation of a distance conflict */
@@ -574,5 +479,152 @@ public class DistanceConflict extends Extension<Request, Enrollment> implements 
         public String toString() {
             return getStudent() + ": " + getS1() + " -- " + getS2();
         }
+    }
+    
+    public class DistanceConflictContext implements AssignmentConstraintContext<Request, Enrollment> {
+        private Set<Conflict> iAllConflicts = new HashSet<Conflict>();
+        private Request iOldVariable = null;
+        private Enrollment iUnassignedValue = null;
+
+        public DistanceConflictContext(Assignment<Request, Enrollment> assignment) {
+            iAllConflicts = computeAllConflicts(assignment);
+            StudentSectioningModelContext cx = ((StudentSectioningModel)getModel()).getContext(assignment);
+            for (Conflict c: iAllConflicts)
+                cx.add(assignment, c);
+        }
+        
+        /**
+         * Called before a value is assigned to a variable.
+         */
+        public void beforeAssigned(Assignment<Request, Enrollment> assignment, long iteration, Enrollment value) {
+            if (value != null) {
+                Enrollment old = assignment.getValue(value.variable());
+                if (old != null) {
+                    unassigned(assignment, old);
+                    iUnassignedValue = old;
+                }
+                iOldVariable = value.variable();
+            }
+        }
+        
+        /**
+         * Called after a value is assigned to a variable.
+         */
+        public void afterAssigned(Assignment<Request, Enrollment> assignment, long iteration, Enrollment value) {
+            iOldVariable = null;
+            iUnassignedValue = null;
+            if (value != null)
+                assigned(assignment, value);
+        }
+        
+        /**
+         * Called after a value is unassigned from a variable.
+         */
+        public void afterUnassigned(Assignment<Request, Enrollment> assignment, long iteration, Enrollment value) {
+            if (value != null && !value.equals(iUnassignedValue))
+                unassigned(assignment, value);
+        }
+
+        /**
+         * Called when a value is assigned to a variable. Internal number of
+         * distance conflicts is updated, see
+         * {@link DistanceConflict#getTotalNrConflicts(Assignment)}.
+         */
+        @Override
+        public void assigned(Assignment<Request, Enrollment> assignment, Enrollment value) {
+            StudentSectioningModelContext cx = ((StudentSectioningModel)getModel()).getContext(assignment);
+            for (Conflict c: allConflicts(assignment, value)) {
+                if (iAllConflicts.add(c))
+                    cx.add(assignment, c);
+            }
+            if (sDebug) {
+                sLog.debug("A:" + value.variable() + " := " + value);
+                int inc = nrConflicts(value);
+                if (inc != 0) {
+                    sLog.debug("-- DC+" + inc + " A: " + value.variable() + " := " + value);
+                    for (Iterator<Conflict> i = allConflicts(assignment, value).iterator(); i.hasNext();)
+                        sLog.debug("  -- " + i.next());
+                }
+            }
+        }
+
+        /**
+         * Called when a value is unassigned from a variable. Internal number of
+         * distance conflicts is updated, see
+         * {@link DistanceConflict#getTotalNrConflicts(Assignment)}.
+         */
+        @Override
+        public void unassigned(Assignment<Request, Enrollment> assignment, Enrollment value) {
+            if (value.variable().equals(iOldVariable))
+                return;
+            StudentSectioningModelContext cx = ((StudentSectioningModel)getModel()).getContext(assignment);
+            for (Conflict c: allConflicts(assignment, value)) {
+                if (iAllConflicts.remove(c))
+                    cx.remove(assignment, c);
+            }
+            if (sDebug) {
+                sLog.debug("U:" + value.variable() + " := " + value);
+                int dec = nrAllConflicts(assignment, value);
+                if (dec != 0) {
+                    sLog.debug("-- DC+" + dec + " U: " + value.variable() + " := " + value);
+                    Set<Conflict> confs = allConflicts(assignment, value);
+                    for (Iterator<Conflict> i = confs.iterator(); i.hasNext();)
+                        sLog.debug("  -- " + i.next());
+                }
+            }
+        }
+        
+        /** Checks the counter counting all conflicts */
+        public void checkAllConflicts(Assignment<Request, Enrollment> assignment) {
+            Set<Conflict> allConfs = computeAllConflicts(assignment);
+            if (iAllConflicts.size() != allConfs.size()) {
+                sLog.error("Different number of conflicts " + iAllConflicts.size() + "!=" + allConfs.size());
+                for (Iterator<Conflict> i = allConfs.iterator(); i.hasNext();) {
+                    Conflict c = i.next();
+                    if (!iAllConflicts.contains(c))
+                        sLog.debug("  +add+ " + c);
+                }
+                for (Iterator<Conflict> i = iAllConflicts.iterator(); i.hasNext();) {
+                    Conflict c = i.next();
+                    if (!allConfs.contains(c))
+                        sLog.debug("  -rem- " + c);
+                }
+                iAllConflicts = allConfs;
+            }
+        }
+        
+        /** Actual number of all distance conflicts */
+        public int getTotalNrConflicts() {
+            return iAllConflicts.size();
+        }
+        
+        /**
+         * Return a set of all distance conflicts ({@link Conflict} objects).
+         */
+        public Set<Conflict> getAllConflicts() {
+            return iAllConflicts;
+        }
+        
+        /**
+         * Total sum of all conflict of the given enrollment and other enrollments
+         * that are assignmed to the same student.
+         */
+        public int nrAllConflicts(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+            if (!enrollment.isCourseRequest())
+                return 0;
+            int cnt = nrConflicts(enrollment);
+            Request old = iOldVariable;
+            for (Request request : enrollment.getStudent().getRequests()) {
+                if (request.equals(enrollment.getRequest()) || assignment.getValue(request) == null || request.equals(old))
+                    continue;
+                cnt += nrConflicts(enrollment, assignment.getValue(request));
+            }
+            return cnt;
+        }
+    }
+
+    @Override
+    public DistanceConflictContext createAssignmentContext(Assignment<Request, Enrollment> assignment) {
+        return new DistanceConflictContext(assignment);
     }
 }

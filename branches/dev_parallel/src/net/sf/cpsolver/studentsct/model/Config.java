@@ -5,6 +5,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.context.AbstractClassWithContext;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.studentsct.reservation.Reservation;
 
 
@@ -39,16 +43,12 @@ import net.sf.cpsolver.studentsct.reservation.Reservation;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class Config {
+public class Config extends AbstractClassWithContext<Request, Enrollment, Config.ConfigContext> {
     private long iId = -1;
     private String iName = null;
     private Offering iOffering = null;
     private int iLimit = -1;
     private List<Subpart> iSubparts = new ArrayList<Subpart>();
-    private double iEnrollmentWeight = 0.0;
-    private double iMaxEnrollmentWeight = 0.0;
-    private double iMinEnrollmentWeight = 0.0;
-    private Set<Enrollment> iEnrollments = new HashSet<Enrollment>();
 
     /**
      * Constructor
@@ -129,88 +129,11 @@ public class Config {
         return max / getSubparts().size();
     }
     
-    /** Called when an enrollment with this config is assigned to a request */
-    public void assigned(Enrollment enrollment) {
-        if (iEnrollments.isEmpty()) {
-            iMinEnrollmentWeight = iMaxEnrollmentWeight = enrollment.getRequest().getWeight();
-        } else {
-            iMaxEnrollmentWeight = Math.max(iMaxEnrollmentWeight, enrollment.getRequest().getWeight());
-            iMinEnrollmentWeight = Math.min(iMinEnrollmentWeight, enrollment.getRequest().getWeight());
-        }
-        iEnrollments.add(enrollment);
-        iEnrollmentWeight += enrollment.getRequest().getWeight();
-    }
-
-    /** Called when an enrollment with this config is unassigned from a request */
-    public void unassigned(Enrollment enrollment) {
-        iEnrollments.remove(enrollment);
-        iEnrollmentWeight -= enrollment.getRequest().getWeight();
-        if (iEnrollments.isEmpty()) {
-            iMinEnrollmentWeight = iMaxEnrollmentWeight = 0;
-        } else if (iMinEnrollmentWeight != iMaxEnrollmentWeight) {
-            if (iMinEnrollmentWeight == enrollment.getRequest().getWeight()) {
-                double newMinEnrollmentWeight = Double.MAX_VALUE;
-                for (Enrollment e : iEnrollments) {
-                    if (e.getRequest().getWeight() == iMinEnrollmentWeight) {
-                        newMinEnrollmentWeight = iMinEnrollmentWeight;
-                        break;
-                    } else {
-                        newMinEnrollmentWeight = Math.min(newMinEnrollmentWeight, e.getRequest().getWeight());
-                    }
-                }
-                iMinEnrollmentWeight = newMinEnrollmentWeight;
-            }
-            if (iMaxEnrollmentWeight == enrollment.getRequest().getWeight()) {
-                double newMaxEnrollmentWeight = Double.MIN_VALUE;
-                for (Enrollment e : iEnrollments) {
-                    if (e.getRequest().getWeight() == iMaxEnrollmentWeight) {
-                        newMaxEnrollmentWeight = iMaxEnrollmentWeight;
-                        break;
-                    } else {
-                        newMaxEnrollmentWeight = Math.max(newMaxEnrollmentWeight, e.getRequest().getWeight());
-                    }
-                }
-                iMaxEnrollmentWeight = newMaxEnrollmentWeight;
-            }
-        }
-    }    
-    /**
-     * Enrollment weight -- weight of all requests which have an enrollment that
-     * contains this config, excluding the given one. See
-     * {@link Request#getWeight()}.
-     */
-    public double getEnrollmentWeight(Request excludeRequest) {
-        double weight = iEnrollmentWeight;
-        if (excludeRequest != null && excludeRequest.getAssignment() != null
-                && iEnrollments.contains(excludeRequest.getAssignment()))
-            weight -= excludeRequest.getWeight();
-        return weight;
-    }
-    
-    /** Set of assigned enrollments */
-    public Set<Enrollment> getEnrollments() {
-        return iEnrollments;
-    }
-
-    /**
-     * Maximal weight of a single enrollment in the config
-     */
-    public double getMaxEnrollmentWeight() {
-        return iMaxEnrollmentWeight;
-    }
-
-    /**
-     * Minimal weight of a single enrollment in the config
-     */
-    public double getMinEnrollmentWeight() {
-        return iMinEnrollmentWeight;
-    }
-    
     /**
      * Available space in the configuration that is not reserved by any config reservation
      * @param excludeRequest excluding given request (if not null)
      **/
-    public double getUnreservedSpace(Request excludeRequest) {
+    public double getUnreservedSpace(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
         // configuration is unlimited -> there is unreserved space unless there is an unlimited reservation too 
         // (in which case there is no unreserved space)
         if (getLimit() < 0) {
@@ -224,7 +147,7 @@ public class Config {
             return Double.MAX_VALUE;
         }
         
-        double available = getLimit() - getEnrollmentWeight(excludeRequest);
+        double available = getLimit() - getContext(assignment).getEnrollmentWeight(assignment, excludeRequest);
         // exclude reservations that are not directly set on this section
         for (Reservation r: getConfigReservations()) {
             // ignore expired reservations
@@ -232,7 +155,7 @@ public class Config {
             // unlimited reservation -> all the space is reserved
             if (r.getLimit() < 0.0) return 0.0;
             // compute space that can be potentially taken by this reservation
-            double reserved = r.getReservedAvailableSpace(excludeRequest);
+            double reserved = r.getContext(assignment).getReservedAvailableSpace(assignment, excludeRequest);
             // deduct the space from available space
             available -= Math.max(0.0, reserved);
         }
@@ -335,5 +258,131 @@ public class Config {
     @Override
     public int hashCode() {
         return new Long(getId()).hashCode();
+    }
+    
+    @Override
+    public Model<Request, Enrollment> getModel() {
+        return getOffering().getModel();
+    }
+    
+    /** Set of assigned enrollments */
+    public Set<Enrollment> getEnrollments(Assignment<Request, Enrollment> assignment) {
+        return getContext(assignment).getEnrollments();
+    }
+    
+    /**
+     * Enrollment weight -- weight of all requests which have an enrollment that
+     * contains this config, excluding the given one. See
+     * {@link Request#getWeight()}.
+     */
+    public double getEnrollmentWeight(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
+        return getContext(assignment).getEnrollmentWeight(assignment, excludeRequest);
+    }
+    
+    /**
+     * Maximal weight of a single enrollment in the config
+     */
+    public double getMaxEnrollmentWeight(Assignment<Request, Enrollment> assignment) {
+        return getContext(assignment).getMaxEnrollmentWeight();
+    }
+
+    /**
+     * Minimal weight of a single enrollment in the config
+     */
+    public double getMinEnrollmentWeight(Assignment<Request, Enrollment> assignment) {
+        return getContext(assignment).getMinEnrollmentWeight();
+    }
+
+    @Override
+    public ConfigContext createAssignmentContext(Assignment<Request, Enrollment> assignment) {
+        return new ConfigContext(assignment);
+    }
+    
+    public class ConfigContext implements AssignmentConstraintContext<Request, Enrollment> {
+        private double iEnrollmentWeight = 0.0;
+        private double iMaxEnrollmentWeight = 0.0;
+        private double iMinEnrollmentWeight = 0.0;
+        private Set<Enrollment> iEnrollments = new HashSet<Enrollment>();
+
+        public ConfigContext(Assignment<Request, Enrollment> assignment) {}
+
+        /** Called when an enrollment with this config is assigned to a request */
+        @Override
+        public void assigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+            if (iEnrollments.isEmpty()) {
+                iMinEnrollmentWeight = iMaxEnrollmentWeight = enrollment.getRequest().getWeight();
+            } else {
+                iMaxEnrollmentWeight = Math.max(iMaxEnrollmentWeight, enrollment.getRequest().getWeight());
+                iMinEnrollmentWeight = Math.min(iMinEnrollmentWeight, enrollment.getRequest().getWeight());
+            }
+            iEnrollments.add(enrollment);
+            iEnrollmentWeight += enrollment.getRequest().getWeight();
+        }
+
+        /** Called when an enrollment with this config is unassigned from a request */
+        @Override
+        public void unassigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+            iEnrollments.remove(enrollment);
+            iEnrollmentWeight -= enrollment.getRequest().getWeight();
+            if (iEnrollments.isEmpty()) {
+                iMinEnrollmentWeight = iMaxEnrollmentWeight = 0;
+            } else if (iMinEnrollmentWeight != iMaxEnrollmentWeight) {
+                if (iMinEnrollmentWeight == enrollment.getRequest().getWeight()) {
+                    double newMinEnrollmentWeight = Double.MAX_VALUE;
+                    for (Enrollment e : iEnrollments) {
+                        if (e.getRequest().getWeight() == iMinEnrollmentWeight) {
+                            newMinEnrollmentWeight = iMinEnrollmentWeight;
+                            break;
+                        } else {
+                            newMinEnrollmentWeight = Math.min(newMinEnrollmentWeight, e.getRequest().getWeight());
+                        }
+                    }
+                    iMinEnrollmentWeight = newMinEnrollmentWeight;
+                }
+                if (iMaxEnrollmentWeight == enrollment.getRequest().getWeight()) {
+                    double newMaxEnrollmentWeight = Double.MIN_VALUE;
+                    for (Enrollment e : iEnrollments) {
+                        if (e.getRequest().getWeight() == iMaxEnrollmentWeight) {
+                            newMaxEnrollmentWeight = iMaxEnrollmentWeight;
+                            break;
+                        } else {
+                            newMaxEnrollmentWeight = Math.max(newMaxEnrollmentWeight, e.getRequest().getWeight());
+                        }
+                    }
+                    iMaxEnrollmentWeight = newMaxEnrollmentWeight;
+                }
+            }
+        }
+        
+        /**
+         * Enrollment weight -- weight of all requests which have an enrollment that
+         * contains this config, excluding the given one. See
+         * {@link Request#getWeight()}.
+         */
+        public double getEnrollmentWeight(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
+            double weight = iEnrollmentWeight;
+            if (excludeRequest != null && assignment.getValue(excludeRequest) != null && iEnrollments.contains(assignment.getValue(excludeRequest)))
+                weight -= excludeRequest.getWeight();
+            return weight;
+        }
+        
+        /** Set of assigned enrollments */
+        public Set<Enrollment> getEnrollments() {
+            return iEnrollments;
+        }
+
+        /**
+         * Maximal weight of a single enrollment in the config
+         */
+        public double getMaxEnrollmentWeight() {
+            return iMaxEnrollmentWeight;
+        }
+
+        /**
+         * Minimal weight of a single enrollment in the config
+         */
+        public double getMinEnrollmentWeight() {
+            return iMinEnrollmentWeight;
+        }
     }
 }

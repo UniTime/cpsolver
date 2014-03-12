@@ -248,8 +248,7 @@ public class ToolBox {
      *            if true log file is named debug_yyyy-MM-dd_(HH.mm.ss).log, it
      *            is named debug.log otherwise
      */
-    public static String configureLogging(String logDir, Properties properties, boolean timeInFileName,
-            boolean includeSystemOuts) {
+    public static String configureLogging(String logDir, Properties properties, boolean timeInFileName, boolean includeSystemOuts) {
         String time = new java.text.SimpleDateFormat("yyyy-MM-dd_(HH.mm.ss)", java.util.Locale.US).format(new Date());
         (new File(logDir)).mkdirs();
         String fileName = logDir + File.separator + (timeInFileName ? "debug_" + time : "debug") + ".log";

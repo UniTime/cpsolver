@@ -2,6 +2,7 @@ package net.sf.cpsolver.studentsct;
 
 import org.apache.log4j.Logger;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.Callback;
@@ -55,6 +56,11 @@ public abstract class StudentSectioningSaver implements Runnable {
     /** Model of the solution */
     protected StudentSectioningModel getModel() {
         return (StudentSectioningModel) iSolver.currentSolution().getModel();
+    }
+    
+    /** Current assignment */
+    protected Assignment<Request, Enrollment> getAssignment() {
+        return iSolver.currentSolution().getAssignment();
     }
 
     /** Save the solution */

@@ -13,6 +13,7 @@ import java.util.Set;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.TimeLocation;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.studentsct.filter.StudentFilter;
@@ -136,8 +137,8 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
      * @param model
      *            student sectioning model
      */
-    public StudentSectioningXMLLoader(StudentSectioningModel model) {
-        super(model);
+    public StudentSectioningXMLLoader(StudentSectioningModel model, Assignment<Request, Enrollment> assignment) {
+        super(model, assignment);
         iInputFile = new File(getModel().getProperties().getProperty("General.Input",
                 "." + File.separator + "solution.xml"));
         if (getModel().getProperties().getProperty("General.InputTimetable") != null)
@@ -591,31 +592,28 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                 // Enrollments with a reservation must go first
                 for (Enrollment enrollment : bestEnrollments) {
                     if (enrollment.getReservation() == null) continue;
-                    Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(enrollment);
+                    Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
                     if (conflicts.isEmpty())
-                        enrollment.variable().assign(0, enrollment);
+                        getAssignment().assign(0, enrollment);
                     else
                         sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
                 }
                 for (Enrollment enrollment : bestEnrollments) {
                     if (enrollment.getReservation() != null) continue;
-                    Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(enrollment);
+                    Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
                     if (conflicts.isEmpty())
-                        enrollment.variable().assign(0, enrollment);
+                        getAssignment().assign(0, enrollment);
                     else
                         sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
                 }
-                getModel().saveBest();
+                getModel().saveBest(getAssignment());
             }
 
             if (!currentEnrollments.isEmpty()) {
-                for (Request request : getModel().variables()) {
-                    if (request.getAssignment() != null)
-                        request.unassign(0);
-                }
-                for (Enrollment enrollment : currentEnrollments) {
-                    enrollment.variable().assign(0, enrollment);
-                }
+                for (Request request : getModel().variables())
+                    getAssignment().unassign(0, request);
+                for (Enrollment enrollment : currentEnrollments)
+                    getAssignment().assign(0, enrollment);
             }
         }
         

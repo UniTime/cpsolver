@@ -5,6 +5,7 @@ import java.util.Set;
 
 import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.TimeLocation;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 
 /**
  * Time and room assignment. This can be either {@link Section} or
@@ -30,7 +31,7 @@ import net.sf.cpsolver.coursett.model.TimeLocation;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public interface Assignment {
+public interface SctAssignment {
     /** Time assignment */
     public TimeLocation getTime();
 
@@ -48,22 +49,22 @@ public interface Assignment {
      * True, if this assignment is overlapping in time and space with the given
      * assignment.
      */
-    public boolean isOverlapping(Assignment assignment);
+    public boolean isOverlapping(SctAssignment assignment);
 
     /**
      * True, if this assignment is overlapping in time and space with the given
      * set of assignments.
      */
-    public boolean isOverlapping(Set<? extends Assignment> assignments);
+    public boolean isOverlapping(Set<? extends SctAssignment> assignments);
 
     /** Enrollment with this assignmnet was assigned to a {@link Request}. */
-    public void assigned(Enrollment enrollment);
+    public void assigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment);
 
     /** Enrollment with this assignmnet was unassigned from a {@link Request}. */
-    public void unassigned(Enrollment enrollment);
+    public void unassigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment);
 
     /** Return the list of assigned enrollments that contains this assignment. */
-    public Set<Enrollment> getEnrollments();
+    public Set<Enrollment> getEnrollments(Assignment<Request, Enrollment> assignment);
     
     /** Return true if overlaps are allowed, but the number of overlapping slots should be minimized. */
     public boolean isAllowOverlap();
@@ -72,5 +73,5 @@ public interface Assignment {
     public long getId();
 
     /** Compare assignments by unique ids. */
-    public int compareById(Assignment a);
+    public int compareById(SctAssignment a);
 }

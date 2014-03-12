@@ -46,8 +46,7 @@ import org.apache.log4j.Logger;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class RoundRobinNeighbourSelection<V extends Variable<V, T>, T extends Value<V, T>> extends
-        StandardNeighbourSelection<V, T> {
+public class RoundRobinNeighbourSelection<V extends Variable<V, T>, T extends Value<V, T>> extends StandardNeighbourSelection<V, T> {
     private static Logger sLogger = Logger.getLogger(RoundRobinNeighbourSelection.class);
     private int iSelectionIdx = -1;
     private List<NeighbourSelection<V, T>> iSelections = new ArrayList<NeighbourSelection<V, T>>();

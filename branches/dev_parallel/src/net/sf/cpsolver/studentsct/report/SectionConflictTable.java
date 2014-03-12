@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.GlobalConstraint;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.DataProperties;
@@ -123,7 +124,7 @@ public class SectionConflictTable implements StudentSectioningReport {
         return iModel;
     }
     
-    private boolean canIgnore(Enrollment enrollment, Section section, List<Enrollment> other) {
+    private boolean canIgnore(Assignment<Request, Enrollment> assignment, Enrollment enrollment, Section section, List<Enrollment> other) {
         e: for (Enrollment e: other) {
             Section a = null;
             for (Section s: e.getSections()) {
@@ -134,11 +135,13 @@ public class SectionConflictTable implements StudentSectioningReport {
                     continue e;
             }
             if (a == null) continue e;
-            for (Request r: enrollment.getStudent().getRequests())
-                if (!enrollment.getRequest().equals(r) && r.getAssignment() != null && r instanceof CourseRequest && !r.getAssignment().isAllowOverlap())
-                    for (Section b: r.getAssignment().getSections())
+            for (Request r: enrollment.getStudent().getRequests()) {
+                Enrollment curr = assignment.getValue(r);
+                if (!enrollment.getRequest().equals(r) && curr != null && r instanceof CourseRequest && !curr.isAllowOverlap())
+                    for (Section b: curr.getSections())
                         if (!b.isAllowOverlap() && !b.isToIgnoreStudentConflictsWith(section.getId()) && b.getTime() != null && a.getTime() != null && !a.isAllowOverlap() && b.getTime().hasIntersection(a.getTime()))
                             continue e;
+            }
             return true;
         }
         return false;
@@ -155,18 +158,18 @@ public class SectionConflictTable implements StudentSectioningReport {
      *            {@link Student#isDummy()} is false)
      * @return report as comma separated text file
      */
-    public CSVFile createTable(boolean includeLastLikeStudents, boolean includeRealStudents) {
+    public CSVFile createTable(Assignment<Request, Enrollment> assignment, boolean includeLastLikeStudents, boolean includeRealStudents) {
         HashMap<Course, Map<Section, Double[]>> unavailabilities = new HashMap<Course, Map<Section,Double[]>>();
         HashMap<Course, Set<Long>> totals = new HashMap<Course, Set<Long>>();
         HashMap<CourseSection, Map<CourseSection, Double>> conflictingPairs = new HashMap<CourseSection, Map<CourseSection,Double>>();
         HashMap<CourseSection, Double> sectionOverlaps = new HashMap<CourseSection, Double>();        
         
-        for (Request request : new ArrayList<Request>(getModel().unassignedVariables())) {
+        for (Request request : new ArrayList<Request>(getModel().unassignedVariables(assignment))) {
             if (request.getStudent().isDummy() && !includeLastLikeStudents) continue;
             if (!request.getStudent().isDummy() && !includeRealStudents) continue;
             if (request instanceof CourseRequest) {
                 CourseRequest courseRequest = (CourseRequest) request;
-                if (courseRequest.getStudent().isComplete()) continue;
+                if (courseRequest.getStudent().isComplete(assignment)) continue;
                 
                 List<Enrollment> values = courseRequest.values();
 
@@ -184,7 +187,7 @@ public class SectionConflictTable implements StudentSectioningReport {
                 List<Enrollment> notAvailableValues = new ArrayList<Enrollment>(values.size());
                 List<Enrollment> availableValues = new ArrayList<Enrollment>(values.size());
                 for (Enrollment enrollment : values) {
-                    if (limitConstraint.inConflict(enrollment))
+                    if (limitConstraint.inConflict(assignment, enrollment))
                         notAvailableValues.add(enrollment);
                     else
                         availableValues.add(enrollment); 
@@ -194,8 +197,8 @@ public class SectionConflictTable implements StudentSectioningReport {
                     List<Enrollment> notOverlappingEnrollments = new ArrayList<Enrollment>(values.size());
                     enrollments: for (Enrollment enrollment: notAvailableValues) {
                         for (Request other : request.getStudent().getRequests()) {
-                            if (other.equals(request) || other.getAssignment() == null || other instanceof FreeTimeRequest) continue;
-                            if (other.getAssignment().isOverlapping(enrollment)) continue enrollments;
+                            if (other.equals(request) || assignment.getValue(other) == null || other instanceof FreeTimeRequest) continue;
+                            if (assignment.getValue(other).isOverlapping(enrollment)) continue enrollments;
                         }
                         // not overlapping
                         notOverlappingEnrollments.add(enrollment);
@@ -207,7 +210,7 @@ public class SectionConflictTable implements StudentSectioningReport {
                         for (Enrollment enrollment: notAvailableValues) {
                             boolean hasConflict = false;
                             for (Section s: enrollment.getSections()) {
-                                if (s.getLimit() >= 0 && s.getEnrollmentWeight(request) + request.getWeight() > s.getLimit()) {
+                                if (s.getLimit() >= 0 && s.getEnrollmentWeight(assignment, request) + request.getWeight() > s.getLimit()) {
                                     hasConflict = true;
                                     break;
                                 }
@@ -219,7 +222,7 @@ public class SectionConflictTable implements StudentSectioningReport {
                                 unavailabilities.put(enrollment.getCourse(), sections);
                             }
                             for (Section s: enrollment.getSections()) {
-                                if (hasConflict && s.getLimit() < 0 || s.getEnrollmentWeight(request) + request.getWeight() <= s.getLimit()) continue;
+                                if (hasConflict && s.getLimit() < 0 || s.getEnrollmentWeight(assignment, request) + request.getWeight() <= s.getLimit()) continue;
                                 Double[] total = sections.get(s);
                                 sections.put(s, new Double[] {
                                             fraction + (total == null ? 0.0 : total[0].doubleValue()),
@@ -240,7 +243,7 @@ public class SectionConflictTable implements StudentSectioningReport {
                         for (Enrollment enrollment: notOverlappingEnrollments) {
                             boolean hasConflict = false;
                             for (Section s: enrollment.getSections()) {
-                                if (s.getLimit() >= 0 && s.getEnrollmentWeight(request) + request.getWeight() > s.getLimit()) {
+                                if (s.getLimit() >= 0 && s.getEnrollmentWeight(assignment, request) + request.getWeight() > s.getLimit()) {
                                     hasConflict = true;
                                     break;
                                 }
@@ -252,7 +255,7 @@ public class SectionConflictTable implements StudentSectioningReport {
                                 unavailabilities.put(enrollment.getCourse(), sections);
                             }
                             for (Section s: enrollment.getSections()) {
-                                if (hasConflict && s.getLimit() < 0 || s.getEnrollmentWeight(request) + request.getWeight() <= s.getLimit()) continue;
+                                if (hasConflict && s.getLimit() < 0 || s.getEnrollmentWeight(assignment, request) + request.getWeight() <= s.getLimit()) continue;
                                 Double[] total = sections.get(s);
                                 sections.put(s, new Double[] {
                                             fraction + (total == null ? 0.0 : total[0].doubleValue()),
@@ -285,15 +288,15 @@ public class SectionConflictTable implements StudentSectioningReport {
                     for (Enrollment enrollment: availableValues) {
                         Map<CourseSection, List<CourseSection>> overlaps = new HashMap<CourseSection, List<CourseSection>>();
                         for (Request other : request.getStudent().getRequests()) {
-                            if (other.equals(request) || other.getAssignment() == null || other instanceof FreeTimeRequest) continue;
-                            Enrollment otherEnrollment = other.getAssignment();
+                            Enrollment otherEnrollment = assignment.getValue(other);
+                            if (other.equals(request) || otherEnrollment == null || other instanceof FreeTimeRequest) continue;
                             if (enrollment.isOverlapping(otherEnrollment))
                                 for (Section a: enrollment.getSections())
-                                    for (Section b: other.getAssignment().getSections())
-                                        if (a.getTime() != null && b.getTime() != null && !a.isAllowOverlap() && !b.isAllowOverlap() && !a.isToIgnoreStudentConflictsWith(b.getId()) && a.getTime().hasIntersection(b.getTime()) && !canIgnore(enrollment, a, availableValues)) {
+                                    for (Section b: otherEnrollment.getSections())
+                                        if (a.getTime() != null && b.getTime() != null && !a.isAllowOverlap() && !b.isAllowOverlap() && !a.isToIgnoreStudentConflictsWith(b.getId()) && a.getTime().hasIntersection(b.getTime()) && !canIgnore(assignment, enrollment, a, availableValues)) {
                                             List<CourseSection> x = overlaps.get(new CourseSection(enrollment.getCourse(), a));
                                             if (x == null) { x = new ArrayList<CourseSection>(); overlaps.put(new CourseSection(enrollment.getCourse(), a), x); }
-                                            x.add(new CourseSection(other.getAssignment().getCourse(), b));
+                                            x.add(new CourseSection(otherEnrollment.getCourse(), b));
                                         }
                         }
                         if (!overlaps.isEmpty()) {
@@ -405,7 +408,7 @@ public class SectionConflictTable implements StudentSectioningReport {
                     line.add(new CSVFile.CSVField(firstCourse ? course.getName() : ""));
                     line.add(new CSVFile.CSVField(firstCourse ? total.size() : ""));
                     if (iType.hasUnavailabilities()) {
-                        line.add(new CSVFile.CSVField(firstCourse ? sDF1.format(course.getEnrollmentWeight(null)) : ""));
+                        line.add(new CSVFile.CSVField(firstCourse ? sDF1.format(course.getEnrollmentWeight(assignment, null)) : ""));
                         line.add(new CSVFile.CSVField(firstCourse ? course.getLimit() < 0 ? "" : String.valueOf(course.getLimit()) : ""));
                     }
                     
@@ -421,7 +424,7 @@ public class SectionConflictTable implements StudentSectioningReport {
                         line.add(new CSVFile.CSVField(sectionOverlap != null ? sDF2.format(sectionOverlap / total.size()) : ""));
                     }
                     if (iType.hasUnavailabilities()) {
-                        line.add(new CSVFile.CSVField(sDF1.format(section.getEnrollmentWeight(null))));
+                        line.add(new CSVFile.CSVField(sDF1.format(section.getEnrollmentWeight(assignment, null))));
                         line.add(new CSVFile.CSVField(section.getLimit() < 0 ? "" : String.valueOf(section.getLimit())));
                         if (!iType.hasOverlaps())
                             line.add(new CSVFile.CSVField(sectionUnavailable != null ? sDF1.format(sectionUnavailable[1]) : ""));
@@ -435,7 +438,7 @@ public class SectionConflictTable implements StudentSectioningReport {
                         line.add(new CSVFile.CSVField(firstCourse && firstClass ? course.getName() : ""));
                         line.add(new CSVFile.CSVField(firstCourse && firstClass ? total.size() : ""));
                         if (iType.hasUnavailabilities()) {
-                            line.add(new CSVFile.CSVField(firstCourse && firstClass ? sDF1.format(course.getEnrollmentWeight(null)) : ""));
+                            line.add(new CSVFile.CSVField(firstCourse && firstClass ? sDF1.format(course.getEnrollmentWeight(assignment, null)) : ""));
                             line.add(new CSVFile.CSVField(firstCourse && firstClass ? course.getLimit() < 0 ? "" : String.valueOf(course.getLimit()) : ""));
                         }
                         
@@ -449,7 +452,7 @@ public class SectionConflictTable implements StudentSectioningReport {
                         line.add(new CSVFile.CSVField(firstClass && sectionOverlap != null ? sDF2.format(sectionOverlap): ""));
                         line.add(new CSVFile.CSVField(firstClass && sectionOverlap != null ? sDF2.format(sectionOverlap / total.size()) : ""));
                         if (iType.hasUnavailabilities()) {
-                            line.add(new CSVFile.CSVField(firstClass ? sDF1.format(section.getEnrollmentWeight(null)): ""));
+                            line.add(new CSVFile.CSVField(firstClass ? sDF1.format(section.getEnrollmentWeight(assignment, null)): ""));
                             line.add(new CSVFile.CSVField(firstClass ? section.getLimit() < 0 ? "" : String.valueOf(section.getLimit()): ""));
                         }
                         
@@ -472,9 +475,9 @@ public class SectionConflictTable implements StudentSectioningReport {
     }
 
     @Override
-    public CSVFile create(DataProperties properties) {
+    public CSVFile create(Assignment<Request, Enrollment> assignment, DataProperties properties) {
         iType = Type.valueOf(properties.getProperty("type", iType.name()));
         iOverlapsAllEnrollments = properties.getPropertyBoolean("overlapsIncludeAll", true);
-        return createTable(properties.getPropertyBoolean("lastlike", false), properties.getPropertyBoolean("real", true));
+        return createTable(assignment, properties.getPropertyBoolean("lastlike", false), properties.getPropertyBoolean("real", true));
     }
 }

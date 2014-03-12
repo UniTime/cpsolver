@@ -4,6 +4,7 @@ import java.text.DecimalFormat;
 import java.util.Iterator;
 import java.util.List;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
@@ -87,7 +88,7 @@ public class PriorityConstructionSelection implements NeighbourSelection<Request
     public void init(Solver<Request, Enrollment> solver) {
         iCycle = 1;
         iImproved = false;
-        iSkip = !solver.currentSolution().getModel().assignedVariables().isEmpty();
+        iSkip = !solver.currentSolution().getModel().assignedVariables(solver.currentSolution().getAssignment()).isEmpty();
         if (iSkip) {
             iBranchBoundSelection.init(solver);
         } else {
@@ -114,7 +115,7 @@ public class PriorityConstructionSelection implements NeighbourSelection<Request
                 continue;
             }
             */
-            Neighbour<Request, Enrollment> neighbour = iBranchBoundSelection.getSelection(student).select();
+            Neighbour<Request, Enrollment> neighbour = iBranchBoundSelection.getSelection(solution.getAssignment(), student).select();
             if (neighbour != null)
                 return neighbour;
         }
@@ -127,7 +128,7 @@ public class PriorityConstructionSelection implements NeighbourSelection<Request
         sLog.debug("Assigning up to " + iCycle + " requests...");
         
         StudentSectioningModel m = (StudentSectioningModel)solution.getModel();
-        double tv = m.getTotalValue(true);
+        double tv = m.getTotalValue(solution.getAssignment(), true);
         sLog.debug("**CURR** " + solution.getModel().toString() + ", TM:" + sDF.format(solution.getTime() / 3600.0) + "h, " + 
                 "TV:" + sDF.format(-tv) + " (" + sDF.format(-100.0 * tv / m.getStudents().size()) + "%)");
         
@@ -169,17 +170,17 @@ public class PriorityConstructionSelection implements NeighbourSelection<Request
          * Mark the cycle as improving if there was enough assignments to do.
          */
         @Override
-        public void assign(long iteration) {
+        public void assign(Assignment<Request, Enrollment> assignment, long iteration) {
             if (iCycle >= iMaxCycles) {
-                iNeighbour.assign(iteration);
+                iNeighbour.assign(assignment, iteration);
                 return;
             }
             for (Request r: iNeighbour.getStudent().getRequests())
-                if (r.getAssignment() != null) r.unassign(iteration);
+                assignment.unassign(iteration, r);
             int n = iCycle;
             for (int i = 0; i < iNeighbour.getAssignment().length; i++) {
                 if (iNeighbour.getAssignment()[i] != null) {
-                    iNeighbour.getAssignment()[i].variable().assign(iteration, iNeighbour.getAssignment()[i]);
+                    assignment.assign(iteration, iNeighbour.getAssignment()[i]);
                     n --;
                 }
                 if (n == 0) {
@@ -189,15 +190,14 @@ public class PriorityConstructionSelection implements NeighbourSelection<Request
         }
 
         @Override
-        public double value() {
-            return iNeighbour.value();
+        public double value(Assignment<Request, Enrollment> assignment) {
+            return iNeighbour.value(assignment);
         }
         
         @Override
         public String toString() {
             int n = iCycle;
-            StringBuffer sb = new StringBuffer("B&B[" + n + "]{ " + 
-                    iNeighbour.getStudent() + " " + sDF.format(-value() * 100.0) + "%");
+            StringBuffer sb = new StringBuffer("B&B[" + n + "]{ " + iNeighbour.getStudent() + " " + sDF.format(-value(null) * 100.0) + "%");
             int idx = 0;
             for (Iterator<Request> e = iNeighbour.getStudent().getRequests().iterator(); e.hasNext(); idx++) {
                 Request request = e.next();

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.GlobalConstraint;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.ToolBox;
@@ -88,15 +89,14 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
      *            section
      * @return config's new unreserved space
      */
-    public static double getUnreservedSpace(Config config, Request request) {
-        return config.getUnreservedSpace(request) - request.getWeight()
-                + Math.max(config.getMaxEnrollmentWeight(), request.getWeight()) - sNominalWeight;
+    public static double getUnreservedSpace(Assignment<Request, Enrollment> assignment, Config config, Request request) {
+        return config.getUnreservedSpace(assignment, request) - request.getWeight() + Math.max(config.getMaxEnrollmentWeight(assignment), request.getWeight()) - sNominalWeight;
     }
 
 
     /**
-     * A given enrollment is conflicting, if the reservation's remaning available space
-     * (computed by {@link Reservation#getReservedAvailableSpace(Request)})
+     * A given enrollment is conflicting, if the reservation's remaining available space
+     * (computed by {@link Reservation#getReservedAvailableSpace(Assignment, Request)})
      * is below the requests weight {@link Request#getWeight()}. <br>
      * If the limit is breached, one or more existing enrollments are
      * selected as conflicting until there is enough space in the reservation.
@@ -109,7 +109,7 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
      *            all computed conflicting requests are added into this set
      */
     @Override
-    public void computeConflicts(Enrollment enrollment, Set<Enrollment> conflicts) {
+    public void computeConflicts(Assignment<Request, Enrollment> assignment, Enrollment enrollment, Set<Enrollment> conflicts) {
         // enrollment's config
         Config config = enrollment.getConfig();
 
@@ -127,14 +127,14 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
         // check space in the reservation reservation
         if (reservation != null) {
             // check reservation too
-            double reserved = reservation.getReservedAvailableSpace(enrollment.getRequest());
+            double reserved = reservation.getReservedAvailableSpace(assignment, enrollment.getRequest());
             
             if (reservation.getLimit() >= 0 && reserved < enrollment.getRequest().getWeight()) {
                 // reservation is not unlimited and there is not enough space in it
                 
                 // try to free some space in the reservation
-                List<Enrollment> adepts = new ArrayList<Enrollment>(config.getEnrollments().size());
-                for (Enrollment e : config.getEnrollments()) {
+                List<Enrollment> adepts = new ArrayList<Enrollment>(config.getEnrollments(assignment).size());
+                for (Enrollment e : config.getEnrollments(assignment)) {
                     if (e.getRequest().equals(enrollment.getRequest()))
                         continue;
                     if (!reservation.equals(e.getReservation()))
@@ -159,7 +159,7 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
                     double bestValue = 0;
                     for (Enrollment adept: adepts) {
                         boolean dummy = adept.getStudent().isDummy();
-                        double value = adept.toDouble(false);
+                        double value = adept.toDouble(assignment, false);
                         
                         if (iPreferDummyStudents && dummy != bestDummy) {
                             if (dummy) {
@@ -201,14 +201,14 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
                     return;
                 }
 
-                double unreserved = getUnreservedSpace(config, enrollment.getRequest());
+                double unreserved = getUnreservedSpace(assignment, config, enrollment.getRequest());
 
                 if (unreserved < 0.0) {
                     // no unreserved space available -> cannot be assigned
                     // try to unassign some other enrollments that also do not have config reservation
                     
-                    List<Enrollment> adepts = new ArrayList<Enrollment>(config.getEnrollments().size());
-                    for (Enrollment e : config.getEnrollments()) {
+                    List<Enrollment> adepts = new ArrayList<Enrollment>(config.getEnrollments(assignment).size());
+                    for (Enrollment e : config.getEnrollments(assignment)) {
                         if (e.getRequest().equals(enrollment.getRequest()))
                             continue;
                         if (hasConfigReservation(e))
@@ -233,7 +233,7 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
                         double bestValue = 0;
                         for (Enrollment adept: adepts) {
                             boolean dummy = adept.getStudent().isDummy();
-                            double value = adept.toDouble(false);
+                            double value = adept.toDouble(assignment, false);
                             
                             if (iPreferDummyStudents && dummy != bestDummy) {
                                 if (dummy) {
@@ -273,15 +273,15 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
                 
             // check configuration unavailable space too
             double unreserved = Math.min(
-                    config.getOffering().getUnreservedSpace(enrollment.getRequest()) - enrollment.getRequest().getWeight(),
-                    getUnreservedSpace(config, enrollment.getRequest()));
+                    config.getOffering().getUnreservedSpace(assignment, enrollment.getRequest()) - enrollment.getRequest().getWeight(),
+                    getUnreservedSpace(assignment, config, enrollment.getRequest()));
                 
             if (unreserved < 0.0) {
                 // no unreserved space available -> cannot be assigned
                 // try to unassign some other enrollments that also do not have reservation
                 
-                List<Enrollment> adepts = new ArrayList<Enrollment>(config.getEnrollments().size());
-                for (Enrollment e : config.getEnrollments()) {
+                List<Enrollment> adepts = new ArrayList<Enrollment>(config.getEnrollments(assignment).size());
+                for (Enrollment e : config.getEnrollments(assignment)) {
                     if (e.getRequest().equals(enrollment.getRequest()))
                         continue;
                     if (e.getReservation() != null)
@@ -306,7 +306,7 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
                     double bestValue = 0;
                     for (Enrollment adept: adepts) {
                         boolean dummy = adept.getStudent().isDummy();
-                        double value = adept.toDouble(false);
+                        double value = adept.toDouble(assignment, false);
                         
                         if (iPreferDummyStudents && dummy != bestDummy) {
                             if (dummy) {
@@ -350,7 +350,7 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
     
     /**
      * A given enrollment is conflicting, if the config's enrollment (computed by
-     * {@link ConfigLimit#getEnrollmentWeight(Config, Request)}) exceeds the
+     * {@link ConfigLimit#getEnrollmentWeight(Assignment, Config, Request)}) exceeds the
      * limit.
      * 
      * @param enrollment
@@ -358,7 +358,7 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
      * @return true, if the enrollment cannot be assigned without exceeding the limit
      */
     @Override
-    public boolean inConflict(Enrollment enrollment) {
+    public boolean inConflict(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
         // enrollment's config
         Config config = enrollment.getConfig();
 
@@ -376,7 +376,7 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
                 return false;
             
             // check remaning space
-            if (reservation.getReservedAvailableSpace(enrollment.getRequest()) < enrollment.getRequest().getWeight())
+            if (reservation.getReservedAvailableSpace(assignment, enrollment.getRequest()) < enrollment.getRequest().getWeight())
                 return true;
             
             // check reservation can assign over the limit
@@ -385,13 +385,13 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
             
             // if not configuration reservation, check configuration unreserved space too
             return (!hasConfigReservation(enrollment) &&
-                    getUnreservedSpace(config, enrollment.getRequest()) < 0.0);
+                    getUnreservedSpace(assignment, config, enrollment.getRequest()) < 0.0);
         } else {
             // check unreserved space;
             return config.getOffering().getTotalUnreservedSpace() < enrollment.getRequest().getWeight() || 
                    config.getTotalUnreservedSpace() < enrollment.getRequest().getWeight() ||
-                   getUnreservedSpace(config, enrollment.getRequest()) < 0.0 ||
-                   config.getOffering().getUnreservedSpace(enrollment.getRequest()) < enrollment.getRequest().getWeight();
+                   getUnreservedSpace(assignment, config, enrollment.getRequest()) < 0.0 ||
+                   config.getOffering().getUnreservedSpace(assignment, enrollment.getRequest()) < enrollment.getRequest().getWeight();
         }
     }
     

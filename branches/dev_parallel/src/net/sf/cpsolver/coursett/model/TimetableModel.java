@@ -45,7 +45,6 @@ import net.sf.cpsolver.coursett.criteria.placement.HardConflicts;
 import net.sf.cpsolver.coursett.criteria.placement.PotentialHardConflicts;
 import net.sf.cpsolver.coursett.criteria.placement.WeightedHardConflicts;
 import net.sf.cpsolver.ifs.assignment.Assignment;
-import net.sf.cpsolver.ifs.assignment.EmptyAssignment;
 import net.sf.cpsolver.ifs.constant.ConstantModel;
 import net.sf.cpsolver.ifs.criteria.Criterion;
 import net.sf.cpsolver.ifs.model.Constraint;
@@ -94,7 +93,6 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
     private DataProperties iProperties = null;
     private int iYear = -1;
     private List<BitSet> iWeeks = null;
-    private EmptyAssignment<Lecture, Placement> iEmptyAssignment = new EmptyAssignment<Lecture, Placement>();
 
     private HashSet<Student> iAllStudents = new HashSet<Student>();
     
@@ -501,9 +499,5 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
             }
         }
         return iWeeks;            
-    }
-    
-    public EmptyAssignment<Lecture, Placement> getEmptyAssignment() {
-        return iEmptyAssignment;
     }
 }

@@ -1,16 +1,14 @@
 package net.sf.cpsolver.ifs.assignment;
 
+import java.util.Comparator;
+
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
-import net.sf.cpsolver.ifs.solver.Solver;
 
 /**
- * A simple class comparing two values. Using {@link Value#compareTo(Assignment, Value)}.
- * This is to replace the {@link Comparable} interface on the {@link Value} which is
- * using the deprecated method {@link Value#compareTo(Value)}.
+ * Comparator for the {@link AssignmentComparable} objects.
  * 
- * @see Assignment
- * @see Solver
  * 
  * @version IFS 1.2 (Iterative Forward Search)<br>
  *          Copyright (C) 2014 Tomas Muller<br>
@@ -30,10 +28,19 @@ import net.sf.cpsolver.ifs.solver.Solver;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see <http://www.gnu.org/licenses/>.
  **/
-public class ValueComparator<V extends Variable<V, T>, T extends Value<V, T>> extends AssignmentComparator<T, V, T> {
+public class AssignmentComparator<X extends AssignmentComparable<X, V, T>, V extends Variable<V, T>, T extends Value<V, T>> implements Comparator<X> {
+    protected Assignment<V, T> iAssignment;
     
-    public ValueComparator(Assignment<V, T> assignment) {
-        super(assignment);
+    /**
+     * Create comparator with the given assignment.
+     */
+    public AssignmentComparator(Assignment<V, T> assignment) {
+        iAssignment = assignment;
+    }
+
+    @Override
+    public int compare(X o1, X o2) {
+        return o1.compareTo(iAssignment, o2);
     }
 
 }

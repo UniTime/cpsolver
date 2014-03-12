@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
@@ -45,7 +46,7 @@ public class Enrollment extends Value<Request, Enrollment> {
     private Request iRequest = null;
     private Config iConfig = null;
     private Course iCourse = null;
-    private Set<? extends Assignment> iAssignments = null;
+    private Set<? extends SctAssignment> iAssignments = null;
     private Double iCachedPenalty = null;
     private int iPriority = 0;
     private Reservation iReservation = null;
@@ -66,7 +67,7 @@ public class Enrollment extends Value<Request, Enrollment> {
      * @param assignments
      *            valid list of sections
      */
-    public Enrollment(Request request, int priority, Course course, Config config, Set<? extends Assignment> assignments, Reservation reservation) {
+    public Enrollment(Request request, int priority, Course course, Config config, Set<? extends SctAssignment> assignments, Reservation reservation) {
         super(request);
         iRequest = request;
         iConfig = config;
@@ -95,28 +96,28 @@ public class Enrollment extends Value<Request, Enrollment> {
      * @param assignments
      *            valid list of sections
      */
-    public Enrollment(Request request, int priority, Config config, Set<? extends Assignment> assignments) {
+    public Enrollment(Request request, int priority, Config config, Set<? extends SctAssignment> assignments, Assignment<Request, Enrollment> assignment) {
         this(request, priority, null, config, assignments, null);
-        if (assignments != null)
-            guessReservation(true);
+        if (assignments != null && assignment != null)
+            guessReservation(assignment, true);
     }
     
     /**
      * Guess the reservation based on the enrollment
      */
-    public void guessReservation(boolean onlyAvailable) {
+    public void guessReservation(Assignment<Request, Enrollment> assignment, boolean onlyAvailable) {
         if (iCourse != null) {
             Reservation best = null;
             boolean canAssignOverTheLimit = (variable().getModel() == null || ((StudentSectioningModel)variable().getModel()).getReservationCanAssignOverTheLimit());
             for (Reservation reservation: ((CourseRequest)iRequest).getReservations(iCourse)) {
                 if (reservation.isIncluded(this)) {
-                    if (onlyAvailable && reservation.getReservedAvailableSpace(iRequest) < iRequest.getWeight() &&
+                    if (onlyAvailable && reservation.getContext(assignment).getReservedAvailableSpace(assignment, iRequest) < iRequest.getWeight() &&
                        (!reservation.canAssignOverLimit() || !canAssignOverTheLimit))
                         continue;
                     if (best == null || best.getPriority() > reservation.getPriority()) {
                         best = reservation;
                     } else if (best.getPriority() == reservation.getPriority() &&
-                        best.getReservedAvailableSpace(iRequest) < reservation.getReservedAvailableSpace(iRequest)) {
+                        best.getContext(assignment).getReservedAvailableSpace(assignment, iRequest) < reservation.getContext(assignment).getReservedAvailableSpace(assignment, iRequest)) {
                         best = reservation;
                     }
                 }
@@ -157,8 +158,8 @@ public class Enrollment extends Value<Request, Enrollment> {
 
     /** List of assignments (selected sections) */
     @SuppressWarnings("unchecked")
-    public Set<Assignment> getAssignments() {
-        return (Set<Assignment>) iAssignments;
+    public Set<SctAssignment> getAssignments() {
+        return (Set<SctAssignment>) iAssignments;
     }
 
     /** List of sections (only for course request) */
@@ -173,7 +174,7 @@ public class Enrollment extends Value<Request, Enrollment> {
     public boolean isOverlapping(Enrollment enrl) {
         if (enrl == null || isAllowOverlap() || enrl.isAllowOverlap())
             return false;
-        for (Assignment a : getAssignments()) {
+        for (SctAssignment a : getAssignments()) {
             if (a.isOverlapping(enrl.getAssignments()))
                 return true;
         }
@@ -226,7 +227,7 @@ public class Enrollment extends Value<Request, Enrollment> {
         if (!isCourseRequest())
             return false;
         CourseRequest courseRequest = (CourseRequest) getRequest();
-        for (Iterator<? extends Assignment> i = getAssignments().iterator(); i.hasNext();) {
+        for (Iterator<? extends SctAssignment> i = getAssignments().iterator(); i.hasNext();) {
             Section section = (Section) i.next();
             if (!courseRequest.isWaitlisted(section))
                 return false;
@@ -265,19 +266,20 @@ public class Enrollment extends Value<Request, Enrollment> {
 
     /** Enrollment value */
     @Override
-    public double toDouble() {
-        return toDouble(true);
+    public double toDouble(Assignment<Request, Enrollment> assignment) {
+        return toDouble(assignment, true);
     }
     
     /** Enrollment value
      * @param precise if false, distance conflicts and time overlaps are ignored (i.e., much faster, but less precise computation)
      **/
-    public double toDouble(boolean precise) {
+    public double toDouble(Assignment<Request, Enrollment> assignment, boolean precise) {
         if (precise)
-            return - getRequest().getWeight() * ((StudentSectioningModel)variable().getModel()).getStudentWeights().getWeight(this, distanceConflicts(), timeOverlappingConflicts());
+            return - getRequest().getWeight() * ((StudentSectioningModel)variable().getModel()).getStudentWeights().getWeight(assignment, this, distanceConflicts(assignment), timeOverlappingConflicts(assignment));
         else {
-            if (getExtra() != null) return - (Double) getExtra();
-            return - getRequest().getWeight() * ((StudentSectioningModel)variable().getModel()).getStudentWeights().getWeight(this);
+            Double value = (assignment == null ? null : variable().getContext(assignment).getLastWeight());
+            if (value != null) return - value;
+            return - getRequest().getWeight() * ((StudentSectioningModel)variable().getModel()).getStudentWeights().getWeight(assignment, this);
         }
     }
     
@@ -294,7 +296,7 @@ public class Enrollment extends Value<Request, Enrollment> {
                 }
             }
             String ret = (course == null ? getConfig() == null ? "" : getConfig().getName() : course.getName());
-            for (Iterator<? extends Assignment> i = getAssignments().iterator(); i.hasNext();) {
+            for (Iterator<? extends SctAssignment> i = getAssignments().iterator(); i.hasNext();) {
                 Section assignment = (Section) i.next();
                 ret += "\n  " + assignment.getLongName() + (i.hasNext() ? "," : "");
             }
@@ -303,8 +305,8 @@ public class Enrollment extends Value<Request, Enrollment> {
             return "Free Time " + ((FreeTimeRequest) getRequest()).getTime().getLongName();
         } else {
             String ret = "";
-            for (Iterator<? extends Assignment> i = getAssignments().iterator(); i.hasNext();) {
-                Assignment assignment = i.next();
+            for (Iterator<? extends SctAssignment> i = getAssignments().iterator(); i.hasNext();) {
+                SctAssignment assignment = i.next();
                 ret += assignment.toString() + (i.hasNext() ? "," : "");
                 if (i.hasNext())
                     ret += "\n  ";
@@ -313,23 +315,37 @@ public class Enrollment extends Value<Request, Enrollment> {
         }
     }
 
-    @Override
-    public String toString() {
+    public String toString(Assignment<Request, Enrollment> a) {
         if (getAssignments().isEmpty()) return "not assigned";
-        Set<DistanceConflict.Conflict> dc = distanceConflicts();
-        Set<TimeOverlapsCounter.Conflict> toc = timeOverlappingConflicts();
+        Set<DistanceConflict.Conflict> dc = distanceConflicts(a);
+        Set<TimeOverlapsCounter.Conflict> toc = timeOverlappingConflicts(a);
         int share = 0;
         if (toc != null)
             for (TimeOverlapsCounter.Conflict c: toc)
                 share += c.getShare();
-        String ret = sDF.format(toDouble()) + "/" + sDF.format(getRequest().getBound())
+        String ret = sDF.format(toDouble(a)) + "/" + sDF.format(getRequest().getBound())
                 + (getPenalty() == 0.0 ? "" : "/" + sDF.format(getPenalty()))
                 + (dc == null || dc.isEmpty() ? "" : "/dc:" + dc.size())
                 + (share <= 0 ? "" : "/toc:" + share);
         if (getRequest() instanceof CourseRequest) {
             ret += " ";
-            for (Iterator<? extends Assignment> i = getAssignments().iterator(); i.hasNext();) {
-                Assignment assignment = i.next();
+            for (Iterator<? extends SctAssignment> i = getAssignments().iterator(); i.hasNext();) {
+                SctAssignment assignment = i.next();
+                ret += assignment + (i.hasNext() ? ", " : "");
+            }
+        }
+        if (getReservation() != null) ret = "(r) " + ret;
+        return ret;
+    }
+    
+    @Override
+    public String toString() {
+        if (getAssignments().isEmpty()) return "not assigned";
+        String ret = sDF.format(toDouble(null)) + "/" + sDF.format(getRequest().getBound()) + (getPenalty() == 0.0 ? "" : "/" + sDF.format(getPenalty()));
+        if (getRequest() instanceof CourseRequest) {
+            ret += " ";
+            for (Iterator<? extends SctAssignment> i = getAssignments().iterator(); i.hasNext();) {
+                SctAssignment assignment = i.next();
                 ret += assignment + (i.hasNext() ? ", " : "");
             }
         }
@@ -352,24 +368,24 @@ public class Enrollment extends Value<Request, Enrollment> {
     }
 
     /** Distance conflicts, in which this enrollment is involved. */
-    public Set<DistanceConflict.Conflict> distanceConflicts() {
+    public Set<DistanceConflict.Conflict> distanceConflicts(Assignment<Request, Enrollment> assignment) {
         if (!isCourseRequest())
             return null;
         if (getRequest().getModel() instanceof StudentSectioningModel) {
             DistanceConflict dc = ((StudentSectioningModel) getRequest().getModel()).getDistanceConflict();
             if (dc == null) return null;
-            return dc.allConflicts(this);
+            return dc.allConflicts(assignment, this);
         } else
             return null;
     }
 
     /** Time overlapping conflicts, in which this enrollment is involved. */
-    public Set<TimeOverlapsCounter.Conflict> timeOverlappingConflicts() {
+    public Set<TimeOverlapsCounter.Conflict> timeOverlappingConflicts(Assignment<Request, Enrollment> assignment) {
         if (getRequest().getModel() instanceof StudentSectioningModel) {
             TimeOverlapsCounter toc = ((StudentSectioningModel) getRequest().getModel()).getTimeOverlaps();
             if (toc == null)
                 return null;
-            return toc.allConflicts(this);
+            return toc.getContext(assignment).allConflicts(assignment, this);
         } else
             return null;
     }
@@ -387,7 +403,7 @@ public class Enrollment extends Value<Request, Enrollment> {
      */
     public int getNrSlots() {
         int ret = 0;
-        for (Assignment a: getAssignments()) {
+        for (SctAssignment a: getAssignments()) {
             if (a.getTime() != null) ret += a.getTime().getLength() * a.getTime().getNrMeetings();
         }
         return ret;

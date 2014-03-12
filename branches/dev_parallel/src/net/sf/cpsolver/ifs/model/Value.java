@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.AssignmentComparable;
 import net.sf.cpsolver.ifs.assignment.ValueComparator;
 import net.sf.cpsolver.ifs.assignment.context.ExtensionWithContext;
 import net.sf.cpsolver.ifs.util.IdGenerator;
@@ -39,7 +40,7 @@ import net.sf.cpsolver.ifs.util.IdGenerator;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements Comparable<T> {
+public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements Comparable<T>, AssignmentComparable<T, V, T> {
     private static IdGenerator sIdGenerator = new IdGenerator();
 
     private long iId;
@@ -157,6 +158,7 @@ public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements C
     /**
      * Compare two values by their value
      */
+    @Override
     public int compareTo(Assignment<V, T> assignment, T value) {
         if (value == null)
             return -1;

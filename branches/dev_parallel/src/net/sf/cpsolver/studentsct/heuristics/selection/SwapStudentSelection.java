@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
@@ -28,7 +29,7 @@ import org.apache.log4j.Logger;
  * improvement, identify problematic students. <br>
  * <br>
  * For each request that does not have an assignment and that can be assined
- * (see {@link Student#canAssign(Request)}) a randomly selected sub-domain is
+ * (see {@link Student#canAssign(Assignment, Request)}) a randomly selected sub-domain is
  * visited. For every such enrollment, a set of conflicting enrollments is
  * computed and a possible student that can get an alternative enrollment is
  * identified (if there is any). For each such move a value (the cost of moving
@@ -58,7 +59,7 @@ import org.apache.log4j.Logger;
  * <td>Neighbour.SwapStudentsMaxValues</td>
  * <td>{@link Integer}</td>
  * <td>Limit for the number of considered values for each course request (see
- * {@link CourseRequest#computeRandomEnrollments(int)}).</td>
+ * {@link CourseRequest#computeRandomEnrollments(Assignment, int)}).</td>
  * </tr>
  * </table>
  * <br>
@@ -130,8 +131,8 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
      */
     @Override
     public Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
-        if (iStudent != null && !iStudent.isComplete()) {
-            Selection selection = getSelection(iStudent);
+        if (iStudent != null && !iStudent.isComplete(solution.getAssignment())) {
+            Selection selection = getSelection(solution.getAssignment(), iStudent);
             Neighbour<Request, Enrollment> neighbour = selection.select();
             if (neighbour != null)
                 return neighbour;
@@ -142,9 +143,9 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
         while (iStudentsEnumeration.hasNext()) {
             Student student = iStudentsEnumeration.next();
             Progress.getInstance(solution.getModel()).incProgress();
-            if (student.isComplete() || student.nrAssignedRequests() == 0)
+            if (student.isComplete(solution.getAssignment()) || student.nrAssignedRequests(solution.getAssignment()) == 0)
                 continue;
-            Selection selection = getSelection(student);
+            Selection selection = getSelection(solution.getAssignment(), student);
             Neighbour<Request, Enrollment> neighbour = selection.select();
             if (neighbour != null) {
                 iStudent = student;
@@ -162,8 +163,8 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
     }
 
     /** Selection subclass for a student */
-    public Selection getSelection(Student student) {
-        return new Selection(student);
+    public Selection getSelection(Assignment<Request, Enrollment> assignment, Student student) {
+        return new Selection(student, assignment);
     }
 
     /** This class looks for a possible swap move for the given student */
@@ -175,6 +176,7 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
         private double iBestValue;
         private Set<Student> iProblemStudents;
         private List<Enrollment> iBestSwaps;
+        private Assignment<Request, Enrollment> iAssignment;
 
         /**
          * Constructor
@@ -182,8 +184,9 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
          * @param student
          *            given student
          */
-        public Selection(Student student) {
+        public Selection(Student student, Assignment<Request, Enrollment> assignment) {
             iStudent = student;
+            iAssignment = assignment;
         }
 
         /**
@@ -199,7 +202,7 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
             Double initialValue = null;
             for (Request request : iStudent.getRequests()) {
                 if (initialValue == null)
-                    initialValue = request.getModel().getTotalValue();
+                    initialValue = request.getModel().getTotalValue(iAssignment);
                 if (iTimeout > 0 && (JProf.currentTimeMillis() - iT0) > iTimeout) {
                     if (!iTimeoutReached) {
                         if (sDebug)
@@ -208,15 +211,15 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
                     }
                     break;
                 }
-                if (request.getAssignment() != null)
+                if (iAssignment.getValue(request) != null)
                     continue;
-                if (!iStudent.canAssign(request))
+                if (!iStudent.canAssign(iAssignment, request))
                     continue;
                 if (sDebug)
                     sLog.debug("  -- checking request " + request);
                 List<Enrollment> values = null;
                 if (iMaxValues > 0 && request instanceof CourseRequest) {
-                    values = ((CourseRequest) request).computeRandomEnrollments(iMaxValues);
+                    values = ((CourseRequest) request).computeRandomEnrollments(iAssignment, iMaxValues);
                 } else
                     values = request.values();
                 for (Enrollment enrollment : values) {
@@ -230,44 +233,44 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
                     }
                     if (sDebug)
                         sLog.debug("      -- enrollment " + enrollment);
-                    Set<Enrollment> conflicts = enrollment.variable().getModel().conflictValues(enrollment);
+                    Set<Enrollment> conflicts = enrollment.variable().getModel().conflictValues(iAssignment, enrollment);
                     if (conflicts.contains(enrollment))
                         continue;
                     
-                    double bound = enrollment.toDouble();
+                    double bound = enrollment.toDouble(iAssignment);
                     for (Enrollment conflict: conflicts)
                         bound += conflict.variable().getBound();
                     if (iBestEnrollment != null && bound >= iBestValue)
                         continue;
                     
                     for (Enrollment conflict: conflicts)
-                        conflict.variable().unassign(0);
-                    enrollment.variable().assign(0, enrollment);
+                        iAssignment.unassign(0, conflict.variable());
+                    iAssignment.assign(0, enrollment);
                     
                     boolean allResolved = true;
                     List<Enrollment> swaps = new ArrayList<Enrollment>(conflicts.size());
                     for (Enrollment conflict : conflicts) {
                         if (sDebug)
                             sLog.debug("        -- conflict " + conflict);
-                        Enrollment other = bestSwap(conflict, enrollment, iProblemStudents);
+                        Enrollment other = bestSwap(iAssignment, conflict, enrollment, iProblemStudents);
                         if (other == null) {
                             if (sDebug)
                                 sLog.debug("          -- unable to resolve");
                             allResolved = false;
                             break;
                         }
-                        other.variable().assign(0, other);
+                        iAssignment.assign(0, other);
                         swaps.add(other);
                         if (sDebug)
                             sLog.debug("          -- can be resolved by switching to " + other.getName());
                     }
-                    double value = request.getModel().getTotalValue() - initialValue;
+                    double value = request.getModel().getTotalValue(iAssignment) - initialValue;
                     
                     for (Enrollment other: swaps)
-                        other.variable().unassign(0);
-                    enrollment.variable().unassign(0);
+                        iAssignment.unassign(0, other.variable());
+                    iAssignment.unassign(0, enrollment.variable());
                     for (Enrollment conflict: conflicts)
-                        conflict.variable().assign(0, conflict);
+                        iAssignment.assign(0, conflict);
                     
                     if (allResolved && value <= 0.0 && (iBestEnrollment == null || iBestValue > value)) {
                         iBestEnrollment = enrollment;
@@ -292,7 +295,7 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
             int idx = 0;
             for (Request request : iStudent.getRequests()) {
                 assignment[idx++] = (iBestEnrollment.getRequest().equals(request) ? iBestEnrollment
-                        : (Enrollment) request.getAssignment());
+                        : (Enrollment) request.getAssignment(iAssignment));
             }
             return new SwapStudentNeighbour(iBestValue, iBestEnrollment, iBestSwaps);
         }
@@ -337,13 +340,13 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
      * @return best alternative enrollment for the student of the conflicting
      *         enrollment
      */
-    public static Enrollment bestSwap(Enrollment conflict, Enrollment enrl, Set<Student> problematicStudents) {
+    public static Enrollment bestSwap(Assignment<Request, Enrollment> assignment, Enrollment conflict, Enrollment enrl, Set<Student> problematicStudents) {
         Enrollment bestEnrollment = null;
         double bestValue = 0;
         for (Enrollment enrollment : conflict.getRequest().values()) {
-            if (conflict.variable().getModel().inConflict(enrollment))
+            if (conflict.variable().getModel().inConflict(assignment, enrollment))
                 continue;
-            double value = enrollment.toDouble();
+            double value = enrollment.toDouble(assignment);
             if (bestEnrollment == null || bestValue > value) {
                 bestEnrollment = enrollment;
                 bestValue = value;
@@ -352,7 +355,7 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
         if (bestEnrollment == null && problematicStudents != null) {
             boolean added = false;
             for (Enrollment enrollment : conflict.getRequest().values()) {
-                Set<Enrollment> conflicts = conflict.variable().getModel().conflictValues(enrollment);
+                Set<Enrollment> conflicts = conflict.variable().getModel().conflictValues(assignment, enrollment);
                 for (Enrollment c : conflicts) {
                     if (enrl.getStudent().isDummy() && !c.getStudent().isDummy())
                         continue;
@@ -391,7 +394,7 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
         }
 
         @Override
-        public double value() {
+        public double value(Assignment<Request, Enrollment> assignment) {
             return iValue;
         }
 
@@ -400,15 +403,14 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
          * performed as well.
          **/
         @Override
-        public void assign(long iteration) {
-            if (iEnrollment.variable().getAssignment() != null)
-                iEnrollment.variable().unassign(iteration);
+        public void assign(Assignment<Request, Enrollment> assignment, long iteration) {
+            assignment.unassign(iteration, iEnrollment.variable());
             for (Enrollment swap : iSwaps) {
-                swap.variable().unassign(iteration);
+                assignment.unassign(iteration, swap.variable());
             }
-            iEnrollment.variable().assign(iteration, iEnrollment);
+            assignment.assign(iteration, iEnrollment);
             for (Enrollment swap : iSwaps) {
-                swap.variable().assign(iteration, swap);
+                assignment.assign(iteration, swap);
             }
         }
 
@@ -421,7 +423,6 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
             sb.append(" " + iEnrollment);
             for (Enrollment swap : iSwaps) {
                 sb.append("\n " + swap.getRequest());
-                sb.append(" " + swap.variable().getAssignment());
                 sb.append(" -> " + swap);
             }
             sb.append("\n}");

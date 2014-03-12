@@ -2,6 +2,7 @@ package net.sf.cpsolver.studentsct.heuristics.selection;
 
 import java.util.List;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
@@ -112,22 +113,21 @@ public class RandomUnassignmentSelection implements NeighbourSelection<Request, 
         }
 
         @Override
-        public double value() {
+        public double value(Assignment<Request, Enrollment> assignment) {
             double val = 0;
             for (Request request : iStudent.getRequests()) {
-                if (request.getAssignment() != null)
-                    val -= request.getAssignment().toDouble();
+                Enrollment enrollment = assignment.getValue(request);
+                if (enrollment != null)
+                    val -= enrollment.toDouble(assignment);
             }
             return val;
         }
 
         /** All requests of the given student are unassigned */
         @Override
-        public void assign(long iteration) {
-            for (Request request : iStudent.getRequests()) {
-                if (request.getAssignment() != null)
-                    request.unassign(iteration);
-            }
+        public void assign(Assignment<Request, Enrollment> assignment, long iteration) {
+            for (Request request : iStudent.getRequests())
+                assignment.unassign(iteration, request);
         }
 
         @Override

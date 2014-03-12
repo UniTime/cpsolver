@@ -7,9 +7,10 @@ import java.util.List;
 
 import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.model.TimeLocation;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.heuristics.RouletteWheelSelection;
 import net.sf.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
-import net.sf.cpsolver.studentsct.model.Assignment;
+import net.sf.cpsolver.studentsct.model.SctAssignment;
 import net.sf.cpsolver.studentsct.model.Config;
 import net.sf.cpsolver.studentsct.model.Course;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
@@ -180,9 +181,9 @@ public class StudentPreferencePenalties {
 
     /**
      * Return penalty of an assignment. It is a penalty of its time (see
-     * {@link Assignment#getTime()}) or zero if the time is null.
+     * {@link SctAssignment#getTime()}) or zero if the time is null.
      */
-    public double getPenalty(Assignment assignment) {
+    public double getPenalty(SctAssignment assignment) {
         return (assignment.getTime() == null ? 0.0 : getPenalty(assignment.getTime()));
     }
 
@@ -289,9 +290,9 @@ public class StudentPreferencePenalties {
     }
 
     /** Minimal and maximal available enrollment penalty of a request */
-    public double[] getMinMaxAvailableEnrollmentPenalty(Request request) {
+    public double[] getMinMaxAvailableEnrollmentPenalty(Assignment<Request, Enrollment> assignment, Request request) {
         if (request instanceof CourseRequest) {
-            return getMinMaxAvailableEnrollmentPenalty((CourseRequest) request);
+            return getMinMaxAvailableEnrollmentPenalty(assignment, (CourseRequest) request);
         } else {
             double pen = getPenalty(((FreeTimeRequest) request).getTime());
             return new double[] { pen, pen };
@@ -299,8 +300,8 @@ public class StudentPreferencePenalties {
     }
 
     /** Minimal and maximal available enrollment penalty of a request */
-    public double[] getMinMaxAvailableEnrollmentPenalty(CourseRequest request) {
-        List<Enrollment> enrollments = request.getAvaiableEnrollments();
+    public double[] getMinMaxAvailableEnrollmentPenalty(Assignment<Request, Enrollment> assignment, CourseRequest request) {
+        List<Enrollment> enrollments = request.getAvaiableEnrollments(assignment);
         if (enrollments.isEmpty())
             return new double[] { 0, 0 };
         double min = Double.MAX_VALUE, max = Double.MIN_VALUE;
