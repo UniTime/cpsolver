@@ -1,5 +1,8 @@
 package net.sf.cpsolver.ifs.model;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Value;
@@ -69,6 +72,14 @@ public class LazySwap<V extends Variable<V, T>, T extends Value<V, T>> extends L
     @Override
     public String toString() {
         return "Lazy "+iOldV1+" -> "+iV1+", "+iOldV2+" -> "+iV2;
+    }
+
+    @Override
+    public Map<V, T> assignments() {
+        Map<V, T> ret = new HashMap<V, T>();
+        ret.put(iV1.variable(), iV1);
+        ret.put(iV2.variable(), iV2);
+        return ret;
     }
 
 }

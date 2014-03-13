@@ -2,8 +2,10 @@ package net.sf.cpsolver.ifs.heuristics;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import net.sf.cpsolver.ifs.assignment.Assignment;
@@ -255,7 +257,7 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
     }
 
     /** Backtracking neighbour */
-    public class BackTrackNeighbour extends Neighbour<V, T> {
+    public class BackTrackNeighbour implements Neighbour<V, T> {
         private double iTotalValue = 0;
         private double iValue = 0;
         private List<T> iDifferentAssignments = null;
@@ -341,6 +343,14 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
             }
             sb.append("}");
             return sb.toString();
+        }
+
+        @Override
+        public Map<V, T> assignments() {
+            Map<V, T> ret = new HashMap<V, T>();
+            for (T p : iDifferentAssignments)
+                ret.put(p.variable(), p);
+            return ret;
         }
     }
 

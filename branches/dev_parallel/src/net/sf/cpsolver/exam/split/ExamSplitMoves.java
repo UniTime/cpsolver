@@ -2,6 +2,7 @@ package net.sf.cpsolver.exam.split;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import net.sf.cpsolver.exam.criteria.RoomPenalty;
@@ -187,7 +188,7 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
     /**
      * Split an exam into two
      */
-    protected class ExamSplitNeighbour extends Neighbour<Exam, ExamPlacement> {
+    protected class ExamSplitNeighbour implements Neighbour<Exam, ExamPlacement> {
         private Exam iExam;
         private ExamPlacement iPlacement;
         private double iValue = 0.0;
@@ -270,6 +271,11 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
         public ExamPlacement placement() {
             return iPlacement;
         }
+
+        @Override
+        public Map<Exam, ExamPlacement> assignments() {
+            throw new UnsupportedOperationException();
+        }
     }
     
     /**
@@ -277,7 +283,7 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
      * the students from the child exam back to its parent and removes the
      * child exam from the problem.
      */
-    protected class ExamMergeNeighbour extends Neighbour<Exam, ExamPlacement> {
+    protected class ExamMergeNeighbour implements Neighbour<Exam, ExamPlacement> {
         private Exam iExam;
         private double iValue = 0.0;
         
@@ -339,13 +345,18 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
         public Exam exam() {
             return iExam;
         }
+
+        @Override
+        public Map<Exam, ExamPlacement> assignments() {
+            throw new UnsupportedOperationException();
+        }
     }
     
     /**
      * Shuffle students between the parent exam and all of its children. Only swaps
      * that are decreasing the weighted sum of student conflicts are considered.
      */
-    protected class ExamShuffleNeighbour extends Neighbour<Exam, ExamPlacement> {
+    protected class ExamShuffleNeighbour implements Neighbour<Exam, ExamPlacement> {
         private Exam iExam;
         private double iValue = 0.0;
         
@@ -407,6 +418,11 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
          */
         public Exam exam() {
             return iExam;
+        }
+
+        @Override
+        public Map<Exam, ExamPlacement> assignments() {
+            throw new UnsupportedOperationException();
         }
     }
 }

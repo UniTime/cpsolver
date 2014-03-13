@@ -342,8 +342,11 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
             iTable = new List[model.getNrPeriods()];
             for (int i = 0; i < iTable.length; i++)
                 iTable[i] = new ArrayList<ExamPlacement>();
-            for (ExamPlacement placement: assignment.assignedValues())
-                assigned(assignment, placement);
+            for (Exam exam: variables()) {
+                ExamPlacement placement = assignment.getValue(exam);
+                if (placement != null && placement.contains(ExamRoom.this))
+                    iTable[placement.getPeriod().getIndex()].add(placement);
+            }
         }
 
         @Override

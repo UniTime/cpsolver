@@ -182,7 +182,7 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
         }
     }
 
-    public class SuggestionNeighbour extends Neighbour<Lecture, Placement> {
+    public class SuggestionNeighbour implements Neighbour<Lecture, Placement> {
         private double iValue = 0;
         private List<Placement> iDifferentAssignments = null;
 
@@ -220,6 +220,14 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
             }
             sb.append("}");
             return sb.toString();
+        }
+
+        @Override
+        public Map<Lecture, Placement> assignments() {
+            Map<Lecture, Placement> ret = new HashMap<Lecture, Placement>();
+            for (Placement p : iDifferentAssignments)
+                ret.put(p.variable(), p);
+            return ret;
         }
     }
     

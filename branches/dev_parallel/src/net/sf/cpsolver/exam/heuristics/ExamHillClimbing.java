@@ -61,6 +61,7 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
+@Deprecated
 public class ExamHillClimbing extends NeighbourSelectionWithContext<Exam, ExamPlacement, ExamHillClimbing.Context> implements SolutionListener<Exam, ExamPlacement>, LazyNeighbourAcceptanceCriterion<Exam, ExamPlacement> {
     private static Logger sLog = Logger.getLogger(ExamHillClimbing.class);
     private List<NeighbourSelection<Exam, ExamPlacement>> iNeighbours = null;

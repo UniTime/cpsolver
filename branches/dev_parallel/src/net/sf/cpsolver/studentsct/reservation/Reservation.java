@@ -11,6 +11,8 @@ import net.sf.cpsolver.ifs.assignment.context.AbstractClassWithContext;
 import net.sf.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.studentsct.model.Config;
+import net.sf.cpsolver.studentsct.model.Course;
+import net.sf.cpsolver.studentsct.model.CourseRequest;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Offering;
 import net.sf.cpsolver.studentsct.model.Request;
@@ -368,6 +370,12 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
         private double iUsed = 0;
 
         public ReservationContext(Assignment<Request, Enrollment> assignment) {
+            for (Course course: getOffering().getCourses())
+                for (CourseRequest request: course.getRequests()) {
+                    Enrollment enrollment = assignment.getValue(request);
+                    if (enrollment != null && Reservation.this.equals(enrollment.getReservation()))
+                        assigned(assignment, enrollment);
+                }
         }
 
         /** Notify reservation about an unassignment */

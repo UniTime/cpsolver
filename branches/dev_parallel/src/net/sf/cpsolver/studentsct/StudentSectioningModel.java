@@ -832,8 +832,11 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         private double iReservedSpace = 0.0;
 
         public StudentSectioningModelContext(Assignment<Request, Enrollment> assignment) {
-            for (Enrollment enrollment: assignment.assignedValues())
-                assigned(assignment, enrollment);
+            for (Request request: variables()) {
+                Enrollment enrollment = assignment.getValue(request);
+                if (enrollment != null)
+                    assigned(assignment, enrollment);
+            }
         }
 
         /**

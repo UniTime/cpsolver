@@ -203,6 +203,9 @@ public class FreeTimeRequest extends Request implements SctAssignment {
 
         public FreeTimeRequestContext(Assignment<Request, Enrollment> assignment) {
             super(assignment);
+            Enrollment enrollment = assignment.getValue(FreeTimeRequest.this);
+            if (enrollment != null)
+                assigned(assignment, enrollment);
         }
 
         /** Enrollment with this assignment was assigned to a {@link Request}. */

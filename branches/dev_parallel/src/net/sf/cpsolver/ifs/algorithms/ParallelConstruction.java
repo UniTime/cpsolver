@@ -111,7 +111,7 @@ public class ParallelConstruction<V extends Variable<V, T>, T extends Value<V, T
                     T value = assignment.getValue(variable);
                     T best = variable.getBestAssignment();
                     if (value == null && best != null)
-                        return new SimpleNeighbour<V, T>(variable, best);
+                        return new SimpleNeighbour<V, T>(variable, best, model.conflictValues(solution.getAssignment(), best));
                 }
             }
         }

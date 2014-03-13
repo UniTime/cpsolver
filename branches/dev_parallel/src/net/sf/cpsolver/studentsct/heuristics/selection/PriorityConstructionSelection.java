@@ -1,8 +1,10 @@
 package net.sf.cpsolver.studentsct.heuristics.selection;
 
 import java.text.DecimalFormat;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
@@ -158,7 +160,7 @@ public class PriorityConstructionSelection implements NeighbourSelection<Request
      * Takes {@link BranchBoundNeighbour} but only assign the given
      * number of assignments, corresponding to the number of cycles.
      */
-    public class ConstructionNeighbour extends Neighbour<Request, Enrollment>{
+    public class ConstructionNeighbour implements Neighbour<Request, Enrollment>{
         private BranchBoundNeighbour iNeighbour;
         
         public ConstructionNeighbour(BranchBoundNeighbour neighbour) {
@@ -213,6 +215,27 @@ public class PriorityConstructionSelection implements NeighbourSelection<Request
             }
             sb.append("\n}");
             return sb.toString();
+        }
+
+        @Override
+        public Map<Request, Enrollment> assignments() {
+            Map<Request, Enrollment> ret = new HashMap<Request, Enrollment>();
+            if (iCycle >= iMaxCycles) {
+                return iNeighbour.assignments();
+            }
+            for (Request r: iNeighbour.getStudent().getRequests())
+                ret.put(r, null);
+            int n = iCycle;
+            for (int i = 0; i < iNeighbour.getAssignment().length; i++) {
+                if (iNeighbour.getAssignment()[i] != null) {
+                    ret.put(iNeighbour.getAssignment()[i].variable(), iNeighbour.getAssignment()[i]);
+                    n --;
+                }
+                if (n == 0) {
+                    iImproved = true; break;
+                }
+            }
+            return ret;
         }
     }
 

@@ -210,4 +210,8 @@ public class DbtPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
     public boolean neighbourSelected(Assignment<V, T> assignment, long iteration, Neighbour<V, T> neighbour) {
         return true;
     }
+
+    @Override
+    public void neighbourFailed(Assignment<V, T> assignment, long iteration, Neighbour<V, T> neighbour) {
+    }
 }

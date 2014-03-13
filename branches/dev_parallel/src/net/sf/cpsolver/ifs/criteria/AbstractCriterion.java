@@ -360,7 +360,7 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
         /** Create from an assignment */
         protected ValueContext(Assignment<V, T> assignment) {
             if (iValueUpdateType != ValueUpdateType.NoUpdate)
-                iTotal = AbstractCriterion.this.getValue(assignment, assignment.assignedVariables());
+                iTotal = AbstractCriterion.this.getValue(assignment, getModel().variables());
         }
         
         /** Update value when unassigned */

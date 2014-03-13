@@ -97,21 +97,24 @@ public class RoomSplitDistancePenalty  extends ExamCriterion {
         
         public RoomSplitContext(Assignment<Exam, ExamPlacement> assignment) {
             super(assignment);
-            for (ExamPlacement value: assignment.assignedValues())
-                assigned(assignment, value);
+            for (Exam exam: getModel().variables()) {
+                ExamPlacement placement = assignment.getValue(exam);
+                if (placement != null && placement.getRoomPlacements() != null && placement.getRoomPlacements().size() > 1)
+                    iRoomSplits ++;
+            }
         }
 
         @Override
         public void assigned(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value) {
             super.assigned(assignment, value);
-            if (value.getRoomPlacements() == null || value.getRoomPlacements().size() > 1)
+            if (value.getRoomPlacements() != null && value.getRoomPlacements().size() > 1)
                 iRoomSplits ++;
         }
 
         @Override
         public void unassigned(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value) {
             super.unassigned(assignment, value);
-            if (value.getRoomPlacements() == null || value.getRoomPlacements().size() > 1)
+            if (value.getRoomPlacements() != null && value.getRoomPlacements().size() > 1)
                 iRoomSplits --;
         }
         

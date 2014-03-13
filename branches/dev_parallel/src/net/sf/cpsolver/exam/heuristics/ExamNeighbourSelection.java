@@ -4,6 +4,12 @@ import org.apache.log4j.Logger;
 
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamPlacement;
+import net.sf.cpsolver.exam.neighbours.ExamRandomMove;
+import net.sf.cpsolver.exam.neighbours.ExamRoomMove;
+import net.sf.cpsolver.exam.neighbours.ExamTimeMove;
+import net.sf.cpsolver.ifs.algorithms.GreatDeluge;
+import net.sf.cpsolver.ifs.algorithms.HillClimber;
+import net.sf.cpsolver.ifs.algorithms.SimulatedAnnealing;
 import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.assignment.context.AssignmentContext;
 import net.sf.cpsolver.ifs.assignment.context.NeighbourSelectionWithContext;
@@ -62,10 +68,10 @@ public class ExamNeighbourSelection extends NeighbourSelectionWithContext<Exam, 
     private ExamColoringConstruction iColor = null;
     private ExamConstruction iCon = null;
     private StandardNeighbourSelection<Exam, ExamPlacement> iStd = null;
-    private ExamSimulatedAnnealing iSA = null;
-    private ExamHillClimbing iHC = null;
-    private ExamHillClimbing iFin = null;
-    private ExamGreatDeluge iGD = null;
+    private SimulatedAnnealing<Exam, ExamPlacement> iSA = null;
+    private HillClimber<Exam, ExamPlacement> iHC = null;
+    private HillClimber<Exam, ExamPlacement> iFin = null;
+    private GreatDeluge<Exam, ExamPlacement> iGD = null;
     private boolean iUseGD = false;
     private Progress iProgress = null;
     private Callback iFinalPhaseFinished = null;
@@ -90,10 +96,13 @@ public class ExamNeighbourSelection extends NeighbourSelectionWithContext<Exam, 
             sLog.error("Unable to initialize standard selection, reason: " + e.getMessage(), e);
             iStd = null;
         }
-        iSA = new ExamSimulatedAnnealing(properties);
-        iHC = new ExamHillClimbing(properties, "Hill Climbing");
-        iFin = new ExamHillClimbing(properties, "Finalization");
-        iGD = new ExamGreatDeluge(properties);
+        properties.setProperty("SimulatedAnnealing.Neighbours", ExamRandomMove.class.getName() + ";" + ExamRoomMove.class.getName() + ";" + ExamTimeMove.class.getName());
+        iSA = new SimulatedAnnealing<Exam, ExamPlacement>(properties);
+        properties.setProperty("HillClimber.Neighbours", ExamRandomMove.class.getName() + ";" + ExamRoomMove.class.getName() + ";" + ExamTimeMove.class.getName());
+        iHC = new HillClimber<Exam, ExamPlacement>(properties);
+        iFin = new HillClimber<Exam, ExamPlacement>(properties); iFin.setPhase("Finalization");
+        properties.setProperty("GreatDeluge.Neighbours", ExamRandomMove.class.getName() + ";" + ExamRoomMove.class.getName() + ";" + ExamTimeMove.class.getName());
+        iGD = new GreatDeluge<Exam, ExamPlacement>(properties);
         iUseGD = properties.getPropertyBoolean("Exam.GreatDeluge", iUseGD);
     }
 
@@ -139,7 +148,7 @@ public class ExamNeighbourSelection extends NeighbourSelectionWithContext<Exam, 
             phase.setPhase(9999);
         switch (phase.getPhase()) {
             case -1:
-                phase.incPhase();
+                phase.setPhase(0);
                 sLog.info("***** construction phase *****");
                 if (iColor != null) {
                     n = iColor.selectNeighbour(solution);
@@ -151,7 +160,7 @@ public class ExamNeighbourSelection extends NeighbourSelectionWithContext<Exam, 
                     return n;
                 if (solution.getAssignment().nrAssignedVariables() > 0)
                     iProgress.setPhase("Searching for initial solution...", solution.getModel().variables().size());
-                phase.incPhase();
+                phase.setPhase(1);
                 sLog.info("***** cbs/tabu-search phase *****");
             case 1:
                 if (iStd != null && solution.getModel().variables().size() > solution.getAssignment().nrAssignedVariables()) {
@@ -160,13 +169,13 @@ public class ExamNeighbourSelection extends NeighbourSelectionWithContext<Exam, 
                     if (n != null)
                         return n;
                 }
-                phase.incPhase();
+                phase.setPhase(2);
                 sLog.info("***** hill climbing phase *****");
             case 2:
                 n = iHC.selectNeighbour(solution);
                 if (n != null)
                     return n;
-                phase.incPhase();
+                phase.setPhase(3);
                 sLog.info("***** " + (iUseGD ? "great deluge" : "simulated annealing") + " phase *****");
             case 3:
                 if (iUseGD)
@@ -219,7 +228,6 @@ public class ExamNeighbourSelection extends NeighbourSelectionWithContext<Exam, 
         private boolean iCanContinue = true;
 
         public int getPhase() { return iPhase; }
-        public void incPhase() { iPhase ++; }
         public void setPhase(int phase) { iPhase = phase; }
         
         public boolean isCanContinue() { return iCanContinue; }

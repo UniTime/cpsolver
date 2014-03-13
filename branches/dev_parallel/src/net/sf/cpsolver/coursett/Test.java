@@ -214,7 +214,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
             int nrSolvers = properties.getPropertyInt("Parallel.NrSolvers", 1);
             Assignment<Lecture, Placement> assignment = (nrSolvers <= 1 ? new DefaultSingleAssignment<Lecture, Placement>() : new DefaultParallelAssignment<Lecture, Placement>());
             Progress.getInstance(model).addProgressListener(new ProgressWriter(System.out));
-            Solver<Lecture, Placement> solver = (nrSolvers <= 1 ? new Solver<Lecture, Placement>(properties) : new ParallelSolver<Lecture, Placement>(properties));
+            Solver<Lecture, Placement> solver = (nrSolvers == 1 ? new Solver<Lecture, Placement>(properties) : new ParallelSolver<Lecture, Placement>(properties));
 
             TimetableLoader loader = (TimetableLoader) Class.forName(getTimetableLoaderClass(properties))
                     .getConstructor(new Class[] { TimetableModel.class, Assignment.class }).newInstance(new Object[] { model, assignment });
@@ -294,7 +294,8 @@ public class Test implements SolutionListener<Lecture, Placement> {
     public void bestSaved(Solution<Lecture, Placement> solution) {
         notify(solution);
         if (sLogger.isInfoEnabled())
-            sLogger.info("**BEST[" + solution.getIteration() + "]** " + ((TimetableModel)solution.getModel()).toString(solution.getAssignment()));
+            sLogger.info("**BEST[" + solution.getIteration() + "]** " + ((TimetableModel)solution.getModel()).toString(solution.getAssignment()) +
+                    (solution.getFailedIterations() > 0 ? ", F:" + sDoubleFormat.format(100.0 * solution.getFailedIterations() / solution.getIteration()) + "%" : ""));
     }
 
     @Override

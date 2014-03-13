@@ -71,8 +71,8 @@ public class ResectionUnassignedStudentsSelection extends BranchBoundSelection {
      */
     @Override
     public Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
-        while (iStudentsEnumeration.hasNext()) {
-            Student student = iStudentsEnumeration.next();
+        Student student = null;
+        while ((student = nextStudent()) != null) {
             Progress.getInstance(solution.getModel()).incProgress();
             if (student.nrAssignedRequests(solution.getAssignment()) == 0 && !student.getRequests().isEmpty()) {
                 Neighbour<Request, Enrollment> neighbour = getSelection(solution.getAssignment(), student).select();

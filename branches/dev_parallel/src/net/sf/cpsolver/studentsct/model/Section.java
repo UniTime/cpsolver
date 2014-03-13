@@ -593,6 +593,13 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
         private double iMinEnrollmentWeight = 0.0;
 
         public SectionContext(Assignment<Request, Enrollment> assignment) {
+            for (Course course: getSubpart().getConfig().getOffering().getCourses()) {
+                for (CourseRequest request: course.getRequests()) {
+                    Enrollment enrollment = assignment.getValue(request);
+                    if (enrollment != null && enrollment.getSections().contains(Section.this))
+                        assigned(assignment, enrollment);
+                }
+            }
         }
 
         /** Called when an enrollment with this section is assigned to a request */

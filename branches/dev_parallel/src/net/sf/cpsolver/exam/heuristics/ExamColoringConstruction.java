@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -268,6 +269,10 @@ public class ExamColoringConstruction implements NeighbourSelection<Exam, ExamPl
                 @Override
                 public double value(Assignment<Exam, ExamPlacement> assignment) {
                     return 0;
+                }
+                @Override
+                public Map<Exam, ExamPlacement> assignments() {
+                    throw new UnsupportedOperationException();
                 }
             };
         }

@@ -1,6 +1,8 @@
 package net.sf.cpsolver.studentsct.heuristics.selection;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
@@ -99,7 +101,7 @@ public class RandomUnassignmentSelection implements NeighbourSelection<Request, 
     }
 
     /** Unassignment of all requests of a student */
-    public static class UnassignStudentNeighbour extends Neighbour<Request, Enrollment> {
+    public static class UnassignStudentNeighbour implements Neighbour<Request, Enrollment> {
         private Student iStudent = null;
 
         /**
@@ -136,6 +138,14 @@ public class RandomUnassignmentSelection implements NeighbourSelection<Request, 
             sb.append(" " + iStudent);
             sb.append(" }");
             return sb.toString();
+        }
+
+        @Override
+        public Map<Request, Enrollment> assignments() {
+            Map<Request, Enrollment> ret = new HashMap<Request, Enrollment>();
+            for (Request request : iStudent.getRequests())
+                ret.put(request, null);
+            return ret;
         }
 
     }

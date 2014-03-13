@@ -947,7 +947,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * @param parent class needing an assignment context
      * @return reference to an assignment context
      */
-    public <C extends AssignmentContext> AssignmentContextReference<V,T,C> createReference(HasAssignmentContext<V, T, C> parent) {
+    public synchronized <C extends AssignmentContext> AssignmentContextReference<V,T,C> createReference(HasAssignmentContext<V, T, C> parent) {
         return new AssignmentContextReference<V, T, C>(parent, iNextReferenceId++);
     }
     

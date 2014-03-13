@@ -5,6 +5,7 @@ import java.util.List;
 import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.assignment.context.AssignmentContext;
 import net.sf.cpsolver.ifs.assignment.context.VariableWithContext;
+import net.sf.cpsolver.studentsct.StudentSectioningModel;
 
 /**
  * Representation of a request of a student for a course(s) or a free time. This
@@ -209,6 +210,9 @@ public abstract class Request extends VariableWithContext<Request, Enrollment, R
         private Double iWeight = null;
         
         public RequestContext(Assignment<Request, Enrollment> assignment) {
+            Enrollment enrollment = assignment.getValue(Request.this);
+            if (enrollment != null)
+                setLastWeight(enrollment.getRequest().getWeight() * ((StudentSectioningModel)getModel()).getStudentWeights().getWeight(assignment, enrollment));
         }
         
         public Double getLastWeight() { return iWeight; }

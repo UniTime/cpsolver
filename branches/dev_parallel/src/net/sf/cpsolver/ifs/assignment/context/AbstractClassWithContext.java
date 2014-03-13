@@ -50,7 +50,7 @@ public abstract class AbstractClassWithContext<V extends Variable<V, T>, T exten
     }
 
     @Override
-    public AssignmentContextReference<V, T, C> getAssignmentContextReference() {
+    public synchronized AssignmentContextReference<V, T, C> getAssignmentContextReference() {
         if (iContextReference == null)
             iContextReference = getModel().createReference(this);
         return iContextReference;

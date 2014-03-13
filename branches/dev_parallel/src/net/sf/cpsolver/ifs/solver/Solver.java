@@ -407,8 +407,7 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
 
     /** Sets initial solution */
     public void setInitalSolution(Model<V, T> model) {
-        iCurrentSolution = new Solution<V, T>(model, new DefaultSingleAssignment<V, T>(), 0, 0);
-        iLastSolution = null;
+        setInitalSolution(new Solution<V, T>(model, new DefaultSingleAssignment<V, T>(), 0, 0));
     }
 
     /** Starts solver */
@@ -538,6 +537,14 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
     /** Called in each iteration, after a neighbour is assigned */
     protected void onAssigned(double startTime) {
     }
+    
+    /**
+     * Returns true if the solver works only with one solution (regardless the number of threads it is using)
+     * @return true
+     */
+    public boolean hasSingleSolution() {
+        return currentSolution().getAssignment() instanceof DefaultSingleAssignment;
+    }
 
     /** Solver thread */
     protected class SolverThread extends Thread {
@@ -594,10 +601,9 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
                     }
                     if (neighbour == null) {
                         sLogger.debug("No neighbour selected.");
-                        synchronized (iCurrentSolution) { // still update the
-                                                          // solution (increase
-                                                          // iteration etc.)
-                            iCurrentSolution.update(JProf.currentTimeSec() - startTime);
+                        synchronized (iCurrentSolution) {
+                            // still update the solution (increase iteration etc.)
+                            iCurrentSolution.update(JProf.currentTimeSec() - startTime, false);
                         }
                         continue;
                     }

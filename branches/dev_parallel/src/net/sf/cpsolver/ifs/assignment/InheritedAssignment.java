@@ -2,19 +2,19 @@ package net.sf.cpsolver.ifs.assignment;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
-import net.sf.cpsolver.ifs.assignment.context.AssignmentContextHolder;
 import net.sf.cpsolver.ifs.assignment.context.AssignmentContextHolderMap;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
 
 /**
- * An assignment using a {@link HashMap} to store values of all the variables of the model.
- * This class is slower to store and retrieve a value than {@link AssignmentArray}, but 
- * faster in retrieving a collection of assigned variables and values (methods 
- * {@link Assignment#assignedVariables()} and {@link Assignment#assignedValues()}). 
+ * An assignment inherited from some other assignment with only a few local
+ * modifications. This can be used to pass a "copy" of an assignment to a neighbour
+ * selection. 
  * 
  * @see Assignment
  * 
@@ -36,47 +36,51 @@ import net.sf.cpsolver.ifs.model.Variable;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see <http://www.gnu.org/licenses/>.
  **/
-public class AssignmentMap<V extends Variable<V, T>, T extends Value<V, T>> extends AssignmentAbstract<V, T> {
+public class InheritedAssignment<V extends Variable<V, T>, T extends Value<V, T>> extends AssignmentAbstract<V, T> {
+    private Assignment<V, T> iParent;
     private Map<V, T> iAssignments = new LinkedHashMap<V, T>();
+    private Set<V> iDirty = new HashSet<V>();
     private Map<V, Long> iIteration = new HashMap<V, Long>();
-    
-    /** Creates an empty assignment */
-    public AssignmentMap(AssignmentContextHolder<V, T> contexts) {
-        super(contexts);
-    }
-    
-    /** Creates a copy of an existing assignment */
-    public AssignmentMap(Assignment<V, T> assignment) {
-        super(new AssignmentContextHolderMap<V, T>());
-        for (T value: assignment.assignedValues())
-            iAssignments.put(value.variable(), value);
-    }
 
+    public InheritedAssignment(Assignment<V, T> parent) {
+        super(new AssignmentContextHolderMap<V, T>());
+        iParent = parent;
+    }
     
     @Override
     public long getIteration(V variable) {
         Long it = iIteration.get(variable);
-        return (it == null ? 0 : it);
+        return (it != null ? it : iDirty.contains(variable) ? 0 : iParent.getIteration(variable));
     }
 
     @Override
     public Collection<V> assignedVariables() {
-        return iAssignments.keySet();
+        Set<V> variables = new HashSet<V>(iParent.assignedVariables());
+        variables.removeAll(iDirty);
+        variables.addAll(iAssignments.keySet());
+        return variables;
     }
     
     @Override
     public Collection<T> assignedValues() {
-        return iAssignments.values();
+        Set<T> values = new HashSet<T>();
+        for (T val: iParent.assignedValues()) {
+            if (!iDirty.contains(val.variable()))
+                values.add(val);
+        }
+        values.addAll(iAssignments.values());
+        return values;
     }
 
     @Override
     public int nrAssignedVariables() {
-        return iAssignments.size();
+        return iAssignments.size() + iParent.nrAssignedVariables() - iDirty.size();
     }
     
     @Override
     protected T getValueInternal(V variable) {
-        return iAssignments.get(variable);
+        T value = iAssignments.get(variable);
+        return (value != null ? value : iDirty.contains(variable) ? null : iParent.getValue(variable));
    }
 
     @Override
@@ -84,10 +88,13 @@ public class AssignmentMap<V extends Variable<V, T>, T extends Value<V, T>> exte
         if (value == null) {
             iAssignments.remove(variable);
             iIteration.remove(variable);
+            if (iParent.getValue(variable) != null)
+                iDirty.add(variable);
         } else {
             iAssignments.put(variable, value);
             if (iteration > 0)
                 iIteration.put(variable, iteration);
+            iDirty.remove(variable);
         }
     }
 }
