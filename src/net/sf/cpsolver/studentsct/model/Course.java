@@ -205,6 +205,11 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
         private Set<Enrollment> iEnrollments = new HashSet<Enrollment>();
 
         public CourseContext(Assignment<Request, Enrollment> assignment) {
+            for (CourseRequest request: getRequests()) {
+                Enrollment enrollment = assignment.getValue(request);
+                if (enrollment != null && Course.this.equals(enrollment.getCourse()))
+                    assigned(assignment, enrollment);
+            }
         }
 
         @Override

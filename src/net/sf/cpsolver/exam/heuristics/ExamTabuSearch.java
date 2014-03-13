@@ -117,6 +117,7 @@ public class ExamTabuSearch extends NeighbourSelectionWithContext<Exam, ExamPlac
     /** Initialization */
     @Override
     public void init(Solver<Exam, ExamPlacement> solver) {
+        super.init(solver);
         for (Extension<Exam, ExamPlacement> extension : solver.getExtensions()) {
             if (ConflictStatistics.class.isInstance(extension))
                 iStat = (ConflictStatistics<Exam, ExamPlacement>) extension;

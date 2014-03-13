@@ -341,7 +341,7 @@ public class Enrollment extends Value<Request, Enrollment> {
     @Override
     public String toString() {
         if (getAssignments().isEmpty()) return "not assigned";
-        String ret = sDF.format(toDouble(null)) + "/" + sDF.format(getRequest().getBound()) + (getPenalty() == 0.0 ? "" : "/" + sDF.format(getPenalty()));
+        String ret = sDF.format(getRequest().getBound()) + (getPenalty() == 0.0 ? "" : "/" + sDF.format(getPenalty()));
         if (getRequest() instanceof CourseRequest) {
             ret += " ";
             for (Iterator<? extends SctAssignment> i = getAssignments().iterator(); i.hasNext();) {
@@ -385,7 +385,7 @@ public class Enrollment extends Value<Request, Enrollment> {
             TimeOverlapsCounter toc = ((StudentSectioningModel) getRequest().getModel()).getTimeOverlaps();
             if (toc == null)
                 return null;
-            return toc.getContext(assignment).allConflicts(assignment, this);
+            return toc.allConflicts(assignment, this);
         } else
             return null;
     }

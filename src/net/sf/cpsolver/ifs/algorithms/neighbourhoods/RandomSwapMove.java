@@ -167,7 +167,7 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
         return null;
     }
     
-    public class SwapNeighbour extends Neighbour<V, T> {
+    public class SwapNeighbour implements Neighbour<V, T> {
         private double iValue = 0;
         private Collection<T> iAssignments = null;
 
@@ -182,10 +182,10 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
 
         @Override
         public void assign(Assignment<V, T> assignment, long iteration) {
-            for (T placement: iAssignments)
-                assignment.unassign(iteration, placement.variable());
-            for (T placement: iAssignments)
-                assignment.assign(iteration, placement);
+            for (T value: iAssignments)
+                assignment.unassign(iteration, value.variable());
+            for (T value: iAssignments)
+                assignment.assign(iteration, value);
         }
 
         @Override
@@ -197,6 +197,14 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
             }
             sb.append("}");
             return sb.toString();
+        }
+
+        @Override
+        public Map<V, T> assignments() {
+            Map<V, T> ret = new HashMap<V, T>();
+            for (T value: iAssignments)
+                ret.put(value.variable(), value);
+            return ret;
         }
     }
 }

@@ -29,6 +29,7 @@ import net.sf.cpsolver.ifs.heuristics.BacktrackNeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solution.SolutionListener;
+import net.sf.cpsolver.ifs.solver.ParallelSolver;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.solver.SolverListener;
 import net.sf.cpsolver.ifs.util.DataProperties;
@@ -588,7 +589,8 @@ public class Test {
 
     /** Solve the student sectioning problem using IFS solver */
     public static Solution<Request, Enrollment> solve(Solution<Request, Enrollment> solution, DataProperties cfg) {
-        Solver<Request, Enrollment> solver = new Solver<Request, Enrollment>(cfg);
+        int nrSolvers = cfg.getPropertyInt("Parallel.NrSolvers", 1);
+        Solver<Request, Enrollment> solver = (nrSolvers == 1 ? new Solver<Request, Enrollment>(cfg) : new ParallelSolver<Request, Enrollment>(cfg));
         solver.setInitalSolution(solution);
         if (cfg.getPropertyBoolean("Test.Verbose", false)) {
             solver.addSolverListener(new SolverListener<Request, Enrollment>() {
@@ -606,6 +608,11 @@ public class Test {
                 public boolean neighbourSelected(Assignment<Request, Enrollment> assignment, long iteration, Neighbour<Request, Enrollment> neighbour) {
                     sLog.debug("Select[" + iteration + "]: " + neighbour);
                     return true;
+                }
+
+                @Override
+                public void neighbourFailed(Assignment<Request, Enrollment> assignment, long iteration, Neighbour<Request, Enrollment> neighbour) {
+                    sLog.debug("Failed[" + iteration + "]: " + neighbour);
                 }
             });
         }
@@ -1305,7 +1312,8 @@ public class Test {
 
         @Override
         public void bestSaved(Solution<Request, Enrollment> solution) {
-            sLog.info("**BEST** " + ((StudentSectioningModel)solution.getModel()).toString(solution.getAssignment()) + ", TM:" + sDF.format(solution.getTime() / 3600.0) + "h");
+            sLog.info("**BEST** " + ((StudentSectioningModel)solution.getModel()).toString(solution.getAssignment()) + ", TM:" + sDF.format(solution.getTime() / 3600.0) + "h" +
+                    (solution.getFailedIterations() > 0 ? ", F:" + sDF.format(100.0 * solution.getFailedIterations() / solution.getIteration()) + "%" : ""));
         }
 
         @Override

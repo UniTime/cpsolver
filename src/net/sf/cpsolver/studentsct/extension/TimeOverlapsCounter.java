@@ -318,6 +318,27 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
         }
     }
     
+    /**
+     * The set of all conflicts ({@link Conflict} objects) of the given
+     * enrollment and other enrollments that are assigned to the same student.
+     */
+    public Set<Conflict> allConflicts(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+        Set<Conflict> ret = new HashSet<Conflict>();
+        if (enrollment.getRequest() instanceof FreeTimeRequest) return ret;
+        for (Request request : enrollment.getStudent().getRequests()) {
+            if (request.equals(enrollment.getRequest())) continue;
+            Enrollment other = assignment.getValue(request);
+            if (request instanceof FreeTimeRequest) {
+                FreeTimeRequest ft = (FreeTimeRequest)request;
+                ret.addAll(conflicts(enrollment, ft.createEnrollment()));
+                continue;
+            } else if (other != null) {
+                ret.addAll(conflicts(enrollment, other));
+            }
+        }
+        return ret;
+    }
+    
     public class TimeOverlapsCounterContext implements AssignmentConstraintContext<Request, Enrollment> {
         private int iTotalNrConflicts = 0;
         private Set<Conflict> iAllConflicts = new HashSet<Conflict>();

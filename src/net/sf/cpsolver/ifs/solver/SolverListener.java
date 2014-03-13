@@ -61,5 +61,15 @@ public interface SolverListener<V extends Variable<V, T>, T extends Value<V, T>>
      *            neighbour
      */
     public boolean neighbourSelected(Assignment<V, T> assignment, long iteration, Neighbour<V, T> neighbour);
+    
+    /**
+     * Called when {@link ParallelSolver} failed to assign the given neighbour
+     * 
+     * @param iteration
+     *            current iteration
+     * @param neighbour
+     *            neighbour
+     */
+    public void neighbourFailed(Assignment<V, T> assignment, long iteration, Neighbour<V, T> neighbour);
 
 }

@@ -166,7 +166,7 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
     /**
      * Total space in the configuration that cannot be reserved by any config reservation
      **/
-    public double getTotalUnreservedSpace() {
+    public synchronized double getTotalUnreservedSpace() {
         if (iTotalUnreservedSpace == null)
             iTotalUnreservedSpace = getTotalUnreservedSpaceNoCache();
         return iTotalUnreservedSpace;
@@ -211,7 +211,7 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
     /**
      * Get reservations for this configuration
      */
-    public List<Reservation> getReservations() {
+    public synchronized List<Reservation> getReservations() {
         if (iReservations == null) {
             iReservations = new ArrayList<Reservation>();
             for (Reservation r: getOffering().getReservations()) {
@@ -226,7 +226,7 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
     /**
      * Get reservations that require this configuration
      */
-    public List<Reservation> getConfigReservations() {
+    public synchronized List<Reservation> getConfigReservations() {
         if (iConfigReservations == null) {
             iConfigReservations = new ArrayList<Reservation>();
             for (Reservation r: getOffering().getReservations()) {
@@ -241,7 +241,7 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
     /**
      * Clear reservation information that was cached on this configuration or below
      */
-    public void clearReservationCache() {
+    public synchronized void clearReservationCache() {
         for (Subpart s: getSubparts())
             s.clearReservationCache();
         iReservations = null;
@@ -304,7 +304,15 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
         private double iMinEnrollmentWeight = 0.0;
         private Set<Enrollment> iEnrollments = new HashSet<Enrollment>();
 
-        public ConfigContext(Assignment<Request, Enrollment> assignment) {}
+        public ConfigContext(Assignment<Request, Enrollment> assignment) {
+            for (Course course: getOffering().getCourses()) {
+                for (CourseRequest request: course.getRequests()) {
+                    Enrollment enrollment = assignment.getValue(request);
+                    if (enrollment != null && Config.this.equals(enrollment.getConfig()))
+                        assigned(assignment, enrollment);
+                }
+            }
+        }
 
         /** Called when an enrollment with this config is assigned to a request */
         @Override

@@ -6,7 +6,10 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 
 import net.sf.cpsolver.ifs.assignment.Assignment;
@@ -94,7 +97,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
     protected TimeOverlapsCounter iTimeOverlaps = null;
     protected StudentSectioningModel iModel = null;
     public static boolean sDebug = false;
-    protected Iterator<Student> iStudentsEnumeration = null;
+    protected Queue<Student> iStudents = null;
     protected boolean iMinimizePenalty = false;
     protected StudentOrder iOrder = new StudentChoiceRealFirstOrder();
     protected double iDistConfWeight = 1.0;
@@ -132,7 +135,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
     public void setModel(StudentSectioningModel model) {
         iModel = model;
         List<Student> students = iOrder.order(iModel.getStudents());
-        iStudentsEnumeration = students.iterator();   
+        iStudents = new LinkedList<Student>(students);
         iTimeOverlaps = model.getTimeOverlaps();
         iDistanceConflict = model.getDistanceConflict();
     }
@@ -141,6 +144,14 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
     public void init(Solver<Request, Enrollment> solver) {
         init(solver, "Branch&bound...");
     }
+    
+    protected synchronized Student nextStudent() {
+        return iStudents.poll();
+    }
+    
+    public synchronized void addStudent(Student student) {
+        if (iStudents != null) iStudents.add(student);
+    }
 
     /**
      * Select neighbour. All students are taken, one by one in a random order.
@@ -148,8 +159,8 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
      */
     @Override
     public Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
-        while (iStudentsEnumeration.hasNext()) {
-            Student student = iStudentsEnumeration.next();
+        Student student = null;
+        while ((student = nextStudent()) != null) {
             Progress.getInstance(solution.getModel()).incProgress();
             Neighbour<Request, Enrollment> neighbour = getSelection(solution.getAssignment(), student).select();
             if (neighbour != null)
@@ -649,7 +660,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
     }
 
     /** Branch & bound neighbour -- a schedule of a student */
-    public static class BranchBoundNeighbour extends Neighbour<Request, Enrollment> {
+    public static class BranchBoundNeighbour implements Neighbour<Request, Enrollment> {
         private double iValue;
         private Enrollment[] iAssignment;
         private Student iStudent;
@@ -708,6 +719,14 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             }
             sb.append("\n}");
             return sb.toString();
+        }
+
+        @Override
+        public Map<Request, Enrollment> assignments() {
+            Map<Request, Enrollment> ret = new HashMap<Request, Enrollment>();
+            for (int i = 0; i < iAssignment.length; i++)
+                ret.put(iStudent.getRequests().get(i), iAssignment[i]);
+            return ret;
         }
 
     }

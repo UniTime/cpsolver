@@ -4,10 +4,12 @@ import java.util.Map;
 import java.util.Set;
 
 import net.sf.cpsolver.exam.model.Exam;
+import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamRoom;
 import net.sf.cpsolver.exam.model.ExamRoomPlacement;
 import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
@@ -55,6 +57,12 @@ public class RoomSizePenalty extends ExamCriterion {
     public boolean init(Solver<Exam, ExamPlacement> solver) {
         iRoomSizeFactor = solver.getProperties().getPropertyDouble("Exams.RoomSizeFactor", 1.0);
         return super.init(solver);
+    }
+    
+    @Override
+    public void setModel(Model<Exam, ExamPlacement> model) {
+        super.setModel(model);
+        iRoomSizeFactor = ((ExamModel)model).getProperties().getPropertyDouble("Exams.RoomSizeFactor", 1.0);
     }
     
     @Override

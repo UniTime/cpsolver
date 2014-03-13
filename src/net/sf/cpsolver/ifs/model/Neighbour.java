@@ -1,5 +1,7 @@
 package net.sf.cpsolver.ifs.model;
 
+import java.util.Map;
+
 import net.sf.cpsolver.ifs.assignment.Assignment;
 
 /**
@@ -27,10 +29,13 @@ import net.sf.cpsolver.ifs.assignment.Assignment;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public abstract class Neighbour<V extends Variable<V, T>, T extends Value<V, T>> {
+public interface Neighbour<V extends Variable<V, T>, T extends Value<V, T>> {
     /** Perform assignmnet */
-    public abstract void assign(Assignment<V, T> assignment, long iteration);
+    public void assign(Assignment<V, T> assignment, long iteration);
 
     /** Difference in the evaluation function, if this neighnour is assigned. */
-    public abstract double value(Assignment<V, T> assignment);
+    public double value(Assignment<V, T> assignment);
+    
+    /** Return assignments to be done. */
+    public Map<V, T> assignments(); 
 }

@@ -33,7 +33,7 @@ import net.sf.cpsolver.ifs.model.Variable;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public abstract class LazyNeighbour<V extends Variable<V, T>, T extends Value<V, T>> extends Neighbour<V,T> {
+public abstract class LazyNeighbour<V extends Variable<V, T>, T extends Value<V, T>> implements Neighbour<V,T> {
     private LazyNeighbourAcceptanceCriterion<V,T> iCriterion = null;
     
     /**

@@ -91,8 +91,14 @@ public class ExamRotationPenalty extends ExamCriterion {
 
         public RotationContext(Assignment<Exam, ExamPlacement> assignment) {
             super(assignment);
-            for (ExamPlacement value: assignment.assignedValues())
-                assigned(assignment, value);
+            for (Exam exam: getModel().variables())
+                if (exam.getAveragePeriod() > 0) {
+                    ExamPlacement placement = assignment.getValue(exam);
+                    if (placement != null) {
+                        iAssignedExamsWithAvgPeriod ++;
+                        iAveragePeriod += exam.getAveragePeriod();
+                    }
+                }
         }
 
         @Override

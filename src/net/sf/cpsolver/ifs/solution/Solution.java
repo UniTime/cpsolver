@@ -43,17 +43,18 @@ import net.sf.cpsolver.ifs.solver.Solver;
  */
 
 public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
-    private static java.text.DecimalFormat sTimeFormat = new java.text.DecimalFormat("0.00",
-            new java.text.DecimalFormatSymbols(Locale.US));
+    private static java.text.DecimalFormat sTimeFormat = new java.text.DecimalFormat("0.00", new java.text.DecimalFormatSymbols(Locale.US));
 
     private Model<V, T> iModel;
     private Assignment<V, T> iAssignment;
     private long iIteration = 0;
+    private long iFailedIterations = 0;
     private double iTime = 0.0;
 
     private boolean iBestComplete = false;
     private Map<String, String> iBestInfo = null;
     private long iBestIteration = -1;
+    private long iBestFailedIterations = -1;
     private double iBestTime = -1;
     private double iBestPerturbationsPenaly = -1.0;
 
@@ -83,6 +84,16 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
     public long getIteration() {
         return iIteration;
     }
+    
+    /** Number of failed iterations (i.e., number of calls {@link Solution#update(double, boolean)} with false success) */
+    public long getFailedIterations() {
+        return iFailedIterations;
+    }
+    
+    /** Number of failed iterations (i.e., number of calls {@link Solution#update(double, boolean)} with false success) in the best solution */
+    public long getBestFailedIterations() {
+        return (iBestIteration < 0 ? getFailedIterations() : iBestFailedIterations);
+    }
 
     /** The model associated with the solution */
     public Model<V, T> getModel() {
@@ -105,16 +116,23 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
     }
 
     /** Update time, increment current iteration */
-    public void update(double time) {
+    public void update(double time, boolean success) {
         iTime = time;
         iIteration++;
+        if (!success) iFailedIterations ++;
         for (SolutionListener<V, T> listener : iSolutionListeners)
             listener.solutionUpdated(this);
+    }
+    
+    /** Update time, increment current iteration */
+    public void update(double time) {
+        update(time, true);
     }
 
     /** Initialization */
     public void init(Solver<V, T> solver) {
         iIteration = 0;
+        iFailedIterations = 0;
         iTime = 0;
         if (iModel != null)
             iModel.init(solver);
@@ -136,7 +154,7 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
         if (getPerturbationsCounter() != null)
             getPerturbationsCounter().getInfo(getAssignment(), getModel(), ret);
         ret.put("Time", sTimeFormat.format(getTime() / 60.0) + " min");
-        ret.put("Iteration", String.valueOf(getIteration()));
+        ret.put("Iteration", getIteration() + (getFailedIterations() > 0 ? " (" + sTimeFormat.format(100.0 * getFailedIterations() / getIteration())+ "% failed)" : ""));
         if (getTime() > 0)
             ret.put("Speed", sTimeFormat.format((getIteration()) / getTime()) + " it/s");
         for (SolutionListener<V, T> listener : iSolutionListeners)
@@ -155,7 +173,7 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
         if (getPerturbationsCounter() != null)
             getPerturbationsCounter().getInfo(getAssignment(), getModel(), ret);
         ret.put("Time", sTimeFormat.format(getTime() / 60.0) + " min");
-        ret.put("Iteration", String.valueOf(getIteration()));
+        ret.put("Iteration", getIteration() + (getFailedIterations() > 0 ? " (" + sTimeFormat.format(100.0 * getFailedIterations() / getIteration())+ "% failed)" : ""));
         if (getTime() > 0)
             ret.put("Speed", sTimeFormat.format((getIteration()) / getTime()) + " it/s");
         for (SolutionListener<V, T> listener : iSolutionListeners)
@@ -237,6 +255,7 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
             iBestInfo = null;
             iBestTime = -1;
             iBestIteration = -1;
+            iBestFailedIterations = 0;
             iBestComplete = false;
             iBestPerturbationsPenaly = -1.0;
             for (SolutionListener<V, T> listener : iSolutionListeners)
@@ -260,6 +279,7 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
             iBestInfo = getInfo();
             iBestTime = getTime();
             iBestIteration = getIteration();
+            iBestFailedIterations = getFailedIterations();
             iBestComplete = isComplete();
             iBestPerturbationsPenaly = (iPerturbationsCounter == null ? 0.0 : iPerturbationsCounter.getPerturbationPenalty(getAssignment(), getModel()));
             for (SolutionListener<V, T> listener : iSolutionListeners)
@@ -267,10 +287,12 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
             
             if (master != null) {
                 master.iIteration = iIteration;
+                master.iFailedIterations = iFailedIterations;
                 master.iTime = iTime;
                 master.iBestInfo = iBestInfo;
                 master.iBestTime = iBestTime;
                 master.iBestIteration = iBestIteration;
+                master.iBestFailedIterations = iBestFailedIterations;
                 master.iBestComplete = iBestComplete;
                 master.iBestPerturbationsPenaly = iBestPerturbationsPenaly;
             }
@@ -294,6 +316,7 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
             getModel().restoreBest(iAssignment);
             iTime = iBestTime;
             iIteration = iBestIteration;
+            iFailedIterations = iBestFailedIterations;
             for (SolutionListener<V, T> listener : iSolutionListeners)
                 listener.bestRestored(this);
         }

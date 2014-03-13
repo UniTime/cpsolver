@@ -11,7 +11,6 @@ import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.solution.Solution;
-import net.sf.cpsolver.ifs.solver.ParallelSolver;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.termination.TerminationCondition;
 import net.sf.cpsolver.ifs.util.DataProperties;
@@ -98,7 +97,7 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
     @Override
     public void init(Solver<V, T> solver) {
         super.init(solver);
-        if (solver instanceof ParallelSolver)
+        if (!solver.hasSingleSolution())
             iCon = new ParallelConstruction<V, T>(solver.getProperties(), iCon == null ? iStd : iCon);
         iStd.init(solver);
         if (iCon != null)
@@ -124,7 +123,7 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
         Neighbour<V, T> n = null;
         switch (context.getPhase()) {
             case -1:
-                context.incPhase();
+                context.setPhase(0);
                 iLog.info("***** construction phase *****");
                 if (solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0)
                     iProgress.setPhase("Searching for initial solution...", solution.getModel().variables().size());
@@ -135,14 +134,14 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
                     if (n != null || iConstructionUntilComplete)
                         return n;
                 }
-                context.incPhase();
+                context.setPhase(1);
                 iLog.info("***** ifs phase *****");
             case 1:
                 if (iStd != null && solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0) {
                     iProgress.setProgress(solution.getModel().variables().size() - solution.getModel().getBestUnassignedVariables());
                     return iStd.selectNeighbour(solution);
                 }
-                context.incPhase();
+                context.setPhase(2);
                 iLog.info("***** hill climbing phase *****");
             case 2:
                 if (solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0)
@@ -150,7 +149,7 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
                 n = iHC.selectNeighbour(solution);
                 if (n != null)
                     return n;
-                context.incPhase();
+                context.setPhase(3);
                 iLog.info("***** " + (iUseGD ? "great deluge" : "simulated annealing") + " phase *****");
             case 3:
                 if (solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0)
@@ -173,7 +172,6 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
         private int iPhase = -1;
         
         public int getPhase() { return iPhase; }
-        public void incPhase() { iPhase++; }
         public void setPhase(int phase) { iPhase = phase; }
     }
 }

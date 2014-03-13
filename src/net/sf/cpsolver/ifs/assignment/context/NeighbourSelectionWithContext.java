@@ -38,10 +38,21 @@ import net.sf.cpsolver.ifs.solver.Solver;
 public abstract class NeighbourSelectionWithContext<V extends Variable<V, T>, T extends Value<V, T>, C extends AssignmentContext> implements NeighbourSelection<V, T>, HasAssignmentContext<V, T, C>, CanHoldContext {
     private AssignmentContextReference<V, T, C> iContextReference = null;
     private AssignmentContext[] iContext = null;
+    protected C iContextOverride = null;
 
     @Override
     public void init(Solver<V, T> solver) {
         iContextReference = solver.currentSolution().getModel().createReference(this);
+        if (isSingleContextSolver(solver))
+            iContextOverride = createAssignmentContext(solver.currentSolution().getAssignment());
+    }
+    
+    /**
+     * Returns true if there should be only one context for this neighbourhood selection.
+     * @return {@link Solver#hasSingleSolution()}
+     */
+    protected boolean isSingleContextSolver(Solver<V, T> solver) {
+        return solver.hasSingleSolution();
     }
     
     /**
@@ -54,13 +65,15 @@ public abstract class NeighbourSelectionWithContext<V extends Variable<V, T>, T 
      */
     @SuppressWarnings("unchecked")
     public C getContext(Assignment<V, T> assignment) {
+        if (iContextOverride != null)
+            return iContextOverride;
         if (iContext != null && assignment.getIndex() >= 0 && assignment.getIndex() < iContext.length) {
             AssignmentContext c = iContext[assignment.getIndex()];
             if (c != null) return (C)c;
         }
         return assignment.getAssignmentContext(getAssignmentContextReference());
     }
-
+    
     @Override
     public AssignmentContextReference<V, T, C> getAssignmentContextReference() { return iContextReference; }
 

@@ -97,7 +97,7 @@ public class RndUnProblStudSelection extends RandomUnassignmentSelection {
      * be unassigned. Null is returned otherwise.
      */
     @Override
-    public Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
+    public synchronized Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
         if (!iProblemStudents.isEmpty() && Math.random() < iRandom) {
             Student student = ToolBox.random(iProblemStudents);
             iProblemStudents.remove(student);

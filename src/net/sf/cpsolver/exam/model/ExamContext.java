@@ -22,11 +22,6 @@ public class ExamContext implements AssignmentConstraintContext<Exam, ExamPlacem
         iStudentDayTable = new Map[model.getNrDays()];
         for (int i = 0; i < iStudentDayTable.length; i++)
             iStudentDayTable[i] = new HashMap<ExamStudent, Set<Exam>>();
-        for (Exam exam: model.variables()) {
-            ExamPlacement placement = assignment.getValue(exam);
-            if (placement != null)
-                assigned(assignment, placement);
-        }
         iInstructorTable = new Map[model.getNrPeriods()];
         for (int i = 0; i < iInstructorTable.length; i++)
             iInstructorTable[i] = new HashMap<ExamInstructor, Set<Exam>>();

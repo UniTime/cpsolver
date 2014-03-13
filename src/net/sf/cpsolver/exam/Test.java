@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.util.Collection;
+import java.util.Locale;
 import java.util.Map;
 
 import net.sf.cpsolver.exam.criteria.DistributionPenalty;
@@ -112,6 +113,7 @@ import org.dom4j.io.XMLWriter;
  */
 public class Test {
     private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(Test.class);
+    private static java.text.DecimalFormat sDoubleFormat = new java.text.DecimalFormat("0.00", new java.text.DecimalFormatSymbols(Locale.US));
 
     /**
      * Setup log4j logging
@@ -384,7 +386,7 @@ public class Test {
             Assignment<Exam, ExamPlacement> assignment = (nrSolvers <= 1 ? new DefaultSingleAssignment<Exam, ExamPlacement>() : new DefaultParallelAssignment<Exam, ExamPlacement>());
             model.load(document, assignment);
 
-            Solver<Exam, ExamPlacement> solver = (nrSolvers <= 1 ? new Solver<Exam, ExamPlacement>(cfg) : new ParallelSolver<Exam, ExamPlacement>(cfg));
+            Solver<Exam, ExamPlacement> solver = (nrSolvers == 1 ? new Solver<Exam, ExamPlacement>(cfg) : new ParallelSolver<Exam, ExamPlacement>(cfg));
             solver.setInitalSolution(new Solution<Exam, ExamPlacement>(model, assignment));
 
             solver.currentSolution().addSolutionListener(new SolutionListener<Exam, ExamPlacement>() {
@@ -412,7 +414,8 @@ public class Test {
                     if (sLog.isInfoEnabled()) {
                         sLog.info("**BEST[" + solution.getIteration() + "]** "
                                 + (m.variables().size() > a.nrAssignedVariables() ? "V:" + a.nrAssignedVariables() + "/" + m.variables().size() + " - " : "") +
-                                "T:" + new DecimalFormat("0.00").format(m.getTotalValue(a)) + " " + m.toString(a));
+                                "T:" + new DecimalFormat("0.00").format(m.getTotalValue(a)) + " " + m.toString(a) +
+                                (solution.getFailedIterations() > 0 ? ", F:" + sDoubleFormat.format(100.0 * solution.getFailedIterations() / solution.getIteration()) + "%" : ""));
                     }
                 }
 

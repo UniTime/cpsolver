@@ -137,7 +137,6 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
         solver.setUpdateProgress(false);
         for (NeighbourSelection<V, T> neighbour: iNeighbours)
             neighbour.init(solver);
-        solver.setUpdateProgress(false);
         iTotalBonus = 0;
         for (NeighbourSelector<V,T> s: iNeighbours) {
             s.init(solver);

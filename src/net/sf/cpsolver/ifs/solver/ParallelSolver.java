@@ -1,10 +1,14 @@
 package net.sf.cpsolver.ifs.solver;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.assignment.DefaultParallelAssignment;
+import net.sf.cpsolver.ifs.assignment.DefaultSingleAssignment;
+import net.sf.cpsolver.ifs.assignment.InheritedAssignment;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.model.Value;
@@ -20,7 +24,11 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  * Multi-threaded solver. Instead of one, a given number of solver threads are created
  * (as defined by Parallel.NrSolvers property) and started in parallel. Each thread
  * works with its own assignment {@link DefaultParallelAssignment}, but the best solution
- * is shared among all of them.
+ * is shared among all of them.<br>
+ * <br>
+ * When {@link DefaultSingleAssignment} is given to the solver, only one solution is used.
+ * A neighbour is assigned to this (shared) solution when it does not create any conflicts
+ * outside of {@link Neighbour#assignments()}.
  * 
  * @see Solver
  * 
@@ -44,7 +52,8 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  **/
 public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> extends Solver<V, T> {
     private SynchronizationThread iSynchronizationThread = null;
-
+    private int iNrFinished = 0;
+    
     public ParallelSolver(DataProperties properties) {
         super(properties);
     }
@@ -52,24 +61,32 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
     /** Starts solver */
     @Override
     public void start() {
-        iSynchronizationThread = new SynchronizationThread();
-        iSynchronizationThread.setPriority(THREAD_PRIORITY);
-        iSynchronizationThread.start();
+        int nrSolvers = Math.abs(getProperties().getPropertyInt("Parallel.NrSolvers", 4));
+        if (nrSolvers == 1) {
+            super.start();
+        } else {
+            iSynchronizationThread = new SynchronizationThread(nrSolvers);
+            iSynchronizationThread.setPriority(THREAD_PRIORITY);
+            iSynchronizationThread.start();
+        }
     }
     
     /** Returns solver's thread */
     @Override
     public Thread getSolverThread() {
-        return iSynchronizationThread;
+        return iSynchronizationThread != null ? iSynchronizationThread : super.getSolverThread();
     }
-    
-    private int iNrFinished = 0;
     
     /**
      * Synchronization thread
      */
     protected class SynchronizationThread extends Thread {
+        private int iNrSolvers;
         private List<SolverThread> iSolvers = new ArrayList<SolverThread>();
+        
+        SynchronizationThread(int nrSolvers) {
+            iNrSolvers = nrSolvers;
+        }
         
         @Override
         public void run() {
@@ -106,9 +123,8 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
                 iStop = true;
             }
             
-            int nrSolvers = getProperties().getPropertyInt("Parallel.NrSolvers", 4);
             if (!iStop) {
-                for (int i = 0; i < nrSolvers; i++) {
+                for (int i = 0; i < iNrSolvers; i++) {
                     SolverThread thread = new SolverThread(i, startTime);
                     // thread.setPriority(THREAD_PRIORITY);
                     thread.setName("Solver-" + (1 + i));
@@ -118,7 +134,7 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
             }
             
             int prog = 9999;
-            while (!iStop && iNrFinished < nrSolvers) {
+            while (!iStop && iNrFinished < iNrSolvers) {
                 try {
                     Thread.sleep(1000);
                     
@@ -178,6 +194,15 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
     }
     
     /**
+     * Returns true if the solver works only with one solution (regardless the number of threads it is using)
+     * @return true if the current solution is {@link DefaultSingleAssignment}
+     */
+    @Override
+    public boolean hasSingleSolution() {
+        return currentSolution().getAssignment() instanceof DefaultSingleAssignment;
+    }
+    
+    /**
      * Solver thread
      */
     protected class SolverThread extends Thread {
@@ -192,37 +217,93 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
         @Override
         public void run() {
             try {
+                boolean single = hasSingleSolution();
                 Model<V, T> model = currentSolution().getModel();
-                Solution<V, T> solution = createParallelSolution(1 + iIndex);
+                Solution<V, T> solution = (single ? currentSolution() : createParallelSolution(1 + iIndex));
                 Assignment<V, T> assignment = solution.getAssignment();
 
                 while (!iStop) {
                     // Break if cannot continue
                     if (!getTerminationCondition().canContinue(solution)) break;
                     
+                    // Create a sub-solution if needed
+                    Solution<V, T> current = (single ? new Solution<V, T>(model, new InheritedAssignment<V, T>(solution.getAssignment()), solution.getIteration(), solution.getTime()) : solution);
+
                     // Neighbour selection
-                    Neighbour<V, T> neighbour = getNeighbourSelection().selectNeighbour(solution);
+                    Neighbour<V, T> neighbour = null;
+                    try {
+                        neighbour = getNeighbourSelection().selectNeighbour(current);
+                    } catch (Exception e) {
+                        sLogger.warn("Failed to select a neighbour: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()), e);
+                    }
                     for (SolverListener<V, T> listener : iSolverListeners) {
                         if (!listener.neighbourSelected(assignment, solution.getIteration(), neighbour)) {
                             neighbour = null;
                             continue;
                         }
                     }
-                    
+
                     double time = JProf.currentTimeSec() - iStartTime;
                     if (neighbour == null) {
                         sLogger.debug("No neighbour selected.");
                         // still update the solution (increase iteration etc.)
-                        solution.update(time);
+                        solution.update(time, false);
                         continue;
                     }
-
-                    // Assign selected value to the selected variable
-                    neighbour.assign(assignment, solution.getIteration());
-                    solution.update(time);
                     
-                    if ((iSaveBestUnassigned < 0 || iSaveBestUnassigned >= assignment.nrUnassignedVariables(model)) && getSolutionComparator().isBetterThanBestSolution(solution)) {
-                        solution.saveBest(currentSolution());
+                    if (single) {
+                        Map<V, T> assignments = null;
+                        try {
+                            assignments = neighbour.assignments();
+                        } catch (UnsupportedOperationException e) {
+                            sLogger.error("Failed to enumerate " + neighbour.getClass().getSimpleName(), e);
+                        }
+                        if (assignments == null) {
+                            sLogger.debug("No assignments returned.");
+                            // still update the solution (increase iteration etc.)
+                            solution.update(time, false);
+                            continue;
+                        }
+                        
+                        // Assign selected value to the selected variable
+                        synchronized (solution) {
+                            Map<V, T> undo = new HashMap<V, T>();
+                            for (V var: assignments.keySet())
+                                undo.put(var, solution.getAssignment().unassign(solution.getIteration(), var));
+                            boolean fail = false;
+                            for (T val: assignments.values()) {
+                                if (val == null) continue;
+                                if (model.inConflict(solution.getAssignment(), val)) {
+                                    fail = true; break;
+                                }
+                                solution.getAssignment().assign(solution.getIteration(), val);
+                            }
+                            if (fail) {
+                                for (V var: undo.keySet())
+                                    solution.getAssignment().unassign(solution.getIteration(), var);
+                                for (T val: undo.values())
+                                    if (val != null)
+                                        solution.getAssignment().assign(solution.getIteration(), val);
+                            }
+                            solution.update(time, !fail);
+                            if (fail) {
+                                for (SolverListener<V, T> listener : iSolverListeners)
+                                    listener.neighbourFailed(current.getAssignment(), solution.getIteration(), neighbour);
+                                continue;
+                            }
+
+                            if ((iSaveBestUnassigned < 0 || iSaveBestUnassigned >= solution.getAssignment().nrUnassignedVariables(model)) && getSolutionComparator().isBetterThanBestSolution(solution)) {
+                                solution.saveBest();
+                            }
+                        }
+                    } else {
+                        // Assign selected value to the selected variable
+                        neighbour.assign(assignment, solution.getIteration());
+                        solution.update(time);
+                        
+                        if ((iSaveBestUnassigned < 0 || iSaveBestUnassigned >= assignment.nrUnassignedVariables(model)) && getSolutionComparator().isBetterThanBestSolution(solution)) {
+                            solution.saveBest(currentSolution());
+                        }
                     }
                 }
 

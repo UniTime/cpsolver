@@ -1,9 +1,13 @@
 package net.sf.cpsolver.studentsct.heuristics.selection;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 
 import net.sf.cpsolver.ifs.assignment.Assignment;
@@ -87,9 +91,8 @@ import org.apache.log4j.Logger;
 
 public class SwapStudentSelection implements NeighbourSelection<Request, Enrollment>, ProblemStudentsProvider {
     private static Logger sLog = Logger.getLogger(SwapStudentSelection.class);
-    private Set<Student> iProblemStudents = new HashSet<Student>();
-    private Student iStudent = null;
-    private Iterator<Student> iStudentsEnumeration = null;
+    private Set<Student> iProblemStudents = Collections.synchronizedSet(new HashSet<Student>());
+    private Queue<Student> iStudents = null;
     private int iTimeout = 5000;
     private int iMaxValues = 100;
     public static boolean sDebug = false;
@@ -117,11 +120,18 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
     /** Initialization */
     @Override
     public void init(Solver<Request, Enrollment> solver) {
-        List<Student> students = iOrder.order(((StudentSectioningModel) solver.currentSolution().getModel())
-                .getStudents());
-        iStudentsEnumeration = students.iterator();
+        List<Student> students = iOrder.order(((StudentSectioningModel) solver.currentSolution().getModel()).getStudents());
+        iStudents = new LinkedList<Student>(students);
         iProblemStudents.clear();
         Progress.getInstance(solver.currentSolution().getModel()).setPhase("Student swap...", students.size());
+    }
+    
+    protected synchronized Student nextStudent() {
+        return iStudents.poll();
+    }
+    
+    protected synchronized void addStudent(Student student) {
+        iStudents.add(student);
     }
 
     /**
@@ -131,24 +141,15 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
      */
     @Override
     public Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
-        if (iStudent != null && !iStudent.isComplete(solution.getAssignment())) {
-            Selection selection = getSelection(solution.getAssignment(), iStudent);
-            Neighbour<Request, Enrollment> neighbour = selection.select();
-            if (neighbour != null)
-                return neighbour;
-            else
-                iProblemStudents.addAll(selection.getProblemStudents());
-        }
-        iStudent = null;
-        while (iStudentsEnumeration.hasNext()) {
-            Student student = iStudentsEnumeration.next();
+        Student student = null;
+        while ((student = nextStudent()) != null) {
             Progress.getInstance(solution.getModel()).incProgress();
             if (student.isComplete(solution.getAssignment()) || student.nrAssignedRequests(solution.getAssignment()) == 0)
                 continue;
             Selection selection = getSelection(solution.getAssignment(), student);
             Neighbour<Request, Enrollment> neighbour = selection.select();
             if (neighbour != null) {
-                iStudent = student;
+                addStudent(student);
                 return neighbour;
             } else
                 iProblemStudents.addAll(selection.getProblemStudents());
@@ -371,7 +372,7 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
     }
 
     /** Neighbour that contains the swap */
-    public static class SwapStudentNeighbour extends Neighbour<Request, Enrollment> {
+    public static class SwapStudentNeighbour implements Neighbour<Request, Enrollment> {
         private double iValue;
         private Enrollment iEnrollment;
         private List<Enrollment> iSwaps;
@@ -427,6 +428,15 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
             }
             sb.append("\n}");
             return sb.toString();
+        }
+
+        @Override
+        public Map<Request, Enrollment> assignments() {
+            Map<Request, Enrollment> ret = new HashMap<Request, Enrollment>();
+            ret.put(iEnrollment.variable(), iEnrollment);
+            for (Enrollment swap : iSwaps)
+                ret.put(swap.variable(), swap);
+            return ret;
         }
     }
 }

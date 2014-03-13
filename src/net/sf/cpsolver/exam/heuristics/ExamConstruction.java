@@ -1,5 +1,6 @@
 package net.sf.cpsolver.exam.heuristics;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -197,8 +198,8 @@ public class ExamConstruction extends NeighbourSelectionWithContext<Exam, ExamPl
     }
 
     public class Context implements AssignmentContext {
-        private HashSet<String> iAssignments = new HashSet<String>();
-        private HashSet<Exam> iSkip = new HashSet<Exam>();
+        private Set<String> iAssignments = Collections.synchronizedSet(new HashSet<String>());
+        private Set<Exam> iSkip = Collections.synchronizedSet(new HashSet<Exam>());
         
         public Set<Exam> skip() { return iSkip; }
         

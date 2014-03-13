@@ -2,9 +2,11 @@ package net.sf.cpsolver.exam.neighbours;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import net.sf.cpsolver.exam.model.Exam;
@@ -38,7 +40,7 @@ import net.sf.cpsolver.ifs.model.Neighbour;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class ExamRoomSwapNeighbour extends Neighbour<Exam, ExamPlacement> {
+public class ExamRoomSwapNeighbour implements Neighbour<Exam, ExamPlacement> {
     private double iValue = 0;
     private ExamPlacement iX1, iX2 = null;
     private ExamRoomPlacement iR1, iR2 = null;
@@ -181,5 +183,14 @@ public class ExamRoomSwapNeighbour extends Neighbour<Exam, ExamPlacement> {
     @Override
     public double value(Assignment<Exam, ExamPlacement> assignment) {
         return iValue;
+    }
+
+    @Override
+    public Map<Exam, ExamPlacement> assignments() {
+        Map<Exam, ExamPlacement> ret = new HashMap<Exam, ExamPlacement>();
+        ret.put(iX1.variable(), iX1);
+        if (iX2 != null)
+            ret.put(iX2.variable(), iX2);
+        return ret;
     }
 }

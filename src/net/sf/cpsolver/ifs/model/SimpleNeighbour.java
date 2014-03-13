@@ -1,5 +1,9 @@
 package net.sf.cpsolver.ifs.model;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
 import net.sf.cpsolver.ifs.assignment.Assignment;
 
 /**
@@ -28,9 +32,10 @@ import net.sf.cpsolver.ifs.assignment.Assignment;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class SimpleNeighbour<V extends Variable<V, T>, T extends Value<V, T>> extends Neighbour<V, T> {
+public class SimpleNeighbour<V extends Variable<V, T>, T extends Value<V, T>> implements Neighbour<V, T> {
     private V iVariable = null;
     private T iValue = null;
+    private Set<T> iConflicts = null;
 
     /**
      * Model
@@ -44,6 +49,12 @@ public class SimpleNeighbour<V extends Variable<V, T>, T extends Value<V, T>> ex
     public SimpleNeighbour(V variable, T value) {
         iVariable = variable;
         iValue = value;
+    }
+    
+    public SimpleNeighbour(V variable, T value, Set<T> conflicts) {
+        iVariable = variable;
+        iValue = value;
+        iConflicts = conflicts;
     }
 
     /** Selected variable */
@@ -77,5 +88,16 @@ public class SimpleNeighbour<V extends Variable<V, T>, T extends Value<V, T>> ex
     @Override
     public String toString() {
         return iVariable.getName() + " := " + (iValue == null ? "null" : iValue.getName());
+    }
+
+    @Override
+    public Map<V, T> assignments() {
+        HashMap<V, T> ret = new HashMap<V, T>();
+        if (iVariable != null)
+            ret.put(iVariable, iValue);
+        if (iConflicts != null)
+            for (T conflict: iConflicts)
+                ret.put(conflict.variable(), null);
+        return ret;
     }
 }

@@ -81,6 +81,7 @@ import org.apache.log4j.Logger;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
+@Deprecated
 public class ExamSimulatedAnnealing extends NeighbourSelectionWithContext<Exam, ExamPlacement, ExamSimulatedAnnealing.Context> implements SolutionListener<Exam, ExamPlacement>, LazyNeighbourAcceptanceCriterion<Exam, ExamPlacement> {
     private static Logger sLog = Logger.getLogger(ExamSimulatedAnnealing.class);
     private static DecimalFormat sDF2 = new DecimalFormat("0.00");

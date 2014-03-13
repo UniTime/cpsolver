@@ -1,7 +1,12 @@
 package net.sf.cpsolver.ifs.heuristics;
 
 import java.lang.reflect.Constructor;
+import java.util.Map;
+import java.util.Set;
 
+import net.sf.cpsolver.ifs.extension.ConflictStatistics;
+import net.sf.cpsolver.ifs.extension.Extension;
+import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.model.SimpleNeighbour;
 import net.sf.cpsolver.ifs.model.Value;
@@ -71,6 +76,7 @@ public class StandardNeighbourSelection<V extends Variable<V, T>, T extends Valu
     private ValueSelection<V, T> iValueSelection = null;
     private VariableSelection<V, T> iVariableSelection = null;
     private Solver<V, T> iSolver = null;
+    private ConflictStatistics<V, T> iStat = null;
 
     /** Sets value selection criterion */
     public void setValueSelection(ValueSelection<V, T> valueSelection) {
@@ -125,6 +131,9 @@ public class StandardNeighbourSelection<V extends Variable<V, T>, T extends Valu
         getValueSelection().init(solver);
         getVariableSelection().init(solver);
         iSolver = solver;
+        for (Extension<V, T> ext: solver.getExtensions())
+            if (ext instanceof ConflictStatistics)
+                iStat = (ConflictStatistics<V, T>)ext;
     }
 
     /** Use the provided variable selection criterion to select a variable */
@@ -172,6 +181,16 @@ public class StandardNeighbourSelection<V extends Variable<V, T>, T extends Valu
         T value = selectValue(solution, variable);
         if (value == null)
             return null;
-        return new SimpleNeighbour<V, T>(variable, value);
+        if (iSolver.hasSingleSolution()) {
+            Set<T> conflicts = solution.getModel().conflictValues(solution.getAssignment(), value);
+            if (iStat != null)
+                for (Map.Entry<Constraint<V, T>, Set<T>> entry: solution.getModel().conflictConstraints(solution.getAssignment(), value).entrySet())
+                    iStat.constraintAfterAssigned(solution.getAssignment(), solution.getIteration(), entry.getKey(), value, entry.getValue());
+                // for (T conflict: conflicts)
+                //      iStat.variableUnassigned(solution.getIteration(), conflict, value);
+            return new SimpleNeighbour<V, T>(variable, value, conflicts);
+        } else {
+            return new SimpleNeighbour<V, T>(variable, value);
+        }
     }
 }
