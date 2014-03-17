@@ -569,6 +569,10 @@ public class SpreadConstraint extends ConstraintWithContext<Lecture, Placement, 
             }
             getCriterion().inc(assignment, iCurrentPenalty);
         }
+        
+        public int[][] getMaxCourses() {
+            return iMaxCourses;
+        }
 
         public int getMaxCourses(int time, int day) {
             return iMaxCourses[time - Constants.DAY_SLOTS_FIRST][day];
@@ -584,6 +588,10 @@ public class SpreadConstraint extends ConstraintWithContext<Lecture, Placement, 
 
         public List<Placement> getCourses(int time, int day) {
             return iCourses[time - Constants.DAY_SLOTS_FIRST][day];
+        }
+        
+        public List<Placement>[][] getCourses() {
+            return iCourses;
         }
         
         public int getUnassignmentsToWeaken() {

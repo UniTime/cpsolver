@@ -74,4 +74,14 @@ public class DefaultParallelAssignmentContextHolder<V extends Variable<V, T>, T 
             return super.getAssignmentContext(assignment, reference);
         }
     }
+    
+    @Override
+    public <C extends AssignmentContext> void clearContext(AssignmentContextReference<V, T, C> reference) {
+        if (iIndex >= 0 && reference.getParent() instanceof CanHoldContext) {
+            AssignmentContext[] contexts = getContexts((CanHoldContext)reference.getParent());
+            contexts[iIndex] = null;
+        } else {
+            super.clearContext(reference);
+        }
+    }
 }

@@ -3,6 +3,7 @@ package net.sf.cpsolver.studentsct.model;
 import java.util.List;
 
 import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.EmptyAssignment;
 import net.sf.cpsolver.ifs.assignment.context.AssignmentContext;
 import net.sf.cpsolver.ifs.assignment.context.VariableWithContext;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
@@ -127,7 +128,7 @@ public abstract class Request extends VariableWithContext<Request, Enrollment, R
         List<Enrollment> values = super.values();
         if (values != null)
             return values;
-        values = computeEnrollments(getModel().getEmptyAssignment());
+        values = computeEnrollments(getModel() == null ? new EmptyAssignment<Request, Enrollment>() : getModel().getEmptyAssignment());
         if (sCacheValues)
             setValues(values);
         return values;

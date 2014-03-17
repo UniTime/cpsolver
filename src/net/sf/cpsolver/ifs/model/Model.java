@@ -97,6 +97,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     @Deprecated
     private Assignment<V, T> iAssignment = null;
     private Assignment<V, T> iEmptyAssignment = null;
+    private Map<Integer, AssignmentContextReference<V, T, ? extends AssignmentContext>> iAssignmentContextReferences = new HashMap<Integer, AssignmentContextReference<V, T, ? extends AssignmentContext>>();
 
     /** Constructor */
     public Model() {
@@ -948,9 +949,33 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * @return reference to an assignment context
      */
     public synchronized <C extends AssignmentContext> AssignmentContextReference<V,T,C> createReference(HasAssignmentContext<V, T, C> parent) {
-        return new AssignmentContextReference<V, T, C>(parent, iNextReferenceId++);
+        AssignmentContextReference<V, T, C> ref = new AssignmentContextReference<V, T, C>(parent, iNextReferenceId);
+        iAssignmentContextReferences.put(iNextReferenceId, ref);
+        iNextReferenceId++;
+        return ref;
     }
     
+    /**
+     * Clear all assignment contexts for the given assignment
+     * @param assignment given {@link Assignment}
+     */
+    public synchronized void clearAssignmentContexts(Assignment<V, T> assignment) {
+        for (AssignmentContextReference<V,T,? extends AssignmentContext> ref: iAssignmentContextReferences.values())
+            assignment.clearContext(ref);
+    }
+    
+    /**
+     * Create all assignment contexts for the given assignment
+     * @param assignment given {@link Assignment}
+     * @param clear if true {@link Assignment#clearContext(AssignmentContextReference)} is called first
+     */
+    public synchronized void createAssignmentContexts(Assignment<V, T> assignment, boolean clear) {
+        for (AssignmentContextReference<V,T,? extends AssignmentContext> ref: iAssignmentContextReferences.values()) {
+            if (clear) assignment.clearContext(ref);
+            assignment.getAssignmentContext(ref);
+        }
+    }
+
     /**
      * Return default assignment that is using the old {@link Variable#getAssignment()} assignments.
      * @return as instance of {@link DefaultSingleAssignment}

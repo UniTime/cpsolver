@@ -61,6 +61,7 @@ public abstract class ConstraintWithContext<V extends Variable<V, T>, T extends 
      * @return assignment context associated with this constraint and the given assignment
      */
     @SuppressWarnings("unchecked")
+    @Override
     public C getContext(Assignment<V, T> assignment) {
         if (iContext != null && assignment.getIndex() >= 0 && assignment.getIndex() < iContext.length) {
             AssignmentContext c = iContext[assignment.getIndex()];

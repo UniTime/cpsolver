@@ -141,9 +141,9 @@ public class GreatDeluge<V extends Variable<V, T>, T extends Value<V, T>> extend
             else
                 iBound /= iCoolRate;
             if (iIter % 10000 == 0) {
-                iLog.info("Iter=" + iIter / 1000 + "k, NonImpIter=" + sDF2.format((iIter - iLastImprovingIter) / 1000.0)
+                info("Iter=" + iIter / 1000 + "k, NonImpIter=" + sDF2.format((iIter - iLastImprovingIter) / 1000.0)
                         + "k, Speed=" + sDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s");
-                iLog.info("Bound is " + sDF2.format(iBound) + ", " + "best value is " + sDF2.format(solution.getBestValue())
+                info("Bound is " + sDF2.format(iBound) + ", " + "best value is " + sDF2.format(solution.getBestValue())
                         + " (" + sDF2.format(100.0 * iBound / solution.getBestValue()) + "%), " + "current value is "
                         + sDF2.format(solution.getModel().getTotalValue(solution.getAssignment())) + " ("
                         + sDF2.format(100.0 * iBound / solution.getModel().getTotalValue(solution.getAssignment())) + "%), " + "#idle=" + iNrIdle
@@ -160,9 +160,9 @@ public class GreatDeluge<V extends Variable<V, T>, T extends Value<V, T>> extend
                         Math.pow(iUpperBoundRate, iNrIdle) * solution.getBestValue() :
                         solution.getBestValue() / Math.pow(iUpperBoundRate, iNrIdle)));
                 iUpperBound = iBound;
-                iProgress.setPhase("Great Deluge [" + (1 + iNrIdle) + "]...");
+                setProgressPhase("Great Deluge [" + (1 + iNrIdle) + "]...");
             }
-            iProgress.setProgress(100 - Math.round(100.0 * (iBound - lowerBound) / (iUpperBound - lowerBound)));
+            setProgress(100 - Math.round(100.0 * (iBound - lowerBound) / (iUpperBound - lowerBound)));
             iMoves++;
         }
         

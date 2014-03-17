@@ -32,6 +32,7 @@ import net.sf.cpsolver.ifs.model.Variable;
 public abstract class AbstractClassWithContext<V extends Variable<V, T>, T extends Value<V, T>, C extends AssignmentContext> implements HasAssignmentContext<V, T, C>, CanHoldContext {
     private AssignmentContextReference<V, T, C> iContextReference = null;
     private AssignmentContext[] iContext = null;
+    private C iSingleContextWhenNoModel = null;
   
     /**
      * Returns an assignment context associated with this object. If there is no 
@@ -41,14 +42,20 @@ public abstract class AbstractClassWithContext<V extends Variable<V, T>, T exten
      * @return assignment context associated with this object and the given assignment
      */
     @SuppressWarnings("unchecked")
+    @Override
     public C getContext(Assignment<V, T> assignment) {
+        if (getModel() == null) {
+            if (iSingleContextWhenNoModel == null)
+                iSingleContextWhenNoModel = createAssignmentContext(assignment);
+            return iSingleContextWhenNoModel;
+        }
         if (iContext != null && assignment.getIndex() >= 0 && assignment.getIndex() < iContext.length) {
             AssignmentContext c = iContext[assignment.getIndex()];
             if (c != null) return (C)c;
         }
         return assignment.getAssignmentContext(getAssignmentContextReference());
     }
-
+    
     @Override
     public synchronized AssignmentContextReference<V, T, C> getAssignmentContextReference() {
         if (iContextReference == null)

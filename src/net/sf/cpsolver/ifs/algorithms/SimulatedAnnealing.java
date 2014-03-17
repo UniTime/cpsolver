@@ -159,9 +159,9 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
          */
         protected void cool(Solution<V, T> solution) {
             iTemperature *= iCoolingRate;
-            iLog.info("Iter=" + iIter / 1000 + "k, NonImpIter=" + iDF2.format((iIter - iLastImprovingIter) / 1000.0)
+            info("Iter=" + iIter / 1000 + "k, NonImpIter=" + iDF2.format((iIter - iLastImprovingIter) / 1000.0)
                     + "k, Speed=" + iDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s");
-            iLog.info("Temperature decreased to " + iDF5.format(iTemperature) + " " + "(#moves=" + iMoves + ", rms(value)="
+            info("Temperature decreased to " + iDF5.format(iTemperature) + " " + "(#moves=" + iMoves + ", rms(value)="
                     + iDF2.format(Math.sqrt(iAbsValue / iMoves)) + ", " + "accept=-"
                     + iDF2.format(100.0 * iAcceptIter[0] / iMoves) + "/"
                     + iDF2.format(100.0 * iAcceptIter[1] / iMoves) + "/+"
@@ -182,15 +182,15 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
          */
         protected void reheat(Solution<V, T> solution) {
             iTemperature *= iReheatRate;
-            iLog.info("Iter=" + iIter / 1000 + "k, NonImpIter=" + iDF2.format((iIter - iLastImprovingIter) / 1000.0)
+            info("Iter=" + iIter / 1000 + "k, NonImpIter=" + iDF2.format((iIter - iLastImprovingIter) / 1000.0)
                     + "k, Speed=" + iDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s");
-            iLog.info("Temperature increased to " + iDF5.format(iTemperature) + " "
+            info("Temperature increased to " + iDF5.format(iTemperature) + " "
                     + (prob(-1) < 1.0 ? "p(-1)=" + iDF2.format(100.0 * prob(-1)) + "%, " : "") + "p(+1)="
                     + iDF2.format(100.0 * prob(1)) + "%, " + "p(+10)=" + iDF5.format(100.0 * prob(10)) + "%, " + "p(+100)="
                     + iDF10.format(100.0 * prob(100)) + "%)");
             logNeibourStatus();
             iLastReheatIter = iIter;
-            iProgress.setPhase("Simulated Annealing [" + iDF2.format(iTemperature) + "]...");
+            setProgressPhase("Simulated Annealing [" + iDF2.format(iTemperature) + "]...");
         }
 
         /**
@@ -199,7 +199,6 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
         protected void restoreBest(Solution<V, T> solution) {
             solution.restoreBest();
             iLastImprovingIter = iIter;
-            iLog.info("Best restored");
         }
 
         /**
@@ -251,7 +250,7 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
                 reheat(solution);
             if (iIter > iLastCoolingIter + iTemperatureLength)
                 cool(solution);
-            iProgress.setProgress(Math.round(100.0 * (iIter - Math.max(iLastReheatIter, iLastImprovingIter)) / iReheatLength));
+            setProgress(Math.round(100.0 * (iIter - Math.max(iLastReheatIter, iLastImprovingIter)) / iReheatLength));
         }
 
         /**

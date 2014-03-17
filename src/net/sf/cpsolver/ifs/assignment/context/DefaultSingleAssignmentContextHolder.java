@@ -54,4 +54,14 @@ public class DefaultSingleAssignmentContextHolder<V extends Variable<V, T>, T ex
             return super.getAssignmentContext(assignment, reference);
         }
     }
+    
+    @Override
+    public <C extends AssignmentContext> void clearContext(AssignmentContextReference<V, T, C> reference) {
+        if (reference.getParent() instanceof CanHoldContext) {
+            CanHoldContext holder = (CanHoldContext)reference.getParent();
+            holder.setContext(null);
+        } else {
+            super.clearContext(reference);
+        }
+    }
 }

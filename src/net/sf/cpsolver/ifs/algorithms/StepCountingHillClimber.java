@@ -81,10 +81,10 @@ public class StepCountingHillClimber<V extends Variable<V, T>, T extends Value<V
         public void incIteration(Solution<V, T> solution) {
             iIter++;
             if (iIter % 10000 == 0) {
-                iLog.info("Iter=" + (iIter / 1000)+"k, NonImpIter=" + iDF2.format((iIter-iLastImprovingIter)/1000.0)+"k, Speed="+iDF2.format(1000.0*iIter/getTimeMillis())+" it/s, Bound=" + iDF2.format(iBound));
+                info("Iter=" + (iIter / 1000)+"k, NonImpIter=" + iDF2.format((iIter-iLastImprovingIter)/1000.0)+"k, Speed="+iDF2.format(1000.0*iIter/getTimeMillis())+" it/s, Bound=" + iDF2.format(iBound));
                 logNeibourStatus();
             }
-            iProgress.setProgress(Math.round(100.0 * (iIter - iLastImprovingIter) / iMaxIdleIters));
+            // iProgress.setProgress(Math.round(100.0 * (iIter - iLastImprovingIter) / iMaxIdleIters));
             if (iCounter >= iCounterLimit) {
                 iBound = solution.getModel().getTotalValue(solution.getAssignment()); 
                 iCounter = 0;

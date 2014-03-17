@@ -80,7 +80,7 @@ public class ExamConstruction extends NeighbourSelectionWithContext<Exam, ExamPl
     @Override
     public void init(Solver<Exam, ExamPlacement> solver) {
         super.init(solver);
-        solver.setUpdateProgress(false);
+        // solver.setUpdateProgress(false);
         iProgress = Progress.getInstance(solver.currentSolution().getModel());
         iActive = false;
     }
@@ -142,9 +142,10 @@ public class ExamConstruction extends NeighbourSelectionWithContext<Exam, ExamPl
         Context context = getContext(assignment);
         if (!iActive) {
             iActive = true;
-            iProgress.setPhase("Construction ...", model.variables().size());
+            // iProgress.setPhase("Construction ...", model.variables().size());
+            iProgress.info("[" + Thread.currentThread().getName() + "] Construction ...");
         }
-        iProgress.setProgress(assignment.nrAssignedVariables());
+        // iProgress.setProgress(assignment.nrAssignedVariables());
         if (model.variables().size() - assignment.nrAssignedVariables() <= context.skip().size())
             return checkLocalOptimality(assignment, model);
         Exam bestExam = null;

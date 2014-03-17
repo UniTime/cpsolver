@@ -57,10 +57,10 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  **/
 public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<V, T>> extends NeighbourSelectionWithContext<V, T, NeighbourSearch<V, T>.NeighbourSearchContext> implements LazyNeighbourAcceptanceCriterion<V, T>, SolutionListener<V, T> {
-    protected Logger iLog;
+    private Logger iLog;
     protected DecimalFormat iDF2 = new DecimalFormat("0.00");
     
-    protected Progress iProgress = null;
+    private Progress iProgress = null;
     protected String iPhase = null;
 
     private List<NeighbourSelector<V, T>> iNeighbours = null;
@@ -93,6 +93,29 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
                 iLog.error("Unable to use " + neighbour + ": " + e.getMessage());
             }
         }
+    }
+    
+    /**
+     * Prints a message into the log
+     */
+    protected void info(String message) {
+        iProgress.debug("[" + Thread.currentThread().getName() + "] " + iPhase + "> " + message);
+    }
+    
+    /**
+     * Set search progress
+     * @param progress between 0 and 100
+     */
+    protected void setProgress(long progress) {
+        // iProgress.setProgress(progress);
+    }
+    
+    /**
+     * Set search progress phase
+     */
+    protected void setProgressPhase(String phase) {
+        iProgress.info("[" + Thread.currentThread().getName() + "] " + phase);
+        // iProgress.setPhase(phase);
     }
     
     /**
@@ -134,7 +157,7 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
         super.init(solver);
         iProgress = Progress.getInstance(solver.currentSolution().getModel());
         solver.currentSolution().addSolutionListener(this);
-        solver.setUpdateProgress(false);
+        // solver.setUpdateProgress(false);
         for (NeighbourSelection<V, T> neighbour: iNeighbours)
             neighbour.init(solver);
         iTotalBonus = 0;
@@ -255,7 +278,7 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
         protected void activate(Solution<V, T> solution) {
             iT0 = JProf.currentTimeMillis();
             iIter = 0;
-            iProgress.setPhase(iPhase + "...");
+            setProgressPhase(iPhase + "...");
         }
         
         private void activateIfNeeded(Solution<V, T> solution) {

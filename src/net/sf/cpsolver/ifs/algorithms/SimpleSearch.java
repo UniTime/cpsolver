@@ -124,25 +124,20 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
         switch (context.getPhase()) {
             case -1:
                 context.setPhase(0);
-                iLog.info("***** construction phase *****");
-                if (solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0)
-                    iProgress.setPhase("Searching for initial solution...", solution.getModel().variables().size());
+                iProgress.info("[" + Thread.currentThread().getName() + "] Construction...");
             case 0:
                 if (iCon != null && solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0) {
-                    iProgress.setProgress(solution.getModel().variables().size() - solution.getModel().getBestUnassignedVariables());
                     n = iCon.selectNeighbour(solution);
                     if (n != null || iConstructionUntilComplete)
                         return n;
                 }
                 context.setPhase(1);
-                iLog.info("***** ifs phase *****");
+                iProgress.info("[" + Thread.currentThread().getName() + "] IFS...");
             case 1:
                 if (iStd != null && solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0) {
-                    iProgress.setProgress(solution.getModel().variables().size() - solution.getModel().getBestUnassignedVariables());
                     return iStd.selectNeighbour(solution);
                 }
                 context.setPhase(2);
-                iLog.info("***** hill climbing phase *****");
             case 2:
                 if (solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0)
                     return (iCon == null ? iStd : iCon).selectNeighbour(solution);
@@ -150,7 +145,6 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
                 if (n != null)
                     return n;
                 context.setPhase(3);
-                iLog.info("***** " + (iUseGD ? "great deluge" : "simulated annealing") + " phase *****");
             case 3:
                 if (solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0)
                     return (iCon == null ? iStd : iCon).selectNeighbour(solution);

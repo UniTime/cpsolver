@@ -118,6 +118,7 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
      * @return assignment context associated with this constraint and the given assignment
      */
     @SuppressWarnings("unchecked")
+    @Override
     public ValueContext getContext(Assignment<V, T> assignment) {
         if (iContext != null && assignment.getIndex() >= 0 && assignment.getIndex() < iContext.length) {
             AssignmentContext c = iContext[assignment.getIndex()];
@@ -362,6 +363,8 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
             if (iValueUpdateType != ValueUpdateType.NoUpdate)
                 iTotal = AbstractCriterion.this.getValue(assignment, getModel().variables());
         }
+        
+        protected ValueContext() {}
         
         /** Update value when unassigned */
         protected void unassigned(Assignment<V, T> assignment, T value) {

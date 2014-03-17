@@ -112,10 +112,10 @@ public class HillClimber<V extends Variable<V, T>, T extends Value<V, T>> extend
         protected void incIteration(Solution<V, T> solution) {
             super.incIteration(solution);
             if (iIter % 10000 == 0) {
-                iLog.info("Iter=" + (iIter / 1000)+"k, NonImpIter=" + iDF2.format((iIter-iLastImprovingIter)/1000.0)+"k, Speed="+iDF2.format(1000.0*iIter/getTimeMillis())+" it/s");
+                info("Iter=" + (iIter / 1000)+"k, NonImpIter=" + iDF2.format((iIter-iLastImprovingIter)/1000.0)+"k, Speed="+iDF2.format(1000.0*iIter/getTimeMillis())+" it/s");
                 logNeibourStatus();
             }
-            iProgress.setProgress(Math.round(100.0 * (iIter - iLastImprovingIter) / iMaxIdleIters));
+            setProgress(Math.round(100.0 * (iIter - iLastImprovingIter) / iMaxIdleIters));
         }
         
         /**
