@@ -206,7 +206,7 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
      */
     protected Solution<V, T> createParallelSolution(int index) {
         Model<V, T> model = iCurrentSolution.getModel();
-        Assignment<V, T> assignment = new DefaultParallelAssignment<V, T>(index, iCurrentSolution.getAssignment());
+        Assignment<V, T> assignment = new DefaultParallelAssignment<V, T>(index, model, iCurrentSolution.getAssignment());
         model.createAssignmentContexts(assignment, true);
         Solution<V, T> solution = new Solution<V, T>(model, assignment);
         for (SolutionListener<V, T> listener: iCurrentSolution.getSolutionListeners())

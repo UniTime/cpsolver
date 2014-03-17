@@ -648,17 +648,16 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
         for (V variable : sortedVariables) {
             Set<T> confs = conflictValues(assignment, variable.getBestAssignment());
             if (!confs.isEmpty()) {
-                sLogger.error("restore best problem: assignment " + variable.getName() + " = "
-                        + variable.getBestAssignment().getName());
+                sLogger.error("restore best problem: assignment " + variable.getName() + " = " + variable.getBestAssignment().getName());
                 for (Constraint<V, T> c : variable.hardConstraints()) {
                     Set<T> x = new HashSet<T>();
                     c.computeConflicts(assignment, variable.getBestAssignment(), x);
                     if (!x.isEmpty()) {
                         if (c instanceof WeakeningConstraint) {
                             ((WeakeningConstraint<V, T>)c).weaken(assignment, variable.getBestAssignment());
-                            sLogger.info("  constraint " + c.getClass().getName() + " " + c.getName() + " had to be weakened");
+                            sLogger.info("  constraint " + c.getClass().getSimpleName() + " " + c.getName() + " had to be weakened");
                         } else {
-                            sLogger.error("  constraint " + c.getClass().getName() + " " + c.getName() + " causes the following conflicts " + x);
+                            sLogger.error("  constraint " + c.getClass().getSimpleName() + " " + c.getName() + " causes the following conflicts " + x);
                         }
                     }
                 }
@@ -668,9 +667,9 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
                     if (!x.isEmpty()) {
                         if (c instanceof WeakeningConstraint) {
                             ((WeakeningConstraint<V, T>)c).weaken(assignment, variable.getBestAssignment());
-                            sLogger.info("  constraint " + c.getClass().getName() + " " + c.getName() + " had to be weakened");
+                            sLogger.info("  constraint " + c.getClass().getSimpleName() + " " + c.getName() + " had to be weakened");
                         } else {
-                            sLogger.error("  global constraint " + c.getClass().getName() + " " + c.getName() + " causes the following conflicts " + x);
+                            sLogger.error("  global constraint " + c.getClass().getSimpleName() + " " + c.getName() + " causes the following conflicts " + x);
                         }
                     }
                 }
@@ -691,13 +690,13 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
                     Set<T> x = new HashSet<T>();
                     c.computeConflicts(assignment, value, x);
                     if (!x.isEmpty())
-                        sLogger.error("  constraint " + c.getClass().getName() + " " + c.getName() + " causes the following conflicts " + x);
+                        sLogger.error("  constraint " + c.getClass().getSimpleName() + " " + c.getName() + " causes the following conflicts " + x);
                 }
                 for (GlobalConstraint<V, T> c : globalConstraints()) {
                     Set<T> x = new HashSet<T>();
                     c.computeConflicts(assignment, value, x);
                     if (!x.isEmpty())
-                        sLogger.error("  constraint " + c.getClass().getName() + " " + c.getName() + " causes the following conflicts " + x);
+                        sLogger.error("  constraint " + c.getClass().getSimpleName() + " " + c.getName() + " causes the following conflicts " + x);
                 }
                 for (T conf : confs)
                     assignment.unassign(0, conf.variable());
