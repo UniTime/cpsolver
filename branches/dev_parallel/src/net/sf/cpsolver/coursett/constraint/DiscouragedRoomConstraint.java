@@ -68,14 +68,12 @@ public class DiscouragedRoomConstraint extends RoomConstraint implements Weakeni
 
     @Override
     public void weaken(Assignment<Lecture, Placement> assignment) {
-        weaken(assignment, null);
+        ((DiscouragedRoomConstraintContext)getContext(assignment)).weaken();
     }
 
     @Override
     public void weaken(Assignment<Lecture, Placement> assignment, Placement value) {
-        DiscouragedRoomConstraintContext context = (DiscouragedRoomConstraintContext)getContext(assignment);
-        if (value == null || context.isOverLimit(assignment, value))
-            context.weaken();
+        ((DiscouragedRoomConstraintContext)getContext(assignment)).weaken(assignment, value);
     }
     
     @Override
@@ -102,13 +100,8 @@ public class DiscouragedRoomConstraint extends RoomConstraint implements Weakeni
         @Override
         public void unassigned(Assignment<Lecture, Placement> assignment, Placement placement) {
             super.unassigned(assignment, placement);
-            if (placement.hasRoomLocation(getResourceId()) && !placement.variable().isCommitted()) {
+            if (placement.hasRoomLocation(getResourceId()) && !placement.variable().isCommitted())
                 iUsage --;
-            } else {
-                iUnassignment++;
-                if (iUnassignmentsToWeaken > 0 && iUnassignment % iUnassignmentsToWeaken == 0)
-                    iLimit++;
-            }
         }
 
         public int getLimit() {
@@ -122,14 +115,13 @@ public class DiscouragedRoomConstraint extends RoomConstraint implements Weakeni
         public boolean isOverLimit(Assignment<Lecture, Placement> assignment, Placement value) {
             if (iUnassignmentsToWeaken == 0)
                 return false; // not working
-            Placement placement = value;
-            if (!placement.hasRoomLocation(getResourceId()))
+            if (!value.hasRoomLocation(getResourceId()))
                 return false; // different room
-            Lecture lecture = placement.variable();
+            Lecture lecture = value.variable();
             if (lecture.roomLocations().size() == lecture.getNrRooms())
                 return false; // required room
             if (lecture.isCommitted())
-                return false; // commited class
+                return false; // committed class
             Placement current = assignment.getValue(lecture);
             if (current != null && current.hasRoomLocation(getResourceId()))
                 return false; // already assigned in this room
@@ -139,7 +131,15 @@ public class DiscouragedRoomConstraint extends RoomConstraint implements Weakeni
         }
         
         public void weaken() {
-            iLimit ++;
+            if (iUnassignmentsToWeaken == 0) return;
+            iUnassignment++;
+            if (iUnassignment % iUnassignmentsToWeaken == 0)
+                iLimit ++;
+        }
+        
+        public void weaken(Assignment<Lecture, Placement> assignment, Placement value) {
+            while (isOverLimit(assignment, value))
+                iLimit ++;
         }
     }
 }
