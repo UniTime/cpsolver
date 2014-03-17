@@ -51,4 +51,11 @@ public class AssignmentContextHolderArray<V extends Variable<V, T>, T extends Va
         iContexts[reference.getIndex()] = context;
         return context;
     }
+    
+    @Override
+    public <C extends AssignmentContext> void clearContext(AssignmentContextReference<V, T, C> reference) {
+        try {
+            iContexts[reference.getIndex()] = null;
+        } catch (ArrayIndexOutOfBoundsException e) {}
+    }
 }

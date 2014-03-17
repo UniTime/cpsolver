@@ -57,6 +57,7 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
     private long iBestFailedIterations = -1;
     private double iBestTime = -1;
     private double iBestPerturbationsPenaly = -1.0;
+    private int iBestIndex = -1;
 
     private List<SolutionListener<V, T>> iSolutionListeners = new ArrayList<SolutionListener<V, T>>();
     private PerturbationsCounter<V, T> iPerturbationsCounter = null;
@@ -221,6 +222,14 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
     public boolean isBestComplete() {
         return iBestComplete;
     }
+    
+    /**
+     * Index of the best assignment.
+     * @return {@link Assignment#getIndex()} of the best saved solution
+     */
+    public int getBestIndex() {
+        return iBestIndex;
+    }
 
     /**
      * Total value of the best ever found solution -- sum of all assigned values
@@ -257,6 +266,7 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
             iBestIteration = -1;
             iBestFailedIterations = 0;
             iBestComplete = false;
+            iBestIndex = -1;
             iBestPerturbationsPenaly = -1.0;
             for (SolutionListener<V, T> listener : iSolutionListeners)
                 listener.bestCleared(this);
@@ -281,6 +291,7 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
             iBestIteration = getIteration();
             iBestFailedIterations = getFailedIterations();
             iBestComplete = isComplete();
+            iBestIndex = getAssignment().getIndex();
             iBestPerturbationsPenaly = (iPerturbationsCounter == null ? 0.0 : iPerturbationsCounter.getPerturbationPenalty(getAssignment(), getModel()));
             for (SolutionListener<V, T> listener : iSolutionListeners)
                 listener.bestSaved(this);
@@ -295,6 +306,7 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
                 master.iBestFailedIterations = iBestFailedIterations;
                 master.iBestComplete = iBestComplete;
                 master.iBestPerturbationsPenaly = iBestPerturbationsPenaly;
+                master.iBestIndex = iBestIndex;
             }
         }
     }

@@ -129,7 +129,7 @@ public class CourseRequest extends Request {
      */
     protected int getMaxDomainSize() {
         StudentSectioningModel model = (StudentSectioningModel) getModel();
-        return model == null ? null : model.getMaxDomainSize();
+        return model == null ? -1 : model.getMaxDomainSize();
     }
 
     /**

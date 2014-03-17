@@ -7,7 +7,9 @@ import java.util.List;
 import net.sf.cpsolver.ifs.assignment.context.AssignmentContext;
 import net.sf.cpsolver.ifs.assignment.context.AssignmentContextHolder;
 import net.sf.cpsolver.ifs.assignment.context.AssignmentContextReference;
+import net.sf.cpsolver.ifs.assignment.context.HasAssignmentContext;
 import net.sf.cpsolver.ifs.constant.ConstantVariable;
+import net.sf.cpsolver.ifs.criteria.Criterion;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.GlobalConstraint;
 import net.sf.cpsolver.ifs.model.Model;
@@ -42,6 +44,7 @@ import net.sf.cpsolver.ifs.model.Variable;
  **/
 public abstract class AssignmentAbstract<V extends Variable<V, T>, T extends Value<V, T>> implements Assignment<V, T> {
     protected AssignmentContextHolder<V, T> iContexts;
+    protected boolean iHasInitialzedContext = false;
     
     /**
      * Constructor
@@ -88,29 +91,38 @@ public abstract class AssignmentAbstract<V extends Variable<V, T>, T extends Val
         assert variable.getModel() != null && (value == null || variable.equals(value.variable()));
         Model<V, T> model = variable.getModel();
         
+        // ensure all model, criterion, and constraint assignment contexts are initialized before changing the assignment value
+        ensureInitializedContext(variable);
+        
         // unassign old value, if assigned
         T old = getValueInternal(variable);
         if (old != null) {
-            model.beforeUnassigned(this, iteration, old);
+            if (model != null)
+                model.beforeUnassigned(this, iteration, old);
             setValueInternal(iteration, variable, null);
             for (Constraint<V, T> constraint : variable.constraints())
                 constraint.unassigned(this, iteration, old);
-            for (GlobalConstraint<V, T> constraint : model.globalConstraints())
-                constraint.unassigned(this, iteration, old);
+            if (model != null)
+                for (GlobalConstraint<V, T> constraint : model.globalConstraints())
+                    constraint.unassigned(this, iteration, old);
             variable.variableUnassigned(this, iteration, old);
-            model.afterUnassigned(this, iteration, old);
+            if (model != null)
+                model.afterUnassigned(this, iteration, old);
         }
         
         // assign new value, if provided
         if (value != null) {
-            model.beforeAssigned(this, iteration, value);
+            if (model != null)
+                model.beforeAssigned(this, iteration, value);
             setValueInternal(iteration, variable, value);
             for (Constraint<V, T> constraint : variable.constraints())
                 constraint.assigned(this, iteration, value);
-            for (GlobalConstraint<V, T> constraint : model.globalConstraints())
-                constraint.assigned(this, iteration, value);
+            if (model != null)
+                for (GlobalConstraint<V, T> constraint : model.globalConstraints())
+                    constraint.assigned(this, iteration, value);
             variable.variableAssigned(this, iteration, value);
-            model.afterAssigned(this, iteration, value);
+            if (model != null)
+                model.afterAssigned(this, iteration, value);
         }
         
         // return old value
@@ -160,7 +172,34 @@ public abstract class AssignmentAbstract<V extends Variable<V, T>, T extends Val
     }
     
     @Override
+    public <C extends AssignmentContext> void clearContext(AssignmentContextReference<V, T, C> reference) {
+        iContexts.clearContext(reference);
+    }
+    
+    @Override
     public int getIndex() {
         return -1;
+    }
+    
+    /**
+     * Ensure that the model, all criteria, all global constraints and all the related constraints have their assignment contexts initialized.
+     * @param variable a variable to be changed
+     */
+    @SuppressWarnings("unchecked")
+    protected void ensureInitializedContext(V variable) {
+        if (!iHasInitialzedContext && variable.getModel() != null) {
+            if (variable.getModel() instanceof HasAssignmentContext)
+                iContexts.getAssignmentContext(this, ((HasAssignmentContext<V, T, ?>)variable.getModel()).getAssignmentContextReference());
+            for (Criterion<V, T> criterion: variable.getModel().getCriteria())
+                if (criterion instanceof HasAssignmentContext)
+                    iContexts.getAssignmentContext(this, ((HasAssignmentContext<V, T, ?>)criterion).getAssignmentContextReference());
+            for (GlobalConstraint<V, T> constraint: variable.getModel().globalConstraints())
+                if (constraint instanceof HasAssignmentContext)
+                    iContexts.getAssignmentContext(this, ((HasAssignmentContext<V, T, ?>)constraint).getAssignmentContextReference());
+            iHasInitialzedContext = true;
+        }
+        for (Constraint<V, T> constraint: variable.constraints())
+            if (constraint instanceof HasAssignmentContext)
+                iContexts.getAssignmentContext(this, ((HasAssignmentContext<V, T, ?>)constraint).getAssignmentContextReference());
     }
 }

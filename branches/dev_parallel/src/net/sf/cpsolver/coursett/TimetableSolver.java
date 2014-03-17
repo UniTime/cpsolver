@@ -61,8 +61,8 @@ public class TimetableSolver extends Solver<Lecture, Placement> {
     }
 
     @Override
-    protected void onAssigned(double startTime) {
-        if (iCurrentSolution.getModel().nrUnassignedVariables(iCurrentSolution.getAssignment()) == 0) {
+    protected void onAssigned(double startTime, Solution<Lecture, Placement> solution) {
+        if (solution.getModel().nrUnassignedVariables(solution.getAssignment()) == 0) {
             // complete solution was found
             if (iCompleteSolutionFixInterval < 0) {
              // feature disabled
@@ -72,13 +72,13 @@ public class TimetableSolver extends Solver<Lecture, Placement> {
                 if (iLastCompleteSolutionFixIteration >= 0) return;
             } else {
                 // run first time and if not run for a given number of iterations
-                if (iLastCompleteSolutionFixIteration >= 0 && iCurrentSolution.getIteration() - iLastCompleteSolutionFixIteration < iCompleteSolutionFixInterval) return;
+                if (iLastCompleteSolutionFixIteration >= 0 && solution.getIteration() - iLastCompleteSolutionFixIteration < iCompleteSolutionFixInterval) return;
             }
-            if (getSolutionComparator().isBetterThanBestSolution(iCurrentSolution)) {
-                fixCompleteSolution(iCurrentSolution, startTime);
-                iLastCompleteSolutionFixIteration = iCurrentSolution.getIteration();
+            if (getSolutionComparator().isBetterThanBestSolution(solution)) {
+                fixCompleteSolution(solution, startTime);
+                iLastCompleteSolutionFixIteration = solution.getIteration();
             }
-        } else if (iCurrentSolution.getBestInfo() == null) {
+        } else if (solution.getBestInfo() == null) {
             // complete solution has not been found yet
             if (iIncompleteSolutionFixInterval < 0) {
                 // feature disabled
@@ -88,11 +88,11 @@ public class TimetableSolver extends Solver<Lecture, Placement> {
                 if (iLastIncompleteSolutionFixIteration >= 0) return;
             } else {
                 // run first time and if not run for a given number of iterations
-                if (iLastIncompleteSolutionFixIteration >= 0 && iCurrentSolution.getIteration() - iLastIncompleteSolutionFixIteration < iIncompleteSolutionFixInterval) return;
+                if (iLastIncompleteSolutionFixIteration >= 0 && solution.getIteration() - iLastIncompleteSolutionFixIteration < iIncompleteSolutionFixInterval) return;
             }
-            if (getSolutionComparator().isBetterThanBestSolution(iCurrentSolution)) {
-                fixCompleteSolution(iCurrentSolution, startTime);
-                iLastIncompleteSolutionFixIteration = iCurrentSolution.getIteration();
+            if (getSolutionComparator().isBetterThanBestSolution(solution)) {
+                fixCompleteSolution(solution, startTime);
+                iLastIncompleteSolutionFixIteration = solution.getIteration();
             }
         }
     }

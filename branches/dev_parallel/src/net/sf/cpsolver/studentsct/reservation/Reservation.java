@@ -356,6 +356,11 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
     public double getReservedAvailableSpace(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
         return getContext(assignment).getReservedAvailableSpace(assignment, excludeRequest);
     }
+    
+    /** Enrollments assigned using this reservation */
+    public Set<Enrollment> getEnrollments(Assignment<Request, Enrollment> assignment) {
+        return getContext(assignment).getEnrollments();
+    }
 
     @Override
     public ReservationContext createAssignmentContext(Assignment<Request, Enrollment> assignment) {

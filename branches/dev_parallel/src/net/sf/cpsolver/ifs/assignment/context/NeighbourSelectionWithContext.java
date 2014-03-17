@@ -64,6 +64,7 @@ public abstract class NeighbourSelectionWithContext<V extends Variable<V, T>, T 
      * @return assignment context associated with this selection and the given assignment
      */
     @SuppressWarnings("unchecked")
+    @Override
     public C getContext(Assignment<V, T> assignment) {
         if (iContextOverride != null)
             return iContextOverride;

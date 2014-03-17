@@ -45,6 +45,11 @@ public class AssignmentMap<V extends Variable<V, T>, T extends Value<V, T>> exte
         super(contexts);
     }
     
+    /** Creates an empty assignment */
+    public AssignmentMap() {
+        this(new AssignmentContextHolderMap<V, T>());
+    }
+    
     /** Creates a copy of an existing assignment */
     public AssignmentMap(Assignment<V, T> assignment) {
         super(new AssignmentContextHolderMap<V, T>());

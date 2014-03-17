@@ -55,6 +55,7 @@ public abstract class ModelWithContext<V extends Variable<V, T>, T extends Value
      * @return assignment context associated with this model and the given assignment
      */
     @SuppressWarnings("unchecked")
+    @Override
     public C getContext(Assignment<V, T> assignment) {
         if (iContext != null && assignment.getIndex() >= 0 && assignment.getIndex() < iContext.length) {
             AssignmentContext c = iContext[assignment.getIndex()];

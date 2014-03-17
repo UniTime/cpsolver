@@ -51,7 +51,6 @@ public class FixCompleteSolutionNeighbourSelection extends NeighbourSelectionWit
     private long iIncompleteSolutionFixInterval = 5000;
     private NeighbourSelectionWithSuggestions iSuggestions = null;
     private Progress iProgress = null;
-    private Solver<Lecture, Placement> iSolver = null;
 
     public FixCompleteSolutionNeighbourSelection(DataProperties config, NeighbourSelection<Lecture, Placement> parent) throws Exception {
         iParent = parent;
@@ -61,7 +60,7 @@ public class FixCompleteSolutionNeighbourSelection extends NeighbourSelectionWit
     public FixCompleteSolutionNeighbourSelection(DataProperties config) throws Exception {
         this(config, new NeighbourSelectionWithSuggestions(config));
     }
-
+    
     @Override
     public void init(Solver<Lecture, Placement> solver) {
         super.init(solver);
@@ -70,7 +69,6 @@ public class FixCompleteSolutionNeighbourSelection extends NeighbourSelectionWit
         iSuggestions.init(solver);
         iParent.init(solver);
         iProgress = Progress.getInstance(solver.currentSolution().getModel());
-        iSolver = solver;
         iLastIncompleteSolutionFixIteration = -1;
         iLastCompleteSolutionFixIteration = -1;
     }
@@ -119,7 +117,7 @@ public class FixCompleteSolutionNeighbourSelection extends NeighbourSelectionWit
         while (context.getPhase() > 0) {
             if (context.hasMoreElements()) {
                 Lecture variable = context.nextElement();
-                iProgress.incProgress();
+                // iProgress.incProgress();
                 if (context.getPhase() == 1) {
                     Placement bestValue = null;
                     double bestVal = 0.0;
@@ -166,29 +164,31 @@ public class FixCompleteSolutionNeighbourSelection extends NeighbourSelectionWit
         public int getPhase() { return iPhase; }
         
         public void incPhase(Solution<Lecture, Placement> solution) {
-            Progress progress = Progress.getInstance(solution.getModel());                
+            // Progress progress = Progress.getInstance(solution.getModel());                
             if (iPhase == 0) {
-                iSolver.setUpdateProgress(false);
+                // iSolver.setUpdateProgress(false);
                 iPhase = 1;
                 solution.saveBest();
-                progress.setPhase("Fixing solution", solution.getModel().countVariables());
+                // progress.setPhase("Fixing solution", solution.getModel().countVariables());
+                iProgress.info("[" + Thread.currentThread().getName() + "] Fixing solution...");
                 iLectures = new ArrayList<Lecture>(solution.getModel().variables()).iterator();
             } else if (iPhase == 1 && solution.isComplete()) {
                 iPhase = 2;
-                progress.setPhase("Fixing solution [2]", solution.getModel().countVariables());
+                iProgress.info("[" + Thread.currentThread().getName() + "] Fixing complete solution...");
+                // progress.setPhase("Fixing solution [2]", solution.getModel().countVariables());
                 iLectures = new ArrayList<Lecture>(solution.getModel().variables()).iterator();
             } else {
                 if (iPhase == 1)
                     iLastIncompleteSolutionFixIteration = solution.getIteration();
                 else 
                     iLastCompleteSolutionFixIteration = solution.getIteration();
-                iSolver.setUpdateProgress(true);
-                if (solution.isBestComplete())
-                    iProgress.setPhase("Improving found solution ...");
-                else
-                    iProgress.setPhase("Searching for initial solution ...", solution.getModel().countVariables());
+                // iSolver.setUpdateProgress(true);
+                // if (solution.isBestComplete())
+                //     iProgress.setPhase("Improving found solution ...");
+                // else
+                //     iProgress.setPhase("Searching for initial solution ...", solution.getModel().countVariables());
                 iPhase = 0;
-                progress.restore();
+                // progress.restore();
                 iLectures = null;
             }
         }

@@ -48,4 +48,10 @@ public class AssignmentContextHolderMap<V extends Variable<V, T>, T extends Valu
         iContexts.put(reference.getIndex(), context);
         return context;
     }
+    
+    @Override
+    public <C extends AssignmentContext> void clearContext(AssignmentContextReference<V, T, C> reference) {
+        iContexts.remove(reference.getIndex());
+    }
+
 }

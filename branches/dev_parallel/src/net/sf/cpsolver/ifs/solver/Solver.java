@@ -535,7 +535,7 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
     }
 
     /** Called in each iteration, after a neighbour is assigned */
-    protected void onAssigned(double startTime) {
+    protected void onAssigned(double startTime, Solution<V, T> solution) {
     }
     
     /**
@@ -614,7 +614,7 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
                         iCurrentSolution.update(JProf.currentTimeSec() - startTime);
                     }
 
-                    onAssigned(startTime);
+                    onAssigned(startTime, iCurrentSolution);
 
                     // Check if the solution is the best ever found one
                     if ((iSaveBestUnassigned < 0 || iSaveBestUnassigned >= iCurrentSolution.getAssignment().nrUnassignedVariables(iCurrentSolution.getModel())) && (iCurrentSolution.getBestInfo() == null || getSolutionComparator().isBetterThanBestSolution(iCurrentSolution))) {

@@ -127,4 +127,10 @@ public interface Assignment<V extends Variable<V, T>, T extends Value<V, T>> {
      * @return an {@link AssignmentContext}
      **/
     public <C extends AssignmentContext> C getAssignmentContext(AssignmentContextReference<V, T, C> reference);
+    
+    /**
+     * Clear an assignment context that is associated with the given a reference. If there is any created for the reference.
+     * @param reference a reference (which can be stored within the model, e.g., as an instance variable of a constraint)
+     **/
+    public <C extends AssignmentContext> void clearContext(AssignmentContextReference<V, T, C> reference);
 }

@@ -71,4 +71,13 @@ public interface HasAssignmentContext <V extends Variable<V, T>, T extends Value
      * @param reference reference provided by the model by calling {@link Model#createReference(HasAssignmentContext)} during initialization
      */
     public void setAssignmentContextReference(AssignmentContextReference<V, T, C> reference);
+    
+    /**
+     * Returns an assignment context associated with this object. If there is no 
+     * assignment context associated with this object yet, one is created using the
+     * {@link ConstraintWithContext#createAssignmentContext(Assignment)} method.
+     * @param assignment given assignment
+     * @return assignment context associated with this object and the given assignment
+     */
+    public C getContext(Assignment<V, T> assignment);
 }

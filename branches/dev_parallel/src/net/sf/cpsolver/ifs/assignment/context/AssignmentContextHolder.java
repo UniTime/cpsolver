@@ -47,5 +47,11 @@ public interface AssignmentContextHolder<V extends Variable<V, T>, T extends Val
      * @return an assignment context
      */
     public <U extends AssignmentContext> U getAssignmentContext(Assignment<V, T> assignment, AssignmentContextReference<V, T, U> reference);
+    
+    /**
+     * Clear an assignment context that is associated with the given a reference. If there is any created for the reference.
+     * @param reference a reference (which can be stored within the model, e.g., as an instance variable of a constraint)
+     **/
+    public <U extends AssignmentContext> void clearContext(AssignmentContextReference<V, T, U> reference);
 
 }

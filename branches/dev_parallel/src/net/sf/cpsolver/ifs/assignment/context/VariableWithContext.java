@@ -54,7 +54,8 @@ public abstract class VariableWithContext<V extends Variable<V, T>, T extends Va
     @Override
     public void setModel(Model<V, T> model) {
         super.setModel(model);
-        iContextReference = model.createReference(this);
+        if (model != null)
+            iContextReference = model.createReference(this);
     }
     
     /**
@@ -66,6 +67,7 @@ public abstract class VariableWithContext<V extends Variable<V, T>, T extends Va
      * @return assignment context associated with this extension and the given assignment
      */
     @SuppressWarnings("unchecked")
+    @Override
     public C getContext(Assignment<V, T> assignment) {
         if (iContext != null && assignment.getIndex() >= 0 && assignment.getIndex() < iContext.length) {
             AssignmentContext c = iContext[assignment.getIndex()];
