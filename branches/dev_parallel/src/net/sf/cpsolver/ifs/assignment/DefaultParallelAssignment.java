@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import net.sf.cpsolver.ifs.assignment.context.DefaultParallelAssignmentContextHolder;
+import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.solver.ParallelSolver;
@@ -51,11 +52,10 @@ public class DefaultParallelAssignment <V extends Variable<V, T>, T extends Valu
         this(0);
     }
     
-    public DefaultParallelAssignment(int threadIndex, Assignment<V, T> assignment) {
+    public DefaultParallelAssignment(int threadIndex, Model<V, T> model, Assignment<V, T> assignment) {
         this(threadIndex);
-        if (assignment != null)
-            for (T value: assignment.assignedValues())
-                setValueInternal(0, value.variable(), value);
+        for (V variable: model.variables())
+            setValueInternal(0, variable, assignment != null ? assignment.getValue(variable) : null);
     }
 
     @Override
