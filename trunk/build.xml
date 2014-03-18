@@ -279,4 +279,10 @@
 	</target>
 
 	<target name="dist-nojprof" depends="dist"/>
+	
+	<target name="deploy">
+			<exec command="mvn">
+					<arg value="deploy"/>
+			</exec>
+	</target>
 </project>
