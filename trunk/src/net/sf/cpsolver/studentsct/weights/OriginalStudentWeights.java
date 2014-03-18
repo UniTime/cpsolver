@@ -9,12 +9,14 @@ import java.util.Set;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.TimeLocation;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
 import net.sf.cpsolver.studentsct.extension.TimeOverlapsCounter;
-import net.sf.cpsolver.studentsct.model.Assignment;
+import net.sf.cpsolver.studentsct.model.SctAssignment;
 import net.sf.cpsolver.studentsct.model.Config;
 import net.sf.cpsolver.studentsct.model.Course;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
@@ -95,7 +97,7 @@ public class OriginalStudentWeights implements StudentWeights {
     }
     
     @Override
-    public double getWeight(Enrollment enrollment) {
+    public double getWeight(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
         return  getWeight(enrollment.getRequest())
                 * Math.pow(iAltValue, enrollment.getPriority())
                 * Math.pow(iInitialWeight, enrollment.percentInitial())
@@ -105,37 +107,37 @@ public class OriginalStudentWeights implements StudentWeights {
     }
     
     @Override
-    public double getWeight(Enrollment enrollment, Set<DistanceConflict.Conflict> distanceConflicts, Set<TimeOverlapsCounter.Conflict> timeOverlappingConflicts) {
+    public double getWeight(Assignment<Request, Enrollment> assignment, Enrollment enrollment, Set<DistanceConflict.Conflict> distanceConflicts, Set<TimeOverlapsCounter.Conflict> timeOverlappingConflicts) {
         int share = 0;
         if (timeOverlappingConflicts != null) 
             for (TimeOverlapsCounter.Conflict c: timeOverlappingConflicts)
                 share += c.getShare();
-        return getWeight(enrollment)
+        return getWeight(assignment, enrollment)
                * (distanceConflicts == null || distanceConflicts.isEmpty() ? 1.0 : Math.pow(iDistConfWeight, distanceConflicts.size()))
                * Math.max(share == 0 ? 1.0 : 1.0 - (((double)share) / enrollment.getNrSlots()) / 2.0, 0.5);
     }
     
     @Override
-    public double getDistanceConflictWeight(DistanceConflict.Conflict c) {
+    public double getDistanceConflictWeight(Assignment<Request, Enrollment> assignment, DistanceConflict.Conflict c) {
         if (c.getR1().getPriority() < c.getR2().getPriority()) {
-            return (1.0 - iDistConfWeight) * getWeight(c.getE1());
+            return (1.0 - iDistConfWeight) * getWeight(assignment, c.getE1());
         } else {
-            return (1.0 - iDistConfWeight) * getWeight(c.getE2());
+            return (1.0 - iDistConfWeight) * getWeight(assignment, c.getE2());
         }
     }
     
     @Override
-    public double getTimeOverlapConflictWeight(Enrollment enrollment, TimeOverlapsCounter.Conflict timeOverlap) {
-        return Math.min(0.5 * timeOverlap.getShare() / enrollment.getNrSlots(), 0.5) * getWeight(enrollment);
+    public double getTimeOverlapConflictWeight(Assignment<Request, Enrollment> assignment, Enrollment enrollment, TimeOverlapsCounter.Conflict timeOverlap) {
+        return Math.min(0.5 * timeOverlap.getShare() / enrollment.getNrSlots(), 0.5) * getWeight(assignment, enrollment);
     }
     
     @Override
     public boolean isBetterThanBestSolution(Solution<Request, Enrollment> currentSolution) {
         if (currentSolution.getBestInfo() == null) return true;
-        int unassigned = currentSolution.getModel().nrUnassignedVariables();
+        int unassigned = currentSolution.getModel().nrUnassignedVariables(currentSolution.getAssignment());
         if (currentSolution.getModel().getBestUnassignedVariables() != unassigned)
             return currentSolution.getModel().getBestUnassignedVariables() > unassigned;
-        return currentSolution.getModel().getTotalValue() < currentSolution.getBestValue();
+        return currentSolution.getModel().getTotalValue(currentSolution.getAssignment()) < currentSolution.getBestValue();
     }
 
     /**
@@ -174,16 +176,17 @@ public class OriginalStudentWeights implements StudentWeights {
                 new Course(1, "G", "2", new Offering(0, "G")),
                 new Course(1, "G", "3", new Offering(0, "G"))), false, null);
         
+        Assignment<Request, Enrollment> assignment = new DefaultSingleAssignment<Request, Enrollment>();
         Placement p = new Placement(null, new TimeLocation(1, 90, 12, 0, 0, null, null, new BitSet(), 10), new ArrayList<RoomLocation>());
         for (Request r: s.getRequests()) {
             CourseRequest cr = (CourseRequest)r;
             double[] w = new double[] {0.0, 0.0, 0.0};
             for (int i = 0; i < cr.getCourses().size(); i++) {
                 Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
-                Set<Assignment> sections = new HashSet<Assignment>();
+                Set<SctAssignment> sections = new HashSet<SctAssignment>();
                 sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
-                Enrollment e = new Enrollment(cr, i, cfg, sections);
-                w[i] = pw.getWeight(e, null, null);
+                Enrollment e = new Enrollment(cr, i, cfg, sections, assignment);
+                w[i] = pw.getWeight(assignment, e, null, null);
             }
             System.out.println(cr + ": " + df.format(w[0]) + "  " + df.format(w[1]) + "  " + df.format(w[2]));
         }
@@ -194,12 +197,12 @@ public class OriginalStudentWeights implements StudentWeights {
             double[] w = new double[] {0.0, 0.0, 0.0};
             for (int i = 0; i < cr.getCourses().size(); i++) {
                 Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
-                Set<Assignment> sections = new HashSet<Assignment>();
+                Set<SctAssignment> sections = new HashSet<SctAssignment>();
                 sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
-                Enrollment e = new Enrollment(cr, i, cfg, sections);
+                Enrollment e = new Enrollment(cr, i, cfg, sections, assignment);
                 Set<DistanceConflict.Conflict> dc = new HashSet<DistanceConflict.Conflict>();
                 dc.add(new DistanceConflict.Conflict(s, e, (Section)sections.iterator().next(), e, (Section)sections.iterator().next()));
-                w[i] = pw.getWeight(e, dc, null);
+                w[i] = pw.getWeight(assignment, e, dc, null);
             }
             System.out.println(cr + ": " + df.format(w[0]) + "  " + df.format(w[1]) + "  " + df.format(w[2]));
         }
@@ -210,14 +213,14 @@ public class OriginalStudentWeights implements StudentWeights {
             double[] w = new double[] {0.0, 0.0, 0.0};
             for (int i = 0; i < cr.getCourses().size(); i++) {
                 Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
-                Set<Assignment> sections = new HashSet<Assignment>();
+                Set<SctAssignment> sections = new HashSet<SctAssignment>();
                 sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
-                Enrollment e = new Enrollment(cr, i, cfg, sections);
+                Enrollment e = new Enrollment(cr, i, cfg, sections, assignment);
                 Set<DistanceConflict.Conflict> dc = new HashSet<DistanceConflict.Conflict>();
                 dc.add(new DistanceConflict.Conflict(s, e, (Section)sections.iterator().next(), e, (Section)sections.iterator().next()));
                 dc.add(new DistanceConflict.Conflict(s, e, (Section)sections.iterator().next(), e, 
                         new Section(1, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null)));
-                w[i] = pw.getWeight(e, dc, null);
+                w[i] = pw.getWeight(assignment, e, dc, null);
             }
             System.out.println(cr + ": " + df.format(w[0]) + "  " + df.format(w[1]) + "  " + df.format(w[2]));
         }
@@ -228,12 +231,12 @@ public class OriginalStudentWeights implements StudentWeights {
             double[] w = new double[] {0.0, 0.0, 0.0};
             for (int i = 0; i < cr.getCourses().size(); i++) {
                 Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
-                Set<Assignment> sections = new HashSet<Assignment>();
+                Set<SctAssignment> sections = new HashSet<SctAssignment>();
                 sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
-                Enrollment e = new Enrollment(cr, i, cfg, sections);
+                Enrollment e = new Enrollment(cr, i, cfg, sections, assignment);
                 Set<TimeOverlapsCounter.Conflict> toc = new HashSet<TimeOverlapsCounter.Conflict>();
                 toc.add(new TimeOverlapsCounter.Conflict(s, 3, e, sections.iterator().next(), e, sections.iterator().next()));
-                w[i] = pw.getWeight(e, null, toc);
+                w[i] = pw.getWeight(assignment, e, null, toc);
             }
             System.out.println(cr + ": " + df.format(w[0]) + "  " + df.format(w[1]) + "  " + df.format(w[2]));
         }

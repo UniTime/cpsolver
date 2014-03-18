@@ -11,6 +11,11 @@ import java.util.Set;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.TimeLocation;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.AssignmentComparable;
+import net.sf.cpsolver.ifs.assignment.context.AbstractClassWithContext;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.studentsct.reservation.Reservation;
 
 /**
@@ -46,7 +51,7 @@ import net.sf.cpsolver.studentsct.reservation.Reservation;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class Section implements Assignment, Comparable<Section> {
+public class Section extends AbstractClassWithContext<Request, Enrollment, Section.SectionContext> implements SctAssignment, AssignmentComparable<Section, Request, Enrollment> {
     private static DecimalFormat sDF = new DecimalFormat("0.000");
     private long iId = -1;
     private String iName = null;
@@ -55,12 +60,8 @@ public class Section implements Assignment, Comparable<Section> {
     private Section iParent = null;
     private Placement iPlacement = null;
     private int iLimit = 0;
-    private Set<Enrollment> iEnrollments = new HashSet<Enrollment>();
     private Choice iChoice = null;
     private double iPenalty = 0.0;
-    private double iEnrollmentWeight = 0.0;
-    private double iMaxEnrollmentWeight = 0.0;
-    private double iMinEnrollmentWeight = 0.0;
     private double iSpaceExpected = 0.0;
     private double iSpaceHeld = 0.0;
     private String iNote = null;
@@ -199,7 +200,7 @@ public class Section implements Assignment, Comparable<Section> {
      * space
      */
     @Override
-    public boolean isOverlapping(Assignment assignment) {
+    public boolean isOverlapping(SctAssignment assignment) {
         if (isAllowOverlap() || assignment.isAllowOverlap()) return false;
         if (getTime() == null || assignment.getTime() == null) return false;
         if (assignment instanceof Section && isToIgnoreStudentConflictsWith(assignment.getId())) return false;
@@ -211,11 +212,11 @@ public class Section implements Assignment, Comparable<Section> {
      * in time and space
      */
     @Override
-    public boolean isOverlapping(Set<? extends Assignment> assignments) {
+    public boolean isOverlapping(Set<? extends SctAssignment> assignments) {
         if (isAllowOverlap()) return false;
         if (getTime() == null || assignments == null)
             return false;
-        for (Assignment assignment : assignments) {
+        for (SctAssignment assignment : assignments) {
             if (assignment.isAllowOverlap())
                 continue;
             if (assignment.getTime() == null)
@@ -230,83 +231,14 @@ public class Section implements Assignment, Comparable<Section> {
 
     /** Called when an enrollment with this section is assigned to a request */
     @Override
-    public void assigned(Enrollment enrollment) {
-        if (iEnrollments.isEmpty()) {
-            iMinEnrollmentWeight = iMaxEnrollmentWeight = enrollment.getRequest().getWeight();
-        } else {
-            iMaxEnrollmentWeight = Math.max(iMaxEnrollmentWeight, enrollment.getRequest().getWeight());
-            iMinEnrollmentWeight = Math.min(iMinEnrollmentWeight, enrollment.getRequest().getWeight());
-        }
-        iEnrollments.add(enrollment);
-        iEnrollmentWeight += enrollment.getRequest().getWeight();
+    public void assigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+        getContext(assignment).assigned(assignment, enrollment);
     }
 
     /** Called when an enrollment with this section is unassigned from a request */
     @Override
-    public void unassigned(Enrollment enrollment) {
-        iEnrollments.remove(enrollment);
-        iEnrollmentWeight -= enrollment.getRequest().getWeight();
-        if (iEnrollments.isEmpty()) {
-            iMinEnrollmentWeight = iMaxEnrollmentWeight = 0;
-        } else if (iMinEnrollmentWeight != iMaxEnrollmentWeight) {
-            if (iMinEnrollmentWeight == enrollment.getRequest().getWeight()) {
-                double newMinEnrollmentWeight = Double.MAX_VALUE;
-                for (Enrollment e : iEnrollments) {
-                    if (e.getRequest().getWeight() == iMinEnrollmentWeight) {
-                        newMinEnrollmentWeight = iMinEnrollmentWeight;
-                        break;
-                    } else {
-                        newMinEnrollmentWeight = Math.min(newMinEnrollmentWeight, e.getRequest().getWeight());
-                    }
-                }
-                iMinEnrollmentWeight = newMinEnrollmentWeight;
-            }
-            if (iMaxEnrollmentWeight == enrollment.getRequest().getWeight()) {
-                double newMaxEnrollmentWeight = Double.MIN_VALUE;
-                for (Enrollment e : iEnrollments) {
-                    if (e.getRequest().getWeight() == iMaxEnrollmentWeight) {
-                        newMaxEnrollmentWeight = iMaxEnrollmentWeight;
-                        break;
-                    } else {
-                        newMaxEnrollmentWeight = Math.max(newMaxEnrollmentWeight, e.getRequest().getWeight());
-                    }
-                }
-                iMaxEnrollmentWeight = newMaxEnrollmentWeight;
-            }
-        }
-    }
-
-    /** Set of assigned enrollments */
-    @Override
-    public Set<Enrollment> getEnrollments() {
-        return iEnrollments;
-    }
-
-    /**
-     * Enrollment weight -- weight of all requests which have an enrollment that
-     * contains this section, excluding the given one. See
-     * {@link Request#getWeight()}.
-     */
-    public double getEnrollmentWeight(Request excludeRequest) {
-        double weight = iEnrollmentWeight;
-        if (excludeRequest != null && excludeRequest.getAssignment() != null
-                && iEnrollments.contains(excludeRequest.getAssignment()))
-            weight -= excludeRequest.getWeight();
-        return weight;
-    }
-
-    /**
-     * Maximal weight of a single enrollment in the section
-     */
-    public double getMaxEnrollmentWeight() {
-        return iMaxEnrollmentWeight;
-    }
-
-    /**
-     * Minimal weight of a single enrollment in the section
-     */
-    public double getMinEnrollmentWeight() {
-        return iMinEnrollmentWeight;
+    public void unassigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+        getContext(assignment).unassigned(assignment, enrollment);
     }
 
     /** Long name: subpart name + time long name + room names + instructor names */
@@ -349,11 +281,11 @@ public class Section implements Assignment, Comparable<Section> {
      * space
      */
     @Override
-    public int compareTo(Section s) {
+    public int compareTo(Assignment<Request, Enrollment> assignment, Section s) {
         int cmp = Double.compare(getPenalty(), s.getPenalty());
         if (cmp != 0)
             return cmp;
-        cmp = Double.compare(getLimit() - getEnrollmentWeight(null), s.getLimit() - s.getEnrollmentWeight(null));
+        cmp = Double.compare(getLimit() - getContext(assignment).getEnrollmentWeight(assignment, null), s.getLimit() - s.getContext(assignment).getEnrollmentWeight(assignment, null));
         if (cmp != 0)
             return cmp;
         return Double.compare(getId(), s.getId());
@@ -401,11 +333,11 @@ public class Section implements Assignment, Comparable<Section> {
     /**
      * Online sectioning penalty.
      */
-    public double getOnlineSectioningPenalty() {
+    public double getOnlineSectioningPenalty(Assignment<Request, Enrollment> assignment) {
         if (getLimit() <= 0)
             return 0.0;
 
-        double available = getLimit() - getEnrollmentWeight(null);
+        double available = getLimit() - getContext(assignment).getEnrollmentWeight(assignment, null);
 
         double penalty = (getSpaceExpected() - available) / getLimit();
 
@@ -423,7 +355,7 @@ public class Section implements Assignment, Comparable<Section> {
     
     /** Sections first, then by {@link FreeTimeRequest#getId()} */
     @Override
-    public int compareById(Assignment a) {
+    public int compareById(SctAssignment a) {
         if (a instanceof Section) {
             return new Long(getId()).compareTo(((Section)a).getId());
         } else {
@@ -435,7 +367,7 @@ public class Section implements Assignment, Comparable<Section> {
      * Available space in the section that is not reserved by any section reservation
      * @param excludeRequest excluding given request (if not null)
      **/
-    public double getUnreservedSpace(Request excludeRequest) {
+    public double getUnreservedSpace(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
         // section is unlimited -> there is unreserved space unless there is an unlimited reservation too 
         // (in which case there is no unreserved space)
         if (getLimit() < 0) {
@@ -449,7 +381,7 @@ public class Section implements Assignment, Comparable<Section> {
             return Double.MAX_VALUE;
         }
         
-        double available = getLimit() - getEnrollmentWeight(excludeRequest);
+        double available = getLimit() - getContext(assignment).getEnrollmentWeight(assignment, excludeRequest);
         // exclude reservations that are not directly set on this section
         for (Reservation r: getSectionReservations()) {
             // ignore expired reservations
@@ -457,7 +389,7 @@ public class Section implements Assignment, Comparable<Section> {
             // unlimited reservation -> all the space is reserved
             if (r.getLimit() < 0.0) return 0.0;
             // compute space that can be potentially taken by this reservation
-            double reserved = r.getReservedAvailableSpace(excludeRequest);
+            double reserved = r.getContext(assignment).getReservedAvailableSpace(assignment, excludeRequest);
             // deduct the space from available space
             available -= Math.max(0.0, reserved);
         }
@@ -613,5 +545,140 @@ public class Section implements Assignment, Comparable<Section> {
      */
     public Set<Long> getIgnoreConflictWithSectionIds() {
         return iIgnoreConflictsWith;
+    }
+    
+    /** Set of assigned enrollments */
+    @Override
+    public Set<Enrollment> getEnrollments(Assignment<Request, Enrollment> assignment) {
+        return getContext(assignment).getEnrollments();
+    }
+    
+    /**
+     * Enrollment weight -- weight of all requests which have an enrollment that
+     * contains this section, excluding the given one. See
+     * {@link Request#getWeight()}.
+     */
+    public double getEnrollmentWeight(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
+        return getContext(assignment).getEnrollmentWeight(assignment, excludeRequest);
+    }
+    
+    /**
+     * Maximal weight of a single enrollment in the section
+     */
+    public double getMaxEnrollmentWeight(Assignment<Request, Enrollment> assignment) {
+        return getContext(assignment).getMaxEnrollmentWeight();
+    }
+
+    /**
+     * Minimal weight of a single enrollment in the section
+     */
+    public double getMinEnrollmentWeight(Assignment<Request, Enrollment> assignment) {
+        return getContext(assignment).getMinEnrollmentWeight();
+    }
+    
+    @Override
+    public Model<Request, Enrollment> getModel() {
+        return getSubpart().getConfig().getOffering().getModel();
+    }
+
+    @Override
+    public SectionContext createAssignmentContext(Assignment<Request, Enrollment> assignment) {
+        return new SectionContext(assignment);
+    }
+    
+    public class SectionContext implements AssignmentConstraintContext<Request, Enrollment> {
+        private Set<Enrollment> iEnrollments = new HashSet<Enrollment>();
+        private double iEnrollmentWeight = 0.0;
+        private double iMaxEnrollmentWeight = 0.0;
+        private double iMinEnrollmentWeight = 0.0;
+
+        public SectionContext(Assignment<Request, Enrollment> assignment) {
+            for (Course course: getSubpart().getConfig().getOffering().getCourses()) {
+                for (CourseRequest request: course.getRequests()) {
+                    Enrollment enrollment = assignment.getValue(request);
+                    if (enrollment != null && enrollment.getSections().contains(Section.this))
+                        assigned(assignment, enrollment);
+                }
+            }
+        }
+
+        /** Called when an enrollment with this section is assigned to a request */
+        @Override
+        public void assigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+            if (iEnrollments.isEmpty()) {
+                iMinEnrollmentWeight = iMaxEnrollmentWeight = enrollment.getRequest().getWeight();
+            } else {
+                iMaxEnrollmentWeight = Math.max(iMaxEnrollmentWeight, enrollment.getRequest().getWeight());
+                iMinEnrollmentWeight = Math.min(iMinEnrollmentWeight, enrollment.getRequest().getWeight());
+            }
+            iEnrollments.add(enrollment);
+            iEnrollmentWeight += enrollment.getRequest().getWeight();
+        }
+
+        /** Called when an enrollment with this section is unassigned from a request */
+        @Override
+        public void unassigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+            iEnrollments.remove(enrollment);
+            iEnrollmentWeight -= enrollment.getRequest().getWeight();
+            if (iEnrollments.isEmpty()) {
+                iMinEnrollmentWeight = iMaxEnrollmentWeight = 0;
+            } else if (iMinEnrollmentWeight != iMaxEnrollmentWeight) {
+                if (iMinEnrollmentWeight == enrollment.getRequest().getWeight()) {
+                    double newMinEnrollmentWeight = Double.MAX_VALUE;
+                    for (Enrollment e : iEnrollments) {
+                        if (e.getRequest().getWeight() == iMinEnrollmentWeight) {
+                            newMinEnrollmentWeight = iMinEnrollmentWeight;
+                            break;
+                        } else {
+                            newMinEnrollmentWeight = Math.min(newMinEnrollmentWeight, e.getRequest().getWeight());
+                        }
+                    }
+                    iMinEnrollmentWeight = newMinEnrollmentWeight;
+                }
+                if (iMaxEnrollmentWeight == enrollment.getRequest().getWeight()) {
+                    double newMaxEnrollmentWeight = Double.MIN_VALUE;
+                    for (Enrollment e : iEnrollments) {
+                        if (e.getRequest().getWeight() == iMaxEnrollmentWeight) {
+                            newMaxEnrollmentWeight = iMaxEnrollmentWeight;
+                            break;
+                        } else {
+                            newMaxEnrollmentWeight = Math.max(newMaxEnrollmentWeight, e.getRequest().getWeight());
+                        }
+                    }
+                    iMaxEnrollmentWeight = newMaxEnrollmentWeight;
+                }
+            }
+        }
+        
+        /** Set of assigned enrollments */
+        public Set<Enrollment> getEnrollments() {
+            return iEnrollments;
+        }
+        
+        /**
+         * Enrollment weight -- weight of all requests which have an enrollment that
+         * contains this section, excluding the given one. See
+         * {@link Request#getWeight()}.
+         */
+        public double getEnrollmentWeight(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
+            double weight = iEnrollmentWeight;
+            if (excludeRequest != null && assignment.getValue(excludeRequest) != null && iEnrollments.contains(assignment.getValue(excludeRequest)))
+                weight -= excludeRequest.getWeight();
+            return weight;
+        }
+        
+        /**
+         * Maximal weight of a single enrollment in the section
+         */
+        public double getMaxEnrollmentWeight() {
+            return iMaxEnrollmentWeight;
+        }
+
+        /**
+         * Minimal weight of a single enrollment in the section
+         */
+        public double getMinEnrollmentWeight() {
+            return iMinEnrollmentWeight;
+        }
     }
 }

@@ -1,5 +1,7 @@
 package net.sf.cpsolver.ifs.constant;
 
+import net.sf.cpsolver.ifs.model.Value;
+
 /**
  * Extension of a variable with the possibility to have a constant value.
  * 
@@ -26,7 +28,10 @@ package net.sf.cpsolver.ifs.constant;
  * 
  */
 
-public interface ConstantVariable {
+public interface ConstantVariable<T extends Value<?, T>> {
     /** True, if the variable is constant. */
     public boolean isConstant();
+    
+    /** Return assignment if constant */
+    public T getConstantValue();
 }

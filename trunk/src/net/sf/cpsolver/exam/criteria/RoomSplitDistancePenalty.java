@@ -3,8 +3,10 @@ package net.sf.cpsolver.exam.criteria;
 import java.util.Map;
 import java.util.Set;
 
+import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamRoomPlacement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -36,8 +38,12 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class RoomSplitDistancePenalty  extends ExamCriterion {
-    private int iRoomSplits = 0;
 
+    @Override
+    public ValueContext createAssignmentContext(Assignment<Exam, ExamPlacement> assignment) {
+        return new RoomSplitContext(assignment);
+    }
+    
     @Override
     public String getWeightName() {
         return "Exams.RoomSplitDistanceWeight";
@@ -54,7 +60,7 @@ public class RoomSplitDistancePenalty  extends ExamCriterion {
     }
     
     @Override
-    public double getValue(ExamPlacement value, Set<ExamPlacement> conflicts) {
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value, Set<ExamPlacement> conflicts) {
         if (value.getRoomPlacements() == null || value.getRoomPlacements().size() <= 1) return 0.0;
         double distance = 0.0;
         for (ExamRoomPlacement r : value.getRoomPlacements()) {
@@ -68,35 +74,52 @@ public class RoomSplitDistancePenalty  extends ExamCriterion {
     }
     
     @Override
-    public void beforeUnassigned(long iteration, ExamPlacement value) {
-        super.beforeUnassigned(iteration, value);
-        if (value.getRoomPlacements() == null || value.getRoomPlacements().size() > 1)
-            iRoomSplits --;
-    }
-    
-    @Override
-    public void afterAssigned(long iteration, ExamPlacement value) {
-        super.afterAssigned(iteration, value);
-        if (value.getRoomPlacements() == null || value.getRoomPlacements().size() > 1)
-            iRoomSplits ++;
-    }
-    
-    @Override
-    public void getInfo(Map<String, String> info) {
-        if (getValue() != 0.0) {
-            info.put(getName(), sDoubleFormat.format(getValue() / iRoomSplits) + " m");
+    public void getInfo(Assignment<Exam, ExamPlacement> assignment, Map<String, String> info) {
+        if (getValue(assignment) != 0.0) {
+            info.put(getName(), sDoubleFormat.format(getValue(assignment) / nrRoomSplits(assignment)) + " m");
         }
     }
     
-    public int nrRoomSplits() {
-        return iRoomSplits;
-    }
-
     @Override
-    public String toString() {
-        return "RSd:" + sDoubleFormat.format(getValue() / iRoomSplits);
+    public String toString(Assignment<Exam, ExamPlacement> assignment) {
+        return "RSd:" + sDoubleFormat.format(getValue(assignment) / nrRoomSplits(assignment));
+    }
+    
+    public int nrRoomSplits(Assignment<Exam, ExamPlacement> assignment) {
+        return ((RoomSplitContext)getContext(assignment)).nrRoomSplits();
     }
 
     @Override
     public boolean isPeriodCriterion() { return false; }
+    
+    protected class RoomSplitContext extends ValueContext {
+        private int iRoomSplits = 0;
+        
+        public RoomSplitContext(Assignment<Exam, ExamPlacement> assignment) {
+            super(assignment);
+            for (Exam exam: getModel().variables()) {
+                ExamPlacement placement = assignment.getValue(exam);
+                if (placement != null && placement.getRoomPlacements() != null && placement.getRoomPlacements().size() > 1)
+                    iRoomSplits ++;
+            }
+        }
+
+        @Override
+        public void assigned(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value) {
+            super.assigned(assignment, value);
+            if (value.getRoomPlacements() != null && value.getRoomPlacements().size() > 1)
+                iRoomSplits ++;
+        }
+
+        @Override
+        public void unassigned(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value) {
+            super.unassigned(assignment, value);
+            if (value.getRoomPlacements() != null && value.getRoomPlacements().size() > 1)
+                iRoomSplits --;
+        }
+        
+        public int nrRoomSplits() {
+            return iRoomSplits;
+        }
+    }
 }

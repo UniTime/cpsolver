@@ -2,6 +2,7 @@ package net.sf.cpsolver.ifs.algorithms.neighbourhoods;
 
 import java.util.List;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Neighbour;
@@ -56,6 +57,7 @@ public class RandomMove<V extends Variable<V, T>, T extends Value<V, T>> impleme
     @Override
     public Neighbour<V, T> selectNeighbour(Solution<V, T> solution) {
         Model<V, T> model = solution.getModel();
+        Assignment<V, T> assignment = solution.getAssignment();
         int varIdx = ToolBox.random(model.variables().size());
         for (int i = 0; i < model.variables().size(); i++) {
             V variable = model.variables().get((i + varIdx) % model.variables().size());
@@ -64,9 +66,9 @@ public class RandomMove<V extends Variable<V, T>, T extends Value<V, T>> impleme
             int valIdx = ToolBox.random(values.size());
             for (int j = 0; j < values.size(); j++) {
                 T value = values.get((j + valIdx) % values.size());
-                if (!model.inConflict(value)) {
+                if (!model.inConflict(assignment, value)) {
                     SimpleNeighbour<V, T> n = new SimpleNeighbour<V, T>(variable, value);
-                    if (!iHC || n.value() <= 0) return n;
+                    if (!iHC || n.value(assignment) <= 0) return n;
                 }
             }
         }

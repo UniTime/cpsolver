@@ -3,6 +3,8 @@ package net.sf.cpsolver.ifs.model;
 import java.util.Collection;
 import java.util.Map;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
+
 /**
  * A class providing INFO table.
  * 
@@ -27,13 +29,13 @@ import java.util.Map;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public interface InfoProvider<V extends Variable<V, ?>> {
+public interface InfoProvider<V extends Variable<V, T>, T extends Value<V, T>> {
     /** Adds some information into the table with information about the solution */
-    public void getInfo(Map<String, String> info);
+    public void getInfo(Assignment<V, T> assignment, Map<String, String> info);
 
     /**
      * Adds some information into the table with information about the solution,
      * only consider variables from the given set
      */
-    public void getInfo(Map<String, String> info, Collection<V> variables);
+    public void getInfo(Assignment<V, T> assignment, Map<String, String> info, Collection<V> variables);
 }

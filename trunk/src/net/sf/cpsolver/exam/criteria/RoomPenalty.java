@@ -10,6 +10,7 @@ import net.sf.cpsolver.exam.model.ExamPeriod;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamRoom;
 import net.sf.cpsolver.exam.model.ExamRoomPlacement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
@@ -74,7 +75,7 @@ public class RoomPenalty extends ExamCriterion {
     }
     
     @Override
-    public double getValue(ExamPlacement value, Set<ExamPlacement> conflicts) {
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value, Set<ExamPlacement> conflicts) {
         double penalty = 0.0;
         if (value.getRoomPlacements() != null)
             for (ExamRoomPlacement r : value.getRoomPlacements()) {
@@ -112,7 +113,7 @@ public class RoomPenalty extends ExamCriterion {
     }
 
     @Override
-    public double[] getBounds(Collection<Exam> variables) {
+    public double[] getBounds(Assignment<Exam, ExamPlacement> assignment, Collection<Exam> variables) {
         double[] bounds = new double[] { 0.0, 0.0 };
         for (Exam exam : variables) {
             if (!exam.getRoomPlacements().isEmpty()) {
@@ -131,8 +132,8 @@ public class RoomPenalty extends ExamCriterion {
     }
     
     @Override
-    public String toString() {
-        return "RP:" + sDoubleFormat.format(getValue());
+    public String toString(Assignment<Exam, ExamPlacement> assignment) {
+        return "RP:" + sDoubleFormat.format(getValue(assignment));
     }
 
     @Override

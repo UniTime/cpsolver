@@ -11,6 +11,7 @@ import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.TimetableModel;
 import net.sf.cpsolver.ifs.algorithms.neighbourhoods.RandomSwapMove;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.model.SimpleNeighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
@@ -59,11 +60,12 @@ public class RoomSwap extends RandomSwapMove<Lecture, Placement> {
     @Override
     public Neighbour<Lecture, Placement> selectNeighbour(Solution<Lecture, Placement> solution) {
         TimetableModel model = (TimetableModel)solution.getModel();
-        double total = model.getTotalValue();
+        Assignment<Lecture, Placement> assignment = solution.getAssignment();
+        double total = model.getTotalValue(assignment);
         int varIdx = ToolBox.random(model.variables().size());
         for (int i = 0; i < model.variables().size(); i++) {
             Lecture lecture = model.variables().get((i + varIdx) % model.variables().size());
-            Placement old = lecture.getAssignment();
+            Placement old = assignment.getValue(lecture);
             if (old == null || old.getNrRooms() != 1) continue;
 
             List<RoomLocation> values = lecture.roomLocations();
@@ -80,11 +82,11 @@ public class RoomSwap extends RandomSwapMove<Lecture, Placement> {
                 Placement placement = new Placement(lecture, old.getTimeLocation(), room);
                 if (!placement.isValid()) continue;
                 
-                Set<Placement> conflicts = model.conflictValues(placement);
+                Set<Placement> conflicts = model.conflictValues(assignment, placement);
                 if (conflicts.contains(placement)) continue;
                 if (conflicts.isEmpty()) {
                     SimpleNeighbour<Lecture, Placement> n = new SimpleNeighbour<Lecture, Placement>(lecture, placement);
-                    if (!iHC || n.value() <= 0) return n;
+                    if (!iHC || n.value(assignment) <= 0) return n;
                     else continue;
                 }
                 
@@ -92,17 +94,17 @@ public class RoomSwap extends RandomSwapMove<Lecture, Placement> {
                 assignments.put(lecture, placement);
                 
                 for (Placement conflict: conflicts)
-                    conflict.variable().unassign(solution.getIteration());
-                lecture.assign(solution.getIteration(), placement);
+                    assignment.unassign(solution.getIteration(), conflict.variable());
+                assignment.assign(solution.getIteration(), placement);
                 
                 Double v = resolve(solution, total, startTime, assignments, new ArrayList<Placement>(conflicts), 0);
                 if (!conflicts.isEmpty())
                     attempts ++;
                 
-                lecture.unassign(solution.getIteration());
+                assignment.unassign(solution.getIteration(), lecture);
                 for (Placement conflict: conflicts)
-                    conflict.variable().assign(solution.getIteration(), conflict);
-                lecture.assign(solution.getIteration(), old);
+                    assignment.assign(solution.getIteration(), conflict);
+                assignment.assign(solution.getIteration(), old);
                 
                 if (v != null) 
                     return new SwapNeighbour(assignments.values(), v);
@@ -116,7 +118,9 @@ public class RoomSwap extends RandomSwapMove<Lecture, Placement> {
     
     @Override
     public Double resolve(Solution<Lecture, Placement> solution, double total, long startTime, Map<Lecture, Placement> assignments, List<Placement> conflicts, int index) {
-        if (index == conflicts.size()) return solution.getModel().getTotalValue() - total;
+        Assignment<Lecture, Placement> assignment = solution.getAssignment();
+        
+        if (index == conflicts.size()) return solution.getModel().getTotalValue(assignment) - total;
         Placement conflict = conflicts.get(index);
         Lecture variable = conflict.variable();
         
@@ -133,11 +137,11 @@ public class RoomSwap extends RandomSwapMove<Lecture, Placement> {
             if (room.equals(conflict.getRoomLocation())) continue;
             
             Placement value = new Placement(variable, conflict.getTimeLocation(), room);
-            if (!value.isValid() || solution.getModel().inConflict(value)) continue;
+            if (!value.isValid() || solution.getModel().inConflict(assignment, value)) continue;
             
-            variable.assign(solution.getIteration(), value);
+            assignment.assign(solution.getIteration(), value);
             Double v = resolve(solution, total, startTime, assignments, conflicts, 1 + index);
-            variable.unassign(solution.getIteration());
+            assignment.unassign(solution.getIteration(), variable);
             attempts ++;
             
             if (v != null && (!iHC || v <= 0)) {

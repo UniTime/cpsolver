@@ -14,6 +14,7 @@ import java.util.TreeSet;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimetableModel;
+import net.sf.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.DataProperties;
@@ -54,10 +55,10 @@ public class GetInfo {
         try {
             DataProperties properties = new DataProperties();
             properties.setProperty("General.Input", file.getPath());
-            TimetableXMLLoader loader = new TimetableXMLLoader(new TimetableModel(properties));
+            TimetableXMLLoader loader = new TimetableXMLLoader(new TimetableModel(properties), new DefaultSingleAssignment<Lecture, Placement>());
             loader.load();
             File newOutputFile = new File(file.getParentFile(), "new-output.csv");
-            Test.saveOutputCSV(new Solution<Lecture, Placement>(loader.getModel()), newOutputFile);
+            Test.saveOutputCSV(new Solution<Lecture, Placement>(loader.getModel(), loader.getAssignment()), newOutputFile);
             Progress.removeInstance(loader.getModel());
             System.out.println("  Reading " + newOutputFile + " ...");
             HashMap<String, String> info = getInfo(newOutputFile);

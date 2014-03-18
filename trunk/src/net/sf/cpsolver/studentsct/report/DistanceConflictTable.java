@@ -12,6 +12,7 @@ import java.util.TreeSet;
 
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomLocation;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.DistanceMetric;
@@ -105,7 +106,7 @@ public class DistanceConflictTable implements StudentSectioningReport {
      *            {@link Student#isDummy()} is false)
      * @return report as comma separated text file
      */
-    public CSVFile createTable(boolean includeLastLikeStudents, boolean includeRealStudents) {
+    public CSVFile createTable(Assignment<Request, Enrollment> assignment, boolean includeLastLikeStudents, boolean includeRealStudents) {
         CSVFile csv = new CSVFile();
         csv.setHeader(new CSVFile.CSVField[] { new CSVFile.CSVField("Course"), new CSVFile.CSVField("Total\nConflicts"),
                 new CSVFile.CSVField("Class"), new CSVFile.CSVField("Meeting Time"), new CSVFile.CSVField("Room"),
@@ -116,13 +117,15 @@ public class DistanceConflictTable implements StudentSectioningReport {
         
         Set<Conflict> confs = new HashSet<Conflict>();
         for (Request r1 : getModel().variables()) {
-            if (r1.getAssignment() == null || !(r1 instanceof CourseRequest))
+            Enrollment e1 = assignment.getValue(r1);
+            if (e1 == null || !(r1 instanceof CourseRequest))
                 continue;
-            confs.addAll(iDC.conflicts(r1.getAssignment()));
+            confs.addAll(iDC.conflicts(e1));
             for (Request r2 : r1.getStudent().getRequests()) {
-                if (r2.getAssignment() == null || r1.getId() >= r2.getId() || !(r2 instanceof CourseRequest))
+                Enrollment e2 = assignment.getValue(r2);
+                if (e2 == null || r1.getId() >= r2.getId() || !(r2 instanceof CourseRequest))
                     continue;
-                confs.addAll(iDC.conflicts(r1.getAssignment(), r2.getAssignment()));
+                confs.addAll(iDC.conflicts(e1, e2));
             }
         }
         
@@ -137,7 +140,7 @@ public class DistanceConflictTable implements StudentSectioningReport {
             Course c1 = null, c2 = null;
             Request r1 = null, r2 = null;
             for (Request request : conflict.getStudent().getRequests()) {
-                Enrollment enrollment = request.getAssignment();
+                Enrollment enrollment = assignment.getValue(request);
                 if (enrollment == null || !enrollment.isCourseRequest()) continue;
                 if (c1 == null && enrollment.getAssignments().contains(s1)) {
                     c1 = enrollment.getCourse();
@@ -287,7 +290,7 @@ public class DistanceConflictTable implements StudentSectioningReport {
     }
 
     @Override
-    public CSVFile create(DataProperties properties) {
-        return createTable(properties.getPropertyBoolean("lastlike", false), properties.getPropertyBoolean("real", true));
+    public CSVFile create(Assignment<Request, Enrollment> assignment, DataProperties properties) {
+        return createTable(assignment, properties.getPropertyBoolean("lastlike", false), properties.getPropertyBoolean("real", true));
     }
 }

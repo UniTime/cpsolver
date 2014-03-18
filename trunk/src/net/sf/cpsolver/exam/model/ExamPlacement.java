@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import net.sf.cpsolver.exam.criteria.ExamCriterion;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.criteria.Criterion;
 import net.sf.cpsolver.ifs.model.Value;
 
@@ -113,21 +114,21 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
      * Overall cost of using this placement.
      */
     @Override
-    public double toDouble() {
+    public double toDouble(Assignment<Exam, ExamPlacement> assignment) {
         double ret = 0.0;
         for (Criterion<Exam, ExamPlacement> criterion: variable().getModel().getCriteria())
-            ret += criterion.getWeightedValue(this, null);
+            ret += criterion.getWeightedValue(assignment, this, null);
         return ret;
     }
 
     /**
      * Overall cost of using this period.
      */
-    public double getTimeCost() {
+    public double getTimeCost(Assignment<Exam, ExamPlacement> assignment) {
         double weight = 0.0;
         for (Criterion<Exam, ExamPlacement> criterion: variable().getModel().getCriteria()) {
             if (((ExamCriterion)criterion).isPeriodCriterion())
-                weight += criterion.getWeight() * ((ExamCriterion)criterion).getPeriodValue(this);
+                weight += criterion.getWeight() * ((ExamCriterion)criterion).getPeriodValue(assignment, this);
         }
         return weight;
     }
@@ -135,11 +136,11 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
     /**
      * Overall cost of using this set or rooms.
      */
-    public double getRoomCost() {
+    public double getRoomCost(Assignment<Exam, ExamPlacement> assignment) {
         double weight = 0.0;
         for (Criterion<Exam, ExamPlacement> criterion: variable().getModel().getCriteria()) {
             if (((ExamCriterion)criterion).isRoomCriterion())
-                weight += criterion.getWeight() * ((ExamCriterion)criterion).getRoomValue(this);
+                weight += criterion.getWeight() * ((ExamCriterion)criterion).getRoomValue(assignment, this);
         }
         return weight;
     }
@@ -169,15 +170,22 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
     /**
      * String representation -- returns a list of assignment costs
      */
-    @Override
-    public String toString() {
+    public String toString(Assignment<Exam, ExamPlacement> assignment) {
         String ret = "";
         for (Criterion<Exam, ExamPlacement> criterion: variable().getModel().getCriteria()) {
-            String val = criterion.toString();
+            String val = ((ExamCriterion)criterion).toString(assignment);
             if (!val.isEmpty())
                 ret += (!ret.isEmpty() && !ret.endsWith(",") ? "," : "") + val;
         }
-        return variable().getName() + " = " + getName() + " (" + new DecimalFormat("0.00").format(toDouble()) + "/" + ret + ")";
+        return variable().getName() + " = " + getName() + " (" + new DecimalFormat("0.00").format(toDouble(assignment)) + "/" + ret + ")";
+    }
+    
+   /**
+    * String representation -- returns a list of assignment costs
+    */
+   @Override
+   public String toString() {
+        return variable().getName() + " = " + getName();
     }
 
     /**

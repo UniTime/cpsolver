@@ -45,7 +45,7 @@ public class SimpleTest {
 
         net.sf.cpsolver.ifs.util.DataProperties cfg = new net.sf.cpsolver.ifs.util.DataProperties();
         cfg.setProperty("Termination.Class", "net.sf.cpsolver.ifs.termination.GeneralTerminationCondition");
-        cfg.setProperty("Termination.StopWhenComplete", "true");
+        cfg.setProperty("Termination.StopWhenComplete", "false");
         cfg.setProperty("Termination.TimeOut", "60");
         cfg.setProperty("Comparator.Class", "net.sf.cpsolver.ifs.solution.GeneralSolutionComparator");
         cfg.setProperty("Value.Class", "net.sf.cpsolver.ifs.heuristics.GeneralValueSelection");
@@ -68,13 +68,14 @@ public class SimpleTest {
 
         System.out.println("Best solution found after " + solution.getBestTime() + " seconds ("
                 + solution.getBestIteration() + " iterations).");
-        System.out.println("Number of assigned variables is " + solution.getModel().assignedVariables().size());
-        System.out.println("Total value of the solution is " + solution.getModel().getTotalValue());
+        System.out.println("Number of assigned variables is " + solution.getAssignment().nrAssignedVariables());
+        System.out.println("Total value of the solution is " + solution.getModel().getTotalValue(solution.getAssignment()));
 
         int idx = 1;
-        for (CSPVariable v : ((CSPModel) solution.getModel()).variables()) {
-            if (v.getAssignment() != null)
-                System.out.println("Var" + (idx++) + "=" + v.getAssignment().toDouble());
+        for (CSPVariable v : solution.getModel().variables()) {
+            CSPValue a = solution.getAssignment().getValue(v);
+            if (a != null)
+                System.out.println("Var" + (idx++) + "=" + a.toDouble());
         }
     }
 }

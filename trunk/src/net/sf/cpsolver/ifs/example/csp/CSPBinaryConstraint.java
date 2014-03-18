@@ -3,6 +3,7 @@ package net.sf.cpsolver.ifs.example.csp;
 import java.util.Random;
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.BinaryConstraint;
 
 /**
@@ -98,14 +99,14 @@ public class CSPBinaryConstraint extends BinaryConstraint<CSPVariable, CSPValue>
      * with the given value.
      */
     @Override
-    public void computeConflicts(CSPValue aValue, Set<CSPValue> conflicts) {
+    public void computeConflicts(Assignment<CSPVariable, CSPValue> assignment, CSPValue aValue, Set<CSPValue> conflicts) {
         if (isFirst(aValue.variable())) {
-            if (!isConsistent(aValue, second().getAssignment())) {
-                conflicts.add(second().getAssignment());
+            if (!isConsistent(aValue, assignment.getValue(second()))) {
+                conflicts.add(assignment.getValue(second()));
             }
         } else {
-            if (!isConsistent(first().getAssignment(), aValue)) {
-                conflicts.add(first().getAssignment());
+            if (!isConsistent(assignment.getValue(first()), aValue)) {
+                conflicts.add(assignment.getValue(first()));
             }
         }
     }

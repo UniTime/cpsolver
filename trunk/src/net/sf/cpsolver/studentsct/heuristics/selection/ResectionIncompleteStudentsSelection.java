@@ -2,6 +2,7 @@ package net.sf.cpsolver.studentsct.heuristics.selection;
 
 import org.apache.log4j.Logger;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
@@ -15,8 +16,8 @@ import net.sf.cpsolver.studentsct.model.Student;
 
 /**
  * Resection incomplete studends. An extension of {@link BranchBoundSelection},
- * where only students that are not complete ({@link Student#isComplete()} is
- * false) and that are sectioned somewhere ({@link Student#nrAssignedRequests()}
+ * where only students that are not complete ({@link Student#isComplete(Assignment)} is
+ * false) and that are sectioned somewhere ({@link Student#nrAssignedRequests(Assignment)}
  * is greater then zero) are resectioned.
  * 
  * <br>
@@ -71,12 +72,12 @@ public class ResectionIncompleteStudentsSelection extends BranchBoundSelection {
      */
     @Override
     public Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
-        while (iStudentsEnumeration.hasNext()) {
-            Student student = iStudentsEnumeration.next();
+        Student student = null;
+        while ((student = nextStudent()) != null) {
             Progress.getInstance(solution.getModel()).incProgress();
-            if (student.nrAssignedRequests() == 0 || student.isComplete())
+            if (student.nrAssignedRequests(solution.getAssignment()) == 0 || student.isComplete(solution.getAssignment()))
                 continue;
-            Neighbour<Request, Enrollment> neighbour = getSelection(student).select();
+            Neighbour<Request, Enrollment> neighbour = getSelection(solution.getAssignment(), student).select();
             if (neighbour != null)
                 return neighbour;
         }

@@ -12,7 +12,9 @@ import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimeLocation;
-import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import net.sf.cpsolver.ifs.assignment.context.ConstraintWithContext;
 import net.sf.cpsolver.ifs.model.WeakeningConstraint;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
@@ -65,13 +67,9 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class MinimizeNumberOfUsedGroupsOfTime extends Constraint<Lecture, Placement> implements WeakeningConstraint<Lecture, Placement> {
+public class MinimizeNumberOfUsedGroupsOfTime extends ConstraintWithContext<Lecture, Placement, MinimizeNumberOfUsedGroupsOfTime.MinimizeNumberOfUsedGroupsOfTimeContext> implements WeakeningConstraint<Lecture, Placement> {
     private int iUnassignmentsToWeaken = 250;
-    private long iUnassignment = 0;
-    private int iLimit = 1;
     private GroupOfTime iGroupsOfTime[];
-    private HashSet<Placement> iUsage[];
-    private boolean iEnabled = false;
 
     private String iName = null;
 
@@ -100,56 +98,10 @@ public class MinimizeNumberOfUsedGroupsOfTime extends Constraint<Lecture, Placem
             new GroupOfTime(Constants.time2slot(15, 30), Constants.time2slot(16, 30), Constants.DAY_CODE_ALL),
             new GroupOfTime(Constants.time2slot(16, 30), Constants.time2slot(17, 30), Constants.DAY_CODE_ALL) };
 
-    @SuppressWarnings("unchecked")
     public MinimizeNumberOfUsedGroupsOfTime(DataProperties config, String name, GroupOfTime[] groupsOfTime) {
         iGroupsOfTime = groupsOfTime;
-        iUnassignmentsToWeaken = config.getPropertyInt("MinimizeNumberOfUsedGroupsOfTime.Unassignments2Weaken",
-                iUnassignmentsToWeaken);
+        iUnassignmentsToWeaken = config.getPropertyInt("MinimizeNumberOfUsedGroupsOfTime.Unassignments2Weaken", iUnassignmentsToWeaken);
         iName = name;
-        iUsage = new HashSet[iGroupsOfTime.length];
-        for (int i = 0; i < iUsage.length; i++)
-            iUsage[i] = new HashSet<Placement>();
-    }
-
-    public int currentUsage() {
-        int ret = 0;
-        for (int i = 0; i < iUsage.length; i++)
-            if (!iUsage[i].isEmpty())
-                ret++;
-        return ret;
-    }
-
-    @Override
-    public void weaken() {
-        iUnassignment++;
-        if (iUnassignmentsToWeaken > 0 && iUnassignment % iUnassignmentsToWeaken == 0)
-            iLimit++;
-    }
-
-    public boolean isOverLimit(Placement placement) {
-        return getOverLimit(placement) > 0;
-    }
-
-    public int getOverLimit(Placement placement) {
-        if (!iEnabled)
-            return 0; // not enabled
-        if (iUnassignmentsToWeaken == 0)
-            return 0; // not working
-
-        Lecture lecture = placement.variable();
-        TimeLocation time = placement.getTimeLocation();
-
-        if (lecture.isCommitted())
-            return 0; // commited class
-
-        int usage = 0;
-        for (int i = 0; i < iGroupsOfTime.length; i++) {
-            GroupOfTime groupOfTime = iGroupsOfTime[i];
-            if (!iUsage[i].isEmpty() || groupOfTime.overlap(time))
-                usage++;
-        }
-
-        return usage - iLimit;
     }
 
     public int estimateLimit() {
@@ -184,15 +136,16 @@ public class MinimizeNumberOfUsedGroupsOfTime extends Constraint<Lecture, Placem
     }
 
     @Override
-    public void computeConflicts(Placement placement, Set<Placement> conflicts) {
-        int overLimit = getOverLimit(placement);
+    public void computeConflicts(Assignment<Lecture, Placement> assignment, Placement placement, Set<Placement> conflicts) {
+        MinimizeNumberOfUsedGroupsOfTimeContext context = getContext(assignment);
+        int overLimit = context.getOverLimit(placement);
         if (overLimit > 0) {
             TimeLocation time = placement.getTimeLocation();
 
             List<List<Placement>> adepts = new ArrayList<List<Placement>>();
             for (int i = 0; i < iGroupsOfTime.length; i++) {
                 GroupOfTime groupOfTime = iGroupsOfTime[i];
-                HashSet<Placement> usage = iUsage[i];
+                Set<Placement> usage = context.getUsage(i);
                 if (groupOfTime.overlap(time) || usage.isEmpty())
                     continue;
                 boolean canUnassign = true;
@@ -226,40 +179,6 @@ public class MinimizeNumberOfUsedGroupsOfTime extends Constraint<Lecture, Placem
         }
     }
 
-    @Override
-    public boolean inConflict(Placement placement) {
-        return isOverLimit(placement);
-    }
-
-    @Override
-    public boolean isConsistent(Placement value1, Placement value2) {
-        return (isOverLimit(value1) || isOverLimit(value2));
-    }
-
-    @Override
-    public void assigned(long iteration, Placement placement) {
-        super.assigned(iteration, placement);
-        TimeLocation time = placement.getTimeLocation();
-        for (int i = 0; i < iGroupsOfTime.length; i++) {
-            GroupOfTime groupOfTime = iGroupsOfTime[i];
-            HashSet<Placement> usage = iUsage[i];
-            if (groupOfTime.overlap(time))
-                usage.add(placement);
-        }
-    }
-
-    @Override
-    public void unassigned(long iteration, Placement placement) {
-        super.unassigned(iteration, placement);
-        TimeLocation time = placement.getTimeLocation();
-        for (int i = 0; i < iGroupsOfTime.length; i++) {
-            GroupOfTime groupOfTime = iGroupsOfTime[i];
-            HashSet<Placement> usage = iUsage[i];
-            if (groupOfTime.overlap(time))
-                usage.remove(placement);
-        }
-    }
-
     public String getConstraintName() {
         return "MIN_GRUSE(" + iName + ")";
     }
@@ -267,15 +186,6 @@ public class MinimizeNumberOfUsedGroupsOfTime extends Constraint<Lecture, Placem
     @Override
     public String getName() {
         return "Minimize number of used groups of time (" + iName + ")";
-    }
-
-    public void setEnabled(boolean enabled) {
-        iEnabled = enabled;
-        iLimit = Math.max(currentUsage(), estimateLimit());
-    }
-
-    public boolean isEnabled() {
-        return iEnabled;
     }
 
     private static class GroupOfTime {
@@ -340,9 +250,106 @@ public class MinimizeNumberOfUsedGroupsOfTime extends Constraint<Lecture, Placem
     }
 
     @Override
-    public void weaken(Placement value) {
-        if (isOverLimit(value))
-            iLimit += getOverLimit(value);
+    public void weaken(Assignment<Lecture, Placement> assignment) {
+        getContext(assignment).weaken();
+    }
+
+    @Override
+    public void weaken(Assignment<Lecture, Placement> assignment, Placement value) {
+        getContext(assignment).weaken(value);
+    }
+    
+    @Override
+    public MinimizeNumberOfUsedGroupsOfTimeContext createAssignmentContext(Assignment<Lecture, Placement> assignment) {
+        return new MinimizeNumberOfUsedGroupsOfTimeContext(assignment);
+    }
+
+    public class MinimizeNumberOfUsedGroupsOfTimeContext implements AssignmentConstraintContext<Lecture, Placement> {
+        private long iUnassignment = 0;
+        private int iLimit = 1;
+        private Set<Placement> iUsage[];
+
+        @SuppressWarnings("unchecked")
+        public MinimizeNumberOfUsedGroupsOfTimeContext(Assignment<Lecture, Placement> assignment) {
+            iUsage = new HashSet[iGroupsOfTime.length];
+            for (int i = 0; i < iUsage.length; i++)
+                iUsage[i] = new HashSet<Placement>();
+            for (Lecture lecture: variables()) {
+                Placement placement = assignment.getValue(lecture);
+                if (placement != null)
+                    assigned(assignment, placement);
+            }
+            iLimit = Math.max(currentUsage(), estimateLimit());
+        }
+
+        @Override
+        public void assigned(Assignment<Lecture, Placement> assignment, Placement placement) {
+            TimeLocation time = placement.getTimeLocation();
+            for (int i = 0; i < iGroupsOfTime.length; i++) {
+                GroupOfTime groupOfTime = iGroupsOfTime[i];
+                Set<Placement> usage = iUsage[i];
+                if (groupOfTime.overlap(time))
+                    usage.add(placement);
+            }
+        }
+
+        @Override
+        public void unassigned(Assignment<Lecture, Placement> assignment, Placement placement) {
+            TimeLocation time = placement.getTimeLocation();
+            for (int i = 0; i < iGroupsOfTime.length; i++) {
+                GroupOfTime groupOfTime = iGroupsOfTime[i];
+                Set<Placement> usage = iUsage[i];
+                if (groupOfTime.overlap(time))
+                    usage.remove(placement);
+            }
+        }
+        
+        public int currentUsage() {
+            int ret = 0;
+            for (int i = 0; i < iUsage.length; i++)
+                if (!iUsage[i].isEmpty())
+                    ret++;
+            return ret;
+        }
+
+        public boolean isOverLimit(Placement placement) {
+            return getOverLimit(placement) > 0;
+        }
+
+        public int getOverLimit(Placement placement) {
+            if (iUnassignmentsToWeaken == 0)
+                return 0; // not working
+
+            Lecture lecture = placement.variable();
+            TimeLocation time = placement.getTimeLocation();
+
+            if (lecture.isCommitted())
+                return 0; // commited class
+
+            int usage = 0;
+            for (int i = 0; i < iGroupsOfTime.length; i++) {
+                GroupOfTime groupOfTime = iGroupsOfTime[i];
+                if (!iUsage[i].isEmpty() || groupOfTime.overlap(time))
+                    usage++;
+            }
+
+            return usage - iLimit;
+        }
+        
+        public void weaken() {
+            iUnassignment++;
+            if (iUnassignmentsToWeaken > 0 && iUnassignment % iUnassignmentsToWeaken == 0)
+                iLimit++;
+        }
+        
+        public void weaken(Placement value) {
+            if (isOverLimit(value))
+                iLimit += getOverLimit(value);
+        }
+        
+        public Set<Placement> getUsage(int slot) {
+            return iUsage[slot];
+        }
     }
 
 }

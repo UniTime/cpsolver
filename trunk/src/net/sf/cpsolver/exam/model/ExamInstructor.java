@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Constraint;
 
 /**
@@ -31,29 +32,18 @@ import net.sf.cpsolver.ifs.model.Constraint;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class ExamInstructor extends Constraint<Exam, ExamPlacement> {
-    private Set<Exam>[] iTable;
-    private Set<Exam>[] iDayTable;
     private String iName;
     private boolean iAllowDirectConflicts = true;
     private List<ExamOwner> iOwners = new ArrayList<ExamOwner>();
     private boolean[] iAvailable = null;
 
-    @SuppressWarnings("unchecked")
     public ExamInstructor(ExamModel model, long id, String name) {
         super();
-        iAllowDirectConflicts = model.getProperties().getPropertyBoolean("Instructor.AllowDirectConflicts",
-                iAllowDirectConflicts);
-        iAssignedVariables = null;
+        iAllowDirectConflicts = model.getProperties().getPropertyBoolean("Instructor.AllowDirectConflicts", iAllowDirectConflicts);
         iId = id;
         iName = name;
-        iTable = new Set[model.getNrPeriods()];
-        for (int i = 0; i < iTable.length; i++)
-            iTable[i] = new HashSet<Exam>();
-        iDayTable = new Set[model.getNrDays()];
-        for (int i = 0; i < iDayTable.length; i++)
-            iDayTable[i] = new HashSet<Exam>();
     }
-
+    
     /**
      * True when direct instructor conflicts are not allowed.
      */
@@ -71,22 +61,28 @@ public class ExamInstructor extends Constraint<Exam, ExamPlacement> {
     /**
      * Exam(s) enrolled by the instructor that are scheduled in the given period
      */
-    public Set<Exam> getExams(ExamPeriod period) {
-        return iTable[period.getIndex()];
+    public Set<Exam> getExams(Assignment<Exam, ExamPlacement> assignment, ExamPeriod period) {
+        Set<Exam> exams = ((ExamModel)getModel()).getInstructorsOfPeriod(assignment, period).get(this);
+        return (exams != null ? exams : new HashSet<Exam>());
+        // return getContext(assignment).getExams(period.getIndex());
     }
 
     /**
      * Exam(s) enrolled by the instructor that are scheduled in the given day
      */
-    public Set<Exam> getExamsADay(ExamPeriod period) {
-        return iDayTable[period.getDay()];
+    public Set<Exam> getExamsADay(Assignment<Exam, ExamPlacement> assignment, ExamPeriod period) {
+        Set<Exam> exams = ((ExamModel)getModel()).getInstructorsOfPeriod(assignment, period).get(this);
+        return (exams != null ? exams : new HashSet<Exam>());
+        // return getContext(assignment).getExamsOfDay(period.getDay());
     }
 
     /**
      * Exam(s) enrolled by the instructor that are scheduled in the given day
      */
-    public Set<Exam> getExamsADay(int day) {
-        return iDayTable[day];
+    public Set<Exam> getExamsADay(Assignment<Exam, ExamPlacement> assignment, int day) {
+        Set<Exam> exams = ((ExamModel)getModel()).getInstructorsOfDay(assignment, day).get(this);
+        return (exams != null ? exams : new HashSet<Exam>());
+        // return getContext(assignment).getExamsOfDay(day);
     }
 
     /**
@@ -95,12 +91,14 @@ public class ExamInstructor extends Constraint<Exam, ExamPlacement> {
      * {@link ExamInstructor#isAllowDirectConflicts()}) are considered.
      */
     @Override
-    public void computeConflicts(ExamPlacement p, Set<ExamPlacement> conflicts) {
+    public void computeConflicts(Assignment<Exam, ExamPlacement> assignment, ExamPlacement p, Set<ExamPlacement> conflicts) {
         if (isAllowDirectConflicts())
             return;
-        for (Exam exam : iTable[p.getPeriod().getIndex()]) {
-            conflicts.add(exam.getAssignment());
-        }
+        Set<Exam> exams = ((ExamModel)getModel()).getInstructorsOfPeriod(assignment, p.getPeriod()).get(this);
+        if (exams != null)
+            for (Exam exam : exams) {
+                conflicts.add(assignment.getValue(exam));
+            }
     }
 
     /**
@@ -110,10 +108,11 @@ public class ExamInstructor extends Constraint<Exam, ExamPlacement> {
      * considered.
      */
     @Override
-    public boolean inConflict(ExamPlacement p) {
+    public boolean inConflict(Assignment<Exam, ExamPlacement> assignment, ExamPlacement p) {
         if (isAllowDirectConflicts())
             return false;
-        return !iTable[p.getPeriod().getIndex()].isEmpty();
+        Set<Exam> exams = ((ExamModel)getModel()).getInstructorsOfPeriod(assignment, p.getPeriod()).get(this);
+        return exams != null && !exams.isEmpty();
     }
 
     /**
@@ -126,22 +125,6 @@ public class ExamInstructor extends Constraint<Exam, ExamPlacement> {
         if (isAllowDirectConflicts())
             return true;
         return (p1.getPeriod() != p2.getPeriod());
-    }
-
-    /**
-     * An exam was assigned, update instructor assignment table
-     */
-    public void afterAssigned(long iteration, ExamPlacement p) {
-        iTable[p.getPeriod().getIndex()].add(p.variable());
-        iDayTable[p.getPeriod().getDay()].add(p.variable());
-    }
-
-    /**
-     * An exam was unassigned, update instructor assignment table
-     */
-    public void afterUnassigned(long iteration, ExamPlacement p) {
-        iTable[p.getPeriod().getIndex()].remove(p.variable());
-        iDayTable[p.getPeriod().getDay()].remove(p.variable());
     }
 
     /**
@@ -232,10 +215,54 @@ public class ExamInstructor extends Constraint<Exam, ExamPlacement> {
      */
     public void setAvailable(int period, boolean available) {
         if (iAvailable == null) {
-            iAvailable = new boolean[iTable.length];
-            for (int i = 0; i < iTable.length; i++)
+            iAvailable = new boolean[((ExamModel)getModel()).getNrPeriods()];
+            for (int i = 0; i < iAvailable.length; i++)
                 iAvailable[i] = true;
         }
         iAvailable[period] = available;
     }
+    
+    /*
+    @Override
+    public Context createAssignmentContext(Assignment<Exam, ExamPlacement> assignment) {
+        return new Context(assignment);
+    }
+
+    public class Context implements AssignmentConstraintContext<Exam, ExamPlacement> {
+        private Set<Exam>[] iTable;
+        private Set<Exam>[] iDayTable;
+        
+        @SuppressWarnings("unchecked")
+        public Context(Assignment<Exam, ExamPlacement> assignment) {
+            ExamModel model = (ExamModel)getModel();
+            iTable = new Set[model.getNrPeriods()];
+            for (int i = 0; i < iTable.length; i++)
+                iTable[i] = new HashSet<Exam>();
+            iDayTable = new Set[model.getNrDays()];
+            for (int i = 0; i < iDayTable.length; i++)
+                iDayTable[i] = new HashSet<Exam>();
+            for (Exam exam: variables()) {
+                ExamPlacement placement = assignment.getValue(exam);
+                if (placement != null)
+                    assigned(assignment, placement);
+            }
+        }
+
+        @Override
+        public void assigned(Assignment<Exam, ExamPlacement> assignment, ExamPlacement placement) {
+            iTable[placement.getPeriod().getIndex()].add(placement.variable());
+            iDayTable[placement.getPeriod().getDay()].add(placement.variable());
+        }
+        
+        @Override
+        public void unassigned(Assignment<Exam, ExamPlacement> assignment, ExamPlacement placement) {
+            iTable[placement.getPeriod().getIndex()].remove(placement.variable());
+            iDayTable[placement.getPeriod().getDay()].remove(placement.variable());
+        }
+        
+        public Set<Exam> getExams(int period) { return iTable[period]; }
+        
+        public Set<Exam> getExamsOfDay(int day) { return iDayTable[day]; }
+    }
+    */
 }

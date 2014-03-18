@@ -2,9 +2,12 @@ package net.sf.cpsolver.studentsct.check;
 
 import java.text.DecimalFormat;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.model.Config;
+import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Offering;
+import net.sf.cpsolver.studentsct.model.Request;
 import net.sf.cpsolver.studentsct.model.Section;
 import net.sf.cpsolver.studentsct.model.Subpart;
 
@@ -64,7 +67,7 @@ public class SectionLimitCheck {
      * 
      * @return false, if there is such a case
      */
-    public boolean check() {
+    public boolean check(Assignment<Request, Enrollment> assignment) {
         sLog.info("Checking section limits...");
         boolean ret = true;
         for (Offering offering : getModel().getOfferings()) {
@@ -73,16 +76,16 @@ public class SectionLimitCheck {
                     for (Section section : subpart.getSections()) {
                         if (section.getLimit() < 0)
                             continue;
-                        double used = section.getEnrollmentWeight(null);
-                        if (used - section.getMaxEnrollmentWeight() > section.getLimit()) {
+                        double used = section.getEnrollmentWeight(assignment, null);
+                        if (used - section.getMaxEnrollmentWeight(assignment) > section.getLimit()) {
                             sLog.error("Section " + section.getName() + " exceeds its limit " + sDF.format(used) + ">"
                                     + section.getLimit() + " for more than one student (W:"
-                                    + section.getMaxEnrollmentWeight() + ")");
+                                    + section.getMaxEnrollmentWeight(assignment) + ")");
                             ret = false;
                         } else if (Math.round(used) > section.getLimit()) {
                             sLog.debug("Section " + section.getName() + " exceeds its limit " + sDF.format(used) + ">"
                                     + section.getLimit() + " for less than one student (W:"
-                                    + section.getMaxEnrollmentWeight() + ")");
+                                    + section.getMaxEnrollmentWeight(assignment) + ")");
                         }
                     }
                 }

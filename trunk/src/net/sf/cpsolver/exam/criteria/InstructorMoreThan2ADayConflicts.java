@@ -1,10 +1,13 @@
 package net.sf.cpsolver.exam.criteria;
 
+import java.util.Map;
 import java.util.Set;
 
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamInstructor;
+import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPlacement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -55,15 +58,25 @@ public class InstructorMoreThan2ADayConflicts extends StudentMoreThan2ADayConfli
     }
 
     @Override
-    public double getValue(ExamPlacement value, Set<ExamPlacement> conflicts) {
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value, Set<ExamPlacement> conflicts) {
         Exam exam = value.variable();
         int penalty = 0;
+        Map<ExamInstructor, Set<Exam>> instructors = ((ExamModel)getModel()).getInstructorsOfDay(assignment, value.getPeriod());
         for (ExamInstructor s : exam.getInstructors()) {
-            Set<Exam> exams = s.getExamsADay(value.getPeriod());
+            Set<Exam> exams = instructors.get(s);
+            if (exams == null || exams.size() < 2) continue;
             int nrExams = exams.size() + (exams.contains(exam) ? 0 : 1);
             if (nrExams > 2)
                 penalty++;
         }
+        /*
+        for (ExamInstructor s : exam.getInstructors()) {
+            Set<Exam> exams = s.getExamsADay(assignment, value.getPeriod());
+            int nrExams = exams.size() + (exams.contains(exam) ? 0 : 1);
+            if (nrExams > 2)
+                penalty++;
+        }
+        */
         return penalty;
     }
 
@@ -73,7 +86,7 @@ public class InstructorMoreThan2ADayConflicts extends StudentMoreThan2ADayConfli
     }
 
     @Override
-    public String toString() {
-        return "iM2D:" + sDoubleFormat.format(getValue());
+    public String toString(Assignment<Exam, ExamPlacement> assignment) {
+        return "iM2D:" + sDoubleFormat.format(getValue(assignment));
     }
 }

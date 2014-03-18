@@ -2,8 +2,9 @@ package net.sf.cpsolver.ifs.example.rpp;
 
 import java.util.Set;
 
-import net.sf.cpsolver.ifs.model.Constraint;
-import net.sf.cpsolver.ifs.util.ToolBox;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import net.sf.cpsolver.ifs.assignment.context.ConstraintWithContext;
 
 /**
  * Resource constraint (rectangular area where the rectangles are to be placed).
@@ -28,9 +29,8 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class ResourceConstraint extends Constraint<Rectangle, Location> {
+public class ResourceConstraint extends ConstraintWithContext<Rectangle, Location, ResourceConstraint.Context> {
     private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(ResourceConstraint.class);
-    private Rectangle[][] iResource;
     private int iWidth, iHeight;
 
     /**
@@ -45,24 +45,21 @@ public class ResourceConstraint extends Constraint<Rectangle, Location> {
         super();
         iWidth = width;
         iHeight = height;
-        iResource = new Rectangle[width][height];
-        for (int x = 0; x < width; x++)
-            for (int y = 0; y < height; y++)
-                iResource[x][y] = null;
     }
-
+    
     /**
      * Compute conflicts with the given placement of the rectangle. This means
      * the rectangles which are already placed and which are overlapping with
      * the given assignment.
      */
     @Override
-    public void computeConflicts(Location placement, Set<Location> conflicts) {
+    public void computeConflicts(Assignment<Rectangle, Location> assignment, Location placement, Set<Location> conflicts) {
         Rectangle rectangle = placement.variable();
+        Context context = getContext(assignment);
         for (int x = placement.getX(); x < Math.min(iWidth, placement.getX() + rectangle.getWidth()); x++)
             for (int y = placement.getY(); y < Math.min(iHeight, placement.getY() + rectangle.getHeight()); y++)
-                if (iResource[x][y] != null)
-                    conflicts.add(iResource[x][y].getAssignment());
+                if (context.getRectangle(x, y) != null)
+                    conflicts.add(context.getRectangle(x, y).getAssignment(assignment));
     }
 
     /**
@@ -70,11 +67,12 @@ public class ResourceConstraint extends Constraint<Rectangle, Location> {
      * assignment.
      */
     @Override
-    public boolean inConflict(Location placement) {
+    public boolean inConflict(Assignment<Rectangle, Location> assignment, Location placement) {
         Rectangle rectangle = placement.variable();
+        Context context = getContext(assignment);
         for (int x = placement.getX(); x < Math.min(iWidth, placement.getX() + rectangle.getWidth()); x++)
             for (int y = placement.getY(); y < Math.min(iHeight, placement.getY() + rectangle.getHeight()); y++)
-                if (iResource[x][y] != null)
+                if (context.getRectangle(x, y) != null)
                     return true;
         return false;
     }
@@ -97,39 +95,11 @@ public class ResourceConstraint extends Constraint<Rectangle, Location> {
         return false;
     }
 
-    /**
-     * Notification, when a rectangle is placed. It memorizes the rectangle's
-     * new position in 2D ([0..width][0..height]) array. It is used for faster
-     * lookup when computing conflicts.
-     */
-    @Override
-    public void assigned(long iteration, Location placement) {
-        super.assigned(iteration, placement);
-        Rectangle rectangle = placement.variable();
-        for (int x = placement.getX(); x < Math.min(iWidth, placement.getX() + rectangle.getWidth()); x++)
-            for (int y = placement.getY(); y < Math.min(iHeight, placement.getY() + rectangle.getHeight()); y++) {
-                iResource[x][y] = rectangle;
-            }
-    }
-
-    /**
-     * Notification, when a rectangle is unplaced. It removes the rectangle from
-     * the 2D ([0..width][0..height]) array.
-     */
-    @Override
-    public void unassigned(long iteration, Location placement) {
-        super.unassigned(iteration, placement);
-        Rectangle rectangle = placement.variable();
-        for (int x = placement.getX(); x < Math.min(iWidth, placement.getX() + rectangle.getWidth()); x++)
-            for (int y = placement.getY(); y < Math.min(iHeight, placement.getY() + rectangle.getHeight()); y++) {
-                iResource[x][y] = null;
-            }
-    }
-
-    public void check() {
+    public void check(Assignment<Rectangle, Location> assignment) {
         sLogger.debug("check");
+        Context context = getContext(assignment);
         for (Rectangle rectangle : variables()) {
-            Location placement = rectangle.getAssignment();
+            Location placement = assignment.getValue(rectangle);
             if (placement == null) {
                 sLogger.warn("Rectangle " + rectangle.getName() + " is not assigned.");
                 continue;
@@ -145,8 +115,8 @@ public class ResourceConstraint extends Constraint<Rectangle, Location> {
                 sLogger.error("Placement is outside bounds.");
             for (int x = placement.getX(); x < Math.min(iWidth, placement.getX() + rectangle.getWidth()); x++)
                 for (int y = placement.getY(); y < Math.min(iHeight, placement.getY() + rectangle.getHeight()); y++) {
-                    if (iResource[x][y] == null || !iResource[x][y].equals(rectangle))
-                        sLogger.error("Problem at [" + x + "," + y + "], " + iResource[x][y] + " is assigned there.");
+                    if (context.getRectangle(x, y) == null || !context.getRectangle(x, y).equals(rectangle))
+                        sLogger.error("Problem at [" + x + "," + y + "], " + context.getRectangle(x, y) + " is assigned there.");
                 }
         }
         sLogger.debug(toString());
@@ -158,14 +128,59 @@ public class ResourceConstraint extends Constraint<Rectangle, Location> {
      */
     @Override
     public String toString() {
-        StringBuffer sb = new StringBuffer("ResourceConstraint{\n        ");
-        for (int y = 0; y < iHeight; y++) {
-            for (int x = 0; x < iWidth; x++) {
-                sb.append(ToolBox.trim(iResource[x][y] == null ? "" : iResource[x][y].getName().substring(4), 4));
-            }
-            sb.append("\n        ");
+        return "ResourceConstraint{" + iWidth + "x" + iHeight + "}";
+    }
+    
+    @Override
+    public Context createAssignmentContext(Assignment<Rectangle, Location> assignment) {
+        return new Context(assignment);
+    }
+    
+    /**
+     * Assignment context
+     */
+    public class Context implements AssignmentConstraintContext<Rectangle, Location> {
+        private Rectangle[][] iResource;
+        
+        public Context(Assignment<Rectangle, Location> assignment) {
+            iResource = new Rectangle[iWidth][iHeight];
+            for (int x = 0; x < iWidth; x++)
+                for (int y = 0; y < iHeight; y++)
+                    iResource[x][y] = null;
+            for (Location location: assignment.assignedValues())
+                assigned(assignment, location);
         }
-        sb.append("\n      }");
-        return sb.toString();
+
+        /**
+         * Notification, when a rectangle is placed. It memorizes the rectangle's
+         * new position in 2D ([0..width][0..height]) array. It is used for faster
+         * lookup when computing conflicts.
+         */
+        @Override
+        public void assigned(Assignment<Rectangle, Location> assignment, Location placement) {
+            Rectangle rectangle = placement.variable();
+            for (int x = placement.getX(); x < Math.min(iWidth, placement.getX() + rectangle.getWidth()); x++)
+                for (int y = placement.getY(); y < Math.min(iHeight, placement.getY() + rectangle.getHeight()); y++) {
+                    iResource[x][y] = rectangle;
+                }
+        }
+        
+        public Rectangle getRectangle(int x, int y) {
+            return iResource[x][y];
+        }
+
+        /**
+         * Notification, when a rectangle is unplaced. It removes the rectangle from
+         * the 2D ([0..width][0..height]) array.
+         */
+        @Override
+        public void unassigned(Assignment<Rectangle, Location> assignment, Location placement) {
+            Rectangle rectangle = placement.variable();
+            for (int x = placement.getX(); x < Math.min(iWidth, placement.getX() + rectangle.getWidth()); x++)
+                for (int y = placement.getY(); y < Math.min(iHeight, placement.getY() + rectangle.getHeight()); y++) {
+                    iResource[x][y] = null;
+                }
+        }
+        
     }
 }

@@ -3,6 +3,7 @@ package net.sf.cpsolver.ifs.dbt;
 import java.util.HashSet;
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.extension.MacPropagation;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.model.Value;
@@ -42,8 +43,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          License along with this library; if not see <http://www.gnu.org/licenses/>.
  * 
  */
-public class DbtPropagation<V extends Variable<V, T>, T extends Value<V, T>> extends MacPropagation<V, T> implements
-        SolverListener<V, T> {
+public class DbtPropagation<V extends Variable<V, T>, T extends Value<V, T>> extends MacPropagation<V, T> implements SolverListener<V, T> {
     private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(DbtPropagation.class);
 
     /**
@@ -61,26 +61,25 @@ public class DbtPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
      * <li>sets all other values of the variable to nogood (explanation is the
      * assigned value itself), <li>runs propagation.
      * 
-     * @see MacPropagation#propagate(Variable)
+     * @see MacPropagation#propagate(Assignment, Variable)
      */
     @Override
-    public void afterAssigned(long iteration, T value) {
+    public void afterAssigned(Assignment<V, T> assignment, long iteration, T value) {
         iIteration = iteration;
-        if (!isGood(value)) {
-            sLogger.warn(value.variable().getName() + " = " + value.getName() + " -- not good value assigned (noGood:"
-                    + noGood(value) + ")");
-            setGood(value);
+        if (!isGood(assignment, value)) {
+            sLogger.warn(value.variable().getName() + " = " + value.getName() + " -- not good value assigned (noGood:" + noGood(assignment, value) + ")");
+            setGood(assignment, value);
         }
 
         Set<T> noGood = new HashSet<T>(1);
 
         noGood.add(value);
         for (T anotherValue : value.variable().values()) {
-            if (anotherValue.equals(value) || !isGood(anotherValue))
+            if (anotherValue.equals(value) || !isGood(assignment, anotherValue))
                 continue;
-            setNoGood(anotherValue, noGood);
+            setNoGood(assignment, anotherValue, noGood);
         }
-        propagate(value.variable());
+        propagate(assignment, value.variable());
     }
 
     /**
@@ -89,16 +88,16 @@ public class DbtPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
      * <li>Prints an error if the value is nogood (should not never happen), <li>
      * runs propagation undo.
      * 
-     * @see MacPropagation#undoPropagate(Variable)
+     * @see MacPropagation#undoPropagate(Assignment, Variable)
      */
     @Override
-    public void afterUnassigned(long iteration, T value) {
+    public void afterUnassigned(Assignment<V, T> assignment, long iteration, T value) {
         iIteration = iteration;
-        if (!isGood(value)) {
+        if (!isGood(assignment, value)) {
             sLogger.error(value.variable().getName() + " = " + value.getName()
-                    + " -- not good value unassigned (noGood:" + noGood(value) + ")");
+                    + " -- not good value unassigned (noGood:" + noGood(assignment, value) + ")");
         }
-        undoPropagate(value.variable());
+        undoPropagate(assignment, value.variable());
     }
 
     /**
@@ -118,15 +117,13 @@ public class DbtPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
      * @see DbtVariableSelection#selectVariable(Solution)
      */
     @Override
-    public boolean variableSelected(long iteration, V variable) {
+    public boolean variableSelected(Assignment<V, T> assignment, long iteration, V variable) {
         if (variable == null) {
             sLogger.debug("No variable selected -> backtrack.");
             V lastVariable = null;
 
-            for (V var : getModel().assignedVariables()) {
-                if (lastVariable == null
-                        || lastVariable.getAssignment().lastAssignmentIteration() < var.getAssignment()
-                                .lastAssignmentIteration()) {
+            for (V var : assignment.assignedVariables()) {
+                if (lastVariable == null || assignment.getIteration(lastVariable) < assignment.getIteration(var)) {
                     lastVariable = var;
                 }
             }
@@ -138,18 +135,18 @@ public class DbtPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
             sLogger.debug("Unassign:" + lastVariable.getName());
             Set<T> noGoods = new HashSet<T>();
 
-            for (V var : getModel().assignedVariables()) {
+            for (V var : assignment.assignedVariables()) {
                 if (!var.equals(lastVariable)) {
-                    noGoods.add(var.getAssignment());
+                    noGoods.add(assignment.getValue(var));
                 }
             }
-            T value = lastVariable.getAssignment();
+            T value = assignment.getValue(lastVariable);
 
-            lastVariable.unassign(iteration);
-            setNoGood(value, noGoods);
+            assignment.unassign(iteration, lastVariable);
+            setNoGood(assignment, value, noGoods);
             return false;
         }
-        if (variable.getAssignment() != null) {
+        if (assignment.getValue(variable) != null) {
             sLogger.error("Assigned value selected -- not supported by DBT.");
             return false;
         }
@@ -177,13 +174,13 @@ public class DbtPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
      * @see DbtVariableSelection#selectVariable(Solution)
      */
     @Override
-    public boolean valueSelected(long iteration, V variable, T value) {
+    public boolean valueSelected(Assignment<V, T> assignment, long iteration, V variable, T value) {
         if (variable != null && value == null) {
             Set<T> noGoods = new HashSet<T>();
 
             for (T val : variable.values()) {
-                if (noGood(val) != null) {
-                    noGoods.addAll(noGood(val));
+                if (noGood(assignment, val) != null) {
+                    noGoods.addAll(noGood(assignment, val));
                 }
             }
             if (noGoods.isEmpty()) {
@@ -196,23 +193,25 @@ public class DbtPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
             for (T val : noGoods) {
                 V var = val.variable();
 
-                if (lastVariable == null
-                        || lastVariable.getAssignment().lastAssignmentIteration() < var.getAssignment()
-                                .lastAssignmentIteration()) {
+                if (lastVariable == null || assignment.getIteration(lastVariable) < assignment.getIteration(var)) {
                     lastVariable = var;
                 }
             }
-            T assignment = lastVariable.getAssignment();
+            T current = assignment.getValue(lastVariable);
 
-            noGoods.remove(assignment);
-            lastVariable.unassign(iteration);
-            setNoGood(assignment, noGoods);
+            noGoods.remove(current);
+            assignment.unassign(iteration, lastVariable);
+            setNoGood(assignment, current, noGoods);
         }
         return true;
     }
 
     @Override
-    public boolean neighbourSelected(long iteration, Neighbour<V, T> neighbour) {
+    public boolean neighbourSelected(Assignment<V, T> assignment, long iteration, Neighbour<V, T> neighbour) {
         return true;
+    }
+
+    @Override
+    public void neighbourFailed(Assignment<V, T> assignment, long iteration, Neighbour<V, T> neighbour) {
     }
 }

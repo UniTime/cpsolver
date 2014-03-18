@@ -3,7 +3,7 @@ package net.sf.cpsolver.coursett.criteria;
 import java.util.List;
 
 import net.sf.cpsolver.coursett.Constants;
-import net.sf.cpsolver.coursett.constraint.RoomConstraint;
+import net.sf.cpsolver.coursett.constraint.RoomConstraint.RoomConstraintContext;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.ifs.util.DataProperties;
@@ -45,22 +45,22 @@ public class UselessHalfHours extends BrokenTimePatterns {
     }
     
     @Override
-    protected double penalty(RoomConstraint rc) {
+    protected double penalty(RoomConstraintContext rc) {
         return countUselessSlotsHalfHours(rc);
     }
 
     @Override
-   protected double penalty(RoomConstraint rc, Placement value) {
+    protected double penalty(RoomConstraintContext rc, Placement value) {
         return countUselessSlotsHalfHours(rc, value);
     }
     
-    private static boolean isEmpty(RoomConstraint rc, int slot, Placement placement) {
-        List<Placement> assigned = rc.getResource(slot);
+    private static boolean isEmpty(RoomConstraintContext rc, int slot, Placement placement) {
+        List<Placement> assigned = rc.getPlacements(slot);
         return assigned.isEmpty() || (placement != null && assigned.size() == 1 && assigned.get(0).variable().equals(placement.variable()));
     }
 
     
-    private static boolean isUselessBefore(RoomConstraint rc, int slot, Placement placement) {
+    private static boolean isUselessBefore(RoomConstraintContext rc, int slot, Placement placement) {
         int s = slot % Constants.SLOTS_PER_DAY;
         if (s - 1 < 0 || s + 6 >= Constants.SLOTS_PER_DAY)
             return false;
@@ -74,7 +74,7 @@ public class UselessHalfHours extends BrokenTimePatterns {
                 isEmpty(rc, slot + 6, placement));
     }
 
-    private static boolean isUselessAfter(RoomConstraint rc, int slot, Placement placement) {
+    private static boolean isUselessAfter(RoomConstraintContext rc, int slot, Placement placement) {
         int s = slot % Constants.SLOTS_PER_DAY;
         if (s - 1 < 0 || s + 6 >= Constants.SLOTS_PER_DAY)
             return false;
@@ -88,7 +88,7 @@ public class UselessHalfHours extends BrokenTimePatterns {
                 !isEmpty(rc, slot + 6, placement));
     }
     
-    private static boolean isUseless(RoomConstraint rc, int slot, Placement placement) {
+    private static boolean isUseless(RoomConstraintContext rc, int slot, Placement placement) {
         int s = slot % Constants.SLOTS_PER_DAY;
         if (s - 1 < 0 || s + 6 >= Constants.SLOTS_PER_DAY)
             return false;
@@ -103,7 +103,7 @@ public class UselessHalfHours extends BrokenTimePatterns {
     }
 
     /** Number of useless half hours for this room */
-    protected static int countUselessSlotsHalfHours(RoomConstraint rc, Placement placement) {
+    protected static int countUselessSlotsHalfHours(RoomConstraintContext rc, Placement placement) {
         int ret = 0;
         TimeLocation time = placement.getTimeLocation();
         int slot = time.getStartSlot() % Constants.SLOTS_PER_DAY;
@@ -121,22 +121,22 @@ public class UselessHalfHours extends BrokenTimePatterns {
         return ret;
     }
     
-    private static boolean isUseless(RoomConstraint rc, int slot) {
+    private static boolean isUseless(RoomConstraintContext rc, int slot) {
         int s = slot % Constants.SLOTS_PER_DAY;
         if (s - 1 < 0 || s + 6 >= Constants.SLOTS_PER_DAY)
             return false;
-        return (!rc.getResource(slot - 1).isEmpty() &&
-                rc.getResource(slot + 0).isEmpty() &&
-                rc.getResource(slot + 1).isEmpty() &&
-                rc.getResource(slot + 2).isEmpty() &&
-                rc.getResource(slot + 3).isEmpty() &&
-                rc.getResource(slot + 4).isEmpty() &&
-                rc.getResource(slot + 5).isEmpty() &&
-                !rc.getResource(slot + 6).isEmpty());
+        return (!rc.getPlacements(slot - 1).isEmpty() &&
+                rc.getPlacements(slot + 0).isEmpty() &&
+                rc.getPlacements(slot + 1).isEmpty() &&
+                rc.getPlacements(slot + 2).isEmpty() &&
+                rc.getPlacements(slot + 3).isEmpty() &&
+                rc.getPlacements(slot + 4).isEmpty() &&
+                rc.getPlacements(slot + 5).isEmpty() &&
+                !rc.getPlacements(slot + 6).isEmpty());
     }
 
     /** Number of useless slots for this room */
-    public static int countUselessSlotsHalfHours(RoomConstraint rc) {
+    public static int countUselessSlotsHalfHours(RoomConstraintContext rc) {
         int ret = 0;
         for (int d = 0; d < Constants.NR_DAYS; d++) {
             for (int s = 0; s < Constants.SLOTS_PER_DAY; s++) {

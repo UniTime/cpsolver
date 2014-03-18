@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.extension.Extension;
 import net.sf.cpsolver.ifs.extension.ViolatedInitials;
 import net.sf.cpsolver.ifs.heuristics.GeneralValueSelection;
@@ -100,7 +101,6 @@ public class DbtValueSelection<V extends Variable<V, T>, T extends Value<V, T>> 
     private int iMPPLimit = -1;
 
     private double iWeightDeltaInitialAssignment = 0.0;
-    private double iWeightNrAssignments = 0.5;
     private double iWeightValue = 0.0;
 
     private boolean iMPP = false;
@@ -117,7 +117,6 @@ public class DbtValueSelection<V extends Variable<V, T>, T extends Value<V, T>> 
         }
 
         iRandomWalkProb = properties.getPropertyDouble("Value.RandomWalkProb", 0.0);
-        iWeightNrAssignments = properties.getPropertyDouble("Value.WeightNrAssignments", 0.5);
         iWeightValue = properties.getPropertyDouble("Value.WeightValue", 0.0);
     }
 
@@ -146,14 +145,15 @@ public class DbtValueSelection<V extends Variable<V, T>, T extends Value<V, T>> 
     @Override
     public T selectValue(Solution<V, T> solution, V selectedVariable) {
         ArrayList<T> values = null;
+        Assignment<V, T> assignment = solution.getAssignment();
 
         if (iProp != null) {
-            values = new ArrayList<T>(iProp.goodValues(selectedVariable).size());
+            values = new ArrayList<T>(iProp.goodValues(assignment, selectedVariable).size());
             for (T value : selectedVariable.values()) {
-                if (!iProp.isGood(value)) {
+                if (!iProp.isGood(assignment, value)) {
                     continue;
                 }
-                Collection<T> conf = solution.getModel().conflictValues(value);
+                Collection<T> conf = solution.getModel().conflictValues(assignment, value);
 
                 if (!conf.isEmpty()) {
                     Set<T> noGood = new HashSet<T>(2 * conf.size());
@@ -161,11 +161,10 @@ public class DbtValueSelection<V extends Variable<V, T>, T extends Value<V, T>> 
                     for (T v : conf) {
                         noGood.add(v);
                     }
-                    iProp.setNoGood(value, noGood);
+                    iProp.setNoGood(assignment, value, noGood);
                     sLogger.debug(value + " become nogood (" + noGood + ")");
                 } else {
-                    if (!solution.isBestComplete()
-                            || solution.getBestValue() > solution.getModel().getTotalValue() + value.toDouble()) {
+                    if (!solution.isBestComplete() || solution.getModel().getBestValue() > solution.getModel().getTotalValue(assignment) + value.toDouble(assignment)) {
                         values.add(value);
                     }
                 }
@@ -173,9 +172,8 @@ public class DbtValueSelection<V extends Variable<V, T>, T extends Value<V, T>> 
         } else {
             values = new ArrayList<T>(selectedVariable.values().size());
             for (T value : selectedVariable.values()) {
-                if (solution.getModel().conflictValues(value).isEmpty()) {
-                    if (solution.isBestComplete()
-                            && solution.getBestValue() > solution.getModel().getTotalValue() + value.toDouble()) {
+                if (solution.getModel().conflictValues(assignment, value).isEmpty()) {
+                    if (solution.isBestComplete() && solution.getModel().getBestValue() > solution.getModel().getTotalValue(assignment) + value.toDouble(assignment)) {
                         values.add(value);
                     }
                 }
@@ -192,7 +190,7 @@ public class DbtValueSelection<V extends Variable<V, T>, T extends Value<V, T>> 
                 sLogger.debug("MPP Limit decreased to " + iMPPLimit);
             }
 
-            int nrPerts = solution.getModel().perturbVariables().size();
+            int nrPerts = solution.getModel().perturbVariables(assignment).size();
 
             if (iMPPLimit >= 0 && iMPPLimit < nrPerts) {
                 return null;
@@ -222,7 +220,7 @@ public class DbtValueSelection<V extends Variable<V, T>, T extends Value<V, T>> 
         ArrayList<T> bestValues = null;
         double bestWeightedSum = 0;
 
-        if (iWeightDeltaInitialAssignment == 0.0 && iWeightNrAssignments == 0.0 && iWeightValue == 0.0) {
+        if (iWeightDeltaInitialAssignment == 0.0 && iWeightValue == 0.0) {
             return ToolBox.random(values);
         }
 
@@ -236,8 +234,7 @@ public class DbtValueSelection<V extends Variable<V, T>, T extends Value<V, T>> 
 
                     if (violations != null) {
                         for (T aValue : violations) {
-                            if (aValue.variable().getAssignment() == null
-                                    || aValue.variable().getAssignment().equals(aValue)) {
+                            if (assignment.getValue(aValue.variable()) == null || assignment.getValue(aValue.variable()).equals(aValue)) {
                                 deltaInitialAssignments += 2;
                             }
                         }
@@ -247,14 +244,12 @@ public class DbtValueSelection<V extends Variable<V, T>, T extends Value<V, T>> 
                         && !selectedVariable.getInitialAssignment().equals(value)) {
                     deltaInitialAssignments++;
                 }
-                if (iMPPLimit >= 0
-                        && (solution.getModel().perturbVariables().size() + deltaInitialAssignments) > iMPPLimit) {
+                if (iMPPLimit >= 0 && (solution.getModel().perturbVariables(assignment).size() + deltaInitialAssignments) > iMPPLimit) {
                     continue;
                 }
             }
 
-            double weightedSum = (iWeightDeltaInitialAssignment * deltaInitialAssignments)
-                    + (iWeightNrAssignments * value.countAssignments()) + (iWeightValue * value.toDouble());
+            double weightedSum = (iWeightDeltaInitialAssignment * deltaInitialAssignments) + (iWeightValue * value.toDouble(assignment));
 
             if (bestValues == null || bestWeightedSum > weightedSum) {
                 bestWeightedSum = weightedSum;

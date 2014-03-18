@@ -2,6 +2,7 @@ package net.sf.cpsolver.studentsct.heuristics.selection;
 
 import org.apache.log4j.Logger;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
@@ -16,7 +17,7 @@ import net.sf.cpsolver.studentsct.model.Student;
 /**
  * Resection studends with empty schedule. An extension of
  * {@link BranchBoundSelection}, where only students that have no enrollments (
- * {@link Student#nrAssignedRequests()} is zero) are resectioned.
+ * {@link Student#nrAssignedRequests(Assignment)} is zero) are resectioned.
  * 
  * <br>
  * <br>
@@ -70,11 +71,11 @@ public class ResectionUnassignedStudentsSelection extends BranchBoundSelection {
      */
     @Override
     public Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
-        while (iStudentsEnumeration.hasNext()) {
-            Student student = iStudentsEnumeration.next();
+        Student student = null;
+        while ((student = nextStudent()) != null) {
             Progress.getInstance(solution.getModel()).incProgress();
-            if (student.nrAssignedRequests() == 0 && !student.getRequests().isEmpty()) {
-                Neighbour<Request, Enrollment> neighbour = getSelection(student).select();
+            if (student.nrAssignedRequests(solution.getAssignment()) == 0 && !student.getRequests().isEmpty()) {
+                Neighbour<Request, Enrollment> neighbour = getSelection(solution.getAssignment(), student).select();
                 if (neighbour != null)
                     return neighbour;
             }

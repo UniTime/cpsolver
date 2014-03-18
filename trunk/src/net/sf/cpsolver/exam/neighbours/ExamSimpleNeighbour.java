@@ -7,11 +7,12 @@ import org.apache.log4j.Logger;
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPlacement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.SimpleNeighbour;
 
 /**
  * Extension of {@link SimpleNeighbour}. The only difference is that the value (
- * {@link SimpleNeighbour#value()}) is decreased by 1000 if the selected
+ * {@link SimpleNeighbour#value(Assignment)}) is decreased by 1000 if the selected
  * variable has no current assignment. <br>
  * <br>
  * 
@@ -40,29 +41,30 @@ public class ExamSimpleNeighbour extends SimpleNeighbour<Exam, ExamPlacement> {
     private double iValue = 0;
     private double iDx;
 
-    public ExamSimpleNeighbour(ExamPlacement placement) {
+    public ExamSimpleNeighbour(Assignment<Exam, ExamPlacement> assignment, ExamPlacement placement) {
         super(placement.variable(), placement);
-        iValue = placement.toDouble();
-        if (placement.variable().getAssignment() != null)
-            iValue -= placement.variable().getAssignment().toDouble();
+        iValue = placement.toDouble(assignment);
+        ExamPlacement current = assignment.getValue(placement.variable()); 
+        if (current != null)
+            iValue -= current.toDouble(assignment);
         else
             iValue -= 1000;
         if (sCheck) {
-            iDx = placement.toDouble();
-            if (placement.variable().getAssignment() != null)
-                iDx -= placement.variable().getAssignment().toDouble();
+            iDx = placement.toDouble(assignment);
+            if (current != null)
+                iDx -= current.toDouble(assignment);
         }
     }
 
     @Override
-    public void assign(long iteration) {
+    public void assign(Assignment<Exam, ExamPlacement> assignment, long iteration) {
         if (sCheck) {
-            double beforeVal = getVariable().getModel().getTotalValue();
-            double[] beforeValM = ((ExamModel) getVariable().getModel()).getTotalMultiValue();
+            double beforeVal = getVariable().getModel().getTotalValue(assignment);
+            double[] beforeValM = ((ExamModel) getVariable().getModel()).getTotalMultiValue(assignment);
             String n = toString();
-            getVariable().assign(iteration, getValue());
-            double afterVal = getVariable().getModel().getTotalValue();
-            double[] afterValM = ((ExamModel) getVariable().getModel()).getTotalMultiValue();
+            assignment.assign(iteration, getValue());
+            double afterVal = getVariable().getModel().getTotalValue(assignment);
+            double[] afterValM = ((ExamModel) getVariable().getModel()).getTotalMultiValue(assignment);
             /*
              * int before = getVariable().getModel().nrUnassignedVariables();
              * int after = getVariable().getModel().nrUnassignedVariables(); if
@@ -76,7 +78,7 @@ public class ExamSimpleNeighbour extends SimpleNeighbour<Exam, ExamPlacement> {
                 sLog.error("  -- solution:  " + toString(afterValM, beforeValM));
             }
         } else {
-            getVariable().assign(iteration, getValue());
+            assignment.assign(iteration, getValue());
         }
     }
 
@@ -104,11 +106,11 @@ public class ExamSimpleNeighbour extends SimpleNeighbour<Exam, ExamPlacement> {
 
     @Override
     public String toString() {
-        return getVariable().getAssignment() + " -> " + getValue().toString() + " / " + " (value:" + value() + ")";
+        return getVariable() + " := " + getValue().toString() + " / " + " (value:" + value(null) + ")";
     }
 
     @Override
-    public double value() {
+    public double value(Assignment<Exam, ExamPlacement> assignment) {
         return iValue;
     }
 }

@@ -12,6 +12,7 @@ import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.Student;
 import net.sf.cpsolver.coursett.model.TimetableModel;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.perturbations.DefaultPerturbationsCounter;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.DistanceMetric;
@@ -294,7 +295,7 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
     }
 
     @Override
-    protected double getPenalty(Placement assignedPlacement, Placement initialPlacement) {
+    protected double getPenalty(Assignment<Lecture, Placement> assignment, Placement assignedPlacement, Placement initialPlacement) {
         // assigned and initial value of the same lecture
         // assigned might be null
         Lecture lecture = initialPlacement.variable();
@@ -302,7 +303,7 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
         if (iDifferentPlacement != 0.0)
             penalty += iDifferentPlacement;
         if (iAffectedStudentWeight != 0.0)
-            penalty += iAffectedStudentWeight * lecture.classLimit();
+            penalty += iAffectedStudentWeight * lecture.classLimit(assignment);
         if (iAffectedInstructorWeight != 0.0)
             penalty += iAffectedInstructorWeight * lecture.getInstructorConstraints().size();
         if (assignedPlacement != null) {
@@ -310,19 +311,19 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
                 int nrDiff = initialPlacement.nrDifferentRooms(assignedPlacement);
                 penalty += nrDiff * iDifferentRoomWeight;
                 penalty += nrDiff * iAffectedInstructorByRoomWeight * lecture.getInstructorConstraints().size();
-                penalty += nrDiff * iAffectedStudentByRoomWeight * lecture.classLimit();
+                penalty += nrDiff * iAffectedStudentByRoomWeight * lecture.classLimit(assignment);
             }
             if ((iDifferentBuildingWeight != 0.0 || iAffectedInstructorByBldgWeight != 0.0 || iAffectedStudentByBldgWeight != 0.0)) {
                 int nrDiff = initialPlacement.nrDifferentBuildings(assignedPlacement);
                 penalty += nrDiff * iDifferentBuildingWeight;
                 penalty += nrDiff * iAffectedInstructorByBldgWeight * lecture.getInstructorConstraints().size();
-                penalty += nrDiff * iAffectedStudentByBldgWeight * lecture.classLimit();
+                penalty += nrDiff * iAffectedStudentByBldgWeight * lecture.classLimit(assignment);
             }
             if ((iDifferentTimeWeight != 0.0 || iAffectedInstructorByTimeWeight != 0.0 || iAffectedStudentByTimeWeight != 0.0)
                     && !initialPlacement.getTimeLocation().equals(assignedPlacement.getTimeLocation())) {
                 penalty += iDifferentTimeWeight;
                 penalty += iAffectedInstructorByTimeWeight * lecture.getInstructorConstraints().size();
-                penalty += iAffectedStudentByTimeWeight * lecture.classLimit();
+                penalty += iAffectedStudentByTimeWeight * lecture.classLimit(assignment);
             }
             if (iDifferentDayWeight != 0.0
                     && initialPlacement.getTimeLocation().getDayCode() != assignedPlacement.getTimeLocation()
@@ -349,38 +350,33 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
                 }
                 if (iTooFarForStudentsWeight != 0.0
                         && distance > iDistanceMetric.minutes2meters(10))
-                    penalty += iTooFarForStudentsWeight * lecture.classLimit();
+                    penalty += iTooFarForStudentsWeight * lecture.classLimit(assignment);
             }
             if (iDeltaStudentConflictsWeight != 0.0) {
-                int newStudentConflicts = lecture.countStudentConflicts(assignedPlacement);
+                int newStudentConflicts = lecture.countStudentConflicts(assignment, assignedPlacement);
                 int oldStudentConflicts = lecture.countInitialStudentConflicts();
                 penalty += iDeltaStudentConflictsWeight * (newStudentConflicts - oldStudentConflicts);
             }
             if (iNewStudentConflictsWeight != 0.0) {
-                Set<Student> newStudentConflicts = lecture.conflictStudents(assignedPlacement);
+                Set<Student> newStudentConflicts = lecture.conflictStudents(assignment, assignedPlacement);
                 Set<Student> initialStudentConflicts = lecture.initialStudentConflicts();
                 for (Iterator<Student> i = newStudentConflicts.iterator(); i.hasNext();)
                     if (!initialStudentConflicts.contains(i.next()))
                         penalty += iNewStudentConflictsWeight;
             }
             if (iDeltaTimePreferenceWeight != 0.0) {
-                penalty += iDeltaTimePreferenceWeight
-                        * (assignedPlacement.getTimeLocation().getNormalizedPreference() - initialPlacement
-                                .getTimeLocation().getNormalizedPreference());
+                penalty += iDeltaTimePreferenceWeight * (assignedPlacement.getTimeLocation().getNormalizedPreference() - initialPlacement.getTimeLocation().getNormalizedPreference());
             }
             if (iDeltaRoomPreferenceWeight != 0.0) {
-                penalty += iDeltaRoomPreferenceWeight
-                        * (assignedPlacement.sumRoomPreference() - initialPlacement.sumRoomPreference());
+                penalty += iDeltaRoomPreferenceWeight * (assignedPlacement.sumRoomPreference() - initialPlacement.sumRoomPreference());
             }
             if (iDeltaInstructorDistancePreferenceWeight != 0.0) {
                 for (InstructorConstraint ic : lecture.getInstructorConstraints()) {
                     for (Lecture lect : ic.variables()) {
                         if (lect.equals(lecture))
                             continue;
-                        int initialPreference = (lect.getInitialAssignment() == null ? Constants.sPreferenceLevelNeutral
-                                : ic.getDistancePreference(initialPlacement, lect.getInitialAssignment()));
-                        int assignedPreference = (lect.getAssignment() == null ? Constants.sPreferenceLevelNeutral : ic
-                                .getDistancePreference(assignedPlacement, lect.getAssignment()));
+                        int initialPreference = (lect.getInitialAssignment() == null ? Constants.sPreferenceLevelNeutral : ic.getDistancePreference(initialPlacement, lect.getInitialAssignment()));
+                        int assignedPreference = (assignment.getValue(lect) == null ? Constants.sPreferenceLevelNeutral : ic.getDistancePreference(assignedPlacement, assignment.getValue(lect)));
                         penalty += iDeltaInstructorDistancePreferenceWeight * (assignedPreference - initialPreference);
                     }
                 }
@@ -389,15 +385,15 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
         return penalty;
     }
 
-    public void getInfo(Map<String, String> info, TimetableModel model) {
-        getInfo(info, model, null);
+    public void getInfo(Assignment<Lecture, Placement> assignment, TimetableModel model, Map<String, String> info) {
+        getInfo(assignment, model, info, null);
     }
 
-    public void getInfo(Map<String, String> info, TimetableModel model, List<Lecture> variables) {
+    public void getInfo(Assignment<Lecture, Placement> assignment, TimetableModel model, Map<String, String> info, List<Lecture> variables) {
         if (variables == null)
-            super.getInfo(info, model);
+            super.getInfo(assignment, model, info);
         else
-            super.getInfo(info, model, variables);
+            super.getInfo(assignment, model, info, variables);
         if (!iMPP)
             return;
         int perts = 0;
@@ -421,32 +417,31 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
         double deltaTimePreferences = 0;
         int deltaRoomPreferences = 0;
         int deltaInstructorDistancePreferences = 0;
-        for (Lecture lecture : (variables == null ? model.perturbVariables() : model.perturbVariables(variables))) {
-            if (lecture.getAssignment() == null || lecture.getInitialAssignment() == null
-                    || lecture.getAssignment().equals(lecture.getInitialAssignment()))
+        for (Lecture lecture : (variables == null ? model.perturbVariables(assignment) : model.perturbVariables(assignment, variables))) {
+            if (assignment.getValue(lecture) == null || lecture.getInitialAssignment() == null || assignment.getValue(lecture).equals(lecture.getInitialAssignment()))
                 continue;
             perts++;
-            Placement assignedPlacement = lecture.getAssignment();
+            Placement assignedPlacement = assignment.getValue(lecture);
             Placement initialPlacement = lecture.getInitialAssignment();
-            affectedStudents += lecture.classLimit();
+            affectedStudents += lecture.classLimit(assignment);
             affectedInstructors += lecture.getInstructorConstraints().size();
 
             int nrDiff = initialPlacement.nrDifferentRooms(assignedPlacement);
             differentRoom += nrDiff;
             affectedInstructorsByRoom += nrDiff * lecture.getInstructorConstraints().size();
-            affectedStudentsByRoom += nrDiff * lecture.classLimit();
+            affectedStudentsByRoom += nrDiff * lecture.classLimit(assignment);
 
             nrDiff = initialPlacement.nrDifferentBuildings(assignedPlacement);
             differentBuilding += nrDiff;
             affectedInstructorsByBldg += nrDiff * lecture.getInstructorConstraints().size();
-            affectedStudentsByBldg += nrDiff * lecture.classLimit();
+            affectedStudentsByBldg += nrDiff * lecture.classLimit(assignment);
 
             deltaRoomPreferences += assignedPlacement.sumRoomPreference() - initialPlacement.sumRoomPreference();
 
             if (!initialPlacement.getTimeLocation().equals(assignedPlacement.getTimeLocation())) {
                 differentTime++;
                 affectedInstructorsByTime += lecture.getInstructorConstraints().size();
-                affectedStudentsByTime += lecture.classLimit();
+                affectedStudentsByTime += lecture.classLimit(assignment);
             }
             if (initialPlacement.getTimeLocation().getDayCode() != assignedPlacement.getTimeLocation().getDayCode())
                 differentDay++;
@@ -456,119 +451,88 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
                 double distance = Placement.getDistanceInMeters(iDistanceMetric, initialPlacement, assignedPlacement);
                 if (!lecture.getInstructorConstraints().isEmpty()) {
                     if (distance > iDistanceMetric.getInstructorNoPreferenceLimit() && distance <= iDistanceMetric.getInstructorDiscouragedLimit()) {
-                        tooFarForInstructors += Constants.sPreferenceLevelDiscouraged
-                                * lecture.getInstructorConstraints().size();
+                        tooFarForInstructors += Constants.sPreferenceLevelDiscouraged * lecture.getInstructorConstraints().size();
                     } else if (distance > iDistanceMetric.getInstructorDiscouragedLimit() && distance <= iDistanceMetric.getInstructorProhibitedLimit()) {
-                        tooFarForInstructors += Constants.sPreferenceLevelStronglyDiscouraged
-                                * lecture.getInstructorConstraints().size();
+                        tooFarForInstructors += Constants.sPreferenceLevelStronglyDiscouraged * lecture.getInstructorConstraints().size();
                     } else if (distance > iDistanceMetric.getInstructorProhibitedLimit()) {
-                        tooFarForInstructors += Constants.sPreferenceLevelProhibited
-                                * lecture.getInstructorConstraints().size();
+                        tooFarForInstructors += Constants.sPreferenceLevelProhibited * lecture.getInstructorConstraints().size();
                     }
                 }
                 if (distance > iDistanceMetric.minutes2meters(10))
-                    tooFarForStudents += lecture.classLimit();
+                    tooFarForStudents += lecture.classLimit(assignment);
             }
-            deltaStudentConflicts += lecture.countStudentConflicts(assignedPlacement)
-                    - lecture.countInitialStudentConflicts();
-            Set<Student> newStudentConflictsSet = lecture.conflictStudents(assignedPlacement);
+            deltaStudentConflicts += lecture.countStudentConflicts(assignment, assignedPlacement) - lecture.countInitialStudentConflicts();
+            Set<Student> newStudentConflictsSet = lecture.conflictStudents(assignment, assignedPlacement);
             Set<Student> initialStudentConflicts = lecture.initialStudentConflicts();
             for (Iterator<Student> e1 = newStudentConflictsSet.iterator(); e1.hasNext();)
                 if (!initialStudentConflicts.contains(e1.next()))
                     newStudentConflicts++;
-            deltaTimePreferences += assignedPlacement.getTimeLocation().getNormalizedPreference()
-                    - initialPlacement.getTimeLocation().getNormalizedPreference();
+            deltaTimePreferences += assignedPlacement.getTimeLocation().getNormalizedPreference() - initialPlacement.getTimeLocation().getNormalizedPreference();
             for (InstructorConstraint ic : lecture.getInstructorConstraints()) {
                 for (Lecture lect : ic.variables()) {
                     if (lect.equals(lecture))
                         continue;
                     int initialPreference = (lect.getInitialAssignment() == null ? Constants.sPreferenceLevelNeutral
                             : ic.getDistancePreference(initialPlacement, lect.getInitialAssignment()));
-                    int assignedPreference = (lect.getAssignment() == null ? Constants.sPreferenceLevelNeutral : ic
-                            .getDistancePreference(assignedPlacement, lect.getAssignment()));
+                    int assignedPreference = (assignedPlacement == null ? Constants.sPreferenceLevelNeutral : ic.getDistancePreference(assignedPlacement, assignedPlacement));
                     deltaInstructorDistancePreferences += assignedPreference - initialPreference;
                 }
             }
         }
         if (perts != 0)
-            info.put("Perturbations: Different placement", String.valueOf(perts) + " (weighted "
-                    + sDoubleFormat.format(iDifferentPlacement * perts) + ")");
+            info.put("Perturbations: Different placement", String.valueOf(perts) + " (weighted " + sDoubleFormat.format(iDifferentPlacement * perts) + ")");
         if (affectedStudents != 0)
-            info.put("Perturbations: Number of affected students", String.valueOf(affectedStudents) + " (weighted "
-                    + sDoubleFormat.format(iAffectedStudentWeight * affectedStudents) + ")");
+            info.put("Perturbations: Number of affected students", String.valueOf(affectedStudents) + " (weighted " + sDoubleFormat.format(iAffectedStudentWeight * affectedStudents) + ")");
         if (affectedInstructors != 0)
-            info.put("Perturbations: Number of affected instructors", String.valueOf(affectedInstructors)
-                    + " (weighted " + sDoubleFormat.format(iAffectedInstructorWeight * affectedInstructors) + ")");
+            info.put("Perturbations: Number of affected instructors", String.valueOf(affectedInstructors) + " (weighted " + sDoubleFormat.format(iAffectedInstructorWeight * affectedInstructors) + ")");
         if (affectedStudentsByTime != 0)
-            info
-                    .put("Perturbations: Number of affected students [time]", String.valueOf(affectedStudentsByTime)
-                            + " (weighted "
-                            + sDoubleFormat.format(iAffectedStudentByTimeWeight * affectedStudentsByTime) + ")");
+            info.put("Perturbations: Number of affected students [time]", String.valueOf(affectedStudentsByTime) +
+                    " (weighted " + sDoubleFormat.format(iAffectedStudentByTimeWeight * affectedStudentsByTime) + ")");
         if (affectedInstructorsByTime != 0)
-            info.put("Perturbations: Number of affected instructors [time]", String.valueOf(affectedInstructorsByTime)
-                    + " (weighted " + sDoubleFormat.format(iAffectedInstructorByTimeWeight * affectedInstructorsByTime)
-                    + ")");
+            info.put("Perturbations: Number of affected instructors [time]", String.valueOf(affectedInstructorsByTime) +
+                    " (weighted " + sDoubleFormat.format(iAffectedInstructorByTimeWeight * affectedInstructorsByTime) + ")");
         if (affectedStudentsByRoom != 0)
-            info
-                    .put("Perturbations: Number of affected students [room]", String.valueOf(affectedStudentsByRoom)
-                            + " (weighted "
-                            + sDoubleFormat.format(iAffectedStudentByRoomWeight * affectedStudentsByRoom) + ")");
+            info.put("Perturbations: Number of affected students [room]", String.valueOf(affectedStudentsByRoom) + 
+                    " (weighted " + sDoubleFormat.format(iAffectedStudentByRoomWeight * affectedStudentsByRoom) + ")");
         if (affectedInstructorsByRoom != 0)
-            info.put("Perturbations: Number of affected instructors [room]", String.valueOf(affectedInstructorsByRoom)
-                    + " (weighted " + sDoubleFormat.format(iAffectedInstructorByRoomWeight * affectedInstructorsByRoom)
-                    + ")");
+            info.put("Perturbations: Number of affected instructors [room]", String.valueOf(affectedInstructorsByRoom) +
+                    " (weighted " + sDoubleFormat.format(iAffectedInstructorByRoomWeight * affectedInstructorsByRoom) + ")");
         if (affectedStudentsByBldg != 0)
-            info
-                    .put("Perturbations: Number of affected students [bldg]", String.valueOf(affectedStudentsByBldg)
-                            + " (weighted "
-                            + sDoubleFormat.format(iAffectedStudentByBldgWeight * affectedStudentsByBldg) + ")");
+            info.put("Perturbations: Number of affected students [bldg]", String.valueOf(affectedStudentsByBldg) +
+                    " (weighted " + sDoubleFormat.format(iAffectedStudentByBldgWeight * affectedStudentsByBldg) + ")");
         if (affectedInstructorsByBldg != 0)
-            info.put("Perturbations: Number of affected instructors [bldg]", String.valueOf(affectedInstructorsByBldg)
-                    + " (weighted " + sDoubleFormat.format(iAffectedInstructorByBldgWeight * affectedInstructorsByBldg)
-                    + ")");
+            info.put("Perturbations: Number of affected instructors [bldg]", String.valueOf(affectedInstructorsByBldg) +
+                    " (weighted " + sDoubleFormat.format(iAffectedInstructorByBldgWeight * affectedInstructorsByBldg) + ")");
         if (differentRoom != 0)
-            info.put("Perturbations: Different room", String.valueOf(differentRoom) + " (weighted "
-                    + sDoubleFormat.format(iDifferentRoomWeight * differentRoom) + ")");
+            info.put("Perturbations: Different room", String.valueOf(differentRoom) + " (weighted " + sDoubleFormat.format(iDifferentRoomWeight * differentRoom) + ")");
         if (differentBuilding != 0)
-            info.put("Perturbations: Different building", String.valueOf(differentBuilding) + " (weighted "
-                    + sDoubleFormat.format(iDifferentBuildingWeight * differentBuilding) + ")");
+            info.put("Perturbations: Different building", String.valueOf(differentBuilding) + " (weighted " + sDoubleFormat.format(iDifferentBuildingWeight * differentBuilding) + ")");
         if (differentTime != 0)
-            info.put("Perturbations: Different time", String.valueOf(differentTime) + " (weighted "
-                    + sDoubleFormat.format(iDifferentTimeWeight * differentTime) + ")");
+            info.put("Perturbations: Different time", String.valueOf(differentTime) + " (weighted " + sDoubleFormat.format(iDifferentTimeWeight * differentTime) + ")");
         if (differentDay != 0)
-            info.put("Perturbations: Different day", String.valueOf(differentDay) + " (weighted "
-                    + sDoubleFormat.format(iDifferentDayWeight * differentDay) + ")");
+            info.put("Perturbations: Different day", String.valueOf(differentDay) + " (weighted " + sDoubleFormat.format(iDifferentDayWeight * differentDay) + ")");
         if (differentHour != 0)
-            info.put("Perturbations: Different hour", String.valueOf(differentHour) + " (weighted "
-                    + sDoubleFormat.format(iDifferentHourWeight * differentHour) + ")");
+            info.put("Perturbations: Different hour", String.valueOf(differentHour) + " (weighted " + sDoubleFormat.format(iDifferentHourWeight * differentHour) + ")");
         if (tooFarForInstructors != 0)
-            info.put("Perturbations: New placement too far from initial [instructors]", String
-                    .valueOf(tooFarForInstructors)
-                    + " (weighted " + sDoubleFormat.format(iTooFarForInstructorsWeight * tooFarForInstructors) + ")");
+            info.put("Perturbations: New placement too far from initial [instructors]", String.valueOf(tooFarForInstructors) + 
+                    " (weighted " + sDoubleFormat.format(iTooFarForInstructorsWeight * tooFarForInstructors) + ")");
         if (tooFarForStudents != 0)
-            info.put("Perturbations: New placement too far from initial [students]", String.valueOf(tooFarForStudents)
-                    + " (weighted " + sDoubleFormat.format(iTooFarForStudentsWeight * tooFarForStudents) + ")");
+            info.put("Perturbations: New placement too far from initial [students]", String.valueOf(tooFarForStudents) +
+                    " (weighted " + sDoubleFormat.format(iTooFarForStudentsWeight * tooFarForStudents) + ")");
         if (deltaStudentConflicts != 0)
-            info.put("Perturbations: Delta student conflicts", String.valueOf(deltaStudentConflicts) + " (weighted "
-                    + sDoubleFormat.format(iDeltaStudentConflictsWeight * deltaStudentConflicts) + ")");
+            info.put("Perturbations: Delta student conflicts", String.valueOf(deltaStudentConflicts) + " (weighted " + sDoubleFormat.format(iDeltaStudentConflictsWeight * deltaStudentConflicts) + ")");
         if (newStudentConflicts != 0)
-            info.put("Perturbations: New student conflicts", String.valueOf(newStudentConflicts) + " (weighted "
-                    + sDoubleFormat.format(iNewStudentConflictsWeight * newStudentConflicts) + ")");
+            info.put("Perturbations: New student conflicts", String.valueOf(newStudentConflicts) + " (weighted " + sDoubleFormat.format(iNewStudentConflictsWeight * newStudentConflicts) + ")");
         if (deltaTimePreferences != 0)
-            info.put("Perturbations: Delta time preferences", String.valueOf(deltaTimePreferences) + " (weighted "
-                    + sDoubleFormat.format(iDeltaTimePreferenceWeight * deltaTimePreferences) + ")");
+            info.put("Perturbations: Delta time preferences", String.valueOf(deltaTimePreferences) + " (weighted " + sDoubleFormat.format(iDeltaTimePreferenceWeight * deltaTimePreferences) + ")");
         if (deltaRoomPreferences != 0)
-            info.put("Perturbations: Delta room preferences", String.valueOf(deltaRoomPreferences) + " (weighted "
-                    + sDoubleFormat.format(iDeltaRoomPreferenceWeight * deltaRoomPreferences) + ")");
+            info.put("Perturbations: Delta room preferences", String.valueOf(deltaRoomPreferences) + " (weighted " + sDoubleFormat.format(iDeltaRoomPreferenceWeight * deltaRoomPreferences) + ")");
         if (deltaInstructorDistancePreferences != 0)
-            info.put("Perturbations: Delta instructor distance preferences", String
-                    .valueOf(deltaInstructorDistancePreferences)
-                    + " (weighted "
-                    + sDoubleFormat.format(iDeltaInstructorDistancePreferenceWeight
-                            * deltaInstructorDistancePreferences) + ")");
+            info.put("Perturbations: Delta instructor distance preferences", String.valueOf(deltaInstructorDistancePreferences) +
+                    " (weighted " + sDoubleFormat.format(iDeltaInstructorDistancePreferenceWeight * deltaInstructorDistancePreferences) + ")");
     }
 
-    public Map<String, Double> getCompactInfo(TimetableModel model, boolean includeZero, boolean weighted) {
+    public Map<String, Double> getCompactInfo(Assignment<Lecture, Placement> assignment, TimetableModel model, boolean includeZero, boolean weighted) {
         Map<String, Double> info = new HashMap<String, Double>();
         if (!iMPP)
             return info;
@@ -593,32 +557,31 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
         double deltaTimePreferences = 0;
         int deltaRoomPreferences = 0;
         int deltaInstructorDistancePreferences = 0;
-        for (Lecture lecture : model.perturbVariables()) {
-            if (lecture.getAssignment() == null || lecture.getInitialAssignment() == null
-                    || lecture.getAssignment().equals(lecture.getInitialAssignment()))
+        for (Lecture lecture : model.perturbVariables(assignment)) {
+            if (assignment.getValue(lecture) == null || lecture.getInitialAssignment() == null || assignment.getValue(lecture).equals(lecture.getInitialAssignment()))
                 continue;
             perts++;
-            Placement assignedPlacement = lecture.getAssignment();
+            Placement assignedPlacement = assignment.getValue(lecture);
             Placement initialPlacement = lecture.getInitialAssignment();
-            affectedStudents += lecture.classLimit();
+            affectedStudents += lecture.classLimit(assignment);
             affectedInstructors += lecture.getInstructorConstraints().size();
 
             int nrDiff = initialPlacement.nrDifferentRooms(assignedPlacement);
             differentRoom += nrDiff;
             affectedInstructorsByRoom += nrDiff * lecture.getInstructorConstraints().size();
-            affectedStudentsByRoom += nrDiff * lecture.classLimit();
+            affectedStudentsByRoom += nrDiff * lecture.classLimit(assignment);
 
             nrDiff = initialPlacement.nrDifferentBuildings(initialPlacement);
             differentBuilding += nrDiff;
             affectedInstructorsByBldg += nrDiff * lecture.getInstructorConstraints().size();
-            affectedStudentsByBldg += nrDiff * lecture.classLimit();
+            affectedStudentsByBldg += nrDiff * lecture.classLimit(assignment);
 
             deltaRoomPreferences += assignedPlacement.sumRoomPreference() - initialPlacement.sumRoomPreference();
 
             if (!initialPlacement.getTimeLocation().equals(assignedPlacement.getTimeLocation())) {
                 differentTime++;
                 affectedInstructorsByTime += lecture.getInstructorConstraints().size();
-                affectedStudentsByTime += lecture.classLimit();
+                affectedStudentsByTime += lecture.classLimit(assignment);
             }
             if (initialPlacement.getTimeLocation().getDayCode() != assignedPlacement.getTimeLocation().getDayCode())
                 differentDay++;
@@ -636,17 +599,15 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
                     }
                 }
                 if (distance > iDistanceMetric.minutes2meters(10))
-                    tooFarForStudents += lecture.classLimit();
+                    tooFarForStudents += lecture.classLimit(assignment);
             }
-            deltaStudentConflicts += lecture.countStudentConflicts(assignedPlacement)
-                    - lecture.countInitialStudentConflicts();
-            Set<Student> newStudentConflictsSet = lecture.conflictStudents(assignedPlacement);
+            deltaStudentConflicts += lecture.countStudentConflicts(assignment, assignedPlacement) - lecture.countInitialStudentConflicts();
+            Set<Student> newStudentConflictsSet = lecture.conflictStudents(assignment, assignedPlacement);
             Set<Student> initialStudentConflicts = lecture.initialStudentConflicts();
             for (Iterator<Student> e1 = newStudentConflictsSet.iterator(); e1.hasNext();)
                 if (!initialStudentConflicts.contains(e1.next()))
                     newStudentConflicts++;
-            deltaTimePreferences += assignedPlacement.getTimeLocation().getNormalizedPreference()
-                    - initialPlacement.getTimeLocation().getNormalizedPreference();
+            deltaTimePreferences += assignedPlacement.getTimeLocation().getNormalizedPreference() - initialPlacement.getTimeLocation().getNormalizedPreference();
             for (InstructorConstraint ic : lecture.getInstructorConstraints()) {
                 if (ic != null)
                     for (Lecture lect : ic.variables()) {
@@ -654,8 +615,7 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
                             continue;
                         int initialPreference = (lect.getInitialAssignment() == null ? Constants.sPreferenceLevelNeutral
                                 : ic.getDistancePreference(initialPlacement, lect.getInitialAssignment()));
-                        int assignedPreference = (lect.getAssignment() == null ? Constants.sPreferenceLevelNeutral : ic
-                                .getDistancePreference(assignedPlacement, lect.getAssignment()));
+                        int assignedPreference = (assignedPlacement == null ? Constants.sPreferenceLevelNeutral : ic.getDistancePreference(assignedPlacement, assignedPlacement));
                         deltaInstructorDistancePreferences += assignedPreference - initialPreference;
                     }
             }
@@ -663,34 +623,25 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
         if (includeZero || iDifferentPlacement != 0.0)
             info.put("Different placement", new Double(weighted ? iDifferentPlacement * perts : perts));
         if (includeZero || iAffectedStudentWeight != 0.0)
-            info.put("Affected students", new Double(weighted ? iAffectedStudentWeight * affectedStudents
-                    : affectedStudents));
+            info.put("Affected students", new Double(weighted ? iAffectedStudentWeight * affectedStudents : affectedStudents));
         if (includeZero || iAffectedInstructorWeight != 0.0)
-            info.put("Affected instructors", new Double(weighted ? iAffectedInstructorWeight * affectedInstructors
-                    : affectedInstructors));
+            info.put("Affected instructors", new Double(weighted ? iAffectedInstructorWeight * affectedInstructors : affectedInstructors));
         if (includeZero || iAffectedStudentByTimeWeight != 0.0)
-            info.put("Affected students [time]", new Double(weighted ? iAffectedStudentByTimeWeight
-                    * affectedStudentsByTime : affectedStudentsByTime));
+            info.put("Affected students [time]", new Double(weighted ? iAffectedStudentByTimeWeight * affectedStudentsByTime : affectedStudentsByTime));
         if (includeZero || iAffectedInstructorByTimeWeight != 0.0)
-            info.put("Affected instructors [time]", new Double(weighted ? iAffectedInstructorByTimeWeight
-                    * affectedInstructorsByTime : affectedInstructorsByTime));
+            info.put("Affected instructors [time]", new Double(weighted ? iAffectedInstructorByTimeWeight * affectedInstructorsByTime : affectedInstructorsByTime));
         if (includeZero || iAffectedStudentByRoomWeight != 0.0)
-            info.put("Affected students [room]", new Double(weighted ? iAffectedStudentByRoomWeight
-                    * affectedStudentsByRoom : affectedStudentsByRoom));
+            info.put("Affected students [room]", new Double(weighted ? iAffectedStudentByRoomWeight * affectedStudentsByRoom : affectedStudentsByRoom));
         if (includeZero || iAffectedInstructorByRoomWeight != 0.0)
-            info.put("Affected instructors [room]", new Double(weighted ? iAffectedInstructorByRoomWeight
-                    * affectedInstructorsByRoom : affectedInstructorsByRoom));
+            info.put("Affected instructors [room]", new Double(weighted ? iAffectedInstructorByRoomWeight * affectedInstructorsByRoom : affectedInstructorsByRoom));
         if (includeZero || iAffectedStudentByBldgWeight != 0.0)
-            info.put("Affected students [bldg]", new Double(weighted ? iAffectedStudentByBldgWeight
-                    * affectedStudentsByBldg : affectedStudentsByBldg));
+            info.put("Affected students [bldg]", new Double(weighted ? iAffectedStudentByBldgWeight * affectedStudentsByBldg : affectedStudentsByBldg));
         if (includeZero || iAffectedInstructorByBldgWeight != 0.0)
-            info.put("Affected instructors [bldg]", new Double(weighted ? iAffectedInstructorByBldgWeight
-                    * affectedInstructorsByBldg : affectedInstructorsByBldg));
+            info.put("Affected instructors [bldg]", new Double(weighted ? iAffectedInstructorByBldgWeight * affectedInstructorsByBldg : affectedInstructorsByBldg));
         if (includeZero || iDifferentRoomWeight != 0.0)
             info.put("Different room", new Double(weighted ? iDifferentRoomWeight * differentRoom : differentRoom));
         if (includeZero || iDifferentBuildingWeight != 0.0)
-            info.put("Different building", new Double(weighted ? iDifferentBuildingWeight * differentBuilding
-                    : differentBuilding));
+            info.put("Different building", new Double(weighted ? iDifferentBuildingWeight * differentBuilding : differentBuilding));
         if (includeZero || iDifferentTimeWeight != 0.0)
             info.put("Different time", new Double(weighted ? iDifferentTimeWeight * differentTime : differentTime));
         if (includeZero || iDifferentDayWeight != 0.0)
@@ -698,31 +649,23 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
         if (includeZero || iDifferentHourWeight != 0.0)
             info.put("Different hour", new Double(weighted ? iDifferentHourWeight * differentHour : differentHour));
         if (includeZero || iTooFarForInstructorsWeight != 0.0)
-            info.put("New placement too far for initial [instructors]", new Double(
-                    weighted ? iTooFarForInstructorsWeight * tooFarForInstructors : tooFarForInstructors));
+            info.put("New placement too far for initial [instructors]", new Double(weighted ? iTooFarForInstructorsWeight * tooFarForInstructors : tooFarForInstructors));
         if (includeZero || iTooFarForStudentsWeight != 0.0)
-            info.put("New placement too far for initial [students]", new Double(weighted ? iTooFarForStudentsWeight
-                    * tooFarForStudents : tooFarForStudents));
+            info.put("New placement too far for initial [students]", new Double(weighted ? iTooFarForStudentsWeight * tooFarForStudents : tooFarForStudents));
         if (includeZero || iDeltaStudentConflictsWeight != 0.0)
-            info.put("Delta student conflicts", new Double(weighted ? iDeltaStudentConflictsWeight
-                    * deltaStudentConflicts : deltaStudentConflicts));
+            info.put("Delta student conflicts", new Double(weighted ? iDeltaStudentConflictsWeight * deltaStudentConflicts : deltaStudentConflicts));
         if (includeZero || iNewStudentConflictsWeight != 0.0)
-            info.put("New student conflicts", new Double(weighted ? iNewStudentConflictsWeight * newStudentConflicts
-                    : newStudentConflicts));
+            info.put("New student conflicts", new Double(weighted ? iNewStudentConflictsWeight * newStudentConflicts : newStudentConflicts));
         if (includeZero || iDeltaTimePreferenceWeight != 0.0)
-            info.put("Delta time preferences", new Double(weighted ? iDeltaTimePreferenceWeight * deltaTimePreferences
-                    : deltaTimePreferences));
+            info.put("Delta time preferences", new Double(weighted ? iDeltaTimePreferenceWeight * deltaTimePreferences : deltaTimePreferences));
         if (includeZero || iDeltaRoomPreferenceWeight != 0.0)
-            info.put("Delta room preferences", new Double(weighted ? iDeltaRoomPreferenceWeight * deltaRoomPreferences
-                    : deltaRoomPreferences));
+            info.put("Delta room preferences", new Double(weighted ? iDeltaRoomPreferenceWeight * deltaRoomPreferences : deltaRoomPreferences));
         if (includeZero || iDeltaInstructorDistancePreferenceWeight != 0.0)
-            info.put("Delta instructor distance preferences", new Double(
-                    weighted ? iDeltaInstructorDistancePreferenceWeight * deltaInstructorDistancePreferences
-                            : deltaInstructorDistancePreferences));
+            info.put("Delta instructor distance preferences", new Double(weighted ? iDeltaInstructorDistancePreferenceWeight * deltaInstructorDistancePreferences : deltaInstructorDistancePreferences));
         return info;
     }
 
-    public Map<String, Double> getCompactInfo(TimetableModel model, Placement assignedPlacement, boolean includeZero,
+    public Map<String, Double> getCompactInfo(Assignment<Lecture, Placement> assignment, TimetableModel model, Placement assignedPlacement, boolean includeZero,
             boolean weighted) {
         Map<String, Double> info = new HashMap<String, Double>();
         if (!iMPP)
@@ -732,35 +675,30 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
         if (initialPlacement == null || initialPlacement.equals(assignedPlacement))
             return info;
         int perts = 1;
-        long affectedStudents = lecture.classLimit();
+        long affectedStudents = lecture.classLimit(assignment);
         int affectedInstructors = lecture.getInstructorConstraints().size();
-        long affectedStudentsByTime = (initialPlacement.getTimeLocation().equals(assignedPlacement.getTimeLocation()) ? 0
-                : lecture.classLimit());
-        int affectedInstructorsByTime = (initialPlacement.getTimeLocation().equals(assignedPlacement.getTimeLocation()) ? 0
-                : lecture.getInstructorConstraints().size());
+        long affectedStudentsByTime = (initialPlacement.getTimeLocation().equals(assignedPlacement.getTimeLocation()) ? 0 : lecture.classLimit(assignment));
+        int affectedInstructorsByTime = (initialPlacement.getTimeLocation().equals(assignedPlacement.getTimeLocation()) ? 0 : lecture.getInstructorConstraints().size());
 
         int differentRoom = initialPlacement.nrDifferentRooms(assignedPlacement);
         int affectedInstructorsByRoom = differentRoom * lecture.getInstructorConstraints().size();
-        long affectedStudentsByRoom = differentRoom * lecture.classLimit();
+        long affectedStudentsByRoom = differentRoom * lecture.classLimit(assignment);
 
         int differentBuilding = initialPlacement.nrDifferentBuildings(initialPlacement);
         int affectedInstructorsByBldg = differentBuilding * lecture.getInstructorConstraints().size();
-        long affectedStudentsByBldg = differentBuilding * lecture.classLimit();
+        long affectedStudentsByBldg = differentBuilding * lecture.classLimit(assignment);
 
         int deltaRoomPreferences = assignedPlacement.sumRoomPreference() - initialPlacement.sumRoomPreference();
 
         int differentTime = (initialPlacement.getTimeLocation().equals(assignedPlacement.getTimeLocation()) ? 0 : 1);
-        int differentDay = (initialPlacement.getTimeLocation().getDayCode() != assignedPlacement.getTimeLocation()
-                .getDayCode() ? 1 : 0);
-        int differentHour = (initialPlacement.getTimeLocation().getStartSlot() != assignedPlacement.getTimeLocation()
-                .getStartSlot() ? 1 : 0);
+        int differentDay = (initialPlacement.getTimeLocation().getDayCode() != assignedPlacement.getTimeLocation().getDayCode() ? 1 : 0);
+        int differentHour = (initialPlacement.getTimeLocation().getStartSlot() != assignedPlacement.getTimeLocation().getStartSlot() ? 1 : 0);
         int tooFarForInstructors = 0;
         int tooFarForStudents = 0;
-        int deltaStudentConflicts = lecture.countStudentConflicts(assignedPlacement)
-                - lecture.countInitialStudentConflicts();
+        int deltaStudentConflicts = lecture.countStudentConflicts(assignment, assignedPlacement) - lecture.countInitialStudentConflicts();
         int newStudentConflicts = 0;
-        double deltaTimePreferences = (assignedPlacement.getTimeLocation().getNormalizedPreference() - initialPlacement
-                .getTimeLocation().getNormalizedPreference());
+        double deltaTimePreferences = (assignedPlacement.getTimeLocation().getNormalizedPreference() -
+                initialPlacement.getTimeLocation().getNormalizedPreference());
         int deltaInstructorDistancePreferences = 0;
 
         double distance = Placement.getDistanceInMeters(iDistanceMetric, initialPlacement, assignedPlacement);
@@ -774,9 +712,9 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
             }
         }
         if (distance > iDistanceMetric.minutes2meters(10))
-            tooFarForStudents = lecture.classLimit();
+            tooFarForStudents = lecture.classLimit(assignment);
 
-        Set<Student> newStudentConflictsVect = lecture.conflictStudents(assignedPlacement);
+        Set<Student> newStudentConflictsVect = lecture.conflictStudents(assignment, assignedPlacement);
         Set<Student> initialStudentConflicts = lecture.initialStudentConflicts();
         for (Iterator<Student> e = newStudentConflictsVect.iterator(); e.hasNext();)
             if (!initialStudentConflicts.contains(e.next()))
@@ -786,10 +724,8 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
             for (Lecture lect : ic.variables()) {
                 if (lect.equals(lecture))
                     continue;
-                int initialPreference = (lect.getInitialAssignment() == null ? Constants.sPreferenceLevelNeutral : ic
-                        .getDistancePreference(initialPlacement, lect.getInitialAssignment()));
-                int assignedPreference = (lect.getAssignment() == null ? Constants.sPreferenceLevelNeutral : ic
-                        .getDistancePreference(assignedPlacement, lect.getAssignment()));
+                int initialPreference = (lect.getInitialAssignment() == null ? Constants.sPreferenceLevelNeutral : ic.getDistancePreference(initialPlacement, lect.getInitialAssignment()));
+                int assignedPreference = (assignment.getValue(lect) == null ? Constants.sPreferenceLevelNeutral : ic.getDistancePreference(assignedPlacement, assignment.getValue(lect)));
                 deltaInstructorDistancePreferences += (assignedPreference - initialPreference);
             }
         }
@@ -797,34 +733,25 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
         if (includeZero || iDifferentPlacement != 0.0)
             info.put("Different placement", new Double(weighted ? iDifferentPlacement * perts : perts));
         if (includeZero || iAffectedStudentWeight != 0.0)
-            info.put("Affected students", new Double(weighted ? iAffectedStudentWeight * affectedStudents
-                    : affectedStudents));
+            info.put("Affected students", new Double(weighted ? iAffectedStudentWeight * affectedStudents : affectedStudents));
         if (includeZero || iAffectedInstructorWeight != 0.0)
-            info.put("Affected instructors", new Double(weighted ? iAffectedInstructorWeight * affectedInstructors
-                    : affectedInstructors));
+            info.put("Affected instructors", new Double(weighted ? iAffectedInstructorWeight * affectedInstructors : affectedInstructors));
         if (includeZero || iAffectedStudentByTimeWeight != 0.0)
-            info.put("Affected students [time]", new Double(weighted ? iAffectedStudentByTimeWeight
-                    * affectedStudentsByTime : affectedStudentsByTime));
+            info.put("Affected students [time]", new Double(weighted ? iAffectedStudentByTimeWeight * affectedStudentsByTime : affectedStudentsByTime));
         if (includeZero || iAffectedInstructorByTimeWeight != 0.0)
-            info.put("Affected instructors [time]", new Double(weighted ? iAffectedInstructorByTimeWeight
-                    * affectedInstructorsByTime : affectedInstructorsByTime));
+            info.put("Affected instructors [time]", new Double(weighted ? iAffectedInstructorByTimeWeight * affectedInstructorsByTime : affectedInstructorsByTime));
         if (includeZero || iAffectedStudentByRoomWeight != 0.0)
-            info.put("Affected students [room]", new Double(weighted ? iAffectedStudentByRoomWeight
-                    * affectedStudentsByRoom : affectedStudentsByRoom));
+            info.put("Affected students [room]", new Double(weighted ? iAffectedStudentByRoomWeight * affectedStudentsByRoom : affectedStudentsByRoom));
         if (includeZero || iAffectedInstructorByRoomWeight != 0.0)
-            info.put("Affected instructors [room]", new Double(weighted ? iAffectedInstructorByRoomWeight
-                    * affectedInstructorsByRoom : affectedInstructorsByRoom));
+            info.put("Affected instructors [room]", new Double(weighted ? iAffectedInstructorByRoomWeight * affectedInstructorsByRoom : affectedInstructorsByRoom));
         if (includeZero || iAffectedStudentByBldgWeight != 0.0)
-            info.put("Affected students [bldg]", new Double(weighted ? iAffectedStudentByBldgWeight
-                    * affectedStudentsByBldg : affectedStudentsByBldg));
+            info.put("Affected students [bldg]", new Double(weighted ? iAffectedStudentByBldgWeight * affectedStudentsByBldg : affectedStudentsByBldg));
         if (includeZero || iAffectedInstructorByBldgWeight != 0.0)
-            info.put("Affected instructors [bldg]", new Double(weighted ? iAffectedInstructorByBldgWeight
-                    * affectedInstructorsByBldg : affectedInstructorsByBldg));
+            info.put("Affected instructors [bldg]", new Double(weighted ? iAffectedInstructorByBldgWeight * affectedInstructorsByBldg : affectedInstructorsByBldg));
         if (includeZero || iDifferentRoomWeight != 0.0)
             info.put("Different room", new Double(weighted ? iDifferentRoomWeight * differentRoom : differentRoom));
         if (includeZero || iDifferentBuildingWeight != 0.0)
-            info.put("Different building", new Double(weighted ? iDifferentBuildingWeight * differentBuilding
-                    : differentBuilding));
+            info.put("Different building", new Double(weighted ? iDifferentBuildingWeight * differentBuilding : differentBuilding));
         if (includeZero || iDifferentTimeWeight != 0.0)
             info.put("Different time", new Double(weighted ? iDifferentTimeWeight * differentTime : differentTime));
         if (includeZero || iDifferentDayWeight != 0.0)
@@ -832,27 +759,19 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
         if (includeZero || iDifferentHourWeight != 0.0)
             info.put("Different hour", new Double(weighted ? iDifferentHourWeight * differentHour : differentHour));
         if (includeZero || iTooFarForInstructorsWeight != 0.0)
-            info.put("New placement too far for initial [instructors]", new Double(
-                    weighted ? iTooFarForInstructorsWeight * tooFarForInstructors : tooFarForInstructors));
+            info.put("New placement too far for initial [instructors]", new Double(weighted ? iTooFarForInstructorsWeight * tooFarForInstructors : tooFarForInstructors));
         if (includeZero || iTooFarForStudentsWeight != 0.0)
-            info.put("New placement too far for initial [students]", new Double(weighted ? iTooFarForStudentsWeight
-                    * tooFarForStudents : tooFarForStudents));
+            info.put("New placement too far for initial [students]", new Double(weighted ? iTooFarForStudentsWeight * tooFarForStudents : tooFarForStudents));
         if (includeZero || iDeltaStudentConflictsWeight != 0.0)
-            info.put("Delta student conflicts", new Double(weighted ? iDeltaStudentConflictsWeight
-                    * deltaStudentConflicts : deltaStudentConflicts));
+            info.put("Delta student conflicts", new Double(weighted ? iDeltaStudentConflictsWeight * deltaStudentConflicts : deltaStudentConflicts));
         if (includeZero || iNewStudentConflictsWeight != 0.0)
-            info.put("New student conflicts", new Double(weighted ? iNewStudentConflictsWeight * newStudentConflicts
-                    : newStudentConflicts));
+            info.put("New student conflicts", new Double(weighted ? iNewStudentConflictsWeight * newStudentConflicts : newStudentConflicts));
         if (includeZero || iDeltaTimePreferenceWeight != 0.0)
-            info.put("Delta time preferences", new Double(weighted ? iDeltaTimePreferenceWeight * deltaTimePreferences
-                    : deltaTimePreferences));
+            info.put("Delta time preferences", new Double(weighted ? iDeltaTimePreferenceWeight * deltaTimePreferences : deltaTimePreferences));
         if (includeZero || iDeltaRoomPreferenceWeight != 0.0)
-            info.put("Delta room preferences", new Double(weighted ? iDeltaRoomPreferenceWeight * deltaRoomPreferences
-                    : deltaRoomPreferences));
+            info.put("Delta room preferences", new Double(weighted ? iDeltaRoomPreferenceWeight * deltaRoomPreferences : deltaRoomPreferences));
         if (includeZero || iDeltaInstructorDistancePreferenceWeight != 0.0)
-            info.put("Delta instructor distance preferences", new Double(
-                    weighted ? iDeltaInstructorDistancePreferenceWeight * deltaInstructorDistancePreferences
-                            : deltaInstructorDistancePreferences));
+            info.put("Delta instructor distance preferences", new Double(weighted ? iDeltaInstructorDistancePreferenceWeight * deltaInstructorDistancePreferences : deltaInstructorDistancePreferences));
         return info;
     }
 }

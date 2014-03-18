@@ -8,13 +8,14 @@ import java.util.Set;
 import org.dom4j.Element;
 
 import net.sf.cpsolver.coursett.IdConvertor;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
  * Room sharing model based on a pre-defined list of examination pairs. The relation needs to be populated
  * using {@link PredefinedExamRoomSharing#addPair(Exam, Exam)} and it is persisted with the solution XML (see
- * {@link ExamModel#save()}, canShareRoom element for each exam containing a comma separated list of exam ids).
+ * {@link ExamModel#save(Assignment)}, canShareRoom element for each exam containing a comma separated list of exam ids).
  * <br>
  * 
  * @version ExamTT 1.2 (Examination Timetabling)<br>

@@ -217,8 +217,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         if ((iSaveCurrent || iSaveBest)) { // &&
                                            // !getModel().assignedVariables().isEmpty()
             StringBuffer comments = new StringBuffer("Solution Info:\n");
-            Map<String, String> solutionInfo = (getSolution() == null ? getModel().getExtendedInfo() : getSolution()
-                    .getExtendedInfo());
+            Map<String, String> solutionInfo = (getSolution() == null ? getModel().getExtendedInfo(getAssignment()) : getSolution().getExtendedInfo());
             for (String key : new TreeSet<String>(solutionInfo.keySet())) {
                 String value = solutionInfo.get(key);
                 comments.append("    " + key + ": " + value + "\n");
@@ -439,7 +438,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                     if (iSaveInitial && request.getInitialAssignment() != null) {
                         requestEl.addElement("initial");
                     }
-                    if (iSaveCurrent && request.getAssignment() != null) {
+                    if (iSaveCurrent && getAssignment().getValue(request) != null) {
                         requestEl.addElement("current");
                     }
                     if (iSaveBest && request.getBestAssignment() != null) {
@@ -494,9 +493,9 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                                                 + section.getChoice().getInstructorNames()));
                         }
                     }
-                    if (iSaveCurrent && request.getAssignment() != null) {
+                    if (iSaveCurrent && getAssignment().getValue(request) != null) {
                         Element assignmentEl = requestEl.addElement("current");
-                        Enrollment enrollment = request.getAssignment();
+                        Enrollment enrollment = getAssignment().getValue(request);
                         if (enrollment.getReservation() != null)
                             assignmentEl.addAttribute("reservation", getId("reservation", enrollment.getReservation().getId()));
                         for (Section section : enrollment.getSections()) {

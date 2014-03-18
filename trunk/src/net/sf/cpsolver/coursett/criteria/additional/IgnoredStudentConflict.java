@@ -6,6 +6,7 @@ import java.util.Map;
 import net.sf.cpsolver.coursett.criteria.StudentConflict;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.criteria.Criterion;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
@@ -57,23 +58,23 @@ public class IgnoredStudentConflict extends StudentConflict {
     }
     
     @Override
-    public void getInfo(Map<String, String> info) {
-        super.getInfo(info);
-        double conf = getValue();
+    public void getInfo(Assignment<Lecture, Placement> assignment, Map<String, String> info) {
+        super.getInfo(assignment, info);
+        double conf = getValue(assignment);
         if (conf > 0.0) {
             Criterion<Lecture, Placement> c = getModel().getCriterion(IgnoredCommittedStudentConflict.class);
-            double committed = (c == null ? 0.0 : c.getValue());
+            double committed = (c == null ? 0.0 : c.getValue(assignment));
             info.put("Ignored student conflicts", sDoubleFormat.format(conf) + (committed > 0.0 ? " [committed: " + sDoubleFormat.format(committed) + "]" : ""));
         }
     }
     
     @Override
-    public void getInfo(Map<String, String> info, Collection<Lecture> variables) {
-        super.getInfo(info, variables);
-        double conf = getValue(variables);
+    public void getInfo(Assignment<Lecture, Placement> assignment, Map<String, String> info, Collection<Lecture> variables) {
+        super.getInfo(assignment, info, variables);
+        double conf = getValue(assignment, variables);
         if (conf > 0.0) {
             Criterion<Lecture, Placement> c = getModel().getCriterion(IgnoredCommittedStudentConflict.class);
-            double committed = (c == null ? 0.0 : c.getValue(variables));
+            double committed = (c == null ? 0.0 : c.getValue(assignment, variables));
             info.put("Ignored student conflicts", sDoubleFormat.format(conf) + (committed > 0.0 ? " [committed: " + sDoubleFormat.format(committed) + "]" : ""));
         }
     }

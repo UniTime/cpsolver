@@ -12,6 +12,9 @@ import net.sf.cpsolver.exam.neighbours.ExamRandomMove;
 import net.sf.cpsolver.exam.neighbours.ExamRoomMove;
 import net.sf.cpsolver.exam.neighbours.ExamSimpleNeighbour;
 import net.sf.cpsolver.exam.neighbours.ExamTimeMove;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentContext;
+import net.sf.cpsolver.ifs.assignment.context.NeighbourSelectionWithContext;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.LazyNeighbour;
 import net.sf.cpsolver.ifs.model.Neighbour;
@@ -35,7 +38,7 @@ import org.apache.log4j.Logger;
  * <li>room swap ({@link ExamRoomMove})
  * </ul>
  * , then a neighbour is generated and it is accepted with probability
- * {@link ExamSimulatedAnnealing#prob(double)}. The search is guided by the
+ * {@link ExamSimulatedAnnealing.Context#prob(double)}. The search is guided by the
  * temperature, which starts at <i>SimulatedAnnealing.InitialTemperature</i>.
  * After each <i>SimulatedAnnealing.TemperatureLength</i> iterations, the
  * temperature is reduced by <i>SimulatedAnnealing.CoolingRate</i>. If there was
@@ -52,7 +55,7 @@ import org.apache.log4j.Logger;
  * cumputed using simlated annealing criterion, i.e.,
  * <code>(value<=0.0?1.0:Math.exp(-value/temperature))</code>. If
  * <i>SimulatedAnnealing.RelativeAcceptance</i> neighbour value
- * {@link ExamSimpleNeighbour#value()} is taken as the value of the selected
+ * {@link ExamSimpleNeighbour#value(Assignment)} is taken as the value of the selected
  * neighbour (difference between the new and the current solution, if the
  * neighbour is accepted), otherwise the value is computed as the difference
  * between the value of the current solution if the neighbour is accepted and
@@ -78,7 +81,8 @@ import org.apache.log4j.Logger;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlacement>, SolutionListener<Exam, ExamPlacement>, LazyNeighbourAcceptanceCriterion<Exam, ExamPlacement> {
+@Deprecated
+public class ExamSimulatedAnnealing extends NeighbourSelectionWithContext<Exam, ExamPlacement, ExamSimulatedAnnealing.Context> implements SolutionListener<Exam, ExamPlacement>, LazyNeighbourAcceptanceCriterion<Exam, ExamPlacement> {
     private static Logger sLog = Logger.getLogger(ExamSimulatedAnnealing.class);
     private static DecimalFormat sDF2 = new DecimalFormat("0.00");
     private static DecimalFormat sDF5 = new DecimalFormat("0.00000");
@@ -89,21 +93,11 @@ public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlac
     private long iTemperatureLength = 250000;
     private long iReheatLength = 0;
     private long iRestoreBestLength = 0;
-    private double iTemperature = 0.0;
     private double iReheatLengthCoef = 5.0;
     private double iRestoreBestLengthCoef = -1;
-    private long iIter = 0;
-    private long iLastImprovingIter = 0;
-    private long iLastReheatIter = 0;
-    private long iLastCoolingIter = 0;
-    private int iAcceptIter[] = new int[] { 0, 0, 0 };
     private boolean iStochasticHC = false;
-    private int iMoves = 0;
-    private double iAbsValue = 0;
-    private long iT0 = -1;
     private double iBestValue = 0;
     private Progress iProgress = null;
-    private boolean iActive;
 
     private List<NeighbourSelection<Exam, ExamPlacement>> iNeighbours = null;
 
@@ -175,7 +169,7 @@ public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlac
      */
     @Override
     public void init(Solver<Exam, ExamPlacement> solver) {
-        iTemperature = iInitialTemperature;
+        super.init(solver);
         iReheatLength = Math.round(iReheatLengthCoef * iTemperatureLength);
         iRestoreBestLength = Math.round(iRestoreBestLengthCoef * iTemperatureLength);
         solver.currentSolution().addSolutionListener(this);
@@ -183,77 +177,20 @@ public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlac
             neighbour.init(solver);
         solver.setUpdateProgress(false);
         iProgress = Progress.getInstance(solver.currentSolution().getModel());
-        iActive = false;
     }
 
-    /**
-     * Cool temperature
-     */
-    protected void cool(Solution<Exam, ExamPlacement> solution) {
-        iTemperature *= iCoolingRate;
-        sLog.info("Iter=" + iIter / 1000 + "k, NonImpIter=" + sDF2.format((iIter - iLastImprovingIter) / 1000.0)
-                + "k, Speed=" + sDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s");
-        sLog.info("Temperature decreased to " + sDF5.format(iTemperature) + " " + "(#moves=" + iMoves + ", rms(value)="
-                + sDF2.format(Math.sqrt(iAbsValue / iMoves)) + ", " + "accept=-"
-                + sDF2.format(100.0 * iAcceptIter[0] / iTemperatureLength) + "/"
-                + sDF2.format(100.0 * iAcceptIter[1] / iTemperatureLength) + "/+"
-                + sDF2.format(100.0 * iAcceptIter[2] / iTemperatureLength) + "%, "
-                + (prob(-1) < 1.0 ? "p(-1)=" + sDF2.format(100.0 * prob(-1)) + "%, " : "") + "p(+1)="
-                + sDF2.format(100.0 * prob(1)) + "%, " + "p(+10)=" + sDF5.format(100.0 * prob(10)) + "%)");
-        iLastCoolingIter = iIter;
-        iAcceptIter = new int[] { 0, 0, 0 };
-        iMoves = 0;
-        iAbsValue = 0;
-    }
-
-    /**
-     * Reheat temperature
-     */
-    protected void reheat(Solution<Exam, ExamPlacement> solution) {
-        iTemperature *= iReheatRate;
-        sLog.info("Iter=" + iIter / 1000 + "k, NonImpIter=" + sDF2.format((iIter - iLastImprovingIter) / 1000.0)
-                + "k, Speed=" + sDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s");
-        sLog.info("Temperature increased to " + sDF5.format(iTemperature) + " "
-                + (prob(-1) < 1.0 ? "p(-1)=" + sDF2.format(100.0 * prob(-1)) + "%, " : "") + "p(+1)="
-                + sDF2.format(100.0 * prob(1)) + "%, " + "p(+10)=" + sDF5.format(100.0 * prob(10)) + "%, " + "p(+100)="
-                + sDF10.format(100.0 * prob(100)) + "%)");
-        iLastReheatIter = iIter;
-        iProgress.setPhase("Simulated Annealing [" + sDF2.format(iTemperature) + "]...");
-    }
-
-    /**
-     * restore best ever found solution
-     */
-    protected void restoreBest(Solution<Exam, ExamPlacement> solution) {
-        sLog.info("Best restored");
-        iLastImprovingIter = iIter;
-    }
 
     /**
      * Generate neighbour -- select neighbourhood randomly, select neighbour
      */
     public Neighbour<Exam, ExamPlacement> genMove(Solution<Exam, ExamPlacement> solution) {
         while (true) {
-            incIter(solution);
+            getContext(solution.getAssignment()).incIter(solution);
             NeighbourSelection<Exam, ExamPlacement> ns = iNeighbours.get(ToolBox.random(iNeighbours.size()));
             Neighbour<Exam, ExamPlacement> n = ns.selectNeighbour(solution);
             if (n != null)
                 return n;
         }
-    }
-
-    /**
-     * Neighbour acceptance probability
-     * 
-     * @param value
-     *            absolute or relative value of the proposed change (neighbour)
-     * @return probability of acceptance of a change (neighbour)
-     */
-    protected double prob(double value) {
-        if (iStochasticHC)
-            return 1.0 / (1.0 + Math.exp(value / iTemperature));
-        else
-            return (value <= 0.0 ? 1.0 : Math.exp(-value / iTemperature));
     }
 
     /**
@@ -271,10 +208,12 @@ public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlac
             ((LazyNeighbour<Exam, ExamPlacement>)neighbour).setAcceptanceCriterion(this);
             return true;
         }
-        double value = (iRelativeAcceptance ? neighbour.value() : solution.getModel().getTotalValue() + neighbour.value() - solution.getBestValue());
-        double prob = prob(value);
+        Assignment<Exam, ExamPlacement> assignment = solution.getAssignment();
+        double value = (iRelativeAcceptance ? neighbour.value(assignment) : solution.getModel().getTotalValue(assignment) + neighbour.value(assignment) - solution.getBestValue());
+        Context context = getContext(solution.getAssignment());
+        double prob = context.prob(value);
         if (prob >= 1.0 || ToolBox.random() < prob) {
-            iAcceptIter[neighbour.value() < 0.0 ? 0 : neighbour.value() > 0.0 ? 2 : 1]++;
+            context.accepted(neighbour.value(assignment));
             return true;
         }
         return false;
@@ -282,30 +221,14 @@ public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlac
     
     /** Accept lazy neighbour */
     @Override
-    public boolean accept(LazyNeighbour<Exam, ExamPlacement> neighbour, double value) {
-        double prob = prob(value);
+    public boolean accept(Assignment<Exam, ExamPlacement> assignment, LazyNeighbour<Exam, ExamPlacement> neighbour, double value) {
+        Context context = getContext(assignment);
+        double prob = context.prob(value);
         if (prob >= 1.0 || ToolBox.random() < prob) {
-            iAcceptIter[value < 0.0 ? 0 : value > 0.0 ? 2 : 1]++;
+            context.accepted(value);
             return true;
         }
         return false;
-    }
-
-    /**
-     * Increment iteration counter, cool/reheat/restoreBest if necessary
-     */
-    protected void incIter(Solution<Exam, ExamPlacement> solution) {
-        if (iT0 < 0)
-            iT0 = JProf.currentTimeMillis();
-        iIter++;
-        if (iIter > iLastImprovingIter + iRestoreBestLength)
-            restoreBest(solution);
-        if (iIter > Math.max(iLastReheatIter, iLastImprovingIter) + iReheatLength)
-            reheat(solution);
-        if (iIter > iLastCoolingIter + iTemperatureLength)
-            cool(solution);
-        iProgress.setProgress(Math.round(100.0 * (iIter - Math.max(iLastReheatIter, iLastImprovingIter))
-                / iReheatLength));
     }
 
     /**
@@ -313,36 +236,26 @@ public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlac
      * {@link ExamSimulatedAnnealing#genMove(Solution)} until an acceptable
      * neighbour is found
      * {@link ExamSimulatedAnnealing#accept(Solution, Neighbour)}, keep
-     * increasing iteration {@link ExamSimulatedAnnealing#incIter(Solution)}.
+     * increasing iteration {@link ExamSimulatedAnnealing.Context#incIter(Solution)}.
      */
     @Override
     public Neighbour<Exam, ExamPlacement> selectNeighbour(Solution<Exam, ExamPlacement> solution) {
-        if (!iActive) {
-            iProgress.setPhase("Simulated Annealing [" + sDF2.format(iTemperature) + "]...");
-            iActive = true;
-        }
+        Context context = getContext(solution.getAssignment());
+        context.activateIfNeeded();
         Neighbour<Exam, ExamPlacement> neighbour = null;
         while ((neighbour = genMove(solution)) != null) {
-            iMoves++;
-            iAbsValue += neighbour.value() * neighbour.value();
+            context.incMoves(neighbour.value(solution.getAssignment()));
             if (accept(solution, neighbour))
                 break;
         }
         if (neighbour == null)
-            iActive = false;
+            context.reset();
         return (neighbour == null ? null : neighbour);
     }
 
-    /**
-     * Memorize the iteration when the last best solution was found.
-     */
     @Override
     public void bestSaved(Solution<Exam, ExamPlacement> solution) {
-        if (Math.abs(iBestValue - solution.getBestValue()) >= 1.0) {
-            iLastImprovingIter = iIter;
-            iBestValue = solution.getBestValue();
-        }
-        iLastImprovingIter = iIter;
+        getContext(solution.getAssignment()).bestSaved(solution);
     }
 
     @Override
@@ -363,5 +276,124 @@ public class ExamSimulatedAnnealing implements NeighbourSelection<Exam, ExamPlac
 
     @Override
     public void bestRestored(Solution<Exam, ExamPlacement> solution) {
+    }
+    
+    public class Context implements AssignmentContext {
+        private boolean iActive = false;
+        private double iTemperature = 0.0;
+        private long iIter = 0;
+        private long iLastImprovingIter = 0;
+        private long iLastReheatIter = 0;
+        private long iLastCoolingIter = 0;
+        private int iAcceptIter[] = new int[] { 0, 0, 0 };
+        private int iMoves = 0;
+        private long iT0 = -1;
+        private double iAbsValue = 0;
+        
+        /**
+         * Increment iteration counter, cool/reheat/restoreBest if necessary
+         */
+        protected void incIter(Solution<Exam, ExamPlacement> solution) {
+            if (iT0 < 0) {
+                iT0 = JProf.currentTimeMillis();
+                iTemperature = iInitialTemperature;
+            }
+            iIter++;
+            if (iIter > iLastImprovingIter + iRestoreBestLength) {
+                solution.restoreBest();
+                iLastImprovingIter = iIter;
+            }
+            if (iIter > Math.max(iLastReheatIter, iLastImprovingIter) + iReheatLength)
+                reheat(solution);
+            if (iIter > iLastCoolingIter + iTemperatureLength)
+                cool(solution);
+            iProgress.setProgress(Math.round(100.0 * (iIter - Math.max(iLastReheatIter, iLastImprovingIter)) / iReheatLength));
+        }
+
+        /**
+         * Cool temperature
+         */
+        protected void cool(Solution<Exam, ExamPlacement> solution) {
+            iTemperature *= iCoolingRate;
+            sLog.info("Iter=" + iIter / 1000 + "k, NonImpIter=" + sDF2.format((iIter - iLastImprovingIter) / 1000.0)
+                    + "k, Speed=" + sDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s");
+            sLog.info("Temperature decreased to " + sDF5.format(iTemperature) + " " + "(#moves=" + iMoves + ", rms(value)="
+                    + sDF2.format(Math.sqrt(iAbsValue / iMoves)) + ", " + "accept=-"
+                    + sDF2.format(100.0 * iAcceptIter[0] / iTemperatureLength) + "/"
+                    + sDF2.format(100.0 * iAcceptIter[1] / iTemperatureLength) + "/+"
+                    + sDF2.format(100.0 * iAcceptIter[2] / iTemperatureLength) + "%, "
+                    + (prob(-1) < 1.0 ? "p(-1)=" + sDF2.format(100.0 * prob(-1)) + "%, " : "") + "p(+1)="
+                    + sDF2.format(100.0 * prob(1)) + "%, " + "p(+10)=" + sDF5.format(100.0 * prob(10)) + "%)");
+            iLastCoolingIter = iIter;
+            iAcceptIter = new int[] { 0, 0, 0 };
+            iMoves = 0;
+            iAbsValue = 0;
+        }
+
+        /**
+         * Reheat temperature
+         */
+        protected void reheat(Solution<Exam, ExamPlacement> solution) {
+            iTemperature *= iReheatRate;
+            sLog.info("Iter=" + iIter / 1000 + "k, NonImpIter=" + sDF2.format((iIter - iLastImprovingIter) / 1000.0)
+                    + "k, Speed=" + sDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s");
+            sLog.info("Temperature increased to " + sDF5.format(iTemperature) + " "
+                    + (prob(-1) < 1.0 ? "p(-1)=" + sDF2.format(100.0 * prob(-1)) + "%, " : "") + "p(+1)="
+                    + sDF2.format(100.0 * prob(1)) + "%, " + "p(+10)=" + sDF5.format(100.0 * prob(10)) + "%, " + "p(+100)="
+                    + sDF10.format(100.0 * prob(100)) + "%)");
+            iLastReheatIter = iIter;
+            iProgress.setPhase("Simulated Annealing [" + sDF2.format(iTemperature) + "]...");
+        }
+        
+        /**
+         * Memorize the iteration when the last best solution was found.
+         */
+        protected void bestSaved(Solution<Exam, ExamPlacement> solution) {
+            if (Math.abs(iBestValue - solution.getBestValue()) >= 1.0) {
+                iLastImprovingIter = iIter;
+                iBestValue = solution.getBestValue();
+            }
+            iLastImprovingIter = iIter;
+        }
+        
+        /**
+         * Neighbour acceptance probability
+         * 
+         * @param value
+         *            absolute or relative value of the proposed change (neighbour)
+         * @return probability of acceptance of a change (neighbour)
+         */
+        protected double prob(double value) {
+            if (iStochasticHC)
+                return 1.0 / (1.0 + Math.exp(value / iTemperature));
+            else
+                return (value <= 0.0 ? 1.0 : Math.exp(-value / iTemperature));
+        }
+        
+        /** A neighbor with the given value was accepted. */ 
+        protected void accepted(double value) {
+            iAcceptIter[value < 0.0 ? 0 : value > 0.0 ? 2 : 1]++;
+        }
+        
+        protected void activateIfNeeded() {
+            if (!iActive) {
+                iProgress.setPhase("Simulated Annealing [" + sDF2.format(iTemperature) + "]...");
+                iActive = true;
+            }
+        }
+        
+        protected void incMoves(double value) {
+            iMoves ++;
+            iAbsValue += value * value;
+        }
+        
+        protected void reset() {
+            iActive = false;
+        }
+    }
+
+    @Override
+    public Context createAssignmentContext(Assignment<Exam, ExamPlacement> assignment) {
+        return new Context();
     }
 }

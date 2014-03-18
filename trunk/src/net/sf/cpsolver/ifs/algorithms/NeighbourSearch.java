@@ -13,6 +13,9 @@ import net.sf.cpsolver.ifs.algorithms.neighbourhoods.HillClimberSelection;
 import net.sf.cpsolver.ifs.algorithms.neighbourhoods.RandomMove;
 import net.sf.cpsolver.ifs.algorithms.neighbourhoods.RandomSwapMove;
 import net.sf.cpsolver.ifs.algorithms.neighbourhoods.SuggestionMove;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentContext;
+import net.sf.cpsolver.ifs.assignment.context.NeighbourSelectionWithContext;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.LazyNeighbour;
 import net.sf.cpsolver.ifs.model.Model;
@@ -53,15 +56,13 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  **/
-public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<V, T>> implements NeighbourSelection<V, T>, SolutionListener<V, T>, LazyNeighbourAcceptanceCriterion<V, T> {
-    protected Logger iLog;
+public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<V, T>> extends NeighbourSelectionWithContext<V, T, NeighbourSearch<V, T>.NeighbourSearchContext> implements LazyNeighbourAcceptanceCriterion<V, T>, SolutionListener<V, T> {
+    private Logger iLog;
     protected DecimalFormat iDF2 = new DecimalFormat("0.00");
     
-    protected long iT0 = -1;
-    protected int iIter = 0;
+    private Progress iProgress = null;
     protected String iPhase = null;
-    protected Progress iProgress = null;
-    
+
     private List<NeighbourSelector<V, T>> iNeighbours = null;
     private boolean iRandomSelection = false;
     private boolean iUpdatePoints = false;
@@ -92,6 +93,29 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
                 iLog.error("Unable to use " + neighbour + ": " + e.getMessage());
             }
         }
+    }
+    
+    /**
+     * Prints a message into the log
+     */
+    protected void info(String message) {
+        iProgress.debug("[" + Thread.currentThread().getName() + "] " + iPhase + "> " + message);
+    }
+    
+    /**
+     * Set search progress
+     * @param progress between 0 and 100
+     */
+    protected void setProgress(long progress) {
+        // iProgress.setProgress(progress);
+    }
+    
+    /**
+     * Set search progress phase
+     */
+    protected void setProgressPhase(String phase) {
+        iProgress.info("[" + Thread.currentThread().getName() + "] " + phase);
+        // iProgress.setPhase(phase);
     }
     
     /**
@@ -130,13 +154,12 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
 
     @Override
     public void init(Solver<V, T> solver) {
+        super.init(solver);
         iProgress = Progress.getInstance(solver.currentSolution().getModel());
-        iT0 = -1;
         solver.currentSolution().addSolutionListener(this);
-        solver.setUpdateProgress(false);
+        // solver.setUpdateProgress(false);
         for (NeighbourSelection<V, T> neighbour: iNeighbours)
             neighbour.init(solver);
-        solver.setUpdateProgress(false);
         iTotalBonus = 0;
         for (NeighbourSelector<V,T> s: iNeighbours) {
             s.init(solver);
@@ -180,66 +203,33 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
 
     @Override
     public Neighbour<V, T> selectNeighbour(Solution<V, T> solution) {
-        if (iT0 < 0) activate(solution);
-        while (canContinue(solution)) {
-            incIteration(solution);
+        NeighbourSearchContext context = getContext(solution.getAssignment());
+        context.activateIfNeeded(solution);
+        while (context.canContinue(solution)) {
+            context.incIteration(solution);
             Neighbour<V,T> n = generateMove(solution);
-            if (n != null && accept(solution, n))
+            if (n != null && accept(context, solution, n))
                 return n;
         }
-        deactivate(solution);
+        context.deactivate(solution);
         return null;
     }
     
     /**
-     * Return false if the search is to be stopped. Null neighbour is returned when this method returns false.
-     */
-    protected boolean canContinue(Solution<V, T> solution) {
-        return true;
-    }
-    
-    /**
-     * Increment iteration counters etc.
-     */
-    protected void incIteration(Solution<V, T> solution) {
-        iIter++;
-    }
-
-    /**
-     * Running time in milliseconds (since the last call of activate)
-     */
-    protected long getTimeMillis() { return JProf.currentTimeMillis() - iT0; }
-    
-    /**
      * True if the generated move is to be accepted.
      */
-    protected boolean accept(Solution<V, T> solution, Neighbour<V, T> neighbour) {
+    protected boolean accept(NeighbourSearchContext context, Solution<V, T> solution, Neighbour<V, T> neighbour) {
         if (neighbour instanceof LazyNeighbour) {
             ((LazyNeighbour<V, T>)neighbour).setAcceptanceCriterion(this);
             return true;
         }
-        return accept(solution.getModel(), neighbour, neighbour.value(), false);
+        return context.accept(solution.getAssignment(), solution.getModel(), neighbour, neighbour.value(solution.getAssignment()), false);
     }
     
     /** Accept lazy neighbour -- calling the acceptance criterion with lazy = true. */
     @Override
-    public boolean accept(LazyNeighbour<V, T> neighbour, double value) {
-        return accept(neighbour.getModel(), neighbour, value, true);
-    }
-
-    /** Acceptance criterion. If lazy, current assignment already contains the given neighbour.  */
-    protected abstract boolean accept(Model<V, T> model, Neighbour<V, T> neighbour, double value, boolean lazy);
-    
-    /** Called just before the neighbourhood search is called for the first time. */
-    protected void activate(Solution<V, T> solution) {
-        iT0 = JProf.currentTimeMillis();
-        iIter = 0;
-        iProgress.setPhase(iPhase + "...");
-    }
-    
-    /** Called when the search cannot continue, just before a null neighbour is returned */
-    protected void deactivate(Solution<V, T> solution) {
-        iT0 = -1;
+    public boolean accept(Assignment<V, T> assignment, LazyNeighbour<V, T> neighbour, double value) {
+        return getContext(assignment).accept(assignment, neighbour.getModel(), neighbour, value, true);
     }
 
     /**
@@ -249,26 +239,101 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
     
     @Override
     public void bestSaved(Solution<V, T> solution) {
+        getContext(solution.getAssignment()).bestSaved(solution);
     }
 
     @Override
     public void solutionUpdated(Solution<V, T> solution) {
+        getContext(solution.getAssignment()).solutionUpdated(solution);
     }
 
     @Override
     public void getInfo(Solution<V, T> solution, Map<String, String> info) {
+        getContext(solution.getAssignment()).getInfo(solution, info);
     }
 
     @Override
     public void getInfo(Solution<V, T> solution, Map<String, String> info, Collection<V> variables) {
+        getContext(solution.getAssignment()).getInfo(solution, info, variables);
     }
 
     @Override
     public void bestCleared(Solution<V, T> solution) {
+        getContext(solution.getAssignment()).bestCleared(solution);
     }
 
     @Override
     public void bestRestored(Solution<V, T> solution) {
+        getContext(solution.getAssignment()).bestRestored(solution);
     }
+    
+    /**
+     * Search context
+     */
+    public abstract class NeighbourSearchContext implements AssignmentContext, SolutionListener<V, T> {
+        protected long iT0 = -1;
+        protected int iIter = 0;
 
+        /** Called just before the neighbourhood search is called for the first time. */
+        protected void activate(Solution<V, T> solution) {
+            iT0 = JProf.currentTimeMillis();
+            iIter = 0;
+            setProgressPhase(iPhase + "...");
+        }
+        
+        private void activateIfNeeded(Solution<V, T> solution) {
+            if (iT0 < 0) activate(solution);
+        }
+        
+        /** Called when the search cannot continue, just before a null neighbour is returned */
+        protected void deactivate(Solution<V, T> solution) {
+            iT0 = -1;
+        }
+        
+        /**
+         * Increment iteration counters etc.
+         */
+        protected void incIteration(Solution<V, T> solution) {
+            iIter++;
+        }
+
+        /**
+         * Running time in milliseconds (since the last call of activate)
+         */
+        protected long getTimeMillis() { return JProf.currentTimeMillis() - iT0; }
+
+        /**
+         * Return false if the search is to be stopped. Null neighbour is returned when this method returns false.
+         */
+        protected boolean canContinue(Solution<V, T> solution) {
+            return true;
+        }
+        
+        /** Acceptance criterion. If lazy, current assignment already contains the given neighbour.  */
+        protected abstract boolean accept(Assignment<V, T> assignment, Model<V, T> model, Neighbour<V, T> neighbour, double value, boolean lazy);
+        
+        @Override
+        public void bestSaved(Solution<V, T> solution) {
+        }
+
+        @Override
+        public void solutionUpdated(Solution<V, T> solution) {
+        }
+
+        @Override
+        public void getInfo(Solution<V, T> solution, Map<String, String> info) {
+        }
+
+        @Override
+        public void getInfo(Solution<V, T> solution, Map<String, String> info, Collection<V> variables) {
+        }
+
+        @Override
+        public void bestCleared(Solution<V, T> solution) {
+        }
+
+        @Override
+        public void bestRestored(Solution<V, T> solution) {
+        }
+    }
 }

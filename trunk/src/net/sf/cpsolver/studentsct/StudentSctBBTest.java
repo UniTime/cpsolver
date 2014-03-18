@@ -6,6 +6,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
@@ -82,12 +84,11 @@ public class StudentSctBBTest extends Model<Request, Enrollment> {
      */
     public Solution<Request, Enrollment> getSolution() {
         if (iSolution == null) {
-            iSolution = new Solution<Request, Enrollment>(this);
-            BranchBoundSelection.Selection selection = new BranchBoundSelection(new DataProperties())
-                    .getSelection(getStudent());
+            iSolution = new Solution<Request, Enrollment>(this, new DefaultSingleAssignment<Request, Enrollment>());
+            BranchBoundSelection.Selection selection = new BranchBoundSelection(new DataProperties()).getSelection(iSolution.getAssignment(), getStudent());
             Neighbour<Request, Enrollment> neighbour = selection.select();
             if (neighbour != null)
-                neighbour.assign(0);
+                neighbour.assign(iSolution.getAssignment(), 0);
             iTime = selection.getTime();
             iTimeoutReached = selection.isTimeoutReached();
         }
@@ -99,69 +100,52 @@ public class StudentSctBBTest extends Model<Request, Enrollment> {
      * of the given student
      */
     public List<Message> getMessages() {
+        Assignment<Request, Enrollment> assignment = getSolution().getAssignment();
         List<Message> ret = new ArrayList<Message>();
         ret.add(new Message(Message.sMsgLevelInfo, null, "<li>Solution found in " + iTime + " ms."));
         if (iTimeoutReached)
             ret.add(new Message(Message.sMsgLevelInfo, null,
                     "<li>Time out reached, solution optimality can not be guaranteed."));
         for (Request request : getStudent().getRequests()) {
-            if (!request.isAlternative() && request.getAssignment() == null) {
-                ret
-                        .add(new Message(Message.sMsgLevelWarn, request,
-                                "<li>Unable to enroll to "
-                                        + request
-                                        + ", "
-                                        + (request instanceof CourseRequest ? ((CourseRequest) request).getCourses()
-                                                .size() == 1 ? "course is" : "courses are" : "time is")
-                                        + " not available."));
-                Collection<Enrollment> values = (request instanceof CourseRequest ? (Collection<Enrollment>) ((CourseRequest) request)
-                        .getAvaiableEnrollmentsSkipSameTime()
-                        : request.computeEnrollments());
+            if (!request.isAlternative() && assignment.getValue(request) == null) {
+                ret.add(new Message(Message.sMsgLevelWarn, request,
+                        "<li>Unable to enroll to " + request + ", " + (request instanceof CourseRequest ? ((CourseRequest) request).getCourses().size() == 1 ? "course is" : "courses are" : "time is") + " not available."));
+                Collection<Enrollment> values = (request instanceof CourseRequest ? (Collection<Enrollment>) ((CourseRequest) request).getAvaiableEnrollmentsSkipSameTime(assignment) : request.computeEnrollments(assignment));
                 for (Iterator<Enrollment> f = values.iterator(); f.hasNext();) {
                     Enrollment enrollment = f.next();
-                    Set<Enrollment> conf = conflictValues(enrollment);
+                    Set<Enrollment> conf = conflictValues(assignment, enrollment);
                     if (conf != null && !conf.isEmpty()) {
                         Enrollment conflict = conf.iterator().next();
                         if (conflict.equals(enrollment))
-                            ret.add(new Message(Message.sMsgLevelInfo, request, "<ul>Assignment of "
-                                    + enrollment.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")
-                                    + "<br> is not available."));
+                            ret.add(new Message(Message.sMsgLevelInfo, request, "<ul>Assignment of " + enrollment.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;") + "<br> is not available."));
                         else
-                            ret.add(new Message(Message.sMsgLevelInfo, request, "<ul>Assignment of "
-                                    + enrollment.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")
-                                    + "<br> conflicts with "
-                                    + conflict.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;") + "</ul>"));
+                            ret.add(new Message(Message.sMsgLevelInfo, request, "<ul>Assignment of " + enrollment.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;") +
+                                    "<br> conflicts with " + conflict.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;") + "</ul>"));
                     }
                 }
             }
-            if (request instanceof CourseRequest && request.getAssignment() != null) {
+            if (request instanceof CourseRequest && assignment.getValue(request) != null) {
                 CourseRequest courseRequest = (CourseRequest) request;
-                Enrollment enrollment = request.getAssignment();
-                List<Enrollment> selectedEnrollments = courseRequest.getSelectedEnrollments(false);
+                Enrollment enrollment = assignment.getValue(request);
+                List<Enrollment> selectedEnrollments = courseRequest.getSelectedEnrollments(assignment, false);
                 if (selectedEnrollments != null && !selectedEnrollments.isEmpty()
                         && !selectedEnrollments.contains(enrollment)) {
                     Course course = (courseRequest.getSelectedChoices().iterator().next()).getOffering().getCourse(
                             getStudent());
                     Enrollment selected = selectedEnrollments.get(0);
-                    Set<Enrollment> conf = conflictValues(selected);
+                    Set<Enrollment> conf = conflictValues(assignment, selected);
                     if (conf != null && !conf.isEmpty()) {
                         ret.add(new Message(Message.sMsgLevelWarn, request,
-                                "<li>Unable to enroll selected enrollment for " + course.getName() + ", seleted "
-                                        + (courseRequest.getSelectedChoices().size() == 1 ? "class is" : "classes are")
-                                        + " conflicting with other choices."));
+                                "<li>Unable to enroll selected enrollment for " + course.getName() + ", seleted " + (courseRequest.getSelectedChoices().size() == 1 ? "class is" : "classes are") +
+                                " conflicting with other choices."));
                         Enrollment conflict = conf.iterator().next();
                         if (conflict.equals(selected))
-                            ret.add(new Message(Message.sMsgLevelInfo, request, "<ul>Assignment of "
-                                    + selected.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")
-                                    + "<br> is not available."));
+                            ret.add(new Message(Message.sMsgLevelInfo, request, "<ul>Assignment of " + selected.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;") + "<br> is not available."));
                         else
-                            ret.add(new Message(Message.sMsgLevelInfo, request, "<ul>Assignment of "
-                                    + selected.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;")
-                                    + "<br> conflicts with "
-                                    + conflict.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;") + "</ul>"));
+                            ret.add(new Message(Message.sMsgLevelInfo, request, "<ul>Assignment of " + selected.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;") +
+                                    "<br> conflicts with " + conflict.getName().replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;") + "</ul>"));
                     } else {
-                        ret.add(new Message(Message.sMsgLevelWarn, request,
-                                "<li>Unable to enroll selected enrollment for " + course.getName() + "."));
+                        ret.add(new Message(Message.sMsgLevelWarn, request, "<li>Unable to enroll selected enrollment for " + course.getName() + "."));
                     }
                 }
             }

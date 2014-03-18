@@ -6,6 +6,7 @@ import java.util.Set;
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamStudent;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 
 /**
  * Number of direct student conflicts caused by the fact that a student is
@@ -39,7 +40,7 @@ import net.sf.cpsolver.exam.model.ExamStudent;
 public class StudentNotAvailableConflicts extends StudentDirectConflicts {
 
     @Override
-    public double getValue(ExamPlacement value, Set<ExamPlacement> conflicts) {
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value, Set<ExamPlacement> conflicts) {
         Exam exam = value.variable();
         int penalty = 0;
         for (ExamStudent s : exam.getStudents()) {
@@ -55,12 +56,12 @@ public class StudentNotAvailableConflicts extends StudentDirectConflicts {
     }
     
     @Override
-    public void getInfo(Map<String, String> info) {
+    public void getInfo(Assignment<Exam, ExamPlacement> assignment, Map<String, String> info) {
     }
 
     @Override
-    public String toString() {
-        return (getValue() <= 0.0 ? "" : "NA:" + sDoubleFormat.format(getValue()));
+    public String toString(Assignment<Exam, ExamPlacement> assignment) {
+        return (getValue(assignment) <= 0.0 ? "" : "NA:" + sDoubleFormat.format(getValue(assignment)));
     }
 
 }

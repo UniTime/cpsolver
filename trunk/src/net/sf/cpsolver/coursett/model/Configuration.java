@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import net.sf.cpsolver.coursett.constraint.JenrlConstraint;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 
 /**
  * Configuration. Each course can have multiple configurations. A student needs
@@ -99,17 +100,18 @@ public class Configuration {
         return students;
     }
 
-    public boolean hasConflict(Student student) {
+    public boolean hasConflict(Assignment<Lecture, Placement> assignment, Student student) {
         for (Lecture lecture : student.getLectures()) {
-            if (lecture.getAssignment() == null || !this.equals(lecture.getConfiguration()))
+            Placement placement = assignment.getValue(lecture);
+            if (placement == null || !this.equals(lecture.getConfiguration()))
                 continue;
-            if (student.countConflictPlacements(lecture.getAssignment()) > 0)
+            if (student.countConflictPlacements(placement) > 0)
                 return true;
             for (Lecture x : student.getLectures()) {
-                if (x.getAssignment() == null || x.equals(lecture))
+                if (assignment.getValue(x) == null || x.equals(lecture))
                     continue;
                 JenrlConstraint jenrl = lecture.jenrlConstraint(x);
-                if (jenrl != null && jenrl.isInConflict())
+                if (jenrl != null && jenrl.isInConflict(assignment))
                     return true;
             }
         }

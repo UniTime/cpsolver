@@ -36,6 +36,11 @@ public class CSPValue extends Value<CSPVariable, CSPValue> {
     public CSPValue(CSPVariable variable, int value) {
         super(variable, value);
     }
+    
+    @Override
+    public double toDouble() {
+        return iValue;
+    }
 
     @Override
     public String getName() {

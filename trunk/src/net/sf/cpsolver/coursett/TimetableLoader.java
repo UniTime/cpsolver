@@ -2,7 +2,10 @@ package net.sf.cpsolver.coursett;
 
 import org.apache.log4j.Logger;
 
+import net.sf.cpsolver.coursett.model.Lecture;
+import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimetableModel;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.Callback;
 
 /**
@@ -30,6 +33,7 @@ import net.sf.cpsolver.ifs.util.Callback;
 
 public abstract class TimetableLoader implements Runnable {
     private TimetableModel iModel = null;
+    private Assignment<Lecture, Placement> iAssignment = null;
     private Callback iCallback = null;
 
     /**
@@ -38,8 +42,9 @@ public abstract class TimetableLoader implements Runnable {
      * @param model
      *            an empty instance of timetable model
      */
-    public TimetableLoader(TimetableModel model) {
+    public TimetableLoader(TimetableModel model, Assignment<Lecture, Placement> assignment) {
         iModel = model;
+        iAssignment = assignment;
     }
 
     /**
@@ -49,6 +54,14 @@ public abstract class TimetableLoader implements Runnable {
      */
     protected TimetableModel getModel() {
         return iModel;
+    }
+    
+    /**
+     * Returns provided assignment
+     * @return provided assignment
+     */
+    protected Assignment<Lecture, Placement> getAssignment() {
+        return iAssignment;
     }
 
     /**

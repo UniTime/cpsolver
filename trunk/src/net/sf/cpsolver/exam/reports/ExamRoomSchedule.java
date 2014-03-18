@@ -10,6 +10,7 @@ import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPeriod;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamRoom;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.CSVFile.CSVField;
 
@@ -54,7 +55,7 @@ public class ExamRoomSchedule {
         iModel = model;
     }
 
-    public CSVFile report() {
+    public CSVFile report(Assignment<Exam, ExamPlacement> assignment) {
         CSVFile csv = new CSVFile();
         csv.setHeader(new CSVField[] { new CSVField("Room"), new CSVField("Cap"), new CSVField("AltCap"),
                 new CSVField("Period"), new CSVField("Date"), new CSVField("Time"), new CSVField("Exam"),
@@ -76,7 +77,7 @@ public class ExamRoomSchedule {
             boolean first = true;
             int day = -1;
             for (ExamPeriod period : iModel.getPeriods()) {
-                for (ExamPlacement placement: room.getPlacements(period)) {
+                for (ExamPlacement placement: room.getPlacements(assignment, period)) {
                     Exam exam = placement.variable();
                     csv.addLine(new CSVField[] { new CSVField(first ? room.getName() : ""),
                             new CSVField(first ? "" + room.getSize() : ""),

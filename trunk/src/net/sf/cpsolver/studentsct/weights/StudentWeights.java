@@ -2,6 +2,7 @@ package net.sf.cpsolver.studentsct.weights;
 
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.solution.SolutionComparator;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
 import net.sf.cpsolver.studentsct.extension.TimeOverlapsCounter;
@@ -44,7 +45,7 @@ public interface StudentWeights extends SolutionComparator<Request, Enrollment> 
      * @param enrollment given enrollment
      * @return weight (higher weight means better value)
      */
-    public double getWeight(Enrollment enrollment);
+    public double getWeight(Assignment<Request, Enrollment> assignment, Enrollment enrollment);
     
     /**
      * Return weight of the given enrollment 
@@ -53,17 +54,17 @@ public interface StudentWeights extends SolutionComparator<Request, Enrollment> 
      * @param timeOverlappingConflicts time overlapping conflicts
      * @return weight (higher weight means better value)
      */
-    public double getWeight(Enrollment enrollment, Set<DistanceConflict.Conflict> distanceConflicts, Set<TimeOverlapsCounter.Conflict> timeOverlappingConflicts);
+    public double getWeight(Assignment<Request, Enrollment> assignment, Enrollment enrollment, Set<DistanceConflict.Conflict> distanceConflicts, Set<TimeOverlapsCounter.Conflict> timeOverlappingConflicts);
     
     /**
      * Return weight of a distance conflict
      */
-    public double getDistanceConflictWeight(DistanceConflict.Conflict distanceConflict);
+    public double getDistanceConflictWeight(Assignment<Request, Enrollment> assignment, DistanceConflict.Conflict distanceConflict);
     
     /**
      * Return weight of a time overlapping conflict
      */
-    public double getTimeOverlapConflictWeight(Enrollment enrollment, TimeOverlapsCounter.Conflict timeOverlap);
+    public double getTimeOverlapConflictWeight(Assignment<Request, Enrollment> assignment, Enrollment enrollment, TimeOverlapsCounter.Conflict timeOverlap);
     
     /**
      * Return true if free time requests allow overlaps

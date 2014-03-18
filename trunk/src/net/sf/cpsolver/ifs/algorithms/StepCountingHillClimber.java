@@ -1,5 +1,6 @@
 package net.sf.cpsolver.ifs.algorithms;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.model.Value;
@@ -39,8 +40,6 @@ public class StepCountingHillClimber<V extends Variable<V, T>, T extends Value<V
         ACCEPTED,
         IMPROVING
     }
-    protected Double iBound = null;
-    protected int iCounter = 0;
     protected int iCounterLimit = 100;
     protected Mode iCounterMode = Mode.ACCEPTED;
 
@@ -51,63 +50,73 @@ public class StepCountingHillClimber<V extends Variable<V, T>, T extends Value<V
      * <li>HillClimber.CounterMode ... counter mode (all: count all moves, accepted: count accepted moves, improving: count improving moves)
      * </ul>
      */
-    public StepCountingHillClimber(DataProperties properties, String name) {
+    public StepCountingHillClimber(DataProperties properties) {
         super(properties);
         iSetHCMode = false;
     }
-    
-    /**
-     * Reset the bound and the steps counter.
-     */
+
     @Override
-    public void activate(Solution<V, T> solution) {
-        super.activate(solution);
-        iBound = solution.getModel().getTotalValue();
-        iCounter = 0;
+    public NeighbourSearchContext createAssignmentContext(Assignment<V, T> assignment) {
+        return new StepCountingHillClimberContext();
     }
     
-    /**
-     * Increase iteration number, also update bound when the given number of steps is reached.
-     */
-    @Override
-    public void incIteration(Solution<V, T> solution) {
-        iIter++;
-        if (iIter % 10000 == 0) {
-            iLog.info("Iter=" + (iIter / 1000)+"k, NonImpIter=" + iDF2.format((iIter-iLastImprovingIter)/1000.0)+"k, Speed="+iDF2.format(1000.0*iIter/getTimeMillis())+" it/s, Bound=" + iDF2.format(iBound));
-            logNeibourStatus();
-        }
-        iProgress.setProgress(Math.round(100.0 * (iIter - iLastImprovingIter) / iMaxIdleIters));
-        if (iCounter >= iCounterLimit) {
-            iBound = solution.getModel().getTotalValue(); 
+    public class StepCountingHillClimberContext extends HillClimberContext {
+        protected Double iBound = null;
+        protected int iCounter = 0;
+
+        /**
+         * Reset the bound and the steps counter.
+         */
+        @Override
+        public void activate(Solution<V, T> solution) {
+            super.activate(solution);
+            iBound = solution.getModel().getTotalValue(solution.getAssignment());
             iCounter = 0;
         }
-    }
-
-    /**
-     * Accept any move that does not worsen the solution (value <= 0) or that is below the bound. Also increase the step counter.
-     */
-    @Override
-    protected boolean accept(Model<V,T> model, Neighbour<V, T> neighbour, double value, boolean lazy) {
-        boolean accept = (value <= 0.0 || (lazy ? model.getTotalValue() : value + model.getTotalValue()) < iBound);
-        switch (iCounterMode) {
-            case ALL:
-                iCounter ++;
-                break;
-            case ACCEPTED:
-                if (accept) iCounter ++;
-                break;
-            case IMPROVING:
-                if (value < 0) iCounter ++;
-                break;
+        
+        /**
+         * Increase iteration number, also update bound when the given number of steps is reached.
+         */
+        @Override
+        public void incIteration(Solution<V, T> solution) {
+            iIter++;
+            if (iIter % 10000 == 0) {
+                info("Iter=" + (iIter / 1000)+"k, NonImpIter=" + iDF2.format((iIter-iLastImprovingIter)/1000.0)+"k, Speed="+iDF2.format(1000.0*iIter/getTimeMillis())+" it/s, Bound=" + iDF2.format(iBound));
+                logNeibourStatus();
+            }
+            // iProgress.setProgress(Math.round(100.0 * (iIter - iLastImprovingIter) / iMaxIdleIters));
+            if (iCounter >= iCounterLimit) {
+                iBound = solution.getModel().getTotalValue(solution.getAssignment()); 
+                iCounter = 0;
+            }
         }
-        return accept;
-    }
-    
-    /**
-     * Stop the search when the number of idle iterations is reached and the bound is no longer decreasing
-     */
-    @Override
-    protected boolean canContinue(Solution<V, T> solution) {
-        return super.canContinue(solution) || iCounter < iCounterLimit || solution.getModel().getTotalValue() < iBound;
+
+        /**
+         * Accept any move that does not worsen the solution (value <= 0) or that is below the bound. Also increase the step counter.
+         */
+        @Override
+        protected boolean accept(Assignment<V, T> assignment, Model<V,T> model, Neighbour<V, T> neighbour, double value, boolean lazy) {
+            boolean accept = (value <= 0.0 || (lazy ? model.getTotalValue(assignment) : value + model.getTotalValue(assignment)) < iBound);
+            switch (iCounterMode) {
+                case ALL:
+                    iCounter ++;
+                    break;
+                case ACCEPTED:
+                    if (accept) iCounter ++;
+                    break;
+                case IMPROVING:
+                    if (value < 0) iCounter ++;
+                    break;
+            }
+            return accept;
+        }
+        
+        /**
+         * Stop the search when the number of idle iterations is reached and the bound is no longer decreasing
+         */
+        @Override
+        protected boolean canContinue(Solution<V, T> solution) {
+            return super.canContinue(solution) || iCounter < iCounterLimit || solution.getModel().getTotalValue(solution.getAssignment()) < iBound;
+        }
     }
 }

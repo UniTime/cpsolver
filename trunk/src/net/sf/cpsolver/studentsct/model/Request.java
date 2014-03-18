@@ -2,7 +2,11 @@ package net.sf.cpsolver.studentsct.model;
 
 import java.util.List;
 
-import net.sf.cpsolver.ifs.model.Variable;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.EmptyAssignment;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentContext;
+import net.sf.cpsolver.ifs.assignment.context.VariableWithContext;
+import net.sf.cpsolver.studentsct.StudentSectioningModel;
 
 /**
  * Representation of a request of a student for a course(s) or a free time. This
@@ -36,7 +40,7 @@ import net.sf.cpsolver.ifs.model.Variable;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public abstract class Request extends Variable<Request, Enrollment> {
+public abstract class Request extends VariableWithContext<Request, Enrollment, Request.RequestContext> {
     private long iId = -1;
     private int iPriority = 0;
     private boolean iAlternative = false;
@@ -113,18 +117,18 @@ public abstract class Request extends Variable<Request, Enrollment> {
     }
 
     /** Compute available enrollments */
-    public abstract List<Enrollment> computeEnrollments();
+    public abstract List<Enrollment> computeEnrollments(Assignment<Request, Enrollment> assignment);
 
     /**
      * Domain of this variable -- list of available enrollments. Method
-     * {@link Request#computeEnrollments()} is used.
+     * {@link Request#computeEnrollments(Assignment)} is used.
      */
     @Override
     public List<Enrollment> values() {
         List<Enrollment> values = super.values();
         if (values != null)
             return values;
-        values = computeEnrollments();
+        values = computeEnrollments(getModel() == null ? new EmptyAssignment<Request, Enrollment>() : getModel().getEmptyAssignment());
         if (sCacheValues)
             setValues(values);
         return values;
@@ -132,43 +136,40 @@ public abstract class Request extends Variable<Request, Enrollment> {
 
     /**
      * Assign given enrollment to this request. This method also calls
-     * {@link Assignment#assigned(Enrollment)} on for all the assignments of the
+     * {@link SctAssignment#assigned(Assignment, Enrollment)} on for all the assignments of the
      * enrollment.
      */
     @Override
-    public void assign(long iteration, Enrollment enrollment) {
-        super.assign(iteration, enrollment);
-        for (Assignment a : enrollment.getAssignments()) {
-            a.assigned(enrollment);
+    public void variableAssigned(Assignment<Request, Enrollment> assignment, long iteration, Enrollment enrollment) {
+        super.variableAssigned(assignment, iteration, enrollment);
+        for (SctAssignment a : enrollment.getAssignments()) {
+            a.assigned(assignment, enrollment);
         }
         if (enrollment.getConfig() != null)
-            enrollment.getConfig().assigned(enrollment);
+            enrollment.getConfig().getContext(assignment).assigned(assignment, enrollment);
         if (enrollment.getCourse() != null)
-            enrollment.getCourse().assigned(enrollment);
+            enrollment.getCourse().assigned(assignment, enrollment);
         if (enrollment.getReservation() != null)
-            enrollment.getReservation().assigned(enrollment);
+            enrollment.getReservation().getContext(assignment).assigned(assignment, enrollment);
     }
 
     /**
      * Unassign currently assigned enrollment from this request. This method
-     * also calls {@link Assignment#unassigned(Enrollment)} on for all the
+     * also calls {@link SctAssignment#unassigned(Assignment, Enrollment)} on for all the
      * assignments of the current enrollment.
      */
     @Override
-    public void unassign(long iteration) {
-        if (getAssignment() != null) {
-            Enrollment enrollment = getAssignment();
-            for (Assignment a : enrollment.getAssignments()) {
-                a.unassigned(enrollment);
-            }
-            if (enrollment.getConfig() != null)
-                enrollment.getConfig().unassigned(enrollment);
-            if (enrollment.getCourse() != null)
-                enrollment.getCourse().unassigned(enrollment);
-            if (enrollment.getReservation() != null)
-                enrollment.getReservation().unassigned(enrollment);
+    public void variableUnassigned(Assignment<Request, Enrollment> assignment, long iteration, Enrollment enrollment) {
+        super.variableUnassigned(assignment, iteration, enrollment);
+        for (SctAssignment a : enrollment.getAssignments()) {
+            a.unassigned(assignment, enrollment);
         }
-        super.unassign(iteration);
+        if (enrollment.getConfig() != null)
+            enrollment.getConfig().getContext(assignment).unassigned(assignment, enrollment);
+        if (enrollment.getCourse() != null)
+            enrollment.getCourse().unassigned(assignment, enrollment);
+        if (enrollment.getReservation() != null)
+            enrollment.getReservation().getContext(assignment).unassigned(assignment, enrollment);
     }
 
     /** Get bound, i.e., the value of the best possible enrollment */
@@ -191,8 +192,8 @@ public abstract class Request extends Variable<Request, Enrollment> {
     }
 
     /** Return true if request is assigned. */
-    public boolean isAssigned() {
-        return getAssignment() != null;
+    public boolean isAssigned(Assignment<Request, Enrollment> assignment) {
+        return assignment.getValue(this) != null;
     }
     
     @Override
@@ -204,6 +205,25 @@ public abstract class Request extends Variable<Request, Enrollment> {
     public boolean equals(Object o) {
         if (o == null || !(o instanceof Request)) return false;
         return getId() == ((Request)o).getId() && getStudent().getId() == ((Request)o).getStudent().getId();
+    }
+    
+    public class RequestContext implements AssignmentContext {
+        private Double iWeight = null;
+        
+        public RequestContext(Assignment<Request, Enrollment> assignment) {
+            Enrollment enrollment = assignment.getValue(Request.this);
+            if (enrollment != null)
+                setLastWeight(enrollment.getRequest().getWeight() * ((StudentSectioningModel)getModel()).getStudentWeights().getWeight(assignment, enrollment));
+        }
+        
+        public Double getLastWeight() { return iWeight; }
+        public void setLastWeight(Double weight) { iWeight = weight; }
+    }
+    
+
+    @Override
+    public RequestContext createAssignmentContext(Assignment<Request, Enrollment> assignment) {
+        return new RequestContext(assignment);
     }
 
 }

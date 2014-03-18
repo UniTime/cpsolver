@@ -1,5 +1,7 @@
 package net.sf.cpsolver.ifs.model;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
+
 /**
  * Interface of a constraint that weakens with the time.
  * 
@@ -28,12 +30,12 @@ public interface WeakeningConstraint<V extends Variable<V, T>, T extends Value<V
      * Weaken the constraint. This method is called if the constraint
      * participates in an unassigned of a variable.
      */
-    public void weaken();
+    public void weaken(Assignment<V, T> assignment);
     
     
     /**
      * Weaken the constraint enough so that it can assign the given
      * value.
      */
-    public void weaken(T value);
+    public void weaken(Assignment<V, T> assignment, T value);
 }

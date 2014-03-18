@@ -22,9 +22,11 @@ import net.sf.cpsolver.coursett.constraint.RoomConstraint;
 import net.sf.cpsolver.coursett.constraint.SpreadConstraint;
 import net.sf.cpsolver.coursett.criteria.StudentCommittedConflict;
 import net.sf.cpsolver.coursett.criteria.StudentConflict;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentContext;
+import net.sf.cpsolver.ifs.assignment.context.VariableWithContext;
 import net.sf.cpsolver.ifs.constant.ConstantVariable;
 import net.sf.cpsolver.ifs.model.Constraint;
-import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.model.WeakeningConstraint;
 import net.sf.cpsolver.ifs.util.DistanceMetric;
 
@@ -51,7 +53,7 @@ import net.sf.cpsolver.ifs.util.DistanceMetric;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class Lecture extends Variable<Lecture, Placement> implements ConstantVariable {
+public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.LectureContext> implements ConstantVariable<Placement> {
     private Long iClassId;
     private Long iSolverGroupId;
     private Long iSchedulingSubpartId;
@@ -82,7 +84,6 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
     private java.util.List<Lecture> iSameSubpartLectures = null;
     private Configuration iParentConfiguration = null;
 
-    private Set<JenrlConstraint> iActiveJenrls = new HashSet<JenrlConstraint>();
     private List<JenrlConstraint> iJenrlConstraints = new ArrayList<JenrlConstraint>();
     private HashMap<Lecture, JenrlConstraint> iJenrlConstraintsHash = new HashMap<Lecture, JenrlConstraint>();
     private HashMap<Placement, Integer> iCommitedConflicts = new HashMap<Placement, Integer>();
@@ -145,24 +146,24 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
      * Add active jenrl constraint (active mean that there is at least one
      * student between its classes)
      */
-    public void addActiveJenrl(JenrlConstraint constr) {
-        iActiveJenrls.add(constr);
+    public void addActiveJenrl(Assignment<Lecture, Placement> assignment, JenrlConstraint constr) {
+        getContext(assignment).addActiveJenrl(constr);
     }
 
     /**
      * Active jenrl constraints (active mean that there is at least one student
      * between its classes)
      */
-    public Set<JenrlConstraint> activeJenrls() {
-        return iActiveJenrls;
+    public Set<JenrlConstraint> activeJenrls(Assignment<Lecture, Placement> assignment) {
+        return getContext(assignment).activeJenrls();
     }
 
     /**
      * Remove active jenrl constraint (active mean that there is at least one
      * student between its classes)
      */
-    public void removeActiveJenrl(JenrlConstraint constr) {
-        iActiveJenrls.remove(constr);
+    public void removeActiveJenrl(Assignment<Lecture, Placement> assignment, JenrlConstraint constr) {
+        getContext(assignment).removeActiveJenrl(constr);
     }
 
     /** Class id */
@@ -219,20 +220,21 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
     }
 
     /** Add an enrolled student */
-    public void addStudent(Student student) {
+    public void addStudent(Assignment<Lecture, Placement> assignment, Student student) {
         if (!iStudents.add(student))
             return;
-        if (getAssignment() != null && getModel() != null)
-            getModel().getCriterion(StudentCommittedConflict.class).inc(student.countConflictPlacements(getAssignment()));
+        Placement value = (assignment == null ? null : assignment.getValue(this));
+        if (value != null && getModel() != null)
+            getModel().getCriterion(StudentCommittedConflict.class).inc(assignment, student.countConflictPlacements(value));
         iCommitedConflicts.clear();
     }
 
-    public void removeStudent(Student student) {
+    public void removeStudent(Assignment<Lecture, Placement> assignment, Student student) {
         if (!iStudents.remove(student))
             return;
-        if (getAssignment() != null && getModel() != null)
-            if (getAssignment() != null && getModel() != null)
-                getModel().getCriterion(StudentCommittedConflict.class).inc(-student.countConflictPlacements(getAssignment()));
+        Placement value = (assignment == null ? null : assignment.getValue(this));
+        if (value != null && getModel() != null)
+            getModel().getCriterion(StudentCommittedConflict.class).inc(assignment, -student.countConflictPlacements(value));
         iCommitedConflicts.clear();
     }
 
@@ -258,14 +260,14 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
     }
 
     /** List of students of this class in conflict with the given assignment */
-    public Set<Student> conflictStudents(Placement value) {
+    public Set<Student> conflictStudents(Assignment<Lecture, Placement> assignment, Placement value) {
         if (value == null)
             return new HashSet<Student>();
-        if (value.equals(getAssignment()))
-            return conflictStudents();
+        if (value.equals(assignment.getValue(this)))
+            return conflictStudents(assignment);
         Set<Student> ret = new HashSet<Student>();
         for (JenrlConstraint jenrl : jenrlConstraints()) {
-            if (jenrl.jenrl(this, value) > 0)
+            if (jenrl.jenrl(assignment, this, value) > 0)
                 ret.addAll(sameStudents(jenrl.another(this)));
         }
         return ret;
@@ -275,14 +277,14 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
      * List of students of this class which are in conflict with any other
      * assignment
      */
-    public Set<Student> conflictStudents() {
+    public Set<Student> conflictStudents(Assignment<Lecture, Placement> assignment) {
         Set<Student> ret = new HashSet<Student>();
-        if (getAssignment() == null)
+        Placement placement = assignment.getValue(this);
+        if (placement == null)
             return ret;
-        for (JenrlConstraint jenrl : activeJenrls()) {
+        for (JenrlConstraint jenrl : activeJenrls(assignment)) {
             ret.addAll(sameStudents(jenrl.another(this)));
         }
-        Placement placement = getAssignment();
         for (Student student : students()) {
             if (student.countConflictPlacements(placement) > 0)
                 ret.add(student);
@@ -294,11 +296,11 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
      * Lectures different from this one, where it is student conflict of the
      * given student between this and the lecture
      */
-    public List<Lecture> conflictLectures(Student student) {
+    public List<Lecture> conflictLectures(Assignment<Lecture, Placement> assignment, Student student) {
         List<Lecture> ret = new ArrayList<Lecture>();
-        if (getAssignment() == null)
+        if (assignment.getValue(this) == null)
             return ret;
-        for (JenrlConstraint jenrl : activeJenrls()) {
+        for (JenrlConstraint jenrl : activeJenrls(assignment)) {
             Lecture lect = jenrl.another(this);
             if (lect.students().contains(student))
                 ret.add(lect);
@@ -307,11 +309,11 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
     }
 
     /** True if this lecture is in a student conflict with the given student */
-    public int isInConflict(Student student) {
-        if (getAssignment() == null)
+    public int isInConflict(Assignment<Lecture, Placement> assignment, Student student) {
+        if (assignment.getValue(this) == null)
             return 0;
         int ret = 0;
-        for (JenrlConstraint jenrl : activeJenrls()) {
+        for (JenrlConstraint jenrl : activeJenrls(assignment)) {
             Lecture lect = jenrl.another(this);
             if (lect.students().contains(student))
                 ret++;
@@ -328,22 +330,17 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
                 return;
             if (getInitialAssignment() != null && p.equals(getInitialAssignment()))
                 setInitialAssignment(p);
-            if (getAssignment() != null && getAssignment().equals(p))
-                iValue = getAssignment();
-            if (getBestAssignment() != null && getBestAssignment().equals(p))
-                setBestAssignment(p);
+            // if (getAssignment() != null && getAssignment().equals(p)) iValue = getAssignment();
+            if (getBestAssignment() != null && getBestAssignment().equals(p)) setBestAssignment(p, getBestAssignmentIteration());
             values.add(p);
             return;
         }
         for (int i = idx; i < iRoomLocations.size(); i++) {
             RoomLocation roomLocation = iRoomLocations.get(i);
-            if (!allowBreakHard
-                    && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(roomLocation
-                            .getPreference())))
+            if (!allowBreakHard && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(roomLocation.getPreference())))
                 continue;
 
-            if (roomLocation.getRoomConstraint() != null
-                    && !roomLocation.getRoomConstraint().isAvailable(this, timeLocation, getScheduler()))
+            if (roomLocation.getRoomConstraint() != null && !roomLocation.getRoomConstraint().isAvailable(this, timeLocation, getScheduler()))
                 continue;
             roomLocations.add(roomLocation);
             computeValues(values, allowBreakHard, timeLocation, roomLocations, i + 1);
@@ -355,9 +352,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
     public List<Placement> computeValues(boolean allowBreakHard) {
         List<Placement> values = new ArrayList<Placement>(iRoomLocations.size() * iTimeLocations.size());
         for (TimeLocation timeLocation : iTimeLocations) {
-            if (!allowBreakHard
-                    && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(timeLocation
-                            .getPreference())))
+            if (!allowBreakHard && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(timeLocation.getPreference())))
                 continue;
             if (timeLocation.getPreference() > 500)
                 continue;
@@ -385,16 +380,13 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
                     continue;
                 if (getInitialAssignment() != null && p.equals(getInitialAssignment()))
                     setInitialAssignment(p);
-                if (getAssignment() != null && getAssignment().equals(p))
-                    iValue = getAssignment();
+                // if (getAssignment() != null && getAssignment().equals(p)) iValue = getAssignment();
                 if (getBestAssignment() != null && getBestAssignment().equals(p))
-                    setBestAssignment(p);
+                    setBestAssignment(p, getBestAssignmentIteration());
                 values.add(p);
             } else if (iNrRooms == 1) {
                 for (RoomLocation roomLocation : iRoomLocations) {
-                    if (!allowBreakHard
-                            && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(roomLocation
-                                    .getPreference())))
+                    if (!allowBreakHard && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(roomLocation.getPreference())))
                         continue;
                     if (roomLocation.getPreference() > 500)
                         continue;
@@ -407,10 +399,9 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
                         continue;
                     if (getInitialAssignment() != null && p.equals(getInitialAssignment()))
                         setInitialAssignment(p);
-                    if (getAssignment() != null && getAssignment().equals(p))
-                        iValue = getAssignment();
+                    // if (getAssignment() != null && getAssignment().equals(p)) iValue = getAssignment();
                     if (getBestAssignment() != null && getBestAssignment().equals(p))
-                        setBestAssignment(p);
+                        setBestAssignment(p, getBestAssignmentIteration());
                     values.add(p);
                 }
             } else {
@@ -479,88 +470,88 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
      * Number of student conflicts caused by the given assignment of this
      * lecture
      */
-    public int countStudentConflicts(Placement value) {
+    public int countStudentConflicts(Assignment<Lecture, Placement> assignment, Placement value) {
         int studentConflictsSum = 0;
         for (JenrlConstraint jenrl : jenrlConstraints()) {
-            studentConflictsSum += jenrl.jenrl(this, value);
+            studentConflictsSum += jenrl.jenrl(assignment, this, value);
         }
         return studentConflictsSum;
     }
 
-    public int countStudentConflictsOfTheSameProblem(Placement value) {
+    public int countStudentConflictsOfTheSameProblem(Assignment<Lecture, Placement> assignment, Placement value) {
         int studentConflictsSum = 0;
         for (JenrlConstraint jenrl : jenrlConstraints()) {
             if (!jenrl.isOfTheSameProblem())
                 continue;
-            studentConflictsSum += jenrl.jenrl(this, value);
+            studentConflictsSum += jenrl.jenrl(assignment, this, value);
         }
         return studentConflictsSum;
     }
 
-    public int countHardStudentConflicts(Placement value) {
+    public int countHardStudentConflicts(Assignment<Lecture, Placement> assignment, Placement value) {
         int studentConflictsSum = 0;
         if (!isSingleSection())
             return 0;
         for (JenrlConstraint jenrl : jenrlConstraints()) {
             if (!jenrl.areStudentConflictsHard())
                 continue;
-            studentConflictsSum += jenrl.jenrl(this, value);
+            studentConflictsSum += jenrl.jenrl(assignment, this, value);
         }
         return studentConflictsSum;
     }
 
-    public int countCommittedStudentConflictsOfTheSameProblem(Placement value) {
+    public int countCommittedStudentConflictsOfTheSameProblem(Assignment<Lecture, Placement> assignment, Placement value) {
         int studentConflictsSum = 0;
         for (JenrlConstraint jenrl : jenrlConstraints()) {
             if (!jenrl.isOfTheSameProblem())
                 continue;
             if (!jenrl.areStudentConflictsCommitted())
                 continue;
-            studentConflictsSum += jenrl.jenrl(this, value);
+            studentConflictsSum += jenrl.jenrl(assignment, this, value);
         }
         return studentConflictsSum;
     }
     
-    public int countCommittedStudentConflicts(Placement value) {
+    public int countCommittedStudentConflicts(Assignment<Lecture, Placement> assignment, Placement value) {
         int studentConflictsSum = 0;
         for (JenrlConstraint jenrl : jenrlConstraints()) {
             if (!jenrl.areStudentConflictsCommitted())
                 continue;
-            studentConflictsSum += jenrl.jenrl(this, value);
+            studentConflictsSum += jenrl.jenrl(assignment, this, value);
         }
         return studentConflictsSum;
     }
 
-    public int countHardStudentConflictsOfTheSameProblem(Placement value) {
+    public int countHardStudentConflictsOfTheSameProblem(Assignment<Lecture, Placement> assignment, Placement value) {
         int studentConflictsSum = 0;
         for (JenrlConstraint jenrl : jenrlConstraints()) {
             if (!jenrl.isOfTheSameProblem())
                 continue;
             if (!jenrl.areStudentConflictsHard())
                 continue;
-            studentConflictsSum += jenrl.jenrl(this, value);
+            studentConflictsSum += jenrl.jenrl(assignment, this, value);
         }
         return studentConflictsSum;
     }
 
-    public int countDistanceStudentConflicts(Placement value) {
+    public int countDistanceStudentConflicts(Assignment<Lecture, Placement> assignment, Placement value) {
         int studentConflictsSum = 0;
         for (JenrlConstraint jenrl : jenrlConstraints()) {
-            if (!jenrl.areStudentConflictsDistance(value))
+            if (!jenrl.areStudentConflictsDistance(assignment, value))
                 continue;
-            studentConflictsSum += jenrl.jenrl(this, value);
+            studentConflictsSum += jenrl.jenrl(assignment, this, value);
         }
         return studentConflictsSum;
     }
 
-    public int countDistanceStudentConflictsOfTheSameProblem(Placement value) {
+    public int countDistanceStudentConflictsOfTheSameProblem(Assignment<Lecture, Placement> assignment, Placement value) {
         int studentConflictsSum = 0;
         for (JenrlConstraint jenrl : jenrlConstraints()) {
             if (!jenrl.isOfTheSameProblem())
                 continue;
-            if (!jenrl.areStudentConflictsDistance(value))
+            if (!jenrl.areStudentConflictsDistance(assignment, value))
                 continue;
-            studentConflictsSum += jenrl.jenrl(this, value);
+            studentConflictsSum += jenrl.jenrl(assignment, this, value);
         }
         return studentConflictsSum;
     }
@@ -721,7 +712,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         return iMaxClassLimit;
     }
 
-    public int maxAchievableClassLimit() {
+    public synchronized int maxAchievableClassLimit() {
         if (iCacheMaxAchievableClassLimit != null)
             return iCacheMaxAchievableClassLimit.intValue();
 
@@ -745,16 +736,16 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         return maxAchievableClassLimit;
     }
 
-    public int classLimit() {
+    public int classLimit(Assignment<Lecture, Placement> assignment) {
         if (minClassLimit() == maxClassLimit())
             return minClassLimit();
-        return classLimit(null, null);
+        return classLimit(assignment, null, null);
     }
 
-    public int classLimit(Placement assignment, Set<Placement> conflicts) {
-        Placement a = getAssignment();
-        if (assignment != null && assignment.variable().equals(this))
-            a = assignment;
+    public int classLimit(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
+        Placement a = (assignment == null ? null : assignment.getValue(this));
+        if (value != null && value.variable().equals(this))
+            a = value;
         if (conflicts != null && a != null && conflicts.contains(a))
             a = null;
         int classLimit = (a == null ? maxAchievableClassLimit() : Math.min(maxClassLimit(), (int) Math.floor(a.getRoomSize() / roomToLimitRatio())));
@@ -766,7 +757,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
             int childrenClassLimit = 0;
 
             for (Lecture child : getChildren(subpartId)) {
-                childrenClassLimit += child.classLimit(assignment, conflicts);
+                childrenClassLimit += child.classLimit(assignment, value, conflicts);
             }
 
             classLimit = Math.min(classLimit, childrenClassLimit);
@@ -1000,7 +991,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         return null;
     }
 
-    public int getCommitedConflicts(Placement placement) {
+    public synchronized int getCommitedConflicts(Placement placement) {
         Integer ret = iCommitedConflicts.get(placement);
         if (ret == null) {
             ret = new Integer(placement.getCommitedConflicts());
@@ -1017,7 +1008,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         return iGroupConstraints;
     }
 
-    public int minRoomSize() {
+    public synchronized int minRoomSize() {
         if (iCacheMinRoomSize != null)
             return iCacheMinRoomSize.intValue();
         if (getNrRooms() <= 1) {
@@ -1047,7 +1038,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         }
     }
 
-    public int maxRoomSize() {
+    public synchronized int maxRoomSize() {
         if (iCacheMaxRoomSize != null)
             return iCacheMaxRoomSize.intValue();
         if (getNrRooms() <= 1) {
@@ -1103,7 +1094,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         if (model == null)
             return true;
         if (model.hasConstantVariables()) {
-            for (Placement confPlacement : model.conflictValuesSkipWeakeningConstraints(placement)) {
+            for (Placement confPlacement : model.conflictValuesSkipWeakeningConstraints(model.getEmptyAssignment(), placement)) {
                 Lecture lecture = confPlacement.variable();
                 if (lecture.isCommitted())
                     return false;
@@ -1111,17 +1102,17 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
                     return false;
             }
         } else {
-            if (model.conflictValues(placement).contains(placement))
+            if (model.conflictValues(model.getEmptyAssignment(), placement).contains(placement))
                 return false;
         }
         return true;
     }
 
-    public String getNotValidReason(Placement placement) {
+    public String getNotValidReason(Assignment<Lecture, Placement> assignment, Placement placement) {
         TimetableModel model = (TimetableModel) getModel();
         if (model == null)
             return "no model for class " + getName();
-        Map<Constraint<Lecture, Placement>, Set<Placement>> conflictConstraints = model.conflictConstraints(placement);
+        Map<Constraint<Lecture, Placement>, Set<Placement>> conflictConstraints = model.conflictConstraints(assignment, placement);
         for (Map.Entry<Constraint<Lecture, Placement>, Set<Placement>> entry : conflictConstraints.entrySet()) {
             Constraint<Lecture, Placement> constraint = entry.getKey();
             Set<Placement> conflicts = entry.getValue();
@@ -1212,11 +1203,20 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
     public boolean isConstant() {
         return iCommitted;
     }
+    
+    @Override
+    public Placement getConstantValue() {
+        return (isCommitted() ? getInitialAssignment() : null);
+    }
+    
+    public void setConstantValue(Placement value) {
+        setInitialAssignment(value);
+    }
 
-    public int getSpreadPenalty() {
+    public int getSpreadPenalty(Assignment<Lecture, Placement> assignment) {
         int spread = 0;
         for (SpreadConstraint sc : getSpreadConstraints()) {
-            spread += sc.getPenalty();
+            spread += sc.getPenalty(assignment);
         }
         return spread;
     }
@@ -1243,7 +1243,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
 
     private int[] iMinMaxRoomPreference = null;
 
-    public int[] getMinMaxRoomPreference() {
+    public synchronized  int[] getMinMaxRoomPreference() {
         if (iMinMaxRoomPreference == null) {
             if (getNrRooms() <= 0 || roomLocations().isEmpty()) {
                 iMinMaxRoomPreference = new int[] { 0, 0 };
@@ -1264,7 +1264,7 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
 
     private double[] iMinMaxTimePreference = null;
 
-    public double[] getMinMaxTimePreference() {
+    public synchronized double[] getMinMaxTimePreference() {
         if (iMinMaxTimePreference == null) {
             Double minTimePref = null, maxTimePref = null;
             for (TimeLocation t : timeLocations()) {
@@ -1308,14 +1308,14 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
         return StudentConflict.hard(this, other);
     }
     
-    public void clearIgnoreStudentConflictsWithCache() {
+    public synchronized void clearIgnoreStudentConflictsWithCache() {
         iIgnoreStudentConflictsWith = null;
     }
     
     /**
      * Returns true if there is {@link IgnoreStudentConflictsConstraint} between the two lectures.
      */
-   public boolean isToIgnoreStudentConflictsWith(Lecture other) {
+   public synchronized boolean isToIgnoreStudentConflictsWith(Lecture other) {
         if (iIgnoreStudentConflictsWith == null) {
             iIgnoreStudentConflictsWith = new HashSet<Long>();
             for (Constraint<Lecture, Placement> constraint: constraints()) {
@@ -1338,4 +1338,37 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
     * semester can have a lower weight.
     */
    public void setWeight(double weight) { iWeight = weight; }
+   
+   @Override
+   public LectureContext createAssignmentContext(Assignment<Lecture, Placement> assignment) {
+       return new LectureContext();
+   }
+
+   public class LectureContext implements AssignmentContext {
+       private Set<JenrlConstraint> iActiveJenrls = new HashSet<JenrlConstraint>();
+ 
+       /**
+        * Add active jenrl constraint (active mean that there is at least one
+        * student between its classes)
+        */
+       public void addActiveJenrl(JenrlConstraint constr) {
+           iActiveJenrls.add(constr);
+       }
+
+       /**
+        * Active jenrl constraints (active mean that there is at least one student
+        * between its classes)
+        */
+       public Set<JenrlConstraint> activeJenrls() {
+           return iActiveJenrls;
+       }
+
+       /**
+        * Remove active jenrl constraint (active mean that there is at least one
+        * student between its classes)
+        */
+       public void removeActiveJenrl(JenrlConstraint constr) {
+           iActiveJenrls.remove(constr);
+       }
+   }
 }

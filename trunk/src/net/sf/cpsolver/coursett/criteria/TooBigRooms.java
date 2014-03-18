@@ -8,6 +8,7 @@ import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.preference.PreferenceCombination;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -50,7 +51,7 @@ public class TooBigRooms extends TimetablingCriterion {
     }
 
     @Override
-    public double getValue(Placement value, Set<Placement> conflicts) {
+    public double getValue(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
         double ret = getTooBigRoomPreference(value);
         if (conflicts != null)
             for (Placement conflict: conflicts)
@@ -59,7 +60,7 @@ public class TooBigRooms extends TimetablingCriterion {
     }
     
     @Override
-    public double[] getBounds(Collection<Lecture> variables) {
+    public double[] getBounds(Assignment<Lecture, Placement> assignment, Collection<Lecture> variables) {
         double[] bounds = new double[] { 0.0, 0.0 };
         for (Lecture lect: variables) {
             if (lect.getNrRooms() > 0)

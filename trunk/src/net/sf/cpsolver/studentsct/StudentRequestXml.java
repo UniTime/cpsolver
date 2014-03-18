@@ -7,6 +7,8 @@ import java.util.Collections;
 import java.util.Comparator;
 
 import net.sf.cpsolver.coursett.Constants;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.model.Course;
@@ -54,7 +56,7 @@ import org.dom4j.io.XMLWriter;
 public class StudentRequestXml {
     private static DecimalFormat s2zDF = new DecimalFormat("00");
 
-    public static Document exportModel(StudentSectioningModel model) {
+    public static Document exportModel(Assignment<Request, Enrollment> assignment, StudentSectioningModel model) {
         Document document = DocumentHelper.createDocument();
         Element requestElement = document.addElement("request");
         requestElement.addAttribute("campus", model.getProperties().getProperty("Data.Initiative"));
@@ -76,7 +78,7 @@ public class StudentRequestXml {
             });
             boolean hasSchedule = false;
             for (Request request : student.getRequests()) {
-                if (request.getAssignment() != null)
+                if (assignment.getValue(request) != null)
                     hasSchedule = true;
                 if (request instanceof FreeTimeRequest) {
                     FreeTimeRequest ftReq = (FreeTimeRequest) request;
@@ -112,7 +114,7 @@ public class StudentRequestXml {
                 for (Request request : student.getRequests()) {
                     if (request instanceof CourseRequest) {
                         CourseRequest crReq = (CourseRequest) request;
-                        Enrollment enrollment = crReq.getAssignment();
+                        Enrollment enrollment = assignment.getValue(crReq);
                         if (enrollment == null)
                             continue;
                         Element crReqElement = requestScheduleElement.addElement("courseOffering");
@@ -135,10 +137,11 @@ public class StudentRequestXml {
         try {
             ToolBox.configureLogging();
             StudentSectioningModel model = new StudentSectioningModel(new DataProperties());
-            StudentSectioningXMLLoader xmlLoad = new StudentSectioningXMLLoader(model);
+            Assignment<Request, Enrollment> assignment = new DefaultSingleAssignment<Request, Enrollment>();
+            StudentSectioningXMLLoader xmlLoad = new StudentSectioningXMLLoader(model, assignment);
             xmlLoad.setInputFile(new File(args[0]));
             xmlLoad.load();
-            Document document = exportModel(model);
+            Document document = exportModel(assignment, model);
             FileOutputStream fos = new FileOutputStream(new File(args[1]));
             (new XMLWriter(fos, OutputFormat.createPrettyPrint())).write(document);
             fos.flush();

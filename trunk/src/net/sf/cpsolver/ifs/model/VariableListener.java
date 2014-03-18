@@ -1,5 +1,7 @@
 package net.sf.cpsolver.ifs.model;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
+
 /**
  * IFS variable listener.
  * 
@@ -33,7 +35,7 @@ public interface VariableListener<T extends Value<?, T>> {
      * @param value
      *            assigned to the variable
      */
-    public void variableAssigned(long iteration, T value);
+    public void variableAssigned(Assignment<?, T> assignment, long iteration, T value);
 
     /**
      * Called by the variable when a value is unassigned from it
@@ -43,7 +45,7 @@ public interface VariableListener<T extends Value<?, T>> {
      * @param value
      *            unassigned from the variable
      */
-    public void variableUnassigned(long iteration, T value);
+    public void variableUnassigned(Assignment<?, T> assignment, long iteration, T value);
 
     /**
      * Called by the variable when a value is permanently removed from its

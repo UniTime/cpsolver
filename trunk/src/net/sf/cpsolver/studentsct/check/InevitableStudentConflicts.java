@@ -11,9 +11,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
-import net.sf.cpsolver.studentsct.model.Assignment;
+import net.sf.cpsolver.studentsct.model.SctAssignment;
 import net.sf.cpsolver.studentsct.model.Course;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
 import net.sf.cpsolver.studentsct.model.Enrollment;
@@ -113,7 +114,7 @@ public class InevitableStudentConflicts {
     }
 
     /** Check model for inevitable student conflicts */
-    public boolean check() {
+    public boolean check(Assignment<Request, Enrollment> assignment) {
         sLog.info("Checking for inevitable student conflicts...");
         HashMap<TreeSet<Object>, Object[]> noGoods = new HashMap<TreeSet<Object>, Object[]>();
         long studentWithoutCompleteSchedule = 0;
@@ -131,16 +132,16 @@ public class InevitableStudentConflicts {
         HashSet<Request> requests2remove = new HashSet<Request>();
         for (Student student : getModel().getStudents()) {
             sLog.debug("  Checking " + (++total) + ". student " + student + "...");
-            if (student.isComplete()) {
+            if (student.isComplete(assignment)) {
                 for (Request request : student.getRequests()) {
-                    if (request.getAssignment() == null) {
+                    if (assignment.getValue(request) == null) {
                         inevitableRequests++;
                         inevitableRequestWeight += request.getWeight();
                     }
                 }
             } else {
                 StudentCheck ch = new StudentCheck(student.getRequests());
-                ch.check();
+                ch.check(assignment);
                 if (!ch.isBestComplete()) {
                     sLog.info("    Student " + student + " cannot have a complete schedule");
                     studentWithoutCompleteSchedule++;
@@ -151,15 +152,15 @@ public class InevitableStudentConflicts {
                     Enrollment enrollment = ch.getBestAssignment()[idx];
                     if (enrollment == null) {
                         if (!ch.isBestComplete()) {
-                            List<Request> noGood = noGood(student, ch, idx);
+                            List<Request> noGood = noGood(assignment, student, ch, idx);
                             sLog.info("      Request " + request + " cannot be assigned");
                             for (Request r : noGood) {
                                 sLog.debug("        " + r);
                                 Collection<Enrollment> values = null;
                                 if (r instanceof CourseRequest) {
-                                    values = ((CourseRequest) r).getEnrollmentsSkipSameTime();
+                                    values = ((CourseRequest) r).getEnrollmentsSkipSameTime(assignment);
                                 } else {
-                                    values = request.computeEnrollments();
+                                    values = request.computeEnrollments(assignment);
                                 }
                                 for (Enrollment en : values) {
                                     sLog.debug("          " + enrollment2string(en));
@@ -220,7 +221,7 @@ public class InevitableStudentConflicts {
                     CourseRequest cr = new CourseRequest(-1, 0, false, new Student(-1), courses, false, null);
                     String field = course.getName();
                     int idx = 0;
-                    for (Iterator<Enrollment> k = cr.getEnrollmentsSkipSameTime().iterator(); k.hasNext();) {
+                    for (Iterator<Enrollment> k = cr.getEnrollmentsSkipSameTime(assignment).iterator(); k.hasNext();) {
                         if (idx++ > 20) {
                             field += "\n ...";
                             break;
@@ -277,11 +278,11 @@ public class InevitableStudentConflicts {
      */
     private static String enrollment2string(Enrollment enrollment) {
         StringBuffer sb = new StringBuffer();
-        Collection<Assignment> assignments = enrollment.getAssignments();
+        Collection<SctAssignment> assignments = enrollment.getAssignments();
         if (enrollment.isCourseRequest()) {
-            assignments = new TreeSet<Assignment>(new Comparator<Assignment>() {
+            assignments = new TreeSet<SctAssignment>(new Comparator<SctAssignment>() {
                 @Override
-                public int compare(Assignment a1, Assignment a2) {
+                public int compare(SctAssignment a1, SctAssignment a2) {
                     Section s1 = (Section) a1;
                     Section s2 = (Section) a2;
                     return s1.getSubpart().compareTo(s2.getSubpart());
@@ -289,8 +290,8 @@ public class InevitableStudentConflicts {
             });
             assignments.addAll(enrollment.getAssignments());
         }
-        for (Iterator<? extends Assignment> i = assignments.iterator(); i.hasNext();) {
-            Assignment a = i.next();
+        for (Iterator<? extends SctAssignment> i = assignments.iterator(); i.hasNext();) {
+            SctAssignment a = i.next();
             if (a instanceof Section)
                 sb.append(((Section) a).getSubpart().getName() + " ");
             if (a.getTime() != null)
@@ -313,7 +314,7 @@ public class InevitableStudentConflicts {
      * @return the smallest set of requests that cannot be assigned all
      *         together, containing the request with the given index
      */
-    private List<Request> noGood(Student student, StudentCheck ch, int idx) {
+    private List<Request> noGood(Assignment<Request, Enrollment> assignment, Student student, StudentCheck ch, int idx) {
         List<Request> noGood = new ArrayList<Request>();
         Request rx = student.getRequests().get(idx);
         for (int i = 0; i < student.getRequests().size(); i++) {
@@ -328,7 +329,7 @@ public class InevitableStudentConflicts {
             List<Request> newNoGood = new ArrayList<Request>(noGood);
             newNoGood.remove(r);
             StudentCheck chx = new StudentCheck(newNoGood);
-            chx.check();
+            chx.check(assignment);
             if (!chx.isBestComplete())
                 noGood = newNoGood;
         }
@@ -360,13 +361,13 @@ public class InevitableStudentConflicts {
          * Execute branch & bound, return the best found schedule for the
          * selected student.
          */
-        public void check() {
+        public void check(Assignment<Request, Enrollment> assignment) {
             iAssignment = new Enrollment[iRequests.size()];
             iBestAssignment = null;
             iBestNrAssigned = 0;
             iBestComplete = false;
             iValues = new HashMap<Request, List<Enrollment>>();
-            backTrack(0);
+            backTrack(assignment, 0);
         }
 
         /** Best schedule */
@@ -479,7 +480,7 @@ public class InevitableStudentConflicts {
         }
 
         /** branch & bound search */
-        public void backTrack(int idx) {
+        public void backTrack(Assignment<Request, Enrollment> assignment, int idx) {
             if (sDebug)
                 sLog.debug("BT[" + idx + "]:  -- assigned:" + getNrAssigned() + ", bound:" + getNrAssignedBound(idx)
                         + ", best:" + getBestNrAssigned());
@@ -503,7 +504,7 @@ public class InevitableStudentConflicts {
             if (!canAssign(request, idx)) {
                 if (sDebug)
                     sLog.debug("BT[" + idx + "]:      -- CANNOT ASSIGN");
-                backTrack(idx + 1);
+                backTrack(assignment, idx + 1);
                 return;
             }
             List<Enrollment> values = null;
@@ -511,11 +512,11 @@ public class InevitableStudentConflicts {
                 CourseRequest courseRequest = (CourseRequest) request;
                 values = iValues.get(courseRequest);
                 if (values == null) {
-                    values = courseRequest.getEnrollmentsSkipSameTime();
+                    values = courseRequest.getEnrollmentsSkipSameTime(assignment);
                     iValues.put(courseRequest, values);
                 }
             } else {
-                values = request.computeEnrollments();
+                values = request.computeEnrollments(assignment);
             }
             if (sDebug)
                 sLog.debug("BT[" + idx + "]:    -- VALUES: " + values.size());
@@ -533,13 +534,13 @@ public class InevitableStudentConflicts {
                 }
                 hasNoConflictValue = true;
                 iAssignment[idx] = enrollment;
-                backTrack(idx + 1);
+                backTrack(assignment, idx + 1);
                 iAssignment[idx] = null;
             }
             if (!hasNoConflictValue || request instanceof CourseRequest) {
                 if (sDebug)
                     sLog.debug("BT[" + idx + "]:      -- without assignment");
-                backTrack(idx + 1);
+                backTrack(assignment, idx + 1);
             }
         }
     }

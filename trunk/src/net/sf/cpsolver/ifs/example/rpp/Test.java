@@ -425,7 +425,7 @@ public class Test {
                     res.println("result(" + t + "," + i + "," + nf.format(best.getBestTime()) + ","
                             + (best.getModel().variables().size() - best.getModel().getBestUnassignedVariables()) + ","
                             + best.getBestIteration() + ",");
-                    Collection<Rectangle> notPlaced = best.getModel().bestUnassignedVariables();
+                    Collection<Rectangle> notPlaced = best.getModel().bestUnassignedVariables(best.getAssignment());
                     if (notPlaced == null)
                         notPlaced = new ArrayList<Rectangle>();
                     res.print("  unassigned(" + (2 * notPlaced.size()) + "/[");
@@ -531,7 +531,7 @@ public class Test {
                     res.println("result(" + genNr + "," + t + "," + nf.format(best.getBestTime()) + ","
                             + (best.getModel().variables().size() - best.getModel().getBestUnassignedVariables()) + ","
                             + best.getBestIteration() + ",");
-                    Collection<Rectangle> notPlaced = best.getModel().bestUnassignedVariables();
+                    Collection<Rectangle> notPlaced = best.getModel().bestUnassignedVariables(best.getAssignment());
                     if (notPlaced == null)
                         notPlaced = new ArrayList<Rectangle>();
                     res.print("  unassigned(" + (2 * notPlaced.size()) + "/[");

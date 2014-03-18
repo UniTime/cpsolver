@@ -156,7 +156,7 @@ public class Rectangle extends Variable<Rectangle, Location> {
                     if (getInitialAssignment() != null && getInitialAssignment().equals(val))
                         setInitialAssignment(val);
                     if (getBestAssignment() != null && getBestAssignment().equals(val))
-                        setBestAssignment(val);
+                        setBestAssignment(val, 0l);
                 }
             }
         }
