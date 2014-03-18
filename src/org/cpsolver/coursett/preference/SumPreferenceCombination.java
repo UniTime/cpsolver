@@ -8,8 +8,8 @@ package org.cpsolver.coursett.preference;
  * <li>Otherwise, sum of the given preferences is returned
  * </ul>
  * 
- * @version CourseTT 1.2 (University Course Timetabling)<br>
- *          Copyright (C) 2006 - 2010 Tomas Muller<br>
+ * @version CourseTT 1.3 (University Course Timetabling)<br>
+ *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>
  * <br>

@@ -20,7 +20,7 @@ import org.cpsolver.ifs.solver.Solver;
  * instructors. 
  * 
  * <br>
- * @version CourseTT 1.2 (University Course Timetabling)<br>
+ * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2012 Matej Lukac<br>
  * <br>
  *          This library is free software; you can redistribute it and/or modify

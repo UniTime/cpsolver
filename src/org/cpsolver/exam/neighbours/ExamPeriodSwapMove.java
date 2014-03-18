@@ -36,8 +36,8 @@ import org.cpsolver.ifs.util.ToolBox;
  * The following exams of the second exam in the pair are tried for an exam swap otherwise.
  * <br><br>
  * 
- * @version ExamTT 1.2 (Examination Timetabling)<br>
- *          Copyright (C) 2013 Tomas Muller<br>
+ * @version ExamTT 1.3 (Examination Timetabling)<br>
+ *          Copyright (C) 2013 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>
  * <br>

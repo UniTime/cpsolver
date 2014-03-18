@@ -29,7 +29,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * (parameter ParallelConstruction.MaxIdle, defaults to 100), start assigning unassigned variables
  * to their best values. Otherwise, pass the selection to the provided neighbourhood selection.
  *
- * @version IFS 1.2 (Iterative Forward Search)<br>
+ * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>

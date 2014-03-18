@@ -13,8 +13,8 @@ import org.cpsolver.studentsct.model.Student;
 /**
  * Return the given set of students ordered by their majors
  * 
- * @version StudentSct 1.2 (Student Sectioning)<br>
- *          Copyright (C) 2007 - 2010 Tomas Muller<br>
+ * @version StudentSct 1.3 (Student Sectioning)<br>
+ *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>
  * <br>

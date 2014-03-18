@@ -12,7 +12,7 @@ import org.cpsolver.ifs.model.Variable;
  * An empty assignment. All variables are unassigned, any attempt to assign a 
  * variable will throw the {@link UnsupportedOperationException} exception.<br><br>  
  * 
- * @version IFS 1.2 (Iterative Forward Search)<br>
+ * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>

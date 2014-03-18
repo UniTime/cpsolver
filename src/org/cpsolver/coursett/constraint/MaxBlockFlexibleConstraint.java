@@ -23,7 +23,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * It has two parameters: a maximal length of a back-to-back block that is allowed and a minimal length of a break between two classes not to be considered in the same block.<br>
  * Reference _MaxBlock:120:30_ translates to a maximal block of at most 2 hours (120 minutes) with classes not more than 30 minutes a part.<br>
  * 
- * @version CourseTT 1.2 (University Course Timetabling)<br>
+ * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2013 Matej Lukac<br>
  * <br>
  *          This library is free software; you can redistribute it and/or modify
