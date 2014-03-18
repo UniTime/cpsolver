@@ -62,8 +62,8 @@ import org.cpsolver.ifs.util.ToolBox;
  * the best ever found solution. <br>
  * <br>
  * 
- * @version ExamTT 1.2 (Examination Timetabling)<br>
- *          Copyright (C) 2008 - 2010 Tomas Muller<br>
+ * @version ExamTT 1.3 (Examination Timetabling)<br>
+ *          Copyright (C) 2008 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>
  * <br>
@@ -201,7 +201,7 @@ public class ExamSimulatedAnnealing extends NeighbourSelectionWithContext<Exam, 
      * @param neighbour
      *            proposed move
      * @return true if generated random number is below
-     *         {@link ExamSimulatedAnnealing#prob(double)}
+     *         {@link ExamSimulatedAnnealing.Context#prob(double)}
      */
     protected boolean accept(Solution<Exam, ExamPlacement> solution, Neighbour<Exam, ExamPlacement> neighbour) {
         if (neighbour instanceof LazyNeighbour) {

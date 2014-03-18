@@ -36,7 +36,7 @@ import org.cpsolver.ifs.util.Progress;
  * classes of the same course during or after the search (see
  * {@link FinalSectioning}).
  * 
- * @version CourseTT 1.2 (University Course Timetabling)<br>
+ * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>

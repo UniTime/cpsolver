@@ -15,8 +15,8 @@ import org.cpsolver.ifs.util.DataProperties;
  * {@link RoomConstraint}, however, it tries to minimize the usage of the room
  * as much as possible.
  * 
- * @version CourseTT 1.2 (University Course Timetabling)<br>
- *          Copyright (C) 2006 - 2010 Tomas Muller<br>
+ * @version CourseTT 1.3 (University Course Timetabling)<br>
+ *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>
  * <br>

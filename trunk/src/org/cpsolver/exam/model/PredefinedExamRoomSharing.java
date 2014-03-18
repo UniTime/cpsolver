@@ -18,8 +18,8 @@ import org.dom4j.Element;
  * {@link ExamModel#save(Assignment)}, canShareRoom element for each exam containing a comma separated list of exam ids).
  * <br>
  * 
- * @version ExamTT 1.2 (Examination Timetabling)<br>
- *          Copyright (C) 2008 - 2012 Tomas Muller<br>
+ * @version ExamTT 1.3 (Examination Timetabling)<br>
+ *          Copyright (C) 2008 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>
  * <br>

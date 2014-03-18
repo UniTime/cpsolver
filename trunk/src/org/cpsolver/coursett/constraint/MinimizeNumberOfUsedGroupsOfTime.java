@@ -48,8 +48,8 @@ import org.cpsolver.ifs.util.DataProperties;
  * Minimize number of groups of time that are used by the given classes. The
  * time is spread into the following 2 groups: 7:30a-12:30a, 12:30a-5:30p.
  * 
- * @version CourseTT 1.2 (University Course Timetabling)<br>
- *          Copyright (C) 2006 - 2010 Tomas Muller<br>
+ * @version CourseTT 1.3 (University Course Timetabling)<br>
+ *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>
  * <br>

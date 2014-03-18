@@ -43,8 +43,8 @@ import org.cpsolver.studentsct.model.Student;
  * <br>
  * <br>
  * 
- * @version StudentSct 1.2 (Student Sectioning)<br>
- *          Copyright (C) 2013 Tomas Muller<br>
+ * @version StudentSct 1.3 (Student Sectioning)<br>
+ *          Copyright (C) 2013 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>
  * <br>
