@@ -277,7 +277,8 @@
 						<configuration>
 							<exportAntProperties>true</exportAntProperties>
 							<tasks>
-								<buildnumber />
+								<loadproperties srcFile="build.number"/>
+								<!--  <buildnumber /> -->
 								<tstamp>
 									<format property="build.date" pattern="EEE, d MMM yyyy" locale="en" />
 								</tstamp>
@@ -304,20 +305,20 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
-	
+
+	<!--
 	<parent>
 		<groupId>org.sonatype.oss</groupId>
 		<artifactId>oss-parent</artifactId>
 		<version>7</version>
 	</parent>
+	-->
 	
-	<!-- 
 	<distributionManagement>
 		<repository>
-			<id>unitime.org</id>
-			<name>UniTime Release Repository</name>
-			<url>ftp://unitime.org/releases</url>
+			<id>cpsolver.org</id>
+			<name>CPSolver Release Repository</name>
+			<url>ftp://maven.cpsolver.org</url>
 		</repository>
 	</distributionManagement>
-	 -->
 </project>
