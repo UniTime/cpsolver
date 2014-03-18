@@ -649,6 +649,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
             Set<T> confs = conflictValues(assignment, variable.getBestAssignment());
             if (!confs.isEmpty()) {
                 sLogger.error("restore best problem: assignment " + variable.getName() + " = " + variable.getBestAssignment().getName());
+                boolean weakened = false;
                 for (Constraint<V, T> c : variable.hardConstraints()) {
                     Set<T> x = new HashSet<T>();
                     c.computeConflicts(assignment, variable.getBestAssignment(), x);
@@ -656,6 +657,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
                         if (c instanceof WeakeningConstraint) {
                             ((WeakeningConstraint<V, T>)c).weaken(assignment, variable.getBestAssignment());
                             sLogger.info("  constraint " + c.getClass().getSimpleName() + " " + c.getName() + " had to be weakened");
+                            weakened = true;
                         } else {
                             sLogger.error("  constraint " + c.getClass().getSimpleName() + " " + c.getName() + " causes the following conflicts " + x);
                         }
@@ -668,12 +670,16 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
                         if (c instanceof WeakeningConstraint) {
                             ((WeakeningConstraint<V, T>)c).weaken(assignment, variable.getBestAssignment());
                             sLogger.info("  constraint " + c.getClass().getSimpleName() + " " + c.getName() + " had to be weakened");
+                            weakened = true;
                         } else {
                             sLogger.error("  global constraint " + c.getClass().getSimpleName() + " " + c.getName() + " causes the following conflicts " + x);
                         }
                     }
                 }
-                problems.add(variable.getBestAssignment());
+                if (weakened && conflictValues(assignment, variable.getBestAssignment()).isEmpty())
+                    assignment.assign(0, variable.getBestAssignment());
+                else
+                    problems.add(variable.getBestAssignment());
             } else
                 assignment.assign(0, variable.getBestAssignment());
         }
