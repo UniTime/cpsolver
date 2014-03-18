@@ -23,8 +23,8 @@ import org.cpsolver.ifs.assignment.context.ConstraintWithContext;
  * Room constraint. <br>
  * Classes with the same room can not overlap in time.
  * 
- * @version CourseTT 1.2 (University Course Timetabling)<br>
- *          Copyright (C) 2006 - 2010 Tomas Muller<br>
+ * @version CourseTT 1.3 (University Course Timetabling)<br>
+ *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>
  * <br>

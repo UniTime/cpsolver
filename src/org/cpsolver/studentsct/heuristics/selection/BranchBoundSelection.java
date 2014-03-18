@@ -69,8 +69,8 @@ import org.cpsolver.studentsct.weights.StudentWeights;
  * <br>
  * <br>
  * 
- * @version StudentSct 1.2 (Student Sectioning)<br>
- *          Copyright (C) 2007 - 2010 Tomas Muller<br>
+ * @version StudentSct 1.3 (Student Sectioning)<br>
+ *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>
  * <br>
@@ -326,7 +326,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         }
         
         /**
-         * Weight of an assignment. Unlike {@link StudentWeights#getWeight(Enrollment, Set, Set)}, only count this side of distance conflicts and time overlaps.
+         * Weight of an assignment. Unlike {@link StudentWeights#getWeight(Assignment, Enrollment, Set, Set)}, only count this side of distance conflicts and time overlaps.
          **/
         protected double getWeight(Enrollment enrollment, Set<DistanceConflict.Conflict> distanceConflicts, Set<TimeOverlapsCounter.Conflict> timeOverlappingConflicts) {
             double weight = - iModel.getStudentWeights().getWeight(iCurrentAssignment, enrollment);
