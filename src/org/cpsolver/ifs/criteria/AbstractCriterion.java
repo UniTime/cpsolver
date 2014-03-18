@@ -60,6 +60,7 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
     
     private AssignmentContextReference<V, T, ValueContext> iContextReference = null;
     private AssignmentContext[] iContext = null;
+    private int iLastCacheId = 0;
 
     
     /**
@@ -281,28 +282,28 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
     }
     
     /** Clear bounds cache */
-    protected void clearCache(Assignment<V, T> assignment) {
-        getContext(assignment).setBounds(null);
+    protected void clearCache() {
+        iLastCacheId++;
     }
     
     @Override
     public void variableAdded(V variable) {
-        // clearCache();
+        clearCache();
     }
     
     @Override
     public void variableRemoved(V variable) {
-        // clearCache();
+        clearCache();
     }
     
     @Override
     public void constraintAdded(Constraint<V, T> constraint) {
-        // clearCache();
+        clearCache();
     }
     
     @Override
     public void constraintRemoved(Constraint<V, T> constraint) {
-        // clearCache();
+        clearCache();
     }
     
     protected String getPerc(double value, double min, double max) {
@@ -358,6 +359,7 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
     public class ValueContext implements AssignmentContext {
         protected double iTotal = 0.0;
         private double[] iBounds = null;
+        private int iCacheId = -1;
 
         /** Create from an assignment */
         protected ValueContext(Assignment<V, T> assignment) {
@@ -388,7 +390,10 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
         
         /** Return bounds */
         protected double[] getBounds(Assignment<V, T> assignment) {
-            if (iBounds == null) iBounds = computeBounds(assignment);
+            if (iBounds == null || iCacheId < iLastCacheId) {
+                iCacheId = iLastCacheId;
+                iBounds = computeBounds(assignment);
+            }
             return (iBounds == null ? new double[] {0.0, 0.0} : iBounds);
         }
         
