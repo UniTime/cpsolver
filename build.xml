@@ -1,4 +1,4 @@
-<project name="ifs" default="dist" basedir=".">
+<project name="CPSolver 1.3" default="dist" basedir=".">
 <!--
 	IFS 1.3 (Iterative Forward Search)
 	CourseTT 1.3 (University Course Timetabling)
@@ -285,4 +285,6 @@
 					<arg value="deploy"/>
 			</exec>
 	</target>
+	
+	<target name="dist-deploy" depends="dist,deploy"/>
 </project>
