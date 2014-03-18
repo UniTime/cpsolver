@@ -429,9 +429,9 @@ public class Test {
                         sLogger.debug("Best solution:" + s.lastSolution().getBestInfo());
                         best.restoreBest();
                         int val = 0;
-                        for (Iterator<CSPVariable> iv = best.getModel().assignedVariables().iterator(); iv.hasNext();)
-                            val += (int) iv.next().getAssignment().toDouble();
-                        int totalVal = val + (best.getModel().unassignedVariables().size() * nrValues);
+                        for (CSPValue v: best.getAssignment().assignedValues())
+                            val += (int) v.toDouble();
+                        int totalVal = val + (best.getModel().unassignedVariables(best.getAssignment()).size() * nrValues);
                         sLogger.debug("Last solution:" + best.getInfo());
                         logStat.println(test
                                 + ";"
@@ -449,19 +449,19 @@ public class Test {
                                 + ";"
                                 + sDoubleFormat.format((best.getIteration()) / best.getTime())
                                 + ";"
-                                + best.getModel().unassignedHardConstraints().size()
+                                + best.getModel().unassignedHardConstraints(best.getAssignment()).size()
                                 + ";"
-                                + best.getModel().assignedVariables().size()
+                                + best.getModel().assignedVariables(best.getAssignment()).size()
                                 + ";"
-                                + sDoubleFormat.format(100.0 * best.getModel().assignedVariables().size()
+                                + sDoubleFormat.format(100.0 * best.getModel().assignedVariables(best.getAssignment()).size()
                                         / best.getModel().variables().size())
                                 + (mpp ? ";"
-                                        + (best.getModel().perturbVariables().size() + best.getModel()
-                                                .unassignedVariables().size())
+                                        + (best.getModel().perturbVariables(best.getAssignment()).size() + best.getModel()
+                                                .unassignedVariables(best.getAssignment()).size())
                                         + ";"
                                         + sDoubleFormat.format(100.0
-                                                * (best.getModel().perturbVariables().size() + best.getModel()
-                                                        .unassignedVariables().size())
+                                                * (best.getModel().perturbVariables(best.getAssignment()).size() + best.getModel()
+                                                        .unassignedVariables(best.getAssignment()).size())
                                                 / best.getModel().variables().size()) : "") + ";" + val + ";"
                                 + totalVal);
                         log.println("    seed:         " + currentSeed);
@@ -483,20 +483,20 @@ public class Test {
                         log.println("    speed:        " + sDoubleFormat.format((best.getIteration()) / best.getTime())
                                 + " it/s");
                         log.println("    assigned:     "
-                                + best.getModel().assignedVariables().size()
+                                + best.getModel().assignedVariables(best.getAssignment()).size()
                                 + " ("
-                                + sDoubleFormat.format(100.0 * best.getModel().assignedVariables().size()
+                                + sDoubleFormat.format(100.0 * best.getModel().assignedVariables(best.getAssignment()).size()
                                         / best.getModel().variables().size()) + "%)");
                         log.println("    total value:  " + val);
                         if (mpp)
                             log.println("    perturbations:"
-                                    + (best.getModel().perturbVariables().size() + best.getModel()
-                                            .unassignedVariables().size())
+                                    + (best.getModel().perturbVariables(best.getAssignment()).size() + best.getModel()
+                                            .unassignedVariables(best.getAssignment()).size())
                                     + " ("
                                     + sDoubleFormat
                                             .format(100.0
-                                                    * (best.getModel().perturbVariables().size() + best.getModel()
-                                                            .unassignedVariables().size())
+                                                    * (best.getModel().perturbVariables(best.getAssignment()).size() + best.getModel()
+                                                            .unassignedVariables(best.getAssignment()).size())
                                                     / best.getModel().variables().size()) + "%)");
                         log.print("    solution:     ");
                         for (CSPVariable v : ((CSPModel) best.getModel()).variables()) {
@@ -510,21 +510,21 @@ public class Test {
                         sumTime2 += best.getTime() * best.getTime();
                         sumIters += best.getIteration();
                         sumIters2 += best.getIteration() * best.getIteration();
-                        sumConfl += best.getModel().unassignedHardConstraints().size();
-                        sumAssign += best.getModel().assignedVariables().size();
-                        sumAssign2 += best.getModel().assignedVariables().size()
-                                * best.getModel().assignedVariables().size();
+                        sumConfl += best.getModel().unassignedHardConstraints(best.getAssignment()).size();
+                        sumAssign += best.getModel().assignedVariables(best.getAssignment()).size();
+                        sumAssign2 += best.getModel().assignedVariables(best.getAssignment()).size()
+                                * best.getModel().assignedVariables(best.getAssignment()).size();
                         sumVal += val;
                         sumVal2 += val * val;
                         sumTotalVal += totalVal;
                         sumTotalVal2 += totalVal * totalVal;
                         if (mpp) {
-                            sumPert += (best.getModel().perturbVariables().size() + best.getModel()
-                                    .unassignedVariables().size());
-                            sumPert2 += (best.getModel().perturbVariables().size() + best.getModel()
-                                    .unassignedVariables().size())
-                                    * (best.getModel().perturbVariables().size() + best.getModel()
-                                            .unassignedVariables().size());
+                            sumPert += (best.getModel().perturbVariables(best.getAssignment()).size() + best.getModel()
+                                    .unassignedVariables(best.getAssignment()).size());
+                            sumPert2 += (best.getModel().perturbVariables(best.getAssignment()).size() + best.getModel()
+                                    .unassignedVariables(best.getAssignment()).size())
+                                    * (best.getModel().perturbVariables(best.getAssignment()).size() + best.getModel()
+                                            .unassignedVariables(best.getAssignment()).size());
                         }
                         log.flush();
                         logStat.flush();

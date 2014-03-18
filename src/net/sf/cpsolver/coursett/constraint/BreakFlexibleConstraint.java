@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
@@ -71,7 +72,7 @@ public class BreakFlexibleConstraint extends FlexibleConstraint {
     }
 
     @Override
-    public void computeConflicts(Placement value, Set<Placement> conflicts) {
+    public void computeConflicts(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
         if (!isHard())
             return;        
         
@@ -91,7 +92,7 @@ public class BreakFlexibleConstraint extends FlexibleConstraint {
                             Set<Placement> adepts = new HashSet<Placement>();
                             // each blocks contains placements which are BTB
                             // placements are BTB if there is less time between them than the minimal break length
-                            List<Block> blocks = getBreakBlocks(dayCode, conflicts, value, null, week);
+                            List<Block> blocks = getBreakBlocks(assignment, dayCode, conflicts, value, null, week);
                             // determine possible conflicts from blocks' placements
                             getAdeptsLunchBreak(blocks, adepts);
                             if (adepts.isEmpty())
@@ -114,9 +115,9 @@ public class BreakFlexibleConstraint extends FlexibleConstraint {
     /**
      * Creates a list of consecutive blocks with back-to-back classes.
      */
-    public List<Block> getBreakBlocks(int dayCode, Set<Placement> conflicts, Placement value, HashMap<Lecture, Placement> assignments, BitSet week) {     
+    public List<Block> getBreakBlocks(Assignment<Lecture, Placement> assignment, int dayCode, Set<Placement> conflicts, Placement value, HashMap<Lecture, Placement> assignments, BitSet week) {     
         
-        List<Placement> toBeSorted = new ArrayList<Placement>(getRelevantPlacements(dayCode, conflicts, value, assignments, week));
+        List<Placement> toBeSorted = new ArrayList<Placement>(getRelevantPlacements(assignment, dayCode, conflicts, value, assignments, week));
         Collections.sort(toBeSorted, new PlacementTimeComparator());           
              
         return mergeToBlocks(toBeSorted, iBreakLength);
@@ -159,14 +160,14 @@ public class BreakFlexibleConstraint extends FlexibleConstraint {
     }
     
     @Override
-    public double getNrViolations(Set<Placement> conflicts, HashMap<Lecture, Placement> assignments){
+    public double getNrViolations(Assignment<Lecture, Placement> assignment, Set<Placement> conflicts, HashMap<Lecture, Placement> assignments){
         List<BitSet> weeks = getWeeks();
 
         int violatedDays = 0;
         for (int dayCode : Constants.DAY_CODES) {
             weekIteration: for (BitSet week : weeks) {
                 Set<Placement> adepts = new HashSet<Placement>();
-                List<Block> blocks = getBreakBlocks(dayCode, null, null, assignments, week);
+                List<Block> blocks = getBreakBlocks(assignment, dayCode, null, null, assignments, week);
                 getAdeptsLunchBreak(blocks, adepts);
                 if (!adepts.isEmpty())
                     violatedDays++;

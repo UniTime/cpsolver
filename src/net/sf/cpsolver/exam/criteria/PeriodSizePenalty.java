@@ -7,6 +7,7 @@ import java.util.Set;
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamPeriodPlacement;
 import net.sf.cpsolver.exam.model.ExamPlacement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -54,7 +55,7 @@ public class PeriodSizePenalty extends ExamCriterion {
     }
     
     @Override
-    public double getValue(ExamPlacement value, Set<ExamPlacement> conflicts) {
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value, Set<ExamPlacement> conflicts) {
         return value.getPeriodPlacement().getPenalty() * (value.variable().getSize() + 1);
     }
     
@@ -64,7 +65,7 @@ public class PeriodSizePenalty extends ExamCriterion {
     }
     
     @Override
-    public double[] getBounds(Collection<Exam> variables) {
+    public double[] getBounds(Assignment<Exam, ExamPlacement> assignment, Collection<Exam> variables) {
         double[] bounds = new double[] { 0.0, 0.0 };
         for (Exam exam : variables) {
             if (!exam.getPeriodPlacements().isEmpty()) {
@@ -81,14 +82,14 @@ public class PeriodSizePenalty extends ExamCriterion {
     }
     
     @Override
-    public void getInfo(Map<String, String> info) {
-        if (getValue() != 0.0) {
-            info.put(getName(), sDoubleFormat.format(getValue() / getModel().nrAssignedVariables()));
+    public void getInfo(Assignment<Exam, ExamPlacement> assignment, Map<String, String> info) {
+        if (getValue(assignment) != 0.0) {
+            info.put(getName(), sDoubleFormat.format(getValue(assignment) / assignment.nrAssignedVariables()));
         }
     }
 
     @Override
-    public String toString() {
-        return "PS:" + sDoubleFormat.format(getValue() / getModel().nrAssignedVariables());
+    public String toString(Assignment<Exam, ExamPlacement> assignment) {
+        return "PS:" + sDoubleFormat.format(getValue(assignment) / assignment.nrAssignedVariables());
     }
 }

@@ -11,9 +11,11 @@ import java.util.TreeSet;
 
 import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.constraint.InstructorConstraint;
+import net.sf.cpsolver.coursett.constraint.InstructorConstraint.InstructorConstraintContext;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimetableModel;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.criteria.AbstractCriterion;
 import net.sf.cpsolver.ifs.solver.Solver;
 
@@ -48,10 +50,8 @@ public class InstructorLunchBreak extends AbstractCriterion<Lecture, Placement> 
     private boolean iFullInfo;
     private List<BitSet> iWeeks = null;
     
-    private Map<InstructorConstraint, CompactInfo> iCompactInfos = new HashMap<InstructorConstraint, CompactInfo>();
-
     public InstructorLunchBreak() {
-        iValueUpdateType = ValueUpdateType.NoUpdate;
+        iValueUpdateType = ValueUpdateType.AfterUnassignedAfterAssigned;
     }
 
     @Override
@@ -71,39 +71,6 @@ public class InstructorLunchBreak extends AbstractCriterion<Lecture, Placement> 
     }
     
     /**
-     * Get compact info that is associated with an instructor constraint.
-     * Create a new one if none has been created yet.
-     */
-    protected CompactInfo getCompactInfo(InstructorConstraint constraint) {
-        CompactInfo info = iCompactInfos.get(constraint);
-        if (info == null) {
-            info = new CompactInfo();
-            iCompactInfos.put(constraint, info);
-        }
-        return info;
-    }    
-    
-    /**
-     * Update criterion after an assignment.
-     */
-    @Override
-    public void afterAssigned(long iteration, Placement value) {
-        super.afterAssigned(iteration, value);
-        for (InstructorConstraint constraint: value.variable().getInstructorConstraints())
-            updateCriterion(constraint, value);
-    }
-
-    /**
-     * Update criterion after an unassignment
-     */
-    @Override
-    public void afterUnassigned(long iteration, Placement value) {
-        super.afterUnassigned(iteration, value);
-        for (InstructorConstraint constraint: value.variable().getInstructorConstraints())
-            updateCriterion(constraint, value);
-    }
-
-    /**
      * The method creates date patterns (bitsets) which represent the weeks of a
      * semester.
      * 
@@ -117,121 +84,73 @@ public class InstructorLunchBreak extends AbstractCriterion<Lecture, Placement> 
         return iWeeks;            
     }
 
-    /**
-     * Method updates number of violations in days (Mo, Tue, Wed,..) considering
-     * each week in the semester separately. The current number of violations
-     * for a day is stored in the CompactInfo.lunchDayViolations of the
-     * constraint, which must be set properly before the calling of the method.
-     * 
-     * @param constraint
-     *            the Instructor constraint of an instructor checked for a lunch
-     *            break
-     * @param p
-     *            placement of a lecture currently (un)assigned
-     */
-    public void updateLunchPenalty(InstructorConstraint constraint, Placement p) {
-        // checks only placements in the lunch time
-        if (p.getTimeLocation().getStartSlot() <= iLunchEnd && p.getTimeLocation().getStartSlot() + p.getTimeLocation().getLength() > iLunchStart) {
-            CompactInfo compactInfo = getCompactInfo(constraint);
-            for (int i = 0; i < Constants.NR_DAYS; i++) {
-                // checks only days affected by the placement
-                if ((p.getTimeLocation().getDayCode() & Constants.DAY_CODES[i]) != 0) {
-                    int currentLunchStartSlot = Constants.SLOTS_PER_DAY * i + iLunchStart;
-                    int currentLunchEndSlot = Constants.SLOTS_PER_DAY * i + iLunchEnd;
-                    int semesterViolations = 0;
-                    for (BitSet week : getWeeks()) {
-                        int maxBreak = 0;
-                        int currentBreak = 0;
-                        for (int slot = currentLunchStartSlot; slot < currentLunchEndSlot; slot++) {
-                            if (constraint.getPlacements(slot, week).isEmpty()) {
-                                currentBreak++;
-                                if (maxBreak < currentBreak) {
-                                    maxBreak = currentBreak;
+    private boolean isEmpty(InstructorConstraintContext ic, int slot, BitSet week, Placement p) {
+        if (p.getTimeLocation().getStartSlot() <= slot && slot < p.getTimeLocation().getStartSlot() + p.getTimeLocation().getLength() && p.getTimeLocation().shareWeeks(week))
+            return false;
+        List<Placement> placements = ic.getPlacements(slot, week);
+        return placements.isEmpty() || (placements.size() == 1 && placements.get(0).variable().equals(p.variable()));
+    }
+    
+    @Override
+    public double getValue(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
+        double ret = 0.0;
+        if (value.getTimeLocation().getStartSlot() <= iLunchEnd && value.getTimeLocation().getStartSlot() + value.getTimeLocation().getLength() > iLunchStart) {
+            InstructorLunchBreakContext context = (InstructorLunchBreakContext)getContext(assignment);
+            for (InstructorConstraint constraint: value.variable().getInstructorConstraints()) {
+                InstructorConstraintContext icx = constraint.getContext(assignment);
+                CompactInfo compactInfo = context.getCompactInfo(constraint);
+                for (int i = 0; i < Constants.NR_DAYS; i++) {
+                    // checks only days affected by the placement
+                    if ((value.getTimeLocation().getDayCode() & Constants.DAY_CODES[i]) != 0) {
+                        int currentLunchStartSlot = Constants.SLOTS_PER_DAY * i + iLunchStart;
+                        int currentLunchEndSlot = Constants.SLOTS_PER_DAY * i + iLunchEnd;
+                        int semesterViolations = 0;
+                        for (BitSet week : getWeeks()) {
+                            int maxBreak = 0;
+                            int currentBreak = 0;
+                            for (int slot = currentLunchStartSlot; slot < currentLunchEndSlot; slot++) {
+                                if (isEmpty(icx, slot, week, value)) {
+                                    currentBreak++;
+                                    if (maxBreak < currentBreak) {
+                                        maxBreak = currentBreak;
+                                    }
+                                } else {
+                                    currentBreak = 0;
                                 }
-                            } else {
-                                currentBreak = 0;
+                            }
+                            if (maxBreak < iLunchLength) {
+                                semesterViolations++;
                             }
                         }
-                        if (maxBreak < iLunchLength) {
-                            semesterViolations++;
-                        }
+                        // add the difference to the result
+                        ret += semesterViolations - compactInfo.getLunchDayViolations()[i];
                     }
-                    // saving the result in the CompactInfo of the
-                    // InstructorConstraint
-                    compactInfo.getLunchDayViolations()[i] = semesterViolations;
                 }
             }
         }
-    }
-
-    /**
-     * Method checks or sets the CompactInfo of an InstructorConstraint. It
-     * updates the preference of chosen criteria. The update consists of
-     * decrementing the criterion value by previous preference, finding the
-     * current preference and incrementing the criterion value by the current
-     * preference.
-     * 
-     * @param instructorConstraint
-     *            the Instructor constraint of an instructor checked for
-     *            criteria
-     * @param placement
-     *            placement of a lecture currently (un)assigned
-     */
-    public void updateCriterion(InstructorConstraint instructorConstraint, Placement placement) {        
-            iValue -= getLunchPreference(instructorConstraint);
-            updateLunchPenalty(instructorConstraint, placement);
-            iValue += getLunchPreference(instructorConstraint);       
-    }
-    
-    /**
-     * Method uses the CompactInfo of the InstructorConstraint and returns the
-     * lunch preference for this constraint. Calculation formula does not use
-     * linear function, the number of violations is multiplied by a power of
-     * iMultiplier.
-     * 
-     * @param instructorConstraint
-     *            the Instructor constraint of an instructor checked for a lunch
-     *            break
-     * @return the lunch preference for this constraint
-     */
-    private double getLunchPreference(InstructorConstraint instructorConstraint) {
-        double violations = 0d;
-        CompactInfo info = getCompactInfo(instructorConstraint);
-        for (int i = 0; i < Constants.NR_DAYS; i++)
-            violations += info.getLunchDayViolations()[i];
-        return Math.pow(violations, iMultiplier); 
+        return ret;
     }
 
     @Override
-    public double getValue(Placement value, Set<Placement> conflicts) {
-        return iValue;
-    }
-
-    @Override
-    public double getWeightedValue(Placement value, Set<Placement> conflicts) {
-        return iValue * iWeight;
-    }
-
-    @Override
-    public double getValue(Collection<Lecture> variables) {
+    public double getValue(Assignment<Lecture, Placement> assignment, Collection<Lecture> variables) {
         double lunchValue = 0.0d;
         Set<InstructorConstraint> constraints = new HashSet<InstructorConstraint>();
         for (Lecture lecture : variables) {
             constraints.addAll(lecture.getInstructorConstraints());
         }
         for (InstructorConstraint instructor : constraints) {
-            lunchValue += getLunchPreference(instructor);
+            lunchValue += ((InstructorLunchBreakContext)getContext(assignment)).getLunchPreference(assignment, instructor);
         }
         return lunchValue;
     }
 
     @Override
-    public void getInfo(Map<String, String> info) {
+    public void getInfo(Assignment<Lecture, Placement> assignment, Map<String, String> info) {
         Set<String> violatedLunchBreaks = new TreeSet<String>();
         int lunchViolations = 0;
         for (InstructorConstraint c : ((TimetableModel)getModel()).getInstructorConstraints()) {
             String days = "";
-            CompactInfo compactInfo = getCompactInfo(c);
+            CompactInfo compactInfo = ((InstructorLunchBreakContext)getContext(assignment)).getCompactInfo(c);
             for (int i = 0; i < Constants.NR_DAYS; i++) {
                 if (compactInfo.getLunchDayViolations()[i] > 0) {
                     if (iFullInfo)
@@ -254,7 +173,7 @@ public class InstructorLunchBreak extends AbstractCriterion<Lecture, Placement> 
     }
 
     @Override
-    public void getInfo(Map<String, String> info, Collection<Lecture> variables) {
+    public void getInfo(Assignment<Lecture, Placement> assignment, Map<String, String> info, Collection<Lecture> variables) {
         Set<InstructorConstraint> constraints = new HashSet<InstructorConstraint>();
         for (Lecture lecture : variables) {
             for (InstructorConstraint c : lecture.getInstructorConstraints()) {
@@ -265,7 +184,7 @@ public class InstructorLunchBreak extends AbstractCriterion<Lecture, Placement> 
         int lunchViolations = 0;
         for (InstructorConstraint c : constraints) {
             String days = "";
-            CompactInfo compactInfo = getCompactInfo(c);
+            CompactInfo compactInfo = ((InstructorLunchBreakContext)getContext(assignment)).getCompactInfo(c);
             for (int i = 0; i < Constants.NR_DAYS; i++) {
                 if (compactInfo.getLunchDayViolations()[i] > 0) {
                     if (iFullInfo)
@@ -300,5 +219,165 @@ public class InstructorLunchBreak extends AbstractCriterion<Lecture, Placement> 
         }
         
         public int[] getLunchDayViolations() { return iLunchDayViolations; }
+    }
+    
+    public class InstructorLunchBreakContext extends ValueContext {
+        private Map<InstructorConstraint, CompactInfo> iCompactInfos = new HashMap<InstructorConstraint, CompactInfo>();
+
+        protected InstructorLunchBreakContext(Assignment<Lecture, Placement> assignment) {
+            for (InstructorConstraint constraint: ((TimetableModel)getModel()).getInstructorConstraints())
+                iTotal += computeLunchPenalty(assignment, constraint);
+        }
+        
+        @Override
+        protected void unassigned(Assignment<Lecture, Placement> assignment, Placement value) {
+            for (InstructorConstraint constraint: value.variable().getInstructorConstraints())
+                updateCriterion(assignment, constraint, value);
+        }
+        
+        @Override
+        protected void assigned(Assignment<Lecture, Placement> assignment, Placement value) {
+            for (InstructorConstraint constraint: value.variable().getInstructorConstraints())
+                updateCriterion(assignment, constraint, value);
+        }
+        
+        /**
+         * Method checks or sets the CompactInfo of an InstructorConstraint. It
+         * updates the preference of chosen criteria. The update consists of
+         * decrementing the criterion value by previous preference, finding the
+         * current preference and incrementing the criterion value by the current
+         * preference.
+         * 
+         * @param instructorConstraint
+         *            the Instructor constraint of an instructor checked for
+         *            criteria
+         * @param placement
+         *            placement of a lecture currently (un)assigned
+         */
+        public void updateCriterion(Assignment<Lecture, Placement> assignment, InstructorConstraint instructorConstraint, Placement placement) {
+            iTotal -= getLunchPreference(assignment, instructorConstraint);
+            updateLunchPenalty(assignment, instructorConstraint, placement);
+            iTotal += getLunchPreference(assignment, instructorConstraint);       
+        }
+
+        /**
+         * Get compact info that is associated with an instructor constraint.
+         * Create a new one if none has been created yet.
+         */
+        protected CompactInfo getCompactInfo(InstructorConstraint constraint) {
+            CompactInfo info = iCompactInfos.get(constraint);
+            if (info == null) {
+                info = new CompactInfo();
+                iCompactInfos.put(constraint, info);
+            }
+            return info;
+        }
+        
+        /**
+         * Method updates number of violations in days (Mo, Tue, Wed,..) considering
+         * each week in the semester separately. The current number of violations
+         * for a day is stored in the CompactInfo.lunchDayViolations of the
+         * constraint, which must be set properly before the calling of the method.
+         * 
+         * @param constraint
+         *            the Instructor constraint of an instructor checked for a lunch
+         *            break
+         * @param p
+         *            placement of a lecture currently (un)assigned
+         */
+        public void updateLunchPenalty(Assignment<Lecture, Placement> assignment, InstructorConstraint constraint, Placement p) {
+            // checks only placements in the lunch time
+            if (p.getTimeLocation().getStartSlot() <= iLunchEnd && p.getTimeLocation().getStartSlot() + p.getTimeLocation().getLength() > iLunchStart) {
+                CompactInfo compactInfo = getCompactInfo(constraint);
+                for (int i = 0; i < Constants.NR_DAYS; i++) {
+                    // checks only days affected by the placement
+                    if ((p.getTimeLocation().getDayCode() & Constants.DAY_CODES[i]) != 0) {
+                        int currentLunchStartSlot = Constants.SLOTS_PER_DAY * i + iLunchStart;
+                        int currentLunchEndSlot = Constants.SLOTS_PER_DAY * i + iLunchEnd;
+                        int semesterViolations = 0;
+                        for (BitSet week : getWeeks()) {
+                            int maxBreak = 0;
+                            int currentBreak = 0;
+                            for (int slot = currentLunchStartSlot; slot < currentLunchEndSlot; slot++) {
+                                if (constraint.getContext(assignment).getPlacements(slot, week).isEmpty()) {
+                                    currentBreak++;
+                                    if (maxBreak < currentBreak) {
+                                        maxBreak = currentBreak;
+                                    }
+                                } else {
+                                    currentBreak = 0;
+                                }
+                            }
+                            if (maxBreak < iLunchLength) {
+                                semesterViolations++;
+                            }
+                        }
+                        // saving the result in the CompactInfo of the
+                        // InstructorConstraint
+                        compactInfo.getLunchDayViolations()[i] = semesterViolations;
+                    }
+                }
+            }
+        }
+        
+        /**
+         * Method computes number of violations in days (Mo, Tue, Wed,..) considering
+         * each week in the semester separately. Updates the compact infos accordingly.
+         */
+        public double computeLunchPenalty(Assignment<Lecture, Placement> assignment, InstructorConstraint constraint) {
+            double violations = 0d;
+            CompactInfo compactInfo = getCompactInfo(constraint);
+            for (int i = 0; i < Constants.NR_DAYS; i++) {
+                int currentLunchStartSlot = Constants.SLOTS_PER_DAY * i + iLunchStart;
+                int currentLunchEndSlot = Constants.SLOTS_PER_DAY * i + iLunchEnd;
+                int semesterViolations = 0;
+                for (BitSet week : getWeeks()) {
+                    int maxBreak = 0;
+                    int currentBreak = 0;
+                    for (int slot = currentLunchStartSlot; slot < currentLunchEndSlot; slot++) {
+                        if (constraint.getContext(assignment).getPlacements(slot, week).isEmpty()) {
+                            currentBreak++;
+                            if (maxBreak < currentBreak) {
+                                maxBreak = currentBreak;
+                            }
+                        } else {
+                            currentBreak = 0;
+                        }
+                    }
+                    if (maxBreak < iLunchLength) {
+                        semesterViolations++;
+                    }
+                }
+                // saving the result in the CompactInfo of the
+                // InstructorConstraint
+                compactInfo.getLunchDayViolations()[i] = semesterViolations;
+                violations += semesterViolations;
+            }
+            return Math.pow(violations, iMultiplier);
+        }
+        
+        /**
+         * Method uses the CompactInfo of the InstructorConstraint and returns the
+         * lunch preference for this constraint. Calculation formula does not use
+         * linear function, the number of violations is multiplied by a power of
+         * iMultiplier.
+         * 
+         * @param instructorConstraint
+         *            the Instructor constraint of an instructor checked for a lunch
+         *            break
+         * @return the lunch preference for this constraint
+         */
+        private double getLunchPreference(Assignment<Lecture, Placement> assignment, InstructorConstraint instructorConstraint) {
+            double violations = 0d;
+            CompactInfo info = getCompactInfo(instructorConstraint);
+            for (int i = 0; i < Constants.NR_DAYS; i++)
+                violations += info.getLunchDayViolations()[i];
+            return Math.pow(violations, iMultiplier); 
+        }
+    }
+    
+    @Override
+    public ValueContext createAssignmentContext(Assignment<Lecture, Placement> assignment) {
+        return new InstructorLunchBreakContext(assignment);
     }
 }

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
@@ -52,13 +53,13 @@ public class ViolatedInitials<V extends Variable<V, T>, T extends Value<V, T>> e
     }
 
     /** Compute the violations between any value and all other initial values */
-    public boolean init() {
+    public boolean init(Assignment<V, T> assignment) {
         sLogger.info("Computation of violated initials enabled.");
         for (V variable : getModel().variables()) {
             if (variable.getInitialAssignment() == null)
                 continue;
             for (Constraint<V, T> constraint : variable.hardConstraints()) {
-                for (T value : conflictValues(constraint, variable.getInitialAssignment())) {
+                for (T value : conflictValues(assignment, constraint, variable.getInitialAssignment())) {
                     addViolatedInitial(value, variable.getInitialAssignment());
                 }
             }
@@ -80,12 +81,12 @@ public class ViolatedInitials<V extends Variable<V, T>, T extends Value<V, T>> e
         violations.add(anotherValue);
     }
 
-    private List<T> conflictValues(Constraint<V, T> constraint, T aValue) {
+    private List<T> conflictValues(Assignment<V, T> assignment, Constraint<V, T> constraint, T aValue) {
         List<T> ret = new ArrayList<T>();
         for (V variable : constraint.variables()) {
             if (variable.equals(aValue.variable()))
                 continue;
-            if (variable.getAssignment() != null)
+            if (assignment.getValue(variable) != null)
                 continue;
             for (T value : variable.values()) {
                 if (!constraint.isConsistent(aValue, value))

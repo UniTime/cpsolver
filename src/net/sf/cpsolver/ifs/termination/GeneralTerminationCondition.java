@@ -83,7 +83,7 @@ public class GeneralTerminationCondition<V extends Variable<V, T>, T extends Val
             return false;
         }
         if (iStopWhenComplete || (iMaxIter < 0 && iTimeOut < 0)) {
-            boolean ret = (currentSolution.getModel().nrUnassignedVariables() != 0);
+            boolean ret = (currentSolution.getAssignment().nrUnassignedVariables(currentSolution.getModel()) != 0);
             if (!ret)
                 sLogger.info("Complete solution found.");
             return ret;

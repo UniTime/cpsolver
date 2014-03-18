@@ -5,6 +5,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.studentsct.reservation.Reservation;
 
 
@@ -38,6 +40,7 @@ import net.sf.cpsolver.studentsct.reservation.Reservation;
 public class Offering {
     private long iId = -1;
     private String iName = null;
+    private Model<Request, Enrollment> iModel = null;
     private List<Config> iConfigs = new ArrayList<Config>();
     private List<Course> iCourses = new ArrayList<Course>();
     private List<Reservation> iReservations = new ArrayList<Reservation>();
@@ -227,11 +230,11 @@ public class Offering {
      * Available space in the offering that is not reserved by any reservation 
      * @param excludeRequest excluding given request (if not null)
      **/
-    public double getUnreservedSpace(Request excludeRequest) {
+    public double getUnreservedSpace(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
         // compute available space
         double available = 0.0;
         for (Config config: getConfigs()) {
-            available += config.getLimit() - config.getEnrollmentWeight(excludeRequest);
+            available += config.getLimit() - config.getContext(assignment).getEnrollmentWeight(assignment, excludeRequest);
             // offering is unlimited -> there is unreserved space unless there is an unlimited reservation too 
             // (in which case there is no unreserved space)
             if (config.getLimit() < 0) {
@@ -252,7 +255,7 @@ public class Offering {
             if (r.isExpired()) continue;
             // unlimited reservation -> no unreserved space
             if (r.getLimit() < 0) return 0.0;
-            reserved += Math.max(0.0, r.getReservedAvailableSpace(excludeRequest));
+            reserved += Math.max(0.0, r.getContext(assignment).getReservedAvailableSpace(assignment, excludeRequest));
         }
         
         return available - reserved;
@@ -281,5 +284,7 @@ public class Offering {
     public int hashCode() {
         return (int) (iId ^ (iId >>> 32));
     }
-
+    
+    public Model<Request, Enrollment> getModel() { return iModel; }
+    public void setModel(Model<Request, Enrollment> model) { iModel = model; }
 }

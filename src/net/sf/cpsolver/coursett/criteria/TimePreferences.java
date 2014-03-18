@@ -7,6 +7,7 @@ import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimeLocation;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -56,7 +57,7 @@ public class TimePreferences extends TimetablingCriterion {
     }
 
     @Override
-    public double getValue(Placement value, Set<Placement> conflicts) {
+    public double getValue(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
         if (value.variable().isCommitted()) return 0.0;
         double ret = value.variable().getWeight() * preference(value);
         if (conflicts != null)
@@ -66,7 +67,7 @@ public class TimePreferences extends TimetablingCriterion {
     }
         
     @Override
-    public double[] getBounds(Collection<Lecture> variables) {
+    public double[] getBounds(Assignment<Lecture, Placement> assignment, Collection<Lecture> variables) {
         double[] bounds = new double[] { 0.0, 0.0 };
         for (Lecture lect: variables) {
             if (lect.isCommitted()) continue;

@@ -13,9 +13,12 @@ import java.util.Set;
 
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamModel;
+import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamRoom;
 import net.sf.cpsolver.exam.model.ExamRoomPlacement;
 import net.sf.cpsolver.exam.model.ExamStudent;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.ifs.util.ToolBox;
@@ -67,7 +70,8 @@ public class MistaTables {
                 File file = new File(args[i]);
                 sLog.info("Loading " + file);
                 ExamModel model = new ExamModel(config);
-                model.load(new SAXReader().read(file));
+                Assignment<Exam, ExamPlacement> assignment = new DefaultSingleAssignment<Exam, ExamPlacement>();
+                model.load(new SAXReader().read(file), assignment);
                 
                 String name = file.getName();
                 if (name.contains("."))

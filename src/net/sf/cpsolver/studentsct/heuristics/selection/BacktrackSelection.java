@@ -2,8 +2,9 @@ package net.sf.cpsolver.studentsct.heuristics.selection;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
@@ -44,15 +45,15 @@ import net.sf.cpsolver.studentsct.model.Request;
 
 public class BacktrackSelection implements NeighbourSelection<Request, Enrollment> {
     private RandomizedBacktrackNeighbourSelection iRBtNSel = null;
-    private Iterator<Request> iRequestIterator = null;
+    protected Queue<Request> iRequests = null;
 
     public BacktrackSelection(DataProperties properties) {
     }
 
     public void init(Solver<Request, Enrollment> solver, String name) {
-        List<Request> unassigned = new ArrayList<Request>(solver.currentSolution().getModel().unassignedVariables());
+        List<Request> unassigned = new ArrayList<Request>(solver.currentSolution().getModel().unassignedVariables(solver.currentSolution().getAssignment()));
         Collections.shuffle(unassigned);
-        iRequestIterator = unassigned.iterator();
+        iRequests = new LinkedList<Request>(unassigned);
         if (iRBtNSel == null) {
             try {
                 iRBtNSel = new RandomizedBacktrackNeighbourSelection(solver.getProperties());
@@ -68,14 +69,18 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
     public void init(Solver<Request, Enrollment> solver) {
         init(solver, "Backtracking...");
     }
+    
+    protected synchronized Request nextRequest() {
+        return iRequests.poll();
+    }
 
     @Override
     public Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
-        while (iRequestIterator.hasNext()) {
-            Request request = iRequestIterator.next();
+        Request request = null;
+        while ((request = nextRequest()) != null) {
             Progress.getInstance(solution.getModel()).incProgress();
             Neighbour<Request, Enrollment> n = iRBtNSel.selectNeighbour(solution, request);
-            if (n != null && n.value() <= 0.0)
+            if (n != null && n.value(solution.getAssignment()) <= 0.0)
                 return n;
         }
         return null;

@@ -1,5 +1,6 @@
 package net.sf.cpsolver.ifs.algorithms;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Neighbour;
@@ -12,7 +13,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
 /**
  * Hill climber. In each iteration, one of the given neighbourhoods is selected first,
  * then a neighbour is generated and it is accepted if its value
- * {@link Neighbour#value()} is below or equal to zero. The search is
+ * {@link Neighbour#value(Assignment)} is below or equal to zero. The search is
  * stopped after a given amount of idle iterations ( can be defined by problem
  * property HillClimber.MaxIdle). <br>
  * <br>
@@ -28,7 +29,7 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  * Selector RandomSwapMove is 10&times; less probable to be selected than other selectors.
  * When HillClimber.Random is true, all selectors are selected with the same probability, ignoring these weights.
  * <br><br>
- * When HillClimber.Update is true, {@link NeighbourSelector#update(Neighbour, long)} is called 
+ * When HillClimber.Update is true, {@link NeighbourSelector#update(Assignment, Neighbour, long)} is called 
  * after each iteration (on the selector that was used) and roulette wheel selection 
  * that is using {@link NeighbourSelector#getPoints()} is used to pick a selector in each iteration. 
  * See {@link NeighbourSelector} for more details. 
@@ -55,8 +56,6 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  */
 public class HillClimber<V extends Variable<V, T>, T extends Value<V, T>> extends NeighbourSearch<V, T> {
     protected int iMaxIdleIters = 10000;
-    protected int iLastImprovingIter = 0;
-    protected double iBestValue = 0;
     protected boolean iSetHCMode = false;
 
     /**
@@ -93,57 +92,56 @@ public class HillClimber<V extends Variable<V, T>, T extends Value<V, T>> extend
     }
     
     /**
-     * Increase iteration counter
-     */
-    @Override
-    protected void incIteration(Solution<V, T> solution) {
-        super.incIteration(solution);
-        if (iIter % 10000 == 0) {
-            iLog.info("Iter=" + (iIter / 1000)+"k, NonImpIter=" + iDF2.format((iIter-iLastImprovingIter)/1000.0)+"k, Speed="+iDF2.format(1000.0*iIter/getTimeMillis())+" it/s");
-            logNeibourStatus();
-        }
-        iProgress.setProgress(Math.round(100.0 * (iIter - iLastImprovingIter) / iMaxIdleIters));
-    }
-    
-    /**
-     * Stop the search after a given number of idle (not improving) iterations
-     */
-    @Override
-    protected boolean canContinue(Solution<V, T> solution) {
-        return iIter - iLastImprovingIter < iMaxIdleIters;
-    }
-    
-    /**
-     * Reset the idle iterations counter
-     */
-    @Override
-    protected void activate(Solution<V, T> solution) {
-        super.activate(solution);
-        iLastImprovingIter = iIter;
-    }
-    
-    /**
-     * Memorize the iteration when the last best solution was found.
-     */
-    @Override
-    public void bestSaved(Solution<V, T> solution) {
-        if (Math.abs(iBestValue - solution.getBestValue()) >= 1.0) {
-            iLastImprovingIter = iIter;
-            iBestValue = solution.getBestValue();
-        }
-    }
-    
-    /**
-     * Accept any move that does not worsen the solution (value <= 0)
-     */
-    @Override
-    protected boolean accept(Model<V, T> model, Neighbour<V, T> neighbour, double value, boolean lazy) {
-        return value <= 0;
-    }
-
-    /**
      * All parameters start with HillClimber base name, e.g., HillClimber.MaxIdle 
      */
     @Override
     public String getParameterBaseName() { return "HillClimber"; }
+    
+    @Override
+    public NeighbourSearchContext createAssignmentContext(Assignment<V, T> assignment) {
+        return new HillClimberContext();
+    }
+    
+    public class HillClimberContext extends NeighbourSearchContext {
+        protected int iLastImprovingIter = 0;
+
+        /**
+         * Increase iteration counter
+         */
+        @Override
+        protected void incIteration(Solution<V, T> solution) {
+            super.incIteration(solution);
+            if (iIter % 10000 == 0) {
+                info("Iter=" + (iIter / 1000)+"k, NonImpIter=" + iDF2.format((iIter-iLastImprovingIter)/1000.0)+"k, Speed="+iDF2.format(1000.0*iIter/getTimeMillis())+" it/s");
+                logNeibourStatus();
+            }
+            setProgress(Math.round(100.0 * (iIter - iLastImprovingIter) / iMaxIdleIters));
+        }
+        
+        /**
+         * Stop the search after a given number of idle (not improving) iterations
+         */
+        @Override
+        protected boolean canContinue(Solution<V, T> solution) {
+            return iIter - iLastImprovingIter < iMaxIdleIters;
+        }
+        
+        /**
+         * Reset the idle iterations counter
+         */
+        @Override
+        protected void activate(Solution<V, T> solution) {
+            super.activate(solution);
+            iLastImprovingIter = iIter;
+        }
+        
+        /**
+         * Accept any move that does not worsen the solution (value <= 0)
+         */
+        @Override
+        protected boolean accept(Assignment<V, T> assignment, Model<V, T> model, Neighbour<V, T> neighbour, double value, boolean lazy) {
+            if (value < 0) iLastImprovingIter = iIter;
+            return value <= 0;
+        }
+    }
 }

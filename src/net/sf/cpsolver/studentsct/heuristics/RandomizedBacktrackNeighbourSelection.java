@@ -3,6 +3,7 @@ package net.sf.cpsolver.studentsct.heuristics;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.heuristics.BacktrackNeighbourSelection;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
@@ -13,7 +14,7 @@ import net.sf.cpsolver.studentsct.model.Request;
  * Randomized backtracking-based neighbour selection. This class extends
  * {@link RandomizedBacktrackNeighbourSelection}, however, only a randomly
  * selected subset of enrollments of each request is considered (
- * {@link CourseRequest#computeRandomEnrollments(int)} with the given limit is
+ * {@link CourseRequest#computeRandomEnrollments(Assignment, int)} with the given limit is
  * used).
  * 
  * <br>
@@ -75,11 +76,10 @@ public class RandomizedBacktrackNeighbourSelection extends BacktrackNeighbourSel
      * limit is used for a {@link CourseRequest}.
      */
     @Override
-    protected Iterator<Enrollment> values(Request variable) {
+    protected Iterator<Enrollment> values(BacktrackNeighbourSelection<Request, Enrollment>.BacktrackNeighbourSelectionContext context, Request variable) {
         if (iMaxValues > 0 && variable instanceof CourseRequest) {
-            return new ArrayList<Enrollment>(((CourseRequest) variable).computeRandomEnrollments(iMaxValues))
-                    .iterator();
+            return new ArrayList<Enrollment>(((CourseRequest) variable).computeRandomEnrollments(context.getAssignment(), iMaxValues)).iterator();
         }
-        return variable.values().iterator();
+        return variable.computeEnrollments(context.getAssignment()).iterator();
     }
 }

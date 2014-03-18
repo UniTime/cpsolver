@@ -2,6 +2,7 @@ package net.sf.cpsolver.ifs.example.jobshop;
 
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Constraint;
 
 /**
@@ -52,13 +53,13 @@ public class Machine extends Constraint<Operation, Location> {
      * Adds conflicting operations into the set of conflicts.
      */
     @Override
-    public void computeConflicts(Location location, Set<Location> conflicts) {
-        for (Operation o : assignedVariables()) {
-            if (o.getOperationNumber() == location.variable().getOperationNumber()
-                    && o.getJobNumber() == location.variable().getJobNumber())
+    public void computeConflicts(Assignment<Operation, Location> assignment, Location location, Set<Location> conflicts) {
+        for (Operation o : assignedVariables(assignment)) {
+            if (o.getOperationNumber() == location.variable().getOperationNumber() && o.getJobNumber() == location.variable().getJobNumber())
                 continue;
-            if (o.getAssignment().overlap(location))
-                conflicts.add(o.getAssignment());
+            Location conf = assignment.getValue(o);
+            if (conf.overlap(location))
+                conflicts.add(conf);
         }
     }
 
@@ -67,12 +68,12 @@ public class Machine extends Constraint<Operation, Location> {
      * given assignment.
      */
     @Override
-    public boolean inConflict(Location location) {
-        for (Operation o : assignedVariables()) {
+    public boolean inConflict(Assignment<Operation, Location> assignment, Location location) {
+        for (Operation o : assignedVariables(assignment)) {
             if (o.getOperationNumber() == location.variable().getOperationNumber()
                     && o.getJobNumber() == location.variable().getJobNumber())
                 continue;
-            if (o.getAssignment().overlap(location))
+            if (assignment.getValue(o).overlap(location))
                 return true;
         }
         return false;

@@ -17,6 +17,7 @@ import net.sf.cpsolver.exam.model.ExamPeriodPlacement;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamRoomPlacement;
 import net.sf.cpsolver.exam.model.ExamRoomSharing;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.LazySwap;
 import net.sf.cpsolver.ifs.model.Neighbour;
@@ -75,41 +76,44 @@ public class ExamPeriodSwapMove implements NeighbourSelection<Exam,ExamPlacement
     /**
      * Select an exam randomly,
      * select an available period randomly (if it is not assigned), 
-     * use rooms if possible, select rooms using {@link Exam#findBestAvailableRooms(ExamPeriodPlacement)} if not (exam is unassigned, a room is not available or used).
+     * use rooms if possible, select rooms using {@link Exam#findBestAvailableRooms(Assignment, ExamPeriodPlacement)} if not (exam is unassigned, a room is not available or used).
      */
     @Override
     public Neighbour<Exam,ExamPlacement> selectNeighbour(Solution<Exam,ExamPlacement> solution) {
         ExamModel model = (ExamModel)solution.getModel();
+        Assignment<Exam, ExamPlacement> assignment = solution.getAssignment();
         Exam x1 = ToolBox.random(model.variables());
-        if (x1.getAssignment() == null) return null;
+        ExamPlacement v1 = assignment.getValue(x1);
+        if (v1 == null) return null;
         int x = ToolBox.random(model.variables().size());
         for (int v = 0; v < model.variables().size(); v++) {
             Exam x2 = model.variables().get((v + x) % (model.variables().size()));
-            if (x1.equals(x2) || x2.getAssignment() == null) continue;
-            ExamPeriodPlacement p1 = x1.getPeriodPlacement(x2.getAssignment().getPeriod());
-            ExamPeriodPlacement p2 = x2.getPeriodPlacement(x1.getAssignment().getPeriod());
+            ExamPlacement v2 = assignment.getValue(x2);
+            if (x1.equals(x2) || v2 == null) continue;
+            ExamPeriodPlacement p1 = x1.getPeriodPlacement(v2.getPeriod());
+            ExamPeriodPlacement p2 = x2.getPeriodPlacement(v1.getPeriod());
             if (p1 == null || p2 == null) continue;
-            if (iCheckStudentConflicts && (x1.countStudentConflicts(p1) > 0 || x2.countStudentConflicts(p2) > 0)) continue;
+            if (iCheckStudentConflicts && (x1.countStudentConflicts(assignment, p1) > 0 || x2.countStudentConflicts(assignment, p2) > 0)) continue;
             if (iCheckDistributionConstraints) {
                 Map<Exam, ExamPlacement> placements = new HashMap<Exam, ExamPlacement>();
                 placements.put(x1, new ExamPlacement(x1, p1, new HashSet<ExamRoomPlacement>()));
                 placements.put(x2, new ExamPlacement(x2, p2, new HashSet<ExamRoomPlacement>()));
-                if (!checkDistributionConstraints(x1, p1, placements) || !checkDistributionConstraints(x2, p2, placements)) continue;
+                if (!checkDistributionConstraints(assignment, x1, p1, placements) || !checkDistributionConstraints(assignment, x2, p2, placements)) continue;
             }
             Set<ExamPlacement> conflicts = new HashSet<ExamPlacement>();
-            conflicts.add(x1.getAssignment()); conflicts.add(x2.getAssignment());
+            conflicts.add(v1); conflicts.add(v2);
             Map<Exam, ExamPlacement> placements = new HashMap<Exam, ExamPlacement>();
-            Set<ExamRoomPlacement> r1 = findBestAvailableRooms(x1, p1, conflicts, placements);
+            Set<ExamRoomPlacement> r1 = findBestAvailableRooms(assignment, x1, p1, conflicts, placements);
             if (r1 == null) continue;
             placements.put(x1, new ExamPlacement(x1, p1, r1));
-            Set<ExamRoomPlacement> r2 = findBestAvailableRooms(x2, p2, conflicts, placements);
+            Set<ExamRoomPlacement> r2 = findBestAvailableRooms(assignment, x2, p2, conflicts, placements);
             if (r2 == null) continue;
             return new LazySwap<Exam, ExamPlacement>(new ExamPlacement(x1, p1, r1), new ExamPlacement(x2, p2, r2));
         }
         return null;
     }
     
-    public boolean checkDistributionConstraints(Exam exam, ExamPeriodPlacement period, Map<Exam, ExamPlacement> placements) {
+    public boolean checkDistributionConstraints(Assignment<Exam, ExamPlacement> assignment, Exam exam, ExamPeriodPlacement period, Map<Exam, ExamPlacement> placements) {
         for (ExamDistributionConstraint dc : exam.getDistributionConstraints()) {
             if (!dc.isHard())
                 continue;
@@ -119,7 +123,7 @@ public class ExamPeriodSwapMove implements NeighbourSelection<Exam,ExamPlacement
                     before = false;
                     continue;
                 }
-                ExamPlacement placement = (placements.containsKey(other) ? placements.get(other) : other.getAssignment());
+                ExamPlacement placement = (placements.containsKey(other) ? placements.get(other) : assignment.getValue(other));
                 if (placement == null) continue;
                 switch (dc.getType()) {
                     case ExamDistributionConstraint.sDistSamePeriod:
@@ -154,13 +158,13 @@ public class ExamPeriodSwapMove implements NeighbourSelection<Exam,ExamPlacement
         return true;
     }
     
-    public boolean checkDistributionConstraints(Exam exam, ExamRoomPlacement room, Set<ExamPlacement> conflictsToIgnore, Map<Exam, ExamPlacement> placements) {
+    public boolean checkDistributionConstraints(Assignment<Exam, ExamPlacement> assignment, Exam exam, ExamRoomPlacement room, Set<ExamPlacement> conflictsToIgnore, Map<Exam, ExamPlacement> placements) {
         for (ExamDistributionConstraint dc : exam.getDistributionConstraints()) {
             if (!dc.isHard())
                 continue;
             for (Exam other : dc.variables()) {
                 if (other.equals(exam)) continue;
-                ExamPlacement placement = (placements.containsKey(other) ? placements.get(other) : other.getAssignment());
+                ExamPlacement placement = (placements.containsKey(other) ? placements.get(other) : assignment.getValue(other));
                 if (placement == null || conflictsToIgnore.contains(placement)) continue;
                 switch (dc.getType()) {
                     case ExamDistributionConstraint.sDistSameRoom:
@@ -177,13 +181,13 @@ public class ExamPeriodSwapMove implements NeighbourSelection<Exam,ExamPlacement
         return true;
     }
     
-    public int getDistributionConstraintPenalty(Exam exam, ExamRoomPlacement room,  Set<ExamPlacement> conflictsToIgnore, Map<Exam, ExamPlacement> placements) {
+    public int getDistributionConstraintPenalty(Assignment<Exam, ExamPlacement> assignment, Exam exam, ExamRoomPlacement room,  Set<ExamPlacement> conflictsToIgnore, Map<Exam, ExamPlacement> placements) {
         int penalty = 0;
         for (ExamDistributionConstraint dc : exam.getDistributionConstraints()) {
             if (dc.isHard()) continue;
             for (Exam other : dc.variables()) {
                 if (other.equals(this)) continue;
-                ExamPlacement placement = (placements.containsKey(other) ? placements.get(other) : other.getAssignment());
+                ExamPlacement placement = (placements.containsKey(other) ? placements.get(other) : assignment.getValue(other));
                 if (placement == null || conflictsToIgnore.contains(placement)) continue;
                 switch (dc.getType()) {
                     case ExamDistributionConstraint.sDistSameRoom:
@@ -200,7 +204,7 @@ public class ExamPeriodSwapMove implements NeighbourSelection<Exam,ExamPlacement
         return penalty;
     }
     
-    public Set<ExamRoomPlacement> findBestAvailableRooms(Exam exam, ExamPeriodPlacement period, Set<ExamPlacement> conflictsToIgnore, Map<Exam, ExamPlacement> placements) {
+    public Set<ExamRoomPlacement> findBestAvailableRooms(Assignment<Exam, ExamPlacement> assignment, Exam exam, ExamPeriodPlacement period, Set<ExamPlacement> conflictsToIgnore, Map<Exam, ExamPlacement> placements) {
         if (exam.getMaxRooms() == 0)
             return new HashSet<ExamRoomPlacement>();
         double sw = exam.getModel().getCriterion(RoomSizePenalty.class).getWeight();
@@ -220,7 +224,7 @@ public class ExamPeriodSwapMove implements NeighbourSelection<Exam,ExamPlacement
                     if (rooms.contains(room)) continue;
                     
                     List<ExamPlacement> overlaps = new ArrayList<ExamPlacement>();
-                    for (ExamPlacement overlap: room.getRoom().getPlacements(period.getPeriod()))
+                    for (ExamPlacement overlap: room.getRoom().getPlacements(assignment, period.getPeriod()))
                         if (!conflictsToIgnore.contains(overlap)) overlaps.add(overlap);
                     for (ExamPlacement other: placements.values())
                         if (other.getPeriod().equals(period.getPeriod()))
@@ -237,11 +241,11 @@ public class ExamPeriodSwapMove implements NeighbourSelection<Exam,ExamPlacement
                         if (!overlaps.isEmpty())
                             continue;
                     }
-                    if (iCheckDistributionConstraints && !checkDistributionConstraints(exam, room, conflictsToIgnore, placements)) continue;
+                    if (iCheckDistributionConstraints && !checkDistributionConstraints(assignment, exam, room, conflictsToIgnore, placements)) continue;
                     int s = room.getSize(exam.hasAltSeating());
                     if (s < minSize) break;
                     int p = room.getPenalty(period.getPeriod());
-                    double w = pw * p + sw * (s - minSize) + cw * getDistributionConstraintPenalty(exam, room, conflictsToIgnore, placements);
+                    double w = pw * p + sw * (s - minSize) + cw * getDistributionConstraintPenalty(assignment, exam, room, conflictsToIgnore, placements);
                     double d = 0;
                     if (!rooms.isEmpty()) {
                         for (ExamRoomPlacement r : rooms) {

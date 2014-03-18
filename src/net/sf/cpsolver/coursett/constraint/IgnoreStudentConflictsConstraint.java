@@ -5,6 +5,7 @@ import java.util.Set;
 import net.sf.cpsolver.coursett.criteria.StudentConflict;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Constraint;
 
 /**
@@ -46,7 +47,7 @@ public class IgnoreStudentConflictsConstraint extends Constraint<Lecture, Placem
     }
 
     @Override
-    public void computeConflicts(Placement value, Set<Placement> conflicts) {
+    public void computeConflicts(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
     }
     
     @Override

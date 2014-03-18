@@ -1,7 +1,10 @@
 package net.sf.cpsolver.studentsct.heuristics.selection;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
@@ -98,7 +101,7 @@ public class RandomUnassignmentSelection implements NeighbourSelection<Request, 
     }
 
     /** Unassignment of all requests of a student */
-    public static class UnassignStudentNeighbour extends Neighbour<Request, Enrollment> {
+    public static class UnassignStudentNeighbour implements Neighbour<Request, Enrollment> {
         private Student iStudent = null;
 
         /**
@@ -112,22 +115,21 @@ public class RandomUnassignmentSelection implements NeighbourSelection<Request, 
         }
 
         @Override
-        public double value() {
+        public double value(Assignment<Request, Enrollment> assignment) {
             double val = 0;
             for (Request request : iStudent.getRequests()) {
-                if (request.getAssignment() != null)
-                    val -= request.getAssignment().toDouble();
+                Enrollment enrollment = assignment.getValue(request);
+                if (enrollment != null)
+                    val -= enrollment.toDouble(assignment);
             }
             return val;
         }
 
         /** All requests of the given student are unassigned */
         @Override
-        public void assign(long iteration) {
-            for (Request request : iStudent.getRequests()) {
-                if (request.getAssignment() != null)
-                    request.unassign(iteration);
-            }
+        public void assign(Assignment<Request, Enrollment> assignment, long iteration) {
+            for (Request request : iStudent.getRequests())
+                assignment.unassign(iteration, request);
         }
 
         @Override
@@ -136,6 +138,14 @@ public class RandomUnassignmentSelection implements NeighbourSelection<Request, 
             sb.append(" " + iStudent);
             sb.append(" }");
             return sb.toString();
+        }
+
+        @Override
+        public Map<Request, Enrollment> assignments() {
+            Map<Request, Enrollment> ret = new HashMap<Request, Enrollment>();
+            for (Request request : iStudent.getRequests())
+                ret.put(request, null);
+            return ret;
         }
 
     }

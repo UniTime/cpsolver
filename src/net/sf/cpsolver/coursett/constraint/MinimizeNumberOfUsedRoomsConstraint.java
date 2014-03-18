@@ -7,13 +7,16 @@ import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomLocation;
-import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import net.sf.cpsolver.ifs.assignment.context.ConstraintWithContext;
 import net.sf.cpsolver.ifs.model.WeakeningConstraint;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
@@ -45,84 +48,20 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class MinimizeNumberOfUsedRoomsConstraint extends Constraint<Lecture, Placement> implements WeakeningConstraint<Lecture, Placement> {
+public class MinimizeNumberOfUsedRoomsConstraint extends ConstraintWithContext<Lecture, Placement, MinimizeNumberOfUsedRoomsConstraint.MinimizeNumberOfUsedRoomsConstraintContext> implements WeakeningConstraint<Lecture, Placement> {
     private int iUnassignmentsToWeaken = 250;
-    private long iUnassignment = 0;
-    private int iLimit = 1;
-    private HashMap<RoomLocation, Set<Lecture>> iUsedRooms = new HashMap<RoomLocation, Set<Lecture>>();
-    boolean iEnabled = false;
 
     public MinimizeNumberOfUsedRoomsConstraint(DataProperties config) {
-        iUnassignmentsToWeaken = config.getPropertyInt("MinimizeNumberOfUsedRooms.Unassignments2Weaken",
-                iUnassignmentsToWeaken);
-    }
-
-    public boolean isOverLimit(Placement placement) {
-        return getOverLimit(placement) > 0;
-    }
-
-    public int getOverLimit(Placement placement) {
-        if (!iEnabled)
-            return 0; // not enabled
-        if (iUnassignmentsToWeaken == 0)
-            return 0; // not working
-
-        Lecture lecture = placement.variable();
-
-        if (lecture.getNrRooms() <= 0)
-            return 0; // no room
-        if (lecture.roomLocations().size() == lecture.getNrRooms())
-            return 0; // required room
-        if (lecture.isCommitted())
-            return 0; // commited class
-
-        int usage = iUsedRooms.size();
-        if (usage + lecture.getNrRooms() <= iLimit)
-            return 0; // under the limit, quick check
-
-        if (placement.isMultiRoom()) {
-            HashSet<RoomLocation> assignedRooms = new HashSet<RoomLocation>();
-            if (lecture.getAssignment() != null)
-                assignedRooms.addAll(lecture.getAssignment().getRoomLocations());
-            for (RoomLocation r : placement.getRoomLocations()) {
-                if (assignedRooms.remove(r))
-                    continue;
-                if (!iUsedRooms.containsKey(r))
-                    usage++;
-            }
-            for (RoomLocation r : assignedRooms) {
-                Set<Lecture> lects = iUsedRooms.get(r);
-                if (lects != null && lects.size() == 1)
-                    usage--;
-            }
-        } else {
-            RoomLocation assignedRoom = (lecture.getAssignment() != null && !lecture.getAssignment().equals(placement) ? lecture
-                    .getAssignment().getRoomLocation()
-                    : null);
-            RoomLocation room = placement.getRoomLocation();
-            if (!room.equals(assignedRoom)) {
-                if (!iUsedRooms.containsKey(room))
-                    usage++;
-                if (assignedRoom != null) {
-                    Set<Lecture> lects = iUsedRooms.get(assignedRoom);
-                    if (lects != null && lects.size() == 1)
-                        usage--;
-                }
-            }
-        }
-        if (usage <= iUsedRooms.size())
-            return 0; // number of used rooms not changed
-        if (usage <= iLimit)
-            return 0; // under the limit
-        return usage - iLimit;
+        iUnassignmentsToWeaken = config.getPropertyInt("MinimizeNumberOfUsedRooms.Unassignments2Weaken", iUnassignmentsToWeaken);
     }
 
     @Override
-    public void computeConflicts(Placement placement, Set<Placement> conflicts) {
-        int overLimit = getOverLimit(placement);
+    public void computeConflicts(Assignment<Lecture, Placement> assignment, Placement placement, Set<Placement> conflicts) {
+        MinimizeNumberOfUsedRoomsConstraintContext context = getContext(assignment);
+        int overLimit = context.getOverLimit(assignment, placement);
         if (overLimit > 0) {
             List<List<Placement>> adepts = new ArrayList<List<Placement>>();
-            for (Set<Lecture> lects: iUsedRooms.values()) {
+            for (Set<Lecture> lects: context.getUsedRooms().values()) {
                 List<Placement> placementsToUnassign = new ArrayList<Placement>();
                 boolean canUnassign = true;
                 for (Lecture l : lects) {
@@ -130,8 +69,9 @@ public class MinimizeNumberOfUsedRoomsConstraint extends Constraint<Lecture, Pla
                         canUnassign = false;
                         break;
                     }
-                    if (!conflicts.contains(l.getAssignment()))
-                        placementsToUnassign.add(l.getAssignment());
+                    Placement p = assignment.getValue(l);
+                    if (!conflicts.contains(p))
+                        placementsToUnassign.add(p);
                 }
                 if (!canUnassign)
                     continue;
@@ -154,75 +94,11 @@ public class MinimizeNumberOfUsedRoomsConstraint extends Constraint<Lecture, Pla
     }
 
     @Override
-    public boolean inConflict(Placement placeement) {
-        return isOverLimit(placeement);
+    public boolean inConflict(Assignment<Lecture, Placement> assignment, Placement placement) {
+        return getContext(assignment).isOverLimit(assignment, placement);
     }
 
-    @Override
-    public boolean isConsistent(Placement value1, Placement value2) {
-        return (isOverLimit(value1) || isOverLimit(value2));
-    }
-
-    @Override
-    public void assigned(long iteration, Placement placement) {
-        super.assigned(iteration, placement);
-        Lecture lecture = placement.variable();
-        if (lecture.getNrRooms() <= 0)
-            return;
-        if (placement.isMultiRoom()) {
-            for (RoomLocation r : placement.getRoomLocations()) {
-                Set<Lecture> lects = iUsedRooms.get(r);
-                if (lects == null) {
-                    lects = new HashSet<Lecture>();
-                    iUsedRooms.put(r, lects);
-                }
-                lects.add(lecture);
-            }
-        } else {
-            RoomLocation r = placement.getRoomLocation();
-            Set<Lecture> lects = iUsedRooms.get(r);
-            if (lects == null) {
-                lects = new HashSet<Lecture>();
-                iUsedRooms.put(r, lects);
-            }
-            lects.add(lecture);
-        }
-    }
-
-    @Override
-    public void unassigned(long iteration, Placement placement) {
-        super.unassigned(iteration, placement);
-        Lecture lecture = placement.variable();
-        if (lecture.getNrRooms() <= 0)
-            return;
-        if (placement.isMultiRoom()) {
-            for (RoomLocation r : placement.getRoomLocations()) {
-                Set<Lecture> lects = iUsedRooms.get(r);
-                if (lects != null) {
-                    lects.remove(lecture);
-                    if (lects.isEmpty())
-                        iUsedRooms.remove(r);
-                }
-            }
-        } else {
-            RoomLocation r = placement.getRoomLocation();
-            Set<Lecture> lects = iUsedRooms.get(r);
-            if (lects != null) {
-                lects.remove(lecture);
-                if (lects.isEmpty())
-                    iUsedRooms.remove(r);
-            }
-        }
-    }
-
-    @Override
-    public void weaken() {
-        iUnassignment++;
-        if (iUnassignmentsToWeaken > 0 && iUnassignment % iUnassignmentsToWeaken == 0)
-            iLimit++;
-    }
-
-    @Override
+        @Override
     public String getName() {
         return "Minimize number of used rooms";
     }
@@ -267,15 +143,6 @@ public class MinimizeNumberOfUsedRoomsConstraint extends Constraint<Lecture, Pla
         return Math.max(1, Math.max(mandatoryRooms.size(), maxAverageRooms));
     }
 
-    public void setEnabled(boolean enabled) {
-        iEnabled = enabled;
-        iLimit = Math.max(iUsedRooms.size(), estimateLimit());
-    }
-
-    public boolean isEnabled() {
-        return iEnabled;
-    }
-
     @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
@@ -288,10 +155,159 @@ public class MinimizeNumberOfUsedRoomsConstraint extends Constraint<Lecture, Pla
         }
         return sb.toString();
     }
+    
+    @Override
+    public void weaken(Assignment<Lecture, Placement> assignment) {
+        if (iUnassignmentsToWeaken > 0)
+            getContext(assignment).weaken();
+    }
 
     @Override
-    public void weaken(Placement value) {
-        if (isOverLimit(value))
-            iLimit += getOverLimit(value);
+    public void weaken(Assignment<Lecture, Placement> assignment, Placement value) {
+        getContext(assignment).weaken(assignment, value);
     }
+    
+    @Override
+    public MinimizeNumberOfUsedRoomsConstraintContext createAssignmentContext(Assignment<Lecture, Placement> assignment) {
+        return new MinimizeNumberOfUsedRoomsConstraintContext(assignment);
+    }
+
+    public class MinimizeNumberOfUsedRoomsConstraintContext implements AssignmentConstraintContext<Lecture, Placement> {
+        private long iUnassignment = 0;
+        private int iLimit = 1;
+        private Map<RoomLocation, Set<Lecture>> iUsedRooms = new HashMap<RoomLocation, Set<Lecture>>();
+
+        public MinimizeNumberOfUsedRoomsConstraintContext(Assignment<Lecture, Placement> assignment) {
+            for (Lecture lecture: variables()) {
+                Placement placement = assignment.getValue(lecture);
+                if (placement != null)
+                    assigned(assignment, placement);
+            }
+            iLimit = Math.max(iUsedRooms.size(), estimateLimit());
+        }
+
+        @Override
+        public void assigned(Assignment<Lecture, Placement> assignment, Placement placement) {
+            Lecture lecture = placement.variable();
+            if (lecture.getNrRooms() <= 0)
+                return;
+            if (placement.isMultiRoom()) {
+                for (RoomLocation r : placement.getRoomLocations()) {
+                    Set<Lecture> lects = iUsedRooms.get(r);
+                    if (lects == null) {
+                        lects = new HashSet<Lecture>();
+                        iUsedRooms.put(r, lects);
+                    }
+                    lects.add(lecture);
+                }
+            } else {
+                RoomLocation r = placement.getRoomLocation();
+                Set<Lecture> lects = iUsedRooms.get(r);
+                if (lects == null) {
+                    lects = new HashSet<Lecture>();
+                    iUsedRooms.put(r, lects);
+                }
+                lects.add(lecture);
+            }
+        }
+
+        @Override
+        public void unassigned(Assignment<Lecture, Placement> assignment, Placement placement) {
+            Lecture lecture = placement.variable();
+            if (lecture.getNrRooms() <= 0)
+                return;
+            if (placement.isMultiRoom()) {
+                for (RoomLocation r : placement.getRoomLocations()) {
+                    Set<Lecture> lects = iUsedRooms.get(r);
+                    if (lects != null) {
+                        lects.remove(lecture);
+                        if (lects.isEmpty())
+                            iUsedRooms.remove(r);
+                    }
+                }
+            } else {
+                RoomLocation r = placement.getRoomLocation();
+                Set<Lecture> lects = iUsedRooms.get(r);
+                if (lects != null) {
+                    lects.remove(lecture);
+                    if (lects.isEmpty())
+                        iUsedRooms.remove(r);
+                }
+            }
+        }
+        
+        public boolean isOverLimit(Assignment<Lecture, Placement> assignment, Placement placement) {
+            return getOverLimit(assignment, placement) > 0;
+        }
+
+        public int getOverLimit(Assignment<Lecture, Placement> assignment, Placement placement) {
+            if (iUnassignmentsToWeaken == 0)
+                return 0; // not working
+
+            Lecture lecture = placement.variable();
+
+            if (lecture.getNrRooms() <= 0)
+                return 0; // no room
+            if (lecture.roomLocations().size() == lecture.getNrRooms())
+                return 0; // required room
+            if (lecture.isCommitted())
+                return 0; // commited class
+            
+            Placement current = assignment.getValue(lecture);
+
+            int usage = iUsedRooms.size();
+            if (usage + lecture.getNrRooms() <= iLimit)
+                return 0; // under the limit, quick check
+
+            if (placement.isMultiRoom()) {
+                HashSet<RoomLocation> assignedRooms = new HashSet<RoomLocation>();
+                if (current != null)
+                    assignedRooms.addAll(current.getRoomLocations());
+                for (RoomLocation r : placement.getRoomLocations()) {
+                    if (assignedRooms.remove(r))
+                        continue;
+                    if (!iUsedRooms.containsKey(r))
+                        usage++;
+                }
+                for (RoomLocation r : assignedRooms) {
+                    Set<Lecture> lects = iUsedRooms.get(r);
+                    if (lects != null && lects.size() == 1)
+                        usage--;
+                }
+            } else {
+                RoomLocation assignedRoom = (current != null && !current.equals(placement) ? current.getRoomLocation() : null);
+                RoomLocation room = placement.getRoomLocation();
+                if (!room.equals(assignedRoom)) {
+                    if (!iUsedRooms.containsKey(room))
+                        usage++;
+                    if (assignedRoom != null) {
+                        Set<Lecture> lects = iUsedRooms.get(assignedRoom);
+                        if (lects != null && lects.size() == 1)
+                            usage--;
+                    }
+                }
+            }
+            if (usage <= iUsedRooms.size())
+                return 0; // number of used rooms not changed
+            if (usage <= iLimit)
+                return 0; // under the limit
+            return usage - iLimit;
+        }
+        
+        public void weaken(Assignment<Lecture, Placement> assignment, Placement value) {
+            if (isOverLimit(assignment, value))
+                iLimit += getOverLimit(assignment, value);
+        }
+        
+        public void weaken() {
+            iUnassignment++;
+            if (iUnassignmentsToWeaken > 0 && iUnassignment % iUnassignmentsToWeaken == 0)
+                iLimit++;
+        }
+        
+        public Map<RoomLocation, Set<Lecture>> getUsedRooms() {
+            return iUsedRooms;
+        }
+    }
+
 }

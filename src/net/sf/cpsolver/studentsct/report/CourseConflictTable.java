@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.GlobalConstraint;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.DataProperties;
@@ -116,7 +117,7 @@ public class CourseConflictTable implements StudentSectioningReport {
      * @return a set of explanations, (e.g., AB 101 Lec 1 MWF 7:30 - 8:20 vs AB
      *         201 Lec 1 F 7:30 - 9:20)
      */
-    private Set<String> explanations(Enrollment enrl, Enrollment conflict) {
+    private Set<String> explanations(Assignment<Request, Enrollment> assignment, Enrollment enrl, Enrollment conflict) {
         Set<String> expl = new HashSet<String>();
         for (Section s1 : enrl.getSections()) {
             for (Section s2 : conflict.getSections()) {
@@ -127,17 +128,17 @@ public class CourseConflictTable implements StudentSectioningReport {
         }
         for (Section s1 : enrl.getSections()) {
             if (conflict.getAssignments().contains(s1)
-                    && SectionLimit.getEnrollmentWeight(s1, enrl.getRequest()) > s1.getLimit()) {
+                    && SectionLimit.getEnrollmentWeight(assignment, s1, enrl.getRequest()) > s1.getLimit()) {
                 expl.add(s1.getSubpart().getName() + " n/a");
             }
         }
         if (enrl.getConfig() != null && enrl.getConfig().equals(conflict.getConfig())) {
-            if (ConfigLimit.getEnrollmentWeight(enrl.getConfig(), enrl.getRequest()) > enrl.getConfig().getLimit()) {
+            if (ConfigLimit.getEnrollmentWeight(assignment, enrl.getConfig(), enrl.getRequest()) > enrl.getConfig().getLimit()) {
                 expl.add(enrl.getConfig().getName() + " n/a");
             }
         }
         if (enrl.getCourse() != null && enrl.getCourse().equals(conflict.getCourse())) {
-            if (CourseLimit.getEnrollmentWeight(enrl.getCourse(), enrl.getRequest()) > enrl.getCourse().getLimit()) {
+            if (CourseLimit.getEnrollmentWeight(assignment, enrl.getCourse(), enrl.getRequest()) > enrl.getCourse().getLimit()) {
                 expl.add(enrl.getCourse().getName() + " n/a");
             }
         }
@@ -156,20 +157,20 @@ public class CourseConflictTable implements StudentSectioningReport {
      * @return report as comma separated text file
      */
     @SuppressWarnings("unchecked")
-    public CSVFile createTable(boolean includeLastLikeStudents, boolean includeRealStudents) {
+    public CSVFile createTable(Assignment<Request, Enrollment> assignment, boolean includeLastLikeStudents, boolean includeRealStudents) {
         CSVFile csv = new CSVFile();
         csv.setHeader(new CSVFile.CSVField[] { new CSVFile.CSVField("UnasgnCrs"), new CSVFile.CSVField("ConflCrs"),
                 new CSVFile.CSVField("NrStud"), new CSVFile.CSVField("StudWeight"), new CSVFile.CSVField("NoAlt"),
                 new CSVFile.CSVField("Reason") });
         HashMap<Course, HashMap<Course, Object[]>> unassignedCourseTable = new HashMap<Course, HashMap<Course, Object[]>>();
-        for (Request request : new ArrayList<Request>(getModel().unassignedVariables())) {
+        for (Request request : new ArrayList<Request>(getModel().unassignedVariables(assignment))) {
             if (request.getStudent().isDummy() && !includeLastLikeStudents)
                 continue;
             if (!request.getStudent().isDummy() && !includeRealStudents)
                 continue;
             if (request instanceof CourseRequest) {
                 CourseRequest courseRequest = (CourseRequest) request;
-                if (courseRequest.getStudent().isComplete())
+                if (courseRequest.getStudent().isComplete(assignment))
                     continue;
 
                 List<Enrollment> values = courseRequest.values();
@@ -186,7 +187,7 @@ public class CourseConflictTable implements StudentSectioningReport {
                 }
                 List<Enrollment> availableValues = new ArrayList<Enrollment>(values.size());
                 for (Enrollment enrollment : values) {
-                    if (!limitConstraint.inConflict(enrollment))
+                    if (!limitConstraint.inConflict(assignment, enrollment))
                         availableValues.add(enrollment);
                 }
 
@@ -208,11 +209,10 @@ public class CourseConflictTable implements StudentSectioningReport {
                 }
 
                 for (Enrollment enrollment : availableValues) {
-                    Set<Enrollment> conflicts = getModel().conflictValues(enrollment);
+                    Set<Enrollment> conflicts = getModel().conflictValues(assignment, enrollment);
                     if (conflicts.isEmpty()) {
-                        sLog.warn("Request " + courseRequest + " of student " + courseRequest.getStudent()
-                                + " not assigned, however, no conflicts were returned.");
-                        courseRequest.assign(0, enrollment);
+                        sLog.warn("Request " + courseRequest + " of student " + courseRequest.getStudent() + " not assigned, however, no conflicts were returned.");
+                        assignment.assign(0, enrollment);
                         break;
                     }
                     Course course = null;
@@ -223,8 +223,7 @@ public class CourseConflictTable implements StudentSectioningReport {
                         }
                     }
                     if (course == null) {
-                        sLog.warn("Course not found for request " + courseRequest + " of student "
-                                + courseRequest.getStudent() + ".");
+                        sLog.warn("Course not found for request " + courseRequest + " of student " + courseRequest.getStudent() + ".");
                         continue;
                     }
                     HashMap<Course, Object[]> conflictCourseTable = unassignedCourseTable.get(course);
@@ -258,7 +257,7 @@ public class CourseConflictTable implements StudentSectioningReport {
                                     : ((Boolean) weight[2]).booleanValue());
                             HashSet<String> expl = (weight == null ? new HashSet<String>()
                                     : (HashSet<String>) weight[3]);
-                            expl.addAll(explanations(enrollment, conflict));
+                            expl.addAll(explanations(assignment, enrollment, conflict));
                             conflictCourseTable.put(conflictCourse, new Object[] { new Double(nrStud),
                                     new Double(nrStudW), new Boolean(noAlt), expl });
                         }
@@ -303,7 +302,7 @@ public class CourseConflictTable implements StudentSectioningReport {
     }
     
     @Override
-    public CSVFile create(DataProperties properties) {
-        return createTable(properties.getPropertyBoolean("lastlike", false), properties.getPropertyBoolean("real", true));
+    public CSVFile create(Assignment<Request, Enrollment> assignment, DataProperties properties) {
+        return createTable(assignment, properties.getPropertyBoolean("lastlike", false), properties.getPropertyBoolean("real", true));
     }
 }

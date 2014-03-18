@@ -8,6 +8,7 @@ import net.sf.cpsolver.coursett.constraint.GroupConstraint;
 import net.sf.cpsolver.coursett.constraint.InstructorConstraint;
 import net.sf.cpsolver.coursett.constraint.SpreadConstraint;
 import net.sf.cpsolver.coursett.preference.PreferenceCombination;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.criteria.Criterion;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.util.DistanceMetric;
@@ -43,8 +44,7 @@ public class Placement extends Value<Lecture, Placement> {
     private RoomLocation iRoomLocation;
     private List<RoomLocation> iRoomLocations = null;
     private Long iAssignmentId = null;
-
-        private int iHashCode = 0;
+    private int iHashCode = 0;
 
     /**
      * Constructor
@@ -320,14 +320,14 @@ public class Placement extends Value<Lecture, Placement> {
         }
     }
 
-    public boolean isHard() {
+    public boolean isHard(Assignment<Lecture, Placement> assignment) {
         if (Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(getTimeLocation().getPreference())))
             return true;
         if (getRoomLocation() != null && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(getRoomLocation().getPreference())))
             return true;
         Lecture lecture = variable();
         for (GroupConstraint gc : lecture.hardGroupSoftConstraints()) {
-            if (gc.isSatisfied())
+            if (gc.isSatisfied(assignment))
                 continue;
             if (Constants.sPreferenceProhibited.equals(gc.getPrologPreference()))
                 return true;
@@ -486,9 +486,9 @@ public class Placement extends Value<Lecture, Placement> {
         return true;
     }
 
-    public String getNotValidReason() {
+    public String getNotValidReason(Assignment<Lecture, Placement> assignment) {
         Lecture lecture = variable();
-        String reason = lecture.getNotValidReason(this);
+        String reason = lecture.getNotValidReason(assignment, this);
         if (reason != null)
             return reason;
         for (InstructorConstraint ic : lecture.getInstructorConstraints()) {
@@ -496,25 +496,18 @@ public class Placement extends Value<Lecture, Placement> {
                 if (!ic.isAvailable(lecture, getTimeLocation()))
                     return "instructor " + ic.getName() + " not available at " + getTimeLocation().getLongName();
                 else
-                    return "placement " + getTimeLocation().getLongName() + " " + getRoomName(", ")
-                            + " is too far for instructor " + ic.getName();
+                    return "placement " + getTimeLocation().getLongName() + " " + getRoomName(", ") + " is too far for instructor " + ic.getName();
             }
         }
         if (lecture.getNrRooms() > 0) {
             if (isMultiRoom()) {
                 for (RoomLocation roomLocation : getRoomLocations()) {
-                    if (roomLocation.getRoomConstraint() != null
-                            && !roomLocation.getRoomConstraint().isAvailable(lecture, getTimeLocation(),
-                                    lecture.getScheduler()))
-                        return "room " + roomLocation.getName() + " not available at "
-                                + getTimeLocation().getLongName();
+                    if (roomLocation.getRoomConstraint() != null && !roomLocation.getRoomConstraint().isAvailable(lecture, getTimeLocation(), lecture.getScheduler()))
+                        return "room " + roomLocation.getName() + " not available at " + getTimeLocation().getLongName();
                 }
             } else {
-                if (getRoomLocation().getRoomConstraint() != null
-                        && !getRoomLocation().getRoomConstraint().isAvailable(lecture, getTimeLocation(),
-                                lecture.getScheduler()))
-                    return "room " + getRoomLocation().getName() + " not available at "
-                            + getTimeLocation().getLongName();
+                if (getRoomLocation().getRoomConstraint() != null && !getRoomLocation().getRoomConstraint().isAvailable(lecture, getTimeLocation(), lecture.getScheduler()))
+                    return "room " + getRoomLocation().getName() + " not available at " + getTimeLocation().getLongName();
             }
         }
         return reason;
@@ -526,27 +519,27 @@ public class Placement extends Value<Lecture, Placement> {
         return (iRoomLocation == null ? 0 : 1);
     }
 
-    public int getSpreadPenalty() {
+    public int getSpreadPenalty(Assignment<Lecture, Placement> assignment) {
         int spread = 0;
         for (SpreadConstraint sc : variable().getSpreadConstraints()) {
-            spread += sc.getPenalty(this);
+            spread += sc.getPenalty(assignment, this);
         }
         return spread;
     }
 
-    public int getMaxSpreadPenalty() {
+    public int getMaxSpreadPenalty(Assignment<Lecture, Placement> assignment) {
         int spread = 0;
         for (SpreadConstraint sc : variable().getSpreadConstraints()) {
-            spread += sc.getMaxPenalty(this);
+            spread += sc.getMaxPenalty(assignment, this);
         }
         return spread;
     }
 
     @Override
-    public double toDouble() {
+    public double toDouble(Assignment<Lecture, Placement> assignment) {
         double ret = 0.0;
         for (Criterion<Lecture, Placement> criterion: variable().getModel().getCriteria())
-            ret += criterion.getWeightedValue(this, null);
+            ret += criterion.getWeightedValue(assignment, this, null);
         return ret;
     }
 

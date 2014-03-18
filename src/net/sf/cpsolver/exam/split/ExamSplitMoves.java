@@ -2,6 +2,7 @@ package net.sf.cpsolver.exam.split;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import net.sf.cpsolver.exam.criteria.RoomPenalty;
@@ -11,6 +12,7 @@ import net.sf.cpsolver.exam.model.ExamPeriodPlacement;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamRoomPlacement;
 import net.sf.cpsolver.exam.model.ExamStudent;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
@@ -72,7 +74,7 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
      * @param examSize size of the new exam (i.e., the number of students that will be moved from the given exam to the new one)
      * @return best room placement for the given exam and period 
      */
-    public Set<ExamRoomPlacement> findBestAvailableRooms(Exam exam, ExamPeriodPlacement period, int examSize) {
+    public Set<ExamRoomPlacement> findBestAvailableRooms(Assignment<Exam, ExamPlacement> assignment, Exam exam, ExamPeriodPlacement period, int examSize) {
         if (exam.getMaxRooms() == 0) return new HashSet<ExamRoomPlacement>();
         double sw = exam.getModel().getCriterion(RoomSizePenalty.class).getWeight();
         double pw = exam.getModel().getCriterion(RoomPenalty.class).getWeight();
@@ -87,7 +89,7 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
                 for (ExamRoomPlacement room : exam.getRoomPlacements()) {
                     if (!room.isAvailable(period.getPeriod()))
                         continue;
-                    if (!room.getRoom().getPlacements(period.getPeriod()).isEmpty())
+                    if (!room.getRoom().getPlacements(assignment, period.getPeriod()).isEmpty())
                         continue;
                     if (rooms.contains(room))
                         continue;
@@ -125,18 +127,18 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
      * @param exam an exam to be split
      * @return best neighbor that will do the split
      */
-    public ExamSplitNeighbour bestSplit(Exam exam) {
+    public ExamSplitNeighbour bestSplit(Assignment<Exam, ExamPlacement> assignment, Exam exam) {
         ExamSplitNeighbour split = null;
-        ExamPlacement placement = exam.getAssignment();
+        ExamPlacement placement = assignment.getValue(exam);
         int px = ToolBox.random(exam.getPeriodPlacements().size());
         for (int p = 0; p < exam.getPeriodPlacements().size(); p++) { // Iterate over possible periods
             ExamPeriodPlacement period = exam.getPeriodPlacements().get((p + px) % exam.getPeriodPlacements().size());
             if (placement != null && placement.getPeriod().equals(period)) continue;
             // Try to create a neighbor
-            ExamSplitNeighbour s = new ExamSplitNeighbour(exam, new ExamPlacement(exam, period, null));
-            if (split == null || s.value() < split.value()) {
+            ExamSplitNeighbour s = new ExamSplitNeighbour(assignment, exam, new ExamPlacement(exam, period, null));
+            if (split == null || s.value(assignment) < split.value(assignment)) {
                 // If improving, try to find available rooms
-                Set<ExamRoomPlacement> rooms = findBestAvailableRooms(exam, period, s.nrStudents());
+                Set<ExamRoomPlacement> rooms = findBestAvailableRooms(assignment, exam, period, s.nrStudents());
                 if (rooms != null) {
                     // Remember as best split
                     s.placement().getRoomPlacements().addAll(rooms);
@@ -154,7 +156,8 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
     @Override
     public Neighbour<Exam, ExamPlacement> selectNeighbour(Solution<Exam, ExamPlacement> solution) {
         // Randomly select an exam
-        Exam exam = ToolBox.random(solution.getModel().assignedVariables());
+        Exam exam = ToolBox.random(solution.getAssignment().assignedVariables());
+        Assignment<Exam, ExamPlacement> assignment = solution.getAssignment();
         
         // Parent exam (its either the exam itself, or its parent if it has been already split)
         Exam parent = iSplitter.parent(exam);
@@ -163,20 +166,20 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
         
         // Already split -> try shuffle
         if (children != null && !children.isEmpty()) {
-            ExamShuffleNeighbour shuffle = new ExamShuffleNeighbour(exam);
-            if (shuffle.value() < 0.0) return shuffle;
+            ExamShuffleNeighbour shuffle = new ExamShuffleNeighbour(assignment, exam);
+            if (shuffle.value(assignment) < 0.0) return shuffle;
         }
         
         // Can split -> try a split
         if (iSplitter.canSplit(exam)) {
-            ExamSplitNeighbour split = bestSplit(exam);
-            if (split != null && split.value() < 0.0) return split;
+            ExamSplitNeighbour split = bestSplit(solution.getAssignment(), exam);
+            if (split != null && split.value(assignment) < 0.0) return split;
         }
         
         // Can merge -> try to merge
         if (iSplitter.canMerge(exam)) {
-            ExamMergeNeighbour merge = new ExamMergeNeighbour(exam);
-            if (merge.value() < 0.0) return merge;
+            ExamMergeNeighbour merge = new ExamMergeNeighbour(assignment, exam);
+            if (merge.value(assignment) < 0.0) return merge;
         }
 
         return null;
@@ -185,7 +188,7 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
     /**
      * Split an exam into two
      */
-    protected class ExamSplitNeighbour extends Neighbour<Exam, ExamPlacement> {
+    protected class ExamSplitNeighbour implements Neighbour<Exam, ExamPlacement> {
         private Exam iExam;
         private ExamPlacement iPlacement;
         private double iValue = 0.0;
@@ -196,7 +199,7 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
          * @param exam an exam to be split
          * @param placement a placement to be assigned to the new exam
          */
-        public ExamSplitNeighbour(Exam exam, ExamPlacement placement) {
+        public ExamSplitNeighbour(Assignment<Exam, ExamPlacement> assignment, Exam exam, ExamPlacement placement) {
             iExam = exam;
             iPlacement = placement;
             
@@ -208,7 +211,7 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
             // Compute improvement
             // Consider moving all students of the parent exam to the new placement
             for (ExamStudent student: parent.getStudents()) {
-                double delta = iSplitter.delta(student, parent.getAssignment(), placement);
+                double delta = iSplitter.delta(assignment, student, assignment.getValue(parent), placement);
                 if (delta < 0.0) {
                     iValue += delta;
                     iNrStudents ++;
@@ -219,7 +222,7 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
             if (children != null)
                 for (Exam child: children)
                     for (ExamStudent student: child.getStudents()) {
-                        double delta = iSplitter.delta(student, child.getAssignment(), placement);
+                        double delta = iSplitter.delta(assignment, student, assignment.getValue(child), placement);
                         if (delta < 0.0) {
                             iValue += delta;
                             iNrStudents ++;
@@ -234,9 +237,9 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
          * Perform the split.
          */
         @Override
-        public void assign(long iteration) {
-            sLog.info("Splitting " + iExam.getName() + " (" + iExam.getAssignment().getName() + ", " + iPlacement.getName() + ", value: " + iValue + ")");
-            iSplitter.split(iExam, iteration, iPlacement);
+        public void assign(Assignment<Exam, ExamPlacement> assignment, long iteration) {
+            sLog.info("Splitting " + iExam.getName() + " (" + assignment.getValue(iExam).getName() + ", " + iPlacement.getName() + ", value: " + iValue + ")");
+            iSplitter.split(assignment, iExam, iteration, iPlacement);
         }
 
         /**
@@ -244,7 +247,7 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
          * all student conflicts that will be removed by the split.
          */
         @Override
-        public double value() {
+        public double value(Assignment<Exam, ExamPlacement> assignment) {
             return iValue;
         }
 
@@ -268,6 +271,11 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
         public ExamPlacement placement() {
             return iPlacement;
         }
+
+        @Override
+        public Map<Exam, ExamPlacement> assignments() {
+            throw new UnsupportedOperationException();
+        }
     }
     
     /**
@@ -275,14 +283,14 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
      * the students from the child exam back to its parent and removes the
      * child exam from the problem.
      */
-    protected class ExamMergeNeighbour extends Neighbour<Exam, ExamPlacement> {
+    protected class ExamMergeNeighbour implements Neighbour<Exam, ExamPlacement> {
         private Exam iExam;
         private double iValue = 0.0;
         
         /**
          * Child exam to be removed. 
          */
-        public ExamMergeNeighbour(Exam exam) {
+        public ExamMergeNeighbour(Assignment<Exam, ExamPlacement> assignment, Exam exam) {
             iExam = exam;
             
             // Parent exam (its either the exam itself, or its parent if it has been already split)
@@ -294,10 +302,10 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
             for (ExamStudent student: exam.getStudents()) {
                 // Try to move each student either back to the parent exam or to any of the other
                 // children exams, if there are any
-                double delta = iSplitter.delta(student, exam.getAssignment(), parent.getAssignment());
+                double delta = iSplitter.delta(assignment, student, assignment.getValue(exam), assignment.getValue(parent));
                 for (Exam child: children) {
                     if (child.equals(exam)) continue;
-                    double d = iSplitter.delta(student, exam.getAssignment(), child.getAssignment());
+                    double d = iSplitter.delta(assignment, student, assignment.getValue(exam), assignment.getValue(child));
                     if (d < delta) delta = d;
                 }
                 iValue += delta;
@@ -310,9 +318,9 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
          * Perform the merge.
          */        
         @Override
-        public void assign(long iteration) {
-            sLog.info("Mergning " + iExam.getName() + " (" + iExam.getAssignment().getName() + ", value: " + iValue + ")");
-            iSplitter.merge(iExam, iteration);
+        public void assign(Assignment<Exam, ExamPlacement> assignment, long iteration) {
+            sLog.info("Mergning " + iExam.getName() + " (" + assignment.getValue(iExam).getName() + ", value: " + iValue + ")");
+            iSplitter.merge(assignment, iExam, iteration);
         }
 
         /**
@@ -320,7 +328,7 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
          * minus the weight of the splitter criterion.
          */
         @Override
-        public double value() {
+        public double value(Assignment<Exam, ExamPlacement> assignment) {
             return iValue;
         }
         
@@ -337,20 +345,25 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
         public Exam exam() {
             return iExam;
         }
+
+        @Override
+        public Map<Exam, ExamPlacement> assignments() {
+            throw new UnsupportedOperationException();
+        }
     }
     
     /**
      * Shuffle students between the parent exam and all of its children. Only swaps
      * that are decreasing the weighted sum of student conflicts are considered.
      */
-    protected class ExamShuffleNeighbour extends Neighbour<Exam, ExamPlacement> {
+    protected class ExamShuffleNeighbour implements Neighbour<Exam, ExamPlacement> {
         private Exam iExam;
         private double iValue = 0.0;
         
         /**
          * Exam to be shuffled.
          */
-        public ExamShuffleNeighbour(Exam exam) {
+        public ExamShuffleNeighbour(Assignment<Exam, ExamPlacement> assignment, Exam exam) {
             iExam = exam;
 
             // Parent exam (its either the exam itself, or its parent if it has been already split)
@@ -363,7 +376,7 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
             for (ExamStudent student: parent.getStudents()) {
                 Double delta = null;
                 for (Exam x: children) {
-                    double d = iSplitter.delta(student, parent.getAssignment(), x.getAssignment());
+                    double d = iSplitter.delta(assignment, student, assignment.getValue(parent), assignment.getValue(x));
                     if (delta == null || d < delta) delta = d;
                 }
                 if (delta != null && delta < 0) iValue += delta;
@@ -372,10 +385,10 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
             // Try moving students away from any child
             for (Exam child: children) {
                 for (ExamStudent student: child.getStudents()) {
-                    double delta = iSplitter.delta(student, child.getAssignment(), parent.getAssignment());
+                    double delta = iSplitter.delta(assignment, student, assignment.getValue(child), assignment.getValue(parent));
                     for (Exam x: children) {
                         if (x.equals(child)) continue;
-                        double d = iSplitter.delta(student, child.getAssignment(), x.getAssignment());
+                        double d = iSplitter.delta(assignment, student, assignment.getValue(child), assignment.getValue(x));
                         if (d < delta) delta = d;
                     }
                     if (delta < 0) iValue += delta;
@@ -387,16 +400,16 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
          * Perform the shuffle.
          */        
         @Override
-        public void assign(long iteration) {
-            sLog.info("Shuffling " + iExam.getName() + " (" + iExam.getAssignment().getName() + ", value: " + iValue + ")");
-            iSplitter.shuffle(iExam, iteration);
+        public void assign(Assignment<Exam, ExamPlacement> assignment, long iteration) {
+            sLog.info("Shuffling " + iExam.getName() + " (" + assignment.getValue(iExam).getName() + ", value: " + iValue + ")");
+            iSplitter.shuffle(assignment, iExam, iteration);
         }
 
         /**
          * Value of the shuffle. This is the weighted sum of all student conflicts that will be removed by the shuffle.
          */
         @Override
-        public double value() {
+        public double value(Assignment<Exam, ExamPlacement> assignment) {
             return iValue;
         }
         
@@ -405,6 +418,11 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
          */
         public Exam exam() {
             return iExam;
+        }
+
+        @Override
+        public Map<Exam, ExamPlacement> assignments() {
+            throw new UnsupportedOperationException();
         }
     }
 }

@@ -1,10 +1,13 @@
 package net.sf.cpsolver.coursett;
 
+import net.sf.cpsolver.coursett.heuristics.FixCompleteSolutionNeighbourSelection;
 import net.sf.cpsolver.coursett.heuristics.NeighbourSelectionWithSuggestions;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimetableModel;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Neighbour;
+import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.JProf;
@@ -15,7 +18,9 @@ import net.sf.cpsolver.ifs.util.Progress;
  * <br>
  * When a complete solution is found, it is improved by limited depth
  * backtracking search. This way it is ensured that the fund solution is at
- * least locally optimal.
+ * least locally optimal.<br>
+ * <br>
+ * Deprecated: use {@link FixCompleteSolutionNeighbourSelection} instead.
  * 
  * @version CourseTT 1.2 (University Course Timetabling)<br>
  *          Copyright (C) 2006 - 2010 Tomas Muller<br>
@@ -37,6 +42,7 @@ import net.sf.cpsolver.ifs.util.Progress;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
+@Deprecated
 public class TimetableSolver extends Solver<Lecture, Placement> {
     private long iLastCompleteSolutionFixIteration = -1;
     private long iLastIncompleteSolutionFixIteration = -1;
@@ -55,8 +61,8 @@ public class TimetableSolver extends Solver<Lecture, Placement> {
     }
 
     @Override
-    protected void onAssigned(double startTime) {
-        if (iCurrentSolution.getModel().nrUnassignedVariables() == 0) {
+    protected void onAssigned(double startTime, Solution<Lecture, Placement> solution) {
+        if (solution.getModel().nrUnassignedVariables(solution.getAssignment()) == 0) {
             // complete solution was found
             if (iCompleteSolutionFixInterval < 0) {
              // feature disabled
@@ -66,13 +72,13 @@ public class TimetableSolver extends Solver<Lecture, Placement> {
                 if (iLastCompleteSolutionFixIteration >= 0) return;
             } else {
                 // run first time and if not run for a given number of iterations
-                if (iLastCompleteSolutionFixIteration >= 0 && iCurrentSolution.getIteration() - iLastCompleteSolutionFixIteration < iCompleteSolutionFixInterval) return;
+                if (iLastCompleteSolutionFixIteration >= 0 && solution.getIteration() - iLastCompleteSolutionFixIteration < iCompleteSolutionFixInterval) return;
             }
-            if (getSolutionComparator().isBetterThanBestSolution(iCurrentSolution)) {
-                fixCompleteSolution(startTime);
-                iLastCompleteSolutionFixIteration = iCurrentSolution.getIteration();
+            if (getSolutionComparator().isBetterThanBestSolution(solution)) {
+                fixCompleteSolution(solution, startTime);
+                iLastCompleteSolutionFixIteration = solution.getIteration();
             }
-        } else if (iCurrentSolution.getBestInfo() == null) {
+        } else if (solution.getBestInfo() == null) {
             // complete solution has not been found yet
             if (iIncompleteSolutionFixInterval < 0) {
                 // feature disabled
@@ -82,11 +88,11 @@ public class TimetableSolver extends Solver<Lecture, Placement> {
                 if (iLastIncompleteSolutionFixIteration >= 0) return;
             } else {
                 // run first time and if not run for a given number of iterations
-                if (iLastIncompleteSolutionFixIteration >= 0 && iCurrentSolution.getIteration() - iLastIncompleteSolutionFixIteration < iIncompleteSolutionFixInterval) return;
+                if (iLastIncompleteSolutionFixIteration >= 0 && solution.getIteration() - iLastIncompleteSolutionFixIteration < iIncompleteSolutionFixInterval) return;
             }
-            if (getSolutionComparator().isBetterThanBestSolution(iCurrentSolution)) {
-                fixCompleteSolution(startTime);
-                iLastIncompleteSolutionFixIteration = iCurrentSolution.getIteration();
+            if (getSolutionComparator().isBetterThanBestSolution(solution)) {
+                fixCompleteSolution(solution, startTime);
+                iLastIncompleteSolutionFixIteration = solution.getIteration();
             }
         }
     }
@@ -95,28 +101,29 @@ public class TimetableSolver extends Solver<Lecture, Placement> {
      * Try to improve existing solution by backtracking search of very limited
      * depth. See {@link NeighbourSelectionWithSuggestions} for more details.
      */
-    protected void fixCompleteSolution(double startTime) {
-        Progress progress = Progress.getInstance(currentSolution().getModel());
+    protected void fixCompleteSolution(Solution<Lecture, Placement> solution, double startTime) {
+        Progress progress = Progress.getInstance(solution.getModel());
 
-        TimetableModel model = (TimetableModel) iCurrentSolution.getModel();
-        iCurrentSolution.saveBest();
+        TimetableModel model = (TimetableModel) solution.getModel();
+        Assignment<Lecture, Placement> assignment = solution.getAssignment();
+        solution.saveBest();
         progress.save();
-        double solutionValue = 0.0, newSolutionValue = model.getTotalValue();
+        double solutionValue = 0.0, newSolutionValue = model.getTotalValue(assignment);
         do {
             solutionValue = newSolutionValue;
             progress.setPhase("Fixing solution", model.variables().size());
             for (Lecture variable : model.variables()) {
                 Placement bestValue = null;
                 double bestVal = 0.0;
-                Placement currentValue = variable.getAssignment();
+                Placement currentValue = assignment.getValue(variable);
                 if (currentValue == null)
                     continue;
-                double currentVal = currentValue.toDouble();
+                double currentVal = currentValue.toDouble(assignment);
                 for (Placement value : variable.values()) {
                     if (value.equals(currentValue))
                         continue;
-                    if (model.conflictValues(value).isEmpty()) {
-                        double val = value.toDouble();
+                    if (model.conflictValues(assignment, value).isEmpty()) {
+                        double val = value.toDouble(assignment);
                         if (bestValue == null || val < bestVal) {
                             bestValue = value;
                             bestVal = val;
@@ -124,30 +131,30 @@ public class TimetableSolver extends Solver<Lecture, Placement> {
                     }
                 }
                 if (bestValue != null && bestVal < currentVal)
-                    variable.assign(0, bestValue);
-                iCurrentSolution.update(JProf.currentTimeSec() - startTime);
+                    assignment.assign(0, bestValue);
+                solution.update(JProf.currentTimeSec() - startTime);
                 progress.incProgress();
                 if (iStop)
                     break;
             }
-            newSolutionValue = model.getTotalValue();
+            newSolutionValue = model.getTotalValue(assignment);
             if (newSolutionValue < solutionValue) {
                 progress.debug("New solution value is  " + newSolutionValue);
             }
-        } while (!iStop && newSolutionValue < solutionValue && getTerminationCondition().canContinue(iCurrentSolution));
+        } while (!iStop && newSolutionValue < solutionValue && getTerminationCondition().canContinue(solution));
         progress.restore();
 
-        if (!iCurrentSolution.getModel().unassignedVariables().isEmpty())
+        if (!solution.getModel().unassignedVariables(assignment).isEmpty())
             return;
         progress.save();
         try {
             progress.setPhase("Fixing solution [2]", model.variables().size());
             NeighbourSelectionWithSuggestions ns = new NeighbourSelectionWithSuggestions(this);
             for (Lecture lecture : model.variables()) {
-                Neighbour<Lecture, Placement> n = ns.selectNeighbourWithSuggestions(iCurrentSolution, lecture, 2);
-                if (n != null && n.value() <= 0.0)
-                    n.assign(0);
-                iCurrentSolution.update(JProf.currentTimeSec() - startTime);
+                Neighbour<Lecture, Placement> n = ns.selectNeighbourWithSuggestions(solution, lecture, 2);
+                if (n != null && n.value(assignment) <= 0.0)
+                    n.assign(assignment, 0);
+                solution.update(JProf.currentTimeSec() - startTime);
                 progress.incProgress();
                 if (iStop)
                     break;

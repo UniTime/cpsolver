@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Neighbour;
@@ -68,14 +69,15 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
     @Override
     public Neighbour<V, T> selectNeighbour(Solution<V, T> solution) {
         Model<V, T> model = solution.getModel();
-        double total = model.getTotalValue();
+        Assignment<V, T> assignment = solution.getAssignment();
+        double total = model.getTotalValue(assignment);
         int varIdx = ToolBox.random(model.variables().size());
         for (int i = 0; i < model.variables().size(); i++) {
             V variable = model.variables().get((i + varIdx) % model.variables().size());
             List<T> values = variable.values();
             if (values.isEmpty()) continue;
             int valIdx = ToolBox.random(values.size());
-            T old = variable.getAssignment();
+            T old = variable.getAssignment(assignment);
             
             int attempts = 0;
             long startTime = JProf.currentTimeMillis();
@@ -83,11 +85,11 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
                 T value = values.get((j + valIdx) % values.size());
                 if (value.equals(old)) continue;
                 
-                Set<T> conflicts = model.conflictValues(value);
+                Set<T> conflicts = model.conflictValues(assignment, value);
                 if (conflicts.contains(value)) continue;
                 if (conflicts.isEmpty()) {
                     SimpleNeighbour<V, T> n = new SimpleNeighbour<V, T>(variable, value);
-                    if (!iHC || n.value() <= 0) return n;
+                    if (!iHC || n.value(assignment) <= 0) return n;
                     else continue;
                 }
                 
@@ -95,17 +97,17 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
                 assignments.put(variable, value);
                 
                 for (T conflict: conflicts)
-                    conflict.variable().unassign(solution.getIteration());
-                variable.assign(solution.getIteration(), value);
+                    assignment.unassign(solution.getIteration(), conflict.variable());
+                assignment.assign(solution.getIteration(), value);
                 
                 Double v = resolve(solution, total, startTime, assignments, new ArrayList<T>(conflicts), 0);
                 if (!conflicts.isEmpty())
                     attempts ++;
                 
-                variable.unassign(solution.getIteration());
+                assignment.unassign(solution.getIteration(), variable);
                 for (T conflict: conflicts)
-                    conflict.variable().assign(solution.getIteration(), conflict);
-                if (old != null) variable.assign(solution.getIteration(), old);
+                    assignment.assign(solution.getIteration(), conflict);
+                if (old != null) assignment.assign(solution.getIteration(), old);
                 
                 if (v != null)
                     return new SwapNeighbour(assignments.values(), v);
@@ -135,7 +137,9 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
      * @return value of the modified solution, null if cannot be resolved
      */
     public Double resolve(Solution<V, T> solution, double total, long startTime, Map<V, T> assignments, List<T> conflicts, int index) {
-        if (index == conflicts.size()) return solution.getModel().getTotalValue() - total;
+        Assignment<V, T> assignment = solution.getAssignment();
+
+        if (index == conflicts.size()) return solution.getModel().getTotalValue(assignment) - total;
         T conflict = conflicts.get(index);
         V variable = conflict.variable();
         
@@ -146,11 +150,11 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
         int attempts = 0;
         for (int i = 0; i < values.size(); i++) {
             T value = values.get((i + valIdx) % values.size());
-            if (value.equals(conflict) || solution.getModel().inConflict(value)) continue;
+            if (value.equals(conflict) || solution.getModel().inConflict(assignment, value)) continue;
             
-            variable.assign(solution.getIteration(), value);
+            assignment.assign(solution.getIteration(), value);
             Double v = resolve(solution, total, startTime, assignments, conflicts, 1 + index);
-            variable.unassign(solution.getIteration());
+            assignment.unassign(solution.getIteration(), variable);
             attempts ++;
             
             if (v != null && (!iHC || v <= 0)) {
@@ -163,7 +167,7 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
         return null;
     }
     
-    public class SwapNeighbour extends Neighbour<V, T> {
+    public class SwapNeighbour implements Neighbour<V, T> {
         private double iValue = 0;
         private Collection<T> iAssignments = null;
 
@@ -172,17 +176,16 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
         }
 
         @Override
-        public double value() {
+        public double value(Assignment<V, T> assignment) {
             return iValue;
         }
 
         @Override
-        public void assign(long iteration) {
-            for (T placement: iAssignments)
-                if (placement.variable().getAssignment() != null)
-                    placement.variable().unassign(iteration);
-            for (T placement: iAssignments)
-                placement.variable().assign(iteration, placement);
+        public void assign(Assignment<V, T> assignment, long iteration) {
+            for (T value: iAssignments)
+                assignment.unassign(iteration, value.variable());
+            for (T value: iAssignments)
+                assignment.assign(iteration, value);
         }
 
         @Override
@@ -194,6 +197,14 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
             }
             sb.append("}");
             return sb.toString();
+        }
+
+        @Override
+        public Map<V, T> assignments() {
+            Map<V, T> ret = new HashMap<V, T>();
+            for (T value: iAssignments)
+                ret.put(value.variable(), value);
+            return ret;
         }
     }
 }

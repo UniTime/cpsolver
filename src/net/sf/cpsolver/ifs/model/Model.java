@@ -11,6 +11,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.DefaultSingleAssignment;
+import net.sf.cpsolver.ifs.assignment.EmptyAssignment;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentContext;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentContextReference;
+import net.sf.cpsolver.ifs.assignment.context.HasAssignmentContext;
 import net.sf.cpsolver.ifs.criteria.Criterion;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.ToolBox;
@@ -77,18 +83,21 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     private List<V> iVariables = new ArrayList<V>();
     private List<Constraint<V, T>> iConstraints = new ArrayList<Constraint<V, T>>();
     private List<GlobalConstraint<V, T>> iGlobalConstraints = new ArrayList<GlobalConstraint<V, T>>();
-    protected Collection<V> iUnassignedVariables = new HashSet<V>();
-    protected Collection<V> iAssignedVariables = new HashSet<V>();
     private Collection<V> iVariablesWithInitialValueCache = null;
-    protected Collection<V> iPerturbVariables = null;
 
     private List<ModelListener<V, T>> iModelListeners = new ArrayList<ModelListener<V, T>>();
-    private List<InfoProvider<V>> iInfoProviders = new ArrayList<InfoProvider<V>>();
+    private List<InfoProvider<V, T>> iInfoProviders = new ArrayList<InfoProvider<V, T>>();
     private HashMap<String, Criterion<V, T>> iCriteria = new HashMap<String, Criterion<V,T>>();
 
     private int iBestUnassignedVariables = -1;
     private int iBestPerturbations = 0;
-    private int iNrAssignedVariables = 0;
+    private double iBestValue = 0.0;
+    private int iNextReferenceId = 0;
+    private int iNextVariableIndex = 0;
+    @Deprecated
+    private Assignment<V, T> iAssignment = null;
+    private Assignment<V, T> iEmptyAssignment = null;
+    private Map<Integer, AssignmentContextReference<V, T, ? extends AssignmentContext>> iAssignmentContextReferences = new HashMap<Integer, AssignmentContextReference<V, T, ? extends AssignmentContext>>();
 
     /** Constructor */
     public Model() {
@@ -108,19 +117,10 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     @SuppressWarnings("unchecked")
     public void addVariable(V variable) {
         variable.setModel(this);
+        variable.setIndex(iNextVariableIndex++);
         iVariables.add(variable);
-        if (variable instanceof InfoProvider<?>)
-            iInfoProviders.add((InfoProvider<V>) variable);
-        if (variable.getAssignment() == null) {
-            if (iUnassignedVariables != null)
-                iUnassignedVariables.add(variable);
-        } else {
-            if (iAssignedVariables != null)
-                iAssignedVariables.add(variable);
-            iNrAssignedVariables++;
-        }
-        if (variable.getAssignment() != null)
-            variable.assign(0L, variable.getAssignment());
+        if (variable instanceof InfoProvider<?, ?>)
+            iInfoProviders.add((InfoProvider<V, T>) variable);
         for (ModelListener<V, T> listener : iModelListeners)
             listener.variableAdded(variable);
         invalidateVariablesWithInitialValueCache();
@@ -130,14 +130,8 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     public void removeVariable(V variable) {
         variable.setModel(null);
         iVariables.remove(variable);
-        if (variable instanceof InfoProvider<?>)
+        if (variable instanceof InfoProvider<?, ?>)
             iInfoProviders.remove(variable);
-        if (iUnassignedVariables != null && iUnassignedVariables.contains(variable))
-            iUnassignedVariables.remove(variable);
-        if (iAssignedVariables != null && iAssignedVariables.contains(variable))
-            iAssignedVariables.remove(variable);
-        if (variable.getAssignment() != null)
-            iNrAssignedVariables--;
         for (ModelListener<V, T> listener : iModelListeners)
             listener.variableRemoved(variable);
         invalidateVariablesWithInitialValueCache();
@@ -158,8 +152,8 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     public void addConstraint(Constraint<V, T> constraint) {
         constraint.setModel(this);
         iConstraints.add(constraint);
-        if (constraint instanceof InfoProvider<?>)
-            iInfoProviders.add((InfoProvider<V>) constraint);
+        if (constraint instanceof InfoProvider<?, ?>)
+            iInfoProviders.add((InfoProvider<V, T>) constraint);
         for (ModelListener<V, T> listener : iModelListeners)
             listener.constraintAdded(constraint);
     }
@@ -168,7 +162,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     public void removeConstraint(Constraint<V, T> constraint) {
         constraint.setModel(null);
         iConstraints.remove(constraint);
-        if (constraint instanceof InfoProvider<?>)
+        if (constraint instanceof InfoProvider<?, ?>)
             iInfoProviders.remove(constraint);
         for (ModelListener<V, T> listener : iModelListeners)
             listener.constraintRemoved(constraint);
@@ -189,8 +183,8 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     public void addGlobalConstraint(GlobalConstraint<V, T> constraint) {
         constraint.setModel(this);
         iGlobalConstraints.add(constraint);
-        if (constraint instanceof InfoProvider<?>)
-            iInfoProviders.add((InfoProvider<V>) constraint);
+        if (constraint instanceof InfoProvider<?, ?>)
+            iInfoProviders.add((InfoProvider<V, T>) constraint);
         for (ModelListener<V, T> listener : iModelListeners)
             listener.constraintAdded(constraint);
     }
@@ -199,58 +193,95 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     public void removeGlobalConstraint(GlobalConstraint<V, T> constraint) {
         constraint.setModel(null);
         iGlobalConstraints.remove(constraint);
-        if (constraint instanceof InfoProvider<?>)
+        if (constraint instanceof InfoProvider<?, ?>)
             iInfoProviders.remove(constraint);
         for (ModelListener<V, T> listener : iModelListeners)
             listener.constraintRemoved(constraint);
     }
 
-    /** The list of unassigned variables in the model */
+    /**
+     * The list of unassigned variables in the model.
+     * Use {@link Model#unassignedVariables(Assignment)} or {@link Assignment#unassignedVariables(Model)} instead.
+     **/
+    @Deprecated
     public Collection<V> unassignedVariables() {
-        if (iUnassignedVariables != null)
-            return iUnassignedVariables;
-        Collection<V> un = new ArrayList<V>(iVariables.size());
-        for (V variable : iVariables) {
-            if (variable.getAssignment() == null)
-                un.add(variable);
-        }
-        return un;
+        return unassignedVariables(getDefaultAssignment());
+    }
+
+    /** The list of unassigned variables in the model */
+    public Collection<V> unassignedVariables(Assignment<V, T> assignment) {
+        return assignment.unassignedVariables(this);
+    }
+
+    /**
+     * Number of unassigned variables.
+     * Use {@link Model#nrUnassignedVariables(Assignment)} or {@link Assignment#nrUnassignedVariables(Model)} instead.
+     **/
+    @Deprecated
+    public int nrUnassignedVariables() {
+        return nrUnassignedVariables(getDefaultAssignment());
     }
 
     /** Number of unassigned variables */
-    public int nrUnassignedVariables() {
-        if (iUnassignedVariables != null)
-            return iUnassignedVariables.size();
-        return iVariables.size() - iNrAssignedVariables;
+    public int nrUnassignedVariables(Assignment<V, T> assignment) {
+        return assignment.nrUnassignedVariables(this);
     }
 
-    /** The list of assigned variables in the model */
+    /**
+     * The list of assigned variables in the model.
+     * Use {@link Model#assignedVariables(Assignment)} or {@link Assignment#assignedVariables()} instead.
+     **/
+    @Deprecated
     public Collection<V> assignedVariables() {
-        if (iAssignedVariables != null)
-            return iAssignedVariables;
-        Collection<V> as = new ArrayList<V>(iVariables.size());
-        for (V variable : iVariables) {
-            if (variable.getAssignment() != null)
-                as.add(variable);
-        }
-        return as;
+        return assignedVariables(getDefaultAssignment());
+    }
+    
+    /** The list of assigned variables in the model */
+    public Collection<V> assignedVariables(Assignment<V, T> assignment) {
+        return assignment.assignedVariables();
     }
 
-    /** Number of assigned variables */
+    /**
+     * Number of assigned variables.
+     * Use {@link Model#nrAssignedVariables(Assignment)} or {@link Assignment#nrAssignedVariables()} instead.
+     **/
+    @Deprecated
     public int nrAssignedVariables() {
-        if (iAssignedVariables != null)
-            return iAssignedVariables.size();
-        return iNrAssignedVariables;
+        return nrAssignedVariables(getDefaultAssignment());
+    }
+    
+    /** Number of assigned variables */
+    public int nrAssignedVariables(Assignment<V, T> assignment) {
+        return assignment.nrAssignedVariables();
     }
 
     /**
      * The list of perturbation variables in the model, i.e., the variables
      * which has an initial value but which are not assigned with this value.
+     * Use {@link Model#perturbVariables(Assignment)} instead.
      */
+    @Deprecated
     public Collection<V> perturbVariables() {
-        if (iPerturbVariables == null)
-            iPerturbVariables = perturbVariables(variablesWithInitialValue());
-        return iPerturbVariables;
+        return perturbVariables(getDefaultAssignment(), variablesWithInitialValue());
+    }
+    
+    /**
+     * The list of perturbation variables in the model, i.e., the variables
+     * which has an initial value but which are not assigned with this value.
+     */
+    public Collection<V> perturbVariables(Assignment<V, T> assignment) {
+        return perturbVariables(assignment, variablesWithInitialValue());
+    }
+    
+    /**
+     * The list of perturbation variables in the model, i.e., the variables
+     * which has an initial value but which are not assigned with this value.
+     * Only variables from the given set are considered.
+     * Use {@link Model#perturbVariables(Assignment, Collection)} instead.
+     */
+    @Deprecated
+    public List<V> perturbVariables(Collection<V> variables) {
+        return perturbVariables(getDefaultAssignment(), variables);
     }
 
     /**
@@ -258,25 +289,26 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * which has an initial value but which are not assigned with this value.
      * Only variables from the given set are considered.
      */
-    public List<V> perturbVariables(Collection<V> variables) {
+    public List<V> perturbVariables(Assignment<V, T> assignment, Collection<V> variables) {
         List<V> perturbances = new ArrayList<V>();
         for (V variable : variables) {
             if (variable.getInitialAssignment() == null)
                 continue;
-            if (variable.getAssignment() != null) {
-                if (!variable.getInitialAssignment().equals(variable.getAssignment()))
+            T value = assignment.getValue(variable);
+            if (value != null) {
+                if (!variable.getInitialAssignment().equals(value))
                     perturbances.add(variable);
             } else {
                 boolean hasPerturbance = false;
                 for (Constraint<V, T> constraint : variable.hardConstraints()) {
-                    if (constraint.inConflict(variable.getInitialAssignment())) {
+                    if (constraint.inConflict(assignment, variable.getInitialAssignment())) {
                         hasPerturbance = true;
                         break;
                     }
                 }
                 if (!hasPerturbance)
                     for (GlobalConstraint<V, T> constraint : globalConstraints()) {
-                        if (constraint.inConflict(variable.getInitialAssignment())) {
+                        if (constraint.inConflict(assignment, variable.getInitialAssignment())) {
                             hasPerturbance = true;
                             break;
                         }
@@ -291,23 +323,42 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     /**
      * Returns the set of conflicting variables with this value, if it is
      * assigned to its variable
+     * Use {@link Model#conflictValues(Assignment, Value)} instead.
      */
+    @Deprecated
     public Set<T> conflictValues(T value) {
+        return conflictValues(getDefaultAssignment(), value);
+    }
+    
+    /**
+     * Returns the set of conflicting variables with this value, if it is
+     * assigned to its variable
+     */
+    public Set<T> conflictValues(Assignment<V, T> assignment, T value) {
         Set<T> conflictValues = new HashSet<T>();
         for (Constraint<V, T> constraint : value.variable().hardConstraints())
-            constraint.computeConflicts(value, conflictValues);
+            constraint.computeConflicts(assignment, value, conflictValues);
         for (GlobalConstraint<V, T> constraint : globalConstraints())
-            constraint.computeConflicts(value, conflictValues);
+            constraint.computeConflicts(assignment, value, conflictValues);
         return conflictValues;
     }
 
-    /** Return true if the given value is in conflict with a hard constraint */
+    /**
+     * Return true if the given value is in conflict with a hard constraint
+     * Use {@link Model#inConflict(Assignment, Value)} instead.
+     **/
+    @Deprecated
     public boolean inConflict(T value) {
+        return inConflict(getDefaultAssignment(), value);
+    }
+
+    /** Return true if the given value is in conflict with a hard constraint */
+    public boolean inConflict(Assignment<V, T> assignment, T value) {
         for (Constraint<V, T> constraint : value.variable().hardConstraints())
-            if (constraint.inConflict(value))
+            if (constraint.inConflict(assignment, value))
                 return true;
         for (GlobalConstraint<V, T> constraint : globalConstraints())
-            if (constraint.inConflict(value))
+            if (constraint.inConflict(assignment, value))
                 return true;
         return false;
     }
@@ -328,51 +379,62 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     protected void invalidateVariablesWithInitialValueCache() {
         iVariablesWithInitialValueCache = null;
     }
+    
+    /** Called before a value is assigned to its variable */
+    @Deprecated
+    public void beforeAssigned(long iteration, T value) {
+    }
 
     /** Called before a value is assigned to its variable */
-    public void beforeAssigned(long iteration, T value) {
+    @SuppressWarnings("deprecation")
+    public void beforeAssigned(Assignment<V, T> assignment, long iteration, T value) {
+        beforeAssigned(iteration, value);
         for (ModelListener<V, T> listener : iModelListeners)
-            listener.beforeAssigned(iteration, value);
+            listener.beforeAssigned(assignment, iteration, value);
     }
 
     /** Called before a value is unassigned from its variable */
+    @Deprecated
     public void beforeUnassigned(long iteration, T value) {
+    }
+
+    /** Called before a value is unassigned from its variable */
+    @SuppressWarnings("deprecation")
+    public void beforeUnassigned(Assignment<V, T> assignment, long iteration, T value) {
+        beforeUnassigned(iteration, value);
         for (ModelListener<V, T> listener : iModelListeners)
-            listener.beforeUnassigned(iteration, value);
+            listener.beforeUnassigned(assignment, iteration, value);
     }
 
     /** Called after a value is assigned to its variable */
+    @Deprecated
     public void afterAssigned(long iteration, T value) {
-        if (iUnassignedVariables != null)
-            iUnassignedVariables.remove(value.variable());
-        if (iAssignedVariables != null)
-            iAssignedVariables.add(value.variable());
-        iNrAssignedVariables++;
-        iPerturbVariables = null;
+    }
+
+    /** Called after a value is assigned to its variable */
+    @SuppressWarnings("deprecation")
+    public void afterAssigned(Assignment<V, T> assignment,  long iteration, T value) {
+        afterAssigned(iteration, value);
         for (ModelListener<V, T> listener : iModelListeners)
-            listener.afterAssigned(iteration, value);
+            listener.afterAssigned(assignment, iteration, value);
+    }
+    
+    /** Called after a value is unassigned from its variable */
+    @Deprecated
+    public void afterUnassigned(long iteration, T value) {
     }
 
     /** Called after a value is unassigned from its variable */
-    public void afterUnassigned(long iteration, T value) {
-        if (iUnassignedVariables != null)
-            iUnassignedVariables.add(value.variable());
-        if (iAssignedVariables != null)
-            iAssignedVariables.remove(value.variable());
-        iNrAssignedVariables--;
-        iPerturbVariables = null;
+    @SuppressWarnings("deprecation")
+    public void afterUnassigned(Assignment<V, T> assignment, long iteration, T value) {
+        afterUnassigned(iteration, value);
         for (ModelListener<V, T> listener : iModelListeners)
-            listener.afterUnassigned(iteration, value);
+            listener.afterUnassigned(assignment, iteration, value);
     }
 
     @Override
     public String toString() {
-        return "Model{\n    variables=" + ToolBox.col2string(variables(), 2) + ",\n    constraints="
-                + ToolBox.col2string(constraints(), 2) + ",\n    #unassigned=" + nrUnassignedVariables()
-                + ",\n    unassigned=" + ToolBox.col2string(unassignedVariables(), 2) + ",\n    #perturbations="
-                + perturbVariables().size() + "+" + (variables().size() - variablesWithInitialValue().size())
-                + ",\n    perturbations=" + ToolBox.col2string(perturbVariables(), 2) + ",\n    info=" + getInfo()
-                + "\n  }";
+        return "Model{\n    variables=" + ToolBox.col2string(variables(), 2) + ",\n    constraints=" + ToolBox.col2string(constraints(), 2) + ",\n  }";
     }
 
     protected String getPerc(double value, double min, double max) {
@@ -386,33 +448,68 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
             return sPercentageFormat.format(0.0);
         return sPercentageFormat.format(100.0 * (value - min) / (max - min));
     }
+    
+    /**
+     * Returns information about the current solution. Information from all
+     * model listeners and constraints is also included.
+     * Use {@link Model#getInfo(Assignment)} instead.
+     */
+    @Deprecated
+    public Map<String, String> getInfo() {
+        return getInfo(getDefaultAssignment());
+    }
 
     /**
      * Returns information about the current solution. Information from all
      * model listeners and constraints is also included.
      */
-    public Map<String, String> getInfo() {
-        HashMap<String, String> ret = new HashMap<String, String>();
-        ret.put("Assigned variables", getPercRev(nrAssignedVariables(), 0, variables().size()) + "% ("
-                + nrAssignedVariables() + "/" + variables().size() + ")");
+    public Map<String, String> getInfo(Assignment<V, T> assignment) {
+        Map<String, String> ret = new HashMap<String, String>();
+        ret.put("Assigned variables", getPercRev(assignment.nrAssignedVariables(), 0, variables().size()) + "% (" + assignment.nrAssignedVariables() + "/" + variables().size() + ")");
         int nrVarsWithInitialValue = variablesWithInitialValue().size();
         if (nrVarsWithInitialValue > 0) {
-            ret.put("Perturbation variables", getPercRev(perturbVariables().size(), 0, nrVarsWithInitialValue) + "% ("
-                    + perturbVariables().size() + " + " + (variables().size() - nrVarsWithInitialValue) + ")");
+            Collection<V> pv = perturbVariables(assignment);
+            ret.put("Perturbation variables", getPercRev(pv.size(), 0, nrVarsWithInitialValue) + "% (" + pv.size() + " + " + (variables().size() - nrVarsWithInitialValue) + ")");
         }
-        ret.put("Overall solution value", sDoubleFormat.format(getTotalValue()));
-        for (InfoProvider<V> provider : iInfoProviders)
-            provider.getInfo(ret);
+        ret.put("Overall solution value", sDoubleFormat.format(getTotalValue(assignment)));
+        for (InfoProvider<V, T> provider : iInfoProviders)
+            provider.getInfo(assignment, ret);
         return ret;
+    }
+    
+    /**
+     * Extended information about current solution. Similar to
+     * {@link Model#getInfo(Assignment)}, but some more information (that is more
+     * expensive to compute) might be added.
+     * Use {@link Model#getExtendedInfo(Assignment)} instead.
+     */
+    @Deprecated
+    public Map<String, String> getExtendedInfo() {
+        return getExtendedInfo(getDefaultAssignment());
     }
 
     /**
      * Extended information about current solution. Similar to
-     * {@link Model#getInfo()}, but some more information (that is more
+     * {@link Model#getInfo(Assignment)}, but some more information (that is more
      * expensive to compute) might be added.
      */
-    public Map<String, String> getExtendedInfo() {
-        return getInfo();
+    public Map<String, String> getExtendedInfo(Assignment<V, T> assignment) {
+        Map<String, String> ret = getInfo(assignment);
+        for (InfoProvider<V, T> provider : iInfoProviders)
+            if (provider instanceof ExtendedInfoProvider)
+                ((ExtendedInfoProvider<V, T>)provider).getExtendedInfo(assignment, ret);
+        return ret;
+    }
+    
+    /**
+     * Returns information about the current solution. Information from all
+     * model listeners and constraints is also included. Only variables from the
+     * given set are considered.
+     * Use {@link Model#getInfo(Assignment, Collection)} instead.
+     **/
+    @Deprecated
+    public Map<String, String> getInfo(Collection<V> variables) {
+        return getInfo(getDefaultAssignment(), variables);
     }
 
     /**
@@ -420,28 +517,29 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * model listeners and constraints is also included. Only variables from the
      * given set are considered.
      */
-    public Map<String, String> getInfo(Collection<V> variables) {
+    public Map<String, String> getInfo(Assignment<V, T> assignment, Collection<V> variables) {
         Map<String, String> ret = new HashMap<String, String>();
         int assigned = 0, perturb = 0, nrVarsWithInitialValue = 0;
         for (V variable : variables) {
-            if (variable.getAssignment() != null)
+            T value = assignment.getValue(variable);
+            if (value != null)
                 assigned++;
             if (variable.getInitialAssignment() != null) {
                 nrVarsWithInitialValue++;
-                if (variable.getAssignment() != null) {
-                    if (!variable.getInitialAssignment().equals(variable.getAssignment()))
+                if (value != null) {
+                    if (!variable.getInitialAssignment().equals(value))
                         perturb++;
                 } else {
                     boolean hasPerturbance = false;
                     for (Constraint<V, T> constraint : variable.hardConstraints()) {
-                        if (constraint.inConflict(variable.getInitialAssignment())) {
+                        if (constraint.inConflict(assignment, variable.getInitialAssignment())) {
                             hasPerturbance = true;
                             break;
                         }
                     }
                     if (!hasPerturbance)
                         for (GlobalConstraint<V, T> constraint : globalConstraints()) {
-                            if (constraint.inConflict(variable.getInitialAssignment())) {
+                            if (constraint.inConflict(assignment, variable.getInitialAssignment())) {
                                 hasPerturbance = true;
                                 break;
                             }
@@ -451,15 +549,13 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
                 }
             }
         }
-        ret.put("Assigned variables", getPercRev(assigned, 0, variables.size()) + "% (" + assigned + "/"
-                + variables.size() + ")");
+        ret.put("Assigned variables", getPercRev(assigned, 0, variables.size()) + "% (" + assigned + "/" + variables.size() + ")");
         if (nrVarsWithInitialValue > 0) {
-            ret.put("Perturbation variables", getPercRev(perturb, 0, nrVarsWithInitialValue) + "% (" + perturb + " + "
-                    + (variables.size() - nrVarsWithInitialValue) + ")");
+            ret.put("Perturbation variables", getPercRev(perturb, 0, nrVarsWithInitialValue) + "% (" + perturb + " + " + (variables.size() - nrVarsWithInitialValue) + ")");
         }
-        ret.put("Overall solution value", sDoubleFormat.format(getTotalValue(variables)));
-        for (InfoProvider<V> provider : iInfoProviders)
-            provider.getInfo(ret, variables);
+        ret.put("Overall solution value", sDoubleFormat.format(getTotalValue(assignment, variables)));
+        for (InfoProvider<V, T> provider : iInfoProviders)
+            provider.getInfo(assignment, ret, variables);
         return ret;
     }
 
@@ -478,16 +574,39 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     public int getBestPerturbations() {
         return iBestPerturbations;
     }
+    
+    /**
+     * Total value of the best ever found solution -- sum of all assigned values
+     * (see {@link Value#toDouble()}).
+     */
+    public double getBestValue() {
+        return iBestValue;
+    }
+
+    /** Set total value of the best ever found solution */
+    public void setBestValue(double bestValue) {
+        iBestValue = bestValue;
+    }
+    
+    /**
+     * Save the current assignment as the best ever found assignment
+     * Use {@link Model#saveBest(Assignment)} instead.
+     **/
+    @Deprecated
+    public void saveBest() {
+        saveBest(getDefaultAssignment());
+    }
 
     /** Save the current assignment as the best ever found assignment */
-    public void saveBest() {
-        iBestUnassignedVariables = nrUnassignedVariables();// unassignedVariables().size();
-        iBestPerturbations = perturbVariables().size();
+    public void saveBest(Assignment<V, T> assignment) {
+        iBestUnassignedVariables = iVariables.size() - assignment.nrAssignedVariables();
+        iBestPerturbations = perturbVariables(assignment).size();
+        iBestValue = getTotalValue(assignment);
         for (V variable : iVariables) {
-            variable.setBestAssignment(variable.getAssignment());
+            variable.setBestAssignment(assignment.getValue(variable), assignment.getIteration(variable));
         }
         for (Criterion<V, T> criterion: getCriteria()) {
-            criterion.bestSaved();
+            criterion.bestSaved(assignment);
         }
     }
 
@@ -495,58 +614,74 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     public void clearBest() {
         iBestUnassignedVariables = -1;
         iBestPerturbations = 0;
+        iBestValue = 0;
         for (V variable : iVariables) {
-            variable.setBestAssignment(null);
+            variable.setBestAssignment(null, 0);
         }
+    }
+
+    /**
+     * Restore the best ever found assignment into the current assignment
+     * Use {@link Model#restoreBest(Assignment)} instead.
+     **/
+    @Deprecated
+    protected void restoreBest() {
+        restoreBest(getDefaultAssignment());
     }
 
     /** Restore the best ever found assignment into the current assignment */
     @SuppressWarnings("unchecked")
-    protected void restoreBest(Comparator<V> assignmentOrder) {
+    protected void restoreBest(Assignment<V, T> assignment, Comparator<V> assignmentOrder) {
         TreeSet<V> sortedVariables = new TreeSet<V>(assignmentOrder);
         for (V variable : iVariables) {
-            if (variable.getAssignment() == null) {
+            T value = assignment.getValue(variable);
+            if (value == null) {
                 if (variable.getBestAssignment() != null)
                     sortedVariables.add(variable);
-            } else if (!variable.getAssignment().equals(variable.getBestAssignment())) {
-                variable.unassign(0);
+            } else if (!value.equals(variable.getBestAssignment())) {
+                assignment.unassign(0, variable);
                 if (variable.getBestAssignment() != null)
                     sortedVariables.add(variable);
             }
         }
         Set<T> problems = new HashSet<T>();
         for (V variable : sortedVariables) {
-            Set<T> confs = conflictValues(variable.getBestAssignment());
+            Set<T> confs = conflictValues(assignment, variable.getBestAssignment());
             if (!confs.isEmpty()) {
-                sLogger.error("restore best problem: assignment " + variable.getName() + " = "
-                        + variable.getBestAssignment().getName());
+                sLogger.error("restore best problem: assignment " + variable.getName() + " = " + variable.getBestAssignment().getName());
+                boolean weakened = false;
                 for (Constraint<V, T> c : variable.hardConstraints()) {
                     Set<T> x = new HashSet<T>();
-                    c.computeConflicts(variable.getBestAssignment(), x);
+                    c.computeConflicts(assignment, variable.getBestAssignment(), x);
                     if (!x.isEmpty()) {
                         if (c instanceof WeakeningConstraint) {
-                            ((WeakeningConstraint<V, T>)c).weaken(variable.getBestAssignment());
-                            sLogger.info("  constraint " + c.getClass().getName() + " " + c.getName() + " had to be weakened");
+                            ((WeakeningConstraint<V, T>)c).weaken(assignment, variable.getBestAssignment());
+                            sLogger.info("  constraint " + c.getClass().getSimpleName() + " " + c.getName() + " had to be weakened");
+                            weakened = true;
                         } else {
-                            sLogger.error("  constraint " + c.getClass().getName() + " " + c.getName() + " causes the following conflicts " + x);
+                            sLogger.error("  constraint " + c.getClass().getSimpleName() + " " + c.getName() + " causes the following conflicts " + x);
                         }
                     }
                 }
                 for (GlobalConstraint<V, T> c : globalConstraints()) {
                     Set<T> x = new HashSet<T>();
-                    c.computeConflicts(variable.getBestAssignment(), x);
+                    c.computeConflicts(assignment, variable.getBestAssignment(), x);
                     if (!x.isEmpty()) {
                         if (c instanceof WeakeningConstraint) {
-                            ((WeakeningConstraint<V, T>)c).weaken(variable.getBestAssignment());
-                            sLogger.info("  constraint " + c.getClass().getName() + " " + c.getName() + " had to be weakened");
+                            ((WeakeningConstraint<V, T>)c).weaken(assignment, variable.getBestAssignment());
+                            sLogger.info("  constraint " + c.getClass().getSimpleName() + " " + c.getName() + " had to be weakened");
+                            weakened = true;
                         } else {
-                            sLogger.error("  global constraint " + c.getClass().getName() + " " + c.getName() + " causes the following conflicts " + x);
+                            sLogger.error("  global constraint " + c.getClass().getSimpleName() + " " + c.getName() + " causes the following conflicts " + x);
                         }
                     }
                 }
-                problems.add(variable.getBestAssignment());
+                if (weakened && conflictValues(assignment, variable.getBestAssignment()).isEmpty())
+                    assignment.assign(0, variable.getBestAssignment());
+                else
+                    problems.add(variable.getBestAssignment());
             } else
-                variable.assign(0, variable.getBestAssignment());
+                assignment.assign(0, variable.getBestAssignment());
         }
         int attempt = 0, maxAttempts = 3 * problems.size();
         while (!problems.isEmpty() && attempt <= maxAttempts) {
@@ -554,37 +689,35 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
             T value = ToolBox.random(problems);
             problems.remove(value);
             V variable = value.variable();
-            Set<T> confs = conflictValues(value);
+            Set<T> confs = conflictValues(assignment, value);
             if (!confs.isEmpty()) {
-                sLogger.error("restore best problem (again, att=" + attempt + "): assignment " + variable.getName()
-                        + " = " + value.getName());
+                sLogger.error("restore best problem (again, att=" + attempt + "): assignment " + variable.getName() + " = " + value.getName());
                 for (Constraint<V, T> c : variable.hardConstraints()) {
                     Set<T> x = new HashSet<T>();
-                    c.computeConflicts(value, x);
+                    c.computeConflicts(assignment, value, x);
                     if (!x.isEmpty())
-                        sLogger.error("  constraint " + c.getClass().getName() + " " + c.getName()
-                                + " causes the following conflicts " + x);
+                        sLogger.error("  constraint " + c.getClass().getSimpleName() + " " + c.getName() + " causes the following conflicts " + x);
                 }
                 for (GlobalConstraint<V, T> c : globalConstraints()) {
                     Set<T> x = new HashSet<T>();
-                    c.computeConflicts(value, x);
+                    c.computeConflicts(assignment, value, x);
                     if (!x.isEmpty())
-                        sLogger.error("  constraint " + c.getClass().getName() + " " + c.getName()
-                                + " causes the following conflicts " + x);
+                        sLogger.error("  constraint " + c.getClass().getSimpleName() + " " + c.getName() + " causes the following conflicts " + x);
                 }
                 for (T conf : confs)
-                    conf.variable().unassign(0);
+                    assignment.unassign(0, conf.variable());
                 problems.addAll(confs);
             }
-            variable.assign(0, value);
+            assignment.assign(0, value);
         }
         for (Criterion<V, T> criterion: getCriteria()) {
-            criterion.bestRestored();
+            criterion.bestRestored(assignment);
         }
     }
     
-    public void restoreBest() {
-        restoreBest(new Comparator<V>() {
+    /** Restore the best ever found assignment into the current assignment */
+    public void restoreBest(Assignment<V, T> assignment) {
+        restoreBest(assignment, new Comparator<V>() {
             @Override
             public int compare(V v1, V v2) {
                 if (v1.getBestAssignmentIteration() < v2.getBestAssignmentIteration()) return -1;
@@ -593,40 +726,77 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
             }
         });
     }
-
-    /** The list of unassigned variables in the best ever found solution */
+    
+    /**
+     * The list of unassigned variables in the best ever found solution.
+     * Use {@link Model#bestUnassignedVariables(Assignment)} instead.
+     **/
+    @Deprecated
     public Collection<V> bestUnassignedVariables() {
-        if (iBestUnassignedVariables < 0)
-            return unassignedVariables();
+        return bestUnassignedVariables(getDefaultAssignment());
+    }
+    
+    /** The list of unassigned variables in the best ever found solution */
+    public Collection<V> bestUnassignedVariables(Assignment<V, T> assignment) {
         Collection<V> ret = new ArrayList<V>(variables().size());
-        for (V variable : variables()) {
-            if (variable.getBestAssignment() == null)
-                ret.add(variable);
+        if (iBestUnassignedVariables < 0) {
+            for (V variable : variables()) {
+                if (assignment.getValue(variable) == null)
+                    ret.add(variable);
+            }
+        } else {
+            for (V variable : variables()) {
+                if (variable.getBestAssignment() == null)
+                    ret.add(variable);
+            }
         }
         return ret;
     }
 
     /**
      * Value of the current solution. It is the sum of all assigned values,
+     * i.e., {@link Value#toDouble(Assignment)}.
+     * Use {@link Model#getTotalValue(Assignment)} instead.
+     */
+    @Deprecated
+    public double getTotalValue() {
+        return getTotalValue(getDefaultAssignment());
+    }
+    
+    /**
+     * Value of the current solution. It is the sum of all assigned values,
      * i.e., {@link Value#toDouble()}.
      */
-    public double getTotalValue() {
+    public double getTotalValue(Assignment<V, T> assignment) {
         double ret = 0.0;
-        for (V v: assignedVariables())
-            ret += v.getAssignment().toDouble();
+        for (T t: assignment.assignedValues())
+            ret += t.toDouble(assignment);
         return ret;
     }
 
     /**
      * Value of the current solution. It is the sum of all assigned values,
-     * i.e., {@link Value#toDouble()}. Only variables from the given set are
+     * i.e., {@link Value#toDouble(Assignment)}. Only variables from the given set are
+     * considered.
+     * Use {@link Model#getTotalValue(Assignment, Collection)} instead.
+     **/
+    @Deprecated
+    public double getTotalValue(Collection<V> variables) {
+        return getTotalValue(getDefaultAssignment(), variables);
+    }
+    
+    /**
+     * Value of the current solution. It is the sum of all assigned values,
+     * i.e., {@link Value#toDouble(Assignment)}. Only variables from the given set are
      * considered.
      **/
-    public double getTotalValue(Collection<V> variables) {
+    public double getTotalValue(Assignment<V, T> assignment, Collection<V> variables) {
         double ret = 0.0;
-        for (V v: variables)
-            if (v.getAssignment() != null)
-                ret += v.getAssignment().toDouble();
+        for (V v: variables) {
+            T t = assignment.getValue(v);
+            if (t != null)
+                ret += t.toDouble(assignment);
+        }
         return ret;
     }
 
@@ -634,8 +804,8 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     @SuppressWarnings("unchecked")
     public void addModelListener(ModelListener<V, T> listener) {
         iModelListeners.add(listener);
-        if (listener instanceof InfoProvider<?>)
-            iInfoProviders.add((InfoProvider<V>) listener);
+        if (listener instanceof InfoProvider<?, ?>)
+            iInfoProviders.add((InfoProvider<V, T>) listener);
         for (Constraint<V, T> constraint : iConstraints)
             listener.constraintAdded(constraint);
         for (V variable : iVariables)
@@ -644,7 +814,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
 
     /** Removes a model listener */
     public void removeModelListener(ModelListener<V, T> listener) {
-        if (listener instanceof InfoProvider<?>)
+        if (listener instanceof InfoProvider<?, ?>)
             iInfoProviders.remove(listener);
         for (V variable : iVariables)
             listener.variableRemoved(variable);
@@ -680,20 +850,20 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * The list of constraints which are in a conflict with the given value if
      * it is assigned to its variable. This means the constraints, which adds a
      * value into the set of conflicting values in
-     * {@link Constraint#computeConflicts(Value, Set)}.
+     * {@link Constraint#computeConflicts(Assignment, Value, Set)}.
      */
-    public Map<Constraint<V, T>, Set<T>> conflictConstraints(T value) {
+    public Map<Constraint<V, T>, Set<T>> conflictConstraints(Assignment<V, T> assignment, T value) {
         Map<Constraint<V, T>, Set<T>> conflictConstraints = new HashMap<Constraint<V, T>, Set<T>>();
         for (Constraint<V, T> constraint : value.variable().hardConstraints()) {
             Set<T> conflicts = new HashSet<T>();
-            constraint.computeConflicts(value, conflicts);
+            constraint.computeConflicts(assignment, value, conflicts);
             if (!conflicts.isEmpty()) {
                 conflictConstraints.put(constraint, conflicts);
             }
         }
         for (GlobalConstraint<V, T> constraint : globalConstraints()) {
             Set<T> conflicts = new HashSet<T>();
-            constraint.computeConflicts(value, conflicts);
+            constraint.computeConflicts(assignment, value, conflicts);
             if (!conflicts.isEmpty()) {
                 conflictConstraints.put(constraint, conflicts);
             }
@@ -705,37 +875,39 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * The list of hard constraints which contain at least one variable that is
      * not assigned.
      */
-    public List<Constraint<V, T>> unassignedHardConstraints() {
+    public List<Constraint<V, T>> unassignedHardConstraints(Assignment<V, T> assignment) {
         List<Constraint<V, T>> ret = new ArrayList<Constraint<V, T>>();
         constraints: for (Constraint<V, T> constraint : constraints()) {
             if (!constraint.isHard())
                 continue;
             for (V v : constraint.variables()) {
-                if (v.getAssignment() == null) {
+                if (assignment.getValue(v) == null) {
                     ret.add(constraint);
                     continue constraints;
                 }
             }
         }
-        if (!unassignedVariables().isEmpty())
+        if (iVariables.size() > assignment.nrAssignedVariables())
             ret.addAll(globalConstraints());
         return ret;
     }
 
     /** Registered info providers (see {@link InfoProvider}) */
-    protected List<InfoProvider<V>> getInfoProviders() {
+    protected List<InfoProvider<V, T>> getInfoProviders() {
         return iInfoProviders;
     }
     
     /** Register a new criterion */
     public void addCriterion(Criterion<V,T> criterion) {
         iCriteria.put(criterion.getClass().getName(), criterion);
+        criterion.setModel(this);
         addModelListener(criterion);
     }
     
     /** Unregister an existing criterion */
     public void removeCriterion(Criterion<V,T> criterion) {
         iCriteria.remove(criterion.getClass().getName());
+        criterion.setModel(null);
         removeModelListener(criterion);
     }
     
@@ -758,19 +930,82 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     
     /**
      * Weaken all weakening constraint so that the given value can be assigned without
-     * them creating a conflict using {@link WeakeningConstraint#weaken(Value)}.
+     * them creating a conflict using {@link WeakeningConstraint#weaken(Assignment, Value)}.
      * This method is handy for instance when an existing solution is being loaded
      * into the solver.
      */
     @SuppressWarnings("unchecked")
-    public void weaken(T value) {
+    public void weaken(Assignment<V, T> assignment, T value) {
         for (Constraint<V, T> constraint : value.variable().hardConstraints()) {
             if (constraint instanceof WeakeningConstraint)
-                ((WeakeningConstraint<V,T>)constraint).weaken(value);
+                ((WeakeningConstraint<V,T>)constraint).weaken(assignment, value);
         }
         for (GlobalConstraint<V, T> constraint : globalConstraints()) {
             if (constraint instanceof WeakeningConstraint)
-                ((WeakeningConstraint<V,T>)constraint).weaken(value);
+                ((WeakeningConstraint<V,T>)constraint).weaken(assignment, value);
         }
+    }
+    
+    /**
+     * Create a reference to an assignment context for a class that is in a need of one. Through this
+     * reference an assignment context (see {@link AssignmentContext}) can be accessed using
+     * {@link Assignment#getAssignmentContext(AssignmentContextReference)}.
+     * @param parent class needing an assignment context
+     * @return reference to an assignment context
+     */
+    public synchronized <C extends AssignmentContext> AssignmentContextReference<V,T,C> createReference(HasAssignmentContext<V, T, C> parent) {
+        AssignmentContextReference<V, T, C> ref = new AssignmentContextReference<V, T, C>(parent, iNextReferenceId);
+        iAssignmentContextReferences.put(iNextReferenceId, ref);
+        iNextReferenceId++;
+        return ref;
+    }
+    
+    /**
+     * Clear all assignment contexts for the given assignment
+     * @param assignment given {@link Assignment}
+     */
+    public synchronized void clearAssignmentContexts(Assignment<V, T> assignment) {
+        for (AssignmentContextReference<V,T,? extends AssignmentContext> ref: iAssignmentContextReferences.values())
+            assignment.clearContext(ref);
+    }
+    
+    /**
+     * Create all assignment contexts for the given assignment
+     * @param assignment given {@link Assignment}
+     * @param clear if true {@link Assignment#clearContext(AssignmentContextReference)} is called first
+     */
+    public synchronized void createAssignmentContexts(Assignment<V, T> assignment, boolean clear) {
+        for (AssignmentContextReference<V,T,? extends AssignmentContext> ref: iAssignmentContextReferences.values()) {
+            if (clear) assignment.clearContext(ref);
+            assignment.getAssignmentContext(ref);
+        }
+    }
+
+    /**
+     * Return default assignment that is using the old {@link Variable#getAssignment()} assignments.
+     * @return as instance of {@link DefaultSingleAssignment}
+     */
+    @Deprecated
+    public Assignment<V, T> getDefaultAssignment() {
+        if (iAssignment == null)
+            iAssignment = new DefaultSingleAssignment<V, T>();
+        return iAssignment;
+    }
+    
+    /**
+     * Set default assignment 
+     */
+    @Deprecated
+    public void setDefaultAssignment(Assignment<V, T> assignment) {
+        iAssignment = assignment;
+    }
+    
+    /**
+     * Returns an instance of an empty assignment (using {@link EmptyAssignment})
+     */
+    public Assignment<V, T> getEmptyAssignment() {
+        if (iEmptyAssignment == null)
+            iEmptyAssignment = new EmptyAssignment<V, T>();
+        return iEmptyAssignment;
     }
 }

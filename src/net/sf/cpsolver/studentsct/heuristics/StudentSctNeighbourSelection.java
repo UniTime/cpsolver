@@ -1,8 +1,11 @@
 package net.sf.cpsolver.studentsct.heuristics;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.heuristics.RoundRobinNeighbourSelection;
-import net.sf.cpsolver.ifs.solution.Solution;
+import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solver.Solver;
+import net.sf.cpsolver.ifs.solver.SolverListener;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.heuristics.selection.BacktrackSelection;
@@ -73,7 +76,7 @@ import net.sf.cpsolver.studentsct.model.Request;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<Request, Enrollment> {
+public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<Request, Enrollment> implements SolverListener<Request, Enrollment> {
     private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(StudentSctNeighbourSelection.class);
     private boolean iUseConstruction = false;
 
@@ -87,6 +90,7 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
         super.init(solver);
         setup(solver);
         solver.setUpdateProgress(false);
+        solver.addSolverListener(this);
     }
 
     public void setup(Solver<Request, Enrollment> solver) {
@@ -125,8 +129,7 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
         registerSelection(new SwapStudentSelection(solver.getProperties()));
 
         // Phase 10: use standard value selection for some time
-        registerSelection(new StandardSelection(solver.getProperties(), new RouletteWheelRequestSelection(solver
-                .getProperties()), getValueSelection()));
+        registerSelection(new StandardSelection(solver.getProperties(), new RouletteWheelRequestSelection(solver.getProperties()), getValueSelection()));
 
         // Phase 11: pick a student (one by one) with an incomplete schedule,
         // try to find an improvement
@@ -140,9 +143,31 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
     }
 
     @Override
-    public void changeSelection(Solution<Request, Enrollment> solution) {
-        super.changeSelection(solution);
-        sLog.debug("Current solution: " + ToolBox.dict2string(solution.getExtendedInfo(), 2));
+    public void changeSelection(int selectionIndex) {
+        super.changeSelection(selectionIndex);
+        sLog.debug("Current solution: " + ToolBox.dict2string(iSolver.currentSolution().getExtendedInfo(), 2));
+    }
+
+    @Override
+    public boolean variableSelected(Assignment<Request, Enrollment> assignment, long iteration, Request variable) {
+        return true;
+    }
+
+    @Override
+    public boolean valueSelected(Assignment<Request, Enrollment> assignment, long iteration, Request variable, Enrollment value) {
+        return true;
+    }
+
+    @Override
+    public boolean neighbourSelected(Assignment<Request, Enrollment> assignment, long iteration, Neighbour<Request, Enrollment> neighbour) {
+        return true;
+    }
+
+    @Override
+    public void neighbourFailed(Assignment<Request, Enrollment> assignment, long iteration, Neighbour<Request, Enrollment> neighbour) {
+        NeighbourSelection<Request, Enrollment> selection = iSelections.get(getSelectionIndex());
+        if (neighbour instanceof BranchBoundSelection.BranchBoundNeighbour && selection instanceof BranchBoundSelection)
+            ((BranchBoundSelection)selection).addStudent(((BranchBoundSelection.BranchBoundNeighbour)neighbour).getStudent());
     }
 
 }

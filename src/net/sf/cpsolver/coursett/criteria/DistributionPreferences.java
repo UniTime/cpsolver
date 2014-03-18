@@ -8,6 +8,7 @@ import net.sf.cpsolver.coursett.constraint.GroupConstraint;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimetableModel;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -53,28 +54,28 @@ public class DistributionPreferences extends TimetablingCriterion {
 
 
     @Override
-    public double getValue(Placement value, Set<Placement> conflicts) {
+    public double getValue(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
         double ret = 0.0;
         for (GroupConstraint gc : value.variable().groupConstraints())
-            ret += gc.getCurrentPreference(value);
+            ret += gc.getCurrentPreference(assignment, value);
         return ret;
     }
     
     @Override
-    public double getValue(Collection<Lecture> variables) {
+    public double getValue(Assignment<Lecture, Placement> assignment, Collection<Lecture> variables) {
         double ret = 0;
         Set<GroupConstraint> constraints = new HashSet<GroupConstraint>();
         for (Lecture lect: variables) {
             for (GroupConstraint gc: lect.groupConstraints()) {
                 if (!constraints.add(gc)) continue;
-                ret += gc.getCurrentPreference();
+                ret += gc.getContext(assignment).getPreference();
             }
         }
         return ret;
     }
         
     @Override
-    protected double[] computeBounds() {
+    protected double[] computeBounds(Assignment<Lecture, Placement> assignment) {
         double[] bounds = new double[] { 0.0, 0.0 };
         for (GroupConstraint gc: ((TimetableModel)getModel()).getGroupConstraints()) {
             if (!gc.isHard()) {
@@ -86,7 +87,7 @@ public class DistributionPreferences extends TimetablingCriterion {
     }
     
     @Override
-    public double[] getBounds(Collection<Lecture> variables) {
+    public double[] getBounds(Assignment<Lecture, Placement> assignment, Collection<Lecture> variables) {
         double[] bounds = new double[] { 0.0, 0.0 };
         Set<GroupConstraint> constraints = new HashSet<GroupConstraint>();
         for (Lecture lect: variables) {

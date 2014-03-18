@@ -1,5 +1,11 @@
 package net.sf.cpsolver.ifs.model;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
+import net.sf.cpsolver.ifs.assignment.Assignment;
+
 /**
  * A neighbour consisting of a change (either assignment or unassignment) of a
  * single variable.
@@ -26,9 +32,10 @@ package net.sf.cpsolver.ifs.model;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class SimpleNeighbour<V extends Variable<V, T>, T extends Value<V, T>> extends Neighbour<V, T> {
+public class SimpleNeighbour<V extends Variable<V, T>, T extends Value<V, T>> implements Neighbour<V, T> {
     private V iVariable = null;
     private T iValue = null;
+    private Set<T> iConflicts = null;
 
     /**
      * Model
@@ -43,6 +50,12 @@ public class SimpleNeighbour<V extends Variable<V, T>, T extends Value<V, T>> ex
         iVariable = variable;
         iValue = value;
     }
+    
+    public SimpleNeighbour(V variable, T value, Set<T> conflicts) {
+        iVariable = variable;
+        iValue = value;
+        iConflicts = conflicts;
+    }
 
     /** Selected variable */
     public V getVariable() {
@@ -56,26 +69,35 @@ public class SimpleNeighbour<V extends Variable<V, T>, T extends Value<V, T>> ex
 
     /** Perform assignment */
     @Override
-    public void assign(long iteration) {
+    public void assign(Assignment<V, T> assignment, long iteration) {
         if (iVariable == null)
             return;
         if (iValue != null)
-            iVariable.assign(iteration, iValue);
+            assignment.assign(iteration, iValue);
         else
-            iVariable.unassign(iteration);
+            assignment.unassign(iteration, iVariable);
     }
 
     /** Improvement in the solution value if this neighbour is accepted. */
     @Override
-    public double value() {
-        return (iValue == null ? 0 : iValue.toDouble())
-                - (iVariable == null || iVariable.getAssignment() == null ? 0 : iVariable.getAssignment().toDouble());
+    public double value(Assignment<V, T> assignment) {
+        T old = assignment.getValue(iVariable);
+        return (iValue == null ? 0 : iValue.toDouble(assignment)) - (iVariable == null || old == null ? 0 : old.toDouble(assignment));
     }
 
     @Override
     public String toString() {
-        return iVariable.getName() + " "
-                + (iVariable.getAssignment() == null ? "null" : iVariable.getAssignment().getName()) + " -> "
-                + (iValue == null ? "null" : iValue.getName());
+        return iVariable.getName() + " := " + (iValue == null ? "null" : iValue.getName());
+    }
+
+    @Override
+    public Map<V, T> assignments() {
+        HashMap<V, T> ret = new HashMap<V, T>();
+        if (iVariable != null)
+            ret.put(iVariable, iValue);
+        if (iConflicts != null)
+            for (T conflict: iConflicts)
+                ret.put(conflict.variable(), null);
+        return ret;
     }
 }

@@ -2,6 +2,9 @@ package net.sf.cpsolver.coursett.model;
 
 import java.util.Collection;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.solution.Solution;
+
 /**
  * Interface for student sectioning functions needed within the course timetabling solver.<br>
  * <br>
@@ -55,7 +58,7 @@ public interface StudentSectioning {
      * @param students list of students to be sectioned
      * @param configurations list of configurations the students are to be sectioned into
      */
-    public void initialSectioning(Long offeringId, String courseName, Collection<Student> students, Collection<Configuration> configurations);
+    public void initialSectioning(Assignment<Lecture, Placement> assignment, Long offeringId, String courseName, Collection<Student> students, Collection<Configuration> configurations);
     
     /**
      * Return true if final student sectioning is implemented. 
@@ -66,7 +69,7 @@ public interface StudentSectioning {
      * Run student final sectioning (switching students between sections of the same
      * class in order to minimize overall number of student conflicts).
      */
-    public void switchStudents(TimetableModel model);
+    public void switchStudents(Solution<Lecture, Placement> solution);
     
     /**
      * Perform sectioning on the given lecture
@@ -74,5 +77,5 @@ public interface StudentSectioning {
      * @param recursive recursively resection lectures affected by a student swap
      * @param configAsWell resection students between configurations as well
      **/
-    public void resection(Lecture lecture, boolean recursive, boolean configAsWell);
+    public void resection(Assignment<Lecture, Placement> assignment, Lecture lecture, boolean recursive, boolean configAsWell);
 }

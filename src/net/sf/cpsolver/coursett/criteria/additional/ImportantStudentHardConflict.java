@@ -4,6 +4,8 @@ import java.util.Collection;
 import java.util.Map;
 
 import net.sf.cpsolver.coursett.model.Lecture;
+import net.sf.cpsolver.coursett.model.Placement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -52,10 +54,10 @@ public class ImportantStudentHardConflict extends ImportantStudentConflict {
     }
     
     @Override
-    public void getInfo(Map<String, String> info) {
+    public void getInfo(Assignment<Lecture, Placement> assignment, Map<String, String> info) {
     }
     
     @Override
-    public void getInfo(Map<String, String> info, Collection<Lecture> variables) {
+    public void getInfo(Assignment<Lecture, Placement> assignment, Map<String, String> info, Collection<Lecture> variables) {
     }
 }

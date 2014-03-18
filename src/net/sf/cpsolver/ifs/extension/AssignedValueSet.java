@@ -6,7 +6,6 @@ import java.util.List;
 
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Value;
-import net.sf.cpsolver.ifs.model.Variable;
 
 /**
  * This class describing a set of assignment (used by CBS).
@@ -34,23 +33,23 @@ import net.sf.cpsolver.ifs.model.Variable;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class AssignmentSet<T extends Value<?, T>> {
-    private List<Assignment<T>> iSet = new ArrayList<Assignment<T>>();
+public class AssignedValueSet<T extends Value<?, T>> {
+    private List<AssignedValue<T>> iSet = new ArrayList<AssignedValue<T>>();
     private int iCounter = 1;
     private String iName = null;
     private String iDescription = null;
     private Constraint<?, T> iConstraint = null;
 
-    public AssignmentSet() {
+    public AssignedValueSet() {
     }
 
-    public AssignmentSet(Assignment<T>[] assignments) {
-        for (Assignment<T> a : assignments)
+    public AssignedValueSet(AssignedValue<T>[] assignments) {
+        for (AssignedValue<T> a : assignments)
             iSet.add(a);
     }
 
-    public AssignmentSet(Collection<Assignment<T>> assignments) {
-        for (Assignment<T> a : assignments)
+    public AssignedValueSet(Collection<AssignedValue<T>> assignments) {
+        for (AssignedValue<T> a : assignments)
             iSet.add(a);
     }
 
@@ -58,9 +57,9 @@ public class AssignmentSet<T extends Value<?, T>> {
      * Create set of assignments from the list of Assignments, Values or
      * (assigned) Variables
      */
-    public static <T extends Value<?, T>> AssignmentSet<T> createAssignmentSet(Collection<Assignment<T>> assignments) {
-        AssignmentSet<T> set = new AssignmentSet<T>();
-        for (Assignment<T> a : assignments)
+    public static <T extends Value<?, T>> AssignedValueSet<T> createAssignmentSet(Collection<AssignedValue<T>> assignments) {
+        AssignedValueSet<T> set = new AssignedValueSet<T>();
+        for (AssignedValue<T> a : assignments)
             set.addAssignment(a);
         return set;
     }
@@ -69,23 +68,10 @@ public class AssignmentSet<T extends Value<?, T>> {
      * Create set of assignments from the list of Assignments, Values or
      * (assigned) Variables
      */
-    public static <T extends Value<?, T>> AssignmentSet<T> createAssignmentSetForValues(Collection<T> assignments) {
-        AssignmentSet<T> set = new AssignmentSet<T>();
+    public static <T extends Value<?, T>> AssignedValueSet<T> createAssignmentSetForValues(Collection<T> assignments) {
+        AssignedValueSet<T> set = new AssignedValueSet<T>();
         for (T a : assignments)
             set.addAssignment(0l, a, 1.0);
-        return set;
-    }
-
-    /**
-     * Create set of assignments from the list of Assignments, Values or
-     * (assigned) Variables
-     */
-    public static <T extends Value<?, T>> AssignmentSet<T> createAssignmentSetForVariables(
-            Collection<Variable<?, T>> assignments) {
-        AssignmentSet<T> set = new AssignmentSet<T>();
-        for (Variable<?, T> a : assignments)
-            if (a.getAssignment() != null)
-                set.addAssignment(0, a.getAssignment(), 1.0);
         return set;
     }
 
@@ -100,7 +86,7 @@ public class AssignmentSet<T extends Value<?, T>> {
     }
 
     /** Returns set of assignments */
-    public List<Assignment<T>> getSet() {
+    public List<AssignedValue<T>> getSet() {
         return iSet;
     }
 
@@ -135,29 +121,23 @@ public class AssignmentSet<T extends Value<?, T>> {
     }
 
     /** Returns true if it contains the given assignment */
-    public boolean contains(Assignment<T> assignment) {
+    public boolean contains(AssignedValue<T> assignment) {
         return iSet.contains(assignment);
     }
 
     /** Returns true if it contains all of the given assignments */
-    public boolean contains(AssignmentSet<T> assignmentSet) {
+    public boolean contains(AssignedValueSet<T> assignmentSet) {
         return iSet.containsAll(assignmentSet.getSet());
     }
 
     /** Returns true if it contains the given assignment */
     public boolean contains(T value) {
-        return iSet.contains(new Assignment<T>(0l, value, 1.0));
-    }
-
-    /** Returns true if it contains the given assignment (assigned variable) */
-    public boolean contains(Variable<?, T> variable) {
-        return (variable.getAssignment() == null ? false : iSet.contains(new Assignment<T>(0l,
-                variable.getAssignment(), 1.0)));
+        return iSet.contains(new AssignedValue<T>(0l, value, 1.0));
     }
 
     /** Returns true if it contains all of the given assignments */
-    public boolean contains(Collection<Assignment<T>> assignments) {
-        for (Assignment<T> a : assignments)
+    public boolean contains(Collection<AssignedValue<T>> assignments) {
+        for (AssignedValue<T> a : assignments)
             if (!iSet.contains(a))
                 return false;
         return true;
@@ -166,36 +146,28 @@ public class AssignmentSet<T extends Value<?, T>> {
     /** Returns true if it contains all of the given assignments */
     public boolean containsValues(Collection<T> assignments) {
         for (T a : assignments)
-            if (!iSet.contains(new Assignment<T>(0l, a, 1.0)))
-                return false;
-        return true;
-    }
-
-    /** Returns true if it contains all of the given assignments */
-    public boolean containsVariables(Collection<Variable<?, T>> assignments) {
-        for (Variable<?, T> a : assignments)
-            if (a.getAssignment() == null || !iSet.contains(new Assignment<T>(0l, a.getAssignment(), 1.0)))
+            if (!iSet.contains(new AssignedValue<T>(0l, a, 1.0)))
                 return false;
         return true;
     }
 
     /** Adds an assignment */
-    public void addAssignment(Assignment<T> assignment) {
+    public void addAssignment(AssignedValue<T> assignment) {
         if (!contains(assignment))
             iSet.add(assignment);
     }
 
     /** Adds an assignment */
     public void addAssignment(long iteration, T value, double ageing) {
-        addAssignment(new Assignment<T>(iteration, value, ageing));
+        addAssignment(new AssignedValue<T>(iteration, value, ageing));
     }
 
     /**
      * Returns assignment that corresponds to the given value (if it is present
      * in the set)
      */
-    public Assignment<T> getAssignment(T value) {
-        for (Assignment<T> a : iSet)
+    public AssignedValue<T> getAssignment(T value) {
+        for (AssignedValue<T> a : iSet)
             if (a.getValue().getId() == value.getId())
                 return a;
         return null;
@@ -215,8 +187,8 @@ public class AssignmentSet<T extends Value<?, T>> {
     public boolean equals(Object o) {
         if (o == null)
             return false;
-        if (o instanceof AssignmentSet<?>) {
-            AssignmentSet<T> as = (AssignmentSet<T>) o;
+        if (o instanceof AssignedValueSet<?>) {
+            AssignedValueSet<T> as = (AssignedValueSet<T>) o;
             if (getName() == null && as.getName() != null)
                 return false;
             if (getName() != null && as.getName() == null)
@@ -228,7 +200,7 @@ public class AssignmentSet<T extends Value<?, T>> {
             return contains(as);
         }
         if (o instanceof Collection<?>) {
-            Collection<Assignment<T>> c = (Collection<Assignment<T>>) o;
+            Collection<AssignedValue<T>> c = (Collection<AssignedValue<T>>) o;
             if (c.size() != getSet().size())
                 return false;
             return contains(c);
@@ -243,7 +215,7 @@ public class AssignmentSet<T extends Value<?, T>> {
     @Override
     public int hashCode() {
         int ret = getSet().size();
-        for (Assignment<T> a : iSet)
+        for (AssignedValue<T> a : iSet)
             ret = xor(ret, a.hashCode());
         return ret;
     }

@@ -188,9 +188,9 @@ public class TimetableXMLSaver extends TimetableSaver {
         Document document = DocumentHelper.createDocument();
         document.addComment("University Course Timetabling");
 
-        if (iSaveCurrent && !getModel().assignedVariables().isEmpty()) {
+        if (iSaveCurrent && getAssignment().nrAssignedVariables() != 0) {
             StringBuffer comments = new StringBuffer("Solution Info:\n");
-            Map<String, String> solutionInfo = (getSolution() == null ? getModel().getInfo() : getSolution().getInfo());
+            Map<String, String> solutionInfo = (getSolution() == null ? getModel().getExtendedInfo(getAssignment()) : getSolution().getExtendedInfo());
             for (String key : new TreeSet<String>(solutionInfo.keySet())) {
                 String value = solutionInfo.get(key);
                 comments.append("    " + key + ": " + value + "\n");
@@ -270,7 +270,7 @@ public class TimetableXMLSaver extends TimetableSaver {
         if (getModel().hasConstantVariables())
             vars.addAll(getModel().constantVariables());
         for (Lecture lecture : vars) {
-            Placement placement = lecture.getAssignment();
+            Placement placement = getAssignment().getValue(lecture);
             if (lecture.isCommitted() && placement == null)
                 placement = lecture.getInitialAssignment();
             Placement initialPlacement = lecture.getInitialAssignment();
@@ -553,8 +553,7 @@ public class TimetableXMLSaver extends TimetableSaver {
                 if (priority != null)
                     offEl.addAttribute("priority", priority.toString());
             }
-            if (iExportStudentSectioning || getModel().unassignedVariables().isEmpty()
-                    || student.getOfferingsMap().isEmpty()) {
+            if (iExportStudentSectioning || getModel().nrUnassignedVariables(getAssignment()) == 0 || student.getOfferingsMap().isEmpty()) {
                 List<String> lectures = students.get(student);
                 Collections.sort(lectures);
                 for (String classId : lectures) {
@@ -586,10 +585,10 @@ public class TimetableXMLSaver extends TimetableSaver {
             int nrChanges = getModel().getProperties().getPropertyInt("MPP.GenTimePert", 0);
             List<Lecture> lectures = new ArrayList<Lecture>();
             while (lectures.size() < nrChanges) {
-                Lecture lecture = ToolBox.random(getModel().assignedVariables());
+                Lecture lecture = ToolBox.random(getAssignment().assignedVariables());
                 if (lecture.isCommitted() || lecture.timeLocations().size() <= 1 || lectures.contains(lecture))
                     continue;
-                Placement placement = lecture.getAssignment();
+                Placement placement = getAssignment().getValue(lecture);
                 TimeLocation tl = placement.getTimeLocation();
                 perturbationsEl.addElement("class").addAttribute("id", getId("class", lecture.getClassId()))
                         .addAttribute("days", sDF[7].format(Long.parseLong(Integer.toBinaryString(tl.getDayCode()))))

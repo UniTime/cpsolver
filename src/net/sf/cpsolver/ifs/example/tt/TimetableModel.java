@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.solution.Solution;
@@ -75,7 +77,7 @@ public class TimetableModel extends Model<Activity, Location> {
     }
 
     @SuppressWarnings("unchecked")
-    public static TimetableModel generate(DataProperties cfg) {
+    public static TimetableModel generate(DataProperties cfg, Assignment<Activity, Location> assignment) {
         int nrDays = cfg.getPropertyInt("Generator.NrDays", 5);
         int nrHours = cfg.getPropertyInt("Generator.NrHours", 20);
         int nrSlots = nrDays * nrHours;
@@ -331,17 +333,17 @@ public class TimetableModel extends Model<Activity, Location> {
                 }
             }
             if (location != null) {
-                Set<Location> conflicts = m.conflictValues(location);
+                Set<Location> conflicts = m.conflictValues(assignment, location);
                 if (!conflicts.isEmpty()) {
                     sLogger.warn("Unable to assign " + location.getName() + " to " + activity.getName() + ", reason:");
                     for (Constraint<Activity, Location> c : activity.constraints()) {
                         Set<Location> cc = new HashSet<Location>();
-                        c.computeConflicts(location, cc);
+                        c.computeConflicts(assignment, location, cc);
                         if (!cc.isEmpty())
                             sLogger.warn("  -- Constraint " + c.getName() + " causes conflicts " + cc);
                     }
                 } else {
-                    activity.assign(0, location);
+                    assignment.assign(0, location);
                     activity.setInitialAssignment(location);
                 }
                 // sLogger.debug("  -- location "+location.getName()+" found");
@@ -354,7 +356,7 @@ public class TimetableModel extends Model<Activity, Location> {
         if (!cfg.getPropertyBoolean("General.InitialAssignment", true)) {
             for (int i = 0; i < m.variables().size(); i++) {
                 Activity activity = m.variables().get(i);
-                activity.unassign(0);
+                assignment.unassign(0, activity);
             }
         }
 
@@ -401,27 +403,31 @@ public class TimetableModel extends Model<Activity, Location> {
             properties.load(new FileInputStream(args[0]));
             
             // Generate model
-            TimetableModel model = TimetableModel.generate(new DataProperties());
-            System.out.println(model.getInfo());
+            Assignment<Activity, Location> assignment = new DefaultSingleAssignment<Activity, Location>();
+            TimetableModel model = TimetableModel.generate(new DataProperties(), assignment);
+            System.out.println(model.getInfo(assignment));
             
             // Save solution (take second argument as output file)
-            model.saveAsXML(properties, true, new Solution<Activity, Location>(model), new File(args[1]));
+            model.saveAsXML(properties, true, new Solution<Activity, Location>(model, assignment), assignment, new File(args[1]));
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public void saveAsXML(DataProperties cfg, boolean gen, Solution<Activity, Location> solution, File outFile)
-            throws IOException {
+    public void saveAsXML(DataProperties cfg, boolean gen, Solution<Activity, Location> solution, Assignment<Activity, Location> assignment, File outFile) throws IOException {
         outFile.getParentFile().mkdirs();
         sLogger.debug("Writting XML data to:" + outFile);
 
         Document document = DocumentHelper.createDocument();
         document.addComment("Interactive Timetabling - University Timetable Generator (version 2.0)");
+        if (assignment == null && solution != null)
+            assignment = solution.getAssignment();
+        if (assignment == null)
+            assignment = new DefaultSingleAssignment<Activity, Location>();
 
-        if (!assignedVariables().isEmpty()) {
+        if (!assignedVariables(assignment).isEmpty()) {
             StringBuffer comments = new StringBuffer("Solution Info:\n");
-            Map<String, String> solutionInfo = (solution == null ? getInfo() : solution.getInfo());
+            Map<String, String> solutionInfo = (solution == null ? getInfo(assignment) : solution.getInfo());
             for (String key : new TreeSet<String>(solutionInfo.keySet())) {
                 String value = solutionInfo.get(key);
                 comments.append("    " + key + ": " + value + "\n");
@@ -550,7 +556,7 @@ public class TimetableModel extends Model<Activity, Location> {
             el.addAttribute("id", a.getActivityId());
             el.addElement("Name").setText(a.getName());
             el.addElement("Length").setText(String.valueOf(a.getLength()));
-            if (a.getAssignment() != null)
+            if (assignment.getValue(a) != null)
                 hasSolution = true;
             Element pref = el.addElement("TimePreferences");
             for (Integer slot : new TreeSet<Integer>(a.getDiscouragedSlots()))
@@ -602,8 +608,8 @@ public class TimetableModel extends Model<Activity, Location> {
             for (Activity a : variables()) {
                 Element el = solutionEl.addElement("Activity");
                 el.addAttribute("id", a.getActivityId());
-                if (a.getAssignment() != null) {
-                    Location location = a.getAssignment();
+                Location location = assignment.getValue(a);
+                if (location != null) {
                     el.addElement("StartTime").setText(String.valueOf(location.getSlot()));
                     Element res = el.addElement("UsedResources");
                     for (int i = 0; i < location.getResources().length; i++)
@@ -618,7 +624,7 @@ public class TimetableModel extends Model<Activity, Location> {
         fos.close();
     }
 
-    public static TimetableModel loadFromXML(File inFile, boolean assign) throws IOException, DocumentException {
+    public static TimetableModel loadFromXML(File inFile, Assignment<Activity, Location> assignment) throws IOException, DocumentException {
         Document document = (new SAXReader()).read(inFile);
         Element root = document.getRootElement();
         if (!"Timetable".equals(root.getName())) {
@@ -766,8 +772,8 @@ public class TimetableModel extends Model<Activity, Location> {
                     if (!same)
                         continue;
                     a.setInitialAssignment(loc);
-                    if (assign)
-                        a.assign(0, loc);
+                    if (assignment != null)
+                        assignment.assign(0, loc);
                     break;
                 }
             }

@@ -1,8 +1,13 @@
 package net.sf.cpsolver.coursett.criteria.placement;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
+import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.util.Counter;
 
 /**
  * Count number of past assignments of a value. Avoid repetition by penalizing
@@ -28,7 +33,12 @@ import net.sf.cpsolver.coursett.model.Placement;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
+@Deprecated
 public class AssignmentCount extends PlacementSelectionCriterion {
+    
+    public AssignmentCount() {
+        iValueUpdateType = ValueUpdateType.BeforeUnassignedAfterAssigned;
+    }
     
     @Override
     public String getPlacementSelectionWeightName() {
@@ -36,7 +46,39 @@ public class AssignmentCount extends PlacementSelectionCriterion {
     }
 
     @Override
-    public double getValue(Placement value, Set<Placement> conflicts) {
-        return value.countAssignments();
+    public double getValue(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
+        return ((AssignmentCountContext)getContext(assignment)).countAssignments(value);
+    }
+    
+    @Override
+    public ValueContext createAssignmentContext(Assignment<Lecture, Placement> assignment) {
+        return new AssignmentCountContext(assignment);
+    }
+
+    public class AssignmentCountContext extends ValueContext {
+        Map<Placement, Counter> iCounter = new HashMap<Placement, Counter>();
+
+        protected AssignmentCountContext(Assignment<Lecture, Placement> assignment) {
+            super(assignment);
+        }
+        
+        @Override
+        protected void assigned(Assignment<Lecture, Placement> assignment, Placement value) {
+            Counter c = iCounter.get(value);
+            if (c == null) {
+                c = new Counter();
+                iCounter.put(value, c);
+            }
+            c.inc(1);
+        }
+        
+        @Override
+        protected void unassigned(Assignment<Lecture, Placement> assignment, Placement value) {
+        }
+        
+        public long countAssignments(Placement value) {
+            Counter c = iCounter.get(value);
+            return c == null ? 0 : c.get();
+        }
     }
 }

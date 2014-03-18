@@ -7,6 +7,7 @@ import net.sf.cpsolver.exam.criteria.ExamCriterion;
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamPeriodPlacement;
 import net.sf.cpsolver.exam.model.ExamPlacement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 
 /**
  * Experimental criterion counting violations of periods assignments. If this
@@ -50,12 +51,12 @@ public class PeriodViolation extends ExamCriterion {
     }
     
     @Override
-    public double getValue(ExamPlacement value, Set<ExamPlacement> conflicts) {
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value, Set<ExamPlacement> conflicts) {
         return (value.getPeriodPlacement().getExamPenalty() == getWeight() || value.getPeriodPlacement().getPeriod().getPenalty() == getWeight() ? 1.0 : 0.0);
     }
     
     @Override
-    public double[] getBounds(Collection<Exam> variables) {
+    public double[] getBounds(Assignment<Exam, ExamPlacement> assignment, Collection<Exam> variables) {
         double[] bounds = new double[] { 0.0, 0.0 };
         for (Exam exam : variables) {
             if (!exam.getPeriodPlacements().isEmpty()) {
@@ -70,8 +71,8 @@ public class PeriodViolation extends ExamCriterion {
     }
 
     @Override
-    public String toString() {
-        return (getValue() <= 0.0 ? "" : "!P:" + sDoubleFormat.format(getValue()));
+    public String toString(Assignment<Exam, ExamPlacement> assignment) {
+        return (getValue(assignment) <= 0.0 ? "" : "!P:" + sDoubleFormat.format(getValue(assignment)));
     }
 
 }

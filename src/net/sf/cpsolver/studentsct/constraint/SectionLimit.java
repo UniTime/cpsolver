@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.GlobalConstraint;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.ToolBox;
@@ -95,9 +96,8 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
      *            section
      * @return section's new weight
      */
-    public static double getEnrollmentWeight(Section section, Request request) {
-        return section.getEnrollmentWeight(request) + request.getWeight()
-                - Math.max(section.getMaxEnrollmentWeight(), request.getWeight()) + sNominalWeight;
+    public static double getEnrollmentWeight(Assignment<Request, Enrollment> assignment, Section section, Request request) {
+        return section.getEnrollmentWeight(assignment, request) + request.getWeight() - Math.max(section.getMaxEnrollmentWeight(assignment), request.getWeight()) + sNominalWeight;
     }
     
     /**
@@ -114,9 +114,8 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
      *            section
      * @return section's new unreserved space
      */
-    public static double getUnreservedSpace(Section section, Request request) {
-        return section.getUnreservedSpace(request) - request.getWeight()
-                + Math.max(section.getMaxEnrollmentWeight(), request.getWeight()) - sNominalWeight;
+    public static double getUnreservedSpace(Assignment<Request, Enrollment> assignment, Section section, Request request) {
+        return section.getUnreservedSpace(assignment, request) - request.getWeight() + Math.max(section.getMaxEnrollmentWeight(assignment), request.getWeight()) - sNominalWeight;
     }
 
     
@@ -133,7 +132,7 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
 
     /**
      * A given enrollment is conflicting, if there is a section which limit
-     * (computed by {@link SectionLimit#getEnrollmentWeight(Section, Request)})
+     * (computed by {@link SectionLimit#getEnrollmentWeight(Assignment, Section, Request)})
      * exceeds the section limit. <br>
      * For each of such sections, one or more existing enrollments are
      * (randomly) selected as conflicting until the overall weight is under the
@@ -145,7 +144,7 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
      *            all computed conflicting requests are added into this set
      */
     @Override
-    public void computeConflicts(Enrollment enrollment, Set<Enrollment> conflicts) {
+    public void computeConflicts(Assignment<Request, Enrollment> assignment, Enrollment enrollment, Set<Enrollment> conflicts) {
         // check reservation can assign over the limit
         if (((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit() &&
             enrollment.getReservation() != null && enrollment.getReservation().canAssignOverLimit())
@@ -166,14 +165,14 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
                     return;
                 }
                 
-                double unreserved = getUnreservedSpace(section, enrollment.getRequest()); 
+                double unreserved = getUnreservedSpace(assignment, section, enrollment.getRequest()); 
                 
                 if (unreserved < 0.0) {
                     // no unreserved space available -> cannot be assigned
                     // try to unassign some other enrollments that also do not have reservation
                     
-                    List<Enrollment> adepts = new ArrayList<Enrollment>(section.getEnrollments().size());
-                    for (Enrollment e : section.getEnrollments()) {
+                    List<Enrollment> adepts = new ArrayList<Enrollment>(section.getEnrollments(assignment).size());
+                    for (Enrollment e : section.getEnrollments(assignment)) {
                         if (e.getRequest().equals(enrollment.getRequest()))
                             continue;
                         if (hasSectionReservation(e, section))
@@ -198,7 +197,7 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
                         double bestValue = 0;
                         for (Enrollment adept: adepts) {
                             boolean dummy = adept.getStudent().isDummy();
-                            double value = adept.toDouble(false);
+                            double value = adept.toDouble(assignment, false);
                             
                             if (iPreferDummyStudents && dummy != bestDummy) {
                                 if (dummy) {
@@ -233,7 +232,7 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
                 continue;
 
             // new enrollment weight
-            double enrlWeight = getEnrollmentWeight(section, enrollment.getRequest());
+            double enrlWeight = getEnrollmentWeight(assignment, section, enrollment.getRequest());
 
             // below limit -> ok
             if (enrlWeight <= section.getLimit())
@@ -241,8 +240,8 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
 
             // above limit -> compute adepts (current assignments that are not
             // yet conflicting) exclude all conflicts as well
-            List<Enrollment> adepts = new ArrayList<Enrollment>(section.getEnrollments().size());
-            for (Enrollment e : section.getEnrollments()) {
+            List<Enrollment> adepts = new ArrayList<Enrollment>(section.getEnrollments(assignment).size());
+            for (Enrollment e : section.getEnrollments(assignment)) {
                 if (e.getRequest().equals(enrollment.getRequest()))
                     continue;
                 if (conflicts.contains(e))
@@ -267,7 +266,7 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
                 boolean bestRes = true;
                 for (Enrollment adept: adepts) {
                     boolean dummy = adept.getStudent().isDummy();
-                    double value = adept.toDouble(false);
+                    double value = adept.toDouble(assignment, false);
                     boolean res = hasSectionReservation(adept, section);
                     
                     if (iPreferDummyStudents && dummy != bestDummy) {
@@ -314,7 +313,7 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
     /**
      * A given enrollment is conflicting, if there is a section which
      * limit(computed by
-     * {@link SectionLimit#getEnrollmentWeight(Section, Request)}) exceeds the
+     * {@link SectionLimit#getEnrollmentWeight(Assignment, Section, Request)}) exceeds the
      * section limit.
      * 
      * @param enrollment
@@ -323,7 +322,7 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
      *         given enrollment is assigned
      */
     @Override
-    public boolean inConflict(Enrollment enrollment) {
+    public boolean inConflict(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
         // check reservation can assign over the limit
         if (((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit() &&
             enrollment.getReservation() != null && enrollment.getReservation().canAssignOverLimit())
@@ -340,7 +339,7 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
             if (enrollment.getConfig().getOffering().hasReservations() &&
                 !hasSectionReservation(enrollment, section) && (
                 section.getTotalUnreservedSpace() < enrollment.getRequest().getWeight() ||
-                getUnreservedSpace(section, enrollment.getRequest()) < 0.0))
+                getUnreservedSpace(assignment, section, enrollment.getRequest()) < 0.0))
                 return true;
 
             // unlimited section
@@ -348,7 +347,7 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
                 continue;
             
             // new enrollment weight
-            double enrlWeight = getEnrollmentWeight(section, enrollment.getRequest());
+            double enrlWeight = getEnrollmentWeight(assignment, section, enrollment.getRequest());
 
             // above limit -> conflict
             if (enrlWeight > section.getLimit())

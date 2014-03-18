@@ -14,7 +14,9 @@ import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomSharingModel;
 import net.sf.cpsolver.coursett.model.TimeLocation;
-import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import net.sf.cpsolver.ifs.assignment.context.ConstraintWithContext;
 
 /**
  * Room constraint. <br>
@@ -40,8 +42,7 @@ import net.sf.cpsolver.ifs.model.Constraint;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class RoomConstraint extends Constraint<Lecture, Placement> {
-    private List<Placement>[] iResource;
+public class RoomConstraint extends ConstraintWithContext<Lecture, Placement, RoomConstraint.RoomConstraintContext> {
     private Long iResourceId;
     private String iName;
     private Long iBuildingId;
@@ -55,23 +56,17 @@ public class RoomConstraint extends Constraint<Lecture, Placement> {
     private RoomSharingModel iRoomSharingModel = null;
 
     private Long iType = null;
-    private int iLastUselessHalfHours = 0;
-    private double iLastBrokenTimePatterns = 0;
 
     /**
      * Constructor
      */
-    @SuppressWarnings("unchecked")
     public RoomConstraint(Long id, String name, Long buildingId, int capacity, RoomSharingModel roomSharingModel,
             Double x, Double y, boolean ignoreTooFar, boolean constraint) {
         iResourceId = id;
         iName = name;
-        iResource = new List[Constants.SLOTS_PER_DAY * Constants.NR_DAYS];
         iBuildingId = buildingId;
         iCapacity = capacity;
         iConstraint = constraint;
-        for (int i = 0; i < iResource.length; i++)
-            iResource[i] = new ArrayList<Placement>(3);
         iRoomSharingModel = roomSharingModel;
         iPosX = x;
         iPosY = y;
@@ -82,7 +77,7 @@ public class RoomConstraint extends Constraint<Lecture, Placement> {
     public void setNotAvailable(Placement placement) {
         if (iAvailable == null) {
             iAvailable = new List[Constants.SLOTS_PER_DAY * Constants.NR_DAYS];
-            for (int i = 0; i < iResource.length; i++)
+            for (int i = 0; i < iAvailable.length; i++)
                 iAvailable[i] = null;
         }
         for (Enumeration<Integer> e = placement.getTimeLocation().getSlots(); e.hasMoreElements();) {
@@ -155,32 +150,26 @@ public class RoomConstraint extends Constraint<Lecture, Placement> {
         return iCapacity;
     }
 
-    public Placement getPlacement(int slot, int day) {
-        for (Placement p : iResource[slot]) {
-            if (p.getTimeLocation().hasDay(day))
-                return p;
-        }
-        return null;
-    }
-
     @Override
-    public void computeConflicts(Placement placement, Set<Placement> conflicts) {
+    public void computeConflicts(Assignment<Lecture, Placement> assignment, Placement placement, Set<Placement> conflicts) {
         if (!getConstraint())
             return;
         if (!placement.hasRoomLocation(getResourceId()))
             return;
         Lecture lecture = placement.variable();
+        Placement current = assignment.getValue(lecture);
         boolean canShareRoom = lecture.canShareRoom();
         int size = lecture.maxRoomUse();
         HashSet<Placement> skipPlacements = null;
         BitSet weekCode = placement.getTimeLocation().getWeekCode();
+        RoomConstraintContext context = getContext(assignment);
 
         for (Enumeration<Integer> e = placement.getTimeLocation().getSlots(); e.hasMoreElements();) {
             int slot = e.nextElement();
-            for (Placement confPlacement : iResource[slot]) {
+            for (Placement confPlacement : context.getPlacements(slot)) {
                 if (!confPlacement.getTimeLocation().shareWeeks(weekCode))
                     continue;
-                if (confPlacement.equals(lecture.getAssignment()))
+                if (confPlacement.equals(current))
                     continue;
                 Lecture confLecture = confPlacement.variable();
                 if (skipPlacements != null && skipPlacements.contains(confPlacement))
@@ -199,22 +188,24 @@ public class RoomConstraint extends Constraint<Lecture, Placement> {
     }
 
     @Override
-    public boolean inConflict(Placement placement) {
+    public boolean inConflict(Assignment<Lecture, Placement> assignment, Placement placement) {
         if (!getConstraint())
             return false;
-        Lecture lecture = placement.variable();
         if (!placement.hasRoomLocation(getResourceId()))
             return false;
+        Lecture lecture = placement.variable();
+        Placement current = assignment.getValue(lecture);
         int size = lecture.maxRoomUse();
         HashSet<Placement> skipPlacements = null;
         BitSet weekCode = placement.getTimeLocation().getWeekCode();
+        RoomConstraintContext context = getContext(assignment);
 
         for (Enumeration<Integer> e = placement.getTimeLocation().getSlots(); e.hasMoreElements();) {
             int slot = e.nextElement();
-            for (Placement confPlacement : iResource[slot]) {
+            for (Placement confPlacement : context.getPlacements(slot)) {
                 if (!confPlacement.getTimeLocation().shareWeeks(weekCode))
                     continue;
-                if (confPlacement.equals(lecture.getAssignment()))
+                if (confPlacement.equals(current))
                     continue;
                 Lecture confLecture = confPlacement.variable();
                 if (skipPlacements != null && skipPlacements.contains(confPlacement))
@@ -248,78 +239,29 @@ public class RoomConstraint extends Constraint<Lecture, Placement> {
     }
 
     @Override
-    public void assigned(long iteration, Placement placement) {
-        super.assigned(iteration, placement);
-        if (!placement.hasRoomLocation(getResourceId()))
-            return;
-        for (Enumeration<Integer> e = placement.getTimeLocation().getSlots(); e.hasMoreElements();) {
-            int slot = e.nextElement();
-            iResource[slot].add(placement);
-        }
-        getModel().getCriterion(UselessHalfHours.class).inc(-iLastUselessHalfHours);
-        iLastUselessHalfHours = UselessHalfHours.countUselessSlotsHalfHours(this);
-        getModel().getCriterion(UselessHalfHours.class).inc(iLastUselessHalfHours);
-        getModel().getCriterion(BrokenTimePatterns.class).inc(-iLastBrokenTimePatterns);
-        iLastBrokenTimePatterns = BrokenTimePatterns.countUselessSlotsBrokenTimePatterns(this) / 6.0;
-        getModel().getCriterion(BrokenTimePatterns.class).inc(iLastBrokenTimePatterns);
+    public void assigned(Assignment<Lecture, Placement> assignment, long iteration, Placement placement) {
+        if (placement.hasRoomLocation(getResourceId()))
+            super.assigned(assignment, iteration, placement);
     }
 
     @Override
-    public void unassigned(long iteration, Placement placement) {
-        super.unassigned(iteration, placement);
-        if (!placement.hasRoomLocation(getResourceId()))
-            return;
-        for (Enumeration<Integer> e = placement.getTimeLocation().getSlots(); e.hasMoreElements();) {
-            int slot = e.nextElement();
-            iResource[slot].remove(placement);
-        }
-        getModel().getCriterion(UselessHalfHours.class).inc(-iLastUselessHalfHours);
-        iLastUselessHalfHours = UselessHalfHours.countUselessSlotsHalfHours(this);
-        getModel().getCriterion(UselessHalfHours.class).inc(iLastUselessHalfHours);
-        getModel().getCriterion(BrokenTimePatterns.class).inc(-iLastBrokenTimePatterns);
-        iLastBrokenTimePatterns = BrokenTimePatterns.countUselessSlotsBrokenTimePatterns(this) / 6.0;
-        getModel().getCriterion(BrokenTimePatterns.class).inc(iLastBrokenTimePatterns);
+    public void unassigned(Assignment<Lecture, Placement> assignment, long iteration, Placement placement) {
+        if (placement.hasRoomLocation(getResourceId()))
+            super.unassigned(assignment, iteration, placement);
     }
 
     /**
      * Lookup table getResource()[slot] -> lecture using this room placed in the
      * given time slot (null if empty)
      */
-    public List<Placement> getResource(int slot) {
-        return iResource[slot];
+    public List<Placement> getResource(Assignment<Lecture, Placement> assignment, int slot) {
+        return getContext(assignment).getPlacements(slot);
     }
 
-    public Placement[] getResourceOfWeek(int startDay) {
-        Placement[] ret = new Placement[iResource.length];
-        for (int i = 0; i < iResource.length; i++) {
-            ret[i] = getPlacement(i, startDay + (i / Constants.SLOTS_PER_DAY));
-        }
-        return ret;
+    public Placement[] getResourceOfWeek(Assignment<Lecture, Placement> assignment, int startDay) {
+        return getContext(assignment).getResourceOfWeek(startDay);
     }
     
-    /** Room usage */
-    protected void printUsage(StringBuffer sb) {
-        for (int slot = 0; slot < iResource.length; slot++) {
-            for (Placement p : iResource[slot]) {
-                int day = slot / Constants.SLOTS_PER_DAY;
-                int time = slot * Constants.SLOT_LENGTH_MIN + Constants.FIRST_SLOT_TIME_MIN;
-                int h = time / 60;
-                int m = time % 60;
-                String d = Constants.DAY_NAMES_SHORT[day];
-                int slots = p.getTimeLocation().getLength();
-                time += (30 * slots);
-                int h2 = time / 60;
-                int m2 = time % 60;
-                sb.append(sb.length() == 0 ? "" : ",\n        ").append(
-                        "[" + d + (h > 12 ? h - 12 : h) + ":" + (m < 10 ? "0" : "") + m + (h >= 12 ? "p" : "a") + "-"
-                                + (h2 > 12 ? h2 - 12 : h2) + ":" + (m2 < 10 ? "0" : "") + m2 + (h2 >= 12 ? "p" : "a")
-                                + "]=").append(p.variable().getName());
-                slot += slots - 1;
-                // sb.append(sb.length()==0?"":", ").append("s"+(slot+1)+"=").append(((Lecture)getResource()[slot]).getName());
-            }
-        }
-    }
-
     @Override
     public String toString() {
         return "Room " + getName();
@@ -355,5 +297,87 @@ public class RoomConstraint extends Constraint<Lecture, Placement> {
 
     public void setType(Long type) {
         iType = type;
+    }
+    
+    @Override
+    public RoomConstraintContext createAssignmentContext(Assignment<Lecture, Placement> assignment) {
+        return new RoomConstraintContext(assignment);
+    }
+
+    public class RoomConstraintContext implements AssignmentConstraintContext<Lecture, Placement> {
+        private List<Placement>[] iResource;
+        private int iLastUselessHalfHours = 0;
+        private double iLastBrokenTimePatterns = 0;
+ 
+        @SuppressWarnings("unchecked")
+        public RoomConstraintContext(Assignment<Lecture, Placement> assignment) {
+            iResource = new List[Constants.SLOTS_PER_DAY * Constants.NR_DAYS];
+            for (int i = 0; i < iResource.length; i++)
+                iResource[i] = new ArrayList<Placement>(3);
+            for (Lecture lecture: variables()) {
+                Placement placement = assignment.getValue(lecture);
+                if (placement != null && placement.hasRoomLocation(getResourceId())) {
+                    for (Enumeration<Integer> e = placement.getTimeLocation().getSlots(); e.hasMoreElements();) {
+                        int slot = e.nextElement();
+                        iResource[slot].add(placement);
+                    }
+                }
+            }
+            iLastUselessHalfHours = UselessHalfHours.countUselessSlotsHalfHours(this);
+            getModel().getCriterion(UselessHalfHours.class).inc(assignment, iLastUselessHalfHours);
+            iLastBrokenTimePatterns = BrokenTimePatterns.countUselessSlotsBrokenTimePatterns(this) / 6.0;
+            getModel().getCriterion(BrokenTimePatterns.class).inc(assignment, iLastBrokenTimePatterns);
+        }
+
+        @Override
+        public void assigned(Assignment<Lecture, Placement> assignment, Placement placement) {
+            if (!placement.hasRoomLocation(getResourceId()))
+                return;
+            for (Enumeration<Integer> e = placement.getTimeLocation().getSlots(); e.hasMoreElements();) {
+                int slot = e.nextElement();
+                iResource[slot].add(placement);
+            }
+            getModel().getCriterion(UselessHalfHours.class).inc(assignment, -iLastUselessHalfHours);
+            iLastUselessHalfHours = UselessHalfHours.countUselessSlotsHalfHours(this);
+            getModel().getCriterion(UselessHalfHours.class).inc(assignment, iLastUselessHalfHours);
+            getModel().getCriterion(BrokenTimePatterns.class).inc(assignment, -iLastBrokenTimePatterns);
+            iLastBrokenTimePatterns = BrokenTimePatterns.countUselessSlotsBrokenTimePatterns(this) / 6.0;
+            getModel().getCriterion(BrokenTimePatterns.class).inc(assignment, iLastBrokenTimePatterns);
+        }
+        
+        @Override
+        public void unassigned(Assignment<Lecture, Placement> assignment, Placement placement) {
+            if (!placement.hasRoomLocation(getResourceId()))
+                return;
+            for (Enumeration<Integer> e = placement.getTimeLocation().getSlots(); e.hasMoreElements();) {
+                int slot = e.nextElement();
+                iResource[slot].remove(placement);
+            }
+            getModel().getCriterion(UselessHalfHours.class).inc(assignment, -iLastUselessHalfHours);
+            iLastUselessHalfHours = UselessHalfHours.countUselessSlotsHalfHours(this);
+            getModel().getCriterion(UselessHalfHours.class).inc(assignment, iLastUselessHalfHours);
+            getModel().getCriterion(BrokenTimePatterns.class).inc(assignment, -iLastBrokenTimePatterns);
+            iLastBrokenTimePatterns = BrokenTimePatterns.countUselessSlotsBrokenTimePatterns(this) / 6.0;
+            getModel().getCriterion(BrokenTimePatterns.class).inc(assignment, iLastBrokenTimePatterns);
+        }
+        
+        public List<Placement> getPlacements(int slot) { return iResource[slot]; }
+        
+        public Placement getPlacement(int slot, int day) {
+            for (Placement p : iResource[slot]) {
+                if (p.getTimeLocation().hasDay(day))
+                    return p;
+            }
+            return null;
+        }
+        
+        public Placement[] getResourceOfWeek(int startDay) {
+            Placement[] ret = new Placement[iResource.length];
+            for (int i = 0; i < iResource.length; i++) {
+                ret[i] = getPlacement(i, startDay + (i / Constants.SLOTS_PER_DAY));
+            }
+            return ret;
+        }
+
     }
 }

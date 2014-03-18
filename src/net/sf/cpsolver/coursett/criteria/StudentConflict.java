@@ -11,6 +11,7 @@ import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.Student;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.coursett.model.TimetableModel;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DistanceMetric;
 
@@ -58,11 +59,6 @@ public class StudentConflict extends TimetablingCriterion {
         return null;
     }
 
-    @Override
-    public double getValue() {
-        return super.getValue();
-    }
-    
     public DistanceMetric getMetrics() {
         return (getModel() == null ? null : ((TimetableModel)getModel()).getDistanceMetric());
     }
@@ -139,10 +135,10 @@ public class StudentConflict extends TimetablingCriterion {
     }
     
     @Override
-    public double getValue(Placement value, Set<Placement> conflicts) {
+    public double getValue(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
         double ret = 0.0;
         for (JenrlConstraint jenrl: value.variable().jenrlConstraints()) {
-            Placement another = jenrl.another(value.variable()).getAssignment();
+            Placement another = assignment.getValue(jenrl.another(value.variable()));
             if (another == null) continue;
             if (conflicts != null && conflicts.contains(another)) continue;
             if (inConflict(value, another))
@@ -151,7 +147,7 @@ public class StudentConflict extends TimetablingCriterion {
         if (iIncludeConflicts && conflicts != null)
             for (Placement conflict: conflicts) {
                 for (JenrlConstraint jenrl: conflict.variable().jenrlConstraints()) {
-                    Placement another = jenrl.another(conflict.variable()).getAssignment();
+                    Placement another = assignment.getValue(jenrl.another(conflict.variable()));
                     if (another == null || another.variable().equals(value.variable())) continue;
                     if (conflicts != null && conflicts.contains(another)) continue;
                     if (inConflict(conflict, another))
@@ -162,15 +158,16 @@ public class StudentConflict extends TimetablingCriterion {
     }
     
     @Override
-    public double getValue(Collection<Lecture> variables) {
+    public double getValue(Assignment<Lecture, Placement> assignment, Collection<Lecture> variables) {
         double ret = 0.0;
         Set<JenrlConstraint> constraints = new HashSet<JenrlConstraint>();
         for (Lecture lect: variables) {
-            if (lect.getAssignment() == null) continue;
+            Placement plac = assignment.getValue(lect);
+            if (plac == null) continue;
             for (JenrlConstraint jenrl: lect.jenrlConstraints()) {
                 if (!constraints.add(jenrl)) continue;
                 if (!jenrl.another(lect).isCommitted() && !variables.contains(jenrl.another(lect))) continue;
-                if (inConflict(lect.getAssignment(), jenrl.another(lect).getAssignment()))
+                if (inConflict(plac, assignment.getValue(jenrl.another(lect))))
                     ret += jointEnrollment(jenrl);
             }
         }
@@ -178,7 +175,7 @@ public class StudentConflict extends TimetablingCriterion {
     }
 
     @Override
-    public double[] getBounds() {
+    public double[] getBounds(Assignment<Lecture, Placement> assignment) {
         double[] bounds = { 0.0, 0.0 };
         for (JenrlConstraint jenrl: ((TimetableModel)getModel()).getJenrlConstraints())
             if (isApplicable(jenrl.first(), jenrl.second()))
@@ -187,11 +184,11 @@ public class StudentConflict extends TimetablingCriterion {
     }
     
     @Override
-    public double[] getBounds(Collection<Lecture> variables) {
+    public double[] getBounds(Assignment<Lecture, Placement> assignment, Collection<Lecture> variables) {
         double[] bounds = { 0.0, 0.0 };
         Set<JenrlConstraint> constraints = new HashSet<JenrlConstraint>();
         for (Lecture lect: variables) {
-            if (lect.getAssignment() == null) continue;
+            if (assignment.getValue(lect) == null) continue;
             for (JenrlConstraint jenrl: lect.jenrlConstraints()) {
                 if (isApplicable(jenrl.first(), jenrl.second()) && constraints.add(jenrl) && (jenrl.another(lect).isCommitted() || variables.contains(jenrl.another(lect))))
                     bounds[0] += jointEnrollment(jenrl);
@@ -200,14 +197,14 @@ public class StudentConflict extends TimetablingCriterion {
         return bounds;
     }
     
-    public void incJenrl(JenrlConstraint jenrl, double studentWeight, Double conflictPriority, Student student) {
-        if (inConflict(jenrl.first().getAssignment(), jenrl.second().getAssignment()))
-            iValue += studentWeight;
+    public void incJenrl(Assignment<Lecture, Placement> assignment, JenrlConstraint jenrl, double studentWeight, Double conflictPriority, Student student) {
+        if (inConflict(assignment.getValue(jenrl.first()), assignment.getValue(jenrl.second())))
+            super.inc(assignment, studentWeight);
     }
     
     @Override
-    public void bestRestored() {
-        super.bestRestored();
-        iValue = getValue(getModel().variables());
+    public void bestRestored(Assignment<Lecture, Placement> assignment) {
+        super.bestRestored(assignment);
+        getContext(assignment).setTotal(getValue(assignment, getModel().variables()));
     }
 }

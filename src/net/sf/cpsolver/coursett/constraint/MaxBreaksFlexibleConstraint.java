@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.WeakeningConstraint;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
@@ -42,7 +43,6 @@ import net.sf.cpsolver.ifs.util.ToolBox;
 public class MaxBreaksFlexibleConstraint extends FlexibleConstraint implements WeakeningConstraint<Lecture, Placement> {
     private int iMaxBreakBetweenBTB;
     private int iMaxBlocksOnADay;
-    private Map<Lecture, Placement> iWeakAssignment = new HashMap<Lecture, Placement>();
     
     public MaxBreaksFlexibleConstraint(Long id, String owner, String preference, String reference) {
         super(id, owner, preference, reference);     
@@ -55,22 +55,22 @@ public class MaxBreaksFlexibleConstraint extends FlexibleConstraint implements W
         }   
     }
 
-    public List<Block> getBlocks(int dayCode, Set<Placement> conflicts, Placement value, HashMap<Lecture, Placement> assignments, BitSet week) {     
-        List<Placement> toBeSorted = new ArrayList<Placement>(getRelevantPlacements(dayCode, conflicts, value, assignments, week));
+    public List<Block> getBlocks(Assignment<Lecture, Placement> assignment, int dayCode, Set<Placement> conflicts, Placement value, HashMap<Lecture, Placement> assignments, BitSet week) {     
+        List<Placement> toBeSorted = new ArrayList<Placement>(getRelevantPlacements(assignment, dayCode, conflicts, value, assignments, week));
         Collections.sort(toBeSorted, new PlacementTimeComparator());  
         
         return mergeToBlocks(toBeSorted, iMaxBreakBetweenBTB);
     } 
 
     @Override
-    public double getNrViolations(Set<Placement> conflicts, HashMap<Lecture, Placement> assignments) {
+    public double getNrViolations(Assignment<Lecture, Placement> assignment, Set<Placement> conflicts, HashMap<Lecture, Placement> assignments) {
         int penalty = 0;
         // constraint is checked for every day in week
         for (int dayCode : Constants.DAY_CODES) {
             // constraint is checked for every week in semester (or for the whole semester)
             for (BitSet week : getWeeks()) {
                 // each blocks contains placements which are BTB
-                List<Block> blocks = getBlocks(dayCode, null, null, assignments, week);
+                List<Block> blocks = getBlocks(assignment, dayCode, null, null, assignments, week);
                 // too many blocks -> increase penalty
                 if (blocks.size() > iMaxBlocksOnADay)
                     penalty += (blocks.size() - iMaxBlocksOnADay) * (blocks.size() - iMaxBlocksOnADay);
@@ -80,12 +80,12 @@ public class MaxBreaksFlexibleConstraint extends FlexibleConstraint implements W
     }
 
     @Override
-    public void computeConflicts(Placement value, Set<Placement> conflicts) {
+    public void computeConflicts(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
         if (!isHard()) return;
         
-        if (value.equals(iWeakAssignment.get(value.variable()))) {
+        if (((MaxBreaksFlexibleConstraintContext)getContext(assignment)).isWeak(value)) {
             for (Lecture v: variables())
-                if (v.getAssignment() == null && !v.equals(value.variable())) {
+                if (assignment.getValue(v) == null && !v.equals(value.variable())) {
                     // incomplete and week -- do not check for conflicts just yet
                     return;
                 }
@@ -98,7 +98,7 @@ public class MaxBreaksFlexibleConstraint extends FlexibleConstraint implements W
             for (BitSet week : getWeeks()) {
                 if (week != null && !week.intersects(value.getTimeLocation().getWeekCode())) continue; // ignore other weeks
                 // each blocks contains placements which are BTB
-                List<Block> blocks = getBlocks(dayCode, conflicts, value, null, week);
+                List<Block> blocks = getBlocks(assignment, dayCode, conflicts, value, null, week);
                 while (blocks.size() > iMaxBlocksOnADay) {
                     // too many blocks -> identify adepts for unassignment
                     List<Block> adepts = new ArrayList<Block>(); int size = 0;
@@ -118,7 +118,7 @@ public class MaxBreaksFlexibleConstraint extends FlexibleConstraint implements W
                     Block block = ToolBox.random(adepts);
                     blocks.remove(block);
                     for (Placement conflict: block.getPlacements())
-                        if (conflict.equals(conflict.variable().getAssignment()))
+                        if (conflict.equals(assignment.getValue(conflict.variable())))
                             conflicts.add(conflict);
                 }
             }
@@ -126,19 +126,42 @@ public class MaxBreaksFlexibleConstraint extends FlexibleConstraint implements W
     }
 
     @Override
-    public void weaken() {
+    public void weaken(Assignment<Lecture, Placement> assignment) {
     }
 
     @Override
-    public void weaken(Placement value) {
+    public void weaken(Assignment<Lecture, Placement> assignment, Placement value) {
         if (isHard())
-            iWeakAssignment.put(value.variable(), value);
+            ((MaxBreaksFlexibleConstraintContext)getContext(assignment)).weaken(value);
     }
     
     @Override
-    public void assigned(long iteration, Placement value) {
-        super.assigned(iteration, value);
-        if (isHard())
-            iWeakAssignment.remove(value.variable());
+    public FlexibleConstraintContext createAssignmentContext(Assignment<Lecture, Placement> assignment) {
+        return new MaxBreaksFlexibleConstraintContext(assignment);
     }
+
+    public class MaxBreaksFlexibleConstraintContext extends FlexibleConstraintContext {
+        private Map<Lecture, Placement> iWeakAssignment = new HashMap<Lecture, Placement>();
+        
+        public MaxBreaksFlexibleConstraintContext(Assignment<Lecture, Placement> assignment) {
+            super(assignment);
+        }
+
+        @Override
+        public void assigned(Assignment<Lecture, Placement> assignment, Placement value) {
+            super.assigned(assignment, value);
+            if (isHard())
+                iWeakAssignment.remove(value.variable());
+        }
+        
+        public void weaken(Placement value) {
+            if (isHard())
+                iWeakAssignment.put(value.variable(), value);
+        }
+        
+        public boolean isWeak(Placement value) {
+            return value.equals(iWeakAssignment.get(value.variable()));
+        }
+    }
+    
 }

@@ -18,6 +18,7 @@ import net.sf.cpsolver.exam.criteria.ExamRotationPenalty;
 import net.sf.cpsolver.exam.criteria.RoomPenalty;
 import net.sf.cpsolver.exam.criteria.RoomSizePenalty;
 import net.sf.cpsolver.exam.criteria.RoomSplitPenalty;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Variable;
@@ -94,6 +95,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
     private ArrayList<ExamOwner> iOwners = new ArrayList<ExamOwner>();
     private List<ExamPeriodPlacement> iPeriodPlacements = null;
     private List<ExamRoomPlacement> iRoomPlacements = null;
+    private List<ExamRoomPlacement> iRoomPreferredPlacements = null;
 
     /**
      * Constructor
@@ -216,6 +218,22 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      */
     public List<ExamRoomPlacement> getRoomPlacements() {
         return iRoomPlacements;
+    }
+
+    /**
+     * Return list of possible room placements that are strongly preferred.
+     * 
+     * @return list of {@link ExamRoomPlacement}
+     */
+    public synchronized List<ExamRoomPlacement> getPreferredRoomPlacements() {
+        if (iRoomPreferredPlacements == null) {
+            iRoomPreferredPlacements = new ArrayList<ExamRoomPlacement>();
+            for (ExamRoomPlacement room: iRoomPlacements) {
+                if (room.getPenalty() < -2)
+                    iRoomPreferredPlacements.add(room);
+            }
+        }
+        return iRoomPreferredPlacements;
     }
 
     /**
@@ -495,7 +513,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      * @return true, if there is no assignment of some other exam in conflict
      *         with the given period
      */
-    public boolean checkDistributionConstraints(ExamPeriodPlacement period) {
+    public boolean checkDistributionConstraints(Assignment<Exam, ExamPlacement> assignment, ExamPeriodPlacement period) {
         for (ExamDistributionConstraint dc : iDistConstraints) {
             if (!dc.isHard())
                 continue;
@@ -505,7 +523,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
                     before = false;
                     continue;
                 }
-                ExamPlacement placement = exam.getAssignment();
+                ExamPlacement placement = assignment.getValue(exam);
                 if (placement == null)
                     continue;
                 switch (dc.getType()) {
@@ -549,14 +567,14 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      * @return true, if there is no assignment of some other exam in conflict
      *         with the given room
      */
-    public boolean checkDistributionConstraints(ExamRoomPlacement room) {
+    public boolean checkDistributionConstraints(Assignment<Exam, ExamPlacement> assignment, ExamRoomPlacement room) {
         for (ExamDistributionConstraint dc : iDistConstraints) {
             if (!dc.isHard())
                 continue;
             for (Exam exam : dc.variables()) {
                 if (exam.equals(this))
                     continue;
-                ExamPlacement placement = exam.getAssignment();
+                ExamPlacement placement = assignment.getValue(exam);
                 if (placement == null)
                     continue;
                 switch (dc.getType()) {
@@ -581,7 +599,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      *            a room to be assigned to this exam
      * @return sum of penalties of violated distribution constraints
      */
-    public int getDistributionConstraintPenalty(ExamRoomPlacement room) {
+    public int getDistributionConstraintPenalty(Assignment<Exam, ExamPlacement> assignment, ExamRoomPlacement room) {
         int penalty = 0;
         for (ExamDistributionConstraint dc : iDistConstraints) {
             if (dc.isHard())
@@ -589,7 +607,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
             for (Exam exam : dc.variables()) {
                 if (exam.equals(this))
                     continue;
-                ExamPlacement placement = exam.getAssignment();
+                ExamPlacement placement = assignment.getValue(exam);
                 if (placement == null)
                     continue;
                 switch (dc.getType()) {
@@ -639,7 +657,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      * @return best available rooms for the exam in the given period, null if
      *         there is no valid assignment
      */
-    public Set<ExamRoomPlacement> findBestAvailableRooms(ExamPeriodPlacement period) {
+    public Set<ExamRoomPlacement> findBestAvailableRooms(Assignment<Exam, ExamPlacement> assignment, ExamPeriodPlacement period) {
         if (getMaxRooms() == 0)
             return new HashSet<ExamRoomPlacement>();
         double sw = getModel().getCriterion(RoomSizePenalty.class).getWeight();
@@ -658,21 +676,21 @@ public class Exam extends Variable<Exam, ExamPlacement> {
                     if (!room.isAvailable(period.getPeriod()))
                         continue;
                     if (nrRooms == 1 && sharing != null) {
-                        if (sharing.inConflict(this, room.getRoom().getPlacements(period.getPeriod()), room.getRoom()))
+                        if (sharing.inConflict(this, room.getRoom().getPlacements(assignment, period.getPeriod()), room.getRoom()))
                             continue;
                     } else {
-                        if (!room.getRoom().getPlacements(period.getPeriod()).isEmpty())
+                        if (!room.getRoom().getPlacements(assignment, period.getPeriod()).isEmpty())
                             continue;
                     }
                     if (rooms.contains(room))
                         continue;
-                    if (!checkDistributionConstraints(room))
+                    if (!checkDistributionConstraints(assignment, room))
                         continue;
                     int s = room.getSize(hasAltSeating());
                     if (s < minSize)
                         break;
                     int p = room.getPenalty(period.getPeriod());
-                    double w = pw * p + sw * (s - minSize) + cw * getDistributionConstraintPenalty(room);
+                    double w = pw * p + sw * (s - minSize) + cw * getDistributionConstraintPenalty(assignment, room);
                     double d = 0;
                     if (!rooms.isEmpty()) {
                         for (ExamRoomPlacement r : rooms) {
@@ -709,8 +727,8 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      * @return randomly computed set of available rooms for the exam in the
      *         given period, null if there is no valid assignment
      */
-    public Set<ExamRoomPlacement> findRoomsRandom(ExamPeriodPlacement period) {
-        return findRoomsRandom(period, true);
+    public Set<ExamRoomPlacement> findRoomsRandom(Assignment<Exam, ExamPlacement> assignment, ExamPeriodPlacement period) {
+        return findRoomsRandom(assignment, period, true);
     }
 
     /**
@@ -727,7 +745,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      * @return randomly computed set of available rooms for the exam in the
      *         given period, null if there is no valid assignment
      */
-    public Set<ExamRoomPlacement> findRoomsRandom(ExamPeriodPlacement period, boolean checkConflicts) {
+    public Set<ExamRoomPlacement> findRoomsRandom(Assignment<Exam, ExamPlacement> assignment, ExamPeriodPlacement period, boolean checkConflicts) {
         if (getMaxRooms() == 0)
             return new HashSet<ExamRoomPlacement>();
         HashSet<ExamRoomPlacement> rooms = new HashSet<ExamRoomPlacement>();
@@ -744,17 +762,17 @@ public class Exam extends Variable<Exam, ExamPlacement> {
                 if (!room.isAvailable(period.getPeriod()))
                     continue;
                 if (checkConflicts) {
-                    if (rooms.isEmpty() && sharing != null && !room.getRoom().getPlacements(period.getPeriod()).isEmpty()) {
-                        if (sharing.inConflict(this, room.getRoom().getPlacements(period.getPeriod()), room.getRoom()))
+                    if (rooms.isEmpty() && sharing != null && !room.getRoom().getPlacements(assignment, period.getPeriod()).isEmpty()) {
+                        if (sharing.inConflict(this, room.getRoom().getPlacements(assignment, period.getPeriod()), room.getRoom()))
                             continue;
                     } else {
-                        if (!room.getRoom().getPlacements(period.getPeriod()).isEmpty())
+                        if (!room.getRoom().getPlacements(assignment, period.getPeriod()).isEmpty())
                             continue;
                     }
                 }
                 if (rooms.contains(room))
                     continue;
-                if (checkConflicts && !checkDistributionConstraints(room))
+                if (checkConflicts && !checkDistributionConstraints(assignment, room))
                     continue;
                 size += s;
                 rooms.add(room);
@@ -793,7 +811,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      * 
      * @return number of correlated exams
      */
-    public Set<Exam> getStudentCorrelatedExams() {
+    public synchronized Set<Exam> getStudentCorrelatedExams() {
         if (iCorrelatedExams == null) {
             iCorrelatedExams = new HashSet<Exam>();
             for (ExamStudent student : iStudents) {
@@ -806,7 +824,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
 
     private Integer iEstimatedDomainSize = null;
 
-    private int estimatedDomainSize() {
+    private synchronized int estimatedDomainSize() {
         if (iEstimatedDomainSize == null) {
             int periods = getPeriodPlacements().size();
             int rooms = -1;
@@ -855,13 +873,13 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      *            a period
      * @return true if there is a student conflict
      */
-    public boolean hasStudentConflictWithPreAssigned(ExamPeriod period) {
+    public boolean hasStudentConflictWithPreAssigned(Assignment<Exam, ExamPlacement> assignment, ExamPeriod period) {
+        Map<ExamStudent, Set<Exam>> studentsOfPeriod = ((ExamModel)getModel()).getStudentsOfPeriod(assignment, period);
         for (ExamStudent s : getStudents()) {
-            for (Exam exam : s.getExams(period)) {
-                if (exam.equals(this))
-                    continue;
-                if (s.canConflict(this, exam))
-                    continue;
+            Set<Exam> exams = studentsOfPeriod.get(s);
+            if (exams == null) continue;
+            for (Exam exam : exams) {
+                if (!exam.equals(this) && !s.canConflict(this, exam)) return true;
             }
         }
         return false;
@@ -876,15 +894,14 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      *            a period
      * @return number of direct student conflicts that are prohibited
      */
-    public int countStudentConflicts(ExamPeriodPlacement period) {
+    public int countStudentConflicts(Assignment<Exam, ExamPlacement> assignment, ExamPeriodPlacement period) {
         int conf = 0;
+        Map<ExamStudent, Set<Exam>> studentsOfPeriod = ((ExamModel)getModel()).getStudentsOfPeriod(assignment, period.getPeriod());
         for (ExamStudent s : getStudents()) {
-            for (Exam exam : s.getExams(period.getPeriod())) {
-                if (exam.equals(this))
-                    continue;
-                if (s.canConflict(this, exam))
-                    continue;
-                conf++;
+            Set<Exam> exams = studentsOfPeriod.get(s);
+            if (exams == null) continue;
+            for (Exam exam : exams) {
+                if (!exam.equals(this) && !s.canConflict(this, exam)) conf++;
             }
         }
         return conf;
@@ -900,14 +917,14 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      * @return list of {@link Exam} (other than this exam, that are placed in
      *         the given period and create prohibited direct conflicts)
      */
-    public HashSet<Exam> getStudentConflicts(ExamPeriod period) {
+    public HashSet<Exam> getStudentConflicts(Assignment<Exam, ExamPlacement> assignment, ExamPeriod period) {
         HashSet<Exam> conf = new HashSet<Exam>();
+        Map<ExamStudent, Set<Exam>> studentsOfPeriod = ((ExamModel)getModel()).getStudentsOfPeriod(assignment, period);
         for (ExamStudent s : getStudents()) {
-            for (Exam exam : s.getExams(period)) {
-                if (exam.equals(this))
-                    continue;
-                if (!s.canConflict(this, exam))
-                    conf.add(exam);
+            Set<Exam> exams = studentsOfPeriod.get(s);
+            if (exams == null) continue;
+            for (Exam exam : exams) {
+                if (!exam.equals(this) && !s.canConflict(this, exam)) conf.add(exam);
             }
         }
         return conf;
@@ -920,11 +937,13 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      * @param period
      *            a period
      */
-    public void allowAllStudentConflicts(ExamPeriod period) {
+    public void allowAllStudentConflicts(Assignment<Exam, ExamPlacement> assignment, ExamPeriod period) {
+        Map<ExamStudent, Set<Exam>> studentsOfPeriod = ((ExamModel)getModel()).getStudentsOfPeriod(assignment, period);
         for (ExamStudent s : getStudents()) {
-            for (Exam exam : s.getExams(period)) {
-                if (exam.equals(this))
-                    continue;
+            Set<Exam> exams = studentsOfPeriod.get(s);
+            if (exams == null) continue;
+            for (Exam exam : exams) {
+                if (exam.equals(this)) continue;
                 exam.setAllowDirectConflicts(true);
                 setAllowDirectConflicts(true);
                 s.setAllowDirectConflicts(true);
@@ -1087,20 +1106,17 @@ public class Exam extends Variable<Exam, ExamPlacement> {
     public boolean hasValues() {
         return !getPeriodPlacements().isEmpty() && (getMaxRooms() == 0 || !getRoomPlacements().isEmpty());
     }
-
+    
     @Override
-    public void assign(long iteration, ExamPlacement placement) {
+    public void variableAssigned(Assignment<Exam, ExamPlacement> assignment, long iteration, ExamPlacement placement) {
         if (getMaxRooms() > 0) {
             int size = 0;
             for (ExamRoomPlacement room : placement.getRoomPlacements()) {
                 size += room.getSize(hasAltSeating());
             }
             if (size < getSize() && !placement.getRoomPlacements().isEmpty()) {
-                Progress.getInstance(getModel()).warn(
-                        "Selected room(s) are too small " + size + "<" + getSize() + " (" + getName() + " "
-                                + placement.getName() + ")");
+                Progress.getInstance(getModel()).warn("Selected room(s) are too small " + size + "<" + getSize() + " (" + getName() + " " + placement.getName() + ")");
             }
-        }
-        super.assign(iteration, placement);
+        }        
     }
 }

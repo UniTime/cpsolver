@@ -4,6 +4,11 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.context.AbstractClassWithContext;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import net.sf.cpsolver.ifs.model.Model;
+
 /**
  * Representation of a course offering. A course offering contains id, subject
  * area, course number and an instructional offering. <br>
@@ -33,14 +38,12 @@ import java.util.Set;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class Course {
+public class Course extends AbstractClassWithContext<Request, Enrollment, Course.CourseContext> {
     private long iId = -1;
     private String iSubjectArea = null;
     private String iCourseNumber = null;
     private Offering iOffering = null;
     private int iLimit = 0, iProjected = 0;
-    private double iEnrollmentWeight = 0.0;
-    private Set<Enrollment> iEnrollments = new HashSet<Enrollment>();
     private Set<CourseRequest> iRequests = Collections.synchronizedSet(new HashSet<CourseRequest>());
     private String iNote = null;
 
@@ -138,33 +141,13 @@ public class Course {
     }
     
     /** Called when an enrollment with this course is assigned to a request */
-    public void assigned(Enrollment enrollment) {
-        iEnrollments.add(enrollment);
-        iEnrollmentWeight += enrollment.getRequest().getWeight();
+    public void assigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+        getContext(assignment).assigned(assignment, enrollment);
     }
 
     /** Called when an enrollment with this course is unassigned from a request */
-    public void unassigned(Enrollment enrollment) {
-        iEnrollments.remove(enrollment);
-        iEnrollmentWeight -= enrollment.getRequest().getWeight();
-    }
-    
-    /**
-     * Enrollment weight -- weight of all requests that are enrolled into this course,
-     * excluding the given one. See
-     * {@link Request#getWeight()}.
-     */
-    public double getEnrollmentWeight(Request excludeRequest) {
-        double weight = iEnrollmentWeight;
-        if (excludeRequest != null && excludeRequest.getAssignment() != null
-                && iEnrollments.contains(excludeRequest.getAssignment()))
-            weight -= excludeRequest.getWeight();
-        return weight;
-    }
-    
-    /** Set of assigned enrollments */
-    public Set<Enrollment> getEnrollments() {
-        return iEnrollments;
+    public void unassigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+        getContext(assignment).unassigned(assignment, enrollment);
     }
     
     /** Set of course requests requesting this course */
@@ -191,5 +174,71 @@ public class Course {
     @Override
     public int hashCode() {
         return (int) (iId ^ (iId >>> 32));
+    }
+    
+    @Override
+    public Model<Request, Enrollment> getModel() {
+        return getOffering().getModel();
+    }
+    
+    /**
+     * Enrollment weight -- weight of all requests that are enrolled into this course,
+     * excluding the given one. See
+     * {@link Request#getWeight()}.
+     */
+    public double getEnrollmentWeight(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
+        return getContext(assignment).getEnrollmentWeight(assignment, excludeRequest);
+    }
+    
+    /** Set of assigned enrollments */
+    public Set<Enrollment> getEnrollments(Assignment<Request, Enrollment> assignment) {
+        return getContext(assignment).getEnrollments();
+    }
+
+    @Override
+    public CourseContext createAssignmentContext(Assignment<Request, Enrollment> assignment) {
+        return new CourseContext(assignment);
+    }
+    
+    public class CourseContext implements AssignmentConstraintContext<Request, Enrollment> {
+        private double iEnrollmentWeight = 0.0;
+        private Set<Enrollment> iEnrollments = new HashSet<Enrollment>();
+
+        public CourseContext(Assignment<Request, Enrollment> assignment) {
+            for (CourseRequest request: getRequests()) {
+                Enrollment enrollment = assignment.getValue(request);
+                if (enrollment != null && Course.this.equals(enrollment.getCourse()))
+                    assigned(assignment, enrollment);
+            }
+        }
+
+        @Override
+        public void assigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+            if (iEnrollments.add(enrollment))
+                iEnrollmentWeight += enrollment.getRequest().getWeight();
+        }
+
+        @Override
+        public void unassigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+            if (iEnrollments.remove(enrollment))
+                iEnrollmentWeight -= enrollment.getRequest().getWeight();
+        }
+        
+        /**
+         * Enrollment weight -- weight of all requests that are enrolled into this course,
+         * excluding the given one. See
+         * {@link Request#getWeight()}.
+         */
+        public double getEnrollmentWeight(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
+            double weight = iEnrollmentWeight;
+            if (excludeRequest != null && assignment.getValue(excludeRequest) != null && iEnrollments.contains(assignment.getValue(excludeRequest)))
+                weight -= excludeRequest.getWeight();
+            return weight;
+        }
+        
+        /** Set of assigned enrollments */
+        public Set<Enrollment> getEnrollments() {
+            return iEnrollments;
+        }
     }
 }

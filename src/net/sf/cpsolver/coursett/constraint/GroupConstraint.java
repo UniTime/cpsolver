@@ -13,6 +13,9 @@ import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.coursett.model.TimetableModel;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import net.sf.cpsolver.ifs.assignment.context.ConstraintWithContext;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.GlobalConstraint;
 import net.sf.cpsolver.ifs.model.Model;
@@ -105,13 +108,12 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class GroupConstraint extends Constraint<Lecture, Placement> {
+public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, GroupConstraint.GroupConstraintContext> {
     private Long iConstraintId;
     private int iPreference;
     private ConstraintType iType;
     private boolean iIsRequired;
     private boolean iIsProhibited;
-    private int iLastPreference = 0;
     private int iDayOfWeekOffset = 0;
     private boolean iPrecedenceConsiderDatePatterns = true;
     
@@ -136,6 +138,29 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
          * @return true if constraint is satisfied
          */
         public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2);
+    }
+    
+    /**
+     * Group constraints that can be checked on pairs of classes (e.g., same room means any two classes are in the same room),
+     * only need to implement this interface. Unlike {@link PairCheck}, this check is also given current assignment.
+     */
+    public static interface AssignmentPairCheck {
+        /**
+         * Check whether the constraint is satisfied for the given two assignments (required / preferred case)
+         * @param gc Calling group constraint 
+         * @param plc1 First placement
+         * @param plc2 Second placement
+         * @return true if constraint is satisfied
+         */
+        public boolean isSatisfied(Assignment<Lecture, Placement> assignment, GroupConstraint gc, Placement plc1, Placement plc2);
+        /**
+         * Check whether the constraint is satisfied for the given two assignments (prohibited / discouraged case)
+         * @param gc Calling group constraint 
+         * @param plc1 First placement
+         * @param plc2 Second placement
+         * @return true if constraint is satisfied
+         */
+        public boolean isViolated(Assignment<Lecture, Placement> assignment, GroupConstraint gc, Placement plc1, Placement plc2);
     }
     
     /**
@@ -402,7 +427,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         /**
          * Can Share Room: Given classes can share the room (use the room in the same time) if the room is big enough.
          */
-        CAN_SHARE_ROOM("CAN_SHARE_ROOM", "Can Share Room", null, Flag.CAN_SHARE_ROOM),
+        CAN_SHARE_ROOM("CAN_SHARE_ROOM", "Can Share Room", Flag.CAN_SHARE_ROOM),
         /**
          * Precedence: Given classes have to be taught in the given order (the first meeting of the first class has to end before
          * the first meeting of the second class etc.)<BR>
@@ -475,13 +500,13 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
          * Note: This constraint only needs to be put on the parent classes. Preferred configurations are Required All Classes
          * or Pairwise (Strongly) Preferred.
          */
-        CH_NOTOVERLAP("CH_NOTOVERLAP", "Children Cannot Overlap", new PairCheck() {
+        CH_NOTOVERLAP("CH_NOTOVERLAP", "Children Cannot Overlap", new AssignmentPairCheck() {
             @Override
-            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
-                return gc.isChildrenNotOverlap(plc1.variable(), plc1, plc2.variable(), plc2);
+            public boolean isSatisfied(Assignment<Lecture, Placement> assignment, GroupConstraint gc, Placement plc1, Placement plc2) {
+                return gc.isChildrenNotOverlap(assignment, plc1.variable(), plc1, plc2.variable(), plc2);
             }
             @Override
-            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+            public boolean isViolated(Assignment<Lecture, Placement> assignment, GroupConstraint gc, Placement plc1, Placement plc2) {
                 return true;
             }}),
         /**
@@ -615,13 +640,21 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         Flag[] iFlags = null;
         int iMin = 0, iMax = 0;
         PairCheck iCheck = null;
-        ConstraintType(String reference, String name, PairCheck check, Flag... flags) {
+        AssignmentPairCheck iAssignmentCheck = null;
+        ConstraintType(String reference, String name, Flag... flags) {
             iReference = reference;
             iName = name;
-            iCheck = check;
             iFlags = flags;
             for (Flag f: flags)
                 iFlag |= f.flag();
+        }
+        ConstraintType(String reference, String name, PairCheck check, Flag... flags) {
+            this(reference, name, flags);
+            iCheck = check;
+        }
+        ConstraintType(String reference, String name, AssignmentPairCheck check, Flag... flags) {
+            this(reference, name, flags);
+            iAssignmentCheck = check;
         }
         ConstraintType(String reference, String name, int limit, PairCheck check, Flag... flags) {
             this(reference, name, check, flags);
@@ -653,9 +686,21 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         }
         
         /** True if a required or preferred constraint is satisfied between a pair of placements */ 
-        public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) { return (iCheck == null ? true : iCheck.isSatisfied(gc, plc1, plc2)); }
+        public boolean isSatisfied(Assignment<Lecture, Placement> assignment, GroupConstraint gc, Placement plc1, Placement plc2) {
+            if (iCheck != null && !iCheck.isSatisfied(gc, plc1, plc2))
+                return false;
+            if (iAssignmentCheck != null && assignment != null && !iAssignmentCheck.isSatisfied(assignment, gc, plc1, plc2))
+                return false;
+            return true;
+        }
         /** True if a prohibited or discouraged constraint is satisfied between a pair of placements */ 
-        public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) { return (iCheck == null ? true : iCheck.isViolated(gc, plc1, plc2)); }
+        public boolean isViolated(Assignment<Lecture, Placement> assignment, GroupConstraint gc, Placement plc1, Placement plc2) { 
+            if (iCheck != null && !iCheck.isViolated(gc, plc1, plc2))
+                return false;
+            if (iAssignmentCheck != null && assignment != null && !iAssignmentCheck.isViolated(assignment, gc, plc1, plc2))
+                return false;
+            return true;
+        }
         /** Pair check */
         private PairCheck check() { return iCheck; }
     }
@@ -670,10 +715,6 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
             DataProperties config = ((TimetableModel)model).getProperties();
             iDayOfWeekOffset = config.getPropertyInt("DatePattern.DayOfWeekOffset", 0);
             iPrecedenceConsiderDatePatterns = config.getPropertyBoolean("Precedence.ConsiderDatePatterns", true);
-        }
-        if (!isHard()) {
-            iLastPreference = getCurrentPreference();
-            getModel().getCriterion(DistributionPreferences.class).inc(iLastPreference);
         }
     }
 
@@ -774,13 +815,13 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
     public boolean isConsistent(Placement value1, Placement value2) {
         if (!isHard())
             return true;
-        if (!isSatisfiedPair(value1, value2))
+        if (!isSatisfiedPair(null, value1, value2))
             return false;
         if (getType().is(Flag.BACK_TO_BACK)) {
             HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
             assignments.put(value1.variable(), value1);
             assignments.put(value2.variable(), value2);
-            if (!isSatisfiedSeq(assignments, false, null))
+            if (!isSatisfiedSeq(null, assignments, null))
                 return false;
         }
         if (getType().is(Flag.MAX_HRS_DAY)) {
@@ -788,7 +829,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
             assignments.put(value1.variable(), value1);
             assignments.put(value2.variable(), value2);
             for (int dayCode: Constants.DAY_CODES) {
-                if (nrSlotsADay(dayCode, assignments, null) > getType().getMax())
+                if (nrSlotsADay(null, dayCode, assignments, null) > getType().getMax())
                     return false;
             }
         }
@@ -796,50 +837,50 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
     }
 
     @Override
-    public void computeConflicts(Placement value, Set<Placement> conflicts) {
+    public void computeConflicts(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
         if (!isHard())
             return;
         for (Lecture v : variables()) {
             if (v.equals(value.variable()))
                 continue; // ignore this variable
-            if (v.getAssignment() == null)
-                continue; // there is an unassigned variable -- great, still a
-                          // chance to get violated
-            if (!isSatisfiedPair(v.getAssignment(), value))
-                conflicts.add(v.getAssignment());
+            Placement p = assignment.getValue(v);
+            if (p == null)
+                continue; // there is an unassigned variable -- great, still a chance to get violated
+            if (!isSatisfiedPair(assignment, p, value))
+                conflicts.add(p);
         }
         if (getType().is(Flag.BACK_TO_BACK)) {
             HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
             assignments.put(value.variable(), value);
-            if (!isSatisfiedSeq(assignments, true, conflicts))
+            if (!isSatisfiedSeq(assignment, assignments, conflicts))
                 conflicts.add(value);
         }
         if (getType().is(Flag.MAX_HRS_DAY)) {
             HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
             assignments.put(value.variable(), value);
             for (int dayCode: Constants.DAY_CODES) {
-                if (nrSlotsADay(dayCode, assignments, conflicts) > getType().getMax()) {
+                if (nrSlotsADay(assignment, dayCode, assignments, conflicts) > getType().getMax()) {
                     List<Placement> adepts = new ArrayList<Placement>();
-                    for (Lecture lecture: assignedVariables()) {
-                        if (conflicts.contains(lecture.getAssignment()) || lecture.equals(value.variable())) continue;
-                        if (lecture.getAssignment().getTimeLocation() == null) continue;
-                        if ((lecture.getAssignment().getTimeLocation().getDayCode() & dayCode) == 0) continue;
-                        adepts.add(lecture.getAssignment());
+                    for (Placement p: assignment.assignedValues()) {
+                        if (conflicts.contains(p) || p.variable().equals(value.variable())) continue;
+                        if (p.getTimeLocation() == null) continue;
+                        if ((p.getTimeLocation().getDayCode() & dayCode) == 0) continue;
+                        adepts.add(p);
                     }
                     do {
                         Placement conflict = ToolBox.random(adepts);
                         adepts.remove(conflict);
                         conflicts.add(conflict);
-                    } while (!adepts.isEmpty() && nrSlotsADay(dayCode, assignments, conflicts) > getType().getMax());
+                    } while (!adepts.isEmpty() && nrSlotsADay(assignment, dayCode, assignments, conflicts) > getType().getMax());
                 }
             }
         }
         
         // Forward checking
-        forwardCheck(value, conflicts, new HashSet<GroupConstraint>());
+        forwardCheck(assignment, value, conflicts, new HashSet<GroupConstraint>());
     }
     
-    public void forwardCheck(Placement value, Set<Placement> conflicts, Set<GroupConstraint> ignore) {
+    public void forwardCheck(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts, Set<GroupConstraint> ignore) {
         try {
             ignore.add(this);
             
@@ -849,15 +890,16 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                 if (conflicts.contains(value)) break; // already conflicting
 
                 if (lecture.equals(value.variable())) continue; // Skip this lecture
-                if (lecture.getAssignment() != null) { // Has assignment, check whether it is conflicting
-                    if (isSatisfiedPair(value, lecture.getAssignment())) {
+                Placement current = assignment.getValue(lecture);
+                if (current != null) { // Has assignment, check whether it is conflicting
+                    if (isSatisfiedPair(assignment, value, current)) {
                         // Increase needed size if the assignment is of the same room and overlapping in time
-                        if (canShareRoom() && sameRoomAndOverlaps(value, lecture.getAssignment())) {
+                        if (canShareRoom() && sameRoomAndOverlaps(value, current)) {
                             neededSize += lecture.maxRoomUse();
                         }
                         continue;
                     }
-                    conflicts.add(lecture.getAssignment());
+                    conflicts.add(current);
                 }
                 
                 // Look for supporting assignments assignment
@@ -866,13 +908,13 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                 int nrSupports = 0;
                 for (Placement other: lecture.values()) {
                     if (nrSupports < 2) {
-                        if (isSatisfiedPair(value, other)) {
+                        if (isSatisfiedPair(assignment, value, other)) {
                             if (support == null) support = other;
                             nrSupports ++;
                             if (shareRoomAndOverlaps && !sameRoomAndOverlaps(value, other))
                                 shareRoomAndOverlaps = false;
                         }
-                    } else if (shareRoomAndOverlaps && !sameRoomAndOverlaps(value, other) && isSatisfiedPair(value, other)) {
+                    } else if (shareRoomAndOverlaps && !sameRoomAndOverlaps(value, other) && isSatisfiedPair(assignment, value, other)) {
                         shareRoomAndOverlaps = false;
                     }
                     if (nrSupports > 1 && !shareRoomAndOverlaps)
@@ -896,14 +938,14 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                         if (other instanceof GroupConstraint) {
                             GroupConstraint gc = (GroupConstraint)other;
                             if (!ignore.contains(gc))
-                                gc.forwardCheck(support, conflicts, ignore);
+                                gc.forwardCheck(assignment, support, conflicts, ignore);
                         } else {
-                            other.computeConflicts(support, conflicts);
+                            other.computeConflicts(assignment, support, conflicts);
                         }
                     }
                     for (GlobalConstraint<Lecture, Placement> other: getModel().globalConstraints()) {
                         if (other instanceof WeakeningConstraint) continue;
-                        other.computeConflicts(support, conflicts);
+                        other.computeConflicts(assignment, support, conflicts);
                     }
 
                     if (conflicts.contains(support))
@@ -922,39 +964,39 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
     }
 
     @Override
-    public boolean inConflict(Placement value) {
+    public boolean inConflict(Assignment<Lecture, Placement> assignment, Placement value) {
         if (!isHard())
             return false;
         for (Lecture v : variables()) {
             if (v.equals(value.variable()))
                 continue; // ignore this variable
-            if (v.getAssignment() == null)
-                continue; // there is an unassigned variable -- great, still a
-                          // chance to get violated
-            if (!isSatisfiedPair(v.getAssignment(), value))
+            Placement p = assignment.getValue(v);
+            if (p == null)
+                continue; // there is an unassigned variable -- great, still a chance to get violated
+            if (!isSatisfiedPair(assignment, p, value))
                 return true;
         }
         if (getType().is(Flag.BACK_TO_BACK)) {
             HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
             assignments.put(value.variable(), value);
-            if (!isSatisfiedSeq(assignments, true, null))
+            if (!isSatisfiedSeq(assignment, assignments, null))
                 return true;
         }
         if (getType().is(Flag.MAX_HRS_DAY)) {
             HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
             assignments.put(value.variable(), value);
             for (int dayCode: Constants.DAY_CODES) {
-                if (nrSlotsADay(dayCode, assignments, null) > getType().getMax())
+                if (nrSlotsADay(assignment, dayCode, assignments, null) > getType().getMax())
                     return true;
             }
         }
         
-        if (!forwardCheck(value, new HashSet<GroupConstraint>())) return true;
+        if (!forwardCheck(assignment, value, new HashSet<GroupConstraint>())) return true;
         
         return false;
     }
     
-    public boolean forwardCheck(Placement value, Set<GroupConstraint> ignore) {
+    public boolean forwardCheck(Assignment<Lecture, Placement> assignment, Placement value, Set<GroupConstraint> ignore) {
         try {
             ignore.add(this);
             
@@ -962,10 +1004,11 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
             
             for (Lecture lecture: variables()) {
                 if (lecture.equals(value.variable())) continue; // Skip this lecture
-                if (lecture.getAssignment() != null) { // Has assignment, check whether it is conflicting
-                    if (isSatisfiedPair(value, lecture.getAssignment())) {
+                Placement current = assignment.getValue(lecture);
+                if (current != null) { // Has assignment, check whether it is conflicting
+                    if (isSatisfiedPair(assignment, value, current)) {
                         // Increase needed size if the assignment is of the same room and overlapping in time
-                        if (canShareRoom() && sameRoomAndOverlaps(value, lecture.getAssignment())) {
+                        if (canShareRoom() && sameRoomAndOverlaps(value, current)) {
                             neededSize += lecture.maxRoomUse();
                         }
                         continue;
@@ -979,13 +1022,13 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                 int nrSupports = 0;
                 for (Placement other: lecture.values()) {
                     if (nrSupports < 2) {
-                        if (isSatisfiedPair(value, other)) {
+                        if (isSatisfiedPair(assignment, value, other)) {
                             if (support == null) support = other;
                             nrSupports ++;
                             if (shareRoomAndOverlaps && !sameRoomAndOverlaps(value, other))
                                 shareRoomAndOverlaps = false;
                         }
-                    } else if (shareRoomAndOverlaps && !sameRoomAndOverlaps(value, other) && isSatisfiedPair(value, other)) {
+                    } else if (shareRoomAndOverlaps && !sameRoomAndOverlaps(value, other) && isSatisfiedPair(assignment, value, other)) {
                         shareRoomAndOverlaps = false;
                     }
                     if (nrSupports > 1 && !shareRoomAndOverlaps)
@@ -1007,14 +1050,14 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                         if (other instanceof WeakeningConstraint) continue;
                         if (other instanceof GroupConstraint) {
                             GroupConstraint gc = (GroupConstraint)other;
-                            if (!ignore.contains(gc) && !gc.forwardCheck(support, ignore)) return false;
+                            if (!ignore.contains(gc) && !gc.forwardCheck(assignment, support, ignore)) return false;
                         } else {
-                            if (other.inConflict(support)) return false;
+                            if (other.inConflict(assignment, support)) return false;
                         }
                     }
                     for (GlobalConstraint<Lecture, Placement> other: getModel().globalConstraints()) {
                         if (other instanceof WeakeningConstraint) continue;
-                        if (other.inConflict(support)) return false;
+                        if (other.inConflict(assignment, support)) return false;
                     }
                 }
             }
@@ -1039,26 +1082,28 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
      * Current constraint preference (0 if prohibited or reqired, depends on
      * current satisfaction of the constraint)
      */
-    public int getCurrentPreference() {
+    public int getCurrentPreference(Assignment<Lecture, Placement> assignment) {
         if (isHard()) return 0; // no preference
-        if (countAssignedVariables() < 2) return - Math.abs(iPreference); // not enough variable
+        if (countAssignedVariables(assignment) < 2) return - Math.abs(iPreference); // not enough variable
         if (getType().is(Flag.MAX_HRS_DAY)) { // max hours a day
             int over = 0;
             for (int dayCode: Constants.DAY_CODES)
-                over += Math.max(0, nrSlotsADay(dayCode, null, null) - getType().getMax());
+                over += Math.max(0, nrSlotsADay(assignment, dayCode, null, null) - getType().getMax());
             return (over > 0 ? Math.abs(iPreference) * over / 12 : - Math.abs(iPreference));
         }
         int nrViolatedPairs = 0;
         for (Lecture v1 : variables()) {
-            if (v1.getAssignment() == null) continue;
+            Placement p1 = assignment.getValue(v1);
+            if (p1 == null) continue;
             for (Lecture v2 : variables()) {
-                if (v2.getAssignment() == null || v1.getId() >= v2.getId()) continue;
-                if (!isSatisfiedPair(v1.getAssignment(), v2.getAssignment())) nrViolatedPairs++;
+                Placement p2 = assignment.getValue(v2);
+                if (p2 == null || v1.getId() >= v2.getId()) continue;
+                if (!isSatisfiedPair(assignment, p1, p2)) nrViolatedPairs++;
             }
         }
         if (getType().is(Flag.BACK_TO_BACK)) {
             Set<Placement> conflicts = new HashSet<Placement>();
-            if (isSatisfiedSeq(new HashMap<Lecture, Placement>(), true, conflicts))
+            if (isSatisfiedSeq(assignment, new HashMap<Lecture, Placement>(), conflicts))
                 nrViolatedPairs += conflicts.size();
             else
                 nrViolatedPairs = variables().size();
@@ -1067,19 +1112,19 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
     }
 
     /** Current constraint preference change (if given placement is assigned) */
-    public int getCurrentPreference(Placement placement) {
+    public int getCurrentPreference(Assignment<Lecture, Placement> assignment, Placement placement) {
         if (isHard()) return 0; // no preference
-        if (countAssignedVariables() + (placement.variable().getAssignment() == null ? 1 : 0) < 2) return 0; // not enough variable
+        if (countAssignedVariables(assignment) + (assignment.getValue(placement.variable()) == null ? 1 : 0) < 2) return 0; // not enough variable
         if (getType().is(Flag.MAX_HRS_DAY)) {
-            HashMap<Lecture, Placement> assignment = new HashMap<Lecture, Placement>();
-            assignment.put(placement.variable(), placement);
-            HashMap<Lecture, Placement> unassignment = new HashMap<Lecture, Placement>();
-            unassignment.put(placement.variable(), null);
+            HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
+            assignments.put(placement.variable(), placement);
+            HashMap<Lecture, Placement> unassignments = new HashMap<Lecture, Placement>();
+            unassignments.put(placement.variable(), null);
             int after = 0;
             int before = 0;
             for (int dayCode: Constants.DAY_CODES) {
-                after += Math.max(0, nrSlotsADay(dayCode, assignment, null) - getType().getMax());
-                before += Math.max(0, nrSlotsADay(dayCode, unassignment, null) - getType().getMax());
+                after += Math.max(0, nrSlotsADay(assignment, dayCode, assignments, null) - getType().getMax());
+                before += Math.max(0, nrSlotsADay(assignment, dayCode, unassignments, null) - getType().getMax());
             }
             return (after > 0 ? Math.abs(iPreference) * after / 12 : - Math.abs(iPreference)) - (before > 0 ? Math.abs(iPreference) * before / 12 : - Math.abs(iPreference));
         }
@@ -1089,30 +1134,30 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         for (Lecture v1 : variables()) {
             for (Lecture v2 : variables()) {
                 if (v1.getId() >= v2.getId()) continue;
-                Placement p1 = (v1.equals(placement.variable()) ? null : v1.getAssignment());
-                Placement p2 = (v2.equals(placement.variable()) ? null : v2.getAssignment());
-                if (p1 != null && p2 != null && !isSatisfiedPair(p1, p2))
+                Placement p1 = (v1.equals(placement.variable()) ? null : assignment.getValue(v1));
+                Placement p2 = (v2.equals(placement.variable()) ? null : assignment.getValue(v2));
+                if (p1 != null && p2 != null && !isSatisfiedPair(assignment, p1, p2))
                     nrViolatedPairsBefore ++;
                 if (v1.equals(placement.variable())) p1 = placement;
                 if (v2.equals(placement.variable())) p2 = placement;
-                if (p1 != null && p2 != null && !isSatisfiedPair(p1, p2))
+                if (p1 != null && p2 != null && !isSatisfiedPair(assignment, p1, p2))
                     nrViolatedPairsAfter ++;
             }
         }
         
         if (getType().is(Flag.BACK_TO_BACK)) {
-            HashMap<Lecture, Placement> assignment = new HashMap<Lecture, Placement>();
-            assignment.put(placement.variable(), placement);
+            HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
+            assignments.put(placement.variable(), placement);
             Set<Placement> conflicts = new HashSet<Placement>();
-            if (isSatisfiedSeq(assignment, true, conflicts))
+            if (isSatisfiedSeq(assignment, assignments, conflicts))
                 nrViolatedPairsAfter += conflicts.size();
             else
                 nrViolatedPairsAfter = variables().size();
             
-            HashMap<Lecture, Placement> unassignment = new HashMap<Lecture, Placement>();
-            unassignment.put(placement.variable(), null);
+            HashMap<Lecture, Placement> unassignments = new HashMap<Lecture, Placement>();
+            unassignments.put(placement.variable(), null);
             Set<Placement> previous = new HashSet<Placement>();
-            if (isSatisfiedSeq(unassignment, true, previous))
+            if (isSatisfiedSeq(assignment, unassignments, previous))
                 nrViolatedPairsBefore += previous.size();
             else
                 nrViolatedPairsBefore = variables().size();
@@ -1123,33 +1168,13 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
     }
 
     @Override
-    public void unassigned(long iteration, Placement value) {
-        super.unassigned(iteration, value);
-        if (iIsRequired || iIsProhibited)
-            return;
-        getModel().getCriterion(DistributionPreferences.class).inc(-iLastPreference);
-        iLastPreference = getCurrentPreference();
-        getModel().getCriterion(DistributionPreferences.class).inc(iLastPreference);
-    }
-
-    @Override
-    public void assigned(long iteration, Placement value) {
-        super.assigned(iteration, value);
-        if (iIsRequired || iIsProhibited)
-            return;
-        getModel().getCriterion(DistributionPreferences.class).inc(-iLastPreference);
-        iLastPreference = getCurrentPreference();
-        getModel().getCriterion(DistributionPreferences.class).inc(iLastPreference);
-    }
-
-    @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
         sb.append(getName());
         sb.append(" between ");
         for (Iterator<Lecture> e = variables().iterator(); e.hasNext();) {
             Lecture v = e.next();
-            sb.append(v.getName() + " " + (v.getAssignment() == null ? "" : v.getAssignment().getName()));
+            sb.append(v.getName());
             if (e.hasNext())
                 sb.append(", ");
         }
@@ -1353,12 +1378,11 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         return false;
     }
 
-    private boolean isSatisfiedSeq(HashMap<Lecture, Placement> assignments, boolean considerCurrentAssignments,
-            Set<Placement> conflicts) {
+    private boolean isSatisfiedSeq(Assignment<Lecture, Placement> assignment, HashMap<Lecture, Placement> assignments, Set<Placement> conflicts) {
         if (conflicts == null)
-            return isSatisfiedSeqCheck(assignments, considerCurrentAssignments, conflicts);
+            return isSatisfiedSeqCheck(assignment, assignments, conflicts);
         else {
-            Set<Placement> bestConflicts = isSatisfiedRecursive(0, assignments, considerCurrentAssignments, conflicts,
+            Set<Placement> bestConflicts = isSatisfiedRecursive(assignment, 0, assignments, conflicts,
                     new HashSet<Placement>(), null);
             if (bestConflicts == null)
                 return false;
@@ -1367,19 +1391,18 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         }
     }
 
-    private Set<Placement> isSatisfiedRecursive(int idx, HashMap<Lecture, Placement> assignments,
-            boolean considerCurrentAssignments, Set<Placement> conflicts, Set<Placement> newConflicts,
-            Set<Placement> bestConflicts) {
+    private Set<Placement> isSatisfiedRecursive(Assignment<Lecture, Placement> assignment, int idx, HashMap<Lecture, Placement> assignments,
+            Set<Placement> conflicts, Set<Placement> newConflicts, Set<Placement> bestConflicts) {
         if (idx == variables().size() && newConflicts.isEmpty())
             return bestConflicts;
-        if (isSatisfiedSeqCheck(assignments, considerCurrentAssignments, conflicts)) {
+        if (isSatisfiedSeqCheck(assignment, assignments, conflicts)) {
             if (bestConflicts == null || bestConflicts.size() > newConflicts.size())
                 return new HashSet<Placement>(newConflicts);
             return bestConflicts;
         }
         if (idx == variables().size())
             return bestConflicts;
-        bestConflicts = isSatisfiedRecursive(idx + 1, assignments, considerCurrentAssignments, conflicts, newConflicts,
+        bestConflicts = isSatisfiedRecursive(assignment, idx + 1, assignments, conflicts, newConflicts,
                 bestConflicts);
         Lecture lecture = variables().get(idx);
         //if (assignments != null && assignments.containsKey(lecture))
@@ -1387,23 +1410,21 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         Placement placement = null;
         if (assignments != null && assignments.containsKey(lecture))
             placement = assignments.get(lecture);
-        else if (considerCurrentAssignments)
-            placement = lecture.getAssignment();
+        else if (assignment != null)
+            placement = assignment.getValue(lecture);
         if (placement == null)
             return bestConflicts;
         if (conflicts != null && conflicts.contains(placement))
             return bestConflicts;
         conflicts.add(placement);
         newConflicts.add(placement);
-        bestConflicts = isSatisfiedRecursive(idx + 1, assignments, considerCurrentAssignments, conflicts, newConflicts,
-                bestConflicts);
+        bestConflicts = isSatisfiedRecursive(assignment, idx + 1, assignments, conflicts, newConflicts, bestConflicts);
         newConflicts.remove(placement);
         conflicts.remove(placement);
         return bestConflicts;
     }
 
-    private boolean isSatisfiedSeqCheck(HashMap<Lecture, Placement> assignments, boolean considerCurrentAssignments,
-            Set<Placement> conflicts) {
+    private boolean isSatisfiedSeqCheck(Assignment<Lecture, Placement> assignment, HashMap<Lecture, Placement> assignments, Set<Placement> conflicts) {
         if (!getType().is(Flag.BACK_TO_BACK)) return true;
         int gapMin = getType().getMin();
         int gapMax = getType().getMax();
@@ -1420,8 +1441,8 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
             Placement placement = null;
             if (assignments != null && assignments.containsKey(lecture))
                 placement = assignments.get(lecture);
-            else if (considerCurrentAssignments)
-                placement = lecture.getAssignment();
+            else if (assignment != null)
+                placement = assignment.getValue(lecture);
             if (placement == null) {
                 lengths.add(lecture.timeLocations().get(0).getLength());
             } else if (conflicts != null && conflicts.contains(placement)) {
@@ -1496,14 +1517,14 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         return true;
     }
 
-    public boolean isSatisfied() {
+    public boolean isSatisfied(Assignment<Lecture, Placement> assignment) {
         if (isHard()) return true;
-        if (countAssignedVariables() < 2) return true;
+        if (countAssignedVariables(assignment) < 2) return true;
         if (getPreference() == 0) return true;
-        return isHard() || countAssignedVariables() < 2 || getPreference() == 0 || getCurrentPreference() < 0;
+        return isHard() || countAssignedVariables(assignment) < 2 || getPreference() == 0 || getCurrentPreference(assignment) < 0;
     }
 
-    public boolean isChildrenNotOverlap(Lecture lec1, Placement plc1, Lecture lec2, Placement plc2) {
+    public boolean isChildrenNotOverlap(Assignment<Lecture, Placement> assignment, Lecture lec1, Placement plc1, Lecture lec2, Placement plc2) {
         if (lec1.getSchedulingSubpartId().equals(lec2.getSchedulingSubpartId())) {
             // same subpart
             boolean overlap = plc1.getTimeLocation().hasIntersection(plc2.getTimeLocation());
@@ -1511,8 +1532,8 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
             if (overlap && lec1.getParent() != null && variables().contains(lec1.getParent())
                     && lec2.getParent() != null && variables().contains(lec2.getParent())) {
                 // children overlaps
-                Placement p1 = lec1.getParent().getAssignment();
-                Placement p2 = lec2.getParent().getAssignment();
+                Placement p1 = assignment.getValue(lec1.getParent());
+                Placement p2 = assignment.getValue(lec2.getParent());
                 // parents not overlap, but children do
                 if (p1 != null && p2 != null && !p1.getTimeLocation().hasIntersection(p2.getTimeLocation()))
                     return false;
@@ -1522,15 +1543,12 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                 // parents not overlap
                 for (Long subpartId: lec1.getChildrenSubpartIds()) {
                     for (Lecture c1 : lec1.getChildren(subpartId)) {
-                        if (c1.getAssignment() == null)
-                            continue;
+                        Placement p1 = assignment.getValue(c1);
+                        if (p1 == null) continue;
                         for (Lecture c2 : lec2.getChildren(subpartId)) {
-                            if (c2.getAssignment() == null)
-                                continue;
-                            if (!c1.getSchedulingSubpartId().equals(c2.getSchedulingSubpartId()))
-                                continue;
-                            Placement p1 = c1.getAssignment();
-                            Placement p2 = c2.getAssignment();
+                            Placement p2 = assignment.getValue(c2);
+                            if (p2 == null) continue;
+                            if (!c1.getSchedulingSubpartId().equals(c2.getSchedulingSubpartId())) continue;
                             // parents not overlap, but children do
                             if (p1.getTimeLocation().hasIntersection(p2.getTimeLocation()))
                                 return false;
@@ -1544,11 +1562,11 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         return true;
     }
 
-    public boolean isSatisfiedPair(Placement plc1, Placement plc2) {
+    public boolean isSatisfiedPair(Assignment<Lecture, Placement> assignment, Placement plc1, Placement plc2) {
         if (iIsRequired || (!iIsProhibited && iPreference <= 0))
-            return getType().isSatisfied(this, plc1, plc2);
+            return getType().isSatisfied(assignment, this, plc1, plc2);
         else if (iIsProhibited || (!iIsRequired && iPreference > 0))
-            return getType().isViolated(this, plc1, plc2);
+            return getType().isViolated(assignment, this, plc1, plc2);
         return true;
     }
     
@@ -1556,14 +1574,14 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         return getType().is(Flag.CAN_SHARE_ROOM);
     }
     
-    private int nrSlotsADay(int dayCode, HashMap<Lecture, Placement> assignments, Set<Placement> conflicts) {
+    private int nrSlotsADay(Assignment<Lecture, Placement> assignment, int dayCode, HashMap<Lecture, Placement> assignments, Set<Placement> conflicts) {
         Set<Integer> slots = new HashSet<Integer>();
         for (Lecture lecture: variables()) {
             Placement placement = null;
             if (assignments != null && assignments.containsKey(lecture))
                 placement = assignments.get(lecture);
-            else
-                placement = lecture.getAssignment();
+            else if (assignment != null)
+                placement = assignment.getValue(lecture);
             if (placement == null || placement.getTimeLocation() == null) continue;
             if (conflicts != null && conflicts.contains(placement)) continue;
             TimeLocation t = placement.getTimeLocation();
@@ -1578,5 +1596,38 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
     public boolean equals(Object o) {
         if (o == null || !(o instanceof GroupConstraint)) return false;
         return getGeneratedId() == ((GroupConstraint) o).getGeneratedId();
+    }
+    
+    @Override
+    public GroupConstraintContext createAssignmentContext(Assignment<Lecture, Placement> assignment) {
+        return new GroupConstraintContext(assignment);
+    }
+
+    public class GroupConstraintContext implements AssignmentConstraintContext<Lecture, Placement> {
+        private int iLastPreference = 0;
+        
+        public GroupConstraintContext(Assignment<Lecture, Placement> assignment) {
+            updateCriterion(assignment);
+        }
+
+        @Override
+        public void assigned(Assignment<Lecture, Placement> assignment, Placement value) {
+            updateCriterion(assignment);
+        }
+
+        @Override
+        public void unassigned(Assignment<Lecture, Placement> assignment, Placement value) {
+            updateCriterion(assignment);
+        }
+        
+        private void updateCriterion(Assignment<Lecture, Placement> assignment) {
+            if (!isHard()) {
+                getModel().getCriterion(DistributionPreferences.class).inc(assignment, -iLastPreference);
+                iLastPreference = getCurrentPreference(assignment);
+                getModel().getCriterion(DistributionPreferences.class).inc(assignment, iLastPreference);
+            }
+        }
+        
+        public int getPreference() { return iLastPreference; }
     }
 }

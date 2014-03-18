@@ -5,7 +5,9 @@ import java.util.Iterator;
 import java.util.Set;
 
 import net.sf.cpsolver.exam.criteria.DistributionPenalty;
-import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import net.sf.cpsolver.ifs.assignment.context.ConstraintWithContext;
 
 /**
  * Distribution binary constraint. <br>
@@ -40,7 +42,7 @@ import net.sf.cpsolver.ifs.model.Constraint;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class ExamDistributionConstraint extends Constraint<Exam, ExamPlacement> {
+public class ExamDistributionConstraint extends ConstraintWithContext<Exam, ExamPlacement, ExamDistributionConstraint.Context> {
     /** Same room constraint type */
     public static final int sDistSameRoom = 0;
     /** Different room constraint type */
@@ -173,14 +175,14 @@ public class ExamDistributionConstraint extends Constraint<Exam, ExamPlacement> 
      * false
      */
     @Override
-    public void computeConflicts(ExamPlacement givenPlacement, Set<ExamPlacement> conflicts) {
+    public void computeConflicts(Assignment<Exam, ExamPlacement> assignment, ExamPlacement givenPlacement, Set<ExamPlacement> conflicts) {
         boolean before = true;
         for (Exam exam : variables()) {
             if (exam.equals(givenPlacement.variable())) {
                 before = false;
                 continue;
             }
-            ExamPlacement placement = exam.getAssignment();
+            ExamPlacement placement = assignment.getValue(exam);
             if (placement == null)
                 continue;
             if (!check(before ? placement : givenPlacement, before ? givenPlacement : placement))
@@ -195,14 +197,14 @@ public class ExamDistributionConstraint extends Constraint<Exam, ExamPlacement> 
      * false
      */
     @Override
-    public boolean inConflict(ExamPlacement givenPlacement) {
+    public boolean inConflict(Assignment<Exam, ExamPlacement> assignment, ExamPlacement givenPlacement) {
         boolean before = true;
         for (Exam exam : variables()) {
             if (exam.equals(givenPlacement.variable())) {
                 before = false;
                 continue;
             }
-            ExamPlacement placement = exam.getAssignment();
+            ExamPlacement placement = assignment.getValue(exam);
             if (placement == null)
                 continue;
             if (!check(before ? placement : givenPlacement, before ? givenPlacement : placement))
@@ -269,8 +271,8 @@ public class ExamDistributionConstraint extends Constraint<Exam, ExamPlacement> 
      * Return true if this is hard constraint or this is a soft constraint
      * without any violation
      */
-    public boolean isSatisfied() {
-        return isSatisfied(null);
+    public boolean isSatisfied(Assignment<Exam, ExamPlacement> assignment) {
+        return isSatisfied(assignment, null);
     }
 
     /**
@@ -280,14 +282,14 @@ public class ExamDistributionConstraint extends Constraint<Exam, ExamPlacement> 
      * @param p
      *            exam assignment to be made
      */
-    public boolean isSatisfied(ExamPlacement p) {
+    public boolean isSatisfied(Assignment<Exam, ExamPlacement> assignment, ExamPlacement p) {
         if (isHard())
             return true;
         switch (getType()) {
             case sDistPrecedence:
                 ExamPeriod last = null;
                 for (Exam exam : variables()) {
-                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : exam.getAssignment());
+                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : assignment.getValue(exam));
                     if (placement == null)
                         continue;
                     if (last == null || last.getIndex() < placement.getPeriod().getIndex())
@@ -299,7 +301,7 @@ public class ExamDistributionConstraint extends Constraint<Exam, ExamPlacement> 
             case sDistPrecedenceRev:
                 last = null;
                 for (Exam exam : variables()) {
-                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : exam.getAssignment());
+                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : assignment.getValue(exam));
                     if (placement == null)
                         continue;
                     if (last == null || last.getIndex() > placement.getPeriod().getIndex())
@@ -311,7 +313,7 @@ public class ExamDistributionConstraint extends Constraint<Exam, ExamPlacement> 
             case sDistSamePeriod:
                 ExamPeriod period = null;
                 for (Exam exam : variables()) {
-                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : exam.getAssignment());
+                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : assignment.getValue(exam));
                     if (placement == null)
                         continue;
                     if (period == null)
@@ -323,7 +325,7 @@ public class ExamDistributionConstraint extends Constraint<Exam, ExamPlacement> 
             case sDistDifferentPeriod:
                 HashSet<ExamPeriod> periods = new HashSet<ExamPeriod>();
                 for (Exam exam : variables()) {
-                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : exam.getAssignment());
+                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : assignment.getValue(exam));
                     if (placement == null)
                         continue;
                     if (!periods.add(placement.getPeriod()))
@@ -333,7 +335,7 @@ public class ExamDistributionConstraint extends Constraint<Exam, ExamPlacement> 
             case sDistSameRoom:
                 Set<ExamRoomPlacement> rooms = null;
                 for (Exam exam : variables()) {
-                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : exam.getAssignment());
+                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : assignment.getValue(exam));
                     if (placement == null)
                         continue;
                     if (rooms == null)
@@ -346,7 +348,7 @@ public class ExamDistributionConstraint extends Constraint<Exam, ExamPlacement> 
             case sDistDifferentRoom:
                 HashSet<ExamRoomPlacement> allRooms = new HashSet<ExamRoomPlacement>();
                 for (Exam exam : variables()) {
-                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : exam.getAssignment());
+                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : assignment.getValue(exam));
                     if (placement == null)
                         continue;
                     for (ExamRoomPlacement room : placement.getRoomPlacements()) {
@@ -360,26 +362,6 @@ public class ExamDistributionConstraint extends Constraint<Exam, ExamPlacement> 
         }
     }
 
-    boolean iIsSatisfied = true;
-
-    @Override
-    public void assigned(long iteration, ExamPlacement value) {
-        super.assigned(iteration, value);
-        if (!isHard() && iIsSatisfied != isSatisfied()) {
-            iIsSatisfied = !iIsSatisfied;
-            ((DistributionPenalty)getModel().getCriterion(DistributionPenalty.class)).inc(iIsSatisfied ? -getWeight() : getWeight());
-        }
-    }
-
-    @Override
-    public void unassigned(long iteration, ExamPlacement value) {
-        super.unassigned(iteration, value);
-        if (!isHard() && iIsSatisfied != isSatisfied()) {
-            iIsSatisfied = !iIsSatisfied;
-            ((DistributionPenalty)getModel().getCriterion(DistributionPenalty.class)).inc(iIsSatisfied ? -getWeight() : getWeight());
-        }
-    }
-
     /** True if the constraint is related to rooms */
     public boolean isRoomRelated() {
         return iType == sDistSameRoom || iType == sDistDifferentRoom;
@@ -388,5 +370,36 @@ public class ExamDistributionConstraint extends Constraint<Exam, ExamPlacement> 
     /** True if the constraint is related to periods */
     public boolean isPeriodRelated() {
         return !isRoomRelated();
+    }
+    
+    @Override
+    public Context createAssignmentContext(Assignment<Exam, ExamPlacement> assignment) {
+        return new Context(assignment);
+    }
+    
+    public class Context implements AssignmentConstraintContext<Exam, ExamPlacement> {
+        private boolean iIsSatisfied;
+        
+        public Context(Assignment<Exam, ExamPlacement> assignment) {
+            iIsSatisfied = isSatisfied(assignment);
+            if (!iIsSatisfied)
+                ((DistributionPenalty)getModel().getCriterion(DistributionPenalty.class)).inc(assignment, getWeight());
+        }
+
+        @Override
+        public void assigned(Assignment<Exam, ExamPlacement> assignment, ExamPlacement placement) {
+            if (!isHard() && iIsSatisfied != isSatisfied(assignment)) {
+                iIsSatisfied = !iIsSatisfied;
+                ((DistributionPenalty)getModel().getCriterion(DistributionPenalty.class)).inc(assignment, iIsSatisfied ? -getWeight() : getWeight());
+            }
+        }
+        
+        @Override
+        public void unassigned(Assignment<Exam, ExamPlacement> assignment, ExamPlacement placement) {
+            if (!isHard() && iIsSatisfied != isSatisfied(assignment)) {
+                iIsSatisfied = !iIsSatisfied;
+                ((DistributionPenalty)getModel().getCriterion(DistributionPenalty.class)).inc(assignment, iIsSatisfied ? -getWeight() : getWeight());
+            }
+        }
     }
 }

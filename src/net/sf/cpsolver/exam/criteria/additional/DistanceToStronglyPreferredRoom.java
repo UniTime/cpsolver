@@ -4,8 +4,10 @@ import java.util.Map;
 import java.util.Set;
 
 import net.sf.cpsolver.exam.criteria.ExamCriterion;
+import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamRoomPlacement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -61,31 +63,29 @@ public class DistanceToStronglyPreferredRoom extends ExamCriterion {
     }
     
     @Override
-    public double getValue(ExamPlacement value, Set<ExamPlacement> conflicts) {
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value, Set<ExamPlacement> conflicts) {
         Average ret = new Average();
         for (ExamRoomPlacement assigned: value.getRoomPlacements()) {
-            for (ExamRoomPlacement preferred: value.variable().getRoomPlacements()) {
-                if (preferred.getPenalty() < -2) // strongly preferred
-                    ret.add(assigned.getDistanceInMeters(preferred));
-            }
+            for (ExamRoomPlacement preferred: value.variable().getPreferredRoomPlacements())
+                ret.add(assigned.getDistanceInMeters(preferred));
         }
         return ret.average();
     }
     
     @Override
-    public String toString() {
-        return "@D:" + sDoubleFormat.format(getValue() / getModel().assignedVariables().size());
+    public String toString(Assignment<Exam, ExamPlacement> assignment) {
+        return "@D:" + sDoubleFormat.format(getValue(assignment) / assignment.nrAssignedVariables());
     }
     
     @Override
-    public double[] getBounds() {
+    public double[] getBounds(Assignment<Exam, ExamPlacement> assignment) {
         return new double[] { 0.0, 0.0 };
     }
     
     @Override
-    public void getInfo(Map<String, String> info) {
-        if (getValue() > 0.0)
-            info.put(getName(), sDoubleFormat.format(getValue() / getModel().assignedVariables().size()) + " m");
+    public void getInfo(Assignment<Exam, ExamPlacement> assignment, Map<String, String> info) {
+        if (getValue(assignment) > 0.0)
+            info.put(getName(), sDoubleFormat.format(getValue(assignment) / assignment.nrAssignedVariables()) + " m");
     }
         
     private static class Average {

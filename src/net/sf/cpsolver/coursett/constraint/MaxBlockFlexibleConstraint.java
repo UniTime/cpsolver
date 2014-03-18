@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 import net.sf.cpsolver.coursett.Constants;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
@@ -71,7 +72,7 @@ public class MaxBlockFlexibleConstraint extends FlexibleConstraint {
     }
     
     @Override
-    public void computeConflicts(Placement value, Set<Placement> conflicts) {
+    public void computeConflicts(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
         if (!isHard())
             return;       
         
@@ -85,7 +86,7 @@ public class MaxBlockFlexibleConstraint extends FlexibleConstraint {
                 do {
                     isProblem = false;
                     // each blocks contains placements which are BTB 
-                    List<Block> blocks = getBlocks(dayCode, conflicts, value, null, week);
+                    List<Block> blocks = getBlocks(assignment, dayCode, conflicts, value, null, week);
                     for (Block block : blocks) {
                         // if the block is not affected by the current placement, continue
                         if (!block.getPlacements().contains(value)){
@@ -116,21 +117,21 @@ public class MaxBlockFlexibleConstraint extends FlexibleConstraint {
         }
     }
     
-    public List<Block> getBlocks(int dayCode, Set<Placement> conflicts, Placement value, HashMap<Lecture, Placement> assignments, BitSet week) {     
-        List<Placement> toBeSorted = new ArrayList<Placement>(getRelevantPlacements(dayCode, conflicts, value, assignments, week));
+    public List<Block> getBlocks(Assignment<Lecture, Placement> assignment, int dayCode, Set<Placement> conflicts, Placement value, HashMap<Lecture, Placement> assignments, BitSet week) {     
+        List<Placement> toBeSorted = new ArrayList<Placement>(getRelevantPlacements(assignment, dayCode, conflicts, value, assignments, week));
         Collections.sort(toBeSorted, new PlacementTimeComparator());  
         
         return mergeToBlocks(toBeSorted, iMaxBreakBetweenBTB);
     } 
 
     @Override
-    public double getNrViolations(Set<Placement> conflicts, HashMap<Lecture, Placement> assignments) {
+    public double getNrViolations(Assignment<Lecture, Placement> assignment, Set<Placement> conflicts, HashMap<Lecture, Placement> assignments) {
         List<BitSet> weeks = getWeeks();
 
         int violatedBlocks = 0;
         for (int dayCode : Constants.DAY_CODES) {
             for (BitSet week : weeks) {
-                List<Block> blocks = getBlocks(dayCode, null, null, assignments, week);
+                List<Block> blocks = getBlocks(assignment, dayCode, null, null, assignments, week);
                 for (Block block : blocks) {
                     if (block.getNbrPlacements() == 1 || block.haveSameStartTime())
                         continue;

@@ -1,5 +1,6 @@
 package net.sf.cpsolver.ifs.extension;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.ModelListener;
@@ -12,13 +13,6 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  * Generic extension of IFS solver. <br>
  * <br>
  * All extensions should extend this class. <br>
- * <br>
- * An extension may use extra information associated with a variable or a value
- * (see {@link Variable#setExtra(Object)}, {@link Variable#getExtra()},
- * {@link Value#setExtra(Object)}, {@link Value#getExtra()}) but there can be
- * only one extension using these extra objects used during the search. For
- * instance, {@link MacPropagation} is using these extra objects to memorize
- * explanations.
  * 
  * @version IFS 1.2 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2010 Tomas Muller<br>
@@ -97,22 +91,22 @@ public class Extension<V extends Variable<V, T>, T extends Value<V, T>> implemen
 
     /** Called after a value is assigned to a variable */
     @Override
-    public void afterAssigned(long iteration, T value) {
+    public void afterAssigned(Assignment<V, T> assignment, long iteration, T value) {
     }
 
     /** Called after a value is unassigned from a variable */
     @Override
-    public void afterUnassigned(long iteration, T value) {
+    public void afterUnassigned(Assignment<V, T> assignment, long iteration, T value) {
     }
 
     /** Called before a value is assigned to a variable */
     @Override
-    public void beforeAssigned(long iteration, T value) {
+    public void beforeAssigned(Assignment<V, T> assignment, long iteration, T value) {
     }
 
     /** Called after a value is unassigned from a variable */
     @Override
-    public void beforeUnassigned(long iteration, T value) {
+    public void beforeUnassigned(Assignment<V, T> assignment, long iteration, T value) {
     }
 
     /** Called when a constraint is added to the model */
@@ -139,21 +133,5 @@ public class Extension<V extends Variable<V, T>, T extends Value<V, T>> implemen
     @Override
     public boolean init(Solver<V, T> solver) {
         return true;
-    }
-
-    /**
-     * Should return true when {@link Value#setExtra(Object)},
-     * {@link Value#getExtra()} are used by the extension
-     */
-    public boolean useValueExtra() {
-        return false;
-    }
-
-    /**
-     * Should return true when {@link Variable#setExtra(Object)},
-     * {@link Variable#getExtra()} are used by the extension
-     */
-    public boolean useVariableExtra() {
-        return false;
     }
 }

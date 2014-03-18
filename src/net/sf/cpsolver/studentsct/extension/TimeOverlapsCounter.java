@@ -5,11 +5,14 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 
-import net.sf.cpsolver.ifs.extension.Extension;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import net.sf.cpsolver.ifs.assignment.context.ExtensionWithContext;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
-import net.sf.cpsolver.studentsct.model.Assignment;
+import net.sf.cpsolver.studentsct.StudentSectioningModel.StudentSectioningModelContext;
+import net.sf.cpsolver.studentsct.model.SctAssignment;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.FreeTimeRequest;
 import net.sf.cpsolver.studentsct.model.Request;
@@ -18,7 +21,7 @@ import net.sf.cpsolver.studentsct.model.Student;
 
 /**
  * This extension computes time overlaps. Only sections that allow overlaps
- * (see {@link Assignment#isAllowOverlap()}) can overlap. This class counts
+ * (see {@link SctAssignment#isAllowOverlap()}) can overlap. This class counts
  * how many overlapping slots there are so that this number can be minimized.
  * 
  * <br>
@@ -44,14 +47,10 @@ import net.sf.cpsolver.studentsct.model.Student;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
+public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollment, TimeOverlapsCounter.TimeOverlapsCounterContext> {
     private static Logger sLog = Logger.getLogger(TimeOverlapsCounter.class);
-    private int iTotalNrConflicts = 0;
-    private Set<Conflict> iAllConflicts = new HashSet<Conflict>();
     /** Debug flag */
     public static boolean sDebug = false;
-    private Request iOldVariable = null;
-    private Enrollment iUnassignedValue = null;
 
     /**
      * Constructor. Beside of other things, this constructor also uses
@@ -69,20 +68,6 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
             ((StudentSectioningModel) solver.currentSolution().getModel()).setTimeOverlaps(this);
     }
 
-    /**
-     * Initialize extension
-     */
-    @Override
-    public boolean init(Solver<Request, Enrollment> solver) {
-        iTotalNrConflicts = countTotalNrConflicts();
-        if (sDebug)
-            iAllConflicts = computeAllConflicts();
-        StudentSectioningModel m = (StudentSectioningModel)solver.currentSolution().getModel();
-        for (Conflict c: computeAllConflicts())
-            m.add(c);
-        return true;
-    }
-
     @Override
     public String toString() {
         return "TimeOverlaps";
@@ -97,7 +82,7 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
      *            an assignment
      * @return true, if the given sections are in an overlapping conflict
      */
-    public boolean inConflict(Assignment a1, Assignment a2) {
+    public boolean inConflict(SctAssignment a1, SctAssignment a2) {
         if (a1.getTime() == null || a2.getTime() == null) return false;
         if (a1 instanceof Section && a2 instanceof Section && ((Section)a1).isToIgnoreStudentConflictsWith(a2.getId())) return false;
         return a1.getTime().hasIntersection(a2.getTime());
@@ -112,7 +97,7 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
      *            an assignment
      * @return the number of overlapping slots against the number of slots of the smallest section
      */
-    public int share(Assignment a1, Assignment a2) {
+    public int share(SctAssignment a1, SctAssignment a2) {
         if (!inConflict(a1, a2)) return 0;
         return a1.getTime().nrSharedDays(a2.getTime()) * a1.getTime().nrSharedHours(a2.getTime());
     }
@@ -133,8 +118,8 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
         if (!e1.getStudent().equals(e2.getStudent())) return 0;
         if (e1.getRequest() instanceof FreeTimeRequest && e2.getRequest() instanceof FreeTimeRequest) return 0;
         int cnt = 0;
-        for (Assignment s1 : e1.getAssignments()) {
-            for (Assignment s2 : e2.getAssignments()) {
+        for (SctAssignment s1 : e1.getAssignments()) {
+            for (SctAssignment s2 : e2.getAssignments()) {
                 if (inConflict(s1, s2))
                     cnt += share(s1, s2);
             }
@@ -157,32 +142,13 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
         Set<Conflict> ret = new HashSet<Conflict>();
         if (!e1.getStudent().equals(e2.getStudent())) return ret;
         if (e1.getRequest() instanceof FreeTimeRequest && e2.getRequest() instanceof FreeTimeRequest) return ret;
-        for (Assignment s1 : e1.getAssignments()) {
-            for (Assignment s2 : e2.getAssignments()) {
+        for (SctAssignment s1 : e1.getAssignments()) {
+            for (SctAssignment s2 : e2.getAssignments()) {
                 if (inConflict(s1, s2))
                     ret.add(new Conflict(e1.getStudent(), share(s1, s2), e1, s1, e2, s2));
             }
         }
         return ret;
-    }
-
-    /**
-     * Total sum of all conflict of the given enrollment and other enrollments
-     * that are assigned to the same student.
-     */
-    public int nrAllConflicts(Enrollment enrollment) {
-        if (enrollment.getRequest() instanceof FreeTimeRequest) return 0;
-        int cnt = 0;
-        for (Request request : enrollment.getStudent().getRequests()) {
-            if (request.equals(enrollment.getRequest())) continue;
-            if (request instanceof FreeTimeRequest) {
-                FreeTimeRequest ft = (FreeTimeRequest)request;
-                cnt += nrConflicts(enrollment, ft.createEnrollment());
-            } else if (request.getAssignment() != null && !request.equals(iOldVariable)) {
-                cnt += nrConflicts(enrollment, request.getAssignment());
-            }
-        }
-        return cnt;
     }
 
     /**
@@ -194,7 +160,7 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
         for (Request request : enrollment.getStudent().getRequests()) {
             if (request instanceof FreeTimeRequest) {
                 FreeTimeRequest ft = (FreeTimeRequest)request;
-                for (Assignment section: enrollment.getAssignments())
+                for (SctAssignment section: enrollment.getAssignments())
                     cnt += share(section, ft);
             }
         }
@@ -210,7 +176,7 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
         for (Request request : enrollment.getStudent().getRequests()) {
             if (request instanceof FreeTimeRequest) {
                 FreeTimeRequest ft = (FreeTimeRequest)request;
-                for (Assignment section: enrollment.getAssignments()) {
+                for (SctAssignment section: enrollment.getAssignments()) {
                     if (inConflict(section, ft))
                         ret.add(new Conflict(enrollment.getStudent(), share(section, ft), enrollment, section, ft.createEnrollment(), ft));
                 }
@@ -219,204 +185,51 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
         return ret;
     }
 
-    /**
-     * The set of all conflicts ({@link Conflict} objects) of the given
-     * enrollment and other enrollments that are assigned to the same student.
-     */
-    public Set<Conflict> allConflicts(Enrollment enrollment) {
-        Set<Conflict> ret = new HashSet<Conflict>();
-        if (enrollment.getRequest() instanceof FreeTimeRequest) return ret;
-        for (Request request : enrollment.getStudent().getRequests()) {
-            if (request.equals(enrollment.getRequest())) continue;
-            if (request instanceof FreeTimeRequest) {
-                FreeTimeRequest ft = (FreeTimeRequest)request;
-                ret.addAll(conflicts(enrollment, ft.createEnrollment()));
-                continue;
-            } else if (request.getAssignment() != null && !request.equals(iOldVariable)) {
-                ret.addAll(conflicts(enrollment, request.getAssignment()));
-            }
-        }
-        return ret;
-    }
-
-    /**
-     * Called when a value is assigned to a variable. Internal number of
-     * time overlapping conflicts is updated, see
-     * {@link TimeOverlapsCounter#getTotalNrConflicts()}.
-     */
-    public void assigned(long iteration, Enrollment value) {
-        StudentSectioningModel m = (StudentSectioningModel)value.variable().getModel();
-        for (Conflict c: allConflicts(value)) {
-            iTotalNrConflicts += c.getShare();
-            m.add(c);
-        }
-        if (sDebug) {
-            sLog.debug("A:" + value.variable() + " := " + value);
-            int inc = nrAllConflicts(value);
-            if (inc != 0) {
-                sLog.debug("-- TOC+" + inc + " A: " + value.variable() + " := " + value);
-                for (Conflict c: allConflicts(value)) {
-                    sLog.debug("  -- " + c);
-                    iAllConflicts.add(c);
-                    inc -= c.getShare();
-                }
-                if (inc != 0) {
-                    sLog.error("Different number of conflicts for the assigned value (difference: " + inc + ")!");
-                }
-            }
-        }
-    }
-
-    /**
-     * Called when a value is unassigned from a variable. Internal number of
-     * time overlapping conflicts is updated, see
-     * {@link TimeOverlapsCounter#getTotalNrConflicts()}.
-     */
-    public void unassigned(long iteration, Enrollment value) {
-        StudentSectioningModel m = (StudentSectioningModel)value.variable().getModel();
-        for (Conflict c: allConflicts(value)) {
-            iTotalNrConflicts -= c.getShare();
-            m.remove(c);
-        }
-        if (sDebug) {
-            sLog.debug("U:" + value.variable() + " := " + value);
-            int dec = nrAllConflicts(value);
-            if (dec != 0) {
-                sLog.debug("-- TOC-" + dec + " U: " + value.variable() + " := " + value);
-                for (Conflict c: allConflicts(value)) {
-                    sLog.debug("  -- " + c);
-                    iAllConflicts.remove(c);
-                    dec -= c.getShare();
-                }
-                if (dec != 0) {
-                    sLog.error("Different number of conflicts for the unassigned value (difference: " + dec + ")!");
-                }
-            }
-        }
-    }
-
     /** Actual number of all time overlapping conflicts */
-    public int getTotalNrConflicts() {
-        return iTotalNrConflicts;
+    public int getTotalNrConflicts(Assignment<Request, Enrollment> assignment) {
+        return getContext(assignment).getTotalNrConflicts();
     }
     
-    public void checkTotalNrConflicts() {
-        int total = countTotalNrConflicts();
-        if (total != iTotalNrConflicts) {
-            sLog.error("Number of conflicts does not match (actual: " + total + ", count: " + iTotalNrConflicts + ")!");
-            iTotalNrConflicts = total;
-            if (sDebug) {
-                Set<Conflict> conflicts = computeAllConflicts();
-                for (Conflict c: conflicts) {
-                    if (!iAllConflicts.contains(c))
-                        sLog.debug("  +add+ " + c);
-                }
-                for (Conflict c: iAllConflicts) {
-                    if (!conflicts.contains(c))
-                        sLog.debug("  -rem- " + c);
-                }
-                for (Conflict c: conflicts) {
-                    for (Conflict d: iAllConflicts) {
-                        if (c.equals(d) && c.getShare() != d.getShare()) {
-                            sLog.debug("  -dif- " + c + " (other: " + d.getShare() + ")");
-                        }
-                    }
-                }                
-                iAllConflicts = conflicts;
-                // getSolver().stopSolver(false);
-            }
-        }
+    public void checkTotalNrConflicts(Assignment<Request, Enrollment> assignment) {
+        getContext(assignment).checkTotalNrConflicts(assignment);
     }
 
-    /**
-     * Compute the actual number of all time overlapping conflicts. Should be equal to
-     * {@link TimeOverlapsCounter#getTotalNrConflicts()}.
-     */
-    public int countTotalNrConflicts() {
-        int total = 0;
-        for (Request r1 : getModel().variables()) {
-            if (r1.getAssignment() == null || r1 instanceof FreeTimeRequest || r1.equals(iOldVariable))
-                continue;
-            for (Request r2 : r1.getStudent().getRequests()) {
-                if (r2 instanceof FreeTimeRequest) {
-                    FreeTimeRequest ft = (FreeTimeRequest)r2;
-                    total += nrConflicts(r1.getAssignment(), ft.createEnrollment());
-                } else if (r2.getAssignment() != null && r1.getId() < r2.getId() && !r2.equals(iOldVariable)) {
-                    total += nrConflicts(r1.getAssignment(), r2.getAssignment());
-                }
-            }
-        }
-        return total;
-    }
-
-    /**
-     * Compute a set of all time overlapping conflicts ({@link Conflict} objects).
-     */
-    public Set<Conflict> computeAllConflicts() {
-        Set<Conflict> ret = new HashSet<Conflict>();
-        for (Request r1 : getModel().variables()) {
-            if (r1.getAssignment() == null || r1 instanceof FreeTimeRequest || r1.equals(iOldVariable))
-                continue;
-            for (Request r2 : r1.getStudent().getRequests()) {
-                if (r2 instanceof FreeTimeRequest) {
-                    FreeTimeRequest ft = (FreeTimeRequest)r2;
-                    ret.addAll(conflicts(r1.getAssignment(), ft.createEnrollment()));
-                } else if (r2.getAssignment() != null && r1.getId() < r2.getId() && !r2.equals(iOldVariable)) {
-                    ret.addAll(conflicts(r1.getAssignment(), r2.getAssignment()));
-                }                    
-            }
-        }
-        return ret;
-    }
-    
     /**
      * Return a set of all time overlapping conflicts ({@link Conflict} objects).
      */
-    public Set<Conflict> getAllConflicts() {
-        return iAllConflicts;
+    public Set<Conflict> getAllConflicts(Assignment<Request, Enrollment> assignment) {
+        return getContext(assignment).getAllConflicts();
     }
 
     /**
      * Called before a value is assigned to a variable.
      */
     @Override
-    public void beforeAssigned(long iteration, Enrollment value) {
-        if (value != null) {
-            if (value.variable().getAssignment() != null) {
-                iUnassignedValue = value.variable().getAssignment();
-                unassigned(iteration, value.variable().getAssignment());
-            }
-            iOldVariable = value.variable();
-        }
+    public void beforeAssigned(Assignment<Request, Enrollment> assignment, long iteration, Enrollment value) {
+        getContext(assignment).beforeAssigned(assignment, iteration, value);
     }
 
     /**
      * Called after a value is assigned to a variable.
      */
     @Override
-    public void afterAssigned(long iteration, Enrollment value) {
-        iOldVariable = null;
-        iUnassignedValue = null;
-        if (value != null) {
-            assigned(iteration, value);
-        }
+    public void afterAssigned(Assignment<Request, Enrollment> assignment, long iteration, Enrollment value) {
+        getContext(assignment).afterAssigned(assignment, iteration, value);
     }
 
     /**
      * Called after a value is unassigned from a variable.
      */
     @Override
-    public void afterUnassigned(long iteration, Enrollment value) {
-        if (value != null && !value.equals(iUnassignedValue)) {
-            unassigned(iteration, value);
-        }
+    public void afterUnassigned(Assignment<Request, Enrollment> assignment, long iteration, Enrollment value) {
+        getContext(assignment).afterUnassigned(assignment, iteration, value);
     }
 
     /** A representation of a time overlapping conflict */
     public static class Conflict {
         private int iShare;
         private Student iStudent;
-        private Assignment iA1, iA2;
+        private SctAssignment iA1, iA2;
         private Enrollment iE1, iE2;
         private int iHashCode;
 
@@ -430,7 +243,7 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
          * @param a2
          *            second conflicting section
          */
-        public Conflict(Student student, int share, Enrollment e1, Assignment a1, Enrollment e2, Assignment a2) {
+        public Conflict(Student student, int share, Enrollment e1, SctAssignment a1, Enrollment e2, SctAssignment a2) {
             iStudent = student;
             if (a1.compareById(a2) < 0 ) {
                 iA1 = a1;
@@ -453,12 +266,12 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
         }
 
         /** First section */
-        public Assignment getS1() {
+        public SctAssignment getS1() {
             return iA1;
         }
 
         /** Second section */
-        public Assignment getS2() {
+        public SctAssignment getS2() {
             return iA2;
         }
 
@@ -503,5 +316,263 @@ public class TimeOverlapsCounter extends Extension<Request, Enrollment> {
         public String toString() {
             return getStudent() + ": (s:" + getShare() + ") " + getS1() + " -- " + getS2();
         }
+    }
+    
+    /**
+     * The set of all conflicts ({@link Conflict} objects) of the given
+     * enrollment and other enrollments that are assigned to the same student.
+     */
+    public Set<Conflict> allConflicts(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+        Set<Conflict> ret = new HashSet<Conflict>();
+        if (enrollment.getRequest() instanceof FreeTimeRequest) return ret;
+        for (Request request : enrollment.getStudent().getRequests()) {
+            if (request.equals(enrollment.getRequest())) continue;
+            Enrollment other = assignment.getValue(request);
+            if (request instanceof FreeTimeRequest) {
+                FreeTimeRequest ft = (FreeTimeRequest)request;
+                ret.addAll(conflicts(enrollment, ft.createEnrollment()));
+                continue;
+            } else if (other != null) {
+                ret.addAll(conflicts(enrollment, other));
+            }
+        }
+        return ret;
+    }
+    
+    public class TimeOverlapsCounterContext implements AssignmentConstraintContext<Request, Enrollment> {
+        private int iTotalNrConflicts = 0;
+        private Set<Conflict> iAllConflicts = new HashSet<Conflict>();
+        private Request iOldVariable = null;
+        private Enrollment iUnassignedValue = null;
+
+        public TimeOverlapsCounterContext(Assignment<Request, Enrollment> assignment) {
+            iTotalNrConflicts = countTotalNrConflicts(assignment);
+            if (sDebug)
+                iAllConflicts = computeAllConflicts(assignment);
+            StudentSectioningModelContext cx = ((StudentSectioningModel)getModel()).getContext(assignment);
+            for (Conflict c: computeAllConflicts(assignment))
+                cx.add(assignment, c);
+        }
+
+        /**
+         * Called when a value is assigned to a variable. Internal number of
+         * time overlapping conflicts is updated, see
+         * {@link TimeOverlapsCounter#getTotalNrConflicts(Assignment)}.
+         */
+        @Override
+        public void assigned(Assignment<Request, Enrollment> assignment, Enrollment value) {
+            StudentSectioningModelContext cx = ((StudentSectioningModel)getModel()).getContext(assignment);
+            for (Conflict c: allConflicts(assignment, value)) {
+                iTotalNrConflicts += c.getShare();
+                cx.add(assignment, c);
+            }
+            if (sDebug) {
+                sLog.debug("A:" + value.variable() + " := " + value);
+                int inc = nrAllConflicts(assignment, value);
+                if (inc != 0) {
+                    sLog.debug("-- TOC+" + inc + " A: " + value.variable() + " := " + value);
+                    for (Conflict c: allConflicts(assignment, value)) {
+                        sLog.debug("  -- " + c);
+                        iAllConflicts.add(c);
+                        inc -= c.getShare();
+                    }
+                    if (inc != 0) {
+                        sLog.error("Different number of conflicts for the assigned value (difference: " + inc + ")!");
+                    }
+                }
+            }
+        }
+
+        /**
+         * Called when a value is unassigned from a variable. Internal number of
+         * time overlapping conflicts is updated, see
+         * {@link TimeOverlapsCounter#getTotalNrConflicts(Assignment)}.
+         */
+        @Override
+        public void unassigned(Assignment<Request, Enrollment> assignment, Enrollment value) {
+            StudentSectioningModelContext cx = ((StudentSectioningModel)getModel()).getContext(assignment);
+            for (Conflict c: allConflicts(assignment, value)) {
+                iTotalNrConflicts -= c.getShare();
+                cx.remove(assignment, c);
+            }
+            if (sDebug) {
+                sLog.debug("U:" + value.variable() + " := " + value);
+                int dec = nrAllConflicts(assignment, value);
+                if (dec != 0) {
+                    sLog.debug("-- TOC-" + dec + " U: " + value.variable() + " := " + value);
+                    for (Conflict c: allConflicts(assignment, value)) {
+                        sLog.debug("  -- " + c);
+                        iAllConflicts.remove(c);
+                        dec -= c.getShare();
+                    }
+                    if (dec != 0) {
+                        sLog.error("Different number of conflicts for the unassigned value (difference: " + dec + ")!");
+                    }
+                }
+            }
+        }
+        
+        /**
+         * Called before a value is assigned to a variable.
+         */
+        public void beforeAssigned(Assignment<Request, Enrollment> assignment, long iteration, Enrollment value) {
+            if (value != null) {
+                Enrollment old = assignment.getValue(value.variable());
+                if (old != null) {
+                    iUnassignedValue = old;
+                    unassigned(assignment, old);
+                }
+                iOldVariable = value.variable();
+            }
+        }
+
+        /**
+         * Called after a value is assigned to a variable.
+         */
+        public void afterAssigned(Assignment<Request, Enrollment> assignment, long iteration, Enrollment value) {
+            iOldVariable = null;
+            iUnassignedValue = null;
+            if (value != null) {
+                assigned(assignment, value);
+            }
+        }
+
+        /**
+         * Called after a value is unassigned from a variable.
+         */
+        public void afterUnassigned(Assignment<Request, Enrollment> assignment, long iteration, Enrollment value) {
+            if (value != null && !value.equals(iUnassignedValue)) {
+                unassigned(assignment, value);
+            }
+        }
+        
+        /**
+         * Return a set of all time overlapping conflicts ({@link Conflict} objects).
+         */
+        public Set<Conflict> getAllConflicts() {
+            return iAllConflicts;
+        }
+        
+        /** Actual number of all time overlapping conflicts */
+        public int getTotalNrConflicts() {
+            return iTotalNrConflicts;
+        }
+        
+        public void checkTotalNrConflicts(Assignment<Request, Enrollment> assignment) {
+            int total = countTotalNrConflicts(assignment);
+            if (total != iTotalNrConflicts) {
+                sLog.error("Number of conflicts does not match (actual: " + total + ", count: " + iTotalNrConflicts + ")!");
+                iTotalNrConflicts = total;
+                if (sDebug) {
+                    Set<Conflict> conflicts = computeAllConflicts(assignment);
+                    for (Conflict c: conflicts) {
+                        if (!iAllConflicts.contains(c))
+                            sLog.debug("  +add+ " + c);
+                    }
+                    for (Conflict c: iAllConflicts) {
+                        if (!conflicts.contains(c))
+                            sLog.debug("  -rem- " + c);
+                    }
+                    for (Conflict c: conflicts) {
+                        for (Conflict d: iAllConflicts) {
+                            if (c.equals(d) && c.getShare() != d.getShare()) {
+                                sLog.debug("  -dif- " + c + " (other: " + d.getShare() + ")");
+                            }
+                        }
+                    }                
+                    iAllConflicts = conflicts;
+                    // getSolver().stopSolver(false);
+                }
+            }
+        }
+        
+        /**
+         * Compute the actual number of all time overlapping conflicts. Should be equal to
+         * {@link TimeOverlapsCounter#getTotalNrConflicts(Assignment)}.
+         */
+        public int countTotalNrConflicts(Assignment<Request, Enrollment> assignment) {
+            int total = 0;
+            for (Request r1 : getModel().variables()) {
+                Enrollment e1 = assignment.getValue(r1);
+                if (e1 == null || r1 instanceof FreeTimeRequest || r1.equals(iOldVariable))
+                    continue;
+                for (Request r2 : r1.getStudent().getRequests()) {
+                    Enrollment e2 = assignment.getValue(r2);
+                    if (r2 instanceof FreeTimeRequest) {
+                        FreeTimeRequest ft = (FreeTimeRequest)r2;
+                        total += nrConflicts(e1, ft.createEnrollment());
+                    } else if (e2 != null && r1.getId() < r2.getId() && !r2.equals(iOldVariable)) {
+                        total += nrConflicts(e1, e2);
+                    }
+                }
+            }
+            return total;
+        }
+
+        /**
+         * Compute a set of all time overlapping conflicts ({@link Conflict} objects).
+         */
+        public Set<Conflict> computeAllConflicts(Assignment<Request, Enrollment> assignment) {
+            Set<Conflict> ret = new HashSet<Conflict>();
+            for (Request r1 : getModel().variables()) {
+                Enrollment e1 = assignment.getValue(r1);
+                if (e1 == null || r1 instanceof FreeTimeRequest || r1.equals(iOldVariable))
+                    continue;
+                for (Request r2 : r1.getStudent().getRequests()) {
+                    Enrollment e2 = assignment.getValue(r2);
+                    if (r2 instanceof FreeTimeRequest) {
+                        FreeTimeRequest ft = (FreeTimeRequest)r2;
+                        ret.addAll(conflicts(e1, ft.createEnrollment()));
+                    } else if (e2 != null && r1.getId() < r2.getId() && !r2.equals(iOldVariable)) {
+                        ret.addAll(conflicts(e1, e2));
+                    }                    
+                }
+            }
+            return ret;
+        }
+
+        /**
+         * The set of all conflicts ({@link Conflict} objects) of the given
+         * enrollment and other enrollments that are assigned to the same student.
+         */
+        public Set<Conflict> allConflicts(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+            Set<Conflict> ret = new HashSet<Conflict>();
+            if (enrollment.getRequest() instanceof FreeTimeRequest) return ret;
+            for (Request request : enrollment.getStudent().getRequests()) {
+                if (request.equals(enrollment.getRequest())) continue;
+                if (request instanceof FreeTimeRequest) {
+                    FreeTimeRequest ft = (FreeTimeRequest)request;
+                    ret.addAll(conflicts(enrollment, ft.createEnrollment()));
+                    continue;
+                } else if (assignment.getValue(request) != null && !request.equals(iOldVariable)) {
+                    ret.addAll(conflicts(enrollment, assignment.getValue(request)));
+                }
+            }
+            return ret;
+        }
+        
+        /**
+         * Total sum of all conflict of the given enrollment and other enrollments
+         * that are assigned to the same student.
+         */
+        public int nrAllConflicts(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+            if (enrollment.getRequest() instanceof FreeTimeRequest) return 0;
+            int cnt = 0;
+            for (Request request : enrollment.getStudent().getRequests()) {
+                if (request.equals(enrollment.getRequest())) continue;
+                if (request instanceof FreeTimeRequest) {
+                    FreeTimeRequest ft = (FreeTimeRequest)request;
+                    cnt += nrConflicts(enrollment, ft.createEnrollment());
+                } else if (assignment.getValue(request) != null && !request.equals(iOldVariable)) {
+                    cnt += nrConflicts(enrollment, assignment.getValue(request));
+                }
+            }
+            return cnt;
+        }
+    }
+
+    @Override
+    public TimeOverlapsCounterContext createAssignmentContext(Assignment<Request, Enrollment> assignment) {
+        return new TimeOverlapsCounterContext(assignment);
     }
 }
