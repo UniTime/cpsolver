@@ -53,19 +53,19 @@
         <copy todir="${build.dir}" overwrite="Yes" preservelastmodified="Yes">
             <fileset dir="${src.dir}" includes="**/*.java"/>
         </copy>
-        <replace file="${build.dir}/net/sf/cpsolver/ifs/Constants.java">
+        <replace file="${build.dir}/org/cpsolver/ifs/Constants.java">
             <replacetoken>${build.number}</replacetoken>
             <replacevalue>@build.number@</replacevalue>
         </replace>
-        <replace file="${build.dir}/net/sf/cpsolver/ifs/Constants.java">
+        <replace file="${build.dir}/org/cpsolver/ifs/Constants.java">
             <replacetoken>${build.date}</replacetoken>
             <replacevalue>@build.date@</replacevalue>
         </replace>
-        <replace file="${build.dir}/net/sf/cpsolver/ifs/Constants.java">
+        <replace file="${build.dir}/org/cpsolver/ifs/Constants.java">
             <replacetoken>${project.version}</replacetoken>
             <replacevalue>1.2</replacevalue>
         </replace>
-        <replace file="${build.dir}/net/sf/cpsolver/ifs/Constants.java" propertyFile="build.date">
+        <replace file="${build.dir}/org/cpsolver/ifs/Constants.java" propertyFile="build.date">
             <replacefilter token="@build.number@" property="build.number"/>
             <replacefilter token="@build.date@" property="build.date"/>
         </replace>
@@ -93,7 +93,7 @@
     <target name="compile-jar">
         <jar destfile="${dist-lib.dir}/ifs-1.2.jar">
             <fileset dir="${build.dir}">
-                <include name="net/sf/cpsolver/ifs/**/*.class"/>
+                <include name="org/cpsolver/ifs/**/*.class"/>
             </fileset>
         	<fileset dir="${base.dir}/..">
         		<include name="lgpl.txt"/>
@@ -105,7 +105,7 @@
         </jar>
         <jar destfile="${dist-lib.dir}/coursett-1.2.jar">
             <fileset dir="${build.dir}">
-                <include name="net/sf/cpsolver/coursett/**/*.class"/>
+                <include name="org/cpsolver/coursett/**/*.class"/>
             </fileset>
         	<fileset dir="${base.dir}/..">
         		<include name="lgpl.txt"/>
@@ -113,12 +113,12 @@
         	<manifest>
         		<attribute name="Class-Path" value="log4j-1.2.8.jar dom4j-1.6.1.jar ifs-1.2.jar" /> 
         		<attribute name="CourseTT-Version" value="1.2_bld${build.number}"/>
-        		<attribute name="Main-Class" value="net.sf.cpsolver.coursett.Test"/>
+        		<attribute name="Main-Class" value="org.cpsolver.coursett.Test"/>
         	</manifest>
         </jar>
         <jar destfile="${dist-lib.dir}/studentsct-1.2.jar">
             <fileset dir="${build.dir}">
-                <include name="net/sf/cpsolver/studentsct/**/*.class"/>
+                <include name="org/cpsolver/studentsct/**/*.class"/>
             </fileset>
         	<fileset dir="${base.dir}/..">
         		<include name="lgpl.txt"/>
@@ -126,12 +126,12 @@
         	<manifest>
         		<attribute name="Class-Path" value="log4j-1.2.8.jar dom4j-1.6.1.jar ifs-1.2.jar coursett-1.2.jar" /> 
         		<attribute name="StudentSct-Version" value="1.2_bld${build.number}"/>
-        		<attribute name="Main-Class" value="net.sf.cpsolver.studentsct.Test"/>
+        		<attribute name="Main-Class" value="org.cpsolver.studentsct.Test"/>
         	</manifest>
         </jar>
         <jar destfile="${dist-lib.dir}/examtt-1.2.jar">
             <fileset dir="${build.dir}">
-                <include name="net/sf/cpsolver/exam/**/*.class"/>
+                <include name="org/cpsolver/exam/**/*.class"/>
             </fileset>
         	<fileset dir="${base.dir}/..">
         		<include name="lgpl.txt"/>
@@ -139,12 +139,12 @@
         	<manifest>
         		<attribute name="Class-Path" value="log4j-1.2.8.jar dom4j-1.6.1.jar ifs-1.2.jar" /> 
         		<attribute name="ExamTT-Version" value="1.2_bld${build.number}"/>
-        		<attribute name="Main-Class" value="net.sf.cpsolver.exam.Test"/>
+        		<attribute name="Main-Class" value="org.cpsolver.exam.Test"/>
         	</manifest>
         </jar>
         <jar destfile="${dist-lib.dir}/cpsolver-all-1.2.jar">
             <fileset dir="${build.dir}">
-                <include name="net/sf/cpsolver/**/*.class"/>
+                <include name="org/cpsolver/**/*.class"/>
             </fileset>
         	<fileset dir="${base.dir}/..">
         		<include name="lgpl.txt"/>
@@ -155,7 +155,7 @@
         		<attribute name="CourseTT-Version" value="1.2_bld${build.number}"/>
         		<attribute name="StudentSct-Version" value="1.2_bld${build.number}"/>
         		<attribute name="ExamTT-Version" value="1.2_bld${build.number}"/>
-        		<attribute name="Main-Class" value="net.sf.cpsolver.coursett.Test"/>
+        		<attribute name="Main-Class" value="org.cpsolver.coursett.Test"/>
         	</manifest>
         </jar>
     </target>
@@ -204,11 +204,11 @@
     		<a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
     		</td></tr></table>
    			]]></doctitle>
- 	   	<group title="Iterative Forward Search" packages="net.sf.cpsolver.ifs*"/>
- 	   	<group title="Iterative Forward Search Examples" packages="net.sf.cpsolver.ifs.example*"/>
-   	   	<group title="University Course Timetabling" packages="net.sf.cpsolver.coursett*"/>
-       	<group title="Student Sectioning" packages="net.sf.cpsolver.studentsct*"/>
-    	<group title="Examination Timetabling" packages="net.sf.cpsolver.exam*"/>
+ 	   	<group title="Iterative Forward Search" packages="org.cpsolver.ifs*"/>
+ 	   	<group title="Iterative Forward Search Examples" packages="org.cpsolver.ifs.example*"/>
+   	   	<group title="University Course Timetabling" packages="org.cpsolver.coursett*"/>
+       	<group title="Student Sectioning" packages="org.cpsolver.studentsct*"/>
+    	<group title="Examination Timetabling" packages="org.cpsolver.exam*"/>
  	   	<link href="http://java.sun.com/j2se/1.5.0/docs/api/"/>
  	   	<link href="http://logging.apache.org/log4j/1.2/apidocs/"/>
  	   	<fileset dir="src" includes="**/*.java"/>
@@ -235,18 +235,18 @@
 				<include name="**/*.html"/>
 			</fileset>
 		</copy>
-        <replace file="${build.dir}/net/sf/cpsolver/ifs/Constants.java">
+        <replace file="${build.dir}/org/cpsolver/ifs/Constants.java">
             <replacetoken>int BLD_NUMBER = -1</replacetoken>
             <replacevalue>int BLD_NUMBER = @build.number@</replacevalue>
         </replace>
-        <replace file="${build.dir}/net/sf/cpsolver/ifs/Constants.java">
+        <replace file="${build.dir}/org/cpsolver/ifs/Constants.java">
             <replacetoken>String REL_DATE = "Unknown"</replacetoken>
             <replacevalue>String REL_DATE = "@build.date@"</replacevalue>
         </replace>
-        <replace file="${build.dir}/net/sf/cpsolver/ifs/Constants.java" propertyFile="build.date">
+        <replace file="${build.dir}/org/cpsolver/ifs/Constants.java" propertyFile="build.date">
             <replacefilter token="@build.date@" property="build.date"/>
         </replace>
-        <replace file="${build.dir}/net/sf/cpsolver/ifs/Constants.java" propertyFile="build.date">
+        <replace file="${build.dir}/org/cpsolver/ifs/Constants.java" propertyFile="build.date">
             <replacefilter token="@build.number@" property="build.number"/>
         </replace>
 	</target>

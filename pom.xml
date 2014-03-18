@@ -120,7 +120,7 @@
 					<archive>
 						<manifest>
 							<addClasspath>true</addClasspath>
-							<mainClass>net.sf.cpsolver.coursett.Test</mainClass>
+							<mainClass>org.cpsolver.coursett.Test</mainClass>
 						</manifest>
 						<manifestEntries>
 							<Build-Number>${build.number}</Build-Number>
@@ -198,23 +198,23 @@
 					<groups>
 						<group>
 							<title>Iterative Forward Search</title>
-							<packages>net.sf.cpsolver.ifs*</packages>
+							<packages>org.cpsolver.ifs*</packages>
 						</group>
 						<group>
 							<title>Iterative Forward Search Examples</title>
-							<packages>net.sf.cpsolver.ifs.example*</packages>
+							<packages>org.cpsolver.ifs.example*</packages>
 						</group>
 						<group>
 							<title>University Course Timetabling</title>
-							<packages>net.sf.cpsolver.coursett*</packages>
+							<packages>org.cpsolver.coursett*</packages>
 						</group>
 						<group>
 							<title>Student Sectioning</title>
-							<packages>net.sf.cpsolver.studentsct*</packages>
+							<packages>org.cpsolver.studentsct*</packages>
 						</group>
 						<group>
 							<title>Examination Timetabling</title>
-							<packages>net.sf.cpsolver.exam*</packages>
+							<packages>org.cpsolver.exam*</packages>
 						</group>
 					</groups>
 				</configuration>
