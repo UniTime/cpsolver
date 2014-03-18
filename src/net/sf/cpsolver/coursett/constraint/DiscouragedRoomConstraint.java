@@ -102,6 +102,8 @@ public class DiscouragedRoomConstraint extends RoomConstraint implements Weakeni
             super.unassigned(assignment, placement);
             if (placement.hasRoomLocation(getResourceId()) && !placement.variable().isCommitted())
                 iUsage --;
+            else
+                weaken();
         }
 
         public int getLimit() {
