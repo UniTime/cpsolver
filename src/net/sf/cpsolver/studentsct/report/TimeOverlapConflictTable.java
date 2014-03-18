@@ -10,12 +10,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.studentsct.StudentSectioningModel;
 import net.sf.cpsolver.studentsct.extension.TimeOverlapsCounter;
 import net.sf.cpsolver.studentsct.extension.TimeOverlapsCounter.Conflict;
-import net.sf.cpsolver.studentsct.model.Assignment;
+import net.sf.cpsolver.studentsct.model.Enrollment;
+import net.sf.cpsolver.studentsct.model.SctAssignment;
 import net.sf.cpsolver.studentsct.model.Course;
 import net.sf.cpsolver.studentsct.model.FreeTimeRequest;
 import net.sf.cpsolver.studentsct.model.Request;
@@ -25,7 +27,7 @@ import net.sf.cpsolver.studentsct.model.Student;
 /**
  * This class lists time overlapping conflicts in a {@link CSVFile} comma
  * separated text file. Only sections that allow overlaps
- * (see {@link Assignment#isAllowOverlap()}) can overlap. See {@link TimeOverlapsCounter} for more
+ * (see {@link SctAssignment#isAllowOverlap()}) can overlap. See {@link TimeOverlapsCounter} for more
  * details. <br>
  * <br>
  * 
@@ -96,7 +98,7 @@ public class TimeOverlapConflictTable implements StudentSectioningReport {
      *            {@link Student#isDummy()} is false)
      * @return report as comma separated text file
      */
-    public CSVFile createTable(boolean includeLastLikeStudents, boolean includeRealStudents) {
+    public CSVFile createTable(Assignment<Request, Enrollment> assignment, boolean includeLastLikeStudents, boolean includeRealStudents) {
         CSVFile csv = new CSVFile();
         csv.setHeader(new CSVFile.CSVField[] { new CSVFile.CSVField("Course"), new CSVFile.CSVField("Total\nConflicts"),
                 new CSVFile.CSVField("Class"), new CSVFile.CSVField("Meeting Time"),
@@ -107,14 +109,16 @@ public class TimeOverlapConflictTable implements StudentSectioningReport {
         
         Set<Conflict> confs = new HashSet<Conflict>();
         for (Request r1 : getModel().variables()) {
-            if (r1.getAssignment() == null || r1 instanceof FreeTimeRequest)
+            Enrollment e1 = assignment.getValue(r1);
+            if (e1 == null || r1 instanceof FreeTimeRequest)
                 continue;
             for (Request r2 : r1.getStudent().getRequests()) {
+                Enrollment e2 = assignment.getValue(r2);
                 if (r2 instanceof FreeTimeRequest) {
                     FreeTimeRequest ft = (FreeTimeRequest)r2;
-                    confs.addAll(iTOC.conflicts(r1.getAssignment(), ft.createEnrollment()));
-                } else if (r2.getAssignment() != null && r1.getId() < r2.getId()) {
-                    confs.addAll(iTOC.conflicts(r1.getAssignment(), r2.getAssignment()));
+                    confs.addAll(iTOC.conflicts(e1, ft.createEnrollment()));
+                } else if (e2 != null && r1.getId() < r2.getId()) {
+                    confs.addAll(iTOC.conflicts(e1, e2));
                 }
             }
         }
@@ -129,9 +133,9 @@ public class TimeOverlapConflictTable implements StudentSectioningReport {
             if (conflict.getR1() instanceof FreeTimeRequest || conflict.getR2() instanceof FreeTimeRequest) continue;
             Section s1 = (Section)conflict.getS1(), s2 = (Section)conflict.getS2();
             Request r1 = conflict.getR1();
-            Course c1 = conflict.getR1().getAssignment().getCourse();
+            Course c1 = assignment.getValue(conflict.getR1()).getCourse();
             Request r2 = conflict.getR2();
-            Course c2 = conflict.getR2().getAssignment().getCourse();
+            Course c2 = assignment.getValue(conflict.getR2()).getCourse();
             CourseSection a = new CourseSection(c1, s1);
             CourseSection b = new CourseSection(c2, s2);
             
@@ -246,7 +250,7 @@ public class TimeOverlapConflictTable implements StudentSectioningReport {
     }
 
     @Override
-    public CSVFile create(DataProperties properties) {
-        return createTable(properties.getPropertyBoolean("lastlike", false), properties.getPropertyBoolean("real", true));
+    public CSVFile create(Assignment<Request, Enrollment> assignment, DataProperties properties) {
+        return createTable(assignment, properties.getPropertyBoolean("lastlike", false), properties.getPropertyBoolean("real", true));
     }
 }

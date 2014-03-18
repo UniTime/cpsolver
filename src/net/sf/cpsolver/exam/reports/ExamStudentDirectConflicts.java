@@ -7,6 +7,7 @@ import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamStudent;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.CSVFile.CSVField;
 
@@ -54,20 +55,20 @@ public class ExamStudentDirectConflicts {
     /**
      * generate report
      */
-    public CSVFile report() {
+    public CSVFile report(Assignment<Exam, ExamPlacement> assignment) {
         CSVFile csv = new CSVFile();
         csv.setHeader(new CSVField[] { new CSVField("Exam 1"), new CSVField("Enrl 1"), new CSVField("Period 1"),
                 new CSVField("Date 1"), new CSVField("Time 1"), new CSVField("Exam 2"), new CSVField("Enrl 2"),
                 new CSVField("Direct"), new CSVField("Direct [%]") });
         DecimalFormat df = new DecimalFormat("0.0");
         for (Exam ex1 : iModel.variables()) {
-            ExamPlacement p1 = ex1.getAssignment();
+            ExamPlacement p1 = assignment.getValue(ex1);
             if (p1 == null)
                 continue;
             for (Exam ex2 : iModel.variables()) {
                 if (ex1.getId() >= ex2.getId())
                     continue;
-                ExamPlacement p2 = ex2.getAssignment();
+                ExamPlacement p2 = assignment.getValue(ex2);
                 if (p2 == null || !p2.getPeriod().equals(p1.getPeriod()))
                     continue;
                 List<ExamStudent> students = ex1.getJointEnrollments().get(ex2);

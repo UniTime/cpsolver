@@ -1,10 +1,15 @@
 package net.sf.cpsolver.exam.model;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import net.sf.cpsolver.ifs.assignment.context.ConstraintWithContext;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.ConstraintListener;
 import net.sf.cpsolver.ifs.util.DistanceMetric;
@@ -32,8 +37,7 @@ import net.sf.cpsolver.ifs.util.DistanceMetric;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class ExamRoom extends Constraint<Exam, ExamPlacement> {
-    private List<ExamPlacement>[] iTable;
+public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoom.ExamRoomContext> {
     private boolean[] iAvailable;
     private int[] iPenalty;
     private String iName;
@@ -57,26 +61,23 @@ public class ExamRoom extends Constraint<Exam, ExamPlacement> {
      * @param coordY
      *            y coordinate
      */
-    @SuppressWarnings("unchecked")
     public ExamRoom(ExamModel model, long id, String name, int size, int altSize, Double coordX, Double coordY) {
         super();
-        iAssignedVariables = null;
         iId = id;
         iName = name;
         iCoordX = coordX;
         iCoordY = coordY;
         iSize = size;
         iAltSize = altSize;
-        iTable = new List[model.getNrPeriods()];
         iAvailable = new boolean[model.getNrPeriods()];
         iPenalty = new int[model.getNrPeriods()];
-        for (int i = 0; i < iTable.length; i++) {
-            iTable[i] = new ArrayList<ExamPlacement>();
+        for (int i = 0; i < iAvailable.length; i++) {
             iAvailable[i] = true;
             iPenalty[i] = 0;
         }
     }
-
+    
+    private Map<Long, Double> iDistanceCache = new HashMap<Long, Double>();
     /**
      * Distance between two rooms. See {@link DistanceMetric}
      * 
@@ -85,7 +86,14 @@ public class ExamRoom extends Constraint<Exam, ExamPlacement> {
      * @return distance between this and the given room
      */
     public double getDistanceInMeters(ExamRoom other) {
-        return ((ExamModel)getModel()).getDistanceMetric().getDistanceInMeters(getId(), getCoordX(), getCoordY(), other.getId(), other.getCoordX(), other.getCoordY());
+        synchronized (iDistanceCache) {
+            Double distance = iDistanceCache.get(other.getId());
+            if (distance == null) {
+                distance = ((ExamModel)getModel()).getDistanceMetric().getDistanceInMeters(getId(), getCoordX(), getCoordY(), other.getId(), other.getCoordX(), other.getCoordY());
+                iDistanceCache.put(other.getId(), distance);
+            }
+            return distance;
+        }
     }
 
     /**
@@ -119,20 +127,6 @@ public class ExamRoom extends Constraint<Exam, ExamPlacement> {
     }
 
     /**
-     * An exam placed at the given period.
-     * 
-     * @param period
-     *            a period
-     * @return a placement of an exam in this room at the given period, null if
-     *         unused
-     * @deprecated If room sharing is allowed, this method only returns first exam. Use {@link ExamRoom#getPlacements(ExamPeriod)} instead.
-     */
-    @Deprecated
-    public ExamPlacement getPlacement(ExamPeriod period) {
-        return (iTable[period.getIndex()].isEmpty() ? null : iTable[period.getIndex()].iterator().next());
-    }
-    
-    /**
      * Exams placed at the given period
      * 
      * @param period
@@ -141,8 +135,8 @@ public class ExamRoom extends Constraint<Exam, ExamPlacement> {
      *         unused (multiple placements can be returned if the room is shared between
      *         two or more exams)
      */
-    public List<ExamPlacement> getPlacements(ExamPeriod period) {
-        return iTable[period.getIndex()];
+    public List<ExamPlacement> getPlacements(Assignment<Exam, ExamPlacement> assignment, ExamPeriod period) {
+        return getContext(assignment).getPlacements(period.getIndex());
     }
 
     /**
@@ -218,15 +212,15 @@ public class ExamRoom extends Constraint<Exam, ExamPlacement> {
      * current assignments (of this room)
      */
     @Override
-    public void computeConflicts(ExamPlacement p, Set<ExamPlacement> conflicts) {
+    public void computeConflicts(Assignment<Exam, ExamPlacement> assignment, ExamPlacement p, Set<ExamPlacement> conflicts) {
         if (!p.contains(this)) return;
         
         if (getRoomSharing() == null) {
-            for (ExamPlacement conflict: iTable[p.getPeriod().getIndex()])
+            for (ExamPlacement conflict: getContext(assignment).getPlacements(p.getPeriod().getIndex()))
                 if (!conflict.variable().equals(p.variable()))
                     conflicts.add(conflict);
         } else {
-            getRoomSharing().computeConflicts(p, iTable[p.getPeriod().getIndex()], this, conflicts);
+            getRoomSharing().computeConflicts(p, getContext(assignment).getPlacements(p.getPeriod().getIndex()), this, conflicts);
         }
     }
 
@@ -235,15 +229,15 @@ public class ExamRoom extends Constraint<Exam, ExamPlacement> {
      * exam and all the current assignments (of this room)
      */
     @Override
-    public boolean inConflict(ExamPlacement p) {
+    public boolean inConflict(Assignment<Exam, ExamPlacement> assignment, ExamPlacement p) {
         if (!p.contains(this)) return false;
         
         if (getRoomSharing() == null) {
-            for (ExamPlacement conflict: iTable[p.getPeriod().getIndex()])
+            for (ExamPlacement conflict: getContext(assignment).getPlacements(p.getPeriod().getIndex()))
                 if (!conflict.variable().equals(p.variable())) return true;
             return false;
         } else {
-            return getRoomSharing().inConflict(p, iTable[p.getPeriod().getIndex()], this);
+            return getRoomSharing().inConflict(p, getContext(assignment).getPlacements(p.getPeriod().getIndex()), this);
         }
     }
 
@@ -259,42 +253,29 @@ public class ExamRoom extends Constraint<Exam, ExamPlacement> {
      * An exam was assigned, update room assignment table
      */
     @Override
-    public void assigned(long iteration, ExamPlacement p) {
-        if (p.contains(this) && !iTable[p.getPeriod().getIndex()].isEmpty()) {
-            HashSet<ExamPlacement> confs = new HashSet<ExamPlacement>();
-            computeConflicts(p, confs);
-            for (ExamPlacement conf: confs)
-                conf.variable().unassign(iteration);
-            if (iConstraintListeners != null) {
-                for (ConstraintListener<ExamPlacement> listener : iConstraintListeners)
-                    listener.constraintAfterAssigned(iteration, this, p, confs);
+    public void assigned(Assignment<Exam, ExamPlacement> assignment, long iteration, ExamPlacement p) {
+        if (p.contains(this)) {
+            if (!getContext(assignment).getPlacements(p.getPeriod().getIndex()).isEmpty()) {
+                HashSet<ExamPlacement> confs = new HashSet<ExamPlacement>();
+                computeConflicts(assignment, p, confs);
+                for (ExamPlacement conf: confs)
+                    assignment.unassign(iteration, conf.variable());
+                if (iConstraintListeners != null) {
+                    for (ConstraintListener<Exam, ExamPlacement> listener : iConstraintListeners)
+                        listener.constraintAfterAssigned(assignment, iteration, this, p, confs);
+                }
             }
+            getContext(assignment).assigned(assignment, p);
         }
-    }
-
-    /**
-     * An exam was assigned, update room assignment table
-     */
-    public void afterAssigned(long iteration, ExamPlacement p) {
-        if (p.contains(this))
-            iTable[p.getPeriod().getIndex()].add(p);
     }
 
     /**
      * An exam was unassigned, update room assignment table
      */
     @Override
-    public void unassigned(long iteration, ExamPlacement p) {
-        // super.unassigned(iteration, p);
-    }
-
-    /**
-     * An exam was unassigned, update room assignment table
-     */
-    public void afterUnassigned(long iteration, ExamPlacement p) {
-        if (p.contains(this)) {
-            iTable[p.getPeriod().getIndex()].remove(p);
-        }
+    public void unassigned(Assignment<Exam, ExamPlacement> assignment, long iteration, ExamPlacement p) {
+        if (p.contains(this))
+            getContext(assignment).unassigned(assignment, p);
     }
 
     /**
@@ -345,5 +326,41 @@ public class ExamRoom extends Constraint<Exam, ExamPlacement> {
     @Override
     public int compareTo(Constraint<Exam, ExamPlacement> o) {
         return toString().compareTo(o.toString());
+    }
+    
+    @Override
+    public ExamRoomContext createAssignmentContext(Assignment<Exam, ExamPlacement> assignment) {
+        return new ExamRoomContext(assignment);
+    }
+    
+    public class ExamRoomContext implements AssignmentConstraintContext<Exam, ExamPlacement> {
+        private List<ExamPlacement>[] iTable;
+        
+        @SuppressWarnings("unchecked")
+        public ExamRoomContext(Assignment<Exam, ExamPlacement> assignment) {
+            ExamModel model = (ExamModel)getModel();
+            iTable = new List[model.getNrPeriods()];
+            for (int i = 0; i < iTable.length; i++)
+                iTable[i] = new ArrayList<ExamPlacement>();
+            for (Exam exam: variables()) {
+                ExamPlacement placement = assignment.getValue(exam);
+                if (placement != null && placement.contains(ExamRoom.this))
+                    iTable[placement.getPeriod().getIndex()].add(placement);
+            }
+        }
+
+        @Override
+        public void assigned(Assignment<Exam, ExamPlacement> assignment, ExamPlacement placement) {
+            if (placement.contains(ExamRoom.this))
+                iTable[placement.getPeriod().getIndex()].add(placement);
+        }
+        
+        @Override
+        public void unassigned(Assignment<Exam, ExamPlacement> assignment, ExamPlacement placement) {
+            if (placement.contains(ExamRoom.this))
+                iTable[placement.getPeriod().getIndex()].remove(placement);
+        }
+        
+        public List<ExamPlacement> getPlacements(int period) { return iTable[period]; }
     }
 }

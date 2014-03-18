@@ -3,7 +3,9 @@ package net.sf.cpsolver.coursett.criteria.additional;
 import net.sf.cpsolver.coursett.constraint.JenrlConstraint;
 import net.sf.cpsolver.coursett.criteria.StudentConflict;
 import net.sf.cpsolver.coursett.model.Lecture;
+import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.Student;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -55,9 +57,9 @@ public class QuadraticStudentConflict extends StudentConflict {
     }
     
     @Override
-    public void incJenrl(JenrlConstraint jenrl, double studentWeight, Double conflictPriority, Student student) {
-        if (inConflict(jenrl.first().getAssignment(), jenrl.second().getAssignment())) {
-            iValue += (jenrl.jenrl() * jenrl.jenrl()) - (jenrl.jenrl() - studentWeight) * (jenrl.jenrl() - studentWeight);
+    public void incJenrl(Assignment<Lecture, Placement> assignment, JenrlConstraint jenrl, double studentWeight, Double conflictPriority, Student student) {
+        if (inConflict(assignment.getValue(jenrl.first()), assignment.getValue(jenrl.second()))) {
+            inc(assignment, (jenrl.jenrl() * jenrl.jenrl()) - (jenrl.jenrl() - studentWeight) * (jenrl.jenrl() - studentWeight));
         }
     }
     

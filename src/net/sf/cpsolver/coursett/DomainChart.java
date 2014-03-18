@@ -3,7 +3,10 @@ package net.sf.cpsolver.coursett;
 import java.io.File;
 
 import net.sf.cpsolver.coursett.model.Lecture;
+import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimetableModel;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.ToolBox;
@@ -34,6 +37,7 @@ import net.sf.cpsolver.ifs.util.ToolBox;
 public class DomainChart {
     protected int iSizeX = 60, iSizeY = 100;
     protected TimetableModel iModel;
+    protected Assignment<Lecture, Placement> iAssignment;
     protected double[][] iTable = null;
     protected boolean iShowZero = false;
     protected String iName = null;
@@ -42,6 +46,7 @@ public class DomainChart {
 
     public DomainChart(String name, TimetableModel model, int sizeX, int sizeY) {
         iModel = model;
+        iAssignment = new DefaultSingleAssignment<Lecture, Placement>();
         iName = name;
         iSizeX = sizeX;
         iSizeY = sizeY;
@@ -50,7 +55,7 @@ public class DomainChart {
     public DomainChart(File xmlFile, int sizeX, int sizeY) throws Exception {
         this(xmlFile.getName().substring(0, xmlFile.getName().lastIndexOf('.')), new TimetableModel(
                 new DataProperties()), sizeX, sizeY);
-        TimetableXMLLoader loader = new TimetableXMLLoader(iModel);
+        TimetableXMLLoader loader = new TimetableXMLLoader(iModel, iAssignment);
         loader.setInputFile(xmlFile);
         loader.load();
     }

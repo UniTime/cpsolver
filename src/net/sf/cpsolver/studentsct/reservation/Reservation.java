@@ -5,7 +5,14 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.AssignmentComparable;
+import net.sf.cpsolver.ifs.assignment.context.AbstractClassWithContext;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.studentsct.model.Config;
+import net.sf.cpsolver.studentsct.model.Course;
+import net.sf.cpsolver.studentsct.model.CourseRequest;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Offering;
 import net.sf.cpsolver.studentsct.model.Request;
@@ -43,7 +50,7 @@ import net.sf.cpsolver.studentsct.model.Subpart;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public abstract class Reservation implements Comparable<Reservation> {
+public abstract class Reservation extends AbstractClassWithContext<Request, Enrollment, Reservation.ReservationContext> implements AssignmentComparable<Reservation, Request, Enrollment> {
     /** Reservation unique id */
     private long iId = 0;
     
@@ -58,12 +65,6 @@ public abstract class Reservation implements Comparable<Reservation> {
     
     /** One or more sections, if applicable */
     private Map<Subpart, Set<Section>> iSections = new HashMap<Subpart, Set<Section>>();
-    
-    /** Enrollments included in this reservation */
-    private Set<Enrollment> iEnrollments = new HashSet<Enrollment>();
-    
-    /** Used part of the limit */
-    private double iUsed = 0;
     
     /**
      * Constructor
@@ -172,7 +173,7 @@ public abstract class Reservation implements Comparable<Reservation> {
     /**
      * True if the enrollment can be done using this configuration
      */
-    public boolean canEnroll(Enrollment enrollment) {
+    public boolean canEnroll(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
         // Check if student can use this reservation
         if (!isApplicable(enrollment.getStudent())) return false;
         
@@ -180,45 +181,7 @@ public abstract class Reservation implements Comparable<Reservation> {
         if (!isIncluded(enrollment)) return false;
 
         // Check the limit
-        return getLimit() < 0 || getUsedSpace() + enrollment.getRequest().getWeight() <= getLimit();
-    }
-    
-    /** Notify reservation about an unassignment */
-    public void assigned(Enrollment enrollment) {
-        iEnrollments.add(enrollment);
-        iUsed += enrollment.getRequest().getWeight();
-    }
-
-    /** Notify reservation about an assignment */
-    public void unassigned(Enrollment enrollment) {
-        iEnrollments.remove(enrollment);
-        iUsed -= enrollment.getRequest().getWeight();
-    }
-    
-    /** Enrollments assigned using this reservation */
-    public Set<Enrollment> getEnrollments() {
-        return iEnrollments;
-    }
-    
-    /** Used space */
-    public double getUsedSpace() {
-        return iUsed;
-    }
-
-    /**
-     * Available reserved space
-     * @param excludeRequest excluding given request (if not null)
-     **/
-    public double getReservedAvailableSpace(Request excludeRequest) {
-        // Unlimited
-        if (getLimit() < 0) return Double.MAX_VALUE;
-        
-        double reserved = getLimit() - getUsedSpace();
-        if (excludeRequest != null && excludeRequest.getAssignment() != null &&
-            iEnrollments.contains(excludeRequest.getAssignment()))
-            reserved += excludeRequest.getWeight();
-        
-        return reserved;
+        return getLimit() < 0 || getContext(assignment).getUsedSpace() + enrollment.getRequest().getWeight() <= getLimit();
     }
     
     /**
@@ -279,13 +242,13 @@ public abstract class Reservation implements Comparable<Reservation> {
      * Priority first, than restrictivity (more restrictive first), than availability (more available first), than id 
      */
     @Override
-    public int compareTo(Reservation r) {
+    public int compareTo(Assignment<Request, Enrollment> assignment, Reservation r) {
         if (getPriority() != r.getPriority()) {
             return (getPriority() < r.getPriority() ? -1 : 1);
         }
         int cmp = Double.compare(getRestrictivity(), r.getRestrictivity());
         if (cmp != 0) return cmp;
-        cmp = - Double.compare(getReservedAvailableSpace(null), r.getReservedAvailableSpace(null));
+        cmp = - Double.compare(getContext(assignment).getReservedAvailableSpace(assignment, null), r.getContext(assignment).getReservedAvailableSpace(assignment, null));
         if (cmp != 0) return cmp;
         return new Long(getId()).compareTo(r.getId());
     }
@@ -379,5 +342,84 @@ public abstract class Reservation implements Comparable<Reservation> {
      */
     public boolean isExpired() {
         return iExpired;
+    }
+    
+    @Override
+    public Model<Request, Enrollment> getModel() {
+        return getOffering().getModel();
+    }
+    
+    /**
+     * Available reserved space
+     * @param excludeRequest excluding given request (if not null)
+     **/
+    public double getReservedAvailableSpace(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
+        return getContext(assignment).getReservedAvailableSpace(assignment, excludeRequest);
+    }
+    
+    /** Enrollments assigned using this reservation */
+    public Set<Enrollment> getEnrollments(Assignment<Request, Enrollment> assignment) {
+        return getContext(assignment).getEnrollments();
+    }
+
+    @Override
+    public ReservationContext createAssignmentContext(Assignment<Request, Enrollment> assignment) {
+        return new ReservationContext(assignment);
+    }
+    
+    public class ReservationContext implements AssignmentConstraintContext<Request, Enrollment> {
+        /** Enrollments included in this reservation */
+        private Set<Enrollment> iEnrollments = new HashSet<Enrollment>();
+        
+        /** Used part of the limit */
+        private double iUsed = 0;
+
+        public ReservationContext(Assignment<Request, Enrollment> assignment) {
+            for (Course course: getOffering().getCourses())
+                for (CourseRequest request: course.getRequests()) {
+                    Enrollment enrollment = assignment.getValue(request);
+                    if (enrollment != null && Reservation.this.equals(enrollment.getReservation()))
+                        assigned(assignment, enrollment);
+                }
+        }
+
+        /** Notify reservation about an unassignment */
+        @Override
+        public void assigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+            iEnrollments.add(enrollment);
+            iUsed += enrollment.getRequest().getWeight();
+        }
+
+        /** Notify reservation about an assignment */
+        @Override
+        public void unassigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+            iEnrollments.remove(enrollment);
+            iUsed -= enrollment.getRequest().getWeight();
+        }
+        
+        /** Enrollments assigned using this reservation */
+        public Set<Enrollment> getEnrollments() {
+            return iEnrollments;
+        }
+        
+        /** Used space */
+        public double getUsedSpace() {
+            return iUsed;
+        }
+        
+        /**
+         * Available reserved space
+         * @param excludeRequest excluding given request (if not null)
+         **/
+        public double getReservedAvailableSpace(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
+            // Unlimited
+            if (getLimit() < 0) return Double.MAX_VALUE;
+            
+            double reserved = getLimit() - getContext(assignment).getUsedSpace();
+            if (excludeRequest != null && assignment.getValue(excludeRequest) != null && iEnrollments.contains(assignment.getValue(excludeRequest)))
+                reserved += excludeRequest.getWeight();
+            
+            return reserved;
+        }
     }
 }

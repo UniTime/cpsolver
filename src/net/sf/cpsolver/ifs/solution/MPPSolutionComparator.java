@@ -52,13 +52,13 @@ public class MPPSolutionComparator<V extends Variable<V, T>, T extends Value<V, 
     public boolean isBetterThanBestSolution(Solution<V, T> currentSolution) {
         if (currentSolution.getBestInfo() == null)
             return true;
-        int unassigned = currentSolution.getModel().nrUnassignedVariables();
+        int unassigned = currentSolution.getAssignment().nrUnassignedVariables(currentSolution.getModel());
         if (currentSolution.getModel().getBestUnassignedVariables() != unassigned)
             return currentSolution.getModel().getBestUnassignedVariables() > unassigned;
-        int pert = currentSolution.getModel().perturbVariables().size();
+        int pert = currentSolution.getModel().perturbVariables(currentSolution.getAssignment()).size();
         if (currentSolution.getModel().getBestPerturbations() != pert)
             return currentSolution.getModel().getBestPerturbations() > pert;
-        return currentSolution.getModel().getTotalValue() < currentSolution.getBestValue();
+        return currentSolution.getModel().getTotalValue(currentSolution.getAssignment()) < currentSolution.getModel().getBestValue();
     }
 
 }

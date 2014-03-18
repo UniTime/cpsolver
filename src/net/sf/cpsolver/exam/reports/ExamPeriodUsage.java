@@ -8,6 +8,7 @@ import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPeriod;
 import net.sf.cpsolver.exam.model.ExamPlacement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.CSVFile.CSVField;
 
@@ -58,7 +59,7 @@ public class ExamPeriodUsage {
     /**
      * generate report
      */
-    public CSVFile report() {
+    public CSVFile report(Assignment<Exam, ExamPlacement> assignment) {
         CSVFile csv = new CSVFile();
         List<CSVField> header = new ArrayList<CSVField>();
         header.add(new CSVField("Period"));
@@ -81,7 +82,7 @@ public class ExamPeriodUsage {
             for (int i = 0; i < sLimits.length; i++)
                 nrExamsLim[i] = 0;
             for (Exam exam : iModel.variables()) {
-                ExamPlacement placement = exam.getAssignment();
+                ExamPlacement placement = assignment.getValue(exam);
                 if (placement == null || !(placement.getPeriod().equals(period)))
                     continue;
                 nrExams++;

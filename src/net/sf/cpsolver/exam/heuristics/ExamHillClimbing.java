@@ -13,8 +13,12 @@ import net.sf.cpsolver.exam.neighbours.ExamRandomMove;
 import net.sf.cpsolver.exam.neighbours.ExamRoomMove;
 import net.sf.cpsolver.exam.neighbours.ExamSimpleNeighbour;
 import net.sf.cpsolver.exam.neighbours.ExamTimeMove;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentContext;
+import net.sf.cpsolver.ifs.assignment.context.NeighbourSelectionWithContext;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.LazyNeighbour;
+import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.model.LazyNeighbour.LazyNeighbourAcceptanceCriterion;
 import net.sf.cpsolver.ifs.solution.Solution;
@@ -33,7 +37,7 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  * <li>room swap ({@link ExamRoomMove})
  * </ul>
  * , then a neighbour is generated and it is accepted if its value
- * {@link ExamSimpleNeighbour#value()} is below or equal to zero. The search is
+ * {@link ExamSimpleNeighbour#value(Assignment)} is below or equal to zero. The search is
  * stopped after a given amount of idle iterations ( can be defined by problem
  * property HillClimber.MaxIdle). <br>
  * <br>
@@ -57,15 +61,12 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class ExamHillClimbing implements NeighbourSelection<Exam, ExamPlacement>, SolutionListener<Exam, ExamPlacement>, LazyNeighbourAcceptanceCriterion<Exam, ExamPlacement> {
+@Deprecated
+public class ExamHillClimbing extends NeighbourSelectionWithContext<Exam, ExamPlacement, ExamHillClimbing.Context> implements SolutionListener<Exam, ExamPlacement>, LazyNeighbourAcceptanceCriterion<Exam, ExamPlacement> {
     private static Logger sLog = Logger.getLogger(ExamHillClimbing.class);
     private List<NeighbourSelection<Exam, ExamPlacement>> iNeighbours = null;
     private int iMaxIdleIters = 25000;
-    private int iLastImprovingIter = 0;
-    private double iBestValue = 0;
-    private int iIter = 0;
     private Progress iProgress = null;
-    private boolean iActive;
     private String iName = "Hill climbing";
 
     /**
@@ -112,12 +113,13 @@ public class ExamHillClimbing implements NeighbourSelection<Exam, ExamPlacement>
      */
     @Override
     public void init(Solver<Exam, ExamPlacement> solver) {
+        super.init(solver);
         solver.currentSolution().addSolutionListener(this);
         for (NeighbourSelection<Exam, ExamPlacement> neighbour: iNeighbours)
             neighbour.init(solver);
         solver.setUpdateProgress(false);
         iProgress = Progress.getInstance(solver.currentSolution().getModel());
-        iActive = false;
+        getContext(solver.currentSolution().getAssignment()).reset();
     }
 
     /**
@@ -128,27 +130,20 @@ public class ExamHillClimbing implements NeighbourSelection<Exam, ExamPlacement>
      */
     @Override
     public Neighbour<Exam, ExamPlacement> selectNeighbour(Solution<Exam, ExamPlacement> solution) {
-        if (!iActive) {
-            iProgress.setPhase(iName + "...");
-            iActive = true;
-        }
+        Context context = getContext(solution.getAssignment());
+        context.activateIfNeeded();
         while (true) {
-            iIter++;
-            iProgress.setProgress(Math.round(100.0 * (iIter - iLastImprovingIter) / iMaxIdleIters));
-            if (iIter - iLastImprovingIter >= iMaxIdleIters)
-                break;
+            if (context.incIter(solution)) break;
             NeighbourSelection<Exam, ExamPlacement> ns = iNeighbours.get(ToolBox.random(iNeighbours.size()));
             Neighbour<Exam, ExamPlacement> n = ns.selectNeighbour(solution);
             if (n != null) {
                 if (n instanceof LazyNeighbour) {
                     ((LazyNeighbour<Exam,ExamPlacement>)n).setAcceptanceCriterion(this);
                     return n;
-                } else if (n.value() <= 0.0) return n;
+                } else if (n.value(solution.getAssignment()) <= 0.0) return n;
             }
         }
-        iIter = 0;
-        iLastImprovingIter = 0;
-        iActive = false;
+        context.reset();
         return null;
     }
 
@@ -157,10 +152,7 @@ public class ExamHillClimbing implements NeighbourSelection<Exam, ExamPlacement>
      */
     @Override
     public void bestSaved(Solution<Exam, ExamPlacement> solution) {
-        if (Math.abs(iBestValue - solution.getBestValue()) >= 1.0) {
-            iLastImprovingIter = iIter;
-            iBestValue = solution.getBestValue();
-        }
+        getContext(solution.getAssignment()).bestSaved(solution.getModel());
     }
 
     @Override
@@ -185,7 +177,46 @@ public class ExamHillClimbing implements NeighbourSelection<Exam, ExamPlacement>
 
     /** Accept lazy neighbour */
     @Override
-    public boolean accept(LazyNeighbour<Exam, ExamPlacement> neighbour, double value) {
+    public boolean accept(Assignment<Exam, ExamPlacement> assignment, LazyNeighbour<Exam, ExamPlacement> neighbour, double value) {
         return value <= 0.0;
+    }
+
+    @Override
+    public Context createAssignmentContext(Assignment<Exam, ExamPlacement> assignment) {
+        return new Context();
+    }
+
+    public class Context implements AssignmentContext {
+        private int iLastImprovingIter = 0;
+        private double iBestValue = 0;
+        private int iIter = 0;
+        private boolean iActive;
+
+        protected void reset() {
+            iIter = 0;
+            iLastImprovingIter = 0;
+            iActive = false;
+        }
+
+        protected void activateIfNeeded() {
+            if (!iActive) {
+                iProgress.setPhase(iName + "...");
+                iActive = true;
+            }
+        }
+        
+        protected boolean incIter(Solution<Exam, ExamPlacement> solution) {
+            iIter++;
+            iProgress.setProgress(Math.round(100.0 * (iIter - iLastImprovingIter) / iMaxIdleIters));
+            if (iIter - iLastImprovingIter >= iMaxIdleIters) return true;
+            return false;
+        }
+        
+        protected void bestSaved(Model<Exam, ExamPlacement> model) {
+            if (Math.abs(iBestValue - model.getBestValue()) >= 1.0) {
+                iLastImprovingIter = iIter;
+                iBestValue = model.getBestValue();
+            }
+        }
     }
 }

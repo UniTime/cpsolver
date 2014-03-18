@@ -18,6 +18,7 @@ import net.sf.cpsolver.exam.model.ExamPeriod;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamRoomPlacement;
 import net.sf.cpsolver.exam.model.ExamStudent;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.criteria.Criterion;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
@@ -68,6 +69,7 @@ public class ExamSplitter extends ExamCriterion {
     private Map<Exam, List<Exam>> iChildren = new HashMap<Exam, List<Exam>>();
     private Map<Exam, Exam> iParent = new HashMap<Exam, Exam>();
     private Criterion<Exam, ExamPlacement> iStudentDirectConflicts, iStudentMoreThan2ADayConflicts, iStudentBackToBackConflicts;
+    private double iValue = 0.0;
     
     private Map<Exam, List<ExamPlacement>> iBestSplit = null;
     
@@ -139,7 +141,7 @@ public class ExamSplitter extends ExamCriterion {
      * @param placement placement of the new exam
      * @return new exam assigned to the given placement with students moved into it; null if the given exam cannot be split
      */
-    public Exam split(Exam parent, long iteration, ExamPlacement placement) {
+    public Exam split(Assignment<Exam, ExamPlacement> assignment, Exam parent, long iteration, ExamPlacement placement) {
         if (!canSplit(parent)) return null;
 
         // Create the child exam
@@ -163,11 +165,11 @@ public class ExamSplitter extends ExamCriterion {
         parent.getModel().addVariable(child);
         for (ExamRoomPlacement room : child.getRoomPlacements()) 
             room.getRoom().addVariable(child);
-        if (placement != null) child.assign(iteration, new ExamPlacement(child, placement.getPeriodPlacement(), placement.getRoomPlacements()));
+        if (placement != null) assignment.assign(iteration, new ExamPlacement(child, placement.getPeriodPlacement(), placement.getRoomPlacements()));
         
         
         // Shuffle students between parent exam and its children
-        shuffle(parent, iteration);
+        shuffle(assignment, parent, iteration);
 
         // Return the new exam
         return child;
@@ -185,7 +187,7 @@ public class ExamSplitter extends ExamCriterion {
      * @param iteration solver iteration
      * @return parent exam of the exam that has been deleted; null if the given exam cannot be merged
      */
-    public Exam merge(Exam child, long iteration) {
+    public Exam merge(Assignment<Exam, ExamPlacement> assignment, Exam child, long iteration) {
         if (!canMerge(child)) return null;
         
         // Update the parent and children structures
@@ -196,9 +198,9 @@ public class ExamSplitter extends ExamCriterion {
         iValue -= 1.0;
         
         // Unassign parent and the given exam
-        ExamPlacement parentPlacement = parent.getAssignment();
-        if (parentPlacement != null) parent.unassign(iteration);
-        if (child.getAssignment() != null) child.unassign(iteration);
+        ExamPlacement parentPlacement = assignment.getValue(parent);
+        if (parentPlacement != null) assignment.unassign(iteration, parent);
+        if (assignment.getValue(child) != null) assignment.unassign(iteration, child);
 
         // Move students back from the given exam
         for (ExamStudent student: new ArrayList<ExamStudent>(child.getStudents())) {
@@ -212,11 +214,11 @@ public class ExamSplitter extends ExamCriterion {
         parent.getModel().removeVariable(child);
         
         // Assign parent exam back
-        if (parentPlacement != null) parent.assign(iteration, parentPlacement);
+        if (parentPlacement != null) assignment.assign(iteration, parentPlacement);
         
         
         // Shuffle students between parent exam and its remaining children
-        shuffle(parent, iteration);
+        shuffle(assignment, parent, iteration);
         
         // Return parent exam
         return parent;
@@ -231,29 +233,29 @@ public class ExamSplitter extends ExamCriterion {
      * @param newPlacement placement of the exam into which the student would be moved
      * @return difference in the student conflict weight
      */
-    public double delta(ExamStudent student, ExamPlacement oldPlacement, ExamPlacement newPlacement) {
+    public double delta(Assignment<Exam, ExamPlacement> assignment, ExamStudent student, ExamPlacement oldPlacement, ExamPlacement newPlacement) {
         double delta = 0;
         
         // Weights of removing student form the old placement 
         if (oldPlacement != null) {
             Exam exam = oldPlacement.variable();
             ExamPeriod period = oldPlacement.getPeriod();
-            Set<Exam> examsThisPeriod = student.getExams(period);
+            Set<Exam> examsThisPeriod = student.getExams(assignment, period);
             if (examsThisPeriod.size() > (examsThisPeriod.contains(exam) ? 1 : 0))
                 delta -= iStudentDirectConflicts.getWeight(); // will remove a direct conflict
             ExamPeriod prev = period.prev();
             if (prev != null && (prev.getDay() == period.getDay() || isDayBreakBackToBack())) {
-                Set<Exam> examsPrevPeriod = student.getExams(prev);
+                Set<Exam> examsPrevPeriod = student.getExams(assignment, prev);
                 if (examsPrevPeriod.size() > (examsPrevPeriod.contains(exam) ? 1 : 0))
                     delta -= iStudentBackToBackConflicts.getWeight(); // will remove a back-to-back conflict
             }
             ExamPeriod next = period.next();
             if (next != null && (next.getDay() == period.getDay() || isDayBreakBackToBack())) {
-                Set<Exam> examsNextPeriod = student.getExams(next);
+                Set<Exam> examsNextPeriod = student.getExams(assignment, next);
                 if (examsNextPeriod.size() > (examsNextPeriod.contains(exam) ? 1 : 0))
                     delta -= iStudentBackToBackConflicts.getWeight(); // will remove a back-to-back conflict
             }
-            Set<Exam> examsInADay = student.getExamsADay(period);
+            Set<Exam> examsInADay = student.getExamsADay(assignment, period);
             if (examsInADay.size() > (examsInADay.contains(exam) ? 3 : 2))
                 delta -= iStudentMoreThan2ADayConflicts.getWeight(); // will remove a more than 2 on a day conflict
         }
@@ -262,22 +264,22 @@ public class ExamSplitter extends ExamCriterion {
         if (newPlacement != null) {
             Exam exam = newPlacement.variable();
             ExamPeriod period = newPlacement.getPeriod();
-            Set<Exam> examsThisPeriod = student.getExams(period);
+            Set<Exam> examsThisPeriod = student.getExams(assignment, period);
             if (examsThisPeriod.size() > (examsThisPeriod.contains(exam) ? 1 : 0))
                 delta += iStudentDirectConflicts.getWeight(); // will add a direct conflict
             ExamPeriod prev = period.prev();
             if (prev != null && (prev.getDay() == period.getDay() || isDayBreakBackToBack())) {
-                Set<Exam> examsPrevPeriod = student.getExams(prev);
+                Set<Exam> examsPrevPeriod = student.getExams(assignment, prev);
                 if (examsPrevPeriod.size() > (examsPrevPeriod.contains(exam) ? 1 : 0))
                     delta += iStudentBackToBackConflicts.getWeight(); // will add a back-to-back conflict
             }
             ExamPeriod next = period.next();
             if (next != null && (next.getDay() == period.getDay() || isDayBreakBackToBack())) {
-                Set<Exam> examsNextPeriod = student.getExams(next);
+                Set<Exam> examsNextPeriod = student.getExams(assignment, next);
                 if (examsNextPeriod.size() > (examsNextPeriod.contains(exam) ? 1 : 0))
                     delta += iStudentBackToBackConflicts.getWeight(); // will add a back-to-back conflict
             }
-            Set<Exam> examsInADay = student.getExamsADay(period);
+            Set<Exam> examsInADay = student.getExamsADay(assignment, period);
             if (examsInADay.size() > (examsInADay.contains(exam) ? 3 : 2))
                 delta += iStudentMoreThan2ADayConflicts.getWeight(); // will add a more than 2 on a day conflict
         }
@@ -287,12 +289,12 @@ public class ExamSplitter extends ExamCriterion {
     
     /**
      * Shuffle students between the given exam and all the other exams in the split (if there are any).
-     * Only moves between exams that improve {@link ExamSplitter#delta(ExamStudent, ExamPlacement, ExamPlacement)} are
+     * Only moves between exams that improve {@link ExamSplitter#delta(Assignment, ExamStudent, ExamPlacement, ExamPlacement)} are
      * considered.
      * @param exam an exam in question
      * @param iteration solver iteration
      */
-    public void shuffle(Exam exam, long iteration) {
+    public void shuffle(Assignment<Exam, ExamPlacement> assignment, Exam exam, long iteration) {
         // Parent exam (its either the exam itself, or its parent if it has been already split)
         Exam parent = (iParent.containsKey(exam) ? iParent.get(exam) : exam);
         // Its children (if already split)
@@ -301,14 +303,14 @@ public class ExamSplitter extends ExamCriterion {
         if (children != null && !children.isEmpty()) {
             // Unassign all involved exams
             Map<Exam, ExamPlacement> assignments = new HashMap<Exam, ExamPlacement>();
-            if (parent.getAssignment() != null) {
-                assignments.put(parent, parent.getAssignment());
-                parent.unassign(iteration);
+            if (assignment.getValue(parent) != null) {
+                assignments.put(parent, assignment.getValue(parent));
+                assignment.unassign(iteration, parent);
             }
             for (Exam child: children) {
-                if (child.getAssignment() != null) {
-                    assignments.put(child, child.getAssignment());
-                    child.unassign(iteration);
+                if (assignment.getValue(child) != null) {
+                    assignments.put(child, assignment.getValue(child));
+                    assignment.unassign(iteration, child);
                 }
             }
             
@@ -316,7 +318,7 @@ public class ExamSplitter extends ExamCriterion {
             for (ExamStudent student: new ArrayList<ExamStudent>(parent.getStudents())) {
                 Exam child = null; double delta = 0;
                 for (Exam x: children) {
-                    double d = delta(student, assignments.get(parent), assignments.get(x));
+                    double d = delta(assignment, student, assignments.get(parent), assignments.get(x));
                     if (child == null || d < delta) {
                         delta = d; child = x;
                     }
@@ -330,10 +332,10 @@ public class ExamSplitter extends ExamCriterion {
             // Move students away from a child
             for (Exam child: children) {
                 for (ExamStudent student: new ArrayList<ExamStudent>(child.getStudents())) {
-                    Exam other = parent; double delta = delta(student, assignments.get(child), assignments.get(parent));
+                    Exam other = parent; double delta = delta(assignment, student, assignments.get(child), assignments.get(parent));
                     for (Exam x: children) {
                         if (x.equals(child)) continue;
-                        double d = delta(student, assignments.get(child), assignments.get(x));
+                        double d = delta(assignment, student, assignments.get(child), assignments.get(x));
                         if (d < delta) {
                             delta = d; other = x;
                         }
@@ -347,34 +349,39 @@ public class ExamSplitter extends ExamCriterion {
             
             // Assign everything back
             ExamPlacement parentPlacement = assignments.get(parent);
-            if (parentPlacement != null) parent.assign(iteration, parentPlacement);
+            if (parentPlacement != null) assignment.assign(iteration, parentPlacement);
             for (Exam child: children) {
                 ExamPlacement placement = assignments.get(child);
-                if (placement != null) child.assign(iteration, placement);
+                if (placement != null) assignment.assign(iteration, placement);
             }
         }
+    }
+    
+    @Override
+    public double getValue(Assignment<Exam, ExamPlacement> assignment) {
+        return iValue;
     }
 
     /** Not used */
     @Override
-    public double getValue(ExamPlacement value, Set<ExamPlacement> conflicts) {
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value, Set<ExamPlacement> conflicts) {
         return 0.0;
     }
     
     /** Not used */
     @Override
-    public double[] getBounds(Collection<Exam> exams) {
+    public double[] getBounds(Assignment<Exam, ExamPlacement> assignment, Collection<Exam> exams) {
         return new double[] { 0.0, 0.0 };
     }
     
     @Override
-    public String toString() {
-        return "XX:" + sDoubleFormat.format(getValue());
+    public String toString(Assignment<Exam, ExamPlacement> assignment) {
+        return "XX:" + sDoubleFormat.format(getValue(assignment));
     }
     
     /** Lists the split */
     @Override
-    public void getInfo(Map<String, String> info) {
+    public void getInfo(Assignment<Exam, ExamPlacement> assignment, Map<String, String> info) {
         if (!iChildren.isEmpty()) {
             int parents = 0;
             String split = "";
@@ -383,9 +390,9 @@ public class ExamSplitter extends ExamCriterion {
                 if (children.isEmpty()) continue;
                 split += "\n  ";
                 parents ++;
-                split += parent.getName() + ": " + parent.getStudents().size() + " (" + (parent.getAssignment() == null ? "N/A" : parent.getAssignment().getPeriod()) + ")";
+                split += parent.getName() + ": " + parent.getStudents().size() + " (" + (assignment.getValue(parent) == null ? "N/A" : assignment.getValue(parent).getPeriod()) + ")";
                 for (Exam child: children)
-                    split += " + " + child.getStudents().size() + " (" + (child.getAssignment() == null ? "N/A" : child.getAssignment().getPeriod()) + ")";
+                    split += " + " + child.getStudents().size() + " (" + (assignment.getValue(child) == null ? "N/A" : assignment.getValue(child).getPeriod()) + ")";
             }
             if (parents > 0)
                 info.put("Examination Splits", parents + split);
@@ -394,8 +401,8 @@ public class ExamSplitter extends ExamCriterion {
 
     /** Best solution was saved, remember the current splits */
     @Override
-    public void bestSaved() {
-        super.bestSaved();
+    public void bestSaved(Assignment<Exam, ExamPlacement> assignment) {
+        super.bestSaved(assignment);
         
         if (iBestSplit == null)
             iBestSplit = new Hashtable<Exam, List<ExamPlacement>>();
@@ -406,8 +413,8 @@ public class ExamSplitter extends ExamCriterion {
             Exam parent = entry.getKey();
             List<ExamPlacement> placements = new ArrayList<ExamPlacement>();
             for (Exam child: entry.getValue()) {
-                if (child.getAssignment() != null)
-                    placements.add(child.getAssignment());
+                if (assignment.getValue(child) != null)
+                    placements.add(assignment.getValue(child));
             }
             if (!placements.isEmpty())
                 iBestSplit.put(parent, placements);
@@ -416,15 +423,15 @@ public class ExamSplitter extends ExamCriterion {
 
     /** Best solution was restored, change the splits back to what it was in the best solution */
     @Override
-    public void bestRestored() {
-        super.bestRestored();
+    public void bestRestored(Assignment<Exam, ExamPlacement> assignment) {
+        super.bestRestored(assignment);
         
         // Merge those that are not split
         for (Exam parent: new ArrayList<Exam>(iChildren.keySet())) {
             List<Exam> children = new ArrayList<Exam>(iChildren.get(parent));
             List<ExamPlacement> placements = iBestSplit.get(parent);
             for (int i = (placements == null ? 0 : placements.size()); i < children.size(); i++)
-                merge(children.get(i), 0);
+                merge(assignment, children.get(i), 0);
         }
         
         // Assign best placements to all children, create children if needed
@@ -434,9 +441,9 @@ public class ExamSplitter extends ExamCriterion {
             for (int i = 0; i < placements.size(); i++) {
                 List<Exam> children = iChildren.get(parent);
                 if (children == null || children.size() <= i) { // create a child if needed
-                    split(parent, 0, placements.get(i));
+                    split(assignment, parent, 0, placements.get(i));
                 } else { // otherwise, just assign the placement
-                    children.get(i).assign(0, new ExamPlacement(children.get(i), placements.get(i).getPeriodPlacement(), placements.get(i).getRoomPlacements()));
+                    assignment.assign(0l, new ExamPlacement(children.get(i), placements.get(i).getPeriodPlacement(), placements.get(i).getRoomPlacements()));
                 }
             }
             iValue += placements.size();

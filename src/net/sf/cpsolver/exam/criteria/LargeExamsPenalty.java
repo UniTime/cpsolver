@@ -7,6 +7,7 @@ import java.util.Set;
 import net.sf.cpsolver.exam.model.Exam;
 import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPlacement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
@@ -136,14 +137,14 @@ public class LargeExamsPenalty extends ExamCriterion {
     }
 
     @Override
-    public double getValue(ExamPlacement value, Set<ExamPlacement> conflicts) {
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value, Set<ExamPlacement> conflicts) {
         Exam exam = value.variable();
         if (getLargeSize() < 0 || exam.getSize() < getLargeSize()) return 0;
         return (value.getPeriod().getIndex() < getLargePeriodIndex() ? 0 : 1);
     }
 
     @Override
-    public double[] getBounds(Collection<Exam> variables) {
+    public double[] getBounds(Assignment<Exam, ExamPlacement> assignment, Collection<Exam> variables) {
         double[] bounds = new double[] { 0.0, 0.0 };
         for (Exam exam : variables) {
             if (getLargeSize() >= 0 && exam.getSize() >= getLargeSize())
@@ -153,7 +154,7 @@ public class LargeExamsPenalty extends ExamCriterion {
     }
 
     @Override
-    public String toString() {
-        return (getValue() <= 0.0 ? "" : "LP:" + sDoubleFormat.format(getValue()));
+    public String toString(Assignment<Exam, ExamPlacement> assignment) {
+        return (getValue(assignment) <= 0.0 ? "" : "LP:" + sDoubleFormat.format(getValue(assignment)));
     }
 }

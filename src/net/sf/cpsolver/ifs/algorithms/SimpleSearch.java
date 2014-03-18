@@ -2,6 +2,9 @@ package net.sf.cpsolver.ifs.algorithms;
 
 import org.apache.log4j.Logger;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentContext;
+import net.sf.cpsolver.ifs.assignment.context.NeighbourSelectionWithContext;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.heuristics.StandardNeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
@@ -10,7 +13,6 @@ import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.termination.TerminationCondition;
-import net.sf.cpsolver.ifs.util.Callback;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.Progress;
 
@@ -50,21 +52,16 @@ import net.sf.cpsolver.ifs.util.Progress;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> implements NeighbourSelection<V, T>, TerminationCondition<V, T> {
+public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> extends NeighbourSelectionWithContext<V,T,SimpleSearch<V,T>.SimpleSearchContext> {
     private Logger iLog = Logger.getLogger(SimpleSearch.class);
     private NeighbourSelection<V, T> iCon = null;
     private boolean iConstructionUntilComplete = false; 
     private StandardNeighbourSelection<V, T> iStd = null;
     private SimulatedAnnealing<V, T> iSA = null;
     private HillClimber<V, T> iHC = null;
-    private HillClimber<V, T> iFin = null;
     private GreatDeluge<V, T> iGD = null;
-    private int iPhase = -1;
     private boolean iUseGD = true;
     private Progress iProgress = null;
-    private Callback iFinalPhaseFinished = null;
-    private boolean iCanContinue = true;
-    private TerminationCondition<V, T> iTerm = null;
 
     /**
      * Constructor
@@ -87,10 +84,9 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> imple
         iStd = new StandardNeighbourSelection<V, T>(properties);
         iSA = new SimulatedAnnealing<V, T>(properties);
         if (properties.getPropertyBoolean("Search.CountSteps", false))
-            iHC = new StepCountingHillClimber<V, T>(properties, "Step Counting Hill Climbing");
+            iHC = new StepCountingHillClimber<V, T>(properties);
         else
             iHC = new HillClimber<V, T>(properties);
-        iFin = new HillClimber<V, T>(properties); iFin.setPhase("Finalization");
         iGD = new GreatDeluge<V, T>(properties);
         iUseGD = properties.getPropertyBoolean("Search.GreatDeluge", iUseGD);
     }
@@ -100,18 +96,15 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> imple
      */
     @Override
     public void init(Solver<V, T> solver) {
+        super.init(solver);
+        if (!solver.hasSingleSolution())
+            iCon = new ParallelConstruction<V, T>(solver.getProperties(), iCon == null ? iStd : iCon);
         iStd.init(solver);
         if (iCon != null)
             iCon.init(solver);
         iSA.init(solver);
         iHC.init(solver);
-        iFin.init(solver);
         iGD.init(solver);
-        if (iTerm == null) {
-            iTerm = solver.getTerminationCondition();
-            solver.setTerminalCondition(this);
-        }
-        iCanContinue = true;
         iProgress = Progress.getInstance(solver.currentSolution().getModel());
     }
 
@@ -125,81 +118,54 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> imple
      */
     @SuppressWarnings("fallthrough")
     @Override
-    public synchronized Neighbour<V, T> selectNeighbour(Solution<V, T> solution) {
+    public Neighbour<V, T> selectNeighbour(Solution<V, T> solution) {
+        SimpleSearchContext context = getContext(solution.getAssignment());
         Neighbour<V, T> n = null;
-        if (!isFinalPhase() && !iTerm.canContinue(solution))
-            setFinalPhase(null);
-        switch (iPhase) {
+        switch (context.getPhase()) {
             case -1:
-                iPhase++;
-                iLog.info("***** construction phase *****");
-                if (solution.getModel().nrUnassignedVariables() > 0)
-                    iProgress.setPhase("Searching for initial solution...", solution.getModel().variables().size());
+                context.setPhase(0);
+                iProgress.info("[" + Thread.currentThread().getName() + "] Construction...");
             case 0:
-                if (iCon != null && solution.getModel().nrUnassignedVariables() > 0) {
-                    iProgress.setProgress(solution.getModel().variables().size() - solution.getModel().getBestUnassignedVariables());
+                if (iCon != null && solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0) {
                     n = iCon.selectNeighbour(solution);
                     if (n != null || iConstructionUntilComplete)
                         return n;
                 }
-                iPhase++;
-                iLog.info("***** ifs phase *****");
+                context.setPhase(1);
+                iProgress.info("[" + Thread.currentThread().getName() + "] IFS...");
             case 1:
-                if (iStd != null && solution.getModel().nrUnassignedVariables() > 0) {
-                    iProgress.setProgress(solution.getModel().variables().size() - solution.getModel().getBestUnassignedVariables());
+                if (iStd != null && solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0) {
                     return iStd.selectNeighbour(solution);
                 }
-                iPhase++;
-                iLog.info("***** hill climbing phase *****");
+                context.setPhase(2);
             case 2:
-                if (solution.getModel().nrUnassignedVariables() > 0)
+                if (solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0)
                     return (iCon == null ? iStd : iCon).selectNeighbour(solution);
                 n = iHC.selectNeighbour(solution);
                 if (n != null)
                     return n;
-                iPhase++;
-                iLog.info("***** " + (iUseGD ? "great deluge" : "simulated annealing") + " phase *****");
+                context.setPhase(3);
             case 3:
-                if (solution.getModel().nrUnassignedVariables() > 0)
+                if (solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0)
                     return (iCon == null ? iStd : iCon).selectNeighbour(solution);
                 if (iUseGD)
                     return iGD.selectNeighbour(solution);
                 else
                     return iSA.selectNeighbour(solution);
-            case 9999:
-                n = iFin.selectNeighbour(solution);
-                if (n != null)
-                    return n;
-                iPhase = -1;
-                if (iFinalPhaseFinished != null)
-                    iFinalPhaseFinished.execute();
-                iCanContinue = false;
             default:
                 return null;
         }
     }
 
-    /**
-     * Set final phase
-     * 
-     * @param finalPhaseFinished
-     *            to be called when the final phase is finished
-     **/
-    public synchronized void setFinalPhase(Callback finalPhaseFinished) {
-        iLog.info("***** final phase *****");
-        iFinalPhaseFinished = finalPhaseFinished;
-        iPhase = 9999;
-    }
-
-    /** Is final phase */
-    public boolean isFinalPhase() {
-        return iPhase == 9999;
-    }
-
-    /** Termination condition (i.e., has final phase finished) */
     @Override
-    public boolean canContinue(Solution<V, T> currentSolution) {
-        return iCanContinue;
+    public SimpleSearchContext createAssignmentContext(Assignment<V, T> assignment) {
+        return new SimpleSearchContext();
     }
 
+    public class SimpleSearchContext implements AssignmentContext {
+        private int iPhase = -1;
+        
+        public int getPhase() { return iPhase; }
+        public void setPhase(int phase) { iPhase = phase; }
+    }
 }

@@ -9,7 +9,9 @@ import java.util.Set;
 
 import net.sf.cpsolver.coursett.heuristics.NeighbourSelectionWithSuggestions;
 import net.sf.cpsolver.ifs.algorithms.HillClimber;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.constant.ConstantModel;
+import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
@@ -68,7 +70,10 @@ public class SuggestionMove<V extends Variable<V, T>, T extends Value<V, T>> ext
     @Override
     public Neighbour<V, T> selectNeighbour(Solution<V, T> solution) {
         V variable = ToolBox.random(solution.getModel().variables());
-        SwapNeighbour n = backtrack(solution, solution.getModel().getTotalValue(), solution.getModel().nrUnassignedVariables(), JProf.currentTimeMillis(), variable, new HashMap<V, T>(), new HashMap<V, T>(), iSuggestionDepth);
+        SwapNeighbour n = backtrack(
+                solution, solution.getModel().getTotalValue(solution.getAssignment()),
+                solution.getModel().nrUnassignedVariables(solution.getAssignment()),
+                JProf.currentTimeMillis(), variable, new HashMap<V, T>(), new HashMap<V, T>(), iSuggestionDepth);
         return n;
     }
     
@@ -83,10 +88,12 @@ public class SuggestionMove<V extends Variable<V, T>, T extends Value<V, T>> ext
     }
 
     private SwapNeighbour backtrack(Solution<V, T> solution, double total, int un, long startTime, V initial, Map<V, T> resolvedVariables, HashMap<V, T> conflictsToResolve, int depth) {
+        Model<V, T> model = solution.getModel();
+        Assignment<V, T> assignment = solution.getAssignment();
         int nrUnassigned = conflictsToResolve.size();
         if (initial == null && nrUnassigned == 0) {
-            if (solution.getModel().nrUnassignedVariables() > un) return null;
-            double value = solution.getModel().getTotalValue() - total;
+            if (model.nrUnassignedVariables(assignment) > un) return null;
+            double value = model.getTotalValue(assignment) - total;
             if (!iHC || value <= 0)
                 return new SwapNeighbour(new ArrayList<T>(resolvedVariables.values()), value);
             else
@@ -94,18 +101,18 @@ public class SuggestionMove<V extends Variable<V, T>, T extends Value<V, T>> ext
         }
         if (depth <= 0) return null;
 
-        V lecture = initial;
-        if (lecture == null) {
+        V variable = initial;
+        if (variable == null) {
             for (V l: conflictsToResolve.keySet()) {
                 if (resolvedVariables.containsKey(l)) continue;
-                lecture = l; break;
+                variable = l; break;
             }
-            if (lecture == null) return null;
+            if (variable == null) return null;
         } else {
-            if (resolvedVariables.containsKey(lecture)) return null;
+            if (resolvedVariables.containsKey(variable)) return null;
         }
         
-        List<T> values = lecture.values();
+        List<T> values = variable.values();
         if (values.isEmpty()) return null;
         
         int idx = ToolBox.random(values.size());
@@ -113,10 +120,11 @@ public class SuggestionMove<V extends Variable<V, T>, T extends Value<V, T>> ext
         values: for (int i = 0; i < values.size(); i++) {
             if (nrAttempts >= iMaxAttempts || isTimeLimitReached(startTime)) break;
             T value = values.get((i + idx) % values.size());
+
+            T cur = assignment.getValue(variable);
+            if (value.equals(cur)) continue;
             
-            if (value.equals(lecture.getAssignment())) continue;
-            
-            Set<T> conflicts = solution.getModel().conflictValues(value);
+            Set<T> conflicts = model.conflictValues(assignment, value);
             if (nrUnassigned + conflicts.size() > depth) continue;
             if (conflicts.contains(value)) continue;
             if (containsCommited(solution, conflicts)) continue;
@@ -124,29 +132,28 @@ public class SuggestionMove<V extends Variable<V, T>, T extends Value<V, T>> ext
                 if (resolvedVariables.containsKey(c.variable()))
                     continue values;
             
-            T cur = lecture.getAssignment();
-            for (T c: conflicts) c.variable().unassign(0);
-            if (cur != null) lecture.unassign(0);
+            for (T c: conflicts) assignment.unassign(solution.getIteration(), c.variable());
+            if (cur != null) assignment.unassign(solution.getIteration(), variable);
             
-            lecture.assign(0, value);
+            assignment.assign(solution.getIteration(), value);
             for (T c: conflicts)
                 conflictsToResolve.put(c.variable(), c);
 
-            T resolvedConf = conflictsToResolve.remove(lecture);
-            resolvedVariables.put(lecture, value);
+            T resolvedConf = conflictsToResolve.remove(variable);
+            resolvedVariables.put(variable, value);
             
             SwapNeighbour n = backtrack(solution, total, un, startTime, null, resolvedVariables, conflictsToResolve, depth - 1);
             nrAttempts ++;
             
-            resolvedVariables.remove(lecture);
-            if (cur == null) lecture.unassign(0);
-            else lecture.assign(0, cur);
+            resolvedVariables.remove(variable);
+            if (cur == null) assignment.unassign(solution.getIteration(), variable);
+            else assignment.assign(solution.getIteration(), cur);
             for (T c: conflicts) {
-                c.variable().assign(0, c);
+                assignment.assign(solution.getIteration(), c);
                 conflictsToResolve.remove(c.variable());
             }
             if (resolvedConf != null)
-                conflictsToResolve.put(lecture, resolvedConf);
+                conflictsToResolve.put(variable, resolvedConf);
             
             if (n != null) return n;
         }

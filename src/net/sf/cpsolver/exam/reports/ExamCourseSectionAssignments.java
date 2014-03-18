@@ -9,6 +9,7 @@ import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamOwner;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamRoomPlacement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.CSVFile.CSVField;
 
@@ -57,13 +58,13 @@ public class ExamCourseSectionAssignments {
     /**
      * generate report
      */
-    public CSVFile report() {
+    public CSVFile report(Assignment<Exam, ExamPlacement> assignment) {
         CSVFile csv = new CSVFile();
         csv.setHeader(new CSVField[] { new CSVField("Section/Course"), new CSVField("Enrl"), new CSVField("Alt"),
                 new CSVField("Period"), new CSVField("Date"), new CSVField("Time"), new CSVField("Room"),
                 new CSVField("Cap") });
         for (Exam exam : iModel.variables()) {
-            ExamPlacement placement = exam.getAssignment();
+            ExamPlacement placement = assignment.getValue(exam);
             for (ExamOwner owner : exam.getOwners()) {
                 List<CSVField> fields = new ArrayList<CSVField>();
                 fields.add(new CSVField(owner.getName()));

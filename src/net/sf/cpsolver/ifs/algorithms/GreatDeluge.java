@@ -2,6 +2,7 @@ package net.sf.cpsolver.ifs.algorithms;
 
 import java.text.DecimalFormat;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Neighbour;
@@ -39,7 +40,7 @@ import net.sf.cpsolver.ifs.util.JProf;
  * Selector RandomSwapMove is 10&times; less probable to be selected than other selectors.
  * When GreatDeluge.Random is true, all selectors are selected with the same probability, ignoring these weights.
  * <br><br>
- * When GreatDeluge.Update is true, {@link NeighbourSelector#update(Neighbour, long)} is called 
+ * When GreatDeluge.Update is true, {@link NeighbourSelector#update(Assignment, Neighbour, long)} is called 
  * after each iteration (on the selector that was used) and roulette wheel selection 
  * that is using {@link NeighbourSelector#getPoints()} is used to pick a selector in each iteration. 
  * See {@link NeighbourSelector} for more details. 
@@ -67,16 +68,9 @@ import net.sf.cpsolver.ifs.util.JProf;
 public class GreatDeluge<V extends Variable<V, T>, T extends Value<V, T>> extends NeighbourSearch<V, T> {
     private DecimalFormat sDF2 = new DecimalFormat("0.00");
     private DecimalFormat sDF5 = new DecimalFormat("0.00000");
-    private double iBound = 0.0;
     private double iCoolRate = 0.9999999;
-    private double iUpperBound;
     private double iUpperBoundRate = 1.05;
     private double iLowerBoundRate = 0.95;
-    private int iMoves = 0;
-    private int iAcceptedMoves = 0;
-    private int iNrIdle = 0;
-    private long iLastImprovingIter = 0;
-    private double iBestValue = 0;
 
     /**
      * Constructor. Following problem properties are considered:
@@ -100,71 +94,87 @@ public class GreatDeluge<V extends Variable<V, T>, T extends Value<V, T>> extend
         iLowerBoundRate = properties.getPropertyDouble(getParameterBaseName() + ".LowerBoundRate", iLowerBoundRate);
     }
 
-    /** Accept the given neighbour if it does not worsen the current solution or when the new solution is below the bound */
-    @Override
-    protected boolean accept(Model<V, T> model, Neighbour<V, T> neighbour, double value, boolean lazy) {
-        iMoves ++;
-        if (value <= 0.0 || (lazy ? model.getTotalValue() : value + model.getTotalValue()) < iBound) {
-            iAcceptedMoves ++;
-            return true;
-        }
-        return false;
-    }
-    
-    /** Setup the bound */
-    @Override
-    protected void activate(Solution<V, T> solution) {
-        super.activate(solution);
-        iNrIdle = 0;
-        iLastImprovingIter = 0;
-        iBound = (solution.getBestValue() > 0.0 ? iUpperBoundRate * solution.getBestValue() : solution.getBestValue() / iUpperBoundRate);
-        iUpperBound = iBound;
-    }
-    
-    /** Increment iteration count, update bound */
-    @Override
-    protected void incIteration(Solution<V, T> solution) {
-        super.incIteration(solution);
-        if (solution.getBestValue() >= 0.0)
-            iBound *= iCoolRate;
-        else
-            iBound /= iCoolRate;
-        if (iIter % 10000 == 0) {
-            iLog.info("Iter=" + iIter / 1000 + "k, NonImpIter=" + sDF2.format((iIter - iLastImprovingIter) / 1000.0)
-                    + "k, Speed=" + sDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s");
-            iLog.info("Bound is " + sDF2.format(iBound) + ", " + "best value is " + sDF2.format(solution.getBestValue())
-                    + " (" + sDF2.format(100.0 * iBound / solution.getBestValue()) + "%), " + "current value is "
-                    + sDF2.format(solution.getModel().getTotalValue()) + " ("
-                    + sDF2.format(100.0 * iBound / solution.getModel().getTotalValue()) + "%), " + "#idle=" + iNrIdle
-                    + ", " + "Pacc=" + sDF5.format(100.0 * iAcceptedMoves / iMoves) + "%");
-            logNeibourStatus();
-            iAcceptedMoves = iMoves = 0;
-        }
-        double lowerBound = (solution.getBestValue() >= 0.0
-                ? Math.pow(iLowerBoundRate, 1 + iNrIdle) * solution.getBestValue()
-                : solution.getBestValue() / Math.pow(iLowerBoundRate, 1 + iNrIdle));
-        if (iBound < lowerBound) {
-            iNrIdle++;
-            iBound = Math.max(solution.getBestValue() + 2.0,(solution.getBestValue() >= 0.0 ?
-                    Math.pow(iUpperBoundRate, iNrIdle) * solution.getBestValue() :
-                    solution.getBestValue() / Math.pow(iUpperBoundRate, iNrIdle)));
-            iUpperBound = iBound;
-            iProgress.setPhase("Great Deluge [" + (1 + iNrIdle) + "]...");
-        }
-        iProgress.setProgress(100 - Math.round(100.0 * (iBound - lowerBound) / (iUpperBound - lowerBound)));
-        iMoves++;
-    }
-    
-    /** Update last improving iteration count */
-    @Override
-    public void bestSaved(Solution<V, T> solution) {
-        if (Math.abs(iBestValue - solution.getBestValue()) >= 1.0) {
-            iLastImprovingIter = iIter;
-            iNrIdle = 0;
-            iBestValue = solution.getBestValue();
-        }
-    }
-
     @Override
     public String getParameterBaseName() { return "GreatDeluge"; }
+    
+    @Override
+    public NeighbourSearchContext createAssignmentContext(Assignment<V, T> assignment) {
+        return new GreatDelugeContext();
+    }
+    
+    public class GreatDelugeContext extends NeighbourSearchContext {
+        private int iMoves = 0;
+        private int iAcceptedMoves = 0;
+        private int iNrIdle = 0;
+        private long iLastImprovingIter = 0;
+        private double iBestValue = 0;
+        private double iBound = 0.0;
+        private double iUpperBound;
+
+        /** Accept the given neighbour if it does not worsen the current solution or when the new solution is below the bound */
+        @Override
+        protected boolean accept(Assignment<V, T> assignment, Model<V, T> model, Neighbour<V, T> neighbour, double value, boolean lazy) {
+            iMoves ++;
+            if (value <= 0.0 || (lazy ? model.getTotalValue(assignment) : value + model.getTotalValue(assignment)) < iBound) {
+                iAcceptedMoves ++;
+                return true;
+            }
+            return false;
+        }
+        
+        /** Setup the bound */
+        @Override
+        protected void activate(Solution<V, T> solution) {
+            super.activate(solution);
+            iNrIdle = 0;
+            iLastImprovingIter = 0;
+            iBound = (solution.getBestValue() > 0.0 ? iUpperBoundRate * solution.getBestValue() : solution.getBestValue() / iUpperBoundRate);
+            iUpperBound = iBound;
+        }
+        
+        /** Increment iteration count, update bound */
+        @Override
+        protected void incIteration(Solution<V, T> solution) {
+            super.incIteration(solution);
+            if (solution.getBestValue() >= 0.0)
+                iBound *= iCoolRate;
+            else
+                iBound /= iCoolRate;
+            if (iIter % 10000 == 0) {
+                info("Iter=" + iIter / 1000 + "k, NonImpIter=" + sDF2.format((iIter - iLastImprovingIter) / 1000.0)
+                        + "k, Speed=" + sDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s");
+                info("Bound is " + sDF2.format(iBound) + ", " + "best value is " + sDF2.format(solution.getBestValue())
+                        + " (" + sDF2.format(100.0 * iBound / solution.getBestValue()) + "%), " + "current value is "
+                        + sDF2.format(solution.getModel().getTotalValue(solution.getAssignment())) + " ("
+                        + sDF2.format(100.0 * iBound / solution.getModel().getTotalValue(solution.getAssignment())) + "%), " + "#idle=" + iNrIdle
+                        + ", " + "Pacc=" + sDF5.format(100.0 * iAcceptedMoves / iMoves) + "%");
+                logNeibourStatus();
+                iAcceptedMoves = iMoves = 0;
+            }
+            double lowerBound = (solution.getBestValue() >= 0.0
+                    ? Math.pow(iLowerBoundRate, 1 + iNrIdle) * solution.getBestValue()
+                    : solution.getBestValue() / Math.pow(iLowerBoundRate, 1 + iNrIdle));
+            if (iBound < lowerBound) {
+                iNrIdle++;
+                iBound = Math.max(solution.getBestValue() + 2.0,(solution.getBestValue() >= 0.0 ?
+                        Math.pow(iUpperBoundRate, iNrIdle) * solution.getBestValue() :
+                        solution.getBestValue() / Math.pow(iUpperBoundRate, iNrIdle)));
+                iUpperBound = iBound;
+                setProgressPhase("Great Deluge [" + (1 + iNrIdle) + "]...");
+            }
+            setProgress(100 - Math.round(100.0 * (iBound - lowerBound) / (iUpperBound - lowerBound)));
+            iMoves++;
+        }
+        
+        /** Update last improving iteration count */
+        @Override
+        public void bestSaved(Solution<V, T> solution) {
+            super.bestSaved(solution);
+            if (Math.abs(iBestValue - solution.getBestValue()) >= 1.0) {
+                iLastImprovingIter = iIter;
+                iNrIdle = 0;
+                iBestValue = solution.getBestValue();
+            }
+        }
+    }
 }

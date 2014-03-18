@@ -23,14 +23,19 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import net.sf.cpsolver.ifs.heuristics.BacktrackNeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solution.SolutionListener;
+import net.sf.cpsolver.ifs.solver.ParallelSolver;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.solver.SolverListener;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.JProf;
+import net.sf.cpsolver.ifs.util.Progress;
+import net.sf.cpsolver.ifs.util.ProgressWriter;
 import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.check.CourseLimitCheck;
 import net.sf.cpsolver.studentsct.check.InevitableStudentConflicts;
@@ -63,8 +68,11 @@ import net.sf.cpsolver.studentsct.report.DistanceConflictTable;
 import net.sf.cpsolver.studentsct.report.TimeOverlapConflictTable;
 import net.sf.cpsolver.studentsct.report.UnbalancedSectionsTable;
 
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
 import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
 import org.dom4j.Element;
@@ -221,19 +229,23 @@ public class Test {
     private static DecimalFormat sDF = new DecimalFormat("0.000");
 
     /** Load student sectioning model */
-    public static StudentSectioningModel loadModel(DataProperties cfg) {
+    public static Solution<Request, Enrollment> load(DataProperties cfg) {
         StudentSectioningModel model = null;
+        Assignment<Request, Enrollment> assignment = null;
         try {
             if (cfg.getProperty("Test.CombineStudents") == null) {
                 model = new StudentSectioningModel(cfg);
-                new StudentSectioningXMLLoader(model).load();
+                assignment = new DefaultSingleAssignment<Request, Enrollment>();
+                new StudentSectioningXMLLoader(model, assignment).load();
             } else {
-                model = combineStudents(cfg, new File(cfg.getProperty("Test.CombineStudentsLastLike", cfg.getProperty(
-                        "General.Input", "." + File.separator + "solution.xml"))), new File(cfg
-                        .getProperty("Test.CombineStudents")));
+                Solution<Request, Enrollment> solution = combineStudents(cfg,
+                        new File(cfg.getProperty("Test.CombineStudentsLastLike", cfg.getProperty("General.Input", "." + File.separator + "solution.xml"))),
+                        new File(cfg.getProperty("Test.CombineStudents")));
+                model = (StudentSectioningModel)solution.getModel();
+                assignment = solution.getAssignment();
             }
             if (cfg.getProperty("Test.ExtraStudents") != null) {
-                StudentSectioningXMLLoader extra = new StudentSectioningXMLLoader(model);
+                StudentSectioningXMLLoader extra = new StudentSectioningXMLLoader(model, assignment);
                 extra.setInputFile(new File(cfg.getProperty("Test.ExtraStudents")));
                 extra.setLoadOfferings(false);
                 extra.setLoadStudents(true);
@@ -264,44 +276,34 @@ public class Test {
                 cfg.getPropertyBoolean("Debug.BacktrackNeighbourSelection", false) ? Level.DEBUG : Level.INFO);
         if (cfg.getPropertyBoolean("Test.FixPriorities", false))
             fixPriorities(model);
-        return model;
+        return new Solution<Request, Enrollment>(model, assignment);
     }
 
     /** Batch sectioning test */
     public static Solution<Request, Enrollment> batchSectioning(DataProperties cfg) {
-        StudentSectioningModel model = loadModel(cfg);
-        if (model == null)
+        Solution<Request, Enrollment> solution = load(cfg);
+        if (solution == null)
             return null;
+        StudentSectioningModel model = (StudentSectioningModel)solution.getModel();
 
         if (cfg.getPropertyBoolean("Test.ComputeSectioningInfo", true))
             model.clearOnlineSectioningInfos();
+        
+        Progress.getInstance(model).addProgressListener(new ProgressWriter(System.out));
 
-        Solution<Request, Enrollment> solution = solveModel(model, cfg);
-
-        printInfo(solution, cfg.getPropertyBoolean("Test.CreateReports", true), cfg.getPropertyBoolean(
-                "Test.ComputeSectioningInfo", true), cfg.getPropertyBoolean("Test.RunChecks", true));
-
-        try {
-            Solver<Request, Enrollment> solver = new Solver<Request, Enrollment>(cfg);
-            solver.setInitalSolution(solution);
-            new StudentSectioningXMLSaver(solver).save(new File(new File(cfg.getProperty("General.Output", ".")),
-                    "solution.xml"));
-        } catch (Exception e) {
-            sLog.error("Unable to save solution, reason: " + e.getMessage(), e);
-        }
-
-        saveInfoToXML(solution, null, new File(new File(cfg.getProperty("General.Output", ".")), "info.xml"));
+        solve(solution, cfg);
 
         return solution;
     }
 
     /** Online sectioning test */
     public static Solution<Request, Enrollment> onlineSectioning(DataProperties cfg) throws Exception {
-        StudentSectioningModel model = loadModel(cfg);
-        if (model == null)
+        Solution<Request, Enrollment> solution = load(cfg);
+        if (solution == null)
             return null;
+        StudentSectioningModel model = (StudentSectioningModel)solution.getModel();
+        Assignment<Request, Enrollment> assignment = solution.getAssignment();
 
-        Solution<Request, Enrollment> solution = new Solution<Request, Enrollment>(model, 0, 0);
         solution.addSolutionListener(new TestSolutionListener());
         double startTime = JProf.currentTimeSec();
 
@@ -328,23 +330,24 @@ public class Test {
         List<Student> students = model.getStudents();
         try {
             @SuppressWarnings("rawtypes")
-            Class studentOrdClass = Class.forName(model.getProperties().getProperty("Test.StudentOrder",
-                    StudentRandomOrder.class.getName()));
+            Class studentOrdClass = Class.forName(model.getProperties().getProperty("Test.StudentOrder", StudentRandomOrder.class.getName()));
             @SuppressWarnings("unchecked")
-            StudentOrder studentOrd = (StudentOrder) studentOrdClass.getConstructor(
-                    new Class[] { DataProperties.class }).newInstance(new Object[] { model.getProperties() });
+            StudentOrder studentOrd = (StudentOrder) studentOrdClass.getConstructor(new Class[] { DataProperties.class }).newInstance(new Object[] { model.getProperties() });
             students = studentOrd.order(model.getStudents());
         } catch (Exception e) {
             sLog.error("Unable to reorder students, reason: " + e.getMessage(), e);
         }
+        
+        ShutdownHook hook = new ShutdownHook(solver);
+        Runtime.getRuntime().addShutdownHook(hook);
 
         for (Student student : students) {
-            if (student.nrAssignedRequests() > 0)
+            if (student.nrAssignedRequests(assignment) > 0)
                 continue; // skip students with assigned courses (i.e., students
                           // already assigned by a batch sectioning process)
             sLog.info("Sectioning student: " + student);
 
-            BranchBoundSelection.Selection selection = onlineSelection.getSelection(student);
+            BranchBoundSelection.Selection selection = onlineSelection.getSelection(assignment, student);
             BranchBoundNeighbour neighbour = selection.select();
             if (neighbour != null) {
                 StudentPreferencePenalties penalties = null;
@@ -358,7 +361,7 @@ public class Test {
                             chCourseRequests++;
                             int chChoicesThisRq = 0;
                             CourseRequest request = (CourseRequest) r;
-                            for (Enrollment x : request.getAvaiableEnrollments()) {
+                            for (Enrollment x : request.getAvaiableEnrollments(assignment)) {
                                 nrEnrollments++;
                                 if (epsSelection.isAllowed(i, x)) {
                                     nrChoices++;
@@ -385,15 +388,14 @@ public class Test {
                     Enrollment enrollment = neighbour.getAssignment()[i];
                     if (enrollment.getRequest() instanceof CourseRequest) {
                         CourseRequest request = (CourseRequest) enrollment.getRequest();
-                        double[] avEnrlMinMax = getMinMaxAvailableEnrollmentPenalty(request);
+                        double[] avEnrlMinMax = getMinMaxAvailableEnrollmentPenalty(assignment, request);
                         minAvEnrlPenalty += avEnrlMinMax[0];
                         maxAvEnrlPenalty += avEnrlMinMax[1];
                         totalPenalty += enrollment.getPenalty();
                         minPenalty += request.getMinPenalty();
                         maxPenalty += request.getMaxPenalty();
                         if (penalties != null) {
-                            double[] avEnrlPrefMinMax = penalties.getMinMaxAvailableEnrollmentPenalty(enrollment
-                                    .getRequest());
+                            double[] avEnrlPrefMinMax = penalties.getMinMaxAvailableEnrollmentPenalty(assignment, enrollment.getRequest());
                             minAvEnrlPrefPenalty += avEnrlPrefMinMax[0];
                             maxAvEnrlPrefPenalty += avEnrlPrefMinMax[1];
                             totalPrefPenalty += penalties.getPenalty(enrollment);
@@ -402,9 +404,9 @@ public class Test {
                         }
                     }
                 }
-                neighbour.assign(solution.getIteration());
+                neighbour.assign(assignment, solution.getIteration());
                 sLog.info("Student " + student + " enrolls into " + neighbour);
-                onlineSelection.updateSpace(student);
+                onlineSelection.updateSpace(assignment, student);
             } else {
                 sLog.warn("No solution found.");
             }
@@ -416,49 +418,28 @@ public class Test {
 
         pw.flush();
         pw.close();
-
-        solution.saveBest();
-
-        printInfo(solution, cfg.getPropertyBoolean("Test.CreateReports", true), false, cfg.getPropertyBoolean(
-                "Test.RunChecks", true));
-
+        
         HashMap<String, String> extra = new HashMap<String, String>();
         sLog.info("Overall penalty is " + getPerc(totalPenalty, minPenalty, maxPenalty) + "% ("
                 + sDF.format(totalPenalty) + "/" + sDF.format(minPenalty) + ".." + sDF.format(maxPenalty) + ")");
         extra.put("Overall penalty", getPerc(totalPenalty, minPenalty, maxPenalty) + "% (" + sDF.format(totalPenalty)
                 + "/" + sDF.format(minPenalty) + ".." + sDF.format(maxPenalty) + ")");
         extra.put("Overall available enrollment penalty", getPerc(totalPenalty, minAvEnrlPenalty, maxAvEnrlPenalty)
-                + "% (" + sDF.format(totalPenalty) + "/" + sDF.format(minAvEnrlPenalty) + ".."
-                + sDF.format(maxAvEnrlPenalty) + ")");
+                + "% (" + sDF.format(totalPenalty) + "/" + sDF.format(minAvEnrlPenalty) + ".." + sDF.format(maxAvEnrlPenalty) + ")");
         if (onlineSelection.isUseStudentPrefPenalties()) {
             sLog.info("Overall preference penalty is " + getPerc(totalPrefPenalty, minPrefPenalty, maxPrefPenalty)
-                    + "% (" + sDF.format(totalPrefPenalty) + "/" + sDF.format(minPrefPenalty) + ".."
-                    + sDF.format(maxPrefPenalty) + ")");
+                    + "% (" + sDF.format(totalPrefPenalty) + "/" + sDF.format(minPrefPenalty) + ".." + sDF.format(maxPrefPenalty) + ")");
             extra.put("Overall preference penalty", getPerc(totalPrefPenalty, minPrefPenalty, maxPrefPenalty) + "% ("
-                    + sDF.format(totalPrefPenalty) + "/" + sDF.format(minPrefPenalty) + ".."
-                    + sDF.format(maxPrefPenalty) + ")");
+                    + sDF.format(totalPrefPenalty) + "/" + sDF.format(minPrefPenalty) + ".." + sDF.format(maxPrefPenalty) + ")");
             extra.put("Overall preference available enrollment penalty", getPerc(totalPrefPenalty,
                     minAvEnrlPrefPenalty, maxAvEnrlPrefPenalty)
-                    + "% ("
-                    + sDF.format(totalPrefPenalty)
-                    + "/"
-                    + sDF.format(minAvEnrlPrefPenalty)
-                    + ".."
-                    + sDF.format(maxAvEnrlPrefPenalty) + ")");
+                    + "% (" + sDF.format(totalPrefPenalty) + "/" + sDF.format(minAvEnrlPrefPenalty) + ".." + sDF.format(maxAvEnrlPrefPenalty) + ")");
             extra.put("Average number of choices", sDF.format(((double) nrChoices) / nrCourseRequests) + " ("
                     + nrChoices + "/" + nrCourseRequests + ")");
             extra.put("Average number of enrollments", sDF.format(((double) nrEnrollments) / nrCourseRequests) + " ("
                     + nrEnrollments + "/" + nrCourseRequests + ")");
         }
-
-        try {
-            new StudentSectioningXMLSaver(solver).save(new File(new File(cfg.getProperty("General.Output", ".")),
-                    "solution.xml"));
-        } catch (Exception e) {
-            sLog.error("Unable to save solution, reason: " + e.getMessage(), e);
-        }
-
-        saveInfoToXML(solution, extra, new File(new File(cfg.getProperty("General.Output", ".")), "info.xml"));
+        hook.setExtra(extra);
 
         return solution;
     }
@@ -484,8 +465,8 @@ public class Test {
      * Minimum and maximum available enrollment penalty, i.e.,
      * {@link Enrollment#getPenalty()} of all available enrollments
      */
-    public static double[] getMinMaxAvailableEnrollmentPenalty(CourseRequest request) {
-        List<Enrollment> enrollments = request.getAvaiableEnrollments();
+    public static double[] getMinMaxAvailableEnrollmentPenalty(Assignment<Request, Enrollment> assignment, CourseRequest request) {
+        List<Enrollment> enrollments = request.getAvaiableEnrollments(assignment);
         if (enrollments.isEmpty())
             return new double[] { 0, 0 };
         double min = Double.MAX_VALUE, max = Double.MIN_VALUE;
@@ -525,47 +506,46 @@ public class Test {
      * @param computeSectInfos
      *            true, if online sectioning infou is to be computed as well
      *            (see
-     *            {@link StudentSectioningModel#computeOnlineSectioningInfos()})
+     *            {@link StudentSectioningModel#computeOnlineSectioningInfos(Assignment)})
      * @param runChecks
      *            true, if checks {@link OverlapCheck} and
      *            {@link SectionLimitCheck} are to be performed as well
      */
-    public static void printInfo(Solution<Request, Enrollment> solution, boolean computeTables,
-            boolean computeSectInfos, boolean runChecks) {
+    public static void printInfo(Solution<Request, Enrollment> solution, boolean computeTables, boolean computeSectInfos, boolean runChecks) {
         StudentSectioningModel model = (StudentSectioningModel) solution.getModel();
 
         if (computeTables) {
-            if (solution.getModel().assignedVariables().size() > 0) {
+            if (solution.getModel().assignedVariables(solution.getAssignment()).size() > 0) {
                 try {
                     File outDir = new File(model.getProperties().getProperty("General.Output", "."));
                     outDir.mkdirs();
                     CourseConflictTable cct = new CourseConflictTable((StudentSectioningModel) solution.getModel());
-                    cct.createTable(true, false).save(new File(outDir, "conflicts-lastlike.csv"));
-                    cct.createTable(false, true).save(new File(outDir, "conflicts-real.csv"));
+                    cct.createTable(solution.getAssignment(), true, false).save(new File(outDir, "conflicts-lastlike.csv"));
+                    cct.createTable(solution.getAssignment(), false, true).save(new File(outDir, "conflicts-real.csv"));
 
                     DistanceConflictTable dct = new DistanceConflictTable((StudentSectioningModel) solution.getModel());
-                    dct.createTable(true, false).save(new File(outDir, "distances-lastlike.csv"));
-                    dct.createTable(false, true).save(new File(outDir, "distances-real.csv"));
+                    dct.createTable(solution.getAssignment(), true, false).save(new File(outDir, "distances-lastlike.csv"));
+                    dct.createTable(solution.getAssignment(), false, true).save(new File(outDir, "distances-real.csv"));
                     
                     SectionConflictTable sct = new SectionConflictTable((StudentSectioningModel) solution.getModel(), SectionConflictTable.Type.OVERLAPS);
-                    sct.createTable(true, false).save(new File(outDir, "time-conflicts-lastlike.csv"));
-                    sct.createTable(false, true).save(new File(outDir, "time-conflicts-real.csv"));
+                    sct.createTable(solution.getAssignment(), true, false).save(new File(outDir, "time-conflicts-lastlike.csv"));
+                    sct.createTable(solution.getAssignment(), false, true).save(new File(outDir, "time-conflicts-real.csv"));
                     
                     SectionConflictTable ust = new SectionConflictTable((StudentSectioningModel) solution.getModel(), SectionConflictTable.Type.UNAVAILABILITIES);
-                    ust.createTable(true, false).save(new File(outDir, "availability-conflicts-lastlike.csv"));
-                    ust.createTable(false, true).save(new File(outDir, "availability-conflicts-real.csv"));
+                    ust.createTable(solution.getAssignment(), true, false).save(new File(outDir, "availability-conflicts-lastlike.csv"));
+                    ust.createTable(solution.getAssignment(), false, true).save(new File(outDir, "availability-conflicts-real.csv"));
                     
                     SectionConflictTable ct = new SectionConflictTable((StudentSectioningModel) solution.getModel(), SectionConflictTable.Type.OVERLAPS_AND_UNAVAILABILITIES);
-                    ct.createTable(true, false).save(new File(outDir, "section-conflicts-lastlike.csv"));
-                    ct.createTable(false, true).save(new File(outDir, "section-conflicts-real.csv"));
+                    ct.createTable(solution.getAssignment(), true, false).save(new File(outDir, "section-conflicts-lastlike.csv"));
+                    ct.createTable(solution.getAssignment(), false, true).save(new File(outDir, "section-conflicts-real.csv"));
                     
                     UnbalancedSectionsTable ubt = new UnbalancedSectionsTable((StudentSectioningModel) solution.getModel());
-                    ubt.createTable(true, false).save(new File(outDir, "unbalanced-lastlike.csv"));
-                    ubt.createTable(false, true).save(new File(outDir, "unbalanced-real.csv"));
+                    ubt.createTable(solution.getAssignment(), true, false).save(new File(outDir, "unbalanced-lastlike.csv"));
+                    ubt.createTable(solution.getAssignment(), false, true).save(new File(outDir, "unbalanced-real.csv"));
                     
                     TimeOverlapConflictTable toc = new TimeOverlapConflictTable((StudentSectioningModel) solution.getModel());
-                    toc.createTable(true, false).save(new File(outDir, "time-overlaps-lastlike.csv"));
-                    toc.createTable(false, true).save(new File(outDir, "time-overlaps-real.csv"));
+                    toc.createTable(solution.getAssignment(), true, false).save(new File(outDir, "time-overlaps-lastlike.csv"));
+                    toc.createTable(solution.getAssignment(), false, true).save(new File(outDir, "time-overlaps-real.csv"));
                 } catch (IOException e) {
                     sLog.error(e.getMessage(), e);
                 }
@@ -575,13 +555,13 @@ public class Test {
         }
 
         if (computeSectInfos)
-            model.computeOnlineSectioningInfos();
+            model.computeOnlineSectioningInfos(solution.getAssignment());
 
         if (runChecks) {
             try {
                 if (model.getProperties().getPropertyBoolean("Test.InevitableStudentConflictsCheck", false)) {
                     InevitableStudentConflicts ch = new InevitableStudentConflicts(model);
-                    if (!ch.check())
+                    if (!ch.check(solution.getAssignment()))
                         ch.getCSVFile().save(
                                 new File(new File(model.getProperties().getProperty("General.Output", ".")),
                                         "inevitable-conflicts.csv"));
@@ -589,8 +569,8 @@ public class Test {
             } catch (IOException e) {
                 sLog.error(e.getMessage(), e);
             }
-            new OverlapCheck(model).check();
-            new SectionLimitCheck(model).check();
+            new OverlapCheck(model).check(solution.getAssignment());
+            new SectionLimitCheck(model).check(solution.getAssignment());
             try {
                 CourseLimitCheck ch = new CourseLimitCheck(model);
                 if (!ch.check())
@@ -608,41 +588,43 @@ public class Test {
     }
 
     /** Solve the student sectioning problem using IFS solver */
-    public static Solution<Request, Enrollment> solveModel(StudentSectioningModel model, DataProperties cfg) {
-        Solver<Request, Enrollment> solver = new Solver<Request, Enrollment>(cfg);
-        Solution<Request, Enrollment> solution = new Solution<Request, Enrollment>(model, 0, 0);
+    public static Solution<Request, Enrollment> solve(Solution<Request, Enrollment> solution, DataProperties cfg) {
+        int nrSolvers = cfg.getPropertyInt("Parallel.NrSolvers", 1);
+        Solver<Request, Enrollment> solver = (nrSolvers == 1 ? new Solver<Request, Enrollment>(cfg) : new ParallelSolver<Request, Enrollment>(cfg));
         solver.setInitalSolution(solution);
         if (cfg.getPropertyBoolean("Test.Verbose", false)) {
             solver.addSolverListener(new SolverListener<Request, Enrollment>() {
                 @Override
-                public boolean variableSelected(long iteration, Request variable) {
+                public boolean variableSelected(Assignment<Request, Enrollment> assignment, long iteration, Request variable) {
                     return true;
                 }
 
                 @Override
-                public boolean valueSelected(long iteration, Request variable, Enrollment value) {
+                public boolean valueSelected(Assignment<Request, Enrollment> assignment, long iteration, Request variable, Enrollment value) {
                     return true;
                 }
 
                 @Override
-                public boolean neighbourSelected(long iteration, Neighbour<Request, Enrollment> neighbour) {
+                public boolean neighbourSelected(Assignment<Request, Enrollment> assignment, long iteration, Neighbour<Request, Enrollment> neighbour) {
                     sLog.debug("Select[" + iteration + "]: " + neighbour);
                     return true;
+                }
+
+                @Override
+                public void neighbourFailed(Assignment<Request, Enrollment> assignment, long iteration, Neighbour<Request, Enrollment> neighbour) {
+                    sLog.debug("Failed[" + iteration + "]: " + neighbour);
                 }
             });
         }
         solution.addSolutionListener(new TestSolutionListener());
+        
+        Runtime.getRuntime().addShutdownHook(new ShutdownHook(solver));
 
         solver.start();
         try {
             solver.getSolverThread().join();
         } catch (InterruptedException e) {
         }
-
-        solution = solver.lastSolution();
-        solution.restoreBest();
-
-        printInfo(solution, false, false, false);
 
         return solution;
     }
@@ -1060,7 +1042,7 @@ public class Test {
     }
 
     /** Save solution info as XML */
-    public static void saveInfoToXML(Solution<Request, Enrollment> solution, HashMap<String, String> extra, File file) {
+    public static void saveInfoToXML(Solution<Request, Enrollment> solution, Map<String, String> extra, File file) {
         FileOutputStream fos = null;
         try {
             Document document = DocumentHelper.createDocument();
@@ -1162,15 +1144,14 @@ public class Test {
     }
 
     /** Combine students from the provided two files */
-    public static StudentSectioningModel combineStudents(DataProperties cfg, File lastLikeStudentData,
-            File realStudentData) {
+    public static Solution<Request, Enrollment> combineStudents(DataProperties cfg, File lastLikeStudentData, File realStudentData) {
         try {
             RandomStudentFilter rnd = new RandomStudentFilter(1.0);
 
             StudentSectioningModel model = null;
+            Assignment<Request, Enrollment> assignment = new DefaultSingleAssignment<Request, Enrollment>();
 
-            for (StringTokenizer stk = new StringTokenizer(cfg.getProperty("Test.CombineAcceptProb", "1.0"), ","); stk
-                    .hasMoreTokens();) {
+            for (StringTokenizer stk = new StringTokenizer(cfg.getProperty("Test.CombineAcceptProb", "1.0"), ","); stk.hasMoreTokens();) {
                 double acceptProb = Double.parseDouble(stk.nextToken());
                 sLog.info("Test.CombineAcceptProb=" + acceptProb);
                 rnd.setProbability(acceptProb);
@@ -1179,17 +1160,17 @@ public class Test {
                         new FreshmanStudentFilter()), rnd, CombinedStudentFilter.OP_AND);
 
                 model = new StudentSectioningModel(cfg);
-                StudentSectioningXMLLoader loader = new StudentSectioningXMLLoader(model);
+                StudentSectioningXMLLoader loader = new StudentSectioningXMLLoader(model, assignment);
                 loader.setLoadStudents(false);
                 loader.load();
 
-                StudentSectioningXMLLoader lastLikeLoader = new StudentSectioningXMLLoader(model);
+                StudentSectioningXMLLoader lastLikeLoader = new StudentSectioningXMLLoader(model, assignment);
                 lastLikeLoader.setInputFile(lastLikeStudentData);
                 lastLikeLoader.setLoadOfferings(false);
                 lastLikeLoader.setLoadStudents(true);
                 lastLikeLoader.load();
 
-                StudentSectioningXMLLoader realLoader = new StudentSectioningXMLLoader(model);
+                StudentSectioningXMLLoader realLoader = new StudentSectioningXMLLoader(model, assignment);
                 realLoader.setInputFile(realStudentData);
                 realLoader.setLoadOfferings(false);
                 realLoader.setLoadStudents(true);
@@ -1207,11 +1188,32 @@ public class Test {
 
             }
 
-            return model;
+            return model == null ? null : new Solution<Request, Enrollment>(model, assignment);
 
         } catch (Exception e) {
             sLog.error("Unable to combine students, reason: " + e.getMessage(), e);
             return null;
+        }
+    }
+    
+    /**
+     * Setup log4j logging
+     * 
+     * @param logFile  log file
+     */
+    public static void setupLogging(File logFile) {
+        Logger root = Logger.getRootLogger();
+        ConsoleAppender console = new ConsoleAppender(new PatternLayout("[%t] %m%n"));
+        console.setThreshold(Level.INFO);
+        root.addAppender(console);
+        if (logFile != null) {
+            try {
+                FileAppender file = new FileAppender(new PatternLayout("%d{dd-MMM-yy HH:mm:ss.SSS} [%t] %-5p %c{2}> %m%n"), logFile.getPath(), false);
+                file.setThreshold(Level.DEBUG);
+                root.addAppender(file);
+            } catch (IOException e) {
+                sLog.fatal("Unable to configure logging, reason: " + e.getMessage(), e);
+            }
         }
     }
 
@@ -1245,19 +1247,17 @@ public class Test {
                 cfg.setProperty("General.Input", args[1]);
             }
 
+            File outDir = null;
             if (args.length >= 3) {
-                File logFile = new File(ToolBox.configureLogging(args[2] + File.separator
-                        + (sDateFormat.format(new Date())), cfg, false, false));
-                cfg.setProperty("General.Output", logFile.getParentFile().getAbsolutePath());
+                outDir = new File(args[2], sDateFormat.format(new Date()));
             } else if (cfg.getProperty("General.Output") != null) {
-                cfg.setProperty("General.Output", cfg.getProperty("General.Output", ".") + File.separator
-                        + (sDateFormat.format(new Date())));
-                ToolBox.configureLogging(cfg.getProperty("General.Output", "."), cfg, false, false);
+                outDir = new File(cfg.getProperty("General.Output", "."), sDateFormat.format(new Date()));
             } else {
-                ToolBox.configureLogging();
-                cfg.setProperty("General.Output", System.getProperty("user.home", ".") + File.separator
-                        + "Sectioning-Test" + File.separator + (sDateFormat.format(new Date())));
+                outDir = new File(System.getProperty("user.home", ".") + File.separator + "Sectioning-Test" + File.separator + (sDateFormat.format(new Date())));
             }
+            outDir.mkdirs();
+            setupLogging(new File(outDir, "debug.log"));
+            cfg.setProperty("General.Output", outDir.getAbsolutePath());
 
             if (args.length >= 4 && "online".equals(args[3])) {
                 onlineSectioning(cfg);
@@ -1293,9 +1293,9 @@ public class Test {
         public void solutionUpdated(Solution<Request, Enrollment> solution) {
             StudentSectioningModel m = (StudentSectioningModel) solution.getModel();
             if (m.getTimeOverlaps() != null && TimeOverlapsCounter.sDebug)
-                m.getTimeOverlaps().checkTotalNrConflicts();
+                m.getTimeOverlaps().checkTotalNrConflicts(solution.getAssignment());
             if (m.getDistanceConflict() != null && DistanceConflict.sDebug)
-                m.getDistanceConflict().checkAllConflicts();
+                m.getDistanceConflict().checkAllConflicts(solution.getAssignment());
         }
 
         @Override
@@ -1312,11 +1312,52 @@ public class Test {
 
         @Override
         public void bestSaved(Solution<Request, Enrollment> solution) {
-            sLog.debug("**BEST** " + solution.getModel().toString() + ", TM:" + sDF.format(solution.getTime() / 3600.0) + "h");
+            sLog.info("**BEST** " + ((StudentSectioningModel)solution.getModel()).toString(solution.getAssignment()) + ", TM:" + sDF.format(solution.getTime() / 3600.0) + "h" +
+                    (solution.getFailedIterations() > 0 ? ", F:" + sDF.format(100.0 * solution.getFailedIterations() / solution.getIteration()) + "%" : ""));
         }
 
         @Override
         public void bestRestored(Solution<Request, Enrollment> solution) {
         }
     }
+    
+    private static class ShutdownHook extends Thread {
+        Solver<Request, Enrollment> iSolver = null;
+        Map<String, String> iExtra = null;
+
+        private ShutdownHook(Solver<Request, Enrollment> solver) {
+            setName("ShutdownHook");
+            iSolver = solver;
+        }
+        
+        void setExtra(Map<String, String> extra) { iExtra = extra; }
+        
+        @Override
+        public void run() {
+            try {
+                if (iSolver.isRunning()) iSolver.stopSolver();
+                Solution<Request, Enrollment> solution = iSolver.lastSolution();
+                solution.restoreBest();
+                DataProperties cfg = iSolver.getProperties();
+                
+                printInfo(solution,
+                        cfg.getPropertyBoolean("Test.CreateReports", true),
+                        cfg.getPropertyBoolean("Test.ComputeSectioningInfo", true),
+                        cfg.getPropertyBoolean("Test.RunChecks", true));
+
+                try {
+                    new StudentSectioningXMLSaver(iSolver).save(new File(new File(cfg.getProperty("General.Output", ".")), "solution.xml"));
+                } catch (Exception e) {
+                    sLog.error("Unable to save solution, reason: " + e.getMessage(), e);
+                }
+                
+                saveInfoToXML(solution, iExtra, new File(new File(cfg.getProperty("General.Output", ".")), "info.xml"));
+                
+                Progress.removeInstance(solution.getModel());
+            } catch (Throwable t) {
+                sLog.error("Test failed.", t);
+            }
+        }
+    }
+
 }

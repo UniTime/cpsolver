@@ -2,6 +2,7 @@ package net.sf.cpsolver.studentsct.constraint;
 
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.GlobalConstraint;
 import net.sf.cpsolver.studentsct.model.Config;
 import net.sf.cpsolver.studentsct.model.Enrollment;
@@ -43,8 +44,8 @@ public class RequiredReservation extends GlobalConstraint<Request, Enrollment> {
      * @param conflicts all computed conflicting requests are added into this set
      */
     @Override
-    public void computeConflicts(Enrollment enrollment, Set<Enrollment> conflicts) {
-        if (inConflict(enrollment))
+    public void computeConflicts(Assignment<Request, Enrollment> assignment, Enrollment enrollment, Set<Enrollment> conflicts) {
+        if (inConflict(assignment, enrollment))
             conflicts.add(enrollment);
     }
     
@@ -56,7 +57,7 @@ public class RequiredReservation extends GlobalConstraint<Request, Enrollment> {
      * @return true, if the enrollment does not follow a reservation that must be used 
      */
     @Override
-    public boolean inConflict(Enrollment enrollment) {
+    public boolean inConflict(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
         // enrollment's config
         Config config = enrollment.getConfig();
 

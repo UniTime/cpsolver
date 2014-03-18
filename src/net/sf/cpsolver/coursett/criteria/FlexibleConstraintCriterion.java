@@ -11,6 +11,7 @@ import net.sf.cpsolver.coursett.constraint.FlexibleConstraint.FlexibleConstraint
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimetableModel;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.solver.Solver;
 
 /**
@@ -58,7 +59,7 @@ public class FlexibleConstraintCriterion extends TimetablingCriterion  {
     }
     
     @Override
-    public void getInfo(Map<String, String> info) {
+    public void getInfo(Assignment<Lecture, Placement> assignment, Map<String, String> info) {
         TimetableModel m = (TimetableModel)getModel();
         if (m.getFlexibleConstraints().isEmpty()) return;
         
@@ -69,13 +70,13 @@ public class FlexibleConstraintCriterion extends TimetablingCriterion  {
             for (FlexibleConstraint c : m.getFlexibleConstraints()) {
                 if (type.equals(c.getType())) {
                     constraints ++;
-                    if (!c.isConsistent(null, null)) {
+                    if (c.getContext(assignment).getPreference() > 0) {
                         violated++;
                         if (iDebug) {
                             if (debug == null)
-                                debug = new StringBuilder(c.getOwner() + " (" + sDoubleFormat.format(c.getNrViolations(new HashSet<Placement>(), null)) + ")");
+                                debug = new StringBuilder(c.getOwner() + " (" + sDoubleFormat.format(c.getNrViolations(assignment, new HashSet<Placement>(), null)) + ")");
                             else
-                                debug.append("; " + c.getOwner() + " (" + sDoubleFormat.format(c.getNrViolations(new HashSet<Placement>(), null)) + ")");
+                                debug.append("; " + c.getOwner() + " (" + sDoubleFormat.format(c.getNrViolations(assignment, new HashSet<Placement>(), null)) + ")");
                         }
                     }
                 }
@@ -89,7 +90,7 @@ public class FlexibleConstraintCriterion extends TimetablingCriterion  {
     }
     
     @Override
-    public void getInfo(Map<String, String> info, Collection<Lecture> variables) {
+    public void getInfo(Assignment<Lecture, Placement> assignment, Map<String, String> info, Collection<Lecture> variables) {
         for (FlexibleConstraintType type: FlexibleConstraintType.values()) {
             
             Set<FlexibleConstraint> constraints = new HashSet<FlexibleConstraint>();
@@ -103,7 +104,7 @@ public class FlexibleConstraintCriterion extends TimetablingCriterion  {
                 int violated = 0;
                 StringBuilder debug = null;
                 for (FlexibleConstraint c : constraints) {            
-                    if (!c.isConsistent(null, null)) {
+                    if (c.getContext(assignment).getPreference() > 0) {
                         violated++;
                         if (iDebug) {
                             if (debug == null)
@@ -120,30 +121,30 @@ public class FlexibleConstraintCriterion extends TimetablingCriterion  {
     }
     
     @Override
-    public double getValue(Collection<Lecture> variables) { 
+    public double getValue(Assignment<Lecture, Placement> assignment, Collection<Lecture> variables) { 
         Set<FlexibleConstraint> flexibleConstraints = new HashSet<FlexibleConstraint>();
         for (Lecture lecture: variables){
             flexibleConstraints.addAll(lecture.getFlexibleGroupConstraints());
         }
         int ret = 0;
         for (FlexibleConstraint gc: flexibleConstraints){
-            ret += gc.getCurrentPreference(null, null);
+            ret += gc.getContext(assignment).getPreference();
         }       
         return ret;
     }  
     
     @Override
-    public double getValue(Placement value, Set<Placement> conflicts) {
+    public double getValue(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
         HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
         assignments.put(value.variable(), value);      
         
         double ret = 0.0;        
         for (FlexibleConstraint gc : value.variable().getFlexibleGroupConstraints())
-            ret += gc.getCurrentPreference(conflicts, assignments);
+            ret += gc.getCurrentPreference(assignment, conflicts, assignments);
         
         assignments.put(value.variable(), null);
         for (FlexibleConstraint gc : value.variable().getFlexibleGroupConstraints())
-            ret -= gc.getCurrentPreference(conflicts, assignments);
+            ret -= gc.getCurrentPreference(assignment, conflicts, assignments);
         
         return ret;
     }   

@@ -9,12 +9,14 @@ import java.util.Set;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.TimeLocation;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.ToolBox;
 import net.sf.cpsolver.studentsct.extension.DistanceConflict;
 import net.sf.cpsolver.studentsct.extension.TimeOverlapsCounter;
-import net.sf.cpsolver.studentsct.model.Assignment;
+import net.sf.cpsolver.studentsct.model.SctAssignment;
 import net.sf.cpsolver.studentsct.model.Config;
 import net.sf.cpsolver.studentsct.model.Course;
 import net.sf.cpsolver.studentsct.model.CourseRequest;
@@ -127,20 +129,20 @@ public class PriorityStudentWeights implements StudentWeights {
     }
     
     @Override
-    public double getWeight(Enrollment enrollment) {
+    public double getWeight(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
         double weight = getCachedWeight(enrollment.getRequest());
         switch (enrollment.getPriority()) {
             case 1: weight *= iFirstAlternativeFactor; break;
             case 2: weight *= iSecondAlternativeFactor; break;
         }
         if (enrollment.isCourseRequest() && iBalancingFactor != 0.0) {
-            double configUsed = enrollment.getConfig().getEnrollmentWeight(enrollment.getRequest()) + enrollment.getRequest().getWeight();
+            double configUsed = enrollment.getConfig().getEnrollmentWeight(assignment, enrollment.getRequest()) + enrollment.getRequest().getWeight();
             double disbalanced = 0;
             double total = 0;
             for (Section section: enrollment.getSections()) {
                 Subpart subpart = section.getSubpart();
                 if (subpart.getSections().size() <= 1) continue;
-                double used = section.getEnrollmentWeight(enrollment.getRequest()) + enrollment.getRequest().getWeight();
+                double used = section.getEnrollmentWeight(assignment, enrollment.getRequest()) + enrollment.getRequest().getWeight();
                 // sections have limits -> desired size is section limit x (total enrollment / total limit)
                 // unlimited sections -> desired size is total enrollment / number of sections
                 double desired = (subpart.getLimit() > 0
@@ -159,23 +161,23 @@ public class PriorityStudentWeights implements StudentWeights {
     }
     
     @Override
-    public double getDistanceConflictWeight(DistanceConflict.Conflict c) {
+    public double getDistanceConflictWeight(Assignment<Request, Enrollment> assignment, DistanceConflict.Conflict c) {
         if (c.getR1().getPriority() < c.getR2().getPriority()) {
-            return round(getWeight(c.getE2()) * iDistanceConflict);
+            return round(getWeight(assignment, c.getE2()) * iDistanceConflict);
         } else {
-            return round(getWeight(c.getE1()) * iDistanceConflict);
+            return round(getWeight(assignment, c.getE1()) * iDistanceConflict);
         }
     }
     
     @Override
-    public double getTimeOverlapConflictWeight(Enrollment e, TimeOverlapsCounter.Conflict c) {
+    public double getTimeOverlapConflictWeight(Assignment<Request, Enrollment> assignment, Enrollment e, TimeOverlapsCounter.Conflict c) {
         double toc = Math.min(iTimeOverlapMaxLimit * c.getShare() / e.getNrSlots(), iTimeOverlapMaxLimit);
-        return round(getWeight(e) * toc);
+        return round(getWeight(assignment, e) * toc);
     }
     
     @Override
-    public double getWeight(Enrollment enrollment, Set<DistanceConflict.Conflict> distanceConflicts, Set<TimeOverlapsCounter.Conflict> timeOverlappingConflicts) {
-        double base = getWeight(enrollment);
+    public double getWeight(Assignment<Request, Enrollment> assignment, Enrollment enrollment, Set<DistanceConflict.Conflict> distanceConflicts, Set<TimeOverlapsCounter.Conflict> timeOverlappingConflicts) {
+        double base = getWeight(assignment, enrollment);
         double dc = 0.0;
         if (distanceConflicts != null) {
             for (DistanceConflict.Conflict c: distanceConflicts) {
@@ -183,7 +185,7 @@ public class PriorityStudentWeights implements StudentWeights {
                 if (other.getRequest().getPriority() <= enrollment.getRequest().getPriority())
                     dc += base * iDistanceConflict;
                 else
-                    dc += getWeight(other) * iDistanceConflict;
+                    dc += getWeight(assignment, other) * iDistanceConflict;
             }
         }
         double toc = 0.0;
@@ -191,7 +193,7 @@ public class PriorityStudentWeights implements StudentWeights {
             for (TimeOverlapsCounter.Conflict c: timeOverlappingConflicts) {
                 toc += base * Math.min(iTimeOverlapFactor * c.getShare() / enrollment.getNrSlots(), iTimeOverlapMaxLimit);
                 Enrollment other = (c.getE1().equals(enrollment) ? c.getE2() : c.getE1());
-                toc += getWeight(other) * Math.min(iTimeOverlapFactor * c.getShare() / other.getNrSlots(), iTimeOverlapMaxLimit);
+                toc += getWeight(assignment, other) * Math.min(iTimeOverlapFactor * c.getShare() / other.getNrSlots(), iTimeOverlapMaxLimit);
             }
         }
         return round(base - dc - toc);
@@ -200,7 +202,7 @@ public class PriorityStudentWeights implements StudentWeights {
     
     @Override
     public boolean isBetterThanBestSolution(Solution<Request, Enrollment> currentSolution) {
-        return currentSolution.getBestInfo() == null || currentSolution.getModel().getTotalValue() < currentSolution.getBestValue();
+        return currentSolution.getBestInfo() == null || currentSolution.getModel().getTotalValue(currentSolution.getAssignment()) < currentSolution.getBestValue();
     }
     
     @Override
@@ -244,16 +246,17 @@ public class PriorityStudentWeights implements StudentWeights {
                 new Course(1, "G", "2", new Offering(0, "G")),
                 new Course(1, "G", "3", new Offering(0, "G"))), false, null);
         
+        Assignment<Request, Enrollment> assignment = new DefaultSingleAssignment<Request, Enrollment>();
         Placement p = new Placement(null, new TimeLocation(1, 90, 12, 0, 0, null, null, new BitSet(), 10), new ArrayList<RoomLocation>());
         for (Request r: s.getRequests()) {
             CourseRequest cr = (CourseRequest)r;
             double[] w = new double[] {0.0, 0.0, 0.0};
             for (int i = 0; i < cr.getCourses().size(); i++) {
                 Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
-                Set<Assignment> sections = new HashSet<Assignment>();
+                Set<SctAssignment> sections = new HashSet<SctAssignment>();
                 sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
-                Enrollment e = new Enrollment(cr, i, cfg, sections);
-                w[i] = pw.getWeight(e, null, null);
+                Enrollment e = new Enrollment(cr, i, cfg, sections, assignment);
+                w[i] = pw.getWeight(assignment, e, null, null);
             }
             System.out.println(cr + ": " + df.format(w[0]) + "  " + df.format(w[1]) + "  " + df.format(w[2]));
         }
@@ -264,12 +267,12 @@ public class PriorityStudentWeights implements StudentWeights {
             double[] w = new double[] {0.0, 0.0, 0.0};
             for (int i = 0; i < cr.getCourses().size(); i++) {
                 Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
-                Set<Assignment> sections = new HashSet<Assignment>();
+                Set<SctAssignment> sections = new HashSet<SctAssignment>();
                 sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
-                Enrollment e = new Enrollment(cr, i, cfg, sections);
+                Enrollment e = new Enrollment(cr, i, cfg, sections, assignment);
                 Set<DistanceConflict.Conflict> dc = new HashSet<DistanceConflict.Conflict>();
                 dc.add(new DistanceConflict.Conflict(s, e, (Section)sections.iterator().next(), e, (Section)sections.iterator().next()));
-                w[i] = pw.getWeight(e, dc, null);
+                w[i] = pw.getWeight(assignment, e, dc, null);
             }
             System.out.println(cr + ": " + df.format(w[0]) + "  " + df.format(w[1]) + "  " + df.format(w[2]));
         }
@@ -280,14 +283,14 @@ public class PriorityStudentWeights implements StudentWeights {
             double[] w = new double[] {0.0, 0.0, 0.0};
             for (int i = 0; i < cr.getCourses().size(); i++) {
                 Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
-                Set<Assignment> sections = new HashSet<Assignment>();
+                Set<SctAssignment> sections = new HashSet<SctAssignment>();
                 sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
-                Enrollment e = new Enrollment(cr, i, cfg, sections);
+                Enrollment e = new Enrollment(cr, i, cfg, sections, assignment);
                 Set<DistanceConflict.Conflict> dc = new HashSet<DistanceConflict.Conflict>();
                 dc.add(new DistanceConflict.Conflict(s, e, (Section)sections.iterator().next(), e, (Section)sections.iterator().next()));
                 dc.add(new DistanceConflict.Conflict(s, e, (Section)sections.iterator().next(), e,
                         new Section(1, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null)));
-                w[i] = pw.getWeight(e, dc, null);
+                w[i] = pw.getWeight(assignment, e, dc, null);
             }
             System.out.println(cr + ": " + df.format(w[0]) + "  " + df.format(w[1]) + "  " + df.format(w[2]));
         }
@@ -298,12 +301,12 @@ public class PriorityStudentWeights implements StudentWeights {
             double[] w = new double[] {0.0, 0.0, 0.0};
             for (int i = 0; i < cr.getCourses().size(); i++) {
                 Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
-                Set<Assignment> sections = new HashSet<Assignment>();
+                Set<SctAssignment> sections = new HashSet<SctAssignment>();
                 sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
-                Enrollment e = new Enrollment(cr, i, cfg, sections);
+                Enrollment e = new Enrollment(cr, i, cfg, sections, assignment);
                 Set<TimeOverlapsCounter.Conflict> toc = new HashSet<TimeOverlapsCounter.Conflict>();
                 toc.add(new TimeOverlapsCounter.Conflict(s, 3, e, sections.iterator().next(), e, sections.iterator().next()));
-                w[i] = pw.getWeight(e, null, toc);
+                w[i] = pw.getWeight(assignment, e, null, toc);
             }
             System.out.println(cr + ": " + df.format(w[0]) + "  " + df.format(w[1]) + "  " + df.format(w[2]));
         }
@@ -314,17 +317,17 @@ public class PriorityStudentWeights implements StudentWeights {
             double[] w = new double[] {0.0, 0.0, 0.0};
             for (int i = 0; i < cr.getCourses().size(); i++) {
                 Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
-                Set<Assignment> sections = new HashSet<Assignment>();
+                Set<SctAssignment> sections = new HashSet<SctAssignment>();
                 Subpart x = new Subpart(0, "Lec", "Lec", cfg, null);
                 Section a = new Section(0, 10, "x", x, p, null, null, null);
                 new Section(1, 10, "y", x, p, null, null, null);
                 sections.add(a);
-                a.assigned(new Enrollment(s.getRequests().get(0), i, cfg, sections));
-                a.assigned(new Enrollment(s.getRequests().get(0), i, cfg, sections));
-                cfg.assigned(new Enrollment(s.getRequests().get(0), i, cfg, sections));
-                cfg.assigned(new Enrollment(s.getRequests().get(0), i, cfg, sections));
-                Enrollment e = new Enrollment(cr, i, cfg, sections);
-                w[i] = pw.getWeight(e, null, null);
+                a.assigned(assignment, new Enrollment(s.getRequests().get(0), i, cfg, sections, assignment));
+                a.assigned(assignment, new Enrollment(s.getRequests().get(0), i, cfg, sections, assignment));
+                cfg.getContext(assignment).assigned(assignment, new Enrollment(s.getRequests().get(0), i, cfg, sections, assignment));
+                cfg.getContext(assignment).assigned(assignment, new Enrollment(s.getRequests().get(0), i, cfg, sections, assignment));
+                Enrollment e = new Enrollment(cr, i, cfg, sections, assignment);
+                w[i] = pw.getWeight(assignment, e, null, null);
             }
             System.out.println(cr + ": " + df.format(w[0]) + "  " + df.format(w[1]) + "  " + df.format(w[2]));
         }

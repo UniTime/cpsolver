@@ -4,9 +4,12 @@ import java.util.Map;
 import java.util.Set;
 
 import net.sf.cpsolver.exam.model.Exam;
+import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamRoom;
 import net.sf.cpsolver.exam.model.ExamRoomPlacement;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
@@ -57,6 +60,12 @@ public class RoomSizePenalty extends ExamCriterion {
     }
     
     @Override
+    public void setModel(Model<Exam, ExamPlacement> model) {
+        super.setModel(model);
+        iRoomSizeFactor = ((ExamModel)model).getProperties().getPropertyDouble("Exams.RoomSizeFactor", 1.0);
+    }
+    
+    @Override
     public String getWeightName() {
         return "Exams.RoomSizeWeight";
     }
@@ -88,7 +97,7 @@ public class RoomSizePenalty extends ExamCriterion {
     }
     
     @Override
-    public double getValue(ExamPlacement value, Set<ExamPlacement> conflicts) {
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value, Set<ExamPlacement> conflicts) {
         Exam exam = value.variable();
         int size = 0;
         if (value.getRoomPlacements() != null)
@@ -100,15 +109,15 @@ public class RoomSizePenalty extends ExamCriterion {
     }
     
     @Override
-    public void getInfo(Map<String, String> info) {
-        if (getValue() != 0.0) {
-            info.put(getName(), sDoubleFormat.format(getValue() / getModel().nrAssignedVariables()));
+    public void getInfo(Assignment<Exam, ExamPlacement> assignment, Map<String, String> info) {
+        if (getValue(assignment) != 0.0) {
+            info.put(getName(), sDoubleFormat.format(getValue(assignment) / assignment.nrAssignedVariables()));
         }
     }
 
     @Override
-    public String toString() {
-        return "RSz:" + sDoubleFormat.format(getValue() / getModel().nrAssignedVariables());
+    public String toString(Assignment<Exam, ExamPlacement> assignment) {
+        return "RSz:" + sDoubleFormat.format(getValue(assignment) / assignment.nrAssignedVariables());
     }
 
     @Override

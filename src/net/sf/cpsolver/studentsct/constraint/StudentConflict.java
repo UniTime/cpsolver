@@ -2,6 +2,7 @@ package net.sf.cpsolver.studentsct.constraint;
 
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.studentsct.model.Enrollment;
 import net.sf.cpsolver.studentsct.model.Request;
@@ -58,27 +59,33 @@ public class StudentConflict extends Constraint<Request, Enrollment> {
      *            resultant list of conflicting enrollments
      */
     @Override
-    public void computeConflicts(Enrollment enrollment, Set<Enrollment> conflicts) {
+    public void computeConflicts(Assignment<Request, Enrollment> assignment, Enrollment enrollment, Set<Enrollment> conflicts) {
         // for all assigned course requests -> if overlapping with this
         // enrollment -> conflict
-        for (Request request : assignedVariables()) {
+        for (Request request : variables()) {
             if (request.equals(enrollment.getRequest()))
                 continue;
-            if (enrollment.isOverlapping(request.getAssignment()))
-                conflicts.add(request.getAssignment());
+            Enrollment e = assignment.getValue(request);
+            if (e == null)
+                continue;
+            if (enrollment.isOverlapping(e))
+                conflicts.add(e);
         }
 
         // if this enrollment cannot be assigned (student already has a full
         // schedule) -> unassignd a lowest priority request
-        if (!enrollment.getAssignments().isEmpty() && !enrollment.getStudent().canAssign(enrollment.getRequest())) {
+        if (!enrollment.getAssignments().isEmpty() && !enrollment.getStudent().canAssign(assignment, enrollment.getRequest())) {
             Enrollment lowestPriorityEnrollment = null;
             int lowestPriority = -1;
-            for (Request request : assignedVariables()) {
+            for (Request request : variables()) {
                 if (request.equals(enrollment.getRequest()))
+                    continue;
+                Enrollment e = assignment.getValue(request);
+                if (e == null)
                     continue;
                 if (lowestPriority < request.getPriority()) {
                     lowestPriority = request.getPriority();
-                    lowestPriorityEnrollment = request.getAssignment();
+                    lowestPriorityEnrollment = e;
                 }
             }
             if (lowestPriorityEnrollment != null)
@@ -105,19 +112,22 @@ public class StudentConflict extends Constraint<Request, Enrollment> {
      *         enrollment
      */
     @Override
-    public boolean inConflict(Enrollment enrollment) {
+    public boolean inConflict(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
         // for all assigned course requests -> if overlapping with this
         // enrollment -> conflict
-        for (Request request : assignedVariables()) {
+        for (Request request : variables()) {
             if (request.equals(enrollment.getRequest()))
                 continue;
-            if (enrollment.isOverlapping(request.getAssignment()))
+            Enrollment e = assignment.getValue(request);
+            if (e == null)
+                continue;
+            if (enrollment.isOverlapping(e))
                 return true;
         }
 
         // if this enrollment cannot be assigned (student already has a full
         // schedule) -> conflict
-        if (!enrollment.getStudent().canAssign(enrollment.getRequest()))
+        if (!enrollment.getStudent().canAssign(assignment, enrollment.getRequest()))
             return true;
 
         // nothing above -> no conflict

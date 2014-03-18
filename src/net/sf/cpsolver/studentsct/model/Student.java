@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.sf.cpsolver.coursett.model.TimeLocation;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.studentsct.constraint.LinkedSections;
 
 
@@ -111,15 +112,15 @@ public class Student implements Comparable<Student> {
      * number of requests assigned (i.e., number of non-alternative course
      * requests).
      **/
-    public boolean canAssign(Request request) {
-        if (request.isAssigned())
+    public boolean canAssign(Assignment<Request, Enrollment> assignment, Request request) {
+        if (request.isAssigned(assignment))
             return true;
         int alt = 0;
         boolean found = false;
         for (Request r : getRequests()) {
             if (r.equals(request))
                 found = true;
-            boolean assigned = (r.isAssigned() || r.equals(request));
+            boolean assigned = (r.isAssigned(assignment) || r.equals(request));
             boolean course = (r instanceof CourseRequest);
             boolean waitlist = (course && ((CourseRequest) r).isWaitlist());
             if (r.isAlternative()) {
@@ -137,7 +138,7 @@ public class Student implements Comparable<Student> {
      * True if the student has assigned the desired number of requests (i.e.,
      * number of non-alternative course requests).
      */
-    public boolean isComplete() {
+    public boolean isComplete(Assignment<Request, Enrollment> assignment) {
         int nrRequests = 0;
         int nrAssignedRequests = 0;
         for (Request r : getRequests()) {
@@ -145,19 +146,19 @@ public class Student implements Comparable<Student> {
                 continue; // ignore free times
             if (!r.isAlternative())
                 nrRequests++;
-            if (r.isAssigned())
+            if (r.isAssigned(assignment))
                 nrAssignedRequests++;
         }
         return nrAssignedRequests == nrRequests;
     }
 
     /** Number of assigned COURSE requests */
-    public int nrAssignedRequests() {
+    public int nrAssignedRequests(Assignment<Request, Enrollment> assignment) {
         int nrAssignedRequests = 0;
         for (Request r : getRequests()) {
             if (!(r instanceof CourseRequest))
                 continue; // ignore free times
-            if (r.isAssigned())
+            if (r.isAssigned(assignment))
                 nrAssignedRequests++;
         }
         return nrAssignedRequests;

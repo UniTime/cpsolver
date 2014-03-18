@@ -2,6 +2,7 @@ package net.sf.cpsolver.ifs.algorithms;
 
 import java.text.DecimalFormat;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.model.Value;
@@ -73,7 +74,7 @@ public class NeighbourSelector<V extends Variable<V, T>, T extends Value<V, T>> 
             long t0 = System.currentTimeMillis();
             Neighbour<V,T> n = iSelection.selectNeighbour(solution);
             long t1 = System.currentTimeMillis();
-            update(n, t1-t0);
+            update(solution.getAssignment(), n, t1-t0);
             return n;
         } else
             return iSelection.selectNeighbour(solution);
@@ -84,17 +85,18 @@ public class NeighbourSelector<V extends Variable<V, T>, T extends Value<V, T>> 
      * @param n generated move
      * @param time time needed to generate the move (in milliseconds)
      */
-    public void update(Neighbour<V,T> n, long time) {
+    public void update(Assignment<V, T> a, Neighbour<V,T> n, long time) {
         iNrCalls ++;
         iTime += time;
         if (n!=null) {
             iNrNotNull++;
-            if (n.value()==0) {
+            double val = n.value(a); 
+            if (val==0) {
                 iNrSideMoves++;
                 iPoints += 0.1;
-            } else if (n.value()<0) {
+            } else if (val<0) {
                 iNrImprovingMoves++;
-                iPoints -= n.value();
+                iPoints -= n.value(a);
             } else {
                 iPoints *= 0.9999;
             }
@@ -113,9 +115,9 @@ public class NeighbourSelector<V extends Variable<V, T>, T extends Value<V, T>> 
     public int nrCalls() { return iNrCalls; }
     /** Number of returned not-null moves */
     public int nrNotNull() { return iNrNotNull; }
-    /** Number of returned moves with zero improvement of the solution (i.e., {@link Neighbour#value()} = 0)*/
+    /** Number of returned moves with zero improvement of the solution (i.e., {@link Neighbour#value(Assignment)} = 0)*/
     public int nrSideMoves() { return iNrSideMoves; }
-    /** Number of returned improving moves (i.e., {@link Neighbour#value()} < 0)*/
+    /** Number of returned improving moves (i.e., {@link Neighbour#value(Assignment)} < 0)*/
     public int nrImprovingMoves() { return iNrImprovingMoves; }
     /** Total time spend in {@link NeighbourSelection#selectNeighbour(Solution)} (in milliseconds) */
     public long time() { return iTime; }

@@ -1,7 +1,10 @@
 package net.sf.cpsolver.studentsct.report;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.CSVFile;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.studentsct.model.Enrollment;
+import net.sf.cpsolver.studentsct.model.Request;
 
 /**
  * Simple interface for student sectioning reports.
@@ -34,5 +37,5 @@ import net.sf.cpsolver.ifs.util.DataProperties;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public interface StudentSectioningReport {
-    public CSVFile create(DataProperties properties);
+    public CSVFile create(Assignment<Request, Enrollment> assignment, DataProperties properties);
 }

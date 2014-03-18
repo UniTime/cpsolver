@@ -8,6 +8,7 @@ import net.sf.cpsolver.exam.model.ExamModel;
 import net.sf.cpsolver.exam.model.ExamPeriod;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamStudent;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
@@ -106,32 +107,59 @@ public class StudentDistanceBackToBackConflicts extends ExamCriterion {
     }
     
     @Override
-    public double getValue(ExamPlacement value, Set<ExamPlacement> conflicts) {
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value, Set<ExamPlacement> conflicts) {
         Exam exam = value.variable();
         if (getBackToBackDistance() < 0) return 0;
         int penalty = 0;
+        ExamPeriod period = value.getPeriod();
+        Map<ExamStudent, Set<Exam>> prev = (period.prev() != null && period.prev().getDay() == period.getDay() ? ((ExamModel)getModel()).getStudentsOfPeriod(assignment, period.prev()) : null);
+        Map<ExamStudent, Set<Exam>> next = (period.next() != null && period.next().getDay() == period.getDay() ? ((ExamModel)getModel()).getStudentsOfPeriod(assignment, period.next()) : null);
         for (ExamStudent s : exam.getStudents()) {
-            if (value.getPeriod().prev() != null) {
-                if (value.getPeriod().prev().getDay() == value.getPeriod().getDay()) {
-                    for (Exam x : s.getExams(value.getPeriod().prev())) {
+            if (prev != null) {
+                Set<Exam> exams = prev.get(s);
+                if (exams != null)
+                    for (Exam x : exams) {
                         if (x.equals(exam))
                             continue;
-                        if (value.getDistanceInMeters(x.getAssignment()) > getBackToBackDistance())
+                        if (value.getDistanceInMeters(assignment.getValue(x)) > getBackToBackDistance())
+                            penalty++;
+                    }
+            }
+            if (next != null) {
+                Set<Exam> exams = next.get(s);
+                if (exams != null)
+                    for (Exam x : exams) {
+                        if (x.equals(exam))
+                            continue;
+                        if (value.getDistanceInMeters(assignment.getValue(x)) > getBackToBackDistance())
+                            penalty++;
+                    }
+            }
+        }
+        /*
+        for (ExamStudent s : exam.getStudents()) {
+            if (period.prev() != null) {
+                if (period.prev().getDay() == period.getDay()) {
+                    for (Exam x : s.getExams(assignment, period.prev())) {
+                        if (x.equals(exam))
+                            continue;
+                        if (value.getDistanceInMeters(assignment.getValue(x)) > getBackToBackDistance())
                             penalty++;
                     }
                 }
             }
-            if (value.getPeriod().next() != null) {
-                if (value.getPeriod().next().getDay() == value.getPeriod().getDay()) {
-                    for (Exam x : s.getExams(value.getPeriod().next())) {
+            if (period.next() != null) {
+                if (period.next().getDay() == period.getDay()) {
+                    for (Exam x : s.getExams(assignment, period.next())) {
                         if (x.equals(exam))
                             continue;
-                        if (value.getDistanceInMeters(x.getAssignment()) > getBackToBackDistance())
+                        if (value.getDistanceInMeters(assignment.getValue(x)) > getBackToBackDistance())
                             penalty++;
                     }
                 }
             }
         }
+        */
         return penalty;
     }
     
@@ -141,14 +169,14 @@ public class StudentDistanceBackToBackConflicts extends ExamCriterion {
     }
     
     @Override
-    public void getInfo(Map<String, String> info) {
-        if (getBackToBackDistance() >= 0.0 && getValue() != 0.0)
-            info.put(getName(), sDoubleFormat.format(getValue()));
+    public void getInfo(Assignment<Exam, ExamPlacement> assignment, Map<String, String> info) {
+        if (getBackToBackDistance() >= 0.0 && getValue(assignment) != 0.0)
+            info.put(getName(), sDoubleFormat.format(getValue(assignment)));
     }
     
     @Override
-    public String toString() {
-        return (getValue() <= 0.0 ? "" : "BTBd:" + sDoubleFormat.format(getValue()));
+    public String toString(Assignment<Exam, ExamPlacement> assignment) {
+        return (getValue(assignment) <= 0.0 ? "" : "BTBd:" + sDoubleFormat.format(getValue(assignment)));
     }
 
     @Override

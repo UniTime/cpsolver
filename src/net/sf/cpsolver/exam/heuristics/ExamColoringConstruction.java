@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -15,6 +16,7 @@ import net.sf.cpsolver.exam.model.ExamPeriodPlacement;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamRoomPlacement;
 import net.sf.cpsolver.exam.model.ExamStudent;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
@@ -73,7 +75,6 @@ public class ExamColoringConstruction implements NeighbourSelection<Exam, ExamPl
     private double iT0;
     private double iTimeLimit = 300.0;
     private boolean iTimeLimitReached = false;
-    private Solution<Exam, ExamPlacement> iSolution = null;
     private Mode iMode = Mode.Full;
     private Solver<Exam, ExamPlacement> iSolver;
     
@@ -94,7 +95,8 @@ public class ExamColoringConstruction implements NeighbourSelection<Exam, ExamPl
         iMode = Mode.valueOf(config.getProperty("Exam.ColoringConstructionMode", iMode.name()));
     }
     
-    private boolean backTrack(int index, HashSet<Integer> colorsUsedSoFar, Collection<Vertex> vertices) {
+    private boolean backTrack(Solution<Exam, ExamPlacement> solution, int index, HashSet<Integer> colorsUsedSoFar, Collection<Vertex> vertices) {
+        Assignment<Exam, ExamPlacement> assignment = solution.getAssignment();
         if (iTimeLimitReached || iSolver.isStop()) return false;
         if (JProf.currentTimeSec() - iT0 > iTimeLimit) {
             iTimeLimitReached = true;
@@ -104,7 +106,7 @@ public class ExamColoringConstruction implements NeighbourSelection<Exam, ExamPl
         if (iProgress.getProgress() < index) {
             iProgress.setProgress(index);
             if (iMode.isConstraintCheck())
-                iSolution.saveBest();
+                solution.saveBest();
         }
         Vertex vertex = null;
         for (Vertex v: vertices) {
@@ -115,21 +117,21 @@ public class ExamColoringConstruction implements NeighbourSelection<Exam, ExamPl
         }
         if (colorsUsedSoFar != null) {
             for (int color: new TreeSet<Integer>(colorsUsedSoFar))
-                if (vertex.colorize(color) && backTrack(1 + index, colorsUsedSoFar, vertices)) return true;
+                if (vertex.colorize(assignment, color) && backTrack(solution, 1 + index, colorsUsedSoFar, vertices)) return true;
             for (int color: vertex.domain()) {
                 if (colorsUsedSoFar.contains(color)) continue;
-                if (vertex.colorize(color)) {
+                if (vertex.colorize(assignment, color)) {
                     colorsUsedSoFar.add(color);
-                    if (backTrack(1 + index, colorsUsedSoFar, vertices)) return true;
+                    if (backTrack(solution, 1 + index, colorsUsedSoFar, vertices)) return true;
                     colorsUsedSoFar.remove(color);
                 }
                 break;
             }
         } else {
             for (int color: vertex.domain())
-                if (vertex.colorize(color) && backTrack(1 + index, colorsUsedSoFar, vertices)) return true;
+                if (vertex.colorize(assignment, color) && backTrack(solution, 1 + index, colorsUsedSoFar, vertices)) return true;
         }
-        vertex.colorize(-1);
+        vertex.colorize(assignment, -1);
         return false;
     }
 
@@ -139,8 +141,8 @@ public class ExamColoringConstruction implements NeighbourSelection<Exam, ExamPl
         iSolver = solver;
     }
     
-    public Set<ExamRoomPlacement> findRooms(Exam exam, ExamPeriodPlacement period) {
-        Set<ExamRoomPlacement> rooms = exam.findBestAvailableRooms(period);
+    public Set<ExamRoomPlacement> findRooms(Assignment<Exam, ExamPlacement> assignment, Exam exam, ExamPeriodPlacement period) {
+        Set<ExamRoomPlacement> rooms = exam.findBestAvailableRooms(assignment, period);
         if (rooms != null) return rooms;
         
         rooms = new HashSet<ExamRoomPlacement>();
@@ -150,7 +152,7 @@ public class ExamColoringConstruction implements NeighbourSelection<Exam, ExamPl
             for (ExamRoomPlacement r: exam.getRoomPlacements()) {
                 if (!r.isAvailable(period.getPeriod())) continue;
                 if (rooms.contains(r)) continue;
-                if (!r.getRoom().getPlacements(period.getPeriod()).isEmpty()) continue;
+                if (!r.getRoom().getPlacements(assignment, period.getPeriod()).isEmpty()) continue;
                 int s = r.getSize(exam.hasAltSeating());
                 if (bestRoom == null || s > bestSize) {
                     bestRoom = r;
@@ -165,8 +167,7 @@ public class ExamColoringConstruction implements NeighbourSelection<Exam, ExamPl
     }
 
     @Override
-    public Neighbour<Exam, ExamPlacement> selectNeighbour(Solution<Exam, ExamPlacement> solution) {
-        iSolution = solution;
+    public Neighbour<Exam, ExamPlacement> selectNeighbour(final Solution<Exam, ExamPlacement> solution) {
         ExamModel model = (ExamModel)solution.getModel();
         // if (!model.assignedVariables().isEmpty()) return null;
         final HashMap<Exam, Vertex> vertices = new HashMap<Exam, Vertex>();
@@ -198,7 +199,7 @@ public class ExamColoringConstruction implements NeighbourSelection<Exam, ExamPl
         iT0 = JProf.currentTimeSec(); iTimeLimitReached = false;
         if (iMode.isGreedy()) {
             iProgress.info("Using greedy heuristics only (no backtracking)...");
-        } else if (backTrack(0, (iMode.isRedundant() ? null : new HashSet<Integer>()), vertices.values())) {
+        } else if (backTrack(solution, 0, (iMode.isRedundant() ? null : new HashSet<Integer>()), vertices.values())) {
             iProgress.info("Success!");
         } else if (iTimeLimitReached) {
             iProgress.info("There was no conflict-free schedule found during the given time.");
@@ -211,7 +212,7 @@ public class ExamColoringConstruction implements NeighbourSelection<Exam, ExamPl
                 iProgress.info("Conflict-free schedule not found.");
         }
         if (iMode.isConstraintCheck())
-            iSolution.restoreBest();
+            solution.restoreBest();
         HashSet<Vertex> remaning = new HashSet<Vertex>();
         for (Vertex v: vertices.values())
             if (v.color() < 0) remaning.add(v);
@@ -222,28 +223,28 @@ public class ExamColoringConstruction implements NeighbourSelection<Exam, ExamPl
                     vertex = v;
             remaning.remove(vertex);
             for (int color: vertex.domain())
-                if (vertex.colorize(color)) continue remaining;
+                if (vertex.colorize(solution.getAssignment(), color)) continue remaining;
         }
         if (!iMode.isConstraintCheck()) {
             return new Neighbour<Exam, ExamPlacement>() {
                 @Override
-                public void assign(long iteration) {
+                public void assign(Assignment<Exam, ExamPlacement> assignment, long iteration) {
                     iProgress.info("Using graph coloring solution ...");
                     for (Vertex vertex: new TreeSet<Vertex>(vertices.values())) {
                         ExamPeriodPlacement period = vertex.period();
-                        if (period == null || !vertex.exam().checkDistributionConstraints(period)) continue;
-                        Set<ExamRoomPlacement> rooms = findRooms(vertex.exam(), period);
+                        if (period == null || !vertex.exam().checkDistributionConstraints(assignment, period)) continue;
+                        Set<ExamRoomPlacement> rooms = findRooms(assignment, vertex.exam(), period);
                         if (rooms == null) continue;
-                        vertex.exam().assign(iteration, new ExamPlacement(vertex.exam(), period, rooms));
+                        assignment.assign(iteration, new ExamPlacement(vertex.exam(), period, rooms));
                     }
                     HashSet<Vertex> unassigned = new HashSet<Vertex>();
                     for (Vertex vertex: vertices.values()) {
-                        if (vertex.exam().getAssignment() == null) {
+                        if (assignment.getValue(vertex.exam()) == null) {
                             unassigned.add(vertex);
-                            vertex.colorize(-1);
+                            vertex.colorize(assignment, -1);
                         }
                     }
-                    iSolution.saveBest();
+                    solution.saveBest();
                     iProgress.info("Extending ...");
                     unassigned: while (!unassigned.isEmpty()) {
                         Vertex vertex = null;
@@ -252,22 +253,26 @@ public class ExamColoringConstruction implements NeighbourSelection<Exam, ExamPl
                                 vertex = v;
                         unassigned.remove(vertex);
                         for (int color: vertex.domain()) {
-                            if (!vertex.colorize(color)) continue;
+                            if (!vertex.colorize(assignment, color)) continue;
                             ExamPeriodPlacement period = vertex.period(color);
-                            if (period == null || !vertex.exam().checkDistributionConstraints(period)) continue;
-                            Set<ExamRoomPlacement> rooms = findRooms(vertex.exam(), period);
+                            if (period == null || !vertex.exam().checkDistributionConstraints(assignment, period)) continue;
+                            Set<ExamRoomPlacement> rooms = findRooms(assignment, vertex.exam(), period);
                             if (rooms == null) continue;
-                            vertex.exam().assign(iteration, new ExamPlacement(vertex.exam(), period, rooms));
+                            assignment.assign(iteration, new ExamPlacement(vertex.exam(), period, rooms));
                             continue unassigned;
                         }
-                        vertex.colorize(-1);
+                        vertex.colorize(assignment, -1);
                     }
-                    iSolution.saveBest();
+                    solution.saveBest();
                     iProgress.info("Construction done.");
                 }
                 @Override
-                public double value() {
+                public double value(Assignment<Exam, ExamPlacement> assignment) {
                     return 0;
+                }
+                @Override
+                public Map<Exam, ExamPlacement> assignments() {
+                    throw new UnsupportedOperationException();
                 }
             };
         }
@@ -319,7 +324,7 @@ public class ExamColoringConstruction implements NeighbourSelection<Exam, ExamPl
         
         public int color() { return iColor; }
         
-        public boolean colorize(int color) {
+        public boolean colorize(Assignment<Exam, ExamPlacement> assignment, int color) {
             if (iColor == color) return true;
             ExamPlacement placement = null;
             if (color >= 0) {
@@ -327,8 +332,8 @@ public class ExamColoringConstruction implements NeighbourSelection<Exam, ExamPl
                     return false;
                 if (iMode.isConstraintCheck()) {
                     ExamPeriodPlacement period = iDomain.get(color);
-                    if (!iExam.checkDistributionConstraints(period)) return false;
-                    Set<ExamRoomPlacement> rooms = findRooms(iExam, period);
+                    if (!iExam.checkDistributionConstraints(assignment, period)) return false;
+                    Set<ExamRoomPlacement> rooms = findRooms(assignment, iExam, period);
                     if (rooms == null) return false;
                     placement = new ExamPlacement(iExam, period, rooms);
                 }
@@ -349,9 +354,9 @@ public class ExamColoringConstruction implements NeighbourSelection<Exam, ExamPl
                 iColor = color;
                 if (iMode.isConstraintCheck()) {
                     if (placement != null)
-                        iExam.assign(0l, placement);
+                        assignment.assign(0l, placement);
                     else
-                        iExam.unassign(0l);
+                        assignment.unassign(0l, iExam);
                 }
             } else { // undo
                 for (Vertex v: neighbors()) {

@@ -7,6 +7,7 @@ import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
+import net.sf.cpsolver.ifs.util.ToolBox;
 
 /**
  * Selection of a variable for dynamic backtracking. <br>
@@ -65,17 +66,17 @@ public class DbtVariableSelection<V extends Variable<V, T>, T extends Value<V, T
      */
     @Override
     public V selectVariable(Solution<V, T> solution) {
-        if (solution.getModel().nrUnassignedVariables() == 0) {
+        if (solution.getAssignment().nrAssignedVariables() == solution.getModel().variables().size()) {
             return null;
         }
         if (iProp != null) {
-            for (V variable : solution.getModel().unassignedVariables()) {
-                if (iProp.goodValues(variable).isEmpty()) {
+            for (V variable : solution.getAssignment().unassignedVariables(solution.getModel())) {
+                if (iProp.goodValues(solution.getAssignment(), variable).isEmpty()) {
                     return variable;
                 }
             }
         }
-        return solution.getModel().unassignedVariables().iterator().next();
+        return ToolBox.random(solution.getAssignment().unassignedVariables(solution.getModel()));
     }
 
 }

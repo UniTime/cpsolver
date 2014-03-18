@@ -7,6 +7,7 @@ import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.RoomLocation;
 import net.sf.cpsolver.coursett.model.TimetableModel;
 import net.sf.cpsolver.ifs.algorithms.neighbourhoods.RandomMove;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.model.SimpleNeighbour;
 import net.sf.cpsolver.ifs.solution.Solution;
@@ -47,10 +48,11 @@ public class RoomChange extends RandomMove<Lecture, Placement> {
     @Override
     public Neighbour<Lecture, Placement> selectNeighbour(Solution<Lecture, Placement> solution) {
         TimetableModel model = (TimetableModel)solution.getModel();
+        Assignment<Lecture, Placement> assignment = solution.getAssignment();
         int varIdx = ToolBox.random(model.variables().size());
         for (int i = 0; i < model.variables().size(); i++) {
             Lecture lecture = model.variables().get((i + varIdx) % model.variables().size());
-            Placement old = lecture.getAssignment();
+            Placement old = assignment.getValue(lecture);
             if (old == null || old.getNrRooms() != 1) continue;
 
             List<RoomLocation> values = lecture.roomLocations();
@@ -63,9 +65,9 @@ public class RoomChange extends RandomMove<Lecture, Placement> {
                 if (room.equals(old.getRoomLocation())) continue;
                 
                 Placement placement = new Placement(lecture, old.getTimeLocation(), room);
-                if (placement.isValid() && !model.inConflict(placement)) {
+                if (placement.isValid() && !model.inConflict(assignment, placement)) {
                     SimpleNeighbour<Lecture, Placement> n = new SimpleNeighbour<Lecture, Placement>(lecture, placement);
-                    if (!iHC || n.value() <= 0) return n;
+                    if (!iHC || n.value(assignment) <= 0) return n;
                 }
             }
         }

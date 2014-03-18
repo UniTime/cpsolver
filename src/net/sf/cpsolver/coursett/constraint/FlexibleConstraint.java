@@ -14,7 +14,10 @@ import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.TimeLocation;
 import net.sf.cpsolver.coursett.model.TimetableModel;
-import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import net.sf.cpsolver.ifs.assignment.context.ConstraintWithContext;
+import net.sf.cpsolver.ifs.criteria.Criterion;
 
 /**
  * Flexible constraint. <br>
@@ -39,11 +42,10 @@ import net.sf.cpsolver.ifs.model.Constraint;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public abstract class FlexibleConstraint extends Constraint<Lecture, Placement> {
+public abstract class FlexibleConstraint extends ConstraintWithContext<Lecture, Placement, FlexibleConstraint.FlexibleConstraintContext> {
 
     private int iPreference;
     private boolean iIsRequired;   
-    private double iLastPreference;
     private String iOwner;
     
     // Constraint type
@@ -96,16 +98,13 @@ public abstract class FlexibleConstraint extends Constraint<Lecture, Placement> 
         }
     }
 
-    @Override
-    public abstract void computeConflicts(Placement value, Set<Placement> conflicts);  
-    
     /** 
      * 
      * @param conflicts conflicting placements to be unassigned
      * @param assignments assigned placements 
      * @return the number of violations of the constraint during days and all weeks of the semester
      */
-    public abstract double getNrViolations(Set<Placement> conflicts, HashMap<Lecture, Placement> assignments);
+    public abstract double getNrViolations(Assignment<Lecture, Placement> assignment, Set<Placement> conflicts, HashMap<Lecture, Placement> assignments);
     
     /**
      * 
@@ -154,7 +153,7 @@ public abstract class FlexibleConstraint extends Constraint<Lecture, Placement> 
         if (value2 != null)
             assignments.put(value2.variable(), value2);
         
-        if (getNrViolations(null, assignments) != 0) return false;
+        if (getNrViolations(null, null, assignments) != 0) return false;
 
         return super.isConsistent(value1, value2);
     }
@@ -172,7 +171,7 @@ public abstract class FlexibleConstraint extends Constraint<Lecture, Placement> 
      * @param week bitset representing a date pattern
      * @return placements of variables assigned to this constraint with assignment which satisfy conditions above
      */
-    protected Set<Placement> getRelevantPlacements(int dayCode, Set<Placement> conflicts, Placement value,
+    protected Set<Placement> getRelevantPlacements(Assignment<Lecture, Placement> assignment, int dayCode, Set<Placement> conflicts, Placement value,
             HashMap<Lecture, Placement> assignments, BitSet week) {
         Set<Placement> placements = new HashSet<Placement>();
         
@@ -182,24 +181,14 @@ public abstract class FlexibleConstraint extends Constraint<Lecture, Placement> 
 
             // lecture might not have assignment if it is present in assignments
             if (assignments != null && assignments.containsKey(lecture)) {
-                Placement p = assignments.get(lecture);
-                if (p != null) {
-                    TimeLocation t = p.getTimeLocation();
-                    if (shareWeeksAndDay(t, week, dayCode))
-                        placements.add(p);
-                }
-                continue;
+                Placement placement = assignments.get(lecture);
+                if (placement != null && shareWeeksAndDay(placement.getTimeLocation(), week, dayCode))
+                    placements.add(placement);
+            } else if (assignment != null) {
+                Placement placement = assignment.getValue(lecture);
+                if (placement != null && (conflicts == null || !conflicts.contains(placement)) && shareWeeksAndDay(placement.getTimeLocation(), week, dayCode))
+                    placements.add(placement);
             }
-            if (lecture.getAssignment() == null || lecture.getAssignment().getTimeLocation() == null)
-                continue;
-            if (conflicts != null && conflicts.contains(lecture.getAssignment()))
-                continue;
-
-            TimeLocation t = lecture.getAssignment().getTimeLocation();
-            if (t == null || !shareWeeksAndDay(t, week, dayCode))
-                continue;
-
-            placements.add(lecture.getAssignment());
         }
 
         if (value == null || (conflicts != null && conflicts.contains(value))) {
@@ -269,12 +258,6 @@ public abstract class FlexibleConstraint extends Constraint<Lecture, Placement> 
         return iConstraintType;
     }
     
-    @Override
-    public void assigned(long iteration, Placement value) {        
-        super.assigned(iteration, value);
-        updateCriterion();        
-    }    
-
     public String getReference() {        
         return iReference;
     }
@@ -292,20 +275,6 @@ public abstract class FlexibleConstraint extends Constraint<Lecture, Placement> 
     }
 
     /**
-     * Update value of FlexibleConstraintCriterion and number of violated FlexibleConstraints
-     */
-    private void updateCriterion() {
-        FlexibleConstraintCriterion pc = (FlexibleConstraintCriterion)getModel().getCriterion(FlexibleConstraintCriterion.class);
-        if (pc != null) {            
-            if (!isHard()){                
-                pc.inc(-iLastPreference);                
-                iLastPreference = getCurrentPreference(null, null);
-                pc.inc(iLastPreference);  
-            }   
-        }         
-    }
-    
-    /**
      * Return the current preference of the flexible constraint, considering conflicts and new assignments.
      * Used to compute value for flexible constraint criterion.
      * 
@@ -313,21 +282,15 @@ public abstract class FlexibleConstraint extends Constraint<Lecture, Placement> 
      * @param assignments
      * @return the current preference of the flexible constraint
      */
-    public double getCurrentPreference(Set<Placement> conflicts, HashMap<Lecture, Placement> assignments){
+    public double getCurrentPreference(Assignment<Lecture, Placement> assignment, Set<Placement> conflicts, HashMap<Lecture, Placement> assignments){
         if (isHard()) return 0;
-        double pref = getNrViolations(conflicts, assignments);
+        double pref = getNrViolations(assignment, conflicts, assignments);
         if(pref == 0){
             return - Math.abs(iPreference);
         }
         return Math.abs(iPreference) * pref;
     }
 
-    @Override
-    public void unassigned(long iteration, Placement value) {
-        super.unassigned(iteration, value);
-        updateCriterion();
-    }   
-    
     /**
      * A block is a list of placements sorted by startSlot, which are BTB.
      * maxSlotsBetweenBackToBack determines the number of free slots between two BTB placements
@@ -458,5 +421,46 @@ public abstract class FlexibleConstraint extends Constraint<Lecture, Placement> 
     @Override
     public String toString() {
         return getName();
+    }
+    
+    @Override
+    public FlexibleConstraintContext createAssignmentContext(Assignment<Lecture, Placement> assignment) {
+        return new FlexibleConstraintContext(assignment);
+    }
+    
+    public class FlexibleConstraintContext implements AssignmentConstraintContext<Lecture, Placement> {
+        private double iLastPreference = 0;
+        
+        FlexibleConstraintContext(Assignment<Lecture, Placement> assignment) {
+            updateCriterion(assignment);
+        }
+
+        @Override
+        public void assigned(Assignment<Lecture, Placement> assignment, Placement value) {
+            updateCriterion(assignment);
+        }
+
+        @Override
+        public void unassigned(Assignment<Lecture, Placement> assignment, Placement value) {
+            updateCriterion(assignment);
+        }
+
+        /**
+         * Update value of FlexibleConstraintCriterion and number of violated FlexibleConstraints
+         */
+        private void updateCriterion(Assignment<Lecture, Placement> assignment) {
+            if (!isHard()) {
+                Criterion<Lecture, Placement> criterion = getModel().getCriterion(FlexibleConstraintCriterion.class);
+                if (criterion != null) {
+                    criterion.inc(assignment, -iLastPreference);                
+                    iLastPreference = getCurrentPreference(assignment, null, null);
+                    criterion.inc(assignment, iLastPreference);  
+                }
+            }
+        }
+        
+        public double getPreference() {
+            return iLastPreference;
+        }
     }
 }

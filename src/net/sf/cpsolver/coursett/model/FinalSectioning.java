@@ -8,6 +8,7 @@ import java.util.Set;
 
 import net.sf.cpsolver.coursett.constraint.JenrlConstraint;
 import net.sf.cpsolver.coursett.criteria.StudentConflict;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.Progress;
 import net.sf.cpsolver.ifs.util.ToolBox;
 
@@ -59,7 +60,7 @@ import net.sf.cpsolver.ifs.util.ToolBox;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class FinalSectioning implements Runnable {
+public class FinalSectioning {
     private TimetableModel iModel = null;
     public static double sEps = 0.0001;
     private boolean iWeighStudents = false;
@@ -68,9 +69,8 @@ public class FinalSectioning implements Runnable {
         iModel = model;
         iWeighStudents = model.getProperties().getPropertyBoolean("General.WeightStudents", iWeighStudents);
     }
-
-    @Override
-    public void run() {
+    
+    public void execute(Assignment<Lecture, Placement> assignment) {
         Progress p = Progress.getInstance(iModel);
         p.setStatus("Student Sectioning...");
         Collection<Lecture> variables = new ArrayList<Lecture>(iModel.variables());
@@ -89,10 +89,10 @@ public class FinalSectioning implements Runnable {
                 if (lecture.getParent() == null) {
                     Configuration cfg = lecture.getConfiguration();
                     if (cfg != null && cfg.getAltConfigurations().size() > 1)
-                        findAndPerformMoves(cfg, lecturesToRecompute);
+                        findAndPerformMoves(assignment, cfg, lecturesToRecompute);
                 }
                 // sLogger.debug("Shifting students for "+lecture);
-                findAndPerformMoves(lecture, lecturesToRecompute);
+                findAndPerformMoves(assignment, lecture, lecturesToRecompute);
                 // sLogger.debug("Lectures to recompute: "+lects);
                 p.incProgress();
             }
@@ -111,13 +111,13 @@ public class FinalSectioning implements Runnable {
      * @param configAsWell
      *            resection students between configurations as well
      **/
-    public void resection(Lecture lecture, boolean recursive, boolean configAsWell) {
+    public void resection(Assignment<Lecture, Placement> assignment, Lecture lecture, boolean recursive, boolean configAsWell) {
         HashSet<Lecture> variables = new HashSet<Lecture>();
-        findAndPerformMoves(lecture, variables);
+        findAndPerformMoves(assignment, lecture, variables);
         if (configAsWell) {
             Configuration cfg = lecture.getConfiguration();
             if (cfg != null && cfg.getAltConfigurations().size() > 1)
-                findAndPerformMoves(cfg, variables);
+                findAndPerformMoves(assignment, cfg, variables);
         }
         if (recursive) {
             while (!variables.isEmpty()) {
@@ -126,9 +126,9 @@ public class FinalSectioning implements Runnable {
                     if (configAsWell && l.getParent() == null) {
                         Configuration cfg = l.getConfiguration();
                         if (cfg != null && cfg.getAltConfigurations().size() > 1)
-                            findAndPerformMoves(cfg, lecturesToRecompute);
+                            findAndPerformMoves(assignment, cfg, lecturesToRecompute);
                     }
-                    findAndPerformMoves(l, lecturesToRecompute);
+                    findAndPerformMoves(assignment, l, lecturesToRecompute);
                 }
                 variables = lecturesToRecompute;
             }
@@ -139,48 +139,48 @@ public class FinalSectioning implements Runnable {
      * Swap students between this and the same lectures (lectures which differ
      * only in the section)
      */
-    public void findAndPerformMoves(Lecture lecture, HashSet<Lecture> lecturesToRecompute) {
-        if (lecture.sameSubpartLectures() == null || lecture.getAssignment() == null)
+    public void findAndPerformMoves(Assignment<Lecture, Placement> assignment, Lecture lecture, HashSet<Lecture> lecturesToRecompute) {
+        if (lecture.sameSubpartLectures() == null || assignment.getValue(lecture) == null)
             return;
 
         if (lecture.getClassLimitConstraint() != null) {
             while (lecture.nrWeightedStudents() > sEps + lecture.minClassLimit()) {
-                Move m = findAwayMove(lecture);
+                Move m = findAwayMove(assignment, lecture);
                 if (m == null)
                     break;
-                if (m.perform())
+                if (m.perform(assignment))
                     lecturesToRecompute.add(m.secondLecture());
             }
         } else if (!iWeighStudents) {
             while (true) {
-                Move m = findAwayMove(lecture);
+                Move m = findAwayMove(assignment, lecture);
                 if (m == null)
                     break;
-                if (m.perform())
+                if (m.perform(assignment))
                     lecturesToRecompute.add(m.secondLecture());
             }
         }
 
-        Set<Student> conflictStudents = lecture.conflictStudents();
+        Set<Student> conflictStudents = lecture.conflictStudents(assignment);
         if (conflictStudents == null || conflictStudents.isEmpty())
             return;
         // sLogger.debug("  conflicts:"+conflictStudents.size()+"/"+conflictStudents);
         // sLogger.debug("Solution before swap is "+iModel.getInfo()+".");
         if (lecture.sameSubpartLectures().size() > 1) {
             for (Student student : conflictStudents) {
-                if (lecture.getAssignment() == null)
+                if (assignment.getValue(lecture) == null)
                 	continue;
-                Move m = findMove(lecture, student);
+                Move m = findMove(assignment, lecture, student);
                 if (m != null) {
-                    if (m.perform())
+                    if (m.perform(assignment))
                         lecturesToRecompute.add(m.secondLecture());
                 }
             }
         } else {
             for (Student student : conflictStudents) {
-                for (Lecture anotherLecture : lecture.conflictLectures(student)) {
+                for (Lecture anotherLecture : lecture.conflictLectures(assignment, student)) {
                     if (anotherLecture.equals(lecture) || anotherLecture.sameSubpartLectures() == null
-                            || anotherLecture.getAssignment() == null
+                            || assignment.getValue(anotherLecture) == null
                             || anotherLecture.sameSubpartLectures().size() <= 1)
                         continue;
                     lecturesToRecompute.add(anotherLecture);
@@ -189,21 +189,21 @@ public class FinalSectioning implements Runnable {
         }
     }
 
-    public void findAndPerformMoves(Configuration configuration, HashSet<Lecture> lecturesToRecompute) {
+    public void findAndPerformMoves(Assignment<Lecture, Placement> assignment, Configuration configuration, HashSet<Lecture> lecturesToRecompute) {
         for (Student student : configuration.students()) {
-            if (!configuration.hasConflict(student))
+            if (!configuration.hasConflict(assignment, student))
                 continue;
             
-            MoveBetweenCfgs m = findMove(configuration, student);
+            MoveBetweenCfgs m = findMove(assignment, configuration, student);
 
             if (m != null) {
-                if (m.perform())
+                if (m.perform(assignment))
                     lecturesToRecompute.addAll(m.secondLectures());
             }
         }
     }
 
-    public Move findAwayMove(Lecture lecture) {
+    public Move findAwayMove(Assignment<Lecture, Placement> assignment, Lecture lecture) {
         List<Move> bestMoves = null;
         double bestDelta = 0;
         for (Student student : lecture.students()) {
@@ -213,13 +213,13 @@ public class FinalSectioning implements Runnable {
                 double studentWeight = student.getOfferingWeight(sameLecture.getConfiguration());
                 if (!student.canEnroll(sameLecture))
                     continue;
-                if (sameLecture.equals(lecture) || sameLecture.getAssignment() == null)
+                if (sameLecture.equals(lecture) || assignment.getValue(sameLecture) == null)
                     continue;
-                if (sameLecture.nrWeightedStudents() + studentWeight <= sEps + sameLecture.classLimit()) {
-                    Move m = createMove(lecture, student, sameLecture, null);
+                if (sameLecture.nrWeightedStudents() + studentWeight <= sEps + sameLecture.classLimit(assignment)) {
+                    Move m = createMove(assignment, lecture, student, sameLecture, null);
                     if (m == null || m.isTabu())
                         continue;
-                    double delta = m.getDelta();
+                    double delta = m.getDelta(assignment);
                     if (delta < bestDelta) {
                         if (bestMoves == null)
                             bestMoves = new ArrayList<Move>();
@@ -242,7 +242,7 @@ public class FinalSectioning implements Runnable {
         return null;
     }
 
-    public Move findMove(Lecture lecture, Student student) {
+    public Move findMove(Assignment<Lecture, Placement> assignment, Lecture lecture, Student student) {
         if (!student.canUnenroll(lecture)) return null;
         double bestDelta = 0;
         List<Move> bestMoves = null;
@@ -250,13 +250,13 @@ public class FinalSectioning implements Runnable {
         for (Lecture sameLecture : lecture.sameSubpartLectures()) { // sameStudentLectures
             if (!student.canEnroll(sameLecture))
                 continue;
-            if (sameLecture.equals(lecture) || sameLecture.getAssignment() == null)
+            if (sameLecture.equals(lecture) || assignment.getValue(sameLecture) == null)
                 continue;
-            if (sameLecture.nrWeightedStudents() + studentWeight <= sEps + sameLecture.classLimit()) {
-                Move m = createMove(lecture, student, sameLecture, null);
+            if (sameLecture.nrWeightedStudents() + studentWeight <= sEps + sameLecture.classLimit(assignment)) {
+                Move m = createMove(assignment, lecture, student, sameLecture, null);
                 if (m == null || m.isTabu())
                     continue;
-                double delta = m.getDelta();
+                double delta = m.getDelta(assignment);
                 if (delta < bestDelta) {
                     if (bestMoves == null)
                         bestMoves = new ArrayList<Move>();
@@ -276,18 +276,18 @@ public class FinalSectioning implements Runnable {
                 double anotherStudentWeight = anotherStudent.getOfferingWeight(lecture.getConfiguration());
                 if (anotherStudentWeight != studentWeight) {
                     if (sameLecture.nrWeightedStudents() - anotherStudentWeight + studentWeight > sEps
-                            + sameLecture.classLimit())
+                            + sameLecture.classLimit(assignment))
                         continue;
                     if (lecture.nrWeightedStudents() - studentWeight + anotherStudentWeight > sEps
-                            + lecture.classLimit())
+                            + lecture.classLimit(assignment))
                         continue;
                 }
                 if (bestDelta < -sEps && bestMoves != null && bestMoves.size() > 10)
                     break;
-                Move m = createMove(lecture, student, sameLecture, anotherStudent);
+                Move m = createMove(assignment, lecture, student, sameLecture, anotherStudent);
                 if (m == null || m.isTabu())
                     continue;
-                double delta = m.getDelta();
+                double delta = m.getDelta(assignment);
                 if (delta < bestDelta) {
                     if (bestMoves == null)
                         bestMoves = new ArrayList<Move>();
@@ -309,16 +309,16 @@ public class FinalSectioning implements Runnable {
         return null;
     }
 
-    public MoveBetweenCfgs findMove(Configuration config, Student student) {
+    public MoveBetweenCfgs findMove(Assignment<Lecture, Placement> assignment, Configuration config, Student student) {
         double bestDelta = 0;
         List<MoveBetweenCfgs> bestMoves = null;
         for (Configuration altConfig : config.getAltConfigurations()) {
             if (altConfig.equals(config))
                 continue;
 
-            MoveBetweenCfgs m = createMove(config, student, altConfig, null);
+            MoveBetweenCfgs m = createMove(assignment, config, student, altConfig, null);
             if (m != null && !m.isTabu()) {
-                double delta = m.getDelta();
+                double delta = m.getDelta(assignment);
                 if (delta < bestDelta) {
                     if (bestMoves == null)
                         bestMoves = new ArrayList<MoveBetweenCfgs>();
@@ -337,9 +337,9 @@ public class FinalSectioning implements Runnable {
                 if (bestDelta < -sEps && bestMoves != null && bestMoves.size() > 10)
                     break;
 
-                m = createMove(config, student, altConfig, anotherStudent);
+                m = createMove(assignment, config, student, altConfig, anotherStudent);
                 if (m != null && !m.isTabu()) {
-                    double delta = m.getDelta();
+                    double delta = m.getDelta(assignment);
                     if (delta < bestDelta) {
                         if (bestMoves == null)
                             bestMoves = new ArrayList<MoveBetweenCfgs>();
@@ -362,11 +362,11 @@ public class FinalSectioning implements Runnable {
         return null;
     }
     
-    public Move createMove(Lecture firstLecture, Student firstStudent, Lecture secondLecture, Student secondStudent) {
-        return createMove(firstLecture, firstStudent, secondLecture, secondStudent, null);
+    public Move createMove(Assignment<Lecture, Placement> assignment, Lecture firstLecture, Student firstStudent, Lecture secondLecture, Student secondStudent) {
+        return createMove(assignment, firstLecture, firstStudent, secondLecture, secondStudent, null);
     }
 
-    public Move createMove(Lecture firstLecture, Student firstStudent, Lecture secondLecture, Student secondStudent, Move parentMove) {
+    public Move createMove(Assignment<Lecture, Placement> assignment, Lecture firstLecture, Student firstStudent, Lecture secondLecture, Student secondStudent, Move parentMove) {
         if (!firstStudent.canUnenroll(firstLecture) || !firstStudent.canEnroll(secondLecture))
             return null;
         if (secondStudent != null && (!secondStudent.canUnenroll(secondLecture) || !secondStudent.canEnroll(firstLecture)))
@@ -383,13 +383,13 @@ public class FinalSectioning implements Runnable {
             while (l1.getParent() != null && l2.getParent() != null && !l1.getParent().equals(l2.getParent())) {
                 Lecture p1 = l1.getParent();
                 Lecture p2 = l2.getParent();
-                if (p1.getAssignment() == null || p2.getAssignment() == null) return null;
+                if (assignment.getValue(p1) == null || assignment.getValue(p2) == null) return null;
                 double w1 = firstStudent.getOfferingWeight(p1.getConfiguration());
                 double w2 = (secondStudent == null ? 0.0 : secondStudent.getOfferingWeight(p2.getConfiguration()));
                 if (w1 != w2) {
-                    if (p1.nrWeightedStudents() - w1 + w2 > sEps + p1.classLimit())
+                    if (p1.nrWeightedStudents() - w1 + w2 > sEps + p1.classLimit(assignment))
                         return null;
-                    if (p2.nrWeightedStudents() - w2 + w1 > sEps + p2.classLimit())
+                    if (p2.nrWeightedStudents() - w2 + w1 > sEps + p2.classLimit(assignment))
                         return null;
                 }
                 if (firstStudent.canUnenroll(p2) && firstStudent.canEnroll(p1) && (secondStudent == null || (secondStudent.canUnenroll(p1) && secondStudent.canEnroll(p2)))) {
@@ -414,14 +414,14 @@ public class FinalSectioning implements Runnable {
                     double secondStudentWeight = secondStudent.getOfferingWeight(secondChildLecture.getConfiguration());
                     if (firstStudentWeight != secondStudentWeight) {
                         if (firstChildLecture.nrWeightedStudents() - firstStudentWeight + secondStudentWeight > sEps
-                                + firstChildLecture.classLimit())
+                                + firstChildLecture.classLimit(assignment))
                             return null;
                         if (secondChildLecture.nrWeightedStudents() - secondStudentWeight + firstStudentWeight > sEps
-                                + secondChildLecture.classLimit())
+                                + secondChildLecture.classLimit(assignment))
                             return null;
                     }
-                    if (firstChildLecture.getAssignment() != null && secondChildLecture.getAssignment() != null) {
-                        Move m = createMove(firstChildLecture, firstStudent, secondChildLecture, secondStudent, move);
+                    if (assignment.getValue(firstChildLecture) != null && assignment.getValue(secondChildLecture) != null) {
+                        Move m = createMove(assignment, firstChildLecture, firstStudent, secondChildLecture, secondStudent, move);
                         if (m == null)
                             return null;
                         move.addChildMove(m);
@@ -431,7 +431,7 @@ public class FinalSectioning implements Runnable {
             } else {
                 for (Long subpartId: firstLecture.getChildrenSubpartIds()) {
                     Lecture firstChildLecture = firstLecture.getChild(firstStudent, subpartId);
-                    if (firstChildLecture == null || firstChildLecture.getAssignment() == null)
+                    if (firstChildLecture == null || assignment.getValue(firstChildLecture) == null)
                         return null;
                     double firstStudentWeight = firstStudent.getOfferingWeight(firstChildLecture.getConfiguration());
                     List<Lecture> secondChildLectures = secondLecture.getChildren(subpartId);
@@ -440,15 +440,15 @@ public class FinalSectioning implements Runnable {
                     List<Move> bestMoves = null;
                     double bestDelta = 0;
                     for (Lecture secondChildLecture : secondChildLectures) {
-                        if (secondChildLecture.getAssignment() == null)
+                        if (assignment.getValue(secondChildLecture) == null)
                             continue;
                         if (secondChildLecture.nrWeightedStudents() + firstStudentWeight > sEps
-                                + secondChildLecture.classLimit())
+                                + secondChildLecture.classLimit(assignment))
                             continue;
-                        Move m = createMove(firstChildLecture, firstStudent, secondChildLecture, secondStudent, move);
+                        Move m = createMove(assignment, firstChildLecture, firstStudent, secondChildLecture, secondStudent, move);
                         if (m == null)
                             continue;
-                        double delta = m.getDelta();
+                        double delta = m.getDelta(assignment);
                         if (bestMoves == null || delta < bestDelta) {
                             if (bestMoves == null)
                                 bestMoves = new ArrayList<Move>();
@@ -510,15 +510,15 @@ public class FinalSectioning implements Runnable {
             return iChildMoves;
         }
 
-        public boolean perform() {
-            double conflicts = firstLecture().getModel().getCriterion(StudentConflict.class).getValue();
+        public boolean perform(Assignment<Lecture, Placement> assignment) {
+            double conflicts = firstLecture().getModel().getCriterion(StudentConflict.class).getValue(assignment);
             for (Lecture lecture : firstStudent().getLectures()) {
                 if (lecture.equals(firstLecture()))
                     continue;
                 JenrlConstraint jenrl = firstLecture().jenrlConstraint(lecture);
                 if (jenrl == null)
                     continue;
-                jenrl.decJenrl(firstStudent());
+                jenrl.decJenrl(assignment, firstStudent());
                 if (jenrl.getNrStudents() == 0) {
                     Object[] vars = jenrl.variables().toArray();
                     for (int j = 0; j < vars.length; j++)
@@ -533,7 +533,7 @@ public class FinalSectioning implements Runnable {
                     JenrlConstraint jenrl = secondLecture().jenrlConstraint(lecture);
                     if (jenrl == null)
                         continue;
-                    jenrl.decJenrl(secondStudent());
+                    jenrl.decJenrl(assignment, secondStudent());
                     if (jenrl.getNrStudents() == 0) {
                         Object[] vars = jenrl.variables().toArray();
                         for (int j = 0; j < vars.length; j++)
@@ -543,14 +543,14 @@ public class FinalSectioning implements Runnable {
                 }
             }
 
-            firstLecture().removeStudent(firstStudent());
+            firstLecture().removeStudent(assignment, firstStudent());
             firstStudent().removeLecture(firstLecture());
-            secondLecture().addStudent(firstStudent());
+            secondLecture().addStudent(assignment, firstStudent());
             firstStudent().addLecture(secondLecture());
             if (secondStudent() != null) {
-                secondLecture().removeStudent(secondStudent());
+                secondLecture().removeStudent(assignment, secondStudent());
                 secondStudent().removeLecture(secondLecture());
-                firstLecture().addStudent(secondStudent());
+                firstLecture().addStudent(assignment, secondStudent());
                 secondStudent().addLecture(firstLecture());
             }
 
@@ -560,12 +560,12 @@ public class FinalSectioning implements Runnable {
                 JenrlConstraint jenrl = secondLecture().jenrlConstraint(lecture);
                 if (jenrl == null) {
                     jenrl = new JenrlConstraint();
-                    iModel.addConstraint(jenrl);
                     jenrl.addVariable(secondLecture());
                     jenrl.addVariable(lecture);
+                    iModel.addConstraint(jenrl);
                     // sLogger.debug(getName()+": add jenr {conf="+jenrl.isInConflict()+", lect="+anotherLecture.getName()+", jenr="+jenrl+"}");
                 }
-                jenrl.incJenrl(firstStudent());
+                jenrl.incJenrl(assignment, firstStudent());
             }
             if (secondStudent() != null) {
                 for (Lecture lecture : secondStudent().getLectures()) {
@@ -579,78 +579,78 @@ public class FinalSectioning implements Runnable {
                         jenrl.addVariable(firstLecture());
                         // sLogger.debug(getName()+": add jenr {conf="+jenrl.isInConflict()+", lect="+anotherLecture.getName()+", jenr="+jenrl+"}");
                     }
-                    jenrl.incJenrl(secondStudent());
+                    jenrl.incJenrl(assignment, secondStudent());
                 }
             }
 
             if (getChildMoves() != null) {
                 for (Move move : getChildMoves()) {
-                    move.perform();
+                    move.perform(assignment);
                 }
             }
             // sLogger.debug("Solution after swap is "+iModel.getInfo()+".");
-            return firstLecture().getModel().getCriterion(StudentConflict.class).getValue() < conflicts;
+            return firstLecture().getModel().getCriterion(StudentConflict.class).getValue(assignment) < conflicts;
         }
 
-        public double getDelta() {
+        public double getDelta(Assignment<Lecture, Placement> assignment) {
             double delta = 0;
             for (Lecture lecture : firstStudent().getLectures()) {
-                if (lecture.getAssignment() == null || lecture.equals(firstLecture()))
+                if (assignment.getValue(lecture) == null || lecture.equals(firstLecture()))
                     continue;
                 JenrlConstraint jenrl = firstLecture().jenrlConstraint(lecture);
                 if (jenrl == null)
                     continue;
-                if (jenrl.isInConflict())
+                if (jenrl.isInConflict(assignment))
                     delta -= jenrl.getJenrlWeight(firstStudent());
             }
             if (secondStudent() != null) {
                 for (Lecture lecture : secondStudent().getLectures()) {
-                    if (lecture.getAssignment() == null || lecture.equals(secondLecture()))
+                    if (assignment.getValue(lecture) == null || lecture.equals(secondLecture()))
                         continue;
                     JenrlConstraint jenrl = secondLecture().jenrlConstraint(lecture);
                     if (jenrl == null)
                         continue;
-                    if (jenrl.isInConflict())
+                    if (jenrl.isInConflict(assignment))
                         delta -= jenrl.getJenrlWeight(secondStudent());
                 }
             }
 
             for (Lecture lecture : firstStudent().getLectures()) {
-                if (lecture.getAssignment() == null || lecture.equals(firstLecture()))
+                if (assignment.getValue(lecture) == null || lecture.equals(firstLecture()))
                     continue;
                 JenrlConstraint jenrl = secondLecture().jenrlConstraint(lecture);
                 if (jenrl != null) {
-                    if (jenrl.isInConflict())
+                    if (jenrl.isInConflict(assignment))
                         delta += jenrl.getJenrlWeight(firstStudent());
                 } else {
-                    if (JenrlConstraint.isInConflict(secondLecture().getAssignment(), lecture.getAssignment(), iModel.getDistanceMetric()))
+                    if (JenrlConstraint.isInConflict(assignment.getValue(secondLecture()), assignment.getValue(lecture), iModel.getDistanceMetric()))
                         delta += firstStudent().getJenrlWeight(secondLecture(), lecture);
                 }
             }
             if (secondStudent() != null) {
                 for (Lecture lecture : secondStudent().getLectures()) {
-                    if (lecture.getAssignment() == null || lecture.equals(secondLecture()))
+                    if (assignment.getValue(lecture) == null || lecture.equals(secondLecture()))
                         continue;
                     JenrlConstraint jenrl = firstLecture().jenrlConstraint(lecture);
                     if (jenrl != null) {
-                        if (jenrl.isInConflict())
+                        if (jenrl.isInConflict(assignment))
                             delta += jenrl.getJenrlWeight(secondStudent());
                     } else {
-                        if (JenrlConstraint.isInConflict(firstLecture().getAssignment(), lecture.getAssignment(), iModel.getDistanceMetric()))
+                        if (JenrlConstraint.isInConflict(assignment.getValue(firstLecture()), assignment.getValue(lecture), iModel.getDistanceMetric()))
                             delta += secondStudent().getJenrlWeight(firstLecture(), lecture);
                     }
                 }
             }
 
-            Placement p1 = firstLecture().getAssignment();
-            Placement p2 = secondLecture().getAssignment();
+            Placement p1 = assignment.getValue(firstLecture());
+            Placement p2 = assignment.getValue(secondLecture());
             delta += firstStudent().countConflictPlacements(p2) - firstStudent().countConflictPlacements(p1);
             if (secondStudent() != null)
                 delta += secondStudent().countConflictPlacements(p1) - secondStudent().countConflictPlacements(p2);
 
             if (getChildMoves() != null) {
                 for (Move move : getChildMoves()) {
-                    delta += move.getDelta();
+                    delta += move.getDelta(assignment);
                 }
             }
             return delta;
@@ -663,30 +663,30 @@ public class FinalSectioning implements Runnable {
         @Override
         public String toString() {
             return "Move{" + firstStudent() + "/" + firstLecture() + " <-> " + secondStudent() + "/" + secondLecture()
-                    + ", d=" + getDelta() + ", ch=" + getChildMoves() + "}";
+                    + ", ch=" + getChildMoves() + "}";
 
         }
 
     }
 
-    public MoveBetweenCfgs createMove(Configuration firstConfig, Student firstStudent, Configuration secondConfig,
+    public MoveBetweenCfgs createMove(Assignment<Lecture, Placement> assignment, Configuration firstConfig, Student firstStudent, Configuration secondConfig,
             Student secondStudent) {
         MoveBetweenCfgs m = new MoveBetweenCfgs(firstConfig, firstStudent, secondConfig, secondStudent);
 
         for (Long subpartId: firstConfig.getTopSubpartIds()) {
-            if (!addLectures(firstStudent, secondStudent, m.firstLectures(), firstConfig.getTopLectures(subpartId)))
+            if (!addLectures(assignment, firstStudent, secondStudent, m.firstLectures(), firstConfig.getTopLectures(subpartId)))
                 return null;
         }
 
         for (Long subpartId: secondConfig.getTopSubpartIds()) {
-            if (!addLectures(secondStudent, firstStudent, m.secondLectures(), secondConfig.getTopLectures(subpartId)))
+            if (!addLectures(assignment, secondStudent, firstStudent, m.secondLectures(), secondConfig.getTopLectures(subpartId)))
                 return null;
         }
 
         return m;
     }
 
-    private boolean addLectures(Student student, Student newStudent, Set<Lecture> studentLectures,
+    private boolean addLectures(Assignment<Lecture, Placement> assignment, Student student, Student newStudent, Set<Lecture> studentLectures,
             Collection<Lecture> lectures) {
         Lecture lecture = null;
         if (lectures == null)
@@ -704,7 +704,7 @@ public class FinalSectioning implements Runnable {
             int bestValue = 0;
             Lecture bestLecture = null;
             for (Lecture l : lectures) {
-                int val = test(newStudent, l);
+                int val = test(assignment, newStudent, l);
                 if (val < 0)
                     continue;
                 if (bestLecture == null || bestValue > val) {
@@ -722,7 +722,7 @@ public class FinalSectioning implements Runnable {
         studentLectures.add(lecture);
         if (lecture.getChildrenSubpartIds() != null) {
             for (Long subpartId: lecture.getChildrenSubpartIds()) {
-                if (!addLectures(student, newStudent, studentLectures, lecture.getChildren(subpartId)))
+                if (!addLectures(assignment, student, newStudent, studentLectures, lecture.getChildren(subpartId)))
                     return false;
             }
         }
@@ -730,29 +730,29 @@ public class FinalSectioning implements Runnable {
         return true;
     }
 
-    public int test(Student student, Lecture lecture) {
-        if (lecture.getAssignment() == null)
+    public int test(Assignment<Lecture, Placement> assignment, Student student, Lecture lecture) {
+        if (assignment.getValue(lecture) == null)
             return -1;
         double studentWeight = student.getOfferingWeight(lecture.getConfiguration());
-        if (lecture.nrWeightedStudents() + studentWeight > sEps + lecture.classLimit())
+        if (lecture.nrWeightedStudents() + studentWeight > sEps + lecture.classLimit(assignment))
             return -1;
         if (!student.canEnroll(lecture))
             return -1;
 
         int test = 0;
         for (Lecture x : student.getLectures()) {
-            if (x.getAssignment() == null)
+            if (assignment.getValue(x) == null)
                 continue;
-            if (JenrlConstraint.isInConflict(lecture.getAssignment(), x.getAssignment(), iModel.getDistanceMetric()))
+            if (JenrlConstraint.isInConflict(assignment.getValue(lecture), assignment.getValue(x), iModel.getDistanceMetric()))
                 test++;
         }
-        test += student.countConflictPlacements(lecture.getAssignment());
+        test += student.countConflictPlacements(assignment.getValue(lecture));
 
         if (lecture.getChildrenSubpartIds() != null) {
             for (Long subpartId: lecture.getChildrenSubpartIds()) {
                 int bestTest = -1;
                 for (Lecture child : lecture.getChildren(subpartId)) {
-                    int t = test(student, child);
+                    int t = test(assignment, student, child);
                     if (t < 0)
                         continue;
                     if (bestTest < 0 || bestTest > t)
@@ -806,8 +806,8 @@ public class FinalSectioning implements Runnable {
             return iSecondLectures;
         }
 
-        public boolean perform() {
-            double conflicts = firstLectures().iterator().next().getModel().getCriterion(StudentConflict.class).getValue();
+        public boolean perform(Assignment<Lecture, Placement> assignment) {
+            double conflicts = firstLectures().iterator().next().getModel().getCriterion(StudentConflict.class).getValue(assignment);
             firstStudent().removeConfiguration(firstConfiguration());
             firstStudent().addConfiguration(secondConfiguration());
             for (Lecture lecture : firstStudent().getLectures()) {
@@ -822,7 +822,7 @@ public class FinalSectioning implements Runnable {
                     JenrlConstraint jenrl = firstLecture.jenrlConstraint(lecture);
                     if (jenrl == null)
                         continue;
-                    jenrl.decJenrl(firstStudent());
+                    jenrl.decJenrl(assignment, firstStudent());
                     if (jenrl.getNrStudents() == 0) {
                         Object[] vars = jenrl.variables().toArray();
                         for (int k = 0; k < vars.length; k++)
@@ -847,7 +847,7 @@ public class FinalSectioning implements Runnable {
                         JenrlConstraint jenrl = secondLecture.jenrlConstraint(lecture);
                         if (jenrl == null)
                             continue;
-                        jenrl.decJenrl(secondStudent());
+                        jenrl.decJenrl(assignment, secondStudent());
                         if (jenrl.getNrStudents() == 0) {
                             Object[] vars = jenrl.variables().toArray();
                             for (int k = 0; k < vars.length; k++)
@@ -859,18 +859,18 @@ public class FinalSectioning implements Runnable {
             }
 
             for (Lecture firstLecture : firstLectures()) {
-                firstLecture.removeStudent(firstStudent());
+                firstLecture.removeStudent(assignment, firstStudent());
                 firstStudent().removeLecture(firstLecture);
                 if (secondStudent() != null) {
-                    firstLecture.addStudent(secondStudent());
+                    firstLecture.addStudent(assignment, secondStudent());
                     secondStudent().addLecture(firstLecture);
                 }
             }
             for (Lecture secondLecture : secondLectures()) {
-                secondLecture.addStudent(firstStudent());
+                secondLecture.addStudent(assignment, firstStudent());
                 firstStudent().addLecture(secondLecture);
                 if (secondStudent() != null) {
-                    secondLecture.removeStudent(secondStudent());
+                    secondLecture.removeStudent(assignment, secondStudent());
                     secondStudent().removeLecture(secondLecture);
                 }
             }
@@ -887,11 +887,11 @@ public class FinalSectioning implements Runnable {
                     JenrlConstraint jenrl = secondLecture.jenrlConstraint(lecture);
                     if (jenrl == null) {
                         jenrl = new JenrlConstraint();
-                        iModel.addConstraint(jenrl);
                         jenrl.addVariable(secondLecture);
                         jenrl.addVariable(lecture);
+                        iModel.addConstraint(jenrl);
                     }
-                    jenrl.incJenrl(firstStudent());
+                    jenrl.incJenrl(assignment, firstStudent());
                 }
             }
 
@@ -912,39 +912,39 @@ public class FinalSectioning implements Runnable {
                             jenrl.addVariable(firstLecture);
                             jenrl.addVariable(lecture);
                         }
-                        jenrl.incJenrl(secondStudent());
+                        jenrl.incJenrl(assignment, secondStudent());
                     }
                 }
             }
-            return firstLectures().iterator().next().getModel().getCriterion(StudentConflict.class).getValue() < conflicts;
+            return firstLectures().iterator().next().getModel().getCriterion(StudentConflict.class).getValue(assignment) < conflicts;
         }
 
-        public double getDelta() {
+        public double getDelta(Assignment<Lecture, Placement> assignment) {
             double delta = 0;
 
             for (Lecture lecture : firstStudent().getLectures()) {
-                if (lecture.getAssignment() == null)
+                if (assignment.getValue(lecture) == null)
                     continue;
 
                 for (Lecture firstLecture : firstLectures()) {
-                    if (firstLecture.getAssignment() == null || firstLecture.equals(lecture))
+                    if (assignment.getValue(firstLecture) == null || firstLecture.equals(lecture))
                         continue;
                     JenrlConstraint jenrl = firstLecture.jenrlConstraint(lecture);
                     if (jenrl == null)
                         continue;
-                    if (jenrl.isInConflict())
+                    if (jenrl.isInConflict(assignment))
                         delta -= jenrl.getJenrlWeight(firstStudent());
                 }
 
                 for (Lecture secondLecture : secondLectures()) {
-                    if (secondLecture.getAssignment() == null || secondLecture.equals(lecture))
+                    if (assignment.getValue(secondLecture) == null || secondLecture.equals(lecture))
                         continue;
                     JenrlConstraint jenrl = secondLecture.jenrlConstraint(lecture);
                     if (jenrl != null) {
-                        if (jenrl.isInConflict())
+                        if (jenrl.isInConflict(assignment))
                             delta += jenrl.getJenrlWeight(firstStudent());
                     } else {
-                        if (JenrlConstraint.isInConflict(secondLecture.getAssignment(), lecture.getAssignment(), iModel.getDistanceMetric()))
+                        if (JenrlConstraint.isInConflict(assignment.getValue(secondLecture), assignment.getValue(lecture), iModel.getDistanceMetric()))
                             delta += firstStudent().getJenrlWeight(secondLecture, lecture);
                     }
                 }
@@ -952,28 +952,28 @@ public class FinalSectioning implements Runnable {
 
             if (secondStudent() != null) {
                 for (Lecture lecture : secondStudent().getLectures()) {
-                    if (lecture.getAssignment() == null)
+                    if (assignment.getValue(lecture) == null)
                         continue;
 
                     for (Lecture secondLecture : secondLectures()) {
-                        if (secondLecture.getAssignment() == null || secondLecture.equals(lecture))
+                        if (assignment.getValue(secondLecture) == null || secondLecture.equals(lecture))
                             continue;
                         JenrlConstraint jenrl = secondLecture.jenrlConstraint(lecture);
                         if (jenrl == null)
                             continue;
-                        if (jenrl.isInConflict())
+                        if (jenrl.isInConflict(assignment))
                             delta -= jenrl.getJenrlWeight(secondStudent());
                     }
 
                     for (Lecture firstLecture : firstLectures()) {
-                        if (firstLecture.getAssignment() == null || firstLecture.equals(lecture))
+                        if (assignment.getValue(firstLecture) == null || firstLecture.equals(lecture))
                             continue;
                         JenrlConstraint jenrl = firstLecture.jenrlConstraint(lecture);
                         if (jenrl != null) {
-                            if (jenrl.isInConflict())
+                            if (jenrl.isInConflict(assignment))
                                 delta += jenrl.getJenrlWeight(secondStudent());
                         } else {
-                            if (JenrlConstraint.isInConflict(firstLecture.getAssignment(), lecture.getAssignment(), iModel.getDistanceMetric()))
+                            if (JenrlConstraint.isInConflict(assignment.getValue(firstLecture), assignment.getValue(lecture), iModel.getDistanceMetric()))
                                 delta += secondStudent().getJenrlWeight(firstLecture, lecture);
                         }
                     }
@@ -981,7 +981,7 @@ public class FinalSectioning implements Runnable {
             }
 
             for (Lecture firstLecture : firstLectures()) {
-                Placement p1 = firstLecture.getAssignment();
+                Placement p1 = assignment.getValue(firstLecture);
                 if (p1 == null)
                     continue;
                 delta -= firstStudent().countConflictPlacements(p1);
@@ -990,7 +990,7 @@ public class FinalSectioning implements Runnable {
             }
 
             for (Lecture secondLecture : secondLectures()) {
-                Placement p2 = secondLecture.getAssignment();
+                Placement p2 = assignment.getValue(secondLecture);
                 if (p2 == null)
                     continue;
                 delta += firstStudent().countConflictPlacements(p2);
@@ -1008,7 +1008,7 @@ public class FinalSectioning implements Runnable {
         @Override
         public String toString() {
             return "Move{" + firstStudent() + "/" + firstConfiguration().getConfigId() + " <-> " + secondStudent()
-                    + "/" + secondConfiguration().getConfigId() + ", d=" + getDelta() + "}";
+                    + "/" + secondConfiguration().getConfigId() + "}";
         }
 
     }

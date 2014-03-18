@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.GlobalConstraint;
 import net.sf.cpsolver.ifs.util.DataProperties;
 import net.sf.cpsolver.ifs.util.ToolBox;
@@ -86,13 +87,13 @@ public class CourseLimit extends GlobalConstraint<Request, Enrollment> {
      *            section
      * @return section's new weight
      */
-    public static double getEnrollmentWeight(Course course, Request request) {
-        return course.getEnrollmentWeight(request) + request.getWeight();
+    public static double getEnrollmentWeight(Assignment<Request, Enrollment> assignment, Course course, Request request) {
+        return course.getEnrollmentWeight(assignment, request) + request.getWeight();
     }
 
     /**
      * A given enrollment is conflicting, if the course's enrollment
-     * (computed by {@link CourseLimit#getEnrollmentWeight(Course, Request)})
+     * (computed by {@link CourseLimit#getEnrollmentWeight(Assignment, Course, Request)})
      * exceeds the limit. <br>
      * If the limit is breached, one or more existing enrollments are
      * (randomly) selected as conflicting until the overall weight is under the
@@ -104,7 +105,7 @@ public class CourseLimit extends GlobalConstraint<Request, Enrollment> {
      *            all computed conflicting requests are added into this set
      */
     @Override
-    public void computeConflicts(Enrollment enrollment, Set<Enrollment> conflicts) {
+    public void computeConflicts(Assignment<Request, Enrollment> assignment, Enrollment enrollment, Set<Enrollment> conflicts) {
         // check reservation can assign over the limit
         if (((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit() &&
             enrollment.getReservation() != null && enrollment.getReservation().canAssignOverLimit())
@@ -122,7 +123,7 @@ public class CourseLimit extends GlobalConstraint<Request, Enrollment> {
             return;
         
         // new enrollment weight
-        double enrlWeight = getEnrollmentWeight(course, enrollment.getRequest());
+        double enrlWeight = getEnrollmentWeight(assignment, course, enrollment.getRequest());
 
         // below limit -> ok
         if (enrlWeight <= course.getLimit())
@@ -131,8 +132,8 @@ public class CourseLimit extends GlobalConstraint<Request, Enrollment> {
         // above limit -> compute adepts (current assignments that are not
         // yet conflicting)
         // exclude all conflicts as well
-        List<Enrollment> adepts = new ArrayList<Enrollment>(course.getEnrollments().size());
-        for (Enrollment e : course.getEnrollments()) {
+        List<Enrollment> adepts = new ArrayList<Enrollment>(course.getEnrollments(assignment).size());
+        for (Enrollment e : course.getEnrollments(assignment)) {
             if (e.getRequest().equals(enrollment.getRequest()))
                 continue;
             if (conflicts.contains(e))
@@ -156,7 +157,7 @@ public class CourseLimit extends GlobalConstraint<Request, Enrollment> {
             double bestValue = 0;
             for (Enrollment adept: adepts) {
                 boolean dummy = adept.getStudent().isDummy();
-                double value = adept.toDouble(false);
+                double value = adept.toDouble(assignment, false);
                 
                 if (iPreferDummyStudents && dummy != bestDummy) {
                     if (dummy) {
@@ -187,7 +188,7 @@ public class CourseLimit extends GlobalConstraint<Request, Enrollment> {
 
     /**
      * A given enrollment is conflicting, if the course's enrollment (computed by
-     * {@link CourseLimit#getEnrollmentWeight(Course, Request)}) exceeds the
+     * {@link CourseLimit#getEnrollmentWeight(Assignment, Course, Request)}) exceeds the
      * limit.
      * 
      * @param enrollment
@@ -195,7 +196,7 @@ public class CourseLimit extends GlobalConstraint<Request, Enrollment> {
      * @return true, if the enrollment cannot be assigned without exceeding the limit
      */
     @Override
-    public boolean inConflict(Enrollment enrollment) {
+    public boolean inConflict(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
         // check reservation can assign over the limit
         if (((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit() &&
             enrollment.getReservation() != null && enrollment.getReservation().canAssignOverLimit())
@@ -214,7 +215,7 @@ public class CourseLimit extends GlobalConstraint<Request, Enrollment> {
 
 
         // new enrollment weight
-        double enrlWeight = getEnrollmentWeight(course, enrollment.getRequest());
+        double enrlWeight = getEnrollmentWeight(assignment, course, enrollment.getRequest());
         
         // above limit -> conflict
         return (enrlWeight > course.getLimit());

@@ -31,7 +31,7 @@ import net.sf.cpsolver.ifs.model.Value;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class Assignment<T extends Value<?, T>> {
+public class AssignedValue<T extends Value<?, T>> {
     private T iValue;
     private double iCounter = 1.0;
     private long iLastRevision;
@@ -48,7 +48,7 @@ public class Assignment<T extends Value<?, T>> {
      * @param ageing
      *            ageing factor
      */
-    public Assignment(long iteration, T value, double ageing) {
+    public AssignedValue(long iteration, T value, double ageing) {
         iValue = value;
         iLastRevision = iteration;
         iAgeing = ageing;
@@ -133,9 +133,9 @@ public class Assignment<T extends Value<?, T>> {
 
     @Override
     public boolean equals(Object o) {
-        if (o == null || !(o instanceof Assignment<?>))
+        if (o == null || !(o instanceof AssignedValue<?>))
             return false;
-        return ((Assignment<?>) o).getValue().equals(getValue());
+        return ((AssignedValue<?>) o).getValue().equals(getValue());
     }
 
     /** String representation */
@@ -151,7 +151,7 @@ public class Assignment<T extends Value<?, T>> {
     }
 
     /** Compare two assignments (their counters) */
-    public int compareTo(long iteration, Assignment<T> a) {
+    public int compareTo(long iteration, AssignedValue<T> a) {
         int cmp = getValue().variable().getName().compareTo(a.getValue().variable().getName());
         if (cmp != 0)
             return cmp;
@@ -161,7 +161,7 @@ public class Assignment<T extends Value<?, T>> {
     }
 
     /** Assignment comparator */
-    public static class AssignmentComparator<E extends Value<?, E>> implements Comparator<Assignment<E>> {
+    public static class AssignmentComparator<E extends Value<?, E>> implements Comparator<AssignedValue<E>> {
         private long iIteration;
 
         public AssignmentComparator(long iteration) {
@@ -169,7 +169,7 @@ public class Assignment<T extends Value<?, T>> {
         }
 
         @Override
-        public int compare(Assignment<E> a1, Assignment<E> a2) {
+        public int compare(AssignedValue<E> a1, AssignedValue<E> a2) {
             return a1.compareTo(iIteration, a2);
         }
     }

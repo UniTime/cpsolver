@@ -11,8 +11,12 @@ import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.neighbours.ExamRandomMove;
 import net.sf.cpsolver.exam.neighbours.ExamRoomMove;
 import net.sf.cpsolver.exam.neighbours.ExamTimeMove;
+import net.sf.cpsolver.ifs.assignment.Assignment;
+import net.sf.cpsolver.ifs.assignment.context.AssignmentContext;
+import net.sf.cpsolver.ifs.assignment.context.NeighbourSelectionWithContext;
 import net.sf.cpsolver.ifs.heuristics.NeighbourSelection;
 import net.sf.cpsolver.ifs.model.LazyNeighbour;
+import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.model.LazyNeighbour.LazyNeighbourAcceptanceCriterion;
 import net.sf.cpsolver.ifs.solution.Solution;
@@ -67,22 +71,14 @@ import org.apache.log4j.Logger;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>, SolutionListener<Exam, ExamPlacement>, LazyNeighbourAcceptanceCriterion<Exam, ExamPlacement> {
+@Deprecated
+public class ExamGreatDeluge extends NeighbourSelectionWithContext<Exam, ExamPlacement, ExamGreatDeluge.Context> implements SolutionListener<Exam, ExamPlacement>, LazyNeighbourAcceptanceCriterion<Exam, ExamPlacement> {
     private static Logger sLog = Logger.getLogger(ExamGreatDeluge.class);
     private static DecimalFormat sDF2 = new DecimalFormat("0.00");
     private static DecimalFormat sDF5 = new DecimalFormat("0.00000");
-    private double iBound = 0.0;
     private double iCoolRate = 0.99999995;
-    private long iIter;
-    private double iUpperBound;
     private double iUpperBoundRate = 1.05;
     private double iLowerBoundRate = 0.95;
-    private int iMoves = 0;
-    private int iAcceptedMoves = 0;
-    private int iNrIdle = 0;
-    private long iT0 = -1;
-    private long iLastImprovingIter = 0;
-    private double iBestValue = 0;
     private Progress iProgress = null;
 
     private List<NeighbourSelection<Exam, ExamPlacement>> iNeighbours = null;
@@ -125,24 +121,19 @@ public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>,
     /** Initialization */
     @Override
     public void init(Solver<Exam, ExamPlacement> solver) {
-        iIter = -1;
+        super.init(solver);
         solver.currentSolution().addSolutionListener(this);
         for (NeighbourSelection<Exam, ExamPlacement> neighbour: iNeighbours)
             neighbour.init(solver);
         solver.setUpdateProgress(false);
         iProgress = Progress.getInstance(solver.currentSolution().getModel());
+        getContext(solver.currentSolution().getAssignment()).reset();
     }
 
     /** Print some information */
     protected void info(Solution<Exam, ExamPlacement> solution) {
-        sLog.info("Iter=" + iIter / 1000 + "k, NonImpIter=" + sDF2.format((iIter - iLastImprovingIter) / 1000.0)
-                + "k, Speed=" + sDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s");
-        sLog.info("Bound is " + sDF2.format(iBound) + ", " + "best value is " + sDF2.format(solution.getBestValue())
-                + " (" + sDF2.format(100.0 * iBound / solution.getBestValue()) + "%), " + "current value is "
-                + sDF2.format(solution.getModel().getTotalValue()) + " ("
-                + sDF2.format(100.0 * iBound / solution.getModel().getTotalValue()) + "%), " + "#idle=" + iNrIdle
-                + ", " + "Pacc=" + sDF5.format(100.0 * iAcceptedMoves / iMoves) + "%");
-        iAcceptedMoves = iMoves = 0;
+        Assignment<Exam, ExamPlacement> assignment = solution.getAssignment();
+        getContext(assignment).info(solution);
     }
 
     /**
@@ -164,49 +155,19 @@ public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>,
             ((LazyNeighbour<Exam, ExamPlacement>)neighbour).setAcceptanceCriterion(this);
             return true;
         }
-        return (neighbour.value() <= 0 || solution.getModel().getTotalValue() + neighbour.value() <= iBound);
+        Assignment<Exam, ExamPlacement> assignment = solution.getAssignment();
+        return (neighbour.value(assignment) <= 0 || solution.getModel().getTotalValue(assignment) + neighbour.value(assignment) <= getContext(assignment).getBound());
     }
     
     /** Accept lazy neighbour */
     @Override
-    public boolean accept(LazyNeighbour<Exam, ExamPlacement> neighbour, double value) {
-        return (value <= 0.0 || neighbour.getModel().getTotalValue() <= iBound);
+    public boolean accept(Assignment<Exam, ExamPlacement> assignment, LazyNeighbour<Exam, ExamPlacement> neighbour, double value) {
+        return (value <= 0.0 || neighbour.getModel().getTotalValue(assignment) <= getContext(assignment).getBound());
     }
 
     /** Increment iteration count, update bound */
     protected void incIter(Solution<Exam, ExamPlacement> solution) {
-        if (iIter < 0) {
-            iIter = 0;
-            iLastImprovingIter = 0;
-            iT0 = JProf.currentTimeMillis();
-            iBound = (solution.getBestValue() > 0.0 ? iUpperBoundRate * solution.getBestValue() : solution
-                    .getBestValue()
-                    / iUpperBoundRate);
-            iUpperBound = iBound;
-            iNrIdle = 0;
-            iProgress.setPhase("Great deluge [" + (1 + iNrIdle) + "]...");
-        } else {
-            iIter++;
-            if (solution.getBestValue() >= 0.0)
-                iBound *= iCoolRate;
-            else
-                iBound /= iCoolRate;
-        }
-        if (iIter % 100000 == 0) {
-            info(solution);
-        }
-        double lowerBound = (solution.getBestValue() >= 0.0 ? Math.pow(iLowerBoundRate, 1 + iNrIdle)
-                * solution.getBestValue() : solution.getBestValue() / Math.pow(iLowerBoundRate, 1 + iNrIdle));
-        if (iBound < lowerBound) {
-            iNrIdle++;
-            sLog.info(" -<[" + iNrIdle + "]>- ");
-            iBound = Math.max(solution.getBestValue() + 2.0, (solution.getBestValue() >= 0.0 ? Math.pow(
-                    iUpperBoundRate, iNrIdle)
-                    * solution.getBestValue() : solution.getBestValue() / Math.pow(iUpperBoundRate, iNrIdle)));
-            iUpperBound = iBound;
-            iProgress.setPhase("Great deluge [" + (1 + iNrIdle) + "]...");
-        }
-        iProgress.setProgress(100 - Math.round(100.0 * (iBound - lowerBound) / (iUpperBound - lowerBound)));
+        getContext(solution.getAssignment()).incIter(solution);
     }
 
     /**
@@ -216,9 +177,9 @@ public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>,
     public Neighbour<Exam, ExamPlacement> selectNeighbour(Solution<Exam, ExamPlacement> solution) {
         Neighbour<Exam, ExamPlacement> neighbour = null;
         while ((neighbour = genMove(solution)) != null) {
-            iMoves++;
+            getContext(solution.getAssignment()).incMoves();
             if (accept(solution, neighbour)) {
-                iAcceptedMoves++;
+                getContext(solution.getAssignment()).incAcceptedMoves();
                 break;
             }
         }
@@ -228,11 +189,7 @@ public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>,
     /** Update last improving iteration count */
     @Override
     public void bestSaved(Solution<Exam, ExamPlacement> solution) {
-        if (Math.abs(iBestValue - solution.getBestValue()) >= 1.0) {
-            iLastImprovingIter = iIter;
-            iNrIdle = 0;
-            iBestValue = solution.getBestValue();
-        }
+        getContext(solution.getAssignment()).bestSaved(solution.getModel());
     }
 
     @Override
@@ -253,5 +210,88 @@ public class ExamGreatDeluge implements NeighbourSelection<Exam, ExamPlacement>,
 
     @Override
     public void bestRestored(Solution<Exam, ExamPlacement> solution) {
+    }
+    
+    @Override
+    public Context createAssignmentContext(Assignment<Exam, ExamPlacement> assignment) {
+        return new Context();
+    }
+    
+    public class Context implements AssignmentContext {
+        private double iUpperBound;
+        private int iMoves = 0;
+        private int iAcceptedMoves = 0;
+        private int iNrIdle = 0;
+        private long iT0 = -1;
+        private long iIter = -1;
+        private double iBound = 0.0;
+        private long iLastImprovingIter = 0;
+        private double iBestValue = 0;
+        
+        protected void reset() {
+            iIter = -1;
+        }
+
+        protected void incIter(Solution<Exam, ExamPlacement> solution) {
+            double best = solution.getModel().getBestValue();
+            if (iIter < 0) {
+                iIter = 0;
+                iLastImprovingIter = 0;
+                iT0 = JProf.currentTimeMillis();
+                iBound = (best > 0.0 ? iUpperBoundRate * best : best / iUpperBoundRate);
+                iUpperBound = iBound;
+                iNrIdle = 0;
+                solution.restoreBest();
+                iProgress.setPhase("Great deluge [" + (1 + iNrIdle) + "]...");
+            } else {
+                iIter++;
+                if (best >= 0.0)
+                    iBound *= iCoolRate;
+                else
+                    iBound /= iCoolRate;
+            }
+            if (iIter % 1000 == 0 && iBound > (best > 0.0 ? iUpperBoundRate * best : best / iUpperBoundRate)) {
+                // some other thread lowered the upper bound over my bound -> adjust my bound
+                iBound = (best > 0.0 ? iUpperBoundRate * best : best / iUpperBoundRate);
+            }
+            if (iIter % 100000 == 0) {
+                info(solution);
+            }
+            double lowerBound = (best >= 0.0 ? Math.pow(iLowerBoundRate, 1 + iNrIdle) * best : best / Math.pow(iLowerBoundRate, 1 + iNrIdle));
+            if (iBound < lowerBound) {
+                iNrIdle++;
+                sLog.info(" -<[" + iNrIdle + "]>- ");
+                iBound = Math.max(best + 2.0, (best >= 0.0 ? Math.pow(iUpperBoundRate, iNrIdle) * best : best / Math.pow(iUpperBoundRate, iNrIdle)));
+                iUpperBound = iBound;
+                iProgress.setPhase("Great deluge [" + (1 + iNrIdle) + "]...");
+                solution.restoreBest();
+            }
+            iProgress.setProgress(100 - Math.round(100.0 * (iBound - lowerBound) / (iUpperBound - lowerBound)));
+        }
+        
+        protected void info(Solution<Exam, ExamPlacement> solution) {
+            sLog.info("Iter=" + iIter / 1000 + "k, NonImpIter=" + sDF2.format((iIter - iLastImprovingIter) / 1000.0)
+                    + "k, Speed=" + sDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s");
+            sLog.info("Bound is " + sDF2.format(iBound) + ", " + "best value is " + sDF2.format(solution.getModel().getBestValue())
+                    + " (" + sDF2.format(100.0 * iBound / solution.getModel().getBestValue()) + "%), " + "current value is "
+                    + sDF2.format(solution.getModel().getTotalValue(solution.getAssignment())) + " ("
+                    + sDF2.format(100.0 * iBound / solution.getModel().getTotalValue(solution.getAssignment())) + "%), " + "#idle=" + iNrIdle
+                    + ", " + "Pacc=" + sDF5.format(100.0 * iAcceptedMoves / iMoves) + "%");
+            iAcceptedMoves = iMoves = 0;
+        }
+        
+        protected void bestSaved(Model<Exam, ExamPlacement> model) {
+            if (Math.abs(iBestValue - model.getBestValue()) >= 1.0) {
+                iLastImprovingIter = iIter;
+                iNrIdle = 0;
+                iBestValue = model.getBestValue();
+            }
+        }
+        
+        public double getBound() { return iBound; }
+        
+        public void incMoves() { iMoves ++; }
+        
+        public void incAcceptedMoves() { iAcceptedMoves ++; }
     }
 }

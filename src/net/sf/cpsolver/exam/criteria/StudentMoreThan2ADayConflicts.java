@@ -4,8 +4,11 @@ import java.util.Map;
 import java.util.Set;
 
 import net.sf.cpsolver.exam.model.Exam;
+import net.sf.cpsolver.exam.model.ExamModel;
+import net.sf.cpsolver.exam.model.ExamPeriod;
 import net.sf.cpsolver.exam.model.ExamPlacement;
 import net.sf.cpsolver.exam.model.ExamStudent;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
 /**
@@ -51,15 +54,26 @@ public class StudentMoreThan2ADayConflicts extends ExamCriterion {
     }
 
     @Override
-    public double getValue(ExamPlacement value, Set<ExamPlacement> conflicts) {
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value, Set<ExamPlacement> conflicts) {
         Exam exam = value.variable();
         int penalty = 0;
+        ExamPeriod period = value.getPeriod();
+        Map<ExamStudent, Set<Exam>> students = ((ExamModel)getModel()).getStudentsOfDay(assignment, period);
         for (ExamStudent s : exam.getStudents()) {
-            Set<Exam> exams = s.getExamsADay(value.getPeriod());
+            Set<Exam> exams = students.get(s);
+            if (exams == null || exams.size() < 2) continue;
             int nrExams = exams.size() + (exams.contains(exam) ? 0 : 1);
             if (nrExams > 2)
                 penalty++;
         }
+        /*
+        for (ExamStudent s : exam.getStudents()) {
+            Set<Exam> exams = s.getExamsADay(assignment, period);
+            int nrExams = exams.size() + (exams.contains(exam) ? 0 : 1);
+            if (nrExams > 2)
+                penalty++;
+        }
+        */
         return penalty;
     }
     
@@ -74,13 +88,13 @@ public class StudentMoreThan2ADayConflicts extends ExamCriterion {
     }
 
     @Override
-    public void getInfo(Map<String, String> info) {
-        if (getValue() != 0.0)
-            info.put(getName(), sDoubleFormat.format(getValue()));
+    public void getInfo(Assignment<Exam, ExamPlacement> assignment, Map<String, String> info) {
+        if (getValue(assignment) != 0.0)
+            info.put(getName(), sDoubleFormat.format(getValue(assignment)));
     }
     
     @Override
-    public String toString() {
-        return "M2D:" + sDoubleFormat.format(getValue());
+    public String toString(Assignment<Exam, ExamPlacement> assignment) {
+        return "M2D:" + sDoubleFormat.format(getValue(assignment));
     }
 }

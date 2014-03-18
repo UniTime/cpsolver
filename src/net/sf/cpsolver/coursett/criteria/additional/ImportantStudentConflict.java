@@ -8,6 +8,7 @@ import net.sf.cpsolver.coursett.criteria.StudentConflict;
 import net.sf.cpsolver.coursett.model.Lecture;
 import net.sf.cpsolver.coursett.model.Placement;
 import net.sf.cpsolver.coursett.model.Student;
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.criteria.Criterion;
 import net.sf.cpsolver.ifs.util.DataProperties;
 
@@ -55,15 +56,14 @@ public class ImportantStudentConflict extends StudentConflict {
     }
     
     @Override
-    public void incJenrl(JenrlConstraint jenrl, double studentWeight, Double conflictPriority, Student student) {
-        if (super.inConflict(jenrl.first().getAssignment(), jenrl.second().getAssignment()) && conflictPriority != null)
-            iValue += studentWeight * conflictPriority;
+    public void incJenrl(Assignment<Lecture, Placement> assignment, JenrlConstraint jenrl, double studentWeight, Double conflictPriority, Student student) {
+        if (super.inConflict(assignment.getValue(jenrl.first()), assignment.getValue(jenrl.second())) && conflictPriority != null)
+            inc(assignment, studentWeight * conflictPriority);
     }
     
     @Override
     public double getWeightDefault(DataProperties config) {
-        return config.getPropertyDouble("Comparator.ImportantStudentConflictWeight",
-                3.0 * config.getPropertyDouble("Comparator.StudentConflictWeight", 1.0));
+        return config.getPropertyDouble("Comparator.ImportantStudentConflictWeight", 3.0 * config.getPropertyDouble("Comparator.StudentConflictWeight", 1.0));
     }
     
     @Override
@@ -72,23 +72,23 @@ public class ImportantStudentConflict extends StudentConflict {
     }
 
     @Override
-    public void getInfo(Map<String, String> info) {
-        super.getInfo(info);
-        double conf = getValue();
+    public void getInfo(Assignment<Lecture, Placement> assignment, Map<String, String> info) {
+        super.getInfo(assignment, info);
+        double conf = getValue(assignment);
         if (conf > 0.0) {
             Criterion<Lecture, Placement> c = getModel().getCriterion(ImportantStudentHardConflict.class);
-            double hard = (c == null ? 0.0 : c.getValue());
+            double hard = (c == null ? 0.0 : c.getValue(assignment));
             info.put("Important student conflicts", sDoubleFormat.format(conf) + (hard > 0.0 ? " [hard: " + sDoubleFormat.format(hard) + "]" : ""));
         }
     }
     
     @Override
-    public void getInfo(Map<String, String> info, Collection<Lecture> variables) {
-        super.getInfo(info, variables);
-        double conf = getValue(variables);
+    public void getInfo(Assignment<Lecture, Placement> assignment, Map<String, String> info, Collection<Lecture> variables) {
+        super.getInfo(assignment, info, variables);
+        double conf = getValue(assignment, variables);
         if (conf > 0.0) {
             Criterion<Lecture, Placement> c = getModel().getCriterion(ImportantStudentHardConflict.class);
-            double hard = (c == null ? 0.0 : c.getValue(variables));
+            double hard = (c == null ? 0.0 : c.getValue(assignment, variables));
             info.put("Important student conflicts", sDoubleFormat.format(conf) + (hard > 0.0 ? " [hard: " + sDoubleFormat.format(hard) + "]" : ""));
         }
     }

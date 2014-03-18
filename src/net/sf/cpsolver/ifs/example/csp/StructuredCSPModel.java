@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import net.sf.cpsolver.ifs.assignment.Assignment;
 import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Model;
 import net.sf.cpsolver.ifs.util.DataProperties;
@@ -238,9 +239,9 @@ public class StructuredCSPModel extends Model<CSPVariable, CSPValue> {
 
     /** Return information table */
     @Override
-    public Map<String, String> getInfo() {
-        Map<String, String> ret = super.getInfo();
-        ret.put("Solution value", String.valueOf(getTotalValue()));
+    public Map<String, String> getInfo(Assignment<CSPVariable, CSPValue> assignment) {
+        Map<String, String> ret = super.getInfo(assignment);
+        ret.put("Solution value", String.valueOf(getTotalValue(assignment)));
         return ret;
     }
 }
