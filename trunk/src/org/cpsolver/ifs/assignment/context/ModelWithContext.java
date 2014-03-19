@@ -39,6 +39,23 @@ public abstract class ModelWithContext<V extends Variable<V, T>, T extends Value
     private AssignmentContextReference<V, T, C> iContextReference = null;
     private AssignmentContext[] iContext = null;
     
+    /**
+     * Defines how the context of the model should be automatically updated (i.e., when {@link AssignmentConstraintContext#assigned(Assignment, Value)} and {@link AssignmentConstraintContext#unassigned(Assignment, Value)} are called).
+     */
+    protected static enum ContextUpdateType {
+        /** Update is done before an unassignment and before an assignment. */
+        BeforeUnassignedBeforeAssigned,
+        /** Update is done after an unassignment and before an assignment. */
+        AfterUnassignedBeforeAssigned,
+        /** Update is done before an unassignment and after an assignment. */
+        BeforeUnassignedAfterAssigned,
+        /** Update is done after an unassignment and after an assignment. This is the default. */
+        AfterUnassignedAfterAssigned,
+        /** Context is to be updated manually. */
+        NoUpdate
+    }
+    protected ContextUpdateType iContextUpdateType = ContextUpdateType.BeforeUnassignedAfterAssigned;
+    
     public ModelWithContext() {
         super();
         iContextReference = createReference(this);
@@ -79,13 +96,41 @@ public abstract class ModelWithContext<V extends Variable<V, T>, T extends Value
     @Override
     public void beforeUnassigned(Assignment<V, T> assignment, long iteration, T value) {
         super.beforeUnassigned(assignment, iteration, value);
-        getContext(assignment).unassigned(assignment, value);
+        switch (iContextUpdateType) {
+            case BeforeUnassignedAfterAssigned:
+            case BeforeUnassignedBeforeAssigned:
+                getContext(assignment).unassigned(assignment, value);
+        }
+    }
+    
+    @Override
+    public void afterUnassigned(Assignment<V, T> assignment, long iteration, T value) {
+        super.afterUnassigned(assignment, iteration, value);
+        switch (iContextUpdateType) {
+            case AfterUnassignedAfterAssigned:
+            case AfterUnassignedBeforeAssigned:
+                getContext(assignment).unassigned(assignment, value);
+        }
     }
     
     @Override
     public void afterAssigned(Assignment<V, T> assignment, long iteration, T value) {
         super.afterAssigned(assignment, iteration, value);
-        getContext(assignment).assigned(assignment, value);
+        switch (iContextUpdateType) {
+            case AfterUnassignedAfterAssigned:
+            case BeforeUnassignedAfterAssigned:
+                getContext(assignment).assigned(assignment, value);
+        }
+    }
+    
+    @Override
+    public void beforeAssigned(Assignment<V, T> assignment, long iteration, T value) {
+        super.beforeAssigned(assignment, iteration, value);
+        switch (iContextUpdateType) {
+            case AfterUnassignedBeforeAssigned:
+            case BeforeUnassignedBeforeAssigned:
+                getContext(assignment).assigned(assignment, value);
+        }
     }
 
 }
