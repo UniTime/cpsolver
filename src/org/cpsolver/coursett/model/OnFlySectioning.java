@@ -1,6 +1,7 @@
 package org.cpsolver.coursett.model;
 
 import org.cpsolver.ifs.assignment.Assignment;
+import org.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import org.cpsolver.ifs.model.Constraint;
 import org.cpsolver.ifs.model.ModelListener;
 import org.cpsolver.ifs.solver.Solver;
@@ -105,7 +106,7 @@ public class OnFlySectioning implements ModelListener<Lecture, Placement> {
      */
     @Override
     public void afterAssigned(Assignment<Lecture, Placement> assignment, long iteration, Placement value) {
-        if (iteration > 0)
+        if (iteration > 0 && assignment instanceof DefaultSingleAssignment)
             iModel.getStudentSectioning().resection(assignment, value.variable(), iRecursive, iConfigAsWell);
     }
 
