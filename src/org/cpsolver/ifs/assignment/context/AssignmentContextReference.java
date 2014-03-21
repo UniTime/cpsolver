@@ -60,7 +60,7 @@ public class AssignmentContextReference <V extends Variable<V, T>, T extends Val
      * Return index, a unique number associated with the reference by the {@link Model}.
      * @return an index
      */
-    int getIndex() {
+    public int getIndex() {
         return iIndex;
     }
     
