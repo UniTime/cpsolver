@@ -128,6 +128,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     }
 
     /** Removes a variable from the model */
+    @SuppressWarnings("unchecked")
     public void removeVariable(V variable) {
         variable.setModel(null);
         iVariables.remove(variable);
@@ -136,6 +137,8 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
         for (ModelListener<V, T> listener : iModelListeners)
             listener.variableRemoved(variable);
         invalidateVariablesWithInitialValueCache();
+        if (variable instanceof HasAssignmentContext)
+            removeReference((HasAssignmentContext<V, T, ?>)variable);
     }
 
     /** The list of constraints in the model */
@@ -160,6 +163,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     }
 
     /** Removes a constraint from the model */
+    @SuppressWarnings("unchecked")
     public void removeConstraint(Constraint<V, T> constraint) {
         constraint.setModel(null);
         iConstraints.remove(constraint);
@@ -167,6 +171,8 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
             iInfoProviders.remove(constraint);
         for (ModelListener<V, T> listener : iModelListeners)
             listener.constraintRemoved(constraint);
+        if (constraint instanceof HasAssignmentContext)
+            removeReference((HasAssignmentContext<V, T, ?>)constraint);
     }
 
     /** The list of global constraints in the model */
@@ -191,6 +197,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     }
 
     /** Removes a global constraint from the model */
+    @SuppressWarnings("unchecked")
     public void removeGlobalConstraint(GlobalConstraint<V, T> constraint) {
         constraint.setModel(null);
         iGlobalConstraints.remove(constraint);
@@ -198,6 +205,8 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
             iInfoProviders.remove(constraint);
         for (ModelListener<V, T> listener : iModelListeners)
             listener.constraintRemoved(constraint);
+        if (constraint instanceof HasAssignmentContext)
+            removeReference((HasAssignmentContext<V, T, ?>)constraint);
     }
 
     /**
@@ -968,6 +977,19 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     public synchronized void clearAssignmentContexts(Assignment<V, T> assignment) {
         for (AssignmentContextReference<V,T,? extends AssignmentContext> ref: iAssignmentContextReferences.values())
             assignment.clearContext(ref);
+    }
+    
+    /**
+     * Remove a reference to an assignment context for the model
+     * @param parent class with an assignment context
+     * @return reference to an assignment context that was removed from the model (if any)
+     */
+    @SuppressWarnings("unchecked")
+    public synchronized <C extends AssignmentContext> AssignmentContextReference<V,T,C> removeReference(HasAssignmentContext<V, T, C> parent) {
+        AssignmentContextReference<V,T,C> reference = parent.getAssignmentContextReference();
+    	if (reference != null)
+            return (AssignmentContextReference<V,T,C>) iAssignmentContextReferences.remove(reference.getIndex());
+    	return null;
     }
     
     /**
