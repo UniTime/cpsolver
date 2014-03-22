@@ -1,6 +1,7 @@
 package org.cpsolver.coursett.model;
 
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 
 import org.cpsolver.coursett.Constants;
@@ -494,20 +495,49 @@ public class Placement extends Value<Lecture, Placement> {
             return reason;
         for (InstructorConstraint ic : lecture.getInstructorConstraints()) {
             if (!ic.isAvailable(lecture, this)) {
-                if (!ic.isAvailable(lecture, getTimeLocation()))
+                if (!ic.isAvailable(lecture, getTimeLocation())) {
+                    for (Placement c: ic.getUnavailabilities()) {
+                        if (c.getTimeLocation().hasIntersection(getTimeLocation()) && !lecture.canShareRoom(c.variable()))
+                            return "instructor " + ic.getName() + " not available at " + getTimeLocation().getLongName() + " due to " + c.variable().getName();
+                    }
                     return "instructor " + ic.getName() + " not available at " + getTimeLocation().getLongName();
-                else
+                } else
                     return "placement " + getTimeLocation().getLongName() + " " + getRoomName(", ") + " is too far for instructor " + ic.getName();
             }
         }
         if (lecture.getNrRooms() > 0) {
             if (isMultiRoom()) {
                 for (RoomLocation roomLocation : getRoomLocations()) {
-                    if (roomLocation.getRoomConstraint() != null && !roomLocation.getRoomConstraint().isAvailable(lecture, getTimeLocation(), lecture.getScheduler()))
+                    if (roomLocation.getRoomConstraint() != null && !roomLocation.getRoomConstraint().isAvailable(lecture, getTimeLocation(), lecture.getScheduler())) {
+                        if (roomLocation.getRoomConstraint().getAvailableArray() != null) {
+                            for (Enumeration<Integer> e = getTimeLocation().getSlots(); e.hasMoreElements();) {
+                                int slot = e.nextElement();
+                                if (roomLocation.getRoomConstraint().getAvailableArray()[slot] != null) {
+                                    for (Placement c : roomLocation.getRoomConstraint().getAvailableArray()[slot]) {
+                                        if (c.getTimeLocation().hasIntersection(getTimeLocation()) && !lecture.canShareRoom(c.variable())) {
+                                            return "room " + roomLocation.getName() + " not available at " + getTimeLocation().getLongName() + " due to " + c.variable().getName();
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         return "room " + roomLocation.getName() + " not available at " + getTimeLocation().getLongName();
+                    }
                 }
             } else {
                 if (getRoomLocation().getRoomConstraint() != null && !getRoomLocation().getRoomConstraint().isAvailable(lecture, getTimeLocation(), lecture.getScheduler()))
+                    if (getRoomLocation().getRoomConstraint().getAvailableArray() != null) {
+                        for (Enumeration<Integer> e = getTimeLocation().getSlots(); e.hasMoreElements();) {
+                            int slot = e.nextElement();
+                            if (getRoomLocation().getRoomConstraint().getAvailableArray()[slot] != null) {
+                                for (Placement c : getRoomLocation().getRoomConstraint().getAvailableArray()[slot]) {
+                                    if (c.getTimeLocation().hasIntersection(getTimeLocation()) && !lecture.canShareRoom(c.variable())) {
+                                        return "room " + getRoomLocation().getName() + " not available at " + getTimeLocation().getLongName() + " due to " + c.variable().getName();
+                                    }
+                                }
+                            }
+                        }
+                    }
                     return "room " + getRoomLocation().getName() + " not available at " + getTimeLocation().getLongName();
             }
         }
