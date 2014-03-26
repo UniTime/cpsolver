@@ -114,6 +114,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
     private int iLastPreference = 0;
     private int iDayOfWeekOffset = 0;
     private boolean iPrecedenceConsiderDatePatterns = true;
+    private int iForwardCheckMaxDepth = 2;
     
     /**
      * Group constraints that can be checked on pairs of classes (e.g., same room means any two classes are in the same room),
@@ -670,6 +671,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
             DataProperties config = ((TimetableModel)model).getProperties();
             iDayOfWeekOffset = config.getPropertyInt("DatePattern.DayOfWeekOffset", 0);
             iPrecedenceConsiderDatePatterns = config.getPropertyBoolean("Precedence.ConsiderDatePatterns", true);
+            iForwardCheckMaxDepth = config.getPropertyInt("ForwardCheck.MaxDepth", iForwardCheckMaxDepth);
         }
         if (!isHard()) {
             iLastPreference = getCurrentPreference();
@@ -836,11 +838,12 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         }
         
         // Forward checking
-        forwardCheck(value, conflicts, new HashSet<GroupConstraint>());
+        forwardCheck(value, conflicts, new HashSet<GroupConstraint>(), iForwardCheckMaxDepth - 1);
     }
     
-    public void forwardCheck(Placement value, Set<Placement> conflicts, Set<GroupConstraint> ignore) {
+    public void forwardCheck(Placement value, Set<Placement> conflicts, Set<GroupConstraint> ignore, int depth) {
         try {
+            if (depth < 0) return;
             ignore.add(this);
             
             int neededSize = value.variable().maxRoomUse();
@@ -895,8 +898,8 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                         if (other instanceof WeakeningConstraint) continue;
                         if (other instanceof GroupConstraint) {
                             GroupConstraint gc = (GroupConstraint)other;
-                            if (!ignore.contains(gc))
-                                gc.forwardCheck(support, conflicts, ignore);
+                            if (depth > 0 && !ignore.contains(gc))
+                                gc.forwardCheck(support, conflicts, ignore, depth - 1);
                         } else {
                             other.computeConflicts(support, conflicts);
                         }
@@ -949,13 +952,14 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
             }
         }
         
-        if (!forwardCheck(value, new HashSet<GroupConstraint>())) return true;
+        if (!forwardCheck(value, new HashSet<GroupConstraint>(), iForwardCheckMaxDepth - 1)) return true;
         
         return false;
     }
     
-    public boolean forwardCheck(Placement value, Set<GroupConstraint> ignore) {
+    public boolean forwardCheck(Placement value, Set<GroupConstraint> ignore, int depth) {
         try {
+            if (depth < 0) return true;
             ignore.add(this);
             
             int neededSize = value.variable().maxRoomUse();
@@ -1007,7 +1011,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                         if (other instanceof WeakeningConstraint) continue;
                         if (other instanceof GroupConstraint) {
                             GroupConstraint gc = (GroupConstraint)other;
-                            if (!ignore.contains(gc) && !gc.forwardCheck(support, ignore)) return false;
+                            if (depth > 1 && !ignore.contains(gc) && !gc.forwardCheck(support, ignore, depth - 1)) return false;
                         } else {
                             if (other.inConflict(support)) return false;
                         }
@@ -1375,6 +1379,15 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         if (isSatisfiedSeqCheck(assignments, considerCurrentAssignments, conflicts)) {
             if (bestConflicts == null || bestConflicts.size() > newConflicts.size())
                 return new HashSet<Placement>(newConflicts);
+            if (bestConflicts.size() == newConflicts.size()) {
+                int b = 0, n = 0;
+                for (Placement value: assignments.values()) {
+                    if (value != null && bestConflicts.contains(value)) b++;
+                    if (value != null && newConflicts.contains(value)) n++;
+                }
+                if (n < b)
+                    return new HashSet<Placement>(newConflicts);
+            }
             return bestConflicts;
         }
         if (idx == variables().size())

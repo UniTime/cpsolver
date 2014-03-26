@@ -24,6 +24,7 @@ import net.sf.cpsolver.coursett.criteria.StudentCommittedConflict;
 import net.sf.cpsolver.coursett.criteria.StudentConflict;
 import net.sf.cpsolver.ifs.constant.ConstantVariable;
 import net.sf.cpsolver.ifs.model.Constraint;
+import net.sf.cpsolver.ifs.model.GlobalConstraint;
 import net.sf.cpsolver.ifs.model.Variable;
 import net.sf.cpsolver.ifs.model.WeakeningConstraint;
 import net.sf.cpsolver.ifs.util.DistanceMetric;
@@ -1111,7 +1112,16 @@ public class Lecture extends Variable<Lecture, Placement> implements ConstantVar
                     return false;
             }
         } else {
-            if (model.conflictValues(placement).contains(placement))
+            Set<Placement> conflicts = new HashSet<Placement>();
+            for (Constraint<Lecture, Placement> constraint : hardConstraints()) {
+                if (constraint instanceof WeakeningConstraint) continue;
+                constraint.computeConflicts(placement, conflicts);
+            }
+            for (GlobalConstraint<Lecture, Placement> constraint : model.globalConstraints()) {
+                if (constraint instanceof WeakeningConstraint) continue;
+                constraint.computeConflicts(placement, conflicts);
+            }
+            if (conflicts.contains(placement))
                 return false;
         }
         return true;
