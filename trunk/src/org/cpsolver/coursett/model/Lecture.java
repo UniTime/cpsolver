@@ -27,6 +27,7 @@ import org.cpsolver.ifs.assignment.context.AssignmentContext;
 import org.cpsolver.ifs.assignment.context.VariableWithContext;
 import org.cpsolver.ifs.constant.ConstantVariable;
 import org.cpsolver.ifs.model.Constraint;
+import org.cpsolver.ifs.model.GlobalConstraint;
 import org.cpsolver.ifs.model.WeakeningConstraint;
 import org.cpsolver.ifs.util.DistanceMetric;
 
@@ -1103,7 +1104,16 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                     return false;
             }
         } else {
-            if (model.conflictValues(model.getEmptyAssignment(), placement).contains(placement))
+            Set<Placement> conflicts = new HashSet<Placement>();
+            for (Constraint<Lecture, Placement> constraint : hardConstraints()) {
+                if (constraint instanceof WeakeningConstraint) continue;
+                constraint.computeConflicts(model.getEmptyAssignment(), placement, conflicts);
+            }
+            for (GlobalConstraint<Lecture, Placement> constraint : model.globalConstraints()) {
+                if (constraint instanceof WeakeningConstraint) continue;
+                constraint.computeConflicts(model.getEmptyAssignment(), placement, conflicts);
+            }
+            if (conflicts.contains(placement))
                 return false;
         }
         return true;
