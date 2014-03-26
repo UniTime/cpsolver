@@ -13,8 +13,6 @@ import net.sf.cpsolver.ifs.criteria.Criterion;
 import net.sf.cpsolver.ifs.extension.Extension;
 import net.sf.cpsolver.ifs.extension.MacPropagation;
 import net.sf.cpsolver.ifs.heuristics.ValueSelection;
-import net.sf.cpsolver.ifs.model.Constraint;
-import net.sf.cpsolver.ifs.model.WeakeningConstraint;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.util.DataProperties;
@@ -252,13 +250,13 @@ public class PlacementSelection implements ValueSelection<Lecture, Placement> {
         if (selectedVariable.getInitialAssignment() != null) {
             if (iMPPLimit >= 0 && model.perturbVariables().size() >= iMPPLimit) {
                 if (!containsItselfSingletonOrCommited(model, model.conflictValues(selectedVariable.getInitialAssignment()), selectedVariable.getInitialAssignment()))
-                    return checkValue(selectedVariable.getInitialAssignment());
+                    return selectedVariable.getInitialAssignment();
             } else if (iMPPPenaltyLimit >= 0.0 && solution.getPerturbationsCounter() != null && solution.getPerturbationsCounter().getPerturbationPenalty(model) > iMPPPenaltyLimit) {
                 if (!containsItselfSingletonOrCommited(model, model.conflictValues(selectedVariable.getInitialAssignment()), selectedVariable.getInitialAssignment()))
-                    return checkValue(selectedVariable.getInitialAssignment());
+                    return selectedVariable.getInitialAssignment();
             } else if (selectedVariable.getInitialAssignment() != null && ToolBox.random() <= iInitialSelectionProb) {
                 if (!containsItselfSingletonOrCommited(model, model.conflictValues(selectedVariable.getInitialAssignment()), selectedVariable.getInitialAssignment()))
-                    return checkValue(selectedVariable.getInitialAssignment());
+                    return selectedVariable.getInitialAssignment();
             }
         }
 
@@ -267,7 +265,7 @@ public class PlacementSelection implements ValueSelection<Lecture, Placement> {
             for (int i = 0; i < 5; i++) {
                 Placement ret = ToolBox.random(values);
                 if (!containsItselfSingletonOrCommited(model, model.conflictValues(ret), ret))
-                    return checkValue(ret);
+                    return ret;
             }
         }
         if (iProp != null && selectedVariable.getAssignment() == null && ToolBox.random() <= iGoodSelectionProb) {
@@ -278,7 +276,7 @@ public class PlacementSelection implements ValueSelection<Lecture, Placement> {
         if (values.size() == 1) {
             Placement ret = values.get(0);
             if (!containsItselfSingletonOrCommited(model, model.conflictValues(ret), ret))
-                return checkValue(ret);
+                return ret;
         }
 
         long[] bestCost = new long[NR_LEVELS];
@@ -358,7 +356,7 @@ public class PlacementSelection implements ValueSelection<Lecture, Placement> {
         } else {
             if (selectedVariable.getInitialAssignment() != null
                     && selectionValues.contains(selectedVariable.getInitialAssignment()))
-                return checkValue(selectedVariable.getInitialAssignment());
+                return selectedVariable.getInitialAssignment();
             selectedValue = ToolBox.random(selectionValues);
         }
         if (selectedValue != null && iTabu != null) {
@@ -368,7 +366,7 @@ public class PlacementSelection implements ValueSelection<Lecture, Placement> {
                 iTabu.set(iTabuPos, selectedValue);
             iTabuPos = (iTabuPos + 1) % iTabuSize;
         }
-        return checkValue(selectedValue);
+        return selectedValue;
     }
 
     public boolean containsItselfSingletonOrCommited(TimetableModel model, Set<Placement> values,
@@ -396,16 +394,6 @@ public class PlacementSelection implements ValueSelection<Lecture, Placement> {
         }
     }
 
-    private Placement checkValue(Placement aValue) {
-        if (aValue == null)
-            return null;
-        for (Constraint<Lecture, Placement> c : aValue.variable().getWeakeningConstraints()) {
-            if (c.inConflict(aValue))
-                ((WeakeningConstraint<?,?>) c).weaken();
-        }
-        return aValue;
-    }
-    
     private double getCost(int level, Placement value, Set<Placement> conflicts) {
         double ret = 0.0;
         for (Criterion<Lecture, Placement> criterion: value.variable().getModel().getCriteria()) {

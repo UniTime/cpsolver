@@ -2,10 +2,12 @@ package net.sf.cpsolver.ifs.heuristics;
 
 import java.lang.reflect.Constructor;
 
+import net.sf.cpsolver.ifs.model.Constraint;
 import net.sf.cpsolver.ifs.model.Neighbour;
 import net.sf.cpsolver.ifs.model.SimpleNeighbour;
 import net.sf.cpsolver.ifs.model.Value;
 import net.sf.cpsolver.ifs.model.Variable;
+import net.sf.cpsolver.ifs.model.WeakeningConstraint;
 import net.sf.cpsolver.ifs.solution.Solution;
 import net.sf.cpsolver.ifs.solver.Solver;
 import net.sf.cpsolver.ifs.solver.SolverListener;
@@ -155,6 +157,7 @@ public class StandardNeighbourSelection<V extends Variable<V, T>, T extends Valu
      * Use the provided value selection criterion to select a value to the
      * selected variable
      */
+    @SuppressWarnings("unchecked")
     public T selectValue(Solution<V, T> solution, V variable) {
         // Value selection
         T value = getValueSelection().selectValue(solution, variable);
@@ -164,6 +167,23 @@ public class StandardNeighbourSelection<V extends Variable<V, T>, T extends Valu
 
         if (value == null) {
             sLogger.debug("No value selected for variable " + variable + ".");
+            for (Constraint<V, T> constraint: variable.hardConstraints()) {
+                if (constraint.isHard() && constraint instanceof WeakeningConstraint)
+                    ((WeakeningConstraint<V, T>)constraint).weaken();
+            }
+            for (Constraint<V, T> constraint: solution.getModel().globalConstraints()) {
+                if (constraint.isHard() && constraint instanceof WeakeningConstraint)
+                    ((WeakeningConstraint<V, T>)constraint).weaken();
+            }
+        } else {
+            for (Constraint<V, T> constraint: variable.hardConstraints()) {
+                if (constraint instanceof WeakeningConstraint && constraint.inConflict(value))
+                    ((WeakeningConstraint<V, T>)constraint).weaken();
+            }
+            for (Constraint<V, T> constraint: solution.getModel().globalConstraints()) {
+                if (constraint instanceof WeakeningConstraint && constraint.inConflict(value))
+                    ((WeakeningConstraint<V, T>)constraint).weaken();
+            }
         }
         return value;
     }
