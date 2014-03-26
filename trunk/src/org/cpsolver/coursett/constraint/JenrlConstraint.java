@@ -12,7 +12,9 @@ import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
 import org.cpsolver.ifs.assignment.context.BinaryConstraintWithContext;
 import org.cpsolver.ifs.criteria.Criterion;
+import org.cpsolver.ifs.model.Model;
 import org.cpsolver.ifs.model.WeakeningConstraint;
+import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.DistanceMetric;
 import org.cpsolver.ifs.util.ToolBox;
 
@@ -52,12 +54,24 @@ public class JenrlConstraint extends BinaryConstraintWithContext<Lecture, Placem
     private double iPriority = 0.0;
     private Set<Student> iStudents = new HashSet<Student>();
     private Set<Student> iInstructors = new HashSet<Student>();
+    private double iJenrlMaxConflicts = 1.0;
+    private double iJenrlMaxConflictsWeaken = 0.001;
 
     /**
      * Constructor
      */
     public JenrlConstraint() {
         super();
+    }
+    
+    @Override
+    public void setModel(Model<Lecture, Placement> model) {
+        super.setModel(model);
+        if (model != null && model instanceof TimetableModel) {
+            DataProperties config = ((TimetableModel)model).getProperties();
+            iJenrlMaxConflicts = config.getPropertyDouble("General.JenrlMaxConflicts", 1.0);
+            iJenrlMaxConflictsWeaken = config.getPropertyDouble("General.JenrlMaxConflictsWeaken", 0.001);
+        }
     }
     
     @Override
@@ -252,9 +266,8 @@ public class JenrlConstraint extends BinaryConstraintWithContext<Lecture, Placem
                 first().addActiveJenrl(assignment, JenrlConstraint.this);
                 second().addActiveJenrl(assignment, JenrlConstraint.this);
             }
-            double maxConflicts = ((TimetableModel)first().getModel()).getProperties().getPropertyDouble("General.JenrlMaxConflicts", 1.0);
-            if (maxConflicts >= 0.0 && maxConflicts < 1.0)
-                iJenrlLimit = Math.min(first().maxClassLimit(), second().maxClassLimit()) * maxConflicts;
+            if (iJenrlMaxConflicts >= 0.0 && iJenrlMaxConflicts < 1.0)
+                iJenrlLimit = Math.min(first().maxClassLimit(), second().maxClassLimit()) * iJenrlMaxConflicts;
         }
 
         @Override
@@ -284,7 +297,7 @@ public class JenrlConstraint extends BinaryConstraintWithContext<Lecture, Placem
         
         public void weaken(Assignment<Lecture, Placement> assignment, Placement value) {
             if (inConflict(assignment, value)) {
-                double maxConflicts = ((TimetableModel)second().getModel()).getProperties().getPropertyDouble("General.JenrlMaxConflicts", 1.0) + iTwiggle;
+                double maxConflicts = iJenrlMaxConflicts + iTwiggle;
                 iTwiggle = (iJenrl + 0.00001) / Math.min(first().maxClassLimit(), second().maxClassLimit()) - maxConflicts;
                 if (maxConflicts + iTwiggle >= 0.0 && maxConflicts + iTwiggle < 1.0) {
                     iJenrlLimit = Math.min(first().maxClassLimit(), second().maxClassLimit()) * (maxConflicts + iTwiggle);
@@ -295,8 +308,8 @@ public class JenrlConstraint extends BinaryConstraintWithContext<Lecture, Placem
         }
         
         public void weaken() {
-            iTwiggle += ((TimetableModel)second().getModel()).getProperties().getPropertyDouble("General.JenrlMaxConflictsWeaken", 0.001);
-            double maxConflicts = ((TimetableModel)second().getModel()).getProperties().getPropertyDouble("General.JenrlMaxConflicts", 1.0) + iTwiggle;
+            iTwiggle += iJenrlMaxConflictsWeaken;
+            double maxConflicts = iJenrlMaxConflicts + iTwiggle;
             if (maxConflicts >= 0.0 && maxConflicts < 1.0) {
                 iJenrlLimit = Math.min(first().maxClassLimit(), second().maxClassLimit()) * maxConflicts;
             } else {
@@ -313,7 +326,7 @@ public class JenrlConstraint extends BinaryConstraintWithContext<Lecture, Placem
         }
         
         public void decLimit(double weight) {
-            double maxConflicts = ((TimetableModel)second().getModel()).getProperties().getPropertyDouble("General.JenrlMaxConflicts", 1.0) + iTwiggle;
+            double maxConflicts = iJenrlMaxConflicts + iTwiggle;
             if (maxConflicts >= 0.0 && maxConflicts < 1.0) {
                 iJenrlLimit = Math.max(Math.min(first().maxClassLimit(), second().maxClassLimit()) * maxConflicts, iJenrlLimit - weight);
             } else {
