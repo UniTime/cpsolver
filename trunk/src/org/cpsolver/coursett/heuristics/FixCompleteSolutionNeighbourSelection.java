@@ -111,7 +111,8 @@ public class FixCompleteSolutionNeighbourSelection extends NeighbourSelectionWit
                     if (solution.getIteration() - iLastIncompleteSolutionFixIteration < iIncompleteSolutionFixInterval)
                         return iParent.selectNeighbour(solution);
                 }
-                context.incPhase(solution);
+                if (solution.getBestIteration() == solution.getIteration())
+                    context.incPhase(solution);
             }
         }
         
