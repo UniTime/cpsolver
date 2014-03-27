@@ -42,6 +42,8 @@ import org.cpsolver.ifs.util.Progress;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * @param <V> Variable
+ * @param <T> Value
  */
 
 public class MacRevised<V extends Variable<V, T>, T extends Value<V, T>> extends ExtensionWithContext<V, T, MacRevised<V, T>.NoGood> {
@@ -54,13 +56,18 @@ public class MacRevised<V extends Variable<V, T>, T extends Value<V, T>> extends
     /** Current iteration */
     protected long iIteration = 0;
 
-    /** Constructor */
+    /** Constructor 
+     * @param solver current solver
+     * @param properties solver configuration
+     **/
     public MacRevised(Solver<V, T> solver, DataProperties properties) {
         super(solver, properties);
         iDbt = properties.getPropertyBoolean("MacRevised.Dbt", false);
     }
 
-    /** Adds a constraint on which arc-consistency is to be maintained */
+    /** Adds a constraint on which arc-consistency is to be maintained 
+     * @param constraint a hard constraint to be added
+     **/
     public void addConstraint(Constraint<V, T> constraint) {
         if (iConstraints == null)
             iConstraints = new ArrayList<Constraint<V, T>>();
@@ -70,6 +77,8 @@ public class MacRevised<V extends Variable<V, T>, T extends Value<V, T>> extends
     /**
      * Returns true, if arc-consistency is to be maintained on the given
      * constraint
+     * @param constraint a constraint
+     * @return true if the constraint is in the set
      */
     public boolean contains(Constraint<V, T> constraint) {
         if (iConstraints == null)
@@ -278,7 +287,11 @@ public class MacRevised<V extends Variable<V, T>, T extends Value<V, T>> extends
         return ret[0];
     }
 
-    /** good values of a variable (values not removed from variables domain) */
+    /** good values of a variable (values not removed from variables domain) 
+     * @param assignment current assignment 
+     * @param variable given variable
+     * @return good values for the variable (i.e., values from the domain of the variable that have no no-good set)
+     **/
     @SuppressWarnings("unchecked")
     public Set<T> goodValues(Assignment<V, T> assignment, V variable) {
         Set<T>[] ret = getContext(assignment).getNoGood(variable);
@@ -289,7 +302,7 @@ public class MacRevised<V extends Variable<V, T>, T extends Value<V, T>> extends
         return ret[1];
     }
 
-    /** notification that a nogood value becomes good or vice versa */
+    /** notification that a no-good value becomes good or vice versa */
     private void goodnessChanged(Assignment<V, T> assignment, T value) {
         if (isGood(assignment, value)) {
             goodValues(assignment, value.variable()).add(value);
@@ -308,17 +321,28 @@ public class MacRevised<V extends Variable<V, T>, T extends Value<V, T>> extends
         supportValues(assignment, variable).add(value);
     }
 
-    /** variables explanation */
+    /** variables explanation 
+     * @param assignment current assignment
+     * @param value given value
+     * @return no-good set for the value 
+     **/
     public Set<T> noGood(Assignment<V, T> assignment, T value) {
         return getContext(assignment).getNoGood(value);
     }
 
-    /** is variable good */
+    /** is variable good 
+     * @param assignment current assignment
+     * @param value given value
+     * @return true if good, i.e., the value has no no-good set 
+     **/
     public boolean isGood(Assignment<V, T> assignment, T value) {
         return (getContext(assignment).getNoGood(value) == null);
     }
 
-    /** sets value to be good */
+    /** sets value to be good 
+     * @param assignment current assignment
+     * @param value given value
+     **/
     protected void setGood(Assignment<V, T> assignment, T value) {
         sLogger.debug("    -- set good " + value.variable().getName() + " = " + value.getName());
         Set<T> noGood = noGood(assignment, value);
@@ -370,7 +394,11 @@ public class MacRevised<V extends Variable<V, T>, T extends Value<V, T>> extends
         }
     }
 
-    /** sets value's explanation */
+    /** sets value's explanation 
+     * @param assignment current assignment
+     * @param value a value
+     * @param reason no-good set for the value
+     **/
     public void setNoGood(Assignment<V, T> assignment, T value, Set<T> reason) {
         sLogger.debug("    -- set nogood " + value.variable().getName() + " = " + value.getName() + "(expl:" + expl2str(reason) + ")");
         if (value.equals(assignment.getValue(value.variable()))) {

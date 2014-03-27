@@ -44,6 +44,8 @@ import org.cpsolver.ifs.util.DataProperties;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * @param <V> Variable
+ * @param <T> Value
  */
 public class ViolatedInitials<V extends Variable<V, T>, T extends Value<V, T>> extends Extension<V, T> {
     private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(ViolatedInitials.class);
@@ -53,7 +55,10 @@ public class ViolatedInitials<V extends Variable<V, T>, T extends Value<V, T>> e
         super(solver, properties);
     }
 
-    /** Compute the violations between any value and all other initial values */
+    /** Compute the violations between any value and all other initial values 
+     * @param assignment current assignment
+     * @return true if initialized properly
+     **/
     public boolean init(Assignment<V, T> assignment) {
         sLogger.info("Computation of violated initials enabled.");
         for (V variable : getModel().variables()) {
@@ -68,7 +73,11 @@ public class ViolatedInitials<V extends Variable<V, T>, T extends Value<V, T>> e
         return true;
     }
 
-    /** Initial values that cannot be assigned when the given value is assigned */
+    /** Initial values that cannot be assigned when the given value is assigned 
+     * @param value given value
+     * @return list of initial values that cannot be assigned due to the given value
+     *
+     **/
     public Set<T> getViolatedInitials(T value) {
         return iViolatedInitials.get(value);
     }

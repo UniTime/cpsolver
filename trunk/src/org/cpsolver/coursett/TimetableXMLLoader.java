@@ -50,7 +50,7 @@ import org.dom4j.io.SAXReader;
  * This class loads the input model from XML file. <br>
  * <br>
  * Parameters:
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>

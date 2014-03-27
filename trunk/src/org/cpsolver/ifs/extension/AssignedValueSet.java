@@ -32,8 +32,8 @@ import org.cpsolver.ifs.model.Value;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * @param <T> Value
  */
-
 public class AssignedValueSet<T extends Value<?, T>> {
     private List<AssignedValue<T>> iSet = new ArrayList<AssignedValue<T>>();
     private int iCounter = 1;
@@ -57,6 +57,9 @@ public class AssignedValueSet<T extends Value<?, T>> {
     /**
      * Create set of assignments from the list of Assignments, Values or
      * (assigned) Variables
+     * @param assignments list of assignments
+     * @param <T> Value
+     * @return a set of assignments
      */
     public static <T extends Value<?, T>> AssignedValueSet<T> createAssignmentSet(Collection<AssignedValue<T>> assignments) {
         AssignedValueSet<T> set = new AssignedValueSet<T>();
@@ -68,6 +71,9 @@ public class AssignedValueSet<T extends Value<?, T>> {
     /**
      * Create set of assignments from the list of Assignments, Values or
      * (assigned) Variables
+     * @param assignments list of assignments
+     * @param <T> Value
+     * @return a set of assignments
      */
     public static <T extends Value<?, T>> AssignedValueSet<T> createAssignmentSetForValues(Collection<T> assignments) {
         AssignedValueSet<T> set = new AssignedValueSet<T>();
@@ -81,62 +87,90 @@ public class AssignedValueSet<T extends Value<?, T>> {
         iCounter++;
     }
 
-    /** Returns counter */
+    /** Returns counter 
+     * @return counter
+     **/
     public int getCounter() {
         return iCounter;
     }
 
-    /** Returns set of assignments */
+    /** Returns set of assignments 
+     * @return assignments in the set
+     **/
     public List<AssignedValue<T>> getSet() {
         return iSet;
     }
 
-    /** Returns name */
+    /** Returns name
+     * @return a name
+     **/
     public String getName() {
         return iName;
     }
 
-    /** Sets name */
+    /** Sets name
+     * @param name a name
+     **/
     public void setName(String name) {
         iName = name;
     }
 
-    /** Returns description */
+    /** Returns description
+     * @return a description
+     **/
     public String getDescription() {
         return iDescription;
     }
 
-    /** Sets description */
+    /** Sets description
+     * @param description a description
+     **/
     public void setDescription(String description) {
         iDescription = description;
     }
 
-    /** Returns constraint */
+    /** Returns constraint
+     * @return a constraint 
+     **/
     public Constraint<?, T> getConstraint() {
         return iConstraint;
     }
 
-    /** Sets constraint */
+    /** Sets constraint
+     * @param constraint a constraint 
+     **/
     public void setConstraint(Constraint<?, T> constraint) {
         iConstraint = constraint;
     }
 
-    /** Returns true if it contains the given assignment */
+    /** Returns true if it contains the given assignment
+     * @param assignment an assignment
+     * @return true if in the set
+     **/
     public boolean contains(AssignedValue<T> assignment) {
         return iSet.contains(assignment);
     }
 
-    /** Returns true if it contains all of the given assignments */
+    /** Returns true if it contains all of the given assignments
+     * @param assignmentSet a set of assignments
+     * @return true if all in the set
+     **/
     public boolean contains(AssignedValueSet<T> assignmentSet) {
         return iSet.containsAll(assignmentSet.getSet());
     }
 
-    /** Returns true if it contains the given assignment */
+    /** Returns true if it contains the given assignment
+     * @param value an assignment (of the value to its variable)
+     * @return true if in the set
+     **/
     public boolean contains(T value) {
         return iSet.contains(new AssignedValue<T>(0l, value, 1.0));
     }
 
-    /** Returns true if it contains all of the given assignments */
+    /** Returns true if it contains all of the given assignments
+     * @param assignments a set of assignments
+     * @return true if all in the set
+     **/
     public boolean contains(Collection<AssignedValue<T>> assignments) {
         for (AssignedValue<T> a : assignments)
             if (!iSet.contains(a))
@@ -144,7 +178,10 @@ public class AssignedValueSet<T extends Value<?, T>> {
         return true;
     }
 
-    /** Returns true if it contains all of the given assignments */
+    /** Returns true if it contains all of the given assignments
+     * @param assignments a set of assignments (values to their variables)
+     * @return true if all in the set
+     **/
     public boolean containsValues(Collection<T> assignments) {
         for (T a : assignments)
             if (!iSet.contains(new AssignedValue<T>(0l, a, 1.0)))
@@ -152,20 +189,28 @@ public class AssignedValueSet<T extends Value<?, T>> {
         return true;
     }
 
-    /** Adds an assignment */
+    /** Adds an assignment
+     * @param assignment an assignment
+     **/
     public void addAssignment(AssignedValue<T> assignment) {
         if (!contains(assignment))
             iSet.add(assignment);
     }
 
-    /** Adds an assignment */
-    public void addAssignment(long iteration, T value, double ageing) {
-        addAssignment(new AssignedValue<T>(iteration, value, ageing));
+    /** Adds an assignment
+     * @param iteration current iteration
+     * @param value an assignment
+     * @param aging aging factor
+     **/
+    public void addAssignment(long iteration, T value, double aging) {
+        addAssignment(new AssignedValue<T>(iteration, value, aging));
     }
 
     /**
      * Returns assignment that corresponds to the given value (if it is present
      * in the set)
+     * @param value an assignment
+     * @return a corresponding assignment of the set, null if not present
      */
     public AssignedValue<T> getAssignment(T value) {
         for (AssignedValue<T> a : iSet)
@@ -174,7 +219,9 @@ public class AssignedValueSet<T extends Value<?, T>> {
         return null;
     }
 
-    /** Returns number of assignments in the set */
+    /** Returns number of assignments in the set 
+     * @return number of assignments in the set
+     **/
     public int size() {
         return getSet().size();
     }

@@ -48,7 +48,7 @@ import org.cpsolver.studentsct.model.Student;
  * using the {@link ProblemStudentsProvider} interface. <br>
  * <br>
  * Parameters: <br>
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>

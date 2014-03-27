@@ -25,22 +25,30 @@ package org.cpsolver.ifs.util;
 public class Counter {
     private long iValue = 0;
 
-    /** Set counter */
+    /** Set counter 
+     * @param value counter value
+     **/
     public void set(long value) {
         iValue = value;
     }
 
-    /** Returns current value */
+    /** Returns current value 
+     * @return counter value
+     **/
     public long get() {
         return iValue;
     }
 
-    /** Increment counter */
+    /** Increment counter
+     * @param value counter increment
+     **/
     public void inc(long value) {
         iValue += value;
     }
 
-    /** Decrement counter */
+    /** Decrement counter
+     * @param value counter decrement
+     **/
     public void dec(long value) {
         iValue -= value;
     }

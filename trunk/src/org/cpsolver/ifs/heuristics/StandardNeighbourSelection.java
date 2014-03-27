@@ -32,7 +32,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * criteria and therefore only one value was assigned in each iteration. <br>
  * <br>
  * Parameters: <br>
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -70,7 +70,10 @@ import org.cpsolver.ifs.util.DataProperties;
  *          Lesser General Public License for more details. <br>
  * <br>
  *          You should have received a copy of the GNU Lesser General Public
- *          License along with this library; if not see <http://www.gnu.org/licenses/>.
+ *          License along with this library; if not see <a href='http://www.gnu.org/licenses'>http://www.gnu.org/licenses</a>.
+ *
+ * @param <V> Variable
+ * @param <T> Value
  **/
 public class StandardNeighbourSelection<V extends Variable<V, T>, T extends Value<V, T>> implements NeighbourSelection<V, T> {
     protected static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(StandardNeighbourSelection.class);
@@ -80,22 +83,30 @@ public class StandardNeighbourSelection<V extends Variable<V, T>, T extends Valu
     private Solver<V, T> iSolver = null;
     private ConflictStatistics<V, T> iStat = null;
 
-    /** Sets value selection criterion */
+    /** Sets value selection criterion 
+     * @param valueSelection value selection criterion
+     **/
     public void setValueSelection(ValueSelection<V, T> valueSelection) {
         iValueSelection = valueSelection;
     }
 
-    /** Sets variable selection criterion */
+    /** Sets variable selection criterion 
+     * @param variableSelection variable selection criterion
+     **/
     public void setVariableSelection(VariableSelection<V, T> variableSelection) {
         iVariableSelection = variableSelection;
     }
 
-    /** Returns values selection criterion */
+    /** Returns value selection criterion 
+     * @return value selection criterion
+     **/
     public ValueSelection<V, T> getValueSelection() {
         return iValueSelection;
     }
 
-    /** Returns variable selection criterion */
+    /** Returns variable selection criterion
+     * @return variable selection criterion
+     **/
     public VariableSelection<V, T> getVariableSelection() {
         return iVariableSelection;
     }
@@ -105,7 +116,7 @@ public class StandardNeighbourSelection<V extends Variable<V, T>, T extends Valu
      * 
      * @param properties
      *            configuration
-     * @throws Exception
+     * @throws Exception thrown when initialization fails
      */
     @SuppressWarnings("unchecked")
     public StandardNeighbourSelection(DataProperties properties) throws Exception {
@@ -138,7 +149,10 @@ public class StandardNeighbourSelection<V extends Variable<V, T>, T extends Valu
                 iStat = (ConflictStatistics<V, T>)ext;
     }
 
-    /** Use the provided variable selection criterion to select a variable */
+    /** Use the provided variable selection criterion to select a variable 
+     * @param solution current solution
+     * @return selected variable
+     **/
     public V selectVariable(Solution<V, T> solution) {
         // Variable selection
         V variable = getVariableSelection().selectVariable(solution);
@@ -158,6 +172,9 @@ public class StandardNeighbourSelection<V extends Variable<V, T>, T extends Valu
     /**
      * Use the provided value selection criterion to select a value to the
      * selected variable
+     * @param solution current solution
+     * @param variable selected variable
+     * @return selected value
      */
     @SuppressWarnings("unchecked")
     public T selectValue(Solution<V, T> solution, V variable) {

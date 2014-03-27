@@ -19,13 +19,13 @@ import org.cpsolver.studentsct.model.Student;
 import org.cpsolver.studentsct.model.Subpart;
 
 /**
- * Section given student using branch & bound algorithm with no unassignments
+ * Section given student using branch &amp; bound algorithm with no unassignments
  * allowed.
  * 
  * <br>
  * <br>
  * Parameters: <br>
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -193,7 +193,7 @@ public class OnlineSelection extends BranchBoundSelection {
     }
 
     /**
-     * Branch & bound selection for a student
+     * Branch &amp; bound selection for a student
      */
     @Override
     public Selection getSelection(Assignment<Request, Enrollment> assignment, Student student) {
@@ -208,7 +208,7 @@ public class OnlineSelection extends BranchBoundSelection {
     }
 
     /**
-     * Branch & bound selection for a student
+     * Branch &amp; bound selection for a student
      */
     public class EpsilonSelection extends BranchBoundSelection.Selection {
         private StudentPreferencePenalties iPenalties = null;
@@ -227,7 +227,7 @@ public class OnlineSelection extends BranchBoundSelection {
         }
 
         /**
-         * Execute branch & bound, return the best found schedule for the
+         * Execute branch &amp; bound, return the best found schedule for the
          * selected student.
          */
         @Override

@@ -51,9 +51,9 @@ import org.cpsolver.ifs.util.ToolBox;
  * <br>
  * If <i>SimulatedAnnealing.StochasticHC</i> is true, the acceptance probability
  * is computed using stochastic hill climbing criterion, i.e.,
- * <code>1.0 / (1.0 + Math.exp(value/temperature))</code>, otherwise it is
+ * <pre><code>1.0 / (1.0 + Math.exp(value/temperature))</code></pre>, otherwise it is
  * cumputed using simlated annealing criterion, i.e.,
- * <code>(value<=0.0?1.0:Math.exp(-value/temperature))</code>. If
+ * <pre><code>(value&lt;=0.0?1.0:Math.exp(-value/temperature))</code></pre>. If
  * <i>SimulatedAnnealing.RelativeAcceptance</i> neighbour value
  * {@link ExamSimpleNeighbour#value(Assignment)} is taken as the value of the selected
  * neighbour (difference between the new and the current solution, if the

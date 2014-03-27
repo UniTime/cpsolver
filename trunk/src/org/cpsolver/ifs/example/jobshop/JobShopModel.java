@@ -25,43 +25,38 @@ import org.cpsolver.ifs.util.ToolBox;
  * It can also load the model from a file and save the solution. <br>
  * <br>
  * <b>Input file format:</b>
- * <ul>
  * First line:
- * <ul>
- * <code>&lt;number of jobs&gt; &lt;number of machines&gt;</code>
- * </ul>
+ * <pre><code>&lt;number of jobs&gt; &lt;number of machines&gt;</code></pre>
  * Following lines:
- * <ul>
+ * <pre>
  * space separated list (a line for each job) of operations, each operation
  * consist of machine number and operation processing time
- * </ul>
+ * </pre>
  * Example of 10 jobs, 10 machines:
- * <ul>
- * <code>
- * 10 10<br>
- * 4 88 8 68 6 94 5 99 1 67 2 89 9 77 7 99 0 86 3 92<br>
- * 5 72 3 50 6 69 4 75 2 94 8 66 0 92 1 82 7 94 9 63<br>
- * 9 83 8 61 0 83 1 65 6 64 5 85 7 78 4 85 2 55 3 77<br>
- * 7 94 2 68 1 61 4 99 3 54 6 75 5 66 0 76 9 63 8 67<br>
- * 3 69 4 88 9 82 8 95 0 99 2 67 6 95 5 68 7 67 1 86<br>
- * 1 99 4 81 5 64 6 66 8 80 2 80 7 69 9 62 3 79 0 88<br>
- * 7 50 1 86 4 97 3 96 0 95 8 97 2 66 5 99 6 52 9 71<br>
- * 4 98 6 73 3 82 2 51 1 71 5 94 7 85 0 62 8 95 9 79<br>
- * 0 94 6 71 3 81 7 85 1 66 2 90 4 76 5 58 8 93 9 97<br>
- * 3 50 0 59 1 82 8 67 7 56 9 96 6 58 4 81 5 59 2 96<br>
- * </code>
- * </ul>
+ * <pre><code>
+ * 10 10
+ * 4 88 8 68 6 94 5 99 1 67 2 89 9 77 7 99 0 86 3 92
+ * 5 72 3 50 6 69 4 75 2 94 8 66 0 92 1 82 7 94 9 63
+ * 9 83 8 61 0 83 1 65 6 64 5 85 7 78 4 85 2 55 3 77
+ * 7 94 2 68 1 61 4 99 3 54 6 75 5 66 0 76 9 63 8 67
+ * 3 69 4 88 9 82 8 95 0 99 2 67 6 95 5 68 7 67 1 86
+ * 1 99 4 81 5 64 6 66 8 80 2 80 7 69 9 62 3 79 0 88
+ * 7 50 1 86 4 97 3 96 0 95 8 97 2 66 5 99 6 52 9 71
+ * 4 98 6 73 3 82 2 51 1 71 5 94 7 85 0 62 8 95 9 79
+ * 0 94 6 71 3 81 7 85 1 66 2 90 4 76 5 58 8 93 9 97
+ * 3 50 0 59 1 82 8 67 7 56 9 96 6 58 4 81 5 59 2 96
+ * </code></pre>
  * For instance, the first job is described as follows:
- * <ul>
+ * <pre>
  * 88 time units on machine 4, then 68 time units on machine 8, then 94 time
  * units on machine 6 ...
- * </ul>
- * </ul><br>
+ * </pre>
+ * <br>
  * <b>Output file firmat:</b>
- * <ul>
+ * <pre>
  * A line for each machine, in each line there is a space separated list of jobs
  * which the machine will process in the order they will be processed.
- * </ul>
+ * </pre>
  * 
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
@@ -101,27 +96,39 @@ public class JobShopModel extends Model<Operation, Location> {
         iJobs = new Job[nrJobs];
     }
 
-    /** Get total number of slots */
+    /** Get total number of slots 
+     * @return total number of slots
+     **/
     public int getTotalNumberOfSlots() {
         return iTotalNumberOfSlots;
     }
 
-    /** Get machine of the given numbner */
+    /** Get machine of the given number
+     * @param machineNumber machine number
+     * @return machine of the given number
+     **/
     public Machine getMachine(int machineNumber) {
         return iMachines[machineNumber];
     }
 
-    /** Count number of machines in the model */
+    /** Count number of machines in the model 
+     * @return number of machines in the model
+     **/
     public int countMachines() {
         return iMachines.length;
     }
 
-    /** Get job of the given number */
+    /** Get job of the given number 
+     * @param jobNumber job number
+     * @return job of the given number
+     **/
     public Job getJob(int jobNumber) {
         return iJobs[jobNumber];
     }
 
-    /** Count number of jobs in the model */
+    /** Count number of jobs in the model 
+     * @return number of jobs in the model
+     **/
     public int countJobs() {
         return iJobs.length;
     }
@@ -134,7 +141,10 @@ public class JobShopModel extends Model<Operation, Location> {
         iMachines[machineNumber] = machine;
     }
 
-    /** Loads the model from the given file */
+    /** Loads the model from the given file 
+     * @param file file to load
+     * @return loaded model
+     * @throws IOException thrown when there is a problem reading the input file */
     public static JobShopModel loadModel(String file) throws IOException {
         BufferedReader reader = new BufferedReader(new FileReader(file));
         String line = reader.readLine();
@@ -174,7 +184,10 @@ public class JobShopModel extends Model<Operation, Location> {
         return model;
     }
 
-    /** Get finishing time of the current (partial) solution */
+    /** Get finishing time of the current (partial) solution 
+     * @param assignment current assignment
+     * @return finishing time of the current (partial) solution
+     **/
     public int getFinishingTime(Assignment<Operation, Location> assignment) {
         int ret = 0;
         for (Operation op : assignment.assignedVariables()) {
@@ -191,7 +204,11 @@ public class JobShopModel extends Model<Operation, Location> {
         return ret;
     }
 
-    /** Save the solution into the given file */
+    /** Save the solution into the given file 
+     * @param assignment current assignment
+     * @param file file to write
+     * @throws java.io.IOException throw when there is a problem writing the file
+     **/
     public void save(Assignment<Operation, Location> assignment, String file) throws java.io.IOException {
         PrintWriter writer = new PrintWriter(new FileWriter(file));
         for (int i = 0; i < countMachines(); i++) {

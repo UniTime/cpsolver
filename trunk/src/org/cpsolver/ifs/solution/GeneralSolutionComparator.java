@@ -1,5 +1,6 @@
 package org.cpsolver.ifs.solution;
 
+import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.model.Value;
 import org.cpsolver.ifs.model.Variable;
 import org.cpsolver.ifs.util.DataProperties;
@@ -10,7 +11,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * The solution is better than the best ever found solution when it has more
  * variables assigned. In the case, when both solutions have the same number of
  * assigned variables, the better solution is the one with smaller total value,
- * i.e., the sum of {@link org.cpsolver.ifs.model.Value#toDouble()} over all
+ * i.e., the sum of {@link org.cpsolver.ifs.model.Value#toDouble(Assignment)} over all
  * assigned variables.
  * 
  * @see Solution
@@ -34,14 +35,18 @@ import org.cpsolver.ifs.util.DataProperties;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * 
+ * @param <V> Variable 
+ * @param <T> Value
  */
-public class GeneralSolutionComparator<V extends Variable<V, T>, T extends Value<V, T>> implements
-        SolutionComparator<V, T> {
+public class GeneralSolutionComparator<V extends Variable<V, T>, T extends Value<V, T>> implements SolutionComparator<V, T> {
 
     public GeneralSolutionComparator() {
     }
 
-    /** No parameters are used so far. */
+    /** No parameters are used so far. 
+     * @param properties solver configuration
+     **/
     public GeneralSolutionComparator(DataProperties properties) {
     }
 

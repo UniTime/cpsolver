@@ -28,15 +28,25 @@ import org.cpsolver.ifs.assignment.Assignment;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * 
+ * @param <V> Variable
+ * @param <T> Value
  */
-
 public interface Neighbour<V extends Variable<V, T>, T extends Value<V, T>> {
-    /** Perform assignmnet */
+    /** Perform assignment 
+     * @param assignment current assignment
+     * @param iteration current iteration
+     **/
     public void assign(Assignment<V, T> assignment, long iteration);
 
-    /** Difference in the evaluation function, if this neighnour is assigned. */
+    /** Difference in the evaluation function, if this neighnour is assigned.
+     * @param assignment current assignment
+     * @return difference in the solution value when assigned
+     **/
     public double value(Assignment<V, T> assignment);
     
-    /** Return assignments to be done. */
+    /** Return assignments to be done.
+     * @return list of assignments (including unassignments) of this neighbour
+     **/
     public Map<V, T> assignments(); 
 }

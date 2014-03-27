@@ -23,7 +23,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * perturbations, the solution of better quality is selected. <br>
  * <br>
  * Parameters:
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>

@@ -32,7 +32,10 @@ import org.cpsolver.ifs.model.Variable;
  *          Lesser General Public License for more details. <br>
  * <br>
  *          You should have received a copy of the GNU Lesser General Public
- *          License along with this library; if not see <http://www.gnu.org/licenses/>.
+ *          License along with this library; if not see <a href='http://www.gnu.org/licenses'>http://www.gnu.org/licenses</a>.
+ * @param <V> Variable
+ * @param <T> Value
+ * @param <C> Assignment Context
  **/
 public abstract class ModelWithContext<V extends Variable<V, T>, T extends Value<V, T>, C extends AssignmentConstraintContext<V, T>> extends Model<V, T> implements HasAssignmentContext<V, T, C>, CanHoldContext {
     

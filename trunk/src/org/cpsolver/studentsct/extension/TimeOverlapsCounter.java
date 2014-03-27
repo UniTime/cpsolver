@@ -153,6 +153,8 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
 
     /**
      * Total sum of all free time conflict of the given enrollment.
+     * @param enrollment given enrollment
+     * @return number of all free time conflicts of the given enrollment
      */
     public int nrFreeTimeConflicts(Enrollment enrollment) {
         if (enrollment.getRequest() instanceof FreeTimeRequest) return 0;
@@ -169,6 +171,8 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
     
     /**
      * Return a set of free time conflict of the given enrollment.
+     * @param enrollment given enrollment
+     * @return set of all free time conflicts of the given enrollment
      */
     public Set<Conflict> freeTimeConflicts(Enrollment enrollment) {
         Set<Conflict> ret = new HashSet<Conflict>();
@@ -185,7 +189,10 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
         return ret;
     }
 
-    /** Actual number of all time overlapping conflicts */
+    /** Actual number of all time overlapping conflicts 
+     * @param assignment current assignment
+     * @return total number of time overlapping conflicts
+     **/
     public int getTotalNrConflicts(Assignment<Request, Enrollment> assignment) {
         return getContext(assignment).getTotalNrConflicts();
     }
@@ -196,6 +203,8 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
 
     /**
      * Return a set of all time overlapping conflicts ({@link Conflict} objects).
+     * @param assignment current assignment
+     * @return set of all time overlapping conflicts in the assignment
      */
     public Set<Conflict> getAllConflicts(Assignment<Request, Enrollment> assignment) {
         return getContext(assignment).getAllConflicts();
@@ -238,8 +247,11 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
          * 
          * @param student
          *            related student
+         * @param share number of slots in common between the two conflicting sections
+         * @param e1 first enrollment
          * @param a1
          *            first conflicting section
+         * @param e2 second enrollment
          * @param a2
          *            second conflicting section
          */
@@ -260,37 +272,51 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
             iShare = share;
         }
 
-        /** Related student */
+        /** Related student
+         * @return student
+         **/
         public Student getStudent() {
             return iStudent;
         }
 
-        /** First section */
+        /** First section
+         * @return first section
+         **/
         public SctAssignment getS1() {
             return iA1;
         }
 
-        /** Second section */
+        /** Second section
+         * @return second section
+         **/
         public SctAssignment getS2() {
             return iA2;
         }
 
-        /** First request */
+        /** First request
+         * @return first request
+         **/
         public Request getR1() {
             return iE1.getRequest();
         }
         
-        /** Second request */
+        /** Second request
+         * @return second request
+         **/
         public Request getR2() {
             return iE2.getRequest();
         }
         
-        /** First enrollment */
+        /** First enrollment
+         * @return first enrollment
+         **/
         public Enrollment getE1() {
             return iE1;
         }
 
-        /** Second enrollment */
+        /** Second enrollment
+         * @return second enrollment
+         **/
         public Enrollment getE2() {
             return iE2;
         }
@@ -300,7 +326,9 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
             return iHashCode;
         }
 
-        /** The number of overlapping slots against the number of slots of the smallest section */
+        /** The number of overlapping slots against the number of slots of the smallest section
+         * @return number of overlapping slots between the two sections 
+         **/
         public int getShare() {
             return iShare;
         }
@@ -321,6 +349,9 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
     /**
      * The set of all conflicts ({@link Conflict} objects) of the given
      * enrollment and other enrollments that are assigned to the same student.
+     * @param assignment current assignment
+     * @param enrollment given enrollment
+     * @return all conflicts of the given enrollment
      */
     public Set<Conflict> allConflicts(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
         Set<Conflict> ret = new HashSet<Conflict>();
@@ -414,6 +445,9 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
         
         /**
          * Called before a value is assigned to a variable.
+         * @param assignment current assignment
+         * @param iteration current iteration
+         * @param value value to be assigned
          */
         public void beforeAssigned(Assignment<Request, Enrollment> assignment, long iteration, Enrollment value) {
             if (value != null) {
@@ -428,6 +462,9 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
 
         /**
          * Called after a value is assigned to a variable.
+         * @param assignment current assignment
+         * @param iteration current iteration
+         * @param value value that was assigned
          */
         public void afterAssigned(Assignment<Request, Enrollment> assignment, long iteration, Enrollment value) {
             iOldVariable = null;
@@ -439,6 +476,9 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
 
         /**
          * Called after a value is unassigned from a variable.
+         * @param assignment current assignment
+         * @param iteration current iteration
+         * @param value value that was unassigned
          */
         public void afterUnassigned(Assignment<Request, Enrollment> assignment, long iteration, Enrollment value) {
             if (value != null && !value.equals(iUnassignedValue)) {
@@ -448,12 +488,15 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
         
         /**
          * Return a set of all time overlapping conflicts ({@link Conflict} objects).
+         * @return all conflicts
          */
         public Set<Conflict> getAllConflicts() {
             return iAllConflicts;
         }
         
-        /** Actual number of all time overlapping conflicts */
+        /** Actual number of all time overlapping conflicts
+         * @return total number of all conflicts
+         **/
         public int getTotalNrConflicts() {
             return iTotalNrConflicts;
         }
@@ -489,6 +532,8 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
         /**
          * Compute the actual number of all time overlapping conflicts. Should be equal to
          * {@link TimeOverlapsCounter#getTotalNrConflicts(Assignment)}.
+         * @param assignment current assignment
+         * @return counted number of all time conflicts in the assignment
          */
         public int countTotalNrConflicts(Assignment<Request, Enrollment> assignment) {
             int total = 0;
@@ -511,6 +556,8 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
 
         /**
          * Compute a set of all time overlapping conflicts ({@link Conflict} objects).
+         * @param assignment current assignment
+         * @return set of all time conflicts in the assignment
          */
         public Set<Conflict> computeAllConflicts(Assignment<Request, Enrollment> assignment) {
             Set<Conflict> ret = new HashSet<Conflict>();
@@ -534,6 +581,9 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
         /**
          * The set of all conflicts ({@link Conflict} objects) of the given
          * enrollment and other enrollments that are assigned to the same student.
+         * @param assignment current assignment
+         * @param enrollment given enrollment
+         * @return set of all conflict of the given enrollment
          */
         public Set<Conflict> allConflicts(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
             Set<Conflict> ret = new HashSet<Conflict>();
@@ -554,6 +604,9 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
         /**
          * Total sum of all conflict of the given enrollment and other enrollments
          * that are assigned to the same student.
+         * @param assignment current assignment
+         * @param enrollment given enrollment
+         * @return number of all conflict of the given enrollment
          */
         public int nrAllConflicts(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
             if (enrollment.getRequest() instanceof FreeTimeRequest) return 0;

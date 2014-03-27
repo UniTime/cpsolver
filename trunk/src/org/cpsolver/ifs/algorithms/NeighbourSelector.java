@@ -33,6 +33,8 @@ import org.cpsolver.ifs.solver.Solver;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * @param <V> Variable
+ * @param <T> Value
  */
 public class NeighbourSelector<V extends Variable<V, T>, T extends Value<V, T>> implements NeighbourSelection<V, T> {
     protected static DecimalFormat sDF = new DecimalFormat("0.00");
@@ -82,7 +84,8 @@ public class NeighbourSelector<V extends Variable<V, T>, T extends Value<V, T>> 
     }
 
     /**
-     * Update stats
+     * Update statistics
+     * @param a current assignment
      * @param n generated move
      * @param time time needed to generate the move (in milliseconds)
      */
@@ -106,23 +109,41 @@ public class NeighbourSelector<V extends Variable<V, T>, T extends Value<V, T>> 
         }
     }
     
-    /** Weight of the selector in the roulette wheel selection of neighbour selectors */
+    /** Weight of the selector in the roulette wheel selection of neighbour selectors 
+     * @return weight of this selector
+     **/
     public double getPoints() { return iBonus * Math.min(100.0, 0.1+iPoints); }
-    /** Initial bonus */
+    /** Initial bonus
+     * @return initial bonus
+     **/
     public double getBonus() { return iBonus; }
-    /** Given neighbour selection */
+    /** Given neighbour selection
+     * @return given neighbour selection
+     **/
     public NeighbourSelection<V,T> selection() { return iSelection; }
-    /** Number of calls of {@link NeighbourSelection#selectNeighbour(Solution)} */
+    /** Number of calls of {@link NeighbourSelection#selectNeighbour(Solution)}
+     * @return number of calls
+     **/
     public int nrCalls() { return iNrCalls; }
-    /** Number of returned not-null moves */
+    /** Number of returned not-null moves
+     * @return number of not-null moves
+     **/
     public int nrNotNull() { return iNrNotNull; }
-    /** Number of returned moves with zero improvement of the solution (i.e., {@link Neighbour#value(Assignment)} = 0)*/
+    /** Number of returned moves with zero improvement of the solution (i.e., {@link Neighbour#value(Assignment)} = 0)
+     * @return number of side moves (value = 0) 
+     **/
     public int nrSideMoves() { return iNrSideMoves; }
-    /** Number of returned improving moves (i.e., {@link Neighbour#value(Assignment)} < 0)*/
+    /** Number of returned improving moves (i.e., {@link Neighbour#value(Assignment)} &lt; 0)
+     * @return number of improving moves (value &lt; 0)
+     **/
     public int nrImprovingMoves() { return iNrImprovingMoves; }
-    /** Total time spend in {@link NeighbourSelection#selectNeighbour(Solution)} (in milliseconds) */
+    /** Total time spend in {@link NeighbourSelection#selectNeighbour(Solution)} (in milliseconds)
+     * @return total time spend in theis selector 
+     **/
     public long time() { return iTime; }
-    /** Average number of iterations per second (calls of {@link NeighbourSelection#selectNeighbour(Solution)}) */
+    /** Average number of iterations per second (calls of {@link NeighbourSelection#selectNeighbour(Solution)})
+     * @return number of calls per second
+     **/
     public double speed() { return 1000.0*nrCalls()/time(); }
     /** String representation */
     @Override

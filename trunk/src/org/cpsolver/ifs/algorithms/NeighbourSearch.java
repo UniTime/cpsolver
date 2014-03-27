@@ -55,6 +55,8 @@ import org.cpsolver.ifs.util.ToolBox;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * @param <V> Variable
+ * @param <T> Value
  **/
 public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<V, T>> extends NeighbourSelectionWithContext<V, T, NeighbourSearch<V, T>.NeighbourSearchContext> implements LazyNeighbourAcceptanceCriterion<V, T>, SolutionListener<V, T> {
     private Logger iLog;
@@ -97,6 +99,7 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
     
     /**
      * Prints a message into the log
+     * @param message a message to log
      */
     protected void info(String message) {
         iProgress.debug("[" + Thread.currentThread().getName() + "] " + iPhase + "> " + message);
@@ -112,6 +115,7 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
     
     /**
      * Set search progress phase
+     * @param phase a progress phase to set
      */
     protected void setProgressPhase(String phase) {
         iProgress.info("[" + Thread.currentThread().getName() + "] " + phase);
@@ -120,6 +124,7 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
     
     /**
      * Add neighbour selection
+     * @param ns a selection
      * @param bonus execution bonus (more bonus means more executions of this neighbour selection, see {@link NeighbourSelector})
      */
     protected void addNeighbourSelection(NeighbourSelection<V,T> ns, double bonus) {
@@ -136,6 +141,7 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
     
     /**
      * Set HC mode for all the neighbour selections that support the {@link HillClimberSelection} interface. 
+     * @param hcMode true if the search is a hill climber (worsening moves are always rejected)
      */
     protected void setHCMode(boolean hcMode) {
         for (NeighbourSelector<V,T> s: iNeighbours) {
@@ -146,6 +152,7 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
     
     /**
      * Return list of neighbour selections
+     * @return list of neighbour selections
      */
     protected List<? extends NeighbourSelection<V, T>> getNeighbours() {
         return iNeighbours;
@@ -168,6 +175,7 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
     
     /**
      * Generate and return next neighbour selection
+     * @return next neighbour selection to use
      */
     protected NeighbourSelection<V,T> nextNeighbourSelection() {
         NeighbourSelector<V,T> ns = null;
@@ -195,6 +203,8 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
 
     /**
      * Generate a random move
+     * @param solution current solution
+     * @return generated neighbour
      */
     public Neighbour<V, T> generateMove(Solution<V, T> solution) {
         return nextNeighbourSelection().selectNeighbour(solution);
@@ -216,6 +226,10 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
     
     /**
      * True if the generated move is to be accepted.
+     * @param context search context
+     * @param solution current solution
+     * @param neighbour a generated move
+     * @return true if the generated move should be assigned
      */
     protected boolean accept(NeighbourSearchContext context, Solution<V, T> solution, Neighbour<V, T> neighbour) {
         if (neighbour instanceof LazyNeighbour) {
@@ -233,6 +247,7 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
 
     /**
      * Parameter base name. This can be used to distinguish between parameters of different search algorithms.
+     * @return solver parameter base name for this search technique
      */
     public abstract String getParameterBaseName();
     
@@ -273,7 +288,9 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
         protected long iT0 = -1;
         protected int iIter = 0;
 
-        /** Called just before the neighbourhood search is called for the first time. */
+        /** Called just before the neighbourhood search is called for the first time. 
+         * @param solution current solution
+         **/
         protected void activate(Solution<V, T> solution) {
             iT0 = JProf.currentTimeMillis();
             iIter = 0;
@@ -284,13 +301,16 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
             if (iT0 < 0) activate(solution);
         }
         
-        /** Called when the search cannot continue, just before a null neighbour is returned */
+        /** Called when the search cannot continue, just before a null neighbour is returned 
+         * @param solution current solution
+         **/
         protected void deactivate(Solution<V, T> solution) {
             iT0 = -1;
         }
         
         /**
          * Increment iteration counters etc.
+         * @param solution current solution
          */
         protected void incIteration(Solution<V, T> solution) {
             iIter++;
@@ -298,17 +318,27 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
 
         /**
          * Running time in milliseconds (since the last call of activate)
+         * @return running time
          */
         protected long getTimeMillis() { return JProf.currentTimeMillis() - iT0; }
 
         /**
          * Return false if the search is to be stopped. Null neighbour is returned when this method returns false.
+         * @param solution current solution
+         * @return true if can continue
          */
         protected boolean canContinue(Solution<V, T> solution) {
             return true;
         }
         
-        /** Acceptance criterion. If lazy, current assignment already contains the given neighbour.  */
+        /** Acceptance criterion. If lazy, current assignment already contains the given neighbour.  
+         * @param assignment current assignment
+         * @param model problem model
+         * @param neighbour a generated move
+         * @param value value of the generated move (i.e., its impact on the solution value)
+         * @param lazy true if lazy move
+         * @return true if the generated move is to be assigned 
+         **/
         protected abstract boolean accept(Assignment<V, T> assignment, Model<V, T> model, Neighbour<V, T> neighbour, double value, boolean lazy);
         
         @Override

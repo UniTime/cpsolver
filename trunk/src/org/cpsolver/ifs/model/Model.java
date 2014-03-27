@@ -29,23 +29,23 @@ import org.cpsolver.ifs.util.ToolBox;
  * memorizing the current and the best ever found assignment. <br>
  * <br>
  * Example usage:<br>
- * <ul>
+ * <pre>
  * <code>
- * MyModel model = new MyModel();<br>
- * Variable a = new MyVariable("A");<br>
- * model.addVariable(a);<br>
- * Variable b = new MyVariable("B");<br>
- * model.addVariable(b);<br>
- * Variable c = new MyVariable("C");<br>
- * model.addVariable(c);<br>
- * Constraint constr = MyConstraint("all-different");<br>
- * model.addConstraint(constr);<br>
- * constr.addVariable(a);<br>
- * constr.addVariable(b);<br>
- * constr.addVariable(c);<br>
+ * MyModel model = new MyModel();
+ * Variable a = new MyVariable("A");
+ * model.addVariable(a);
+ * Variable b = new MyVariable("B");
+ * model.addVariable(b);
+ * Variable c = new MyVariable("C");
+ * model.addVariable(c);
+ * Constraint constr = MyConstraint("all-different");
+ * model.addConstraint(constr);
+ * constr.addVariable(a);
+ * constr.addVariable(b);
+ * constr.addVariable(c);
  * solver.setInitialSolution(model);
  * </code>
- * </ul>
+ * </pre>
  * 
  * @see Variable
  * @see Constraint
@@ -70,8 +70,10 @@ import org.cpsolver.ifs.util.ToolBox;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * 
+ * @param <V> Variable 
+ * @param <T> Value
  */
-
 public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(Model.class);
     protected static java.text.DecimalFormat sTimeFormat = new java.text.DecimalFormat("0.00",
@@ -104,17 +106,23 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     public Model() {
     }
 
-    /** The list of variables in the model */
+    /** The list of variables in the model 
+     * @return list of variables in the model
+     **/
     public List<V> variables() {
         return iVariables;
     }
 
-    /** The number of variables in the model */
+    /** The number of variables in the model
+     * @return number of variables in the model
+     **/
     public int countVariables() {
         return iVariables.size();
     }
 
-    /** Adds a variable to the model */
+    /** Adds a variable to the model
+     * @param variable a variable
+     **/
     @SuppressWarnings("unchecked")
     public void addVariable(V variable) {
         variable.setModel(this);
@@ -127,7 +135,9 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
         invalidateVariablesWithInitialValueCache();
     }
 
-    /** Removes a variable from the model */
+    /** Removes a variable from the model
+     * @param variable a variable
+     **/
     @SuppressWarnings("unchecked")
     public void removeVariable(V variable) {
         variable.setModel(null);
@@ -141,17 +151,23 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
             removeReference((HasAssignmentContext<V, T, ?>)variable);
     }
 
-    /** The list of constraints in the model */
+    /** The list of constraints in the model
+     * @return list of constraints in the model
+     **/
     public List<Constraint<V, T>> constraints() {
         return iConstraints;
     }
 
-    /** The number of constraints in the model */
+    /** The number of constraints in the model
+     * @return number of constraints in the model
+     **/
     public int countConstraints() {
         return iConstraints.size();
     }
 
-    /** Adds a constraint to the model */
+    /** Adds a constraint to the model
+     * @param constraint a constraint 
+     **/
     @SuppressWarnings("unchecked")
     public void addConstraint(Constraint<V, T> constraint) {
         constraint.setModel(this);
@@ -162,7 +178,9 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
             listener.constraintAdded(constraint);
     }
 
-    /** Removes a constraint from the model */
+    /** Removes a constraint from the model
+     * @param constraint a constraint
+     **/
     @SuppressWarnings("unchecked")
     public void removeConstraint(Constraint<V, T> constraint) {
         constraint.setModel(null);
@@ -175,17 +193,23 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
             removeReference((HasAssignmentContext<V, T, ?>)constraint);
     }
 
-    /** The list of global constraints in the model */
+    /** The list of global constraints in the model
+     * @return  list of global constraints in the model
+     **/
     public List<GlobalConstraint<V, T>> globalConstraints() {
         return iGlobalConstraints;
     }
 
-    /** The number of global constraints in the model */
+    /** The number of global constraints in the model
+     * @return number of global constraints in the model
+     **/
     public int countGlobalConstraints() {
         return iGlobalConstraints.size();
     }
 
-    /** Adds a global constraint to the model */
+    /** Adds a global constraint to the model
+     * @param constraint a global constraint
+     **/
     @SuppressWarnings("unchecked")
     public void addGlobalConstraint(GlobalConstraint<V, T> constraint) {
         constraint.setModel(this);
@@ -196,7 +220,9 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
             listener.constraintAdded(constraint);
     }
 
-    /** Removes a global constraint from the model */
+    /** Removes a global constraint from the model
+     * @param constraint a global constraint 
+     **/
     @SuppressWarnings("unchecked")
     public void removeGlobalConstraint(GlobalConstraint<V, T> constraint) {
         constraint.setModel(null);
@@ -212,13 +238,17 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     /**
      * The list of unassigned variables in the model.
      * Use {@link Model#unassignedVariables(Assignment)} or {@link Assignment#unassignedVariables(Model)} instead.
+     * @return list of unassigned variables in the model
      **/
     @Deprecated
     public Collection<V> unassignedVariables() {
         return unassignedVariables(getDefaultAssignment());
     }
 
-    /** The list of unassigned variables in the model */
+    /** The list of unassigned variables in the model
+     * @param assignment current assignment
+     * @return list of unassigned variables in the model
+     **/
     public Collection<V> unassignedVariables(Assignment<V, T> assignment) {
         return assignment.unassignedVariables(this);
     }
@@ -226,13 +256,17 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     /**
      * Number of unassigned variables.
      * Use {@link Model#nrUnassignedVariables(Assignment)} or {@link Assignment#nrUnassignedVariables(Model)} instead.
+     * @return number of unassigned variables in the model
      **/
     @Deprecated
     public int nrUnassignedVariables() {
         return nrUnassignedVariables(getDefaultAssignment());
     }
 
-    /** Number of unassigned variables */
+    /** Number of unassigned variables
+     * @param assignment current assignment
+     * @return number of unassigned variables in the model
+     **/
     public int nrUnassignedVariables(Assignment<V, T> assignment) {
         return assignment.nrUnassignedVariables(this);
     }
@@ -240,13 +274,17 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     /**
      * The list of assigned variables in the model.
      * Use {@link Model#assignedVariables(Assignment)} or {@link Assignment#assignedVariables()} instead.
+     * @return list of assigned variables in the model
      **/
     @Deprecated
     public Collection<V> assignedVariables() {
         return assignedVariables(getDefaultAssignment());
     }
     
-    /** The list of assigned variables in the model */
+    /** The list of assigned variables in the model
+     * @param assignment current assignment
+     * @return list of assigned variables in the model
+     **/
     public Collection<V> assignedVariables(Assignment<V, T> assignment) {
         return assignment.assignedVariables();
     }
@@ -254,13 +292,17 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     /**
      * Number of assigned variables.
      * Use {@link Model#nrAssignedVariables(Assignment)} or {@link Assignment#nrAssignedVariables()} instead.
+     * @return number of assigned variables in the model
      **/
     @Deprecated
     public int nrAssignedVariables() {
         return nrAssignedVariables(getDefaultAssignment());
     }
     
-    /** Number of assigned variables */
+    /** Number of assigned variables
+     * @param assignment current assignment
+     * @return number of assigned variables in the model
+     **/
     public int nrAssignedVariables(Assignment<V, T> assignment) {
         return assignment.nrAssignedVariables();
     }
@@ -269,6 +311,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * The list of perturbation variables in the model, i.e., the variables
      * which has an initial value but which are not assigned with this value.
      * Use {@link Model#perturbVariables(Assignment)} instead.
+     * @return list of perturbation variables in the model
      */
     @Deprecated
     public Collection<V> perturbVariables() {
@@ -278,6 +321,8 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     /**
      * The list of perturbation variables in the model, i.e., the variables
      * which has an initial value but which are not assigned with this value.
+     * @param assignment current assignment
+     * @return list of perturbation variables in the model
      */
     public Collection<V> perturbVariables(Assignment<V, T> assignment) {
         return perturbVariables(assignment, variablesWithInitialValue());
@@ -288,6 +333,8 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * which has an initial value but which are not assigned with this value.
      * Only variables from the given set are considered.
      * Use {@link Model#perturbVariables(Assignment, Collection)} instead.
+     * @param variables sub-problem
+     * @return list of perturbation variables in the sub-problem
      */
     @Deprecated
     public List<V> perturbVariables(Collection<V> variables) {
@@ -298,6 +345,9 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * The list of perturbation variables in the model, i.e., the variables
      * which has an initial value but which are not assigned with this value.
      * Only variables from the given set are considered.
+     * @param assignment current assignment
+     * @param variables sub-problem
+     * @return list of perturbation variables in the sub-problem
      */
     public List<V> perturbVariables(Assignment<V, T> assignment, Collection<V> variables) {
         List<V> perturbances = new ArrayList<V>();
@@ -334,6 +384,8 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * Returns the set of conflicting variables with this value, if it is
      * assigned to its variable
      * Use {@link Model#conflictValues(Assignment, Value)} instead.
+     * @param value a value to be assigned
+     * @return a set of conflicting values, i.e., values that would have to be unassigned if the given value is assigned to its variable
      */
     @Deprecated
     public Set<T> conflictValues(T value) {
@@ -343,6 +395,9 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     /**
      * Returns the set of conflicting variables with this value, if it is
      * assigned to its variable
+     * @param assignment current assignment
+     * @param value a value to be assigned
+     * @return a set of conflicting values, i.e., values that would have to be unassigned if the given value is assigned to its variable
      */
     public Set<T> conflictValues(Assignment<V, T> assignment, T value) {
         Set<T> conflictValues = new HashSet<T>();
@@ -356,13 +411,19 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     /**
      * Return true if the given value is in conflict with a hard constraint
      * Use {@link Model#inConflict(Assignment, Value)} instead.
+     * @param value a value in question
+     * @return true if there is a conflict, i.e., there is at least one value that would have to be unassigned if the given value is assigned to its variable
      **/
     @Deprecated
     public boolean inConflict(T value) {
         return inConflict(getDefaultAssignment(), value);
     }
 
-    /** Return true if the given value is in conflict with a hard constraint */
+    /** Return true if the given value is in conflict with a hard constraint
+     * @param assignment current assignment
+     * @param value a value in question
+     * @return true if there is a conflict, i.e., there is at least one value that would have to be unassigned if the given value is assigned to its variable
+     **/
     public boolean inConflict(Assignment<V, T> assignment, T value) {
         for (Constraint<V, T> constraint : value.variable().hardConstraints())
             if (constraint.inConflict(assignment, value))
@@ -373,7 +434,9 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
         return false;
     }
 
-    /** The list of variables without initial value */
+    /** The list of variables with an initial value (i.e., variables with {@link Variable#getInitialAssignment()} not null)
+     * @return list of variables with an initial value 
+     **/
     public Collection<V> variablesWithInitialValue() {
         if (iVariablesWithInitialValueCache != null)
             return iVariablesWithInitialValueCache;
@@ -390,12 +453,19 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
         iVariablesWithInitialValueCache = null;
     }
     
-    /** Called before a value is assigned to its variable */
+    /** Called before a value is assigned to its variable
+     * @param iteration current iteration
+     * @param value a value to be assigned
+     **/
     @Deprecated
     public void beforeAssigned(long iteration, T value) {
     }
 
-    /** Called before a value is assigned to its variable */
+    /** Called before a value is assigned to its variable
+     * @param assignment current assignment
+     * @param iteration current iteration
+     * @param value a value to be assigned
+     **/
     @SuppressWarnings("deprecation")
     public void beforeAssigned(Assignment<V, T> assignment, long iteration, T value) {
         beforeAssigned(iteration, value);
@@ -403,12 +473,19 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
             listener.beforeAssigned(assignment, iteration, value);
     }
 
-    /** Called before a value is unassigned from its variable */
+    /** Called before a value is unassigned from its variable 
+     * @param iteration current iteration
+     * @param value a value to be unassigned
+     **/
     @Deprecated
     public void beforeUnassigned(long iteration, T value) {
     }
 
-    /** Called before a value is unassigned from its variable */
+    /** Called before a value is unassigned from its variable
+     * @param assignment current assignment
+     * @param iteration current iteration
+     * @param value a value to be unassigned
+     **/
     @SuppressWarnings("deprecation")
     public void beforeUnassigned(Assignment<V, T> assignment, long iteration, T value) {
         beforeUnassigned(iteration, value);
@@ -416,12 +493,19 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
             listener.beforeUnassigned(assignment, iteration, value);
     }
 
-    /** Called after a value is assigned to its variable */
+    /** Called after a value is assigned to its variable
+     * @param iteration current iteration
+     * @param value a value that was assigned
+     **/
     @Deprecated
     public void afterAssigned(long iteration, T value) {
     }
 
-    /** Called after a value is assigned to its variable */
+    /** Called after a value is assigned to its variable
+     * @param assignment current assignment
+     * @param iteration current iteration
+     * @param value a value that was assigned
+     **/
     @SuppressWarnings("deprecation")
     public void afterAssigned(Assignment<V, T> assignment,  long iteration, T value) {
         afterAssigned(iteration, value);
@@ -429,12 +513,19 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
             listener.afterAssigned(assignment, iteration, value);
     }
     
-    /** Called after a value is unassigned from its variable */
+    /** Called after a value is unassigned from its variable
+     * @param iteration current iteration
+     * @param value a value that was unassigned
+     **/
     @Deprecated
     public void afterUnassigned(long iteration, T value) {
     }
 
-    /** Called after a value is unassigned from its variable */
+    /** Called after a value is unassigned from its variable
+     * @param assignment current assignment
+     * @param iteration current iteration
+     * @param value a value that was unassigned
+     **/
     @SuppressWarnings("deprecation")
     public void afterUnassigned(Assignment<V, T> assignment, long iteration, T value) {
         afterUnassigned(iteration, value);
@@ -463,6 +554,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * Returns information about the current solution. Information from all
      * model listeners and constraints is also included.
      * Use {@link Model#getInfo(Assignment)} instead.
+     * @return info table
      */
     @Deprecated
     public Map<String, String> getInfo() {
@@ -472,6 +564,8 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     /**
      * Returns information about the current solution. Information from all
      * model listeners and constraints is also included.
+     * @param assignment current assignment
+     * @return info table
      */
     public Map<String, String> getInfo(Assignment<V, T> assignment) {
         Map<String, String> ret = new HashMap<String, String>();
@@ -492,6 +586,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * {@link Model#getInfo(Assignment)}, but some more information (that is more
      * expensive to compute) might be added.
      * Use {@link Model#getExtendedInfo(Assignment)} instead.
+     * @return extended info table
      */
     @Deprecated
     public Map<String, String> getExtendedInfo() {
@@ -502,6 +597,8 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * Extended information about current solution. Similar to
      * {@link Model#getInfo(Assignment)}, but some more information (that is more
      * expensive to compute) might be added.
+     * @param assignment current assignment
+     * @return extended info table
      */
     public Map<String, String> getExtendedInfo(Assignment<V, T> assignment) {
         Map<String, String> ret = getInfo(assignment);
@@ -516,6 +613,8 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * model listeners and constraints is also included. Only variables from the
      * given set are considered.
      * Use {@link Model#getInfo(Assignment, Collection)} instead.
+     * @param variables sub-problem 
+     * @return info table
      **/
     @Deprecated
     public Map<String, String> getInfo(Collection<V> variables) {
@@ -526,6 +625,9 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * Returns information about the current solution. Information from all
      * model listeners and constraints is also included. Only variables from the
      * given set are considered.
+     * @param assignment current assignment
+     * @param variables sub-problem 
+     * @return info table
      */
     public Map<String, String> getInfo(Assignment<V, T> assignment, Collection<V> variables) {
         Map<String, String> ret = new HashMap<String, String>();
@@ -572,6 +674,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     /**
      * Returns the number of unassigned variables in the best ever found
      * solution
+     * @return number of unassigned variables in the best solution
      */
     public int getBestUnassignedVariables() {
         return iBestUnassignedVariables;
@@ -580,6 +683,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     /**
      * Returns the number of perturbation variables in the best ever found
      * solution
+     * @return number of perturbation variables in the best solution
      */
     public int getBestPerturbations() {
         return iBestPerturbations;
@@ -587,13 +691,16 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     
     /**
      * Total value of the best ever found solution -- sum of all assigned values
-     * (see {@link Value#toDouble()}).
+     * (see {@link Value#toDouble(Assignment)}).
+     * @return value of the best solution
      */
     public double getBestValue() {
         return iBestValue;
     }
 
-    /** Set total value of the best ever found solution */
+    /** Set total value of the best ever found solution 
+     * @param bestValue value of the best solution
+     **/
     public void setBestValue(double bestValue) {
         iBestValue = bestValue;
     }
@@ -607,7 +714,9 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
         saveBest(getDefaultAssignment());
     }
 
-    /** Save the current assignment as the best ever found assignment */
+    /** Save the current assignment as the best ever found assignment 
+     * @param assignment current assignment 
+     **/
     public void saveBest(Assignment<V, T> assignment) {
         iBestUnassignedVariables = iVariables.size() - assignment.nrAssignedVariables();
         iBestPerturbations = perturbVariables(assignment).size();
@@ -639,7 +748,10 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
         restoreBest(getDefaultAssignment());
     }
 
-    /** Restore the best ever found assignment into the current assignment */
+    /** Restore the best ever found assignment into the current assignment
+     * @param assignment current assignment
+     * @param assignmentOrder assignment order of the variables 
+     **/
     @SuppressWarnings("unchecked")
     protected void restoreBest(Assignment<V, T> assignment, Comparator<V> assignmentOrder) {
         TreeSet<V> sortedVariables = new TreeSet<V>(assignmentOrder);
@@ -725,7 +837,9 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
         }
     }
     
-    /** Restore the best ever found assignment into the current assignment */
+    /** Restore the best ever found assignment into the current assignment
+     * @param assignment current assignment
+     **/
     public void restoreBest(Assignment<V, T> assignment) {
         restoreBest(assignment, new Comparator<V>() {
             @Override
@@ -740,13 +854,17 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     /**
      * The list of unassigned variables in the best ever found solution.
      * Use {@link Model#bestUnassignedVariables(Assignment)} instead.
+     * @return variables list of unassigned variables in the best solution
      **/
     @Deprecated
     public Collection<V> bestUnassignedVariables() {
         return bestUnassignedVariables(getDefaultAssignment());
     }
     
-    /** The list of unassigned variables in the best ever found solution */
+    /** The list of unassigned variables in the best ever found solution
+     * @param assignment current assignment
+     * @return variables list of unassigned variables in the best solution
+     **/
     public Collection<V> bestUnassignedVariables(Assignment<V, T> assignment) {
         Collection<V> ret = new ArrayList<V>(variables().size());
         if (iBestUnassignedVariables < 0) {
@@ -767,6 +885,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * Value of the current solution. It is the sum of all assigned values,
      * i.e., {@link Value#toDouble(Assignment)}.
      * Use {@link Model#getTotalValue(Assignment)} instead.
+     * @return solution value
      */
     @Deprecated
     public double getTotalValue() {
@@ -775,7 +894,9 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     
     /**
      * Value of the current solution. It is the sum of all assigned values,
-     * i.e., {@link Value#toDouble()}.
+     * i.e., {@link Value#toDouble(Assignment)}.
+     * @param assignment current assignment
+     * @return solution value
      */
     public double getTotalValue(Assignment<V, T> assignment) {
         double ret = 0.0;
@@ -789,6 +910,8 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * i.e., {@link Value#toDouble(Assignment)}. Only variables from the given set are
      * considered.
      * Use {@link Model#getTotalValue(Assignment, Collection)} instead.
+     * @param variables sub-problem
+     * @return solution value
      **/
     @Deprecated
     public double getTotalValue(Collection<V> variables) {
@@ -799,6 +922,9 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * Value of the current solution. It is the sum of all assigned values,
      * i.e., {@link Value#toDouble(Assignment)}. Only variables from the given set are
      * considered.
+     * @param assignment current assignment
+     * @param variables sub-problem
+     * @return solution value
      **/
     public double getTotalValue(Assignment<V, T> assignment, Collection<V> variables) {
         double ret = 0.0;
@@ -810,7 +936,9 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
         return ret;
     }
 
-    /** Adds a model listener */
+    /** Adds a model listener 
+     * @param listener a model listener
+     **/
     @SuppressWarnings("unchecked")
     public void addModelListener(ModelListener<V, T> listener) {
         iModelListeners.add(listener);
@@ -822,7 +950,9 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
             listener.variableAdded(variable);
     }
 
-    /** Removes a model listener */
+    /** Removes a model listener
+     * @param listener a model listener
+     **/
     public void removeModelListener(ModelListener<V, T> listener) {
         if (listener instanceof InfoProvider<?, ?>)
             iInfoProviders.remove(listener);
@@ -833,7 +963,10 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
         iModelListeners.remove(listener);
     }
 
-    /** Model initialization */
+    /** Model initialization
+     * @param solver current solver
+     * @return true if successfully initialized 
+     **/
     public boolean init(Solver<V, T> solver) {
         for (ModelListener<V, T> listener : new ArrayList<ModelListener<V, T>>(iModelListeners)) {
             if (!listener.init(solver))
@@ -842,12 +975,17 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
         return true;
     }
 
-    /** The list of model listeners */
+    /** The list of model listeners 
+     * @return list of model listeners
+     **/
     public List<ModelListener<V, T>> getModelListeners() {
         return iModelListeners;
     }
 
-    /** The list of model listeners that are of the given class */
+    /** The list of model listeners that are of the given class
+     * @param type model listener type
+     * @return list of model listeners that are of the given class
+     **/
     public ModelListener<V, T> modelListenerOfType(Class<ModelListener<V, T>> type) {
         for (ModelListener<V, T> listener : iModelListeners) {
             if (listener.getClass() == type)
@@ -861,6 +999,9 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * it is assigned to its variable. This means the constraints, which adds a
      * value into the set of conflicting values in
      * {@link Constraint#computeConflicts(Assignment, Value, Set)}.
+     * @param assignment current assignment
+     * @param value given value
+     * @return hard constraints and their conflicts that are conflicting with the given value
      */
     public Map<Constraint<V, T>, Set<T>> conflictConstraints(Assignment<V, T> assignment, T value) {
         Map<Constraint<V, T>, Set<T>> conflictConstraints = new HashMap<Constraint<V, T>, Set<T>>();
@@ -884,6 +1025,8 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     /**
      * The list of hard constraints which contain at least one variable that is
      * not assigned.
+     * @param assignment current assignment
+     * @return list of hard constraints which contain at least one variable that is not assigned
      */
     public List<Constraint<V, T>> unassignedHardConstraints(Assignment<V, T> assignment) {
         List<Constraint<V, T>> ret = new ArrayList<Constraint<V, T>>();
@@ -902,38 +1045,51 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
         return ret;
     }
 
-    /** Registered info providers (see {@link InfoProvider}) */
+    /** Registered info providers (see {@link InfoProvider}) 
+     * @return list of registered info providers
+     **/
     protected List<InfoProvider<V, T>> getInfoProviders() {
         return iInfoProviders;
     }
     
-    /** Register a new criterion */
+    /** Register a new criterion 
+     * @param criterion a criterion
+     **/
     public void addCriterion(Criterion<V,T> criterion) {
         iCriteria.put(criterion.getClass().getName(), criterion);
         criterion.setModel(this);
         addModelListener(criterion);
     }
     
-    /** Unregister an existing criterion */
+    /** Unregister an existing criterion
+     * @param criterion a criterion
+     **/
     public void removeCriterion(Criterion<V,T> criterion) {
         iCriteria.remove(criterion.getClass().getName());
         criterion.setModel(null);
         removeModelListener(criterion);
     }
     
-    /** Unregister an existing criterion */
+    /** Unregister an existing criterion
+     * @param criterion a criterion
+     **/
     public void removeCriterion(Class<? extends Criterion<V, T>> criterion) {
         Criterion<V,T> c = iCriteria.remove(criterion.getName());
         if (c != null)
             removeModelListener(c);
     }
 
-    /** Return a registered criterion of the given type. */
+    /** Return a registered criterion of the given type. 
+     * @param criterion criterion type 
+     * @return registered criterion of the given type
+     **/
     public Criterion<V, T> getCriterion(Class<? extends Criterion<V, T>> criterion) {
         return iCriteria.get(criterion.getName());
     }
     
-    /** List all registered criteria */
+    /** List all registered criteria
+     * @return list all registered criteria
+     **/
     public Collection<Criterion<V, T>> getCriteria() {
         return iCriteria.values();
     }
@@ -943,6 +1099,8 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * them creating a conflict using {@link WeakeningConstraint#weaken(Assignment, Value)}.
      * This method is handy for instance when an existing solution is being loaded
      * into the solver.
+     * @param assignment current assignment
+     * @param value given value
      */
     @SuppressWarnings("unchecked")
     public void weaken(Assignment<V, T> assignment, T value) {
@@ -1017,6 +1175,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     
     /**
      * Set default assignment 
+     * @param assignment current assignment to become default
      */
     @Deprecated
     public void setDefaultAssignment(Assignment<V, T> assignment) {
@@ -1025,6 +1184,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     
     /**
      * Returns an instance of an empty assignment (using {@link EmptyAssignment})
+     * @return an empty assignment
      */
     public Assignment<V, T> getEmptyAssignment() {
         if (iEmptyAssignment == null)

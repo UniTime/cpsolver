@@ -29,6 +29,8 @@ import org.cpsolver.ifs.assignment.Assignment;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * @param <V> Variable
+ * @param <T> Value
  */
 public interface ExtendedInfoProvider<V extends Variable<V, T>, T extends Value<V, T>> extends InfoProvider<V, T> {
     
@@ -36,6 +38,8 @@ public interface ExtendedInfoProvider<V extends Variable<V, T>, T extends Value<
      * Extended information about current solution. Similar to
      * {@link InfoProvider#getInfo(Assignment, Map)}, but some more information (that is more
      * expensive to compute) might be added.
+     * @param assignment current assignment
+     * @param info extended info
      */
     public void getExtendedInfo(Assignment<V, T> assignment, Map<String, String> info);
 

@@ -45,7 +45,9 @@ public class Machine extends Constraint<Operation, Location> {
         iMachineNumber = machineNumber;
     }
 
-    /** Get machine number */
+    /** Get machine number 
+     * @return machine number
+     **/
     public int getMachineNumber() {
         return iMachineNumber;
     }

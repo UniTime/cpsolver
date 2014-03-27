@@ -36,7 +36,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * optimization. <br>
  * <br>
  * Parameters (selection among unassigned lectures):
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -76,7 +76,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * <br>
  * Parameters (selection among assigned lectures, when the solution is
  * complete):
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -132,7 +132,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * </table>
  * <br>
  * Parameters (selection among subset of lectures (faster)):
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>

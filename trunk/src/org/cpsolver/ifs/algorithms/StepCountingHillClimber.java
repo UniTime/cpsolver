@@ -33,6 +33,8 @@ import org.cpsolver.ifs.util.DataProperties;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * @param <V> Variable
+ * @param <T> Value
  */
 public class StepCountingHillClimber<V extends Variable<V, T>, T extends Value<V, T>> extends HillClimber<V, T> {
     public static enum Mode {
@@ -49,6 +51,7 @@ public class StepCountingHillClimber<V extends Variable<V, T>, T extends Value<V
      * <li>HillClimber.CounterLimit ... number of moves after which the bound is reset (defaults to 1000)
      * <li>HillClimber.CounterMode ... counter mode (all: count all moves, accepted: count accepted moves, improving: count improving moves)
      * </ul>
+     * @param properties solver configuration
      */
     public StepCountingHillClimber(DataProperties properties) {
         super(properties);
@@ -92,7 +95,7 @@ public class StepCountingHillClimber<V extends Variable<V, T>, T extends Value<V
         }
 
         /**
-         * Accept any move that does not worsen the solution (value <= 0) or that is below the bound. Also increase the step counter.
+         * Accept any move that does not worsen the solution (value &lt;= 0) or that is below the bound. Also increase the step counter.
          */
         @Override
         protected boolean accept(Assignment<V, T> assignment, Model<V,T> model, Neighbour<V, T> neighbour, double value, boolean lazy) {

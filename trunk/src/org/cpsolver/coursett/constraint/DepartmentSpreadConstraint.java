@@ -23,29 +23,29 @@ import org.cpsolver.ifs.util.DataProperties;
  * placements containing the time slots divided by the number of all placements
  * of the class). <br>
  * <br>
- * For example, a histogram for department 1286:<code><br>
- * 1: [0.10,0.00,0.10,0.00,0.10] <- 7:30 [Mon, Tue, Wed, Thu, Fri]<br>
- * 2: [0.10,0.00,0.10,0.00,0.10] <- 8:00 [Mon, Tue, Wed, Thu, Fri]<br>
- * 3: [0.35,0.62,0.48,0.62,0.10] ... and so on<br>
- * 4: [0.35,0.62,0.48,0.62,0.10]<br>
- * 5: [1.35,1.12,1.48,0.12,1.10]<br>
- * 6: [1.35,1.12,1.48,0.12,1.10]<br>
- * 7: [0.35,0.62,0.48,1.63,0.10]<br>
- * 8: [0.35,0.62,0.48,1.63,0.10]<br>
- * 9: [0.35,0.12,0.48,0.12,0.10]<br>
- * 10:[0.35,0.12,0.48,0.12,0.10]<br>
- * 11:[0.35,0.12,0.48,0.12,0.10]<br>
- * 12:[0.35,0.12,0.48,0.12,0.10]<br>
- * 13:[0.35,0.12,0.48,1.12,0.10]<br>
- * 14:[0.35,0.12,0.48,1.12,0.10]<br>
- * 15:[0.35,0.12,0.48,0.12,0.10]<br>
- * 16:[0.35,0.12,0.48,0.12,0.10]<br>
- * 17:[0.35,0.12,0.48,0.12,0.10]<br>
- * 18:[0.35,0.12,0.48,0.12,0.10]<br>
- * 19:[0.10,0.00,0.10,0.00,0.10]<br>
- * 20:[0.10,0.00,0.10,0.00,0.10]<br>
- * 21:[0.00,0.00,0.00,0.00,0.00]<br>
- * </code><br>
+ * For example, a histogram for department 1286:<pre><code>
+ * 1: [0.10,0.00,0.10,0.00,0.10] &larr; 7:30 [Mon, Tue, Wed, Thu, Fri]
+ * 2: [0.10,0.00,0.10,0.00,0.10] &larr; 8:00 [Mon, Tue, Wed, Thu, Fri]
+ * 3: [0.35,0.62,0.48,0.62,0.10] ... and so on
+ * 4: [0.35,0.62,0.48,0.62,0.10]
+ * 5: [1.35,1.12,1.48,0.12,1.10]
+ * 6: [1.35,1.12,1.48,0.12,1.10]
+ * 7: [0.35,0.62,0.48,1.63,0.10]
+ * 8: [0.35,0.62,0.48,1.63,0.10]
+ * 9: [0.35,0.12,0.48,0.12,0.10]
+ * 10:[0.35,0.12,0.48,0.12,0.10]
+ * 11:[0.35,0.12,0.48,0.12,0.10]
+ * 12:[0.35,0.12,0.48,0.12,0.10]
+ * 13:[0.35,0.12,0.48,1.12,0.10]
+ * 14:[0.35,0.12,0.48,1.12,0.10]
+ * 15:[0.35,0.12,0.48,0.12,0.10]
+ * 16:[0.35,0.12,0.48,0.12,0.10]
+ * 17:[0.35,0.12,0.48,0.12,0.10]
+ * 18:[0.35,0.12,0.48,0.12,0.10]
+ * 19:[0.10,0.00,0.10,0.00,0.10]
+ * 20:[0.10,0.00,0.10,0.00,0.10]
+ * 21:[0.00,0.00,0.00,0.00,0.00]
+ * </code></pre>
  * You can easily see, that the time slots which are prohibited for all of the
  * classes of the department have zero values, also some time slots are used
  * much often than the others. Note that there are no preferences involved in
@@ -77,29 +77,29 @@ import org.cpsolver.ifs.util.DataProperties;
  * <br>
  * For example, the department 1286 will have the following limits (histogram
  * increased by 20% (i.e., each value is 20% higher) and rounded upwards):
- * <code><br>
- * 1: [1,0,1,0,1]<br>
- * 2: [1,0,1,0,1]<br>
- * 3: [1,1,1,1,1]<br>
- * 4: [1,1,1,1,1]<br>
- * 5: [2,2,2,1,2]<br>
- * 6: [2,2,2,1,2]<br>
- * 7: [1,1,1,2,1]<br>
- * 8: [1,1,1,2,1]<br>
- * 9: [1,1,1,1,1]<br>
- * 10:[1,1,1,1,1]<br>
- * 11:[1,1,1,1,1]<br>
- * 12:[1,1,1,1,1]<br>
- * 13:[1,1,1,2,1]<br>
- * 14:[1,1,1,2,1]<br>
- * 15:[1,1,1,1,1]<br>
- * 16:[1,1,1,1,1]<br>
- * 17:[1,1,1,1,1]<br>
- * 18:[1,1,1,1,1]<br>
- * 19:[1,0,1,0,1]<br>
- * 20:[1,0,1,0,1]<br>
- * 21:[0,0,0,0,0]<br>
- * </code><br>
+ * <pre><code>
+ * 1: [1,0,1,0,1]
+ * 2: [1,0,1,0,1]
+ * 3: [1,1,1,1,1]
+ * 4: [1,1,1,1,1]
+ * 5: [2,2,2,1,2]
+ * 6: [2,2,2,1,2]
+ * 7: [1,1,1,2,1]
+ * 8: [1,1,1,2,1]
+ * 9: [1,1,1,1,1]
+ * 10:[1,1,1,1,1]
+ * 11:[1,1,1,1,1]
+ * 12:[1,1,1,1,1]
+ * 13:[1,1,1,2,1]
+ * 14:[1,1,1,2,1]
+ * 15:[1,1,1,1,1]
+ * 16:[1,1,1,1,1]
+ * 17:[1,1,1,1,1]
+ * 18:[1,1,1,1,1]
+ * 19:[1,0,1,0,1]
+ * 20:[1,0,1,0,1]
+ * 21:[0,0,0,0,0]
+ * </code></pre>
  * The maximal penalty (i.e., the maximal number of half-hours which can be used
  * above the pre-computed limits by a department) of a constraint is used.
  * Initially, the maximal penalty is set to zero. It is increased by one after
@@ -111,7 +111,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * constraint). <br>
  * <br>
  * Parameters:
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>

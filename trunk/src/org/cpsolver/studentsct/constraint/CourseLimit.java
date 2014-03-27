@@ -28,7 +28,7 @@ import org.cpsolver.studentsct.model.Request;
  * <br>
  * <br>
  * Parameters:
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -81,6 +81,7 @@ public class CourseLimit extends GlobalConstraint<Request, Enrollment> {
     /**
      * Enrollment weight of a course if the given request is assigned.
      * 
+     * @param assignment current assignment
      * @param course
      *            a course that is of concern
      * @param request

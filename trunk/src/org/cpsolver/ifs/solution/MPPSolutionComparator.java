@@ -1,5 +1,6 @@
 package org.cpsolver.ifs.solution;
 
+import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.model.Value;
 import org.cpsolver.ifs.model.Variable;
 import org.cpsolver.ifs.util.DataProperties;
@@ -14,7 +15,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * variables assigned to non-initial values) is selected. When all solution have
  * the same number of assigned variables and number of perturbations, better
  * solution is the one with smaller total value, i.e., the sum of
- * {@link org.cpsolver.ifs.model.Value#toDouble()} over all assigned
+ * {@link org.cpsolver.ifs.model.Value#toDouble(Assignment)} over all assigned
  * variables.
  * 
  * @see Solution
@@ -38,13 +39,18 @@ import org.cpsolver.ifs.util.DataProperties;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * 
+ * @param <V> Variable 
+ * @param <T> Value
  */
 public class MPPSolutionComparator<V extends Variable<V, T>, T extends Value<V, T>> implements SolutionComparator<V, T> {
 
     public MPPSolutionComparator() {
     }
 
-    /** No parameters are used so far. */
+    /** No parameters are used so far.
+     * @param properties solver configuration
+     **/
     public MPPSolutionComparator(DataProperties properties) {
     }
 

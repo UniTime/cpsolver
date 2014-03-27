@@ -21,15 +21,16 @@ import org.cpsolver.ifs.util.ToolBox;
 /**
  * Selection of a value for dynamic backtracking. <br>
  * <br>
- * <li>Returns null if all values of the selected variable are nogood. <li>
- * Selected the best good value (according to the parameters) of the selected
- * variable. <br>
+ * <ul>
+ * <li>Returns null if all values of the selected variable are nogood.
+ * <li>Selected the best good value (according to the parameters) of the selected variable.
+ * </ul>
  * <br>
  * It is based on a weighted sum of several criteria. <br>
  * <br>
  * This IFS solver value selection heuristics is to be used only in case of
  * dynamic backtracking and it has the following parameters: <br>
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -94,6 +95,8 @@ import org.cpsolver.ifs.util.ToolBox;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * @param <V> Variable
+ * @param <T> Value
  */
 public class DbtValueSelection<V extends Variable<V, T>, T extends Value<V, T>> implements ValueSelection<V, T> {
     private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(GeneralValueSelection.class);

@@ -17,10 +17,10 @@ import org.cpsolver.ifs.util.CSVFile.CSVField;
  * Export instructor direct, back-to-back, and more than two exams a day
  * conflicts into a CSV file. <br>
  * <br>
- * Usage:<br>
- * <code>
+ * Usage:
+ * <pre><code>
  * &nbsp;&nbsp;&nbsp;&nbsp;new ExamInstructorConflicts(model).report().save(file);
- * </code> <br>
+ * </code></pre>
  * <br>
  * 
  * @version ExamTT 1.3 (Examination Timetabling)<br>
