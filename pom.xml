@@ -276,13 +276,13 @@
 						</goals>
 						<configuration>
 							<exportAntProperties>true</exportAntProperties>
-							<tasks>
+							<target>
 								<loadproperties srcFile="build.number"/>
 								<!--  <buildnumber /> -->
 								<tstamp>
 									<format property="build.date" pattern="EEE, d MMM yyyy" locale="en" />
 								</tstamp>
-							</tasks>
+							</target>
 						</configuration>
 					</execution>
 				</executions>
