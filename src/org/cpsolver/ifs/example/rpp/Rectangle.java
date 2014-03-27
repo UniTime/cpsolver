@@ -71,6 +71,8 @@ public class Rectangle extends Variable<Rectangle, Location> {
 
     /**
      * Prohibits given X and Y coordinates (for MPP).
+     * @param x X coordinate
+     * @param y Y coordinate
      */
     public void setProhibited(int x, int y) {
         iProhibitedX = x;
@@ -92,6 +94,9 @@ public class Rectangle extends Variable<Rectangle, Location> {
     /**
      * Returns true if the given location is prohibited. This means that either
      * X or Y equals to the prohibited X or Y coordinate respectively.
+     * @param x X coordinate
+     * @param y Y coordinate
+     * @return true if the given location is prohibited
      */
     public boolean isProhibited(int x, int y) {
         return (iProhibitedX == x || iProhibitedY == y);
@@ -121,12 +126,16 @@ public class Rectangle extends Variable<Rectangle, Location> {
         return iMaxY;
     }
 
-    /** Returns width of the rectangle */
+    /** Returns width of the rectangle 
+     * @return width of the rectangle
+     **/
     public int getWidth() {
         return iWidth;
     }
 
-    /** Returns height of the rectangle */
+    /** Returns height of the rectangle
+     * @return height of the rectangle
+     **/
     public int getHeight() {
         return iHeight;
     }
@@ -137,7 +146,12 @@ public class Rectangle extends Variable<Rectangle, Location> {
         return iName;
     }
 
-    /** Set the bounds (minimal and maximal values of X and Y coordinates). */
+    /** Set the bounds (minimal and maximal values of X and Y coordinates). 
+     * @param minX X minimum
+     * @param maxX X maximum
+     * @param minY Y minimum
+     * @param maxY Y maximum
+     **/
     public void setBounds(int minX, int maxX, int minY, int maxY) {
         iMinX = minX;
         iMaxX = maxX;

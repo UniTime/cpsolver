@@ -51,6 +51,8 @@ import org.cpsolver.ifs.util.Progress;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * @param <V> Variable
+ * @param <T> Value
  */
 public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> extends NeighbourSelectionWithContext<V,T,SimpleSearch<V,T>.SimpleSearchContext> {
     private Logger iLog = Logger.getLogger(SimpleSearch.class);
@@ -65,9 +67,8 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
 
     /**
      * Constructor
-     * 
-     * @param properties
-     *            problem properties
+     * @param properties problem configuration
+     * @throws Exception thrown when initialization fails (e.g., a given class is not found)
      */
     public SimpleSearch(DataProperties properties) throws Exception {
         String construction = properties.getProperty("Construction.Class"); 

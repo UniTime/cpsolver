@@ -6,9 +6,9 @@ import java.lang.management.ThreadMXBean;
 import org.apache.log4j.Logger;
 
 /**
- * CPU time measurement. <s>JAVA profiling extension is used. Java needs to be
+ * CPU time measurement. <b>JAVA profiling extension is used. Java needs to be
  * executed with -Xrunjprof. When the java is executed outside this profiler,
- * {@link System#currentTimeMillis()} is used.</s> Using {@link ThreadMXBean}
+ * {@link System#currentTimeMillis()} is used.</b> Using {@link ThreadMXBean}
  * to get the current thread CPU time, if supported. Using {@link System#nanoTime()} 
  * otherwise.
  * 
@@ -61,7 +61,9 @@ public class JProf {
         sInitialized = true;
     }
     
-    /** Current CPU time of this thread in seconds */
+    /** Current CPU time of this thread in seconds
+     * @return CPU time in seconds
+     **/
     public static double currentTimeSec() {
         init();
         try {
@@ -81,7 +83,9 @@ public class JProf {
         }
     }
     
-    /** Current CPU time of this thread in milliseconds */
+    /** Current CPU time of this thread in milliseconds 
+     * @return CPU time in milliseconds
+     **/
     public static long currentTimeMillis() {
         init();
         try {

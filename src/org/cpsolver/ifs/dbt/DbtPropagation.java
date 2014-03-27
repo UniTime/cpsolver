@@ -41,7 +41,9 @@ import org.cpsolver.ifs.util.DataProperties;
  *          Lesser General Public License for more details. <br>
  * <br>
  *          You should have received a copy of the GNU Lesser General Public
- *          License along with this library; if not see <http://www.gnu.org/licenses/>.
+ *          License along with this library; if not see <a href='http://www.gnu.org/licenses'>http://www.gnu.org/licenses</a>.
+ * @param <V> Variable
+ * @param <T> Value
  * 
  */
 public class DbtPropagation<V extends Variable<V, T>, T extends Value<V, T>> extends MacPropagation<V, T> implements SolverListener<V, T> {
@@ -49,6 +51,8 @@ public class DbtPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
 
     /**
      * Constructor. No parameter is taken from properties.
+     * @param solver current solver
+     * @param properties solver configuration
      */
     public DbtPropagation(Solver<V, T> solver, DataProperties properties) {
         super(solver, properties);
@@ -58,9 +62,11 @@ public class DbtPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
     /**
      * Propagation takes place every time a value is assigned to a variable. <br>
      * <br>
+     * <ul>
      * <li>Prints a warning if the value is nogood (should not never happen),
-     * <li>sets all other values of the variable to nogood (explanation is the
-     * assigned value itself), <li>runs propagation.
+     * <li>sets all other values of the variable to nogood (explanation is the assigned value itself),
+     * <li>runs propagation.
+     * </ul>
      * 
      * @see MacPropagation#propagate(Assignment, Variable)
      */
@@ -86,8 +92,10 @@ public class DbtPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
     /**
      * Undo propagation when a value is unassigned. <br>
      * <br>
-     * <li>Prints an error if the value is nogood (should not never happen), <li>
-     * runs propagation undo.
+     * <ul>
+     * <li>Prints an error if the value is nogood (should not never happen),
+     * <li>runs propagation undo.
+     * </ul>
      * 
      * @see MacPropagation#undoPropagate(Assignment, Variable)
      */
@@ -166,10 +174,9 @@ public class DbtPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
      * </ul>
      * <li>otherwise pick the last assigned variable from the computed union of
      * explanation and unassign it
-     * <ul>
-     * (explanation for that is the computed union of explanations without the
-     * last assignment).
-     * </ul>
+     * <pre>
+     * (explanation for that is the computed union of explanations without the last assignment).
+     * </pre>
      * </ul>
      * 
      * @see DbtVariableSelection#selectVariable(Solution)

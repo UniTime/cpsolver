@@ -295,6 +295,9 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
     /**
      * The set of all conflicts ({@link Conflict} objects) of the given
      * enrollment and other enrollments that are assignmed to the same student.
+     * @param assignment current assignment
+     * @param enrollment given enrollment
+     * @return set of all conflicts
      */
     public Set<Conflict> allConflicts(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
         Set<Conflict> ret = conflicts(enrollment);
@@ -308,12 +311,17 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
         return ret;
     }
 
-    /** Checks the counter counting all conflicts */
+    /** Checks the counter counting all conflicts
+     * @param assignment current assignment
+     */
     public void checkAllConflicts(Assignment<Request, Enrollment> assignment) {
         getContext(assignment).checkAllConflicts(assignment);
     }
     
-    /** Actual number of all distance conflicts */
+    /** Actual number of all distance conflicts
+     * @param assignment current assignment
+     * @return cached number of all distance conflicts
+     **/
     public int getTotalNrConflicts(Assignment<Request, Enrollment> assignment) {
         return getContext(assignment).getTotalNrConflicts();
     }
@@ -321,6 +329,8 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
     /**
      * Compute the actual number of all distance conflicts. Should be equal to
      * {@link DistanceConflict#getTotalNrConflicts(Assignment)}.
+     * @param assignment current assignment
+     * @return computed number of all distance conflicts
      */
     public int countTotalNrConflicts(Assignment<Request, Enrollment> assignment) {
         int total = 0;
@@ -341,6 +351,8 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
 
     /**
      * Compute a set of all distance conflicts ({@link Conflict} objects).
+     * @param assignment current assignment
+     * @return computed set of all distance conflicts
      */
     public Set<Conflict> computeAllConflicts(Assignment<Request, Enrollment> assignment) {
         Set<Conflict> ret = new HashSet<Conflict>();
@@ -361,6 +373,8 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
     
     /**
      * Return a set of all distance conflicts ({@link Conflict} objects).
+     * @param assignment current assignment
+     * @return cached set of all distance conflicts
      */
     public Set<Conflict> getAllConflicts(Assignment<Request, Enrollment> assignment) {
         return getContext(assignment).getAllConflicts();
@@ -402,8 +416,10 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
          * 
          * @param student
          *            related student
+         * @param e1 first enrollment
          * @param s1
          *            first conflicting section
+         * @param e2 second enrollment
          * @param s2
          *            second conflicting section
          */
@@ -423,37 +439,51 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
             iHashCode = (iStudent.getId() + ":" + iS1.getId() + ":" + iS2.getId()).hashCode();
         }
 
-        /** Related student */
+        /** Related student
+         * @return student
+         **/
         public Student getStudent() {
             return iStudent;
         }
 
-        /** First section */
+        /** First section
+         * @return first section
+         **/
         public Section getS1() {
             return iS1;
         }
 
-        /** Second section */
+        /** Second section
+         * @return second section
+         **/
         public Section getS2() {
             return iS2;
         }
         
-        /** First request */
+        /** First request
+         * @return first request
+         **/
         public Request getR1() {
             return iE1.getRequest();
         }
         
-        /** Second request */
+        /** Second request 
+         * @return second request
+         **/
         public Request getR2() {
             return iE2.getRequest();
         }
         
-        /** First enrollment */
+        /** First enrollment 
+         * @return first enrollment
+         **/
         public Enrollment getE1() {
             return iE1;
         }
 
-        /** Second enrollment */
+        /** Second enrollment 
+         * @return second enrollment
+         **/
         public Enrollment getE2() {
             return iE2;
         }
@@ -463,7 +493,10 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
             return iHashCode;
         }
 
-        /** The distance between conflicting sections */
+        /** The distance between conflicting sections 
+         * @param dm distance metrics
+         * @return distance in meters between conflicting sections
+         **/
         public double getDistance(DistanceMetric dm) {
             return Placement.getDistanceInMeters(dm, getS1().getPlacement(), getS2().getPlacement());
         }
@@ -495,6 +528,9 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
         
         /**
          * Called before a value is assigned to a variable.
+         * @param assignment current assignment
+         * @param iteration current iteration
+         * @param value value to be assigned
          */
         public void beforeAssigned(Assignment<Request, Enrollment> assignment, long iteration, Enrollment value) {
             if (value != null) {
@@ -509,6 +545,9 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
         
         /**
          * Called after a value is assigned to a variable.
+         * @param assignment current assignment
+         * @param iteration current iteration
+         * @param value value that was assigned
          */
         public void afterAssigned(Assignment<Request, Enrollment> assignment, long iteration, Enrollment value) {
             iOldVariable = null;
@@ -519,6 +558,9 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
         
         /**
          * Called after a value is unassigned from a variable.
+         * @param assignment current assignment
+         * @param iteration current iteration
+         * @param value value to be unassigned
          */
         public void afterUnassigned(Assignment<Request, Enrollment> assignment, long iteration, Enrollment value) {
             if (value != null && !value.equals(iUnassignedValue))
@@ -574,7 +616,9 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
             }
         }
         
-        /** Checks the counter counting all conflicts */
+        /** Checks the counter counting all conflicts
+         * @param assignment current assignment
+         **/
         public void checkAllConflicts(Assignment<Request, Enrollment> assignment) {
             Set<Conflict> allConfs = computeAllConflicts(assignment);
             if (iAllConflicts.size() != allConfs.size()) {
@@ -593,13 +637,16 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
             }
         }
         
-        /** Actual number of all distance conflicts */
+        /** Actual number of all distance conflicts
+         * @return number of all distance conflicts
+         **/
         public int getTotalNrConflicts() {
             return iAllConflicts.size();
         }
         
         /**
          * Return a set of all distance conflicts ({@link Conflict} objects).
+         * @return all distance conflicts
          */
         public Set<Conflict> getAllConflicts() {
             return iAllConflicts;
@@ -607,7 +654,10 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
         
         /**
          * Total sum of all conflict of the given enrollment and other enrollments
-         * that are assignmed to the same student.
+         * that are assigned to the same student.
+         * @param assignment current assignment
+         * @param enrollment given enrollment
+         * @return number of all conflict of the given enrollment
          */
         public int nrAllConflicts(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
             if (!enrollment.isCourseRequest())

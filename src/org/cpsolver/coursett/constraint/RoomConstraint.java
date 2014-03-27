@@ -252,7 +252,7 @@ public class RoomConstraint extends ConstraintWithContext<Lecture, Placement, Ro
     }
 
     /**
-     * Lookup table getResource()[slot] -> lecture using this room placed in the
+     * Lookup table getResource()[slot] &rarr; lecture using this room placed in the
      * given time slot (null if empty)
      */
     public List<Placement> getResource(Assignment<Lecture, Placement> assignment, int slot) {

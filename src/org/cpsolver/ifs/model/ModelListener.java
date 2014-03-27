@@ -26,6 +26,9 @@ import org.cpsolver.ifs.solver.Solver;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ *
+ * @param <V> Variable 
+ * @param <T> Value
  */
 public interface ModelListener<V extends Variable<V, T>, T extends Value<V, T>> {
     /**
@@ -64,6 +67,7 @@ public interface ModelListener<V extends Variable<V, T>, T extends Value<V, T>> 
      * Called before a value is assigned to its variable (
      * {@link Value#variable()}).
      * 
+     * @param assignment current assignment
      * @param iteration
      *            current iteration
      * @param value
@@ -75,6 +79,7 @@ public interface ModelListener<V extends Variable<V, T>, T extends Value<V, T>> 
      * Called before a value is unassigned from its variable (
      * {@link Value#variable()}).
      * 
+     * @param assignment current assignment
      * @param iteration
      *            current iteration
      * @param value
@@ -86,6 +91,7 @@ public interface ModelListener<V extends Variable<V, T>, T extends Value<V, T>> 
      * Called after a value is assigned to its variable (
      * {@link Value#variable()}).
      * 
+     * @param assignment current assignment
      * @param iteration
      *            current iteration
      * @param value
@@ -97,6 +103,7 @@ public interface ModelListener<V extends Variable<V, T>, T extends Value<V, T>> 
      * Called after a value is unassigned from its variable (
      * {@link Value#variable()}).
      * 
+     * @param assignment current assignment
      * @param iteration
      *            current iteration
      * @param value
@@ -109,6 +116,7 @@ public interface ModelListener<V extends Variable<V, T>, T extends Value<V, T>> 
      * 
      * @param solver
      *            IFS solver
+     * @return true if successfully initialized
      */
     public boolean init(Solver<V, T> solver);
 }

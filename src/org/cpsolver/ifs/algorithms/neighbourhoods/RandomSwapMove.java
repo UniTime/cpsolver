@@ -47,6 +47,8 @@ import org.cpsolver.ifs.util.ToolBox;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * @param <V> Variable
+ * @param <T> Value
  */
 public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> implements NeighbourSelection<V, T>, HillClimberSelection {
     protected int iMaxAttempts = 3;
@@ -121,6 +123,8 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
     
     /**
      * Return true if the time limit was reached, number of attempts are limited to 1 in such a case.
+     * @param startTime start time
+     * @return true if the given time limit was reached
      */
     protected boolean isTimeLimitReached(long startTime) {
         return iTimeLimit > 0 && (JProf.currentTimeMillis() - startTime) > iTimeLimit;
@@ -132,12 +136,13 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
      * of the other conflicting variables. 
      * @param solution current solution
      * @param total original value of the current solution
+     * @param startTime starting time
      * @param assignments re-assignments to be made
      * @param conflicts list of conflicts to resolve
      * @param index index in the list of conflicts
      * @return value of the modified solution, null if cannot be resolved
      */
-    public Double resolve(Solution<V, T> solution, double total, long startTime, Map<V, T> assignments, List<T> conflicts, int index) {
+    protected Double resolve(Solution<V, T> solution, double total, long startTime, Map<V, T> assignments, List<T> conflicts, int index) {
         Assignment<V, T> assignment = solution.getAssignment();
 
         if (index == conflicts.size()) return solution.getModel().getTotalValue(assignment) - total;

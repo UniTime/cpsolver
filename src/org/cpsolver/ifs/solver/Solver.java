@@ -55,25 +55,22 @@ import org.cpsolver.ifs.util.ToolBox;
  * Finally, the selected value is assigned to the selected variable. <br>
  * <br>
  * Algorithm schema:
- * <ul>
- * <code>
- * procedure org.cpsolver.ifs(initial)  // initial solution is the parameter <br>
- * &nbsp;&nbsp;iteration = 0;         // iteration counter <br>
- * &nbsp;&nbsp;current = initial;     // current (partial) feasible solution <br>
- * &nbsp;&nbsp;best = initial;        // best solution <br>
- * &nbsp;&nbsp;while canContinue(current, iteration) do <br>
- * &nbsp;&nbsp;&nbsp;&nbsp;iteration = iteration + 1; <br>
- * &nbsp;&nbsp;&nbsp;&nbsp;variable = selectVariable(current); <br>
- * &nbsp;&nbsp;&nbsp;&nbsp;value = selectValue(current, variable); <br>
- * &nbsp;&nbsp;&nbsp;&nbsp;UNASSIGN(current,  CONFLICTING_VARIABLES(current, variable, value)); <br>
- * &nbsp;&nbsp;&nbsp;&nbsp;ASSIGN(current, variable, value); <br>
- * &nbsp;&nbsp;&nbsp;&nbsp;if better(current, best) then best = current; <br>
- * &nbsp;&nbsp;end while <br>
- * &nbsp;&nbsp;return best;<br>
- * end procedure <br>
- * </code>
- * </ul>
- * <br>
+ * <pre><code>
+ * procedure org.cpsolver.ifs(initial)  // initial solution is the parameter
+ * &nbsp;&nbsp;iteration = 0;         // iteration counter
+ * &nbsp;&nbsp;current = initial;     // current (partial) feasible solution
+ * &nbsp;&nbsp;best = initial;        // best solution
+ * &nbsp;&nbsp;while canContinue(current, iteration) do
+ * &nbsp;&nbsp;&nbsp;&nbsp;iteration = iteration + 1;
+ * &nbsp;&nbsp;&nbsp;&nbsp;variable = selectVariable(current);
+ * &nbsp;&nbsp;&nbsp;&nbsp;value = selectValue(current, variable);
+ * &nbsp;&nbsp;&nbsp;&nbsp;UNASSIGN(current,  CONFLICTING_VARIABLES(current, variable, value));
+ * &nbsp;&nbsp;&nbsp;&nbsp;ASSIGN(current, variable, value);
+ * &nbsp;&nbsp;&nbsp;&nbsp;if better(current, best) then best = current;
+ * &nbsp;&nbsp;end while
+ * &nbsp;&nbsp;return best;
+ * end procedure
+ * </code></pre>
  * The algorithm attempts to move from one (partial) feasible solution to
  * another via repetitive assignment of a selected value to a selected variable.
  * During this search, the feasibility of all hard constraints in each iteration
@@ -93,25 +90,22 @@ import org.cpsolver.ifs.util.ToolBox;
  * </ul>
  * <br>
  * Usage:
- * <ul>
- * <code>
- * DataProperties cfg = ToolBox.loadProperties(inputCfg); //input configuration<br>
- * Solver solver = new Solver(cfg);<br>
- * solver.setInitalSolution(model); //sets initial solution<br>
- * <br>
- * solver.start(); //server is executed in a thread<br>
- * <br>
- * try { //wait untill the server finishes<br>
- * &nbsp;&nbsp;solver.getSolverThread().join(); <br>
- * } catch (InterruptedException e) {} <br>
- * <br>
- * Solution solution = solver.lastSolution(); //last solution<br>
- * solution.restoreBest(); //restore best solution ever found<br>
- * </code>
- * </ul>
- * <br>
+ * <pre><code>
+ * DataProperties cfg = ToolBox.loadProperties(inputCfg); //input configuration
+ * Solver solver = new Solver(cfg);
+ * solver.setInitalSolution(model); //sets initial solution
+ * 
+ * solver.start(); //server is executed in a thread
+ * 
+ * try { //wait untill the server finishes
+ * &nbsp;&nbsp;solver.getSolverThread().join(); 
+ * } catch (InterruptedException e) {} 
+ * 
+ * Solution solution = solver.lastSolution(); //last solution
+ * solution.restoreBest(); //restore best solution ever found
+ * </code></pre>
  * Solver's parameters: <br>
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -201,9 +195,11 @@ import org.cpsolver.ifs.util.ToolBox;
  *          Lesser General Public License for more details. <br>
  * <br>
  *          You should have received a copy of the GNU Lesser General Public
- *          License along with this library; if not see <http://www.gnu.org/licenses/>.
+ *          License along with this library; if not see <a href='http://www.gnu.org/licenses'>http://www.gnu.org/licenses</a>.
+ *
+ * @param <V> Variable
+ * @param <T> Value
  **/
-
 public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
     public static int THREAD_PRIORITY = 3;
     /** log */
@@ -253,72 +249,100 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
         iNeighbourSelection = null;
     }
 
-    /** Sets termination condition */
+    /** Sets termination condition
+     * @param terminationCondition termination condition
+     **/
     public void setTerminalCondition(TerminationCondition<V, T> terminationCondition) {
         iTerminationCondition = terminationCondition;
     }
 
-    /** Sets solution comparator */
+    /** Sets solution comparator
+     * @param solutionComparator solution comparator
+     **/
     public void setSolutionComparator(SolutionComparator<V, T> solutionComparator) {
         iSolutionComparator = solutionComparator;
     }
 
-    /** Sets neighbour selection criterion */
+    /** Sets neighbour selection criterion
+     * @param neighbourSelection neighbour selection criterion
+     **/
     public void setNeighbourSelection(NeighbourSelection<V, T> neighbourSelection) {
         iNeighbourSelection = neighbourSelection;
     }
 
-    /** Sets perturbation counter (minimal perturbation problem) */
+    /** Sets perturbation counter (minimal perturbation problem)
+     * @param perturbationsCounter perturbation counter
+     **/
     public void setPerturbationsCounter(PerturbationsCounter<V, T> perturbationsCounter) {
         iPerturbationsCounter = perturbationsCounter;
     }
 
-    /** Add an IFS extension */
+    /** Add an IFS extension
+     * @param extension an extension
+     **/
     public void addExtension(Extension<V, T> extension) {
         iExtensions.add(extension);
     }
 
-    /** Returns termination condition */
+    /** Returns termination condition
+     * @return termination condition
+     **/
     public TerminationCondition<V, T> getTerminationCondition() {
         return iTerminationCondition;
     }
 
-    /** Returns solution comparator */
+    /** Returns solution comparator
+     * @return solution comparator
+     **/
     public SolutionComparator<V, T> getSolutionComparator() {
         return iSolutionComparator;
     }
 
-    /** Returns neighbour selection criterion */
+    /** Returns neighbour selection criterion
+     * @return neighbour selection criterion
+     **/
     public NeighbourSelection<V, T> getNeighbourSelection() {
         return iNeighbourSelection;
     }
 
-    /** Returns perturbation counter (minimal perturbation problem) */
+    /** Returns perturbation counter (minimal perturbation problem)
+     * @return perturbation counter
+     **/
     public PerturbationsCounter<V, T> getPerturbationsCounter() {
         return iPerturbationsCounter;
     }
 
-    /** Returns list of all used extensions */
+    /** Returns list of all used extensions
+     * @return list of all registered extensions
+     **/
     public List<Extension<V, T>> getExtensions() {
         return iExtensions;
     }
 
-    /** Adds a solver listener */
+    /** Adds a solver listener
+     * @param listener solver listener
+     **/
     public void addSolverListener(SolverListener<V, T> listener) {
         iSolverListeners.add(listener);
     }
 
-    /** Removes a solver listener */
+    /** Removes a solver listener
+     * @param listener solver listener
+     **/
     public void removeSolverListener(SolverListener<V, T> listener) {
         iSolverListeners.remove(listener);
     }
 
-    /** Registered solver listeners */
+    /** Registered solver listeners
+     * @return list of all registered solver listeners
+     **/
     public List<SolverListener<V, T>> getSolverListeners() {
         return iSolverListeners;
     }
 
-    /** Returns configuration */
+    /** Returns configuration
+     * @return solver configuration
+     **/
     public DataProperties getProperties() {
         return iProperties;
     }
@@ -400,13 +424,17 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
             iCurrentSolution.clearBest();
     }
 
-    /** Sets initial solution */
+    /** Sets initial solution 
+     * @param solution initial solution
+     **/
     public void setInitalSolution(Solution<V, T> solution) {
         iCurrentSolution = solution;
         iLastSolution = null;
     }
 
-    /** Sets initial solution */
+    /** Sets initial solution 
+     * @param model problem model
+     **/
     public void setInitalSolution(Model<V, T> model) {
         setInitalSolution(new Solution<V, T>(model, new DefaultSingleAssignment<V, T>(), 0, 0));
     }
@@ -418,7 +446,9 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
         iSolverThread.start();
     }
 
-    /** Returns solver's thread */
+    /** Returns solver's thread 
+     * @return solver's thread
+     **/
     public Thread getSolverThread() {
         return iSolverThread;
     }
@@ -427,22 +457,30 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
     public void init() {
     }
 
-    /** True, when solver should update progress (see {@link Progress}) */
+    /** True, when solver should update progress (see {@link Progress}) 
+     * @return true if the solver should update process
+     **/
     protected boolean isUpdateProgress() {
         return iUpdateProgress;
     }
 
-    /** True, when solver should update progress (see {@link Progress}) */
+    /** True, when solver should update progress (see {@link Progress})
+     * @param updateProgress true if the solver should update process (default is true)
+     **/
     public void setUpdateProgress(boolean updateProgress) {
         iUpdateProgress = updateProgress;
     }
 
-    /** Last solution (when solver finishes) */
+    /** Last solution (when solver finishes) 
+     * @return last solution
+     **/
     public Solution<V, T> lastSolution() {
         return (iLastSolution == null ? iCurrentSolution : iLastSolution);
     }
 
-    /** Current solution (during the search) */
+    /** Current solution (during the search) 
+     * @return current solution
+     **/
     public Solution<V, T> currentSolution() {
         return iCurrentSolution;
     }
@@ -501,7 +539,9 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
         stopSolver(true);
     }
     
-    /** Stop running solver */
+    /** Stop running solver 
+     * @param join wait for the solver thread to finish
+     **/
     public void stopSolver(boolean join) {
         if (getSolverThread() != null) {
             iStop = true;
@@ -514,7 +554,9 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
         }
     }
 
-    /** True, if the solver is running */
+    /** True, if the solver is running 
+     * @return true if the solver is running
+     **/
     public boolean isRunning() {
         return (getSolverThread() != null);
     }
@@ -535,7 +577,10 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
     protected void onFailure() {
     }
 
-    /** Called in each iteration, after a neighbour is assigned */
+    /** Called in each iteration, after a neighbour is assigned 
+     * @param startTime solver start time in seconds
+     * @param solution current solution
+     **/
     protected void onAssigned(double startTime, Solution<V, T> solution) {
     }
     
@@ -670,7 +715,9 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
         }
     }
     
-    /** Return true if {@link Solver#stopSolver()} was called */
+    /** Return true if {@link Solver#stopSolver()} was called 
+     * @return true if the solver is to be stopped
+     **/
     public boolean isStop() {
         return iStop;
     }

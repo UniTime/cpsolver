@@ -66,22 +66,32 @@ public class Location extends Value<Activity, Location> {
         iNrOfDiscouragedSlots = computeNrOfDiscouragedSlots();
     }
 
-    /** Gets slot */
+    /** Gets slot
+     * @return slot
+     **/
     public int getSlot() {
         return iSlot;
     }
 
-    /** Gets selection of resources */
+    /** Gets selection of resources
+     * @return selection of resources
+     **/
     public Resource[] getResources() {
         return iResources;
     }
 
-    /** Gets given resource */
+    /** Gets given resource
+     * @param idx index
+     * @return given resource
+     **/
     public Resource getResource(int idx) {
         return iResources[idx];
     }
 
-    /** Returns true if the given resource is used by this location */
+    /** Returns true if the given resource is used by this location 
+     * @param resource given resource
+     * @return true if the given resource is used by this location
+     **/
     public boolean containResource(Resource resource) {
         for (int i = 0; i < iResources.length; i++)
             if (iResources[i].equals(resource))
@@ -89,12 +99,14 @@ public class Location extends Value<Activity, Location> {
         return false;
     }
 
-    /** Number of slots (over all resources) which are discouraged */
+    /** Number of slots (over all resources) which are discouraged
+     * @return number of slots (over all resources) which are discouraged
+     **/
     public int getNrOfDiscouragedSlots() {
         return iNrOfDiscouragedSlots;
     }
 
-    /** Int value (for optimization) -- getNrOfDiscouragedSlots() is returned */
+    /** Placement value (for optimization) -- getNrOfDiscouragedSlots() is returned */
     @Override
     public double toDouble() {
         return iNrOfDiscouragedSlots;
@@ -103,6 +115,7 @@ public class Location extends Value<Activity, Location> {
     /**
      * Computes number of discouraged slots (over all resources and the
      * activity)
+     * @return number of discouraged slots
      */
     public int computeNrOfDiscouragedSlots() {
         Activity a = variable();
@@ -120,6 +133,8 @@ public class Location extends Value<Activity, Location> {
     /**
      * Returns true if the location intersects with another location. This means
      * the same resource is used in the same time.
+     * @param location another location
+     * @return true if this location intersects with the other location
      */
     public boolean hasIntersection(Location location) {
         int s1 = getSlot();
@@ -133,6 +148,7 @@ public class Location extends Value<Activity, Location> {
      * Returns true if the location is prohibited. This means that the activity
      * or a required resource has a time slot which is used by this location
      * prohibited.
+     * @return true if the location is prohibited
      */
     public boolean isProhibited() {
         Activity a = variable();

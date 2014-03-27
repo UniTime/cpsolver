@@ -34,25 +34,24 @@ import org.cpsolver.studentsct.model.Subpart;
  * <br>
  * A penalty for each section is computed proportionally based on this order
  * (and the number of slots that falls into each time frame), the existing
- * branch&bound selection is used to section each student one by one (in a
+ * branch &amp; bound selection is used to section each student one by one (in a
  * random order). <br>
  * <br>
- * Usage:<br>
- * <code>
- * for (Enumeration e=students.elements();e.hasMoreElements();) {<br>
- * &nbsp;&nbsp;// take a student (one by one)<br>
- * &nbsp;&nbsp;Student student = (Student)e.nextElement();<br>
- * <br>
- * &nbsp;&nbsp;// compute and apply penalties using this class<br>
- * &nbsp;&nbsp;new StudentPreferencePenalties().setPenalties(student);<br>
- * <br>
- * &nbsp;&nbsp;// section a student<br>
- * &nbsp;&nbsp;// for instance, {@link BranchBoundSelection} can be used (with Neighbour.BranchAndBoundMinimizePenalty set to true)<br>
- * &nbsp;&nbsp;Neighbour neighbour = new BranchBoundSelection(config).getSelection(student).select();<br>
- * &nbsp;&nbsp;if (neighbour!=null) neighbour.assign(iteration++);<br>
+ * Usage:
+ * <pre><code>
+ * for (Enumeration e=students.elements();e.hasMoreElements();) {
+ * &nbsp;&nbsp;// take a student (one by one)
+ * &nbsp;&nbsp;Student student = (Student)e.nextElement();
+ * 
+ * &nbsp;&nbsp;// compute and apply penalties using this class
+ * &nbsp;&nbsp;new StudentPreferencePenalties().setPenalties(student);
+ * 
+ * &nbsp;&nbsp;// section a student
+ * &nbsp;&nbsp;// for instance, {@link BranchBoundSelection} can be used (with Neighbour.BranchAndBoundMinimizePenalty set to true)
+ * &nbsp;&nbsp;Neighbour neighbour = new BranchBoundSelection(config).getSelection(student).select();
+ * &nbsp;&nbsp;if (neighbour!=null) neighbour.assign(iteration++);
  * };
- * </code> <br>
- * <br>
+ * </code></pre>
  * 
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>

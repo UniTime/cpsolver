@@ -31,6 +31,7 @@ public class Constants {
 
     /**
      * Version
+     * @return current solver version
      */
     public static String getVersion() {
         return VERSION;
@@ -38,6 +39,7 @@ public class Constants {
 
     /**
      * Build number
+     * @return current solver build number
      */
     public static String getBuildNumber() {
         return BLD_NUMBER;
@@ -45,6 +47,7 @@ public class Constants {
 
     /**
      * Release date
+     * @return current solver release date
      */
     public static String getReleaseDate() {
         return REL_DATE;

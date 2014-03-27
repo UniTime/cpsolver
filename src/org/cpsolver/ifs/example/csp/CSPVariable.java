@@ -36,7 +36,7 @@ public class CSPVariable extends Variable<CSPVariable, CSPValue> {
 
     /**
      * Constructor
-     * 
+     * @param id variable id
      * @param domainSize
      *            number of values of the variable
      */
@@ -47,6 +47,7 @@ public class CSPVariable extends Variable<CSPVariable, CSPValue> {
     /**
      * Constructor
      * 
+     * @param id variable id
      * @param domainSize
      *            number of values of the variable
      * @param kernelId
@@ -59,7 +60,9 @@ public class CSPVariable extends Variable<CSPVariable, CSPValue> {
         setValues(computeValues(domainSize));
     }
 
-    /** Get kernel id */
+    /** Get kernel id
+     * @return kernel id
+     **/
     public int getKernelId() {
         return iKernelId;
     }
@@ -67,6 +70,7 @@ public class CSPVariable extends Variable<CSPVariable, CSPValue> {
     /**
      * Generate an intial value (for MPP and for forcing of existance of a
      * solution)
+     * @param rnd random number generator
      */
     public void generateInitialValue(Random rnd) {
         CSPValue aValue = values().get((int) (rnd.nextFloat() * values().size()));

@@ -19,23 +19,23 @@ import org.dom4j.Element;
  * <br>
  * <br>
  * Use:
- * <ul>
+ * <pre>
  * <code>
- * Progress.getInstance().setStatus("Loading input data");<br>
- * Progress.getInstance().setPhase("Creating variables ...", nrVariables);<br>
- * for (int i=0;i&lt;nrVariables;i++) {<br>
- * &nbsp;&nbsp;&nbsp;&nbsp;//load variable here<br>
- * &nbsp;&nbsp;&nbsp;&nbsp;Progress.getInstance().incProgress();<br>
- * }<br>
- * Progress.getInstance().setPhase("Creating constraints ...", nrConstraints);<br>
- * for (int i=0;i&lt;nrConstraints;i++) {<br>
- * &nbsp;&nbsp;&nbsp;&nbsp;//load constraint here<br>
- * &nbsp;&nbsp;&nbsp;&nbsp;Progress.getInstance().incProgress();<br>
- * }<br>
- * Progress.getInstance().setStatus("Solving problem");<br>
- * ...<br>
+ * Progress.getInstance().setStatus("Loading input data");
+ * Progress.getInstance().setPhase("Creating variables ...", nrVariables);
+ * for (int i=0;i&lt;nrVariables;i++) {
+ * &nbsp;&nbsp;&nbsp;&nbsp;//load variable here
+ * &nbsp;&nbsp;&nbsp;&nbsp;Progress.getInstance().incProgress();
+ * }
+ * Progress.getInstance().setPhase("Creating constraints ...", nrConstraints);
+ * for (int i=0;i&lt;nrConstraints;i++) {
+ * &nbsp;&nbsp;&nbsp;&nbsp;//load constraint here
+ * &nbsp;&nbsp;&nbsp;&nbsp;Progress.getInstance().incProgress();
+ * }
+ * Progress.getInstance().setStatus("Solving problem");
+ * ...
  * </code>
- * </ul>
+ * </pre>
  * 
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
@@ -83,12 +83,17 @@ public class Progress {
     private Progress() {
     }
 
-    /** Progress default instance */
+    /** Progress default instance 
+     * @return progress instance
+     **/
     public static Progress getInstance() {
         return getInstance("--DEFAULT--");
     }
 
-    /** Progress instance */
+    /** Progress instance
+     * @param key an object (typically a problem model) for which the progress is to be returned
+     * @return progress instance
+     **/
     public static Progress getInstance(Object key) {
         Progress progress = sInstances.get(key);
         if (progress == null) {
@@ -98,7 +103,10 @@ public class Progress {
         return progress;
     }
 
-    /** Change progress instance for the given key */
+    /** Change progress instance for the given key 
+     * @param oldKey old instance
+     * @param newKey new instance
+     **/
     public static void changeInstance(Object oldKey, Object newKey) {
         removeInstance(newKey);
         Progress progress = sInstances.get(oldKey);
@@ -108,7 +116,9 @@ public class Progress {
         }
     }
 
-    /** Remove progress instance for the given key */
+    /** Remove progress instance for the given key 
+     * @param key old instance
+     **/
     public static void removeInstance(Object key) {
         Progress progress = sInstances.get(key);
         if (progress != null) {
@@ -118,12 +128,16 @@ public class Progress {
         }
     }
 
-    /** Current status */
+    /** Current status 
+     * @return current status
+     **/
     public String getStatus() {
         return iStatus;
     }
 
-    /** Sets current status */
+    /** Sets current status 
+     * @param status current status
+     **/
     public void setStatus(String status) {
         message(MSGLEVEL_STAGE, status);
         if (!status.equals(iStatus)) {
@@ -135,7 +149,9 @@ public class Progress {
         }
     }
 
-    /** Current phase */
+    /** Current phase 
+     * @return current phase
+     **/
     public String getPhase() {
         return iPhase;
     }
@@ -180,12 +196,16 @@ public class Progress {
         }
     }
 
-    /** Current progress */
+    /** Current progress 
+     * @return current progress
+     **/
     public long getProgress() {
         return iProgressCurrent;
     }
 
-    /** Maximum of current progress */
+    /** Maximum of current progress
+     * @return current progress maximum
+     **/
     public long getProgressMax() {
         return iProgressMax;
     }
@@ -196,12 +216,16 @@ public class Progress {
         fireProgressChanged();
     }
 
-    /** Adds progress listener */
+    /** Adds progress listener 
+     * @param listener a progress listener
+     **/
     public void addProgressListener(ProgressListener listener) {
         iListeners.add(listener);
     }
 
-    /** Remove progress listener */
+    /** Remove progress listener
+     * @param listener a progress listener
+     **/
     public void removeProgressListener(ProgressListener listener) {
         iListeners.remove(listener);
     }
@@ -230,7 +254,11 @@ public class Progress {
         fireProgressRestored();
     }
 
-    /** Prints a message */
+    /** Prints a message 
+     * @param level logging level
+     * @param message message to log
+     * @param t an exception, if any
+     **/
     public void message(int level, String message, Throwable t) {
         if (iDisposed) throw new RuntimeException("This solver is killed.");
         Message m = new Message(level, message, t);
@@ -266,76 +294,111 @@ public class Progress {
         fireMessagePrinted(m);
     }
 
-    /** Prints a message */
+    /** Prints a message 
+     * @param level logging level
+     * @param message message to log
+     **/
     public void message(int level, String message) {
         message(level, message, null);
     }
 
-    /** Prints a trace message */
+    /** Prints a trace message 
+     * @param message trace message
+     **/
     public void trace(String message) {
         if (!sTraceEnabled)
             return;
         message(MSGLEVEL_TRACE, message);
     }
 
-    /** Prints a debug message */
+    /** Prints a debug message
+     * @param message debug message
+     **/
     public void debug(String message) {
         message(MSGLEVEL_DEBUG, message);
     }
 
-    /** Prints an info message */
+    /** Prints an info message
+     * @param message info message
+     **/
     public void info(String message) {
         message(MSGLEVEL_INFO, message);
     }
 
-    /** Prints a warning message */
+    /** Prints a warning message
+     * @param message warning message
+     **/
     public void warn(String message) {
         message(MSGLEVEL_WARN, message);
     }
 
-    /** Prints an error message */
+    /** Prints an error message
+     * @param message error message
+     **/
     public void error(String message) {
         message(MSGLEVEL_ERROR, message);
     }
 
-    /** Prints a fatal message */
+    /** Prints a fatal message
+     * @param message fatal message
+     **/
     public void fatal(String message) {
         message(MSGLEVEL_FATAL, message);
     }
 
-    /** Prints a trace message */
+    /** Prints a trace message
+     * @param message trace message
+     * @param e an exception, if any
+     **/
     public void trace(String message, Throwable e) {
         if (!sTraceEnabled)
             return;
         message(MSGLEVEL_TRACE, message, e);
     }
 
-    /** Prints a debug message */
+    /** Prints a debug message
+     * @param message debug message
+     * @param e an exception, if any
+     **/
     public void debug(String message, Throwable e) {
         message(MSGLEVEL_DEBUG, message, e);
     }
 
-    /** Prints an info message */
+    /** Prints an info message
+     * @param message info message
+     * @param e an exception, if any
+     **/
     public void info(String message, Throwable e) {
         message(MSGLEVEL_INFO, message, e);
     }
 
-    /** Prints a warning message */
+    /** Prints a warning message
+    * @param message warning message
+    * @param e an exception, if any
+    **/
     public void warn(String message, Throwable e) {
         message(MSGLEVEL_WARN, message, e);
     }
 
-    /** Prints an error message */
+    /** Prints an error message
+     * @param message error message
+     * @param e an exception, if any
+     **/
     public void error(String message, Throwable e) {
         message(MSGLEVEL_ERROR, message, e);
     }
 
-    /** Prints a fatal message */
+    /** Prints a fatal message
+     * @param message fatal message
+     * @param e an exception, if any
+     **/
     public void fatal(String message, Throwable e) {
         message(MSGLEVEL_FATAL, message, e);
     }
 
-    /** Returns log (list of messages) */
+    /** Returns log (list of messages) 
+     * @return list of logged messages
+     **/
     public List<Message> getLog() {
         return iLog;
     }
@@ -343,6 +406,8 @@ public class Progress {
     /**
      * Returns log (list of messages). Only messages with the given level or
      * higher are included.
+     * @param level minimum level
+     * @return list of messages
      */
     public String getLog(int level) {
         StringBuffer sb = new StringBuffer();
@@ -356,7 +421,11 @@ public class Progress {
         return sb.toString();
     }
 
-    /** Returns log in HTML format */
+    /** Returns log in HTML format
+     * @param level minimum level
+     * @param includeDate include message date and time in the result
+     * @return html list of messages
+     */
     public String getHtmlLog(int level, boolean includeDate) {
         StringBuffer sb = new StringBuffer();
         synchronized (iLog) {
@@ -372,6 +441,10 @@ public class Progress {
     /**
      * Returns log in HTML format (only messages with the given level or higher
      * are included)
+     * @param level minimum level
+     * @param includeDate include message date and time in the result
+     * @param fromStage last stage from which the log should begin
+     * @return html list of messages
      */
     public String getHtmlLog(int level, boolean includeDate, String fromStage) {
         StringBuffer sb = new StringBuffer();
@@ -457,7 +530,9 @@ public class Progress {
             }
         }
 
-        /** Creates message out of XML element */
+        /** Creates message out of XML element 
+         * @param element XML element with the message
+         **/
         public Message(Element element) {
             iLevel = Integer.parseInt(element.attributeValue("level", "0"));
             iMessage = element.attributeValue("msg");
@@ -470,17 +545,23 @@ public class Progress {
             }
         }
 
-        /** Message */
+        /** Message 
+         * @return message text
+         **/
         public String getMessage() {
             return iMessage;
         }
 
-        /** Debug level */
+        /** Debug level 
+         * @return logging level
+         **/
         public int getLevel() {
             return iLevel;
         }
 
-        /** Time stamp */
+        /** Time stamp 
+         * @return message date and time
+         **/
         public Date getDate() {
             return iDate;
         }
@@ -508,6 +589,8 @@ public class Progress {
         /**
          * String representation of the message (null if the message level is
          * below the given level)
+         * @param level minimum level
+         * @return message log as string
          */
         public String toString(int level) {
             if (iLevel < level)
@@ -539,7 +622,11 @@ public class Progress {
             return toString(MSGLEVEL_TRACE);
         }
 
-        /** HTML representation of the message */
+        /** HTML representation of the message
+         * @param level level minimum level
+         * @param includeDate true if message date and time is to be included in the log
+         * @return message log as HTML
+         */
         public String toHtmlString(int level, boolean includeDate) {
             if (iLevel < level)
                 return null;
@@ -575,22 +662,31 @@ public class Progress {
         /**
          * HTML representation of the message (null if the message level is
          * below the given level)
+         * @param level level minimum level
+         * @return message log as HTML
          */
         public String toHtmlString(int level) {
             return toHtmlString(level, true);
         }
 
-        /** HTML representation of the message */
+        /** HTML representation of the message
+         * @param includeDate true if message date and time is to be included in the log
+         * @return message log as HTML
+         */
         public String toHtmlString(boolean includeDate) {
             return toHtmlString(MSGLEVEL_TRACE, includeDate);
         }
 
-        /** HTML representation of the message */
+        /** HTML representation of the message
+         * @return message log as HTML
+         */
         public String toHtmlString() {
             return toHtmlString(MSGLEVEL_TRACE, true);
         }
 
-        /** Saves message into an XML element */
+        /** Saves message into an XML element
+         * @param element an XML element to which the message is to be saved (as attributes)
+         **/
         public void save(Element element) {
             element.addAttribute("level", String.valueOf(iLevel));
             element.addAttribute("msg", iMessage);
@@ -602,7 +698,9 @@ public class Progress {
         }
     }
 
-    /** Saves the message log into the given XML element */
+    /** Saves the message log into the given XML element 
+     * @param root XML root
+     **/
     public void save(Element root) {
         Element log = root.addElement("log");
         synchronized (iLog) {
@@ -612,7 +710,10 @@ public class Progress {
         }
     }
 
-    /** Restores the message log from the given XML element */
+    /** Restores the message log from the given XML element 
+     * @param root XML root
+     * @param clear clear the log first
+     **/
     public void load(Element root, boolean clear) {
         synchronized (iLog) {
             if (clear)

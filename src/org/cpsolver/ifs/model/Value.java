@@ -40,6 +40,9 @@ import org.cpsolver.ifs.util.IdGenerator;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * 
+ * @param <V> Variable
+ * @param <T> Value
  */
 public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements Comparable<T>, AssignmentComparable<T, V, T> {
     private static IdGenerator sIdGenerator = new IdGenerator();
@@ -80,28 +83,38 @@ public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements C
         iValue = value;
     }
 
-    /** Returns the variable which this value belongs to */
+    /** Returns the variable which this value belongs to 
+     * @return variable of this value 
+     **/
     public V variable() {
         return iVariable;
     }
 
-    /** Sets the variable which this value belongs to */
+    /** Sets the variable which this value belongs to 
+     * @param variable variable of this value 
+     **/
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public void setVariable(Variable variable) {
         iVariable = (V) variable;
     }
 
-    /** Unique id */
+    /** Unique id 
+     * @return value id
+     **/
     public long getId() {
         return iId;
     }
 
-    /** Values name -- for printing purposes (E.g., Monday 7:30) */
+    /** Values name -- for printing purposes (E.g., Monday 7:30) 
+     * @return value name
+     **/
     public String getName() {
         return String.valueOf(iId);
     }
 
-    /** Values description -- for printing purposes */
+    /** Values description -- for printing purposes 
+     * @return value description
+     **/
     public String getDescription() {
         return null;
     }
@@ -110,6 +123,8 @@ public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements C
      * Double representation. This allows us to have generic optimization
      * criteria. The task is than to minimize total value of assigned variables
      * of a solution.
+     * @param assignment current assignment
+     * @return this value's contribution to the solution value
      */
     public double toDouble(Assignment<V, T> assignment) {
         return iValue;
@@ -120,6 +135,7 @@ public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements C
      * criteria. The task is than to minimize total value of assigned variables
      * of a solution.
      * If the value may depend on other values of the assignment, use {@link Value#toDouble(Assignment)} instead.
+     * @return this value's contribution to the solution value
      */
     @Deprecated
     public double toDouble() {
@@ -139,6 +155,9 @@ public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements C
     /**
      * Comparison of two values which is based only on the value (not
      * appropriate variable etc.). {@link Value#toDouble(Assignment)} is compared by default.
+     * @param assignment current assignment
+     * @param value a value
+     * @return true if the two values have the same impact on the solution value
      */
     public boolean valueEquals(Assignment<V, T> assignment, T value) {
         if (value == null)
@@ -150,6 +169,8 @@ public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements C
      * Comparison of two values which is based only on the value (not
      * appropriate variable etc.). {@link Value#toDouble(Assignment)} is compared by default.
      * Use {@link Value#valueEquals(Assignment, Value)} instead.
+     * @param value a value
+     * @return true if the two values have the same impact on the solution value
      */
     @Deprecated
     public boolean valueEquals(T value) {
@@ -191,6 +212,7 @@ public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements C
      * Extra information to which can be used by an extension (see
      * {@link org.cpsolver.ifs.extension.Extension}).
      * Use {@link ExtensionWithContext} instead.
+     * @return extra object
      */
     @Deprecated
     public Object getExtra() {
@@ -201,13 +223,17 @@ public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements C
      * Extra information to which can be used by an extension (see
      * {@link org.cpsolver.ifs.extension.Extension}).
      * Use {@link ExtensionWithContext} instead.
+     * @param object extra object
      */
     @Deprecated
     public void setExtra(Object object) {
         iExtra = object;
     }
 
-    /** True, if the value is consistent with the given value */
+    /** True, if the value is consistent with the given value 
+     * @param value another value (of a different variable)
+     * @return true if the other value is consistent with this value (there is no hard constraint which would return {@link Constraint#isConsistent(Value, Value)} false)
+     **/
     @SuppressWarnings("unchecked")
     public boolean isConsistent(T value) {
         for (Constraint<V, T> constraint : iVariable.constraints()) {
@@ -224,6 +250,8 @@ public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements C
     /**
      * Returns a set of conflicting values with this value. When empty, the
      * value is consistent with the existing assignment.
+     * @param assignment current assignment
+     * @return set of conflicting values
      */
     @SuppressWarnings("unchecked")
     public Set<T> conflicts(Assignment<V, T> assignment) {
@@ -243,6 +271,7 @@ public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements C
      * Returns a set of conflicting values with this value. When empty, the
      * value is consistent with the existing assignment.
      * Use {@link Value#conflicts(Assignment)} instead.
+     * @return set of conflicting values
      */
     @Deprecated
     public Set<T> conflicts() {

@@ -20,16 +20,15 @@ import org.cpsolver.studentsct.model.Subpart;
  * <br>
  * <br>
  * 
- * Usage:<br>
- * <code>
- * &nbsp;&nbsp;&nbsp;&nbsp; CourseLimitCheck ch = new CourseLimitCheck(model);<br>
+ * Usage:
+ * <pre><code>
+ * &nbsp;&nbsp;&nbsp;&nbsp; CourseLimitCheck ch = new CourseLimitCheck(model);
  * &nbsp;&nbsp;&nbsp;&nbsp; if (!ch.check()) ch.getCSVFile().save(new File("limits.csv"));
- * </code>
+ * </code></pre>
  * 
  * <br>
- * <br>
  * Parameters:
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -111,12 +110,16 @@ public class CourseLimitCheck {
                 iUpNonZeroLimits);
     }
 
-    /** Return student sectioning model */
+    /** Return student sectioning model 
+     * @return problem model
+     **/
     public StudentSectioningModel getModel() {
         return iModel;
     }
 
-    /** Return report */
+    /** Return report
+     * @return generated report
+     **/
     public CSVFile getCSVFile() {
         return iCSVFile;
     }

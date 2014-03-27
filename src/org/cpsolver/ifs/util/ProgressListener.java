@@ -55,6 +55,8 @@ public interface ProgressListener {
     /** Progress is restored */
     public void progressRestored();
 
-    /** Progress message is printed */
+    /** Progress message is printed 
+     * @param message a message to print
+     **/
     public void progressMessagePrinted(Progress.Message message);
 }

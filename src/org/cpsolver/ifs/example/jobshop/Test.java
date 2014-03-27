@@ -16,7 +16,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * parameters. <br>
  * <br>
  * Test's parameters: <br>
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>

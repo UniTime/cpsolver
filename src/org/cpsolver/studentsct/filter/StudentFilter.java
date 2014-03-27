@@ -31,6 +31,8 @@ import org.cpsolver.studentsct.model.Student;
  */
 
 public interface StudentFilter {
-    /** Accept student */
+    /** Accept student 
+     * @param student a student
+     * @return true if the student is to be accepted (sectioned)*/
     public boolean accept(Student student);
 }

@@ -32,16 +32,15 @@ import org.cpsolver.studentsct.model.Student;
  * <br>
  * <br>
  * 
- * Usage:<br>
- * <code>
- * &nbsp;&nbsp;&nbsp;&nbsp; InevitableStudentConflicts ch = new InevitableStudentConflicts(model);<br>
+ * Usage:
+ * <pre><code>
+ * &nbsp;&nbsp;&nbsp;&nbsp; InevitableStudentConflicts ch = new InevitableStudentConflicts(model);
  * &nbsp;&nbsp;&nbsp;&nbsp; if (!ch.check()) ch.getCSVFile().save(new File("inevitable-conflicts.csv"));
- * </code>
+ * </code></pre>
  * 
  * <br>
- * <br>
  * Parameters:
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -104,17 +103,24 @@ public class InevitableStudentConflicts {
                 false);
     }
 
-    /** Return student sectioning model */
+    /** Return student sectioning model 
+     * @return problem model
+     **/
     public StudentSectioningModel getModel() {
         return iModel;
     }
 
-    /** Return report */
+    /** Return report
+     * @return generated report
+     **/
     public CSVFile getCSVFile() {
         return iCSVFile;
     }
 
-    /** Check model for inevitable student conflicts */
+    /** Check model for inevitable student conflicts 
+     * @param assignment current assignment
+     * @return true if there are no inevitable student conflicts
+     **/
     public boolean check(Assignment<Request, Enrollment> assignment) {
         sLog.info("Checking for inevitable student conflicts...");
         HashMap<TreeSet<Object>, Object[]> noGoods = new HashMap<TreeSet<Object>, Object[]>();
@@ -338,7 +344,7 @@ public class InevitableStudentConflicts {
     }
 
     /**
-     * Use branch&bound technique to find out whether a student can get a
+     * Use branch &amp; bound technique to find out whether a student can get a
      * complete schedule.
      */
     public static class StudentCheck {
@@ -359,8 +365,9 @@ public class InevitableStudentConflicts {
         }
 
         /**
-         * Execute branch & bound, return the best found schedule for the
+         * Execute branch &amp; bound, return the best found schedule for the
          * selected student.
+         * @param assignment current assignment
          */
         public void check(Assignment<Request, Enrollment> assignment) {
             iAssignment = new Enrollment[iRequests.size()];
@@ -371,17 +378,24 @@ public class InevitableStudentConflicts {
             backTrack(assignment, 0);
         }
 
-        /** Best schedule */
+        /** Best schedule
+         * @return best schedule
+         **/
         public Enrollment[] getBestAssignment() {
             return iBestAssignment;
         }
 
-        /** Number of requests assigned in the best schedule */
+        /** Number of requests assigned in the best schedule
+         * @return number of requests assigned in the best schedule
+         **/
         public int getBestNrAssigned() {
             return iBestNrAssigned;
         }
 
-        /** Bound for the number of assigned requests in the current schedule */
+        /** Bound for the number of assigned requests in the current schedule
+         * @param idx index of the request that is being assigned
+         * @return bound for the number of assigned requests in the current schedule
+         **/
         public int getNrAssignedBound(int idx) {
             int bound = 0;
             int i = 0, alt = 0;
@@ -409,7 +423,9 @@ public class InevitableStudentConflicts {
             return bound;
         }
 
-        /** True when the best enrollment is complete */
+        /** True when the best enrollment is complete 
+         * @return true when the best enrollment is complete
+         **/
         public boolean isBestComplete() {
             return iBestComplete;
         }
@@ -441,7 +457,10 @@ public class InevitableStudentConflicts {
             iBestComplete = (nrAssignedRequests == nrRequests);
         }
 
-        /** First conflicting enrollment */
+        /** First conflicting enrollment 
+         * @param enrollment an enrollment
+         * @return first conflicting enrollment with the given one
+         **/
         public Enrollment firstConflict(Enrollment enrollment) {
             for (int i = 0; i < iAssignment.length; i++) {
                 if (iAssignment[i] != null && iAssignment[i].isOverlapping(enrollment))
@@ -450,7 +469,10 @@ public class InevitableStudentConflicts {
             return null;
         }
 
-        /** True if the given request can be assigned */
+        /** True if the given request can be assigned 
+         * @param request given request
+         * @param idx index of the request that is being assigned
+         * @return true if the given request can be assigned */
         public boolean canAssign(Request request, int idx) {
             if (!request.isAlternative() || iAssignment[idx] != null)
                 return true;
@@ -471,7 +493,9 @@ public class InevitableStudentConflicts {
             return (alt > 0);
         }
 
-        /** Number of assigned requests in the current schedule */
+        /** Number of assigned requests in the current schedule 
+         * @return number of assigned requests in the current schedule
+         **/
         public int getNrAssigned() {
             int assigned = 0;
             for (int i = 0; i < iAssignment.length; i++)
@@ -480,7 +504,10 @@ public class InevitableStudentConflicts {
             return assigned;
         }
 
-        /** branch & bound search */
+        /** branch &amp; bound search 
+         * @param assignment current assignment
+         * @param idx index of the request that is being assigned
+         **/
         public void backTrack(Assignment<Request, Enrollment> assignment, int idx) {
             if (sDebug)
                 sLog.debug("BT[" + idx + "]:  -- assigned:" + getNrAssigned() + ", bound:" + getNrAssignedBound(idx)

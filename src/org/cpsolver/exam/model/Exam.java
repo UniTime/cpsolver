@@ -986,7 +986,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      * Joint enrollments
      * 
      * @return table {@link Exam} (an exam that has at least one student in
-     *         common with this exam) -> {@link List} (list of students in
+     *         common with this exam) &rarr; {@link List} (list of students in
      *         common)
      */
     public Map<Exam, List<ExamStudent>> getJointEnrollments() {

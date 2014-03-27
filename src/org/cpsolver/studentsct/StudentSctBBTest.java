@@ -26,14 +26,12 @@ import org.cpsolver.studentsct.model.Student;
  * Online student sectioning test (using {@link BranchBoundSelection}
  * selection). This class is used by the online student sectioning mock-up page. <br>
  * <br>
- * Usage: <code>
+ * Usage:
+ * <pre><code>
  * StudentSctBBTest test = new StudentSctBBTest(student); //student already has all his/her requests defined<br>
  * Solution sectioningSolution = test.getSolution(); //solution contains only one student (the given one) with his/her schedule<br>
  * Vector sectioningMessages = test.getMessages(); //sectioning messages (to be printed in the GUI).
- * </code>
- * 
- * <br>
- * <br>
+ * </code></pre>
  * 
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>

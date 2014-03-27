@@ -37,15 +37,15 @@ import org.cpsolver.studentsct.model.Student;
 import org.cpsolver.studentsct.weights.StudentWeights;
 
 /**
- * Section all students using incremental branch & bound (no unassignments). All
- * students are taken in a random order, for each student a branch & bound
+ * Section all students using incremental branch &amp; bound (no unassignments). All
+ * students are taken in a random order, for each student a branch &amp; bound
  * algorithm is used to find his/her best schedule on top of all other existing
  * student schedules (no enrollment of a different student is unassigned).
  * 
  * <br>
  * <br>
  * Parameters: <br>
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -126,6 +126,8 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
 
     /**
      * Initialize
+     * @param solver current solver
+     * @param name phase name
      */
     public void init(Solver<Request, Enrollment> solver, String name) {
         setModel((StudentSectioningModel) solver.currentSolution().getModel());
@@ -155,7 +157,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
 
     /**
      * Select neighbour. All students are taken, one by one in a random order.
-     * For each student a branch & bound search is employed.
+     * For each student a branch &amp; bound search is employed.
      */
     @Override
     public Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
@@ -170,14 +172,17 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
     }
 
     /**
-     * Branch & bound selection for a student
+     * Branch &amp; bound selection for a student
+     * @param assignment current assignment
+     * @param student selected student
+     * @return selection
      */
     public Selection getSelection(Assignment<Request, Enrollment> assignment, Student student) {
         return new Selection(student, assignment);
     }
 
     /**
-     * Branch & bound selection for a student
+     * Branch &amp; bound selection for a student
      */
     public class Selection {
         /** Student */
@@ -204,6 +209,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
          * 
          * @param student
          *            selected student
+         * @param assignment current assignment
          */
         public Selection(Student student, Assignment<Request, Enrollment> assignment) {
             iStudent = student;
@@ -211,8 +217,9 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         }
 
         /**
-         * Execute branch & bound, return the best found schedule for the
+         * Execute branch &amp; bound, return the best found schedule for the
          * selected student.
+         * @return best found schedule for the student
          */
         public BranchBoundNeighbour select() {
             iT0 = JProf.currentTimeMillis();
@@ -237,27 +244,37 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             return new BranchBoundNeighbour(iStudent, iBestValue, iBestAssignment);
         }
 
-        /** Was timeout reached */
+        /** Was timeout reached
+         * @return true if the timeout was reached
+         **/
         public boolean isTimeoutReached() {
             return iTimeoutReached;
         }
 
-        /** Time (in milliseconds) the branch & bound did run */
+        /** Time (in milliseconds) the branch &amp; bound did run
+         * @return solver time
+         **/
         public long getTime() {
             return iT1 - iT0;
         }
 
-        /** Best schedule */
+        /** Best schedule
+         * @return best schedule
+         **/
         public Enrollment[] getBestAssignment() {
             return iBestAssignment;
         }
 
-        /** Value of the best schedule */
+        /** Value of the best schedule
+         * @return value of the best schedule
+         **/
         public double getBestValue() {
             return iBestValue;
         }
 
-        /** Number of requests assigned in the best schedule */
+        /** Number of requests assigned in the best schedule
+         * @return number of assigned requests in the best schedule 
+         **/
         public int getBestNrAssigned() {
             int nrAssigned = 0;
             for (int i = 0; i < iBestAssignment.length; i++)
@@ -266,7 +283,10 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             return nrAssigned;
         }
 
-        /** Bound for the number of assigned requests in the current schedule */
+        /** Bound for the number of assigned requests in the current schedule
+         * @param idx index of the request that is being considered
+         * @return bound for the given request
+         **/
         public int getNrAssignedBound(int idx) {
             int bound = 0;
             int i = 0, alt = 0;
@@ -298,6 +318,8 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         /**
          * Distance conflicts of idx-th assignment of the current
          * schedule
+         * @param idx index of the request
+         * @return set of distance conflicts
          */
         public Set<DistanceConflict.Conflict> getDistanceConflicts(int idx) {
             if (iDistanceConflict == null || iAssignment[idx] == null)
@@ -312,6 +334,8 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         /**
          * Time overlapping conflicts of idx-th assignment of the current
          * schedule
+         * @param idx index of the request
+         * @return set of time overlapping conflicts
          */
         public Set<TimeOverlapsCounter.Conflict> getTimeOverlappingConflicts(int idx) {
             if (iTimeOverlaps == null || iAssignment[idx] == null)
@@ -327,6 +351,10 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         
         /**
          * Weight of an assignment. Unlike {@link StudentWeights#getWeight(Assignment, Enrollment, Set, Set)}, only count this side of distance conflicts and time overlaps.
+         * @param enrollment an enrollment
+         * @param distanceConflicts set of distance conflicts
+         * @param timeOverlappingConflicts set of time overlapping conflicts
+         * @return value of the assignment
          **/
         protected double getWeight(Enrollment enrollment, Set<DistanceConflict.Conflict> distanceConflicts, Set<TimeOverlapsCounter.Conflict> timeOverlappingConflicts) {
             double weight = - iModel.getStudentWeights().getWeight(iCurrentAssignment, enrollment);
@@ -343,12 +371,18 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             return enrollment.getRequest().getWeight() * weight;
         }
         
-        /** Return bound of a request */
+        /** Return bound of a request 
+         * @param r a request
+         * @return bound 
+         **/
         protected double getBound(Request r) {
             return r.getBound();
         }
 
-        /** Bound for the current schedule */
+        /** Bound for the current schedule 
+         * @param idx index of the request
+         * @return current bound
+         **/
         public double getBound(int idx) {
             double bound = 0.0;
             int i = 0, alt = 0;
@@ -376,7 +410,9 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             return bound;
         }
 
-        /** Value of the current schedule */
+        /** Value of the current schedule 
+         * @return value of the current schedule
+         **/
         public double getValue() {
             double value = 0.0;
             for (int i = 0; i < iAssignment.length; i++)
@@ -385,12 +421,17 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             return value;
         }
 
-        /** Assignment penalty */
+        /** Assignment penalty 
+         * @param i index of the request
+         * @return assignment penalty
+         **/
         protected double getAssignmentPenalty(int i) {
             return iAssignment[i].getPenalty() + iDistConfWeight * getDistanceConflicts(i).size();
         }
 
-        /** Penalty of the current schedule */
+        /** Penalty of the current schedule 
+         * @return penalty of the current schedule
+         **/
         public double getPenalty() {
             double bestPenalty = 0;
             for (int i = 0; i < iAssignment.length; i++)
@@ -399,7 +440,10 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             return bestPenalty;
         }
 
-        /** Penalty bound of the current schedule */
+        /** Penalty bound of the current schedule 
+         * @param idx index of request
+         * @return current penalty bound
+         **/
         public double getPenaltyBound(int idx) {
             double bound = 0.0;
             int i = 0, alt = 0;
@@ -441,7 +485,11 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                 iBestValue = getValue();
         }
         
-        /** True if the enrollment is conflicting */
+        /** True if the enrollment is conflicting 
+         * @param idx index of request
+         * @param enrollment enrollment in question
+         * @return true if there is a conflict with previous enrollments 
+         **/
         public boolean inConflict(final int idx, final Enrollment enrollment) {
             for (GlobalConstraint<Request, Enrollment> constraint : enrollment.variable().getModel().globalConstraints())
                 if (constraint.inConflict(iCurrentAssignment, enrollment))
@@ -460,7 +508,11 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             return false;
         }
 
-        /** First conflicting enrollment */
+        /** First conflicting enrollment 
+         * @param idx index of request
+         * @param enrollment enrollment in question
+         * @return first conflicting enrollment 
+         **/
         public Enrollment firstConflict(int idx, Enrollment enrollment) {
             Set<Enrollment> conflicts = enrollment.variable().getModel().conflictValues(iCurrentAssignment, enrollment);
             if (conflicts.contains(enrollment))
@@ -480,7 +532,11 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             return null;
         }
 
-        /** True if the given request can be assigned */
+        /** True if the given request can be assigned 
+         * @param request given request
+         * @param idx index of request
+         * @return true if can be assigned
+         **/
         public boolean canAssign(Request request, int idx) {
             if (!request.isAlternative() || iAssignment[idx] != null)
                 return true;
@@ -501,7 +557,9 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             return (alt > 0);
         }
 
-        /** Number of assigned requests in the current schedule */
+        /** Number of assigned requests in the current schedule 
+         * @return number of assigned requests
+         **/
         public int getNrAssigned() {
             int assigned = 0;
             for (int i = 0; i < iAssignment.length; i++)
@@ -510,12 +568,18 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             return assigned;
         }
 
-        /** Returns true if the given request can be left unassigned */
+        /** Returns true if the given request can be left unassigned 
+         * @param request given request
+         * @return true if can be left unassigned
+         **/
         protected boolean canLeaveUnassigned(Request request) {
             return true;
         }
         
-        /** Returns list of available enrollments for a course request */
+        /** Returns list of available enrollments for a course request 
+         * @param request given request
+         * @return list of enrollments to consider
+         **/
         protected List<Enrollment> values(final CourseRequest request) {
             List<Enrollment> values = request.getAvaiableEnrollments(iCurrentAssignment);
             Collections.sort(values, new Comparator<Enrollment>() {
@@ -545,7 +609,9 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             return values;
         }
 
-        /** branch & bound search */
+        /** branch &amp; bound search 
+         * @param idx index of request
+         **/
         public void backTrack(int idx) {
             if (sDebug)
                 sLog.debug("backTrack(" + getNrAssigned() + "/" + getValue() + "," + idx + ")");
@@ -659,7 +725,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         }
     }
 
-    /** Branch & bound neighbour -- a schedule of a student */
+    /** Branch &amp; bound neighbour -- a schedule of a student */
     public static class BranchBoundNeighbour implements Neighbour<Request, Enrollment> {
         private double iValue;
         private Enrollment[] iAssignment;
@@ -668,6 +734,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         /**
          * Constructor
          * 
+         * @param student selected student
          * @param value
          *            value of the schedule
          * @param assignment
@@ -684,12 +751,16 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             return iValue;
         }
 
-        /** Assignment */
+        /** Assignment 
+         * @return an enrollment for each request of the student
+         **/
         public Enrollment[] getAssignment() {
             return iAssignment;
         }
         
-        /** Student */
+        /** Student 
+         * @return selected student
+         **/
         public Student getStudent() {
             return iStudent;
         }

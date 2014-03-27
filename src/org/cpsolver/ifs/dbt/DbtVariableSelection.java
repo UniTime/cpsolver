@@ -12,9 +12,11 @@ import org.cpsolver.ifs.util.ToolBox;
 /**
  * Selection of a variable for dynamic backtracking. <br>
  * <br>
- * <li>Returns null if all variables are assigned. <li>Checks if there is a
- * varaible with all values marked as nogood (and pick it if there is any). <li>
- * Returns the first unassigned variable. <br>
+ * <ul>
+ * <li>Returns null if all variables are assigned.
+ * <li>Checks if there is a varaible with all values marked as nogood (and pick it if there is any).
+ * <li> Returns the first unassigned variable.
+ * </ul>
  * <br>
  * This IFS solver variable selection heuristics is to be used only in case of
  * dynamic backtracking and it has no parameters.
@@ -38,6 +40,8 @@ import org.cpsolver.ifs.util.ToolBox;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * @param <V> Variable
+ * @param <T> Value
  */
 public class DbtVariableSelection<V extends Variable<V, T>, T extends Value<V, T>> implements VariableSelection<V, T> {
     private DbtPropagation<V, T> iProp = null;

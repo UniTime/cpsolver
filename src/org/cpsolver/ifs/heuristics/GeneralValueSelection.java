@@ -26,7 +26,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * Value selection criterion is based on weighted sum of various criteria. It
  * also allows random walk technique and tabu search. <br>
  * Parameters: <br>
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -71,7 +71,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * Following weights are used in the weighted sum (computed for all values). The
  * value with the lowest weighted sum is selected. If there are more than one of
  * such values, one of them is selected randomly. <br>
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -106,7 +106,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * <tr>
  * <td>Value.WeightValue</td>
  * <td>{@link Double}</td>
- * <td>Value {@link Value#toDouble()}</td>
+ * <td>Value {@link Value#toDouble(Assignment)}</td>
  * </tr>
  * </table>
  * 
@@ -129,9 +129,11 @@ import org.cpsolver.ifs.util.ToolBox;
  *          Lesser General Public License for more details. <br>
  * <br>
  *          You should have received a copy of the GNU Lesser General Public
- *          License along with this library; if not see <http://www.gnu.org/licenses/>.
+ *          License along with this library; if not see <a href='http://www.gnu.org/licenses'>http://www.gnu.org/licenses</a>.
+ * 
+ * @param <V> Variable
+ * @param <T> Value
  **/
-
 public class GeneralValueSelection<V extends Variable<V, T>, T extends Value<V, T>> implements ValueSelection<V, T> {
     private double iRandomWalkProb = 0.0;
     private double iInitialSelectionProb = 0.0;

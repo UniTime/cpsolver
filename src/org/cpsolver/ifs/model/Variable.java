@@ -40,6 +40,9 @@ import org.cpsolver.ifs.util.IdGenerator;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * 
+ * @param <V> Variable 
+ * @param <T> Value
  */
 public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implements Comparable<V> {
     private static IdGenerator iIdGenerator = new IdGenerator();
@@ -82,27 +85,37 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
         setInitialAssignment(initialValue);
     }
 
-    /** Model, the variable belong to */
+    /** Model, the variable belong to 
+     * @return problem model
+     **/
     public Model<V, T> getModel() {
         return iModel;
     }
 
-    /** Set the model to which the variable belongs to */
+    /** Set the model to which the variable belongs to 
+     * @param model problem model
+     **/
     public void setModel(Model<V, T> model) {
         iModel = model;
     }
 
-    /** Domain */
+    /** Domain 
+     * @return all possible values of this variable
+     **/
     public List<T> values() {
         return iValues;
     }
 
-    /** Sets the domain */
+    /** Sets the domain 
+     * @param values variable's domain to cache 
+     **/
     protected void setValues(List<T> values) {
         iValues = values;
     }
 
-    /** True, if the variable's domain is not empty */
+    /** True, if the variable's domain is not empty 
+     * @return true if there is at least one value in the domain 
+     **/
     public boolean hasValues() {
         return !values().isEmpty();
     }
@@ -110,6 +123,7 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
     /**
      * Returns current assignment.
      * Use {@link Assignment#getValue(Variable)} or {@link Variable#getAssignment(Assignment)} instead.
+     * @return currently assigned value
      **/
     @Deprecated
     public T getAssignment() {
@@ -119,19 +133,26 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
     /**
      * Returns true if the variable is assigned.
      * Use {@link Variable#hasAssignment(Assignment)} instead.
+     * @return true if currently assigned
      **/
     @Deprecated
     public boolean hasAssignment() {
         return iValue != null;
     }
     
-    /** Returns current assignment */
+    /** Returns current assignment 
+     * @param assignment current assignment
+     * @return currently assigned value
+     **/
     @SuppressWarnings("unchecked")
     public T getAssignment(Assignment<V, T> assignment) {
         return assignment.getValue((V) this);
     }
     
-    /** Returns true if the variable is assigned */
+    /** Returns true if the variable is assigned
+     * @param assignment current assignment
+     * @return true if currently assigned
+     **/
     public boolean hasAssignment(Assignment<V, T> assignment) {
         return getAssignment(assignment) != null;
     }
@@ -139,18 +160,23 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
     /**
      * Sets current assignment.
      * BEWARE: Do not use outside of {@link DefaultSingleAssignment}.
+     * @param value current assignment
      **/
     @Deprecated
     public void setAssignment(T value) {
         iValue = value;
     }
 
-    /** Returns initial assignment */
+    /** Returns initial assignment 
+     * @return initial assignment (for the minimal perturbation problem)
+     **/
     public T getInitialAssignment() {
         return iInitialValue;
     }
 
-    /** Sets initial assignment */
+    /** Sets initial assignment
+     * @param initialValue initial assignment
+     **/
     public void setInitialAssignment(T initialValue) {
         iInitialValue = initialValue;
         if (iInitialValue != null && iInitialValue.variable() == null)
@@ -159,7 +185,9 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
             iModel.invalidateVariablesWithInitialValueCache();
     }
 
-    /** Returns true if the variable has an initial assignment */
+    /** Returns true if the variable has an initial assignment 
+     * @return true if this variable has an initial assignment  
+     **/
     public boolean hasInitialAssignment() {
         return iInitialValue != null;
     }
@@ -201,6 +229,7 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
     /**
      * Returns iteration of the last assignment.
      * Use {@link Assignment#getIteration(Variable)} instead.
+     * @return iteration of the last assignment 
      **/
     @Deprecated
     public long getLastIteration() {
@@ -210,6 +239,7 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
     /**
      * Sets iteration of the last assignment.
      * BEWARE: Do not use outside of {@link DefaultSingleAssignment}.
+     * @param iteration current iteration
      **/
     @Deprecated
     public void setLastIteration(long iteration) {
@@ -218,6 +248,9 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
 
     /**
      * A value was assigned to this variable
+     * @param assignment current assignment
+     * @param iteration current iteration
+     * @param value assigned value
      */
     public void variableAssigned(Assignment<V, T> assignment, long iteration, T value) {
         if (iVariableListeners != null)
@@ -228,6 +261,9 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
 
     /**
      * A value was unassigned from this variable
+     * @param assignment current assignment
+     * @param iteration current iteration
+     * @param oldValue unassigned value
      */
     public void variableUnassigned(Assignment<V, T> assignment, long iteration, T oldValue) {
         if (iVariableListeners != null)
@@ -268,17 +304,23 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
             iSoftConstraints.remove(constraint);
     }
 
-    /** Return the list of constraints associated with this variable */
+    /** Return the list of constraints associated with this variable 
+     * @return list of constraints associated with this variable
+     **/
     public List<Constraint<V, T>> constraints() {
         return iConstraints;
     }
 
-    /** Return the list of hard constraints associated with this variable */
+    /** Return the list of hard constraints associated with this variable 
+     * @return list of hard constraints associated with this variable
+     **/
     public List<Constraint<V, T>> hardConstraints() {
         return iHardConstraints;
     }
 
-    /** Return the list of soft constraints associated with this variable */
+    /** Return the list of soft constraints associated with this variable 
+     * @return list of soft (not hard) constraints associated with this variable
+     **/
     public List<Constraint<V, T>> softConstraints() {
         return iSoftConstraints;
     }
@@ -289,7 +331,9 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
         		", constraints=" + iConstraints.size() + "}";
     }
 
-    /** Unique id */
+    /** Unique id 
+     * @return variable id
+     **/
     public long getId() {
         return iId;
     }
@@ -299,12 +343,16 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
         return (int) iId;
     }
 
-    /** Variable's name -- for printing purposes */
+    /** Variable's name -- for printing purposes 
+     * @return variable name
+     **/
     public String getName() {
         return String.valueOf(iId);
     }
 
-    /** Variable's description -- for printing purposes */
+    /** Variable's description -- for printing purposes 
+     * @return variable description
+     **/
     public String getDescription() {
         return null;
     }
@@ -312,18 +360,24 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
     /**
      * Sets variable's value of the best ever found solution. Called when
      * {@link Model#saveBest(Assignment)} is called.
+     * @param value a value
+     * @param iteration value's assignment iteration
      */
     public void setBestAssignment(T value, long iteration) {
         iBestValue = value;
         iBestAssignmentIteration = iteration;
     }
 
-    /** Returns the value from the best ever found soultion. */
+    /** Returns the value from the best ever found solution. 
+     * @return best assignment 
+     **/
     public T getBestAssignment() {
         return iBestValue;
     }
 
-    /** Returns the iteration when the best value was assigned */
+    /** Returns the iteration when the best value was assigned
+     * @return iteration of the best assignment
+     **/
     public long getBestAssignmentIteration() {
         return iBestAssignmentIteration;
     }
@@ -345,20 +399,26 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
         return getId() == ((Variable<?, ?>) o).getId();
     }
 
-    /** Adds variable listener */
+    /** Adds variable listener 
+     * @param listener a variable listener
+     **/
     public void addVariableListener(VariableListener<T> listener) {
         if (iVariableListeners == null)
             iVariableListeners = new ArrayList<VariableListener<T>>();
         iVariableListeners.add(listener);
     }
 
-    /** Removes variable listener */
+    /** Removes variable listener 
+     * @param listener a variable listener
+     **/
     public void removeVariableListener(VariableListener<T> listener) {
         if (iVariableListeners != null)
             iVariableListeners.remove(listener);
     }
 
-    /** Return variable listeners */
+    /** Return variable listeners
+     * @return list of variable listeners 
+     **/
     public List<VariableListener<T>> getVariableListeners() {
         return iVariableListeners;
     }
@@ -366,6 +426,7 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
     /**
      * Extra information to which can be used by an extension (see
      * {@link org.cpsolver.ifs.extension.Extension}).
+     * @param object extra object
      */
     public void setExtra(Object object) {
         iExtra = object;
@@ -374,14 +435,17 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
     /**
      * Extra information to which can be used by an extension (see
      * {@link org.cpsolver.ifs.extension.Extension}).
+     * @return extra object
      */
     public Object getExtra() {
         return iExtra;
     }
 
     /**
-     * Permanently remove a value from variables domain.
+     * Permanently remove a value from variable's domain.
      * The variable should not have this value assigned in any existing assignment.
+     * @param iteration current iteration
+     * @param value value to be removed from this variable's domain
      **/
     @SuppressWarnings({ "deprecation", "unchecked" })
     public void removeValue(long iteration, T value) {

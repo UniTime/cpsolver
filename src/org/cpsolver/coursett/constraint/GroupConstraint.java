@@ -33,7 +33,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * hard or soft. <br>
  * <br>
  * Following constraints are now supported:
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Constraint</th>
  * <th>Comment</th>
@@ -221,7 +221,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                 return !plc1.getTimeLocation().shareDays(plc2.getTimeLocation());
             }}),
         /**
-         * Back-To-Back & Same Room: Classes must be offered in adjacent time segments and must be placed in the same room.
+         * Back-To-Back &amp; Same Room: Classes must be offered in adjacent time segments and must be placed in the same room.
          * Given classes must also be taught on the same days.<BR>
          * When prohibited or (strongly) discouraged: classes cannot be back-to-back. There must be at least half-hour
          * between these classes, and they must be taught on the same days and in the same room.

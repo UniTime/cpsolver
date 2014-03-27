@@ -25,11 +25,14 @@ import org.cpsolver.ifs.assignment.Assignment;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * 
+ * @param <T> Value
  */
 public interface VariableListener<T extends Value<?, T>> {
     /**
      * Called by the variable when a value is assigned to it
      * 
+     * @param assignment current assignment
      * @param iteration
      *            current iteration
      * @param value
@@ -40,6 +43,7 @@ public interface VariableListener<T extends Value<?, T>> {
     /**
      * Called by the variable when a value is unassigned from it
      * 
+     * @param assignment current assignment
      * @param iteration
      *            current iteration
      * @param value

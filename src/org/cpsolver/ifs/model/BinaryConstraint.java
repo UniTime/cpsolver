@@ -27,6 +27,8 @@ package org.cpsolver.ifs.model;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * @param <V> Variable
+ * @param <T> Value
  */
 
 public abstract class BinaryConstraint<V extends Variable<V, T>, T extends Value<V, T>> extends Constraint<V, T> {
@@ -45,17 +47,24 @@ public abstract class BinaryConstraint<V extends Variable<V, T>, T extends Value
         super.addVariable(var);
     }
 
-    /** First variable */
+    /** First variable 
+     * @return first variable of the constraint 
+     **/
     public V first() {
         return iFirst;
     }
 
-    /** Second variable */
+    /** Second variable 
+     * @return second variable of the constraint 
+     **/
     public V second() {
         return iSecond;
     }
 
-    /** True, id the given variable is the first one */
+    /** True, id the given variable is the first one 
+     * @param variable given variable
+     * @return true if the given variable is the first variable of the constraint
+     **/
     public boolean isFirst(V variable) {
         return variable.equals(first());
     }
@@ -63,6 +72,8 @@ public abstract class BinaryConstraint<V extends Variable<V, T>, T extends Value
     /**
      * Returns the variable out of the constraints variables which is different
      * from the given variable.
+     * @param variable given variable
+     * @return the other variable of the constraint
      */
     public V another(V variable) {
         return (first() != null && variable.equals(first()) ? second() : first());

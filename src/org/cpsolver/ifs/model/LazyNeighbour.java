@@ -32,6 +32,9 @@ import org.cpsolver.ifs.model.Variable;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * 
+ * @param <V> Variable 
+ * @param <T> Value
  */
 public abstract class LazyNeighbour<V extends Variable<V, T>, T extends Value<V, T>> implements Neighbour<V,T> {
     private LazyNeighbourAcceptanceCriterion<V,T> iCriterion = null;
@@ -39,6 +42,7 @@ public abstract class LazyNeighbour<V extends Variable<V, T>, T extends Value<V,
     /**
      * Set acceptance criterion (to be used by a search strategy before the 
      * neighbour is accepted, so that it can be undone if desired)  
+     * @param criterion acceptance criterion
      */
     public void setAcceptanceCriterion(LazyNeighbourAcceptanceCriterion<V,T> criterion) {
         iCriterion = criterion;
@@ -62,22 +66,35 @@ public abstract class LazyNeighbour<V extends Variable<V, T>, T extends Value<V,
     @Override
     public double value(Assignment<V, T> assignment) { return -1; }
     
-    /** Perform assignment */
+    /** Perform assignment 
+     * @param assignment current assignment
+     * @param iteration current iteration
+     **/
     protected abstract void doAssign(Assignment<V, T> assignment, long iteration);
-    /** Undo assignment */
+    
+    /** Undo assignment
+     * @param assignment current assignment
+     * @param iteration current iteration
+     **/
     protected abstract void undoAssign(Assignment<V, T> assignment, long iteration);
+    
     /** Return problem model (it is needed in order to be able to get
-     * overall solution value before and after the assignment of this neighbour) */
+     * overall solution value before and after the assignment of this neighbour) 
+     * @return problem model
+     **/
     public abstract Model<V,T> getModel();
     
     /** Neighbour acceptance criterion interface (to be implemented
      * by search strategies that are using {@link LazyNeighbour}. 
      * It is also required to call {@link LazyNeighbour#setAcceptanceCriterion(LazyNeighbour.LazyNeighbourAcceptanceCriterion)}
      * before the neighbour is accepted by the search strategy. 
+     * @param <V> Variable
+     * @param <T> Value
      */ 
     public static interface LazyNeighbourAcceptanceCriterion<V extends Variable<V, T>, T extends Value<V, T>> {
         /** True when the currently assigned neighbour should be accepted (false means
          * that the change will be undone
+         * @param assignment current assignment
          * @param neighbour neighbour that was assigned
          * @param value change in overall solution value
          * @return true if the neighbour can be accepted (false to undo the assignment)

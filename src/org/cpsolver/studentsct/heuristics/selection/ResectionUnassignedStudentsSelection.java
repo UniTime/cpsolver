@@ -66,7 +66,7 @@ public class ResectionUnassignedStudentsSelection extends BranchBoundSelection {
 
     /**
      * Select neighbour. All students with an empty schedule are taken, one by
-     * one in a random order. For each student a branch & bound search is
+     * one in a random order. For each student a branch &amp; bound search is
      * employed.
      */
     @Override

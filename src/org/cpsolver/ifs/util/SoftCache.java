@@ -36,6 +36,9 @@ import org.apache.log4j.Logger;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * 
+ * @param <K> key
+ * @param <V> value
  */
 
 public class SoftCache<K, V> implements Map<K, V> {

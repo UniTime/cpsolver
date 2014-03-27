@@ -38,7 +38,7 @@ public class CSPBinaryConstraint extends BinaryConstraint<CSPVariable, CSPValue>
 
     /**
      * Constructor
-     * 
+     * @param id constraint id
      * @param nrCompatiblePairs
      *            number of compatible pairs of values in the constraint
      */

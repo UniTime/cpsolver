@@ -50,7 +50,7 @@ import org.dom4j.io.XMLWriter;
  * This class saves the resultant solution in the XML format. <br>
  * <br>
  * Parameters:
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>

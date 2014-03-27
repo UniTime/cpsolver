@@ -44,12 +44,16 @@ public class Location extends Value<Rectangle, Location> {
         iY = y;
     }
 
-    /** Gets x coordinate */
+    /** Gets x coordinate
+     * @return x coordinate
+     **/
     public int getX() {
         return iX;
     }
 
-    /** Gets y coordinate */
+    /** Gets y coordinate
+     * @return y coordinate
+     **/
     public int getY() {
         return iY;
     }
@@ -84,7 +88,10 @@ public class Location extends Value<Rectangle, Location> {
         return "[" + getX() + "," + getY() + "]";
     }
 
-    /** Returns true if the given location intersects with this location */
+    /** Returns true if the given location intersects with this location 
+     * @param anotherLocation given location
+     * @return true if the given location intersects with this location
+     **/
     public boolean hasIntersection(Location anotherLocation) {
         if (getX() + (variable()).getWidth() <= anotherLocation.getX()) {
             return false;

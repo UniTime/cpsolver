@@ -10,7 +10,7 @@ import org.cpsolver.ifs.model.Value;
  * This class describing an assignment of a value to a variable together with a
  * counter (used by CBS).
  * 
- * Counter also supports ageing: the counter is multiplied by aging factor for
+ * Counter also supports aging: the counter is multiplied by aging factor for
  * each iteration.
  * 
  * @version IFS 1.3 (Iterative Forward Search)<br>
@@ -31,12 +31,13 @@ import org.cpsolver.ifs.model.Value;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * @param <T> Value
  */
 public class AssignedValue<T extends Value<?, T>> {
     private T iValue;
     private double iCounter = 1.0;
     private long iLastRevision;
-    private double iAgeing = 1.0;
+    private double iAging = 1.0;
     private Constraint<?, T> iConstraint = null;
 
     /**
@@ -46,16 +47,17 @@ public class AssignedValue<T extends Value<?, T>> {
      *            current iteration
      * @param value
      *            value
-     * @param ageing
-     *            ageing factor
+     * @param aging
+     *            aging factor
      */
-    public AssignedValue(long iteration, T value, double ageing) {
+    public AssignedValue(long iteration, T value, double aging) {
         iValue = value;
         iLastRevision = iteration;
-        iAgeing = ageing;
+        iAging = aging;
     }
 
-    /** Returns value */
+    /** Returns value 
+     * @return value */
     public T getValue() {
         return iValue;
     }
@@ -86,39 +88,48 @@ public class AssignedValue<T extends Value<?, T>> {
      * 
      * @param iteration
      *            current iteration
+     * @return counter
      */
     public double getCounter(long iteration) {
         if (iteration == 0l)
             return iCounter;
-        if (iAgeing == 1.0)
+        if (iAging == 1.0)
             return iCounter;
-        return iCounter * Math.pow(iAgeing, iteration - iLastRevision);
+        return iCounter * Math.pow(iAging, iteration - iLastRevision);
     }
 
-    /** Returns constraint */
+    /** Returns constraint 
+     * @return constraint
+     **/
     public Constraint<?, T> getConstraint() {
         return iConstraint;
     }
 
-    /** Sets constraint */
+    /** Sets constraint 
+     * @param constraint a constraint
+     **/
     public void setConstraint(Constraint<?, T> constraint) {
         iConstraint = constraint;
     }
 
     /**
-     * Revise counter. If ageing is used, counter is adopted to the current
-     * iteration: it is multiplited by ageing factor powered by the number of
+     * Revise counter. If aging is used, counter is adopted to the current
+     * iteration: it is multiplied by aging factor powered by the number of
      * iterations since last revision.
+     * @param iteration current iteration
      */
     public synchronized void revise(long iteration) {
-        if (iAgeing == 1.0)
+        if (iAging == 1.0)
             return;
-        iCounter *= Math.pow(iAgeing, iteration - iLastRevision);
+        iCounter *= Math.pow(iAging, iteration - iLastRevision);
         iLastRevision = iteration;
     }
 
     /**
      * Combine two integers (for hash code)
+     * @param a first integer
+     * @param b second integer
+     * @return combined hash code
      */
     public static int combine(int a, int b) {
         int ret = 0;
@@ -145,13 +156,21 @@ public class AssignedValue<T extends Value<?, T>> {
         return toString(0l, true);
     }
 
-    /** String representation (e.g., 10x A := a) */
+    /** String representation (e.g., 10x A := a) 
+     * @param iteration current iteration
+     * @param assignment true if assignment
+     * @return string representation of the assignment
+     **/
     public String toString(long iteration, boolean assignment) {
         return (assignment ? getCounter(iteration) + "x " : "") + getValue().variable().getName()
                 + (assignment ? " := " : " != ") + getValue().getName();
     }
 
-    /** Compare two assignments (their counters) */
+    /** Compare two assignments (their counters)
+     * @param iteration current iteration
+     * @param a another assignment
+     * @return comparison
+     **/
     public int compareTo(long iteration, AssignedValue<T> a) {
         int cmp = getValue().variable().getName().compareTo(a.getValue().variable().getName());
         if (cmp != 0)
@@ -161,7 +180,9 @@ public class AssignedValue<T extends Value<?, T>> {
         return getValue().getName().compareTo(a.getValue().getName());
     }
 
-    /** Assignment comparator */
+    /** Assignment comparator 
+     * @param <E> a value
+     **/
     public static class AssignmentComparator<E extends Value<?, E>> implements Comparator<AssignedValue<E>> {
         private long iIteration;
 

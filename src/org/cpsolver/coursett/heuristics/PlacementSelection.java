@@ -31,7 +31,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * select the initial value (if it exists) with a given probability (e.g., 70%). <br>
  * <br>
  * Parameters (general):
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -70,7 +70,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * </table>
  * <br>
  * Parameters (for each level of selection):
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>

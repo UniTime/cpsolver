@@ -29,6 +29,7 @@ public interface HillClimberSelection {
     
     /**
      * True if employed by a hill climber, e.g., worsening moves may be skipped.
+     * @param hcMode true if used by a hill climber (worsening moves are automatically discarded)
      */
     public void setHcMode(boolean hcMode);
 }

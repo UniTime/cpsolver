@@ -49,7 +49,10 @@ import org.cpsolver.ifs.util.ToolBox;
  *          Lesser General Public License for more details. <br>
  * <br>
  *          You should have received a copy of the GNU Lesser General Public
- *          License along with this library; if not see <http://www.gnu.org/licenses/>.
+ *          License along with this library; if not see <a href='http://www.gnu.org/licenses'>http://www.gnu.org/licenses</a>.
+ *
+ * @param <V> Variable
+ * @param <T> Value
  **/
 public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> extends Solver<V, T> {
     private SynchronizationThread iSynchronizationThread = null;
@@ -87,6 +90,7 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
     
     /**
      * Return a working (parallel) solution that contributed to the best solution last.
+     * @return working solution
      */
     protected Solution<V, T> getWorkingSolution() {
         if (iSynchronizationThread != null && !hasSingleSolution()) {
@@ -204,6 +208,8 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
     
     /**
      * Create a solution that is to be used by a solver thread of the given index
+     * @param index solver thread index
+     * @return new solution to work with
      */
     protected Solution<V, T> createParallelSolution(int index) {
         Model<V, T> model = iCurrentSolution.getModel();

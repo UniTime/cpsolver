@@ -35,13 +35,17 @@ import org.cpsolver.ifs.model.Variable;
  *          Lesser General Public License for more details. <br>
  * <br>
  *          You should have received a copy of the GNU Lesser General Public
- *          License along with this library; if not see <http://www.gnu.org/licenses/>.
+ *          License along with this library; if not see <a href='http://www.gnu.org/licenses'>http://www.gnu.org/licenses</a>.
+ * @param <V> Variable
+ * @param <T> Value
  **/
 public class AssignmentMap<V extends Variable<V, T>, T extends Value<V, T>> extends AssignmentAbstract<V, T> {
     private Map<V, T> iAssignments = new LinkedHashMap<V, T>();
     private Map<V, Long> iIteration = new HashMap<V, Long>();
     
-    /** Creates an empty assignment */
+    /** Creates an empty assignment 
+     * @param contexts assignment context holder
+     **/
     public AssignmentMap(AssignmentContextHolder<V, T> contexts) {
         super(contexts);
     }
@@ -51,7 +55,9 @@ public class AssignmentMap<V extends Variable<V, T>, T extends Value<V, T>> exte
         this(new AssignmentContextHolderMap<V, T>());
     }
     
-    /** Creates a copy of an existing assignment */
+    /** Creates a copy of an existing assignment
+     * @param assignment current assignment
+     **/
     public AssignmentMap(Assignment<V, T> assignment) {
         super(new AssignmentContextHolderMap<V, T>());
         for (T value: assignment.assignedValues())

@@ -33,7 +33,7 @@ import org.cpsolver.studentsct.reservation.Reservation;
  * <br>
  * <br>
  * Parameters:
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -90,6 +90,7 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
      * of these last-like students), the weight of the request with the highest
      * weight in the section is changed to a small nominal weight.
      * 
+     * @param assignment current assignment
      * @param section
      *            a section that is of concern
      * @param request
@@ -108,6 +109,7 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
      * of these last-like students), the weight of the request with the highest
      * weight in the section is changed to a small nominal weight.
      * 
+     * @param assignment current assignment
      * @param section
      *            a section that is of concern
      * @param request

@@ -32,6 +32,8 @@ import org.cpsolver.ifs.util.DataProperties;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * @param <V> Variable
+ * @param <T> Value
  */
 public class Extension<V extends Variable<V, T>, T extends Value<V, T>> implements ModelListener<V, T> {
     private Model<V, T> iModel = null;
@@ -51,7 +53,9 @@ public class Extension<V extends Variable<V, T>, T extends Value<V, T>> implemen
         iProperties = properties;
     }
 
-    /** Registration of a model. This is called by the solver before start. */
+    /** Registration of a model. This is called by the solver before start. 
+     * @param model problem model
+     **/
     public void register(Model<V, T> model) {
         iModel = model;
         iModel.addModelListener(this);
@@ -60,6 +64,7 @@ public class Extension<V extends Variable<V, T>, T extends Value<V, T>> implemen
     /**
      * Unregistration of a model. This is called by the solver when extension is
      * removed.
+     * @param model problem model
      */
     public void unregister(Model<V, T> model) {
         iModel.removeModelListener(this);
@@ -69,22 +74,29 @@ public class Extension<V extends Variable<V, T>, T extends Value<V, T>> implemen
     /**
      * Returns true if there is a model registered to this extension, i.e., when
      * extension is registered.
+     * @return true if registered with a solver
      */
     public boolean isRegistered() {
         return iModel != null;
     }
 
-    /** Returns the model */
+    /** Returns the model
+     * @return problem model 
+     **/
     public Model<V, T> getModel() {
         return iModel;
     }
 
-    /** Returns the solver */
+    /** Returns the solver 
+     * @return current solver
+     **/
     public Solver<V, T> getSolver() {
         return iSolver;
     }
 
-    /** Returns input configuration */
+    /** Returns input configuration
+     * @return solver configuration
+     **/
     public DataProperties getProperties() {
         return iProperties;
     }

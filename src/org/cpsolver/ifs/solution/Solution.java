@@ -41,8 +41,10 @@ import org.cpsolver.ifs.solver.Solver;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * 
+ * @param <V> Variable
+ * @param <T> Value
  */
-
 public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
     private static java.text.DecimalFormat sTimeFormat = new java.text.DecimalFormat("0.00", new java.text.DecimalFormatSymbols(Locale.US));
 
@@ -63,18 +65,28 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
     private List<SolutionListener<V, T>> iSolutionListeners = new ArrayList<SolutionListener<V, T>>();
     private PerturbationsCounter<V, T> iPerturbationsCounter = null;
 
-    /** Constructor */
+    /** Constructor 
+     * @param model problem model
+     **/
     @Deprecated
     public Solution(Model<V, T> model) {
         this(model, model.getDefaultAssignment(), 0, 0.0);
     }
     
-    /** Constructor */
+    /** Constructor 
+     * @param model problem model
+     * @param assignment current assignment
+     **/
     public Solution(Model<V, T> model, Assignment<V, T> assignment) {
         this(model, assignment, 0, 0.0);
     }
 
-    /** Constructor */
+    /** Constructor
+     * @param model problem model
+     * @param assignment current assignment
+     * @param iteration current iteration
+     * @param time current solver time
+     **/
     public Solution(Model<V, T> model, Assignment<V, T> assignment, long iteration, double time) {
         iModel = model;
         iAssignment = assignment;
@@ -82,42 +94,59 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
         iTime = time;
     }
 
-    /** Current iteration */
+    /** Current iteration 
+     * @return current iteration
+     **/
     public long getIteration() {
         return iIteration;
     }
     
-    /** Number of failed iterations (i.e., number of calls {@link Solution#update(double, boolean)} with false success) */
+    /** Number of failed iterations (i.e., number of calls {@link Solution#update(double, boolean)} with false success)
+     * @return number of failed iterations 
+     **/
     public long getFailedIterations() {
         return iFailedIterations;
     }
     
-    /** Number of failed iterations (i.e., number of calls {@link Solution#update(double, boolean)} with false success) in the best solution */
+    /** Number of failed iterations (i.e., number of calls {@link Solution#update(double, boolean)} with false success) in the best solution
+     * @return number of failed iterations in the best solution
+     **/
     public long getBestFailedIterations() {
         return (iBestIteration < 0 ? getFailedIterations() : iBestFailedIterations);
     }
 
-    /** The model associated with the solution */
+    /** The model associated with the solution
+     * @return problem model 
+     **/
     public Model<V, T> getModel() {
         return iModel;
     }
     
-    /** The assignment associated with this solution */
+    /** The assignment associated with this solution
+     * @return current assignment
+     **/
     public Assignment<V, T> getAssignment() {
         return iAssignment;
     }
     
-    /** Set a new assignment */
+    /** Set a new assignment 
+     * @param assignment current assignment
+     **/
     public void setAssignment(Assignment<V, T> assignment) {
         iAssignment = assignment;
     }
 
-    /** Current solution time (time in seconds from the start of the solver) */
+    /** Current solution time (time in seconds from the start of the solver) 
+     * @return solver time
+     **/
     public double getTime() {
         return iTime;
     }
 
-    /** Update time, increment current iteration */
+    /** Update time, increment current iteration 
+     * @param time updated solver time
+     * @param success true if the last iteration was successful
+     **/
     public void update(double time, boolean success) {
         iTime = time;
         iIteration++;
@@ -126,12 +155,16 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
             listener.solutionUpdated(this);
     }
     
-    /** Update time, increment current iteration */
+    /** Update time, increment current iteration 
+     * @param time updated solver time
+     **/
     public void update(double time) {
         update(time, true);
     }
 
-    /** Initialization */
+    /** Initialization 
+     * @param solver current solver
+     **/
     public void init(Solver<V, T> solver) {
         iIteration = 0;
         iFailedIterations = 0;
@@ -150,6 +183,7 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
      * Solution information. It consists from info from the model which is
      * associated with the solution, time, iteration, speed and infos from all
      * solution listeners.
+     * @return info table
      */
     public Map<String, String> getInfo() {
         Map<String, String> ret = getModel().getInfo(iAssignment);
@@ -169,6 +203,7 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
      * some more information (that is more expensive to compute) might be added.
      * Also extended model information is added (see
      * {@link Model#getExtendedInfo(Assignment)}) into the resultant table.
+     * @return extended info table
      */
     public Map<String, String> getExtendedInfo() {
         Map<String, String> ret = getModel().getExtendedInfo(iAssignment);
@@ -187,6 +222,8 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
      * Solution information. It consists from info from the model which is
      * associated with the solution, time, iteration, speed and infos from all
      * solution listeners. Only variables from the given set are included.
+     * @param variables sub-problem
+     * @return info table
      */
     public Map<String, String> getInfo(Collection<V> variables) {
         Map<String, String> ret = getModel().getInfo(iAssignment, variables);
@@ -201,17 +238,23 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
         return ret;
     }
 
-    /** Info of the best ever found solution */
+    /** Info of the best ever found solution 
+     * @return info table of the best solution
+     **/
     public Map<String, String> getBestInfo() {
         return iBestInfo;
     }
 
-    /** Iteration when the best ever found solution was found */
+    /** Iteration when the best ever found solution was found 
+     * @return iteration of the best solution
+     **/
     public long getBestIteration() {
         return (iBestIteration < 0 ? getIteration() : iBestIteration);
     }
 
-    /** Solution time when the best ever found solution was found */
+    /** Solution time when the best ever found solution was found
+     * @return solver time of the best solution
+     **/
     public double getBestTime() {
         return (iBestTime < 0 ? getTime() : iBestTime);
     }
@@ -219,6 +262,7 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
     /**
      * Returns true, if all variables of the best ever solution found are
      * assigned
+     * @return true if the best solution has all the variables assigned
      */
     public boolean isBestComplete() {
         return iBestComplete;
@@ -234,13 +278,16 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
 
     /**
      * Total value of the best ever found solution -- sum of all assigned values
-     * (see {@link Value#toDouble()}).
+     * (see {@link Value#toDouble(Assignment)}).
+     * @return value of the best solution
      */
     public double getBestValue() {
         return getModel().getBestValue();
     }
 
-    /** Set total value of the best ever found solution */
+    /** Set total value of the best ever found solution 
+     * @param bestValue value of the best solution
+     **/
     public void setBestValue(double bestValue) {
         getModel().setBestValue(bestValue);
     }
@@ -248,12 +295,15 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
     /**
      * Perturbation penalty of the best ever found solution (see
      * {@link PerturbationsCounter})
+     * @return perturbation penalty of the best solution
      */
     public double getBestPerturbationsPenalty() {
         return iBestPerturbationsPenaly;
     }
 
-    /** Returns perturbation counter */
+    /** Returns perturbation counter 
+     * @return perturbations counter
+     **/
     public PerturbationsCounter<V, T> getPerturbationsCounter() {
         return iPerturbationsCounter;
     }
@@ -274,7 +324,9 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
         }
     }
     
-    /** True if the solution is complete, i.e., all the variables are assigned */
+    /** True if the solution is complete, i.e., all the variables are assigned 
+     * @return true if all the variables are assigned
+     **/
     public boolean isComplete() {
         return getAssignment().nrAssignedVariables() == getModel().variables().size();
     }
@@ -335,16 +387,23 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
         }
     }
 
-    /** Adds solution listener */
+    /** Adds solution listener 
+     * @param listener a solution listener
+     **/
     public void addSolutionListener(SolutionListener<V, T> listener) {
         iSolutionListeners.add(listener);
     }
 
-    /** Removes solution listener */
+    /** Removes solution listener
+     * @param listener a solution listener
+     **/
     public void removeSolutionListener(SolutionListener<V, T> listener) {
         iSolutionListeners.remove(listener);
     }
     
+    /** Registered of solution listeners
+     * @return list of registered solution listener
+     **/
     public List<SolutionListener<V, T>> getSolutionListeners() {
         return iSolutionListeners;
     }

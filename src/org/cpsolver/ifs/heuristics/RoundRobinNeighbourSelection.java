@@ -44,8 +44,10 @@ import org.cpsolver.ifs.util.DataProperties;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ *
+ * @param <V> Variable
+ * @param <T> Value
  */
-
 public class RoundRobinNeighbourSelection<V extends Variable<V, T>, T extends Value<V, T>> extends StandardNeighbourSelection<V, T> {
     protected static Logger sLogger = Logger.getLogger(RoundRobinNeighbourSelection.class);
     protected int iSelectionIdx = -1;
@@ -57,13 +59,15 @@ public class RoundRobinNeighbourSelection<V extends Variable<V, T>, T extends Va
      * 
      * @param properties
      *            configuration
-     * @throws Exception
+     * @throws Exception thrown when initialization fails
      */
     public RoundRobinNeighbourSelection(DataProperties properties) throws Exception {
         super(properties);
     }
 
-    /** Register a neighbour selection */
+    /** Register a neighbour selection 
+     * @param selection a neighbour selection to include in the selection
+     **/
     public void registerSelection(NeighbourSelection<V, T> selection) {
         iSelections.add(selection);
     }
@@ -100,7 +104,9 @@ public class RoundRobinNeighbourSelection<V extends Variable<V, T>, T extends Va
         return iSelectionIdx;
     }
 
-    /** Change selection */
+    /** Change selection 
+     * @param selectionIndex current selection index 
+     **/
     public synchronized void changeSelection(int selectionIndex) {
         int newSelectionIndex = (1 + selectionIndex) % iSelections.size();
         if (newSelectionIndex == iSelectionIdx) return; // already changed

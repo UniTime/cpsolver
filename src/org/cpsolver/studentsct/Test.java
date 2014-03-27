@@ -115,7 +115,7 @@ import org.dom4j.io.XMLWriter;
  * <br>
  * <br>
  * Parameters:
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>

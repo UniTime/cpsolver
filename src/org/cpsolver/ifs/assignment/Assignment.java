@@ -44,7 +44,9 @@ import org.cpsolver.ifs.model.Variable;
  *          Lesser General Public License for more details. <br>
  * <br>
  *          You should have received a copy of the GNU Lesser General Public
- *          License along with this library; if not see <http://www.gnu.org/licenses/>.
+ *          License along with this library; if not see <a href='http://www.gnu.org/licenses'>http://www.gnu.org/licenses</a>.
+ * @param <V> Variable
+ * @param <T> Value
  **/
 public interface Assignment<V extends Variable<V, T>, T extends Value<V, T>> {
     
@@ -59,13 +61,19 @@ public interface Assignment<V extends Variable<V, T>, T extends Value<V, T>> {
     /**
      * Returns assignment of a variable, null if not assigned
      * Replacement for {@link Variable#getAssignment()}.
+     * @param variable problem variable
+     * @return currently assigned value
      **/
+    @SuppressWarnings("javadoc")
     public T getValue(V variable);
     
     /**
      * Returns iteration of the last assignment.
      * Replacement for {@link Variable#getLastIteration()}.
+     * @param variable problem variable
+     * @return iteration of the last assignment
      **/
+    @SuppressWarnings("javadoc")
     public long getIteration(V variable);
     
     /**
@@ -75,6 +83,7 @@ public interface Assignment<V extends Variable<V, T>, T extends Value<V, T>> {
      * @param value a new value to be assigned to variable {@link Value#variable()}.
      * @return previous assignment of the variable, null if it was not assigned
      **/
+    @SuppressWarnings("javadoc")
     public T assign(long iteration, T value);
     
     /**
@@ -84,6 +93,7 @@ public interface Assignment<V extends Variable<V, T>, T extends Value<V, T>> {
      * @param variable variable to be unassigned
      * @return previous assignment of the variable, null if it was not assigned
      **/
+    @SuppressWarnings("javadoc")
     public T unassign(long iteration, V variable);
     
     /**
@@ -91,6 +101,7 @@ public interface Assignment<V extends Variable<V, T>, T extends Value<V, T>> {
      * Replacement for {@link Model#nrAssignedVariables()}.
      * @return number of assigned variables in this assignment
      **/
+    @SuppressWarnings("javadoc")
     public int nrAssignedVariables();
     
     /**
@@ -98,6 +109,7 @@ public interface Assignment<V extends Variable<V, T>, T extends Value<V, T>> {
      * Replacement for {@link Model#assignedVariables()}.
      * @return a collection of assigned variable in this assignment
      **/
+    @SuppressWarnings("javadoc")
     public Collection<V> assignedVariables();
 
     /**
@@ -112,6 +124,7 @@ public interface Assignment<V extends Variable<V, T>, T extends Value<V, T>> {
      * @param model existing model (the assignment does not keep track about all existing variables, that is what the {@link Model#variables()} is for)
      * @return number of not assigned variables in this assignment
      **/
+    @SuppressWarnings("javadoc")
     public int nrUnassignedVariables(Model<V, T> model);
 
     /**
@@ -120,6 +133,7 @@ public interface Assignment<V extends Variable<V, T>, T extends Value<V, T>> {
      * @param model existing model (the assignment does not keep track about all existing variables, that is what the {@link Model#variables()} is for)
      * @return a collection of all not assigned variables in this assignment
      **/
+    @SuppressWarnings("javadoc")
     public Collection<V> unassignedVariables(Model<V, T> model);
 
     /**

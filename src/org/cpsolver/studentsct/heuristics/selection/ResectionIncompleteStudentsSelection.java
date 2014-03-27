@@ -67,7 +67,7 @@ public class ResectionIncompleteStudentsSelection extends BranchBoundSelection {
 
     /**
      * Select neighbour. All students with an incomplete and non-empty schedule
-     * are taken, one by one in a random order. For each student a branch &
+     * are taken, one by one in a random order. For each student a branch &amp; 
      * bound search is employed.
      */
     @Override

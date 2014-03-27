@@ -32,13 +32,17 @@ import org.cpsolver.ifs.model.Variable;
  *          Lesser General Public License for more details. <br>
  * <br>
  *          You should have received a copy of the GNU Lesser General Public
- *          License along with this library; if not see <http://www.gnu.org/licenses/>.
+ *          License along with this library; if not see <a href='http://www.gnu.org/licenses'>http://www.gnu.org/licenses</a>.
+ * @param <V> Variable
+ * @param <T> Value
  **/
 public class AssignmentArray<V extends Variable<V, T>, T extends Value<V, T>> extends AssignmentAbstract<V, T> {
     private Object[] iAssignments = new Object[1000];
     private Long[] iIteration = new Long[1000];
     
-    /** Creates an empty assignment */
+    /** Creates an empty assignment 
+     * @param contexts assignment context holder
+     **/
     public AssignmentArray(AssignmentContextHolder<V, T> contexts) {
         super(contexts);
     }

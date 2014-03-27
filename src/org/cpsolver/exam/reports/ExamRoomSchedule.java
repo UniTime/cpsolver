@@ -18,10 +18,10 @@ import org.cpsolver.ifs.util.CSVFile.CSVField;
 /**
  * Export schedule for each room into a CSV file. <br>
  * <br>
- * Usage:<br>
- * <code>
+ * Usage:
+ * <pre><code>
  * &nbsp;&nbsp;&nbsp;&nbsp;new ExamRoomSchedule(model).report().save(file);
- * </code> <br>
+ * </code></pre>
  * <br>
  * 
  * @version ExamTT 1.3 (Examination Timetabling)<br>

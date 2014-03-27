@@ -3,11 +3,11 @@ package org.cpsolver.coursett.preference;
 /**
  * Min-max preference combination. <br>
  * <ul>
- * <li>If at least one preference is required -> required
- * <li>If at least one preference is prohibited -> prohibited
- * <li>If max>-min -> max
- * <li>If -min>max -> min
- * <li>Otherwise -> 0
+ * <li>If at least one preference is required &rarr; required
+ * <li>If at least one preference is prohibited &rarr; prohibited
+ * <li>If max&gt;-min &rarr; max
+ * <li>If -min&gt;max &rarr; min
+ * <li>Otherwise &rarr; 0
  * </ul>
  * 
  * @version CourseTT 1.3 (University Course Timetabling)<br>

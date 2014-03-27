@@ -24,7 +24,7 @@ import org.cpsolver.studentsct.model.Request;
  * (Batch) student sectioning neighbour selection. It is based on
  * {@link RoundRobinNeighbourSelection}, the following steps are involved:
  * <ul>
- * <li>Phase 1: section all students using incremental branch & bound (no
+ * <li>Phase 1: section all students using incremental branch &amp; bound (no
  * unassignments) ({@link BranchBoundSelection} is used)
  * <li>Phase 2: pick a student (one by one) with an incomplete schedule, try to
  * find an improvement ({@link SwapStudentSelection} is used)

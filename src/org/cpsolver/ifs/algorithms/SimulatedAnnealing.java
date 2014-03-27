@@ -32,7 +32,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * is computed using stochastic hill climbing criterion, i.e.,
  * <code>1.0 / (1.0 + Math.exp(value/temperature))</code>, otherwise it is
  * cumputed using simlated annealing criterion, i.e.,
- * <code>(value<=0.0?1.0:Math.exp(-value/temperature))</code>. If
+ * <code>(value&lt;=0.0?1.0:Math.exp(-value/temperature))</code>. If
  * <i>SimulatedAnnealing.RelativeAcceptance</i> neighbour value
  * {@link Neighbour#value(Assignment)} is taken as the value of the selected
  * neighbour (difference between the new and the current solution, if the
@@ -44,11 +44,10 @@ import org.cpsolver.ifs.util.ToolBox;
  * contain semicolon separated list of {@link NeighbourSelection}. By default, 
  * each neighbour selection is selected with the same probability (each has 1 point in
  * a roulette wheel selection). It can be changed by adding &nbsp;@n at the end
- * of the name of the class, for example:<br>
- * <code>
+ * of the name of the class, for example:
+ * <pre><code>
  * SimulatedAnnealing.Neighbours=org.cpsolver.ifs.algorithms.neighbourhoods.RandomMove;org.cpsolver.ifs.algorithms.neighbourhoods.RandomSwapMove@0.1
- * </code>
- * <br>
+ * </code></pre>
  * Selector RandomSwapMove is 10&times; less probable to be selected than other selectors.
  * When SimulatedAnnealing.Random is true, all selectors are selected with the same probability, ignoring these weights.
  * <br><br>
@@ -76,6 +75,8 @@ import org.cpsolver.ifs.util.ToolBox;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * @param <V> Variable
+ * @param <T> Value
  */
 public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>> extends NeighbourSearch<V,T> {
     private DecimalFormat iDF5 = new DecimalFormat("0.00000");
@@ -157,6 +158,7 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
 
         /**
          * Cool temperature
+         * @param solution current solution
          */
         protected void cool(Solution<V, T> solution) {
             iTemperature *= iCoolingRate;
@@ -180,6 +182,7 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
 
         /**
          * Reheat temperature
+         * @param solution current solution
          */
         protected void reheat(Solution<V, T> solution) {
             iTemperature *= iReheatRate;
@@ -196,6 +199,7 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
 
         /**
          * restore best ever found solution
+         * @param solution current solution
          */
         protected void restoreBest(Solution<V, T> solution) {
             solution.restoreBest();
@@ -223,8 +227,7 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
          *            current assignment
          * @param neighbour
          *            proposed move
-         * @return true if generated random number is below
-         *         {@link SimulatedAnnealingContext#prob(double)}
+         * @return true if generated random number is below the generated probability
          */
         @Override
         protected boolean accept(Assignment<V, T> assignment, Model<V, T> model, Neighbour<V, T> neighbour, double value, boolean lazy) {

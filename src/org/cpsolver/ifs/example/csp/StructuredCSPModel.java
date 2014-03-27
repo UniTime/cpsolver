@@ -20,7 +20,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * are generated according to whether variables are from the same kernel or not. <br>
  * <br>
  * Model parameters: <br>
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -69,7 +69,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * <tr>
  * <td>General.MPP</td>
  * <td>{@link String}</td>
- * <td>Minimal perturbation problem --> generate initial assignment</td>
+ * <td>Minimal perturbation problem &rarr; generate initial assignment</td>
  * </tr>
  * </table>
  * <br>
@@ -97,7 +97,10 @@ public class StructuredCSPModel extends Model<CSPVariable, CSPValue> {
     private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(StructuredCSPModel.class);
     private DataProperties iProperties = null;
 
-    /** Constructor */
+    /** Constructor 
+     * @param properties solver configuration
+     * @param seed random seed
+     **/
     public StructuredCSPModel(DataProperties properties, long seed) {
         iProperties = properties;
         generate(seed);

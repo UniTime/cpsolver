@@ -3,8 +3,8 @@ package org.cpsolver.coursett.preference;
 /**
  * Sum preference combination. <br>
  * <ul>
- * <li>If at least one preference is required -> required
- * <li>If at least one preference is prohibited -> prohibited
+ * <li>If at least one preference is required &rarr; required
+ * <li>If at least one preference is prohibited &rarr; prohibited
  * <li>Otherwise, sum of the given preferences is returned
  * </ul>
  * 

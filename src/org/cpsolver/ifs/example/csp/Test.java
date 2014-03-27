@@ -31,7 +31,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * are generated according to whether variables are from the same kernel or not. <br>
  * <br>
  * Test's parameters: <br>
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -97,7 +97,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * CSP.TightnessMax<br>
  * CSP.TightnessStep</td>
  * <td>{@link Double}</td>
- * <td>Tightness of constraints outside kernels given as a range -> respective
+ * <td>Tightness of constraints outside kernels given as a range &rarr; respective
  * configurations will be generated and tested</td>
  * </tr>
  * <tr>
@@ -110,7 +110,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * CSP.DensityMax<br>
  * CSP.DensityStep</td>
  * <td>{@link Double}</td>
- * <td>Density of constraints outside kernels given as a range -> respective
+ * <td>Density of constraints outside kernels given as a range &rarr; respective
  * configurations will be generated and tested</td>
  * </tr>
  * <tr>
@@ -158,10 +158,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * Also, the configuration file can consist only from one parameter (named
  * INCLUDE_REGEXP) which is processed as a regular expression of semicolon
  * separated list of property files, for instance
- * <ul>
- * <code>INCLUDE_REGEXP=general.ini;{CSP(50,12,250,p2)|CSP(25,15,198,p2)}.ini;{std|opt}.ini;{10x1min}.ini;{cbs|rw1|tabu20}.ini</code>
- * <br>
- * </ul>
+ * <pre><code>INCLUDE_REGEXP=general.ini;{CSP(50,12,250,p2)|CSP(25,15,198,p2)}.ini;{std|opt}.ini;{10x1min}.ini;{cbs|rw1|tabu20}.ini</code></pre>
  * where {a|b|c|...} means a selection of a, b, c, .. All possible combinations
  * are taken and for each of them an input configuration is combined from the
  * relevant files. So, for instance, the above example will result into the
@@ -184,122 +181,98 @@ import org.cpsolver.ifs.util.ToolBox;
  * folder is created, its name is combined from the names which are in
  * parenthesis. So, for instance the first bunch of tests will output into the
  * folder:
- * <ul>
+ * <pre><code>
  * ${General.Output}\CSP(50,12,250,p2)_std_10x1min_csb\25-Feb-05_191136
- * </ul>
+ * </code></pre>
  * If one parameter is defined in more than one configuration files (e.g. in
  * general.ini as well as cbs.ini) the one from the file more on the right is
  * taken. <br>
  * <br>
  * An example of the configurations:<br>
  * File<b> general.ini</b>
- * <ul>
- * <code>
- * #Default settings common for all configurations<br>
- * General.MPP=false<br>
- * General.InitialAssignment=false<br>
- * General.Output=output\\RandomCSP\\IFS<br>
- * <br>
- * #Value selection heuristics<br>
- * Value.Class=org.cpsolver.ifs.heuristics.GeneralValueSelection<br>
- * Value.WeightWeightedConflicts=0.0<br>
- * Value.RandomWalkProb=0.0<br>
- * Value.WeightConflicts=1.0<br>
- * Value.WeightNrAssignments=0.0<br>
- * Value.WeightValue=0.0<br>
- * Value.Tabu=0<br>
- * <br>
- * #Variable selection heuristics<br>
- * Variable.Class=org.cpsolver.ifs.heuristics.GeneralVariableSelection<br>
- * Variable.RandomSelection=true<br>
- * <br>
- * #Termination condition<br>
- * Termination.Class=org.cpsolver.ifs.termination.GeneralTerminationCondition<br>
- * Termination.MaxIters=-1<br>
- * Termination.TimeOut=-1<br>
- * Termination.StopWhenComplete=true<br>
- * <br>
- * #Solution comparator<br>
- * Comparator.Class=org.cpsolver.ifs.solution.GeneralSolutionComparator<br>
- * </code>
- * </ul>
- * <br>
+ * <pre><code>
+ * #Default settings common for all configurations
+ * General.MPP=false
+ * General.InitialAssignment=false
+ * General.Output=output\\RandomCSP\\IFS
+ * 
+ * #Value selection heuristics
+ * Value.Class=org.cpsolver.ifs.heuristics.GeneralValueSelection
+ * Value.WeightWeightedConflicts=0.0
+ * Value.RandomWalkProb=0.0
+ * Value.WeightConflicts=1.0
+ * Value.WeightNrAssignments=0.0
+ * Value.WeightValue=0.0
+ * Value.Tabu=0
+ * 
+ * #Variable selection heuristics
+ * Variable.Class=org.cpsolver.ifs.heuristics.GeneralVariableSelection
+ * Variable.RandomSelection=true
+ * 
+ * #Termination condition
+ * Termination.Class=org.cpsolver.ifs.termination.GeneralTerminationCondition
+ * Termination.MaxIters=-1
+ * Termination.TimeOut=-1
+ * Termination.StopWhenComplete=true
+ * 
+ * #Solution comparator
+ * Comparator.Class=org.cpsolver.ifs.solution.GeneralSolutionComparator
+ * </code></pre>
  * File<b> CSP(50,12,250,p2).ini</b>
- * <ul>
- * <code>
- * #Sparse problem CSP(50,12,250/1225,p2)<br>
- * CSP.NrVariables=50<br>
- * CSP.DomainSize=12<br>
- * CSP.Density=0.2<br>
- * CSP.TightnessMin=0.10<br>
- * CSP.TightnessMax=0.95<br>
- * CSP.TightnessStep=0.02<br>
- * <br> 
- * CSP.Seed=780921<br>
- * <br>
- * CSP.ForceSolutionExistance=false<br>
- * CSP.SameProblemEachStep=false<br>
- * CSP.SameProblemEachTest=false<br>
- * <br>
- * CSP.NrKernels=0<br>
- * </code>
- * </ul>
- * <br>
+ * <pre><code>
+ * #Sparse problem CSP(50,12,250/1225,p2)
+ * CSP.NrVariables=50
+ * CSP.DomainSize=12
+ * CSP.Density=0.2
+ * CSP.TightnessMin=0.10
+ * CSP.TightnessMax=0.95
+ * CSP.TightnessStep=0.02
+ *  
+ * CSP.Seed=780921
+ * 
+ * CSP.ForceSolutionExistance=false
+ * CSP.SameProblemEachStep=false
+ * CSP.SameProblemEachTest=false
+ * 
+ * CSP.NrKernels=0
+ * </code></pre>
  * File<b> std.ini</b>
- * <ul>
- * <code>
- * #Standard problem<br>
- * CSP.ForceSolutionExistance=false<br>
- * </code>
- * </ul>
- * <br>
+ * <pre><code>
+ * #Standard problem
+ * CSP.ForceSolutionExistance=false
+ * </code></pre>
  * File<b> opt.ini</b>
- * <ul>
- * <code>
- * #Optimization problem (minCSP)<br>
- * #Value selection: use weigh of a conflict, but when there are more than one value<br>
- * #        with the same number of conflicts, use the one with lower value<br>
- * Value.WeightValue=0.0001<br>
- * Value.WeightConflicts=1.0<br>
- * #Do not stop when a complete solution is found<br>
- * Termination.StopWhenComplete=false<br>
- * </code>
- * </ul>
- * <br>
+ * <pre><code>
+ * #Optimization problem (minCSP)
+ * #Value selection: use weigh of a conflict, but when there are more than one value
+ * #        with the same number of conflicts, use the one with lower value
+ * Value.WeightValue=0.0001
+ * Value.WeightConflicts=1.0
+ * #Do not stop when a complete solution is found
+ * Termination.StopWhenComplete=false
+ * </code></pre>
  * File<b> 10x1min.ini</b>
- * <ul>
- * <code>
- * #For each configuration, execute 10 tests, each with 1 minute timeout<br>
- * CPS.NrTests=10<br>
- * Termination.TimeOut=60<br>
- * </code>
- * </ul>
- * <br>
+ * <pre><code>
+ * #For each configuration, execute 10 tests, each with 1 minute timeout
+ * CPS.NrTests=10
+ * Termination.TimeOut=60
+ * </code></pre>
  * File<b> cbs.ini</b>
- * <ul>
- * <code>
- * #Use conflict-based statistics<br>
- * Extensions.Classes=org.cpsolver.ifs.extension.ConflictStatistics<br>
- * Value.WeightWeightedConflicts=1.0<br>
- * </code>
- * </ul>
- * <br>
+ * <pre><code>
+ * #Use conflict-based statistics
+ * Extensions.Classes=org.cpsolver.ifs.extension.ConflictStatistics
+ * Value.WeightWeightedConflicts=1.0
+ * </code></pre>
  * File<b> tabu20.ini</b>
- * <ul>
- * <code>
- * #Use tabu-list of the length 20<br>
- * Value.Tabu=20<br>
- * </code>
- * </ul>
- * <br>
+ * <pre><code>
+ * #Use tabu-list of the length 20
+ * Value.Tabu=20
+ * </code></pre>
  * File<b> rw1.ini</b>
- * <ul>
- * <code>
- * #Use 1% random walk selection<br>
- * Value.RandomWalkProb=0.01<br>
- * </code>
- * </ul>
- * <br>
+ * <pre><code>
+ * #Use 1% random walk selection
+ * Value.RandomWalkProb=0.01
+ * </code></pre>
  * 
  * @see StructuredCSPModel
  * @see org.cpsolver.ifs.extension.ConflictStatistics

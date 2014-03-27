@@ -46,7 +46,7 @@ import org.dom4j.io.SAXReader;
  * <br>
  * <br>
  * Parameters:
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -92,11 +92,11 @@ import org.dom4j.io.SAXReader;
  * 
  * <br>
  * <br>
- * Usage:<br>
- * <code>
+ * Usage:
+ * <pre><code>
  * StudentSectioningModel model = new StudentSectioningModel(cfg);<br>
  * new StudentSectioningXMLLoader(model).load();<br>
- * </code>
+ * </code></pre>
  * 
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
