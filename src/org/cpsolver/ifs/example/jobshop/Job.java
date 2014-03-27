@@ -49,6 +49,7 @@ public class Job extends Constraint<Operation, Location> {
 
     /**
      * Set due time
+     * @param dueTime due time
      */
     public void setDueTime(int dueTime) {
         iDueTime = dueTime;
@@ -56,6 +57,7 @@ public class Job extends Constraint<Operation, Location> {
 
     /**
      * Get due time
+     * @return due time
      */
     public int getDueTime() {
         return iDueTime;
@@ -63,6 +65,7 @@ public class Job extends Constraint<Operation, Location> {
 
     /**
      * Get job number
+     * @return job number
      */
     public int getJobNumner() {
         return iJobNumber;
@@ -71,6 +74,7 @@ public class Job extends Constraint<Operation, Location> {
     /**
      * Count job operations for the job (i.e., the number of variables in this
      * constraint)
+     * @return number of operations in the problem
      */
     public int countOperations() {
         return variables().size();
@@ -78,6 +82,8 @@ public class Job extends Constraint<Operation, Location> {
 
     /**
      * Get operation of the given index (0..countOperations()-1)
+     * @param opNumber operation number
+     * @return operation
      */
     public Operation getOperation(int opNumber) {
         return variables().get(opNumber);

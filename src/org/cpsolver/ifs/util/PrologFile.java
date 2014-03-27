@@ -45,7 +45,12 @@ public class PrologFile implements Iterator<PrologFile.Term> {
             iBufferedReader.readLine();
     }
 
-    /** Reads a prolog file. It returns a set of terms */
+    /** Reads a prolog file. It returns a set of terms 
+     * @param is input stream
+     * @param term term to read
+     * @return list of terms
+     * @throws java.io.IOException an exception
+     **/
     public static List<Term> readTermsFromStream(java.io.InputStream is, String term) throws java.io.IOException {
         BufferedReader br = new BufferedReader(new InputStreamReader(is));
         List<Term> ret = new ArrayList<Term>();
@@ -64,7 +69,11 @@ public class PrologFile implements Iterator<PrologFile.Term> {
         return ret;
     }
 
-    /** Writes a set of terms. */
+    /** Writes a set of terms. 
+     * @param pw print writer
+     * @param terms list of terms to write
+     * @throws java.io.IOException an exception
+     **/
     public static void writeTerms(PrintWriter pw, List<Term> terms) throws java.io.IOException {
         for (Term t : terms) {
             writeTerm(pw, t);
@@ -156,12 +165,16 @@ public class PrologFile implements Iterator<PrologFile.Term> {
         /** flushed characters */
         private StringBuffer iFlushedChars = new StringBuffer();
 
-        /** constructor */
+        /** constructor 
+         * @param r a reader to wrap
+         **/
         public SpecialReader(Reader r) {
             iReader = r;
         }
 
-        /** reads a byte */
+        /** reads a byte 
+         * @return a byte that was read
+         * @throws java.io.IOException an exception thrown by the parent reader */
         public int read() throws java.io.IOException {
             if (iFlushedChars.length() == 0)
                 return iReader.read();
@@ -170,7 +183,9 @@ public class PrologFile implements Iterator<PrologFile.Term> {
             return ret;
         }
 
-        /** flush (return to stream) a character */
+        /** flush (return to stream) a character 
+         * @param ch a character to be returned back 
+         **/
         public void flush(char ch) {
             iFlushedChars.insert(0, ch);
         }
@@ -203,25 +218,35 @@ public class PrologFile implements Iterator<PrologFile.Term> {
             return true;
         }
 
-        /** constructor */
+        /** constructor 
+         * @param text name of the term
+         **/
         public Term(String text) {
             iText = text;
             iContent = null;
         }
 
-        /** constructor */
+        /** constructor 
+         * @param content inner terms 
+         **/
         public Term(List<Term> content) {
             iText = null;
             iContent = content;
         }
 
-        /** constructor */
+        /** constructor 
+         * @param text name of the term
+         * @param content inner terms
+         **/
         public Term(String text, List<Term> content) {
             iText = text;
             iContent = content;
         }
 
-        /** constructor */
+        /** constructor 
+         * @param text name of the term
+         * @param content inner terms
+         **/
         public Term(String text, Term[] content) {
             iText = text;
             if (content == null) {
@@ -233,47 +258,65 @@ public class PrologFile implements Iterator<PrologFile.Term> {
             }
         }
 
-        /** constructor */
+        /** constructor
+         * @param content inner terms
+         **/
         public Term(Term[] content) {
             this(null, content);
         }
 
-        /** return text */
+        /** return text
+         * @return term name
+         */
         public String getText() {
             return iText;
         }
 
-        /** return content */
+        /** return content
+         * @return term content (inner terms)
+         */
         public List<Term> getContent() {
             return iContent;
         }
 
-        /** content size */
+        /** content size 
+         * @return number of inner terms
+         **/
         public int size() {
             return (iContent == null ? -1 : iContent.size());
         }
 
-        /** return text as int */
+        /** return text as int 
+         * @return term name as int
+         **/
         public int toInt() {
             return Integer.parseInt(iText);
         }
 
-        /** return text as long */
+        /** return text as long
+         * @return term name as long
+         */
         public long toLong() {
             return Long.parseLong(iText);
         }
 
-        /** return text as fouble */
+        /** return text as double
+         * @return term name as double
+         */
         public double toDouble() {
             return Double.parseDouble(iText);
         }
 
-        /** return text as boolean */
+        /** return text as boolean
+         * @return term name as boolean
+         */
         public boolean toBoolean() {
             return (toInt() != 0);
         }
 
-        /** return content as boolean array */
+        /** return content as boolean array
+         * @return inner terms as booleans
+         */
         public boolean[] toBooleanArray() {
             if (iContent.size() == 1 && iContent.get(0).toString().length() == 0)
                 return new boolean[] {};
@@ -284,7 +327,9 @@ public class PrologFile implements Iterator<PrologFile.Term> {
             return ret;
         }
 
-        /** return content as string array */
+        /** return content as string array
+         * @return inner terms as strings
+         */
         public String[] toStringArray() {
             if (iContent.size() == 1 && iContent.get(0).toString().length() == 0)
                 return new String[] {};
@@ -296,7 +341,9 @@ public class PrologFile implements Iterator<PrologFile.Term> {
             return ret;
         }
 
-        /** return content as int array */
+        /** return content as int array
+         * @return inner terms as ints
+         */
         public int[] toIntArray() {
             // System.err.println("ToIntArray: "+this);
             if (iContent.size() == 1 && iContent.get(0).toString().length() == 0)
@@ -310,7 +357,10 @@ public class PrologFile implements Iterator<PrologFile.Term> {
             return ret;
         }
 
-        /** idx-th element of content */
+        /** idx-th element of content
+         * @param idx index of the inner term
+         * @return inner term
+         */
         public Term elementAt(int idx) {
             try {
                 return iContent.get(idx);
@@ -319,7 +369,10 @@ public class PrologFile implements Iterator<PrologFile.Term> {
             }
         }
 
-        /** element of content named name */
+        /** element of content named name 
+         * @param name name of the inner term
+         * @return inner term, null if not present
+         **/
         public Term element(String name) {
             try {
                 for (Term t : iContent) {
@@ -332,7 +385,10 @@ public class PrologFile implements Iterator<PrologFile.Term> {
             }
         }
 
-        /** index of element of content named name */
+        /** index of element of content named name 
+         * @param name name of the inner term
+         * @return index of the inner term, -1 if not present
+         */
         public int indexOf(String name) {
             try {
                 int idx = 0;

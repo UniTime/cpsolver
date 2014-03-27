@@ -56,47 +56,65 @@ public class Operation extends Variable<Operation, Location> {
         iOperationNumber = operationNumber;
     }
 
-    /** Get job */
+    /** Get job 
+     * @return job
+     **/
     public Job getJob() {
         return iJob;
     }
 
-    /** Get job number */
+    /** Get job number
+     * @return job number
+     **/
     public int getJobNumber() {
         return iJob.getJobNumner();
     }
 
-    /** Get operation number */
+    /** Get operation number 
+     * @return operation number
+     **/
     public int getOperationNumber() {
         return iOperationNumber;
     }
 
-    /** Get machine */
+    /** Get machine 
+     * @return machine
+     **/
     public Machine getMachine() {
         return iMachine;
     }
 
-    /** Get machine number */
+    /** Get machine number 
+     * @return machine number
+     **/
     public int getMachineNumber() {
         return iMachine.getMachineNumber();
     }
 
-    /** Get processing time */
+    /** Get processing time
+     * @return processing time
+     **/
     public int getProcessingTime() {
         return iProcessingTime;
     }
 
-    /** Get the preceeding operation (if any) */
+    /** Get the preceding operation (if any)
+     * @return preceding operation
+     **/
     public Operation getPrecedingOperation() {
         return (iOperationNumber == 0 ? null : iJob.getOperation(iOperationNumber - 1));
     }
 
-    /** Get the subsequent operation (if any) */
+    /** Get the subsequent operation (if any)
+     * @return subsequent operation
+     **/
     public Operation getSubsequentOperation() {
         return (iOperationNumber + 1 == iJob.countOperations() ? null : iJob.getOperation(iOperationNumber + 1));
     }
 
-    /** Get minimal starting time */
+    /** Get minimal starting time
+     * @return minimal starting time
+     **/
     public int getMinStartTime() {
         if (iOperationNumber == 0)
             return 0;
@@ -104,7 +122,9 @@ public class Operation extends Variable<Operation, Location> {
             return getPrecedingOperation().getMinStartTime() + iProcessingTime;
     }
 
-    /** Get maximal starting time */
+    /** Get maximal starting time
+     * @return maximal starting time
+     **/
     public int getMaxStartTime() {
         if (iOperationNumber + 1 == iJob.countOperations())
             return ((JobShopModel) getModel()).getTotalNumberOfSlots() - iProcessingTime;

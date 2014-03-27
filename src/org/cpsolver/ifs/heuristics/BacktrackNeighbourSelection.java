@@ -30,7 +30,7 @@ import org.cpsolver.ifs.util.JProf;
  * is returned. <br>
  * <br>
  * Parameters: <br>
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -47,9 +47,6 @@ import org.cpsolver.ifs.util.JProf;
  * <td>Limit of search depth.</td>
  * </tr>
  * </table>
- * 
- * <br>
- * <br>
  * 
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
@@ -69,8 +66,10 @@ import org.cpsolver.ifs.util.JProf;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * 
+ * @param <V> Variable 
+ * @param <T> Value
  */
-
 public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Value<V, T>> extends StandardNeighbourSelection<V, T> {
     private ConflictStatistics<V, T> iStat = null;
     private static Logger sLog = Logger.getLogger(BacktrackNeighbourSelection.class);
@@ -83,7 +82,7 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
      * 
      * @param properties
      *            configuration
-     * @throws Exception
+     * @throws Exception thrown when initialization fails
      */
     public BacktrackNeighbourSelection(DataProperties properties) throws Exception {
         super(properties);
@@ -118,6 +117,9 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
      * Select neighbour -- starts from the provided variable. A backtracking of
      * a limited depth is employed from the given variable. The best assignment
      * found is returned (see {@link BackTrackNeighbour}).
+     * @param solution current solution
+     * @param variable selected variable
+     * @return a neighbour, null if not found
      **/
     public synchronized Neighbour<V, T> selectNeighbour(Solution<V, T> solution, V variable) {
         if (variable == null)
@@ -150,12 +152,23 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
         return false;
     }
 
-    /** List of values of the given variable that will be considered */
+    /** List of values of the given variable that will be considered 
+     * @param context assignment context
+     * @param variable given variable
+     * @return values of the given variable that will be considered
+     **/
     protected Iterator<T> values(BacktrackNeighbourSelectionContext context, V variable) {
         return variable.values().iterator();
     }
 
-    /** Check bound */
+    /** Check bound 
+     * @param variables2resolve unassigned variables that are in conflict with the current solution
+     * @param idx position in variables2resolve
+     * @param depth current depth
+     * @param value value to check
+     * @param conflicts conflicting values
+     * @return bound (best possible improvement)
+     **/
     protected boolean checkBound(List<V> variables2resolve, int idx, int depth, T value, Set<T> conflicts) {
         int nrUnassigned = variables2resolve.size() - idx;
         if ((nrUnassigned + conflicts.size() > depth)) {
@@ -183,7 +196,13 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
         return true;
     }
 
-    /** Check whether backtrack can continue */
+    /** Check whether backtrack can continue 
+     * @param context assignment context
+     * @param variables2resolve unassigned variables that are in conflict with the current solution
+     * @param idx position in variables2resolve
+     * @param depth current depth
+     * @return true if the search can continue
+     **/
     protected boolean canContinue(BacktrackNeighbourSelectionContext context, List<V> variables2resolve, int idx, int depth) {
         if (depth <= 0) {
             if (sLog.isDebugEnabled())
@@ -207,7 +226,12 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
         return !context.isMaxItersReached() && !context.isTimeoutReached();
     }
 
-    /** Backtracking */
+    /** Backtracking 
+     * @param context assignment context
+     * @param variables2resolve unassigned variables that are in conflict with the current solution
+     * @param idx position in variables2resolve
+     * @param depth current depth
+     **/
     protected void backtrack(BacktrackNeighbourSelectionContext context, List<V> variables2resolve, int idx, int depth) {
         if (sLog.isDebugEnabled())
             sLog.debug("  -- bt[" + depth + "]: " + idx + " of " + variables2resolve.size() + " " + variables2resolve);
@@ -266,6 +290,7 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
         /**
          * Constructor
          * 
+         * @param context assignment context
          * @param resolvedVariables
          *            variables that has been changed
          */
@@ -282,7 +307,9 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
                 iModel = context.getModel();
         }
 
-        /** Neighbour value (solution total value if the neighbour is applied). */
+        /** Neighbour value (solution total value if the neighbour is applied). 
+         * @return value of the new solution
+         **/
         public double getTotalValue() {
             return iTotalValue;
         }
@@ -296,7 +323,9 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
             return iValue;
         }
 
-        /** Neighbour assignments */
+        /** Neighbour assignments 
+         * @return list of assignments in this neighbour
+         **/
         public List<T> getAssignments() {
             return iDifferentAssignments;
         }
@@ -329,6 +358,8 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
 
         /**
          * Compare two neighbours
+         * @param solution current solution
+         * @return comparison
          */
         public int compareTo(Solution<V, T> solution) {
             return Double.compare(iTotalValue, solution.getModel().getTotalValue(solution.getAssignment()));
@@ -354,32 +385,44 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
         }
     }
 
-    /** Return maximal depth */
+    /** Return maximal depth 
+     * @return maximal search depth
+     **/
     public int getDepth() {
         return iDepth;
     }
 
-    /** Set maximal depth */
+    /** Set maximal depth 
+     * @param depth maximal search depth
+     **/
     public void setDepth(int depth) {
         iDepth = depth;
     }
 
-    /** Return time limit */
+    /** Return time limit 
+     * @return time limit 
+     **/
     public int getTimeout() {
         return iTimeout;
     }
 
-    /** Set time limit */
+    /** Set time limit 
+     * @param timeout time limit
+     **/
     public void setTimeout(int timeout) {
         iTimeout = timeout;
     }
 
-    /** Return maximal number of iterations */
+    /** Return maximal number of iterations 
+     * @return maximal number of iterations
+     **/
     public int getMaxIters() {
         return iMaxIters;
     }
 
-    /** Set maximal number of iterations */
+    /** Set maximal number of iterations 
+     * @param maxIters maximal number of iterations
+     **/
     public void setMaxIters(int maxIters) {
         iMaxIters = maxIters;
     }
@@ -405,7 +448,9 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
             iMaxItersReached = false;
         }
 
-        /** Time needed to find a neighbour (last call of selectNeighbour method) */
+        /** Time needed to find a neighbour (last call of selectNeighbour method) 
+         * @return search time
+         **/
         public long getTime() {
             return iT1 - iT0;
         }
@@ -413,6 +458,7 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
         /**
          * True, if timeout was reached during the last call of selectNeighbour
          * method
+         * @return true if the timeout was reached
          */
         public boolean isTimeoutReached() {
             return iTimeoutReached;
@@ -421,6 +467,7 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
         /**
          * True, if the maximum number of iterations was reached by the last call of
          * selectNeighbour method
+         * @return true if the maximum number of iterations was reached
          */
         public boolean isMaxItersReached() {
             return iMaxItersReached;

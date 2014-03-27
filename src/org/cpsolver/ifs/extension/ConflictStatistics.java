@@ -46,12 +46,12 @@ import org.cpsolver.ifs.util.DataProperties;
  * hard conflicts that have occurred during the search (e.g., that assignment V0
  * = v0 resulted c1 times in an unassignment of V1 = v1, c2 times of V2 = v2, .
  * . . and cm times of Vm = vm). More precisely, they form an array
- * <ul>
+ * <pre><code>
  * CBS[Va = va, Vb != vb] = cab,
- * </ul>
+ * </code></pre>
  * stating that the assignment Va = va caused the unassignment of Vb = vb a
  * total of cab times in the past. Note that in case of n-ary constraints (where
- * n > 2), this does not imply that the assignments Va = va and Vb = vb cannot
+ * n &gt; 2), this does not imply that the assignments Va = va and Vb = vb cannot
  * be used together. The proposed conflict-based statistics do not actually work
  * with any constraint, they only memorize unassignments and the assignment that
  * caused them. Let us consider a variable Va selected by the
@@ -64,10 +64,10 @@ import org.cpsolver.ifs.util.DataProperties;
  * conflict-based statistics. A counter is maintained for the tuple A = a and B
  * != b. This counter is increased when the value a is assigned to the variable
  * A and b is unassigned from B. The example of this structure
- * <ul>
+ * <pre><code>
  * A = a &nbsp;&nbsp;&nbsp; &#8594; &nbsp;&nbsp;&nbsp; 3 x B != b, &nbsp; 4 x B
  * != c, &nbsp; 2 x C != a, &nbsp; 120 x D != a
- * </ul>
+ * </code></pre>
  * expresses that variable B lost its assignment b three times and its
  * assignment c four times, variable C lost its assignment a two times, and D
  * lost its assignment a 120 times, all because of later assignments of value a
@@ -108,7 +108,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * the search with this modified input problem. <br>
  * <br>
  * Parameters: <br>
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -153,6 +153,8 @@ import org.cpsolver.ifs.util.DataProperties;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * @param <V> Variable
+ * @param <T> Value
  */
 public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>> extends Extension<V, T> implements ConstraintListener<V, T> {
     private static final String PARAM_AGEING = "ConflictStatistics.Ageing";
@@ -250,6 +252,10 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
     /**
      * Counts number of unassignments of the given conflicting values caused by
      * the assignment of the given value.
+     * @param iteration current iteration
+     * @param conflictValues values conflicting with the given value
+     * @param value given value
+     * @return number of unassignments
      */
     public double countRemovals(long iteration, Collection<T> conflictValues, T value) {
         long ret = 0;
@@ -263,6 +269,10 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
     /**
      * Counts number of unassignments of the given conflicting value caused by
      * the assignment of the given value.
+     * @param iteration current iteration
+     * @param conflictValue value conflicting with the given value
+     * @param value given value
+     * @return number of unassignments
      */
     public double countRemovals(long iteration, T conflictValue, T value) {
         synchronized (iAssignments) {
@@ -280,6 +290,11 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
     /**
      * Counts potential number of unassignments of if the given value is
      * selected.
+     * @param assignment current assignment
+     * @param iteration current iteration
+     * @param value given value
+     * @param limit conflict limit
+     * @return number of potential unassignments
      */
     public long countPotentialConflicts(Assignment<V, T> assignment, long iteration, T value, int limit) {
         synchronized (iAssignments) {

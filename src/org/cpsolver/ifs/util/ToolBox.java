@@ -47,12 +47,19 @@ public class ToolBox {
     private static long sSeed = System.currentTimeMillis();
     private static Random sRandom = new Random(sSeed);
 
-    /** Returns random number (int) from the set 0 .. limit - 1 */
+    /** Returns random number (int) from the set 0 .. limit - 1 
+     * @param limit a limit 
+     * @return a random number between 0 and limit - 1
+     **/
     public static int random(int limit) {
         return (int) (random() * limit);
     }
 
-    /** Returns random element from the given set of elements */
+    /** Returns random element from the given set of elements 
+     * @param set collection of objects
+     * @param <E> some type
+     * @return randomly selected object
+     **/
     public static <E> E random(Collection<E> set) {
         switch (set == null ? 0 : set.size()) {
             case 0:
@@ -77,12 +84,14 @@ public class ToolBox {
      * @param part
      *            probability of selection of an element into the resultant
      *            subset
+     * @param <E> some type
+     * @return randomly selected subset
      */
     public static <E> Collection<E> subSet(Collection<E> set, double part) {
         return subSet(set, part, 1);
     }
 
-    /** Swaps two elements in the list */
+    /** Swaps two elements in the list*/
     private static <E> void swap(List<E> list, int first, int second) {
         E o = list.get(first);
         list.set(first, list.get(second));
@@ -99,6 +108,8 @@ public class ToolBox {
      *            subset
      * @param minSize
      *            minimal size of the returned subset
+     * @param <E> some type
+     * @return randomly selected subset
      */
     public static <E> Collection<E> subSet(Collection<E> set, double part, int minSize) {
         if (set.size() <= minSize || part >= 1.0)
@@ -112,7 +123,11 @@ public class ToolBox {
         return subSet.subList(0, numberToSelect);
     }
 
-    /** Trim a string to have given length */
+    /** Trim a string to have given length
+     * @param s a string to trim
+     * @param length a length to trim to
+     * @return trimmed and padded string of the given length
+     **/
     public static String trim(String s, int length) {
         if (s.length() > length)
             return s.substring(0, length);
@@ -122,7 +137,11 @@ public class ToolBox {
         return sb.toString();
     }
 
-    /** Multiline representation of a colection */
+    /** Multiline representation of a collection 
+     * @param col a collection
+     * @param tab tab size
+     * @return string representation
+     **/
     public static String col2string(Collection<?> col, int tab) {
         StringBuffer tabsb = new StringBuffer();
         while (tabsb.length() < 2 * tab)
@@ -135,7 +154,13 @@ public class ToolBox {
         return sb.toString();
     }
 
-    /** Multiline representation of a dictionary */
+    /** Multiline representation of a dictionary
+     * @param dict a map
+     * @param tab tab size
+     * @param <K> a key class
+     * @param <V> a value class
+     * @return string representation
+     */
     public static <K, V> String dict2string(Map<K, V> dict, int tab) {
         StringBuffer tabsb = new StringBuffer();
         while (tabsb.length() < 2 * tab)
@@ -159,6 +184,7 @@ public class ToolBox {
      *            total value of all tests
      * @param x2
      *            total value^2 of all tests
+     * @return root mean square
      */
     public static double rms(int n, double x, double x2) {
         double var = x2 / n;
@@ -166,7 +192,11 @@ public class ToolBox {
         return Math.sqrt(Math.abs(var - mean * mean));
     }
 
-    /** Merge source with target */
+    /** Merge source with target 
+     * @param target target list
+     * @param source source list
+     * @param <E> some object
+     **/
     public static <E> void merge(List<E> target, Collection<E> source) {
         for (E o : source) {
             if (!target.contains(o))
@@ -174,7 +204,12 @@ public class ToolBox {
         }
     }
 
-    /** Returns intersection of two collections */
+    /** Returns intersection of two collections
+     * @param source1 first collection
+     * @param source2 second collection
+     * @param <E> some object
+     * @return intersection
+     */
     public static <E> List<E> intersect(Collection<E> source1, Collection<E> source2) {
         List<E> target = new ArrayList<E>();
         for (E o : source1) {
@@ -187,23 +222,30 @@ public class ToolBox {
     /**
      * Sets seeds for {@link ToolBox#getRandom()} and {@link ToolBox#random()}
      * methods.
+     * @param seed random seed
      */
     public static void setSeed(long seed) {
         sSeed = seed;
         sRandom = new Random(sSeed);
     }
 
-    /** Gets current seed */
+    /** Gets current seed 
+     * @return random seed
+     **/
     public static long getSeed() {
         return sSeed;
     }
 
-    /** Gets random number generator */
+    /** Gets random number generator 
+     * @return random number generator
+     **/
     public static Random getRandom() {
         return sRandom;
     }
 
-    /** Generates random double number */
+    /** Generates random double number 
+     * @return random number
+     **/
     public static double random() {
         return sRandom.nextDouble();
     }
@@ -222,23 +264,36 @@ public class ToolBox {
     }
 
     /**
-     * Configurates log4j loging
+     * Configure log4j logging
      * 
      * @param logDir
      *            output folder
      * @param properties
      *            some other log4j properties
+     * @return name of the log file
      */
     public static String configureLogging(String logDir, Properties properties) {
         return configureLogging(logDir, properties, false);
     }
 
+    /**
+     * Configure log4j logging
+     * 
+     * @param logDir
+     *            output folder
+     * @param properties
+     *            some other log4j properties
+     * @param timeInFileName 
+     *            if true log file is named debug_yyyy-MM-dd_(HH.mm.ss).log, it
+     *            is named debug.log otherwise
+     * @return name of the log file
+     */
     public static String configureLogging(String logDir, Properties properties, boolean timeInFileName) {
         return configureLogging(logDir, properties, timeInFileName, true);
     }
 
     /**
-     * Configurates log4j loging
+     * Configure log4j logging
      * 
      * @param logDir
      *            output folder
@@ -247,6 +302,8 @@ public class ToolBox {
      * @param timeInFileName
      *            if true log file is named debug_yyyy-MM-dd_(HH.mm.ss).log, it
      *            is named debug.log otherwise
+     * @param includeSystemOuts include system out and error in the log 
+     * @return name of the log file
      */
     public static String configureLogging(String logDir, Properties properties, boolean timeInFileName, boolean includeSystemOuts) {
         String time = new java.text.SimpleDateFormat("yyyy-MM-dd_(HH.mm.ss)", java.util.Locale.US).format(new Date());
@@ -296,6 +353,8 @@ public class ToolBox {
      * Loads data properties. If there is INCLUDE property available, it is
      * interpreted as semi-colon separated list of porperty files which should
      * be also loaded (works recursively).
+     * @param propertyFile a file to read
+     * @return solver configuration
      * 
      */
     public static DataProperties loadProperties(File propertyFile) {

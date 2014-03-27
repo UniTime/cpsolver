@@ -33,11 +33,10 @@ import org.cpsolver.ifs.util.JProf;
  * contain semicolon separated list of {@link NeighbourSelection}. By default, 
  * each neighbour selection is selected with the same probability (each has 1 point in
  * a roulette wheel selection). It can be changed by adding &nbsp;@n at the end
- * of the name of the class, for example:<br>
- * <code>
+ * of the name of the class, for example:
+ * <pre><code>
  * GreatDeluge.Neighbours=org.cpsolver.ifs.algorithms.neighbourhoods.RandomMove;org.cpsolver.ifs.algorithms.neighbourhoods.RandomSwapMove@0.1
- * </code>
- * <br>
+ * </code></pre>
  * Selector RandomSwapMove is 10&times; less probable to be selected than other selectors.
  * When GreatDeluge.Random is true, all selectors are selected with the same probability, ignoring these weights.
  * <br><br>
@@ -65,6 +64,8 @@ import org.cpsolver.ifs.util.JProf;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * @param <V> Variable
+ * @param <T> Value
  */
 public class GreatDeluge<V extends Variable<V, T>, T extends Value<V, T>> extends NeighbourSearch<V, T> {
     private DecimalFormat sDF2 = new DecimalFormat("0.00");

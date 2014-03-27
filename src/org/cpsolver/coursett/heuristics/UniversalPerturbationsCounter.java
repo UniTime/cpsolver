@@ -21,7 +21,7 @@ import org.cpsolver.ifs.util.DistanceMetric;
 /**
  * Perturbation penalty computation. <br>
  * <br>
- * In practise, the strategy for computing perturbations needs to be extended.
+ * In practice, the strategy for computing perturbations needs to be extended.
  * For example, a change in time is usually much worse than a movement to a
  * different classroom. The number of enrolled/involved students should also be
  * taken into account. Another factor is whether the solution has already been
@@ -49,8 +49,8 @@ import org.cpsolver.ifs.util.DistanceMetric;
  * assigned to a class equals a number like 5% of the students enrolled in that
  * class. Otherwise none of our other criteria would have any importance. <br>
  * <br>
- * Similar properties apply between other criteria as well. To fulfil all these
- * needs we have crated a function (called perturbations penalty) which can be
+ * Similar properties apply between other criteria as well. To fulfill all these
+ * needs we have created a function (called perturbations penalty) which can be
  * computed over a partial solution. This is a weighted sum of various
  * perturbations criteria like the number of classes with time changes or the
  * number of additional student conflicts. This perturbation penalty is added as
@@ -59,7 +59,7 @@ import org.cpsolver.ifs.util.DistanceMetric;
  * perturbation penalty and other (initial) soft constraints. <br>
  * <br>
  * Parameters:
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -131,11 +131,11 @@ import org.cpsolver.ifs.util.DistanceMetric;
  * (instructor-wise). It is computed only when the class has an instructor
  * assigned, moreover:
  * <ul>
- * <li>0 < distance(currentPlacement,initialPlacement) <= 5 .. weight is taken
+ * <li>0 &lt; distance(currentPlacement,initialPlacement) &lt;= 5 .. weight is taken
  * once
- * <li>5 < distance(currentPlacement,initialPlacement) <= 20 .. weight is taken
+ * <li>5 &lt; distance(currentPlacement,initialPlacement) &lt;= 20 .. weight is taken
  * twice
- * <li>20 < distance(currentPlacement,initialPlacement) .. weight is taken ten
+ * <li>20 &lt; distance(currentPlacement,initialPlacement) .. weight is taken ten
  * times
  * </ul>
  * </td>
@@ -145,7 +145,7 @@ import org.cpsolver.ifs.util.DistanceMetric;
  * <td>{@link Double}</td>
  * <td>New placement of a class is too far from the intial placement
  * (instructor-student). It is weighted by the number of students enrolled in
- * the class when distance(currentPlacement,initialPlacement) > 67</td>
+ * the class when distance(currentPlacement,initialPlacement) &gt; 67</td>
  * </tr>
  * <tr>
  * <td>Perturbations.DeltaInstructorDistancePreferenceWeight</td>

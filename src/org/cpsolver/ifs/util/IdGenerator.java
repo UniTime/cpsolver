@@ -25,7 +25,9 @@ package org.cpsolver.ifs.util;
 public class IdGenerator {
     private int iLastId = 0;
 
-    /** Generates new id */
+    /** Generates new id 
+     * @return new unique id
+     **/
     public long newId() {
         return ++iLastId;
     }

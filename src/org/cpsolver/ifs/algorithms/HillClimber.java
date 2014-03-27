@@ -21,11 +21,10 @@ import org.cpsolver.ifs.util.DataProperties;
  * contain semicolon separated list of {@link NeighbourSelection}. By default, 
  * each neighbour selection is selected with the same probability (each has 1 point in
  * a roulette wheel selection). It can be changed by adding &nbsp;@n at the end
- * of the name of the class, for example:<br>
- * <code>
+ * of the name of the class, for example:
+ * <pre><code>
  * HillClimber.Neighbours=org.cpsolver.ifs.algorithms.neighbourhoods.RandomMove;org.cpsolver.ifs.algorithms.neighbourhoods.RandomSwapMove@0.1
- * </code>
- * <br>
+ * </code></pre>
  * Selector RandomSwapMove is 10&times; less probable to be selected than other selectors.
  * When HillClimber.Random is true, all selectors are selected with the same probability, ignoring these weights.
  * <br><br>
@@ -53,6 +52,8 @@ import org.cpsolver.ifs.util.DataProperties;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * @param <V> Variable
+ * @param <T> Value
  */
 public class HillClimber<V extends Variable<V, T>, T extends Value<V, T>> extends NeighbourSearch<V, T> {
     protected int iMaxIdleIters = 10000;
@@ -67,6 +68,7 @@ public class HillClimber<V extends Variable<V, T>, T extends Value<V, T>> extend
      * <li>HillClimber.Random ... when true, a neighbour selector is selected randomly
      * <li>HillClimber.Update ... when true, a neighbour selector is selected using {@link NeighbourSelector#getPoints()} weights (roulette wheel selection)
      * </ul>
+     * @param properties solver configuration
      */
     public HillClimber(DataProperties properties) {
         super(properties);
@@ -76,6 +78,7 @@ public class HillClimber<V extends Variable<V, T>, T extends Value<V, T>> extend
     
     /**
      * Set progress phase name
+     * @param phase name of the phase in which the hill climber is used (for logging purposes)
      */
     public void setPhase(String phase) {
         iPhase = phase;
@@ -136,7 +139,7 @@ public class HillClimber<V extends Variable<V, T>, T extends Value<V, T>> extend
         }
         
         /**
-         * Accept any move that does not worsen the solution (value <= 0)
+         * Accept any move that does not worsen the solution (value &lt;= 0)
          */
         @Override
         protected boolean accept(Assignment<V, T> assignment, Model<V, T> model, Neighbour<V, T> neighbour, double value, boolean lazy) {

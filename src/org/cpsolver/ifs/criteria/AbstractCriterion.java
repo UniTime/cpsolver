@@ -48,6 +48,8 @@ import org.cpsolver.ifs.util.DataProperties;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * @param <V> Variable
+ * @param <T> Value
  */
 public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Value<V, T>> implements Criterion<V, T>, HasAssignmentContext<V, T, AbstractCriterion<V,T>.ValueContext>, CanHoldContext {
     private Model<V, T> iModel;
@@ -66,6 +68,7 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
     /**
      * Defines how the overall value of the criterion should be automatically updated (using {@link Criterion#getValue(Value, Set)}).
      */
+    @SuppressWarnings("javadoc")
     protected static enum ValueUpdateType {
         /** Update is done before an unassignment (decrement) and before an assignment (increment). */
         BeforeUnassignedBeforeAssigned,
@@ -80,12 +83,17 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
     }
     protected ValueUpdateType iValueUpdateType = ValueUpdateType.BeforeUnassignedBeforeAssigned;
 
-    /** Defines weight name (to be used to get the criterion weight from the configuration). */
+    /** Defines weight name (to be used to get the criterion weight from the configuration). 
+     * @return name of the weight associated with this criterion
+     **/
     public String getWeightName() {
         return "Weight." + getClass().getName().substring(1 + getClass().getName().lastIndexOf('.'));
     }
     
-    /** Defines default weight (when {@link AbstractCriterion#getWeightName()} parameter is not present in the criterion). */
+    /** Defines default weight (when {@link AbstractCriterion#getWeightName()} parameter is not present in the criterion).
+     * @param config solver configuration
+     * @return default criterion weight value
+     **/
     public double getWeightDefault(DataProperties config) {
         return 0.0;
     }
@@ -106,7 +114,10 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
         return true;
     }
     
-    /** Returns current model */
+    /**
+     * Returns current model
+     * @return problem model
+     **/
     public Model<V, T> getModel() { return iModel; }
     
     /**
@@ -196,7 +207,10 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
         return (getWeight() == 0.0 ? 0.0 : getWeight() * getValue(assignment, variables));
     }
 
-    /** Compute bounds (bounds are being cached by default). */
+    /** Compute bounds (bounds are being cached by default). 
+     * @param assignment current assignment
+     * @return minimum and maximum of this criterion's value
+     **/
     protected double[] computeBounds(Assignment<V, T> assignment) {
         return getBounds(assignment, new ArrayList<V>(getModel().variables()));
     }
@@ -361,7 +375,9 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
         private double[] iBounds = null;
         private int iCacheId = -1;
 
-        /** Create from an assignment */
+        /** Create from an assignment 
+         * @param assignment current assignment
+         **/
         protected ValueContext(Assignment<V, T> assignment) {
             if (iValueUpdateType != ValueUpdateType.NoUpdate)
                 iTotal = AbstractCriterion.this.getValue(assignment, getModel().variables());
@@ -369,26 +385,41 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
         
         protected ValueContext() {}
         
-        /** Update value when unassigned */
+        /** Update value when unassigned
+         * @param assignment current assignment
+         * @param value recently unassigned value
+         **/
         protected void unassigned(Assignment<V, T> assignment, T value) {
             iTotal -= getValue(assignment, value, null);
         }
         
-        /** Update value when assigned */
+        /** Update value when assigned 
+         * @param assignment current assignment
+         * @param value recently assigned value
+         **/
         protected void assigned(Assignment<V, T> assignment, T value) {
             iTotal += getValue(assignment, value, null);
         }
 
-        /** Return value */
+        /** Return value 
+         * @return current value of the criterion
+         **/
         public double getTotal() { return iTotal; }
         
-        /** Set value */
+        /** Set value
+         * @param value current value of the criterion
+         **/
         public void setTotal(double value) { iTotal = value; }
         
-        /** Increment value */
+        /** Increment value
+         * @param value increment
+         **/
         public void inc(double value) { iTotal += value; }
         
-        /** Return bounds */
+        /** Return bounds 
+         * @param assignment current assignment 
+         * @return minimum and maximum of this criterion's value
+         **/
         protected double[] getBounds(Assignment<V, T> assignment) {
             if (iBounds == null || iCacheId < iLastCacheId) {
                 iCacheId = iLastCacheId;
@@ -397,7 +428,9 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
             return (iBounds == null ? new double[] {0.0, 0.0} : iBounds);
         }
         
-        /** Set bounds */
+        /** Set bounds 
+         * @param bounds bounds to cache
+         **/
         protected void setBounds(double[] bounds) {
             iBounds = bounds;
         }

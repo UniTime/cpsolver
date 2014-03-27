@@ -141,7 +141,7 @@ public class PriorityConstructionSelection implements NeighbourSelection<Request
 
     /**
      * Select neighbor. All students are taken, one by one in a random order.
-     * For each student a branch & bound search is employed.
+     * For each student a branch &amp; bound search is employed.
      */
     @Override
     public Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {

@@ -57,7 +57,9 @@ public class SectionLimitCheck {
         iModel = model;
     }
 
-    /** Return student sectioning model */
+    /** Return student sectioning model 
+     * @return problem model
+     **/
     public StudentSectioningModel getModel() {
         return iModel;
     }
@@ -65,7 +67,7 @@ public class SectionLimitCheck {
     /**
      * Check for sections that have more students enrolled than it is allowed,
      * i.e., the sum of requests weights is above the section limit
-     * 
+     * @param assignment current assignment
      * @return false, if there is such a case
      */
     public boolean check(Assignment<Request, Enrollment> assignment) {

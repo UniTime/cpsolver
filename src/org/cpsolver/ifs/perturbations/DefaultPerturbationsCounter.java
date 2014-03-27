@@ -35,13 +35,13 @@ import org.cpsolver.ifs.util.DataProperties;
  * other. So, the only method which is needed to be changed is
  * {@link DefaultPerturbationsCounter#getPenalty(Assignment, Value, Value)}. Its current
  * implementation is:
- * <ul>
+ * <pre>
  * <code>
- * protected double getPenalty(Value assignedValue, Value initialValue) {<br>
- * &nbsp;&nbsp;&nbsp;&nbsp;return 1.0;<br>
- * }<br>
+ * protected double getPenalty(Value assignedValue, Value initialValue) {
+ * &nbsp;&nbsp;&nbsp;&nbsp;return 1.0;
+ * }
  * </code>
- * </ul>
+ * </pre>
  * It is called only when assignedValue is different to initialValue.
  * 
  * @see Solver
@@ -66,8 +66,10 @@ import org.cpsolver.ifs.util.DataProperties;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ *
+ * @param <V> Variable
+ * @param <T> Value
  */
-
 public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Value<V, T>> implements PerturbationsCounter<V, T> {
     private ViolatedInitials<V, T> iViolatedInitials = null;
     protected static java.text.DecimalFormat sDoubleFormat = new java.text.DecimalFormat("0.00", new java.text.DecimalFormatSymbols(Locale.US));
@@ -121,11 +123,13 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
      * same lecture. It is called only when assignedValue is different to
      * initialValue.
      * 
+     * @param assignment current assignment
      * @param assignedValue
      *            value assigned to a varuable (null when variable is
      *            unassigned)
      * @param initialValue
      *            initial value of the same varaible (always not null)
+     * @return penalty
      */
     protected double getPenalty(Assignment<V, T> assignment, T assignedValue, T initialValue) {
         return 1.0;
@@ -135,6 +139,7 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
      * Case A: initial value of a different unassigned variable cannot be
      * assigned (computed by {@link ViolatedInitials})
      * 
+     * @param assignment current assignment
      * @param selectedValue
      *            value which is going to be assigned to its variable
      * @param initialValue
@@ -142,6 +147,7 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
      *            which need to be unassifned Different variable, which is
      *            unassigned and whose initial value is in conflict with the
      *            selected value.
+     * @return penalty
      */
     protected double getPenaltyA(Assignment<V, T> assignment, T selectedValue, T initialValue) {
         return getPenalty(assignment, null, initialValue);
@@ -150,6 +156,7 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
     /**
      * Case B: initial value is unassigned from a conflicting variable.
      * 
+     * @param assignment current assignment
      * @param selectedValue
      *            value which is going to be unassigned to its variable
      * @param assignedValue
@@ -157,6 +164,7 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
      *            from the one of selectedVariable)
      * @param initialValue
      *            initial value of the conflicting variable of assignedValue
+     * @return penalty
      */
     protected double getPenaltyB(Assignment<V, T> assignment, T selectedValue, T assignedValue, T initialValue) {
         return getPenalty(assignment, assignedValue, initialValue);
@@ -165,6 +173,7 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
     /**
      * Case C: non-initial value is unassigned from a conflicting variable.
      * 
+     * @param assignment current assignment
      * @param selectedValue
      *            value which is going to be unassigned to its variable
      * @param assignedValue
@@ -172,18 +181,21 @@ public class DefaultPerturbationsCounter<V extends Variable<V, T>, T extends Val
      *            from the one of selectedVariable)
      * @param initialValue
      *            initial value of the conflicting variable of assignedValue
+     * @return penalty
      */
     protected double getPenaltyC(Assignment<V, T> assignment, T selectedValue, T assignedValue, T initialValue) {
         return -getPenalty(assignment, assignedValue, initialValue);
     }
 
     /**
-     * Case D: different than initial value is assigned to the varaible
+     * Case D: different than initial value is assigned to the variable
      * 
+     * @param assignment current assignment
      * @param selectedValue
      *            value which is going to be unassigned to its variable
      * @param initialValue
      *            initial value of the same variable
+     * @return penalty
      */
     protected double getPenaltyD(Assignment<V, T> assignment, T selectedValue, T initialValue) {
         return getPenalty(assignment, selectedValue, initialValue);

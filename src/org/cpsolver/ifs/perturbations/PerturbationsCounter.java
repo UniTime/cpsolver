@@ -50,9 +50,14 @@ import org.cpsolver.ifs.solver.Solver;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ *
+ * @param <V> Variable
+ * @param <T> Value
  */
 public interface PerturbationsCounter<V extends Variable<V, T>, T extends Value<V, T>> {
-    /** Initialization */
+    /** Initialization 
+     * @param solver current solver
+     **/
     public void init(Solver<V, T> solver);
 
     /**
@@ -60,8 +65,10 @@ public interface PerturbationsCounter<V extends Variable<V, T>, T extends Value<
      * and the solution of the initial problem (see
      * {@link Variable#getInitialAssignment()}).
      * 
+     * @param assignment current assignment
      * @param model
      *            current model
+     * @return penalty 
      */
     public double getPerturbationPenalty(Assignment<V, T> assignment, Model<V, T> model);
 
@@ -70,8 +77,11 @@ public interface PerturbationsCounter<V extends Variable<V, T>, T extends Value<
      * and the solution of the initial (only include variables from the given
      * set) problem (see {@link Variable#getInitialAssignment()}).
      * 
+     * @param assignment current assignment
      * @param model
      *            current model
+     * @param variables sub-problem
+     * @return penalty
      */
     public double getPerturbationPenalty(Assignment<V, T> assignment, Model<V, T> model, Collection<V> variables);
 
@@ -84,12 +94,14 @@ public interface PerturbationsCounter<V extends Variable<V, T>, T extends Value<
      * solution (which might be easied for computation that the whole
      * perturbation penalty).
      * 
+     * @param assignment current assignment
      * @param model
      *            current model
      * @param selectedValue
      *            value to be selected in the next iteration
      * @param conflicts
      *            conflicting values to be unassigned in the next iteration
+     * @return penalty
      */
     public double getPerturbationPenalty(Assignment<V, T> assignment, Model<V, T> model, T selectedValue, Collection<T> conflicts);
 
@@ -97,6 +109,7 @@ public interface PerturbationsCounter<V extends Variable<V, T>, T extends Value<
      * Some (perturbation) information about the solution might be returned
      * here.
      * 
+     * @param assignment current assignment
      * @param info
      *            resultant info table
      * @param model
@@ -108,10 +121,12 @@ public interface PerturbationsCounter<V extends Variable<V, T>, T extends Value<
      * Some (perturbation) information about the solution might be returned here
      * (only include variables from the given set).
      * 
+     * @param assignment current assignment
      * @param info
      *            resultant info table
      * @param model
      *            current model
+     * @param variables sub-problem
      */
     public void getInfo(Assignment<V, T> assignment, Model<V, T> model, Map<String, String> info, Collection<V> variables);
 }

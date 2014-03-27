@@ -107,6 +107,7 @@ public class DataProperties extends Properties {
      *            key
      * @param defaultValue
      *            default value to be returned when such property is not present
+     * @return value of the property
      */
     public int getPropertyInt(String key, int defaultValue) {
         try {
@@ -129,6 +130,7 @@ public class DataProperties extends Properties {
      *            key
      * @param defaultValue
      *            default value to be returned when such property is not present
+     * @return value of the property
      */
     public long getPropertyLong(String key, long defaultValue) {
         try {
@@ -151,6 +153,7 @@ public class DataProperties extends Properties {
      *            key
      * @param defaultValue
      *            default value to be returned when such property is not present
+     * @return value of the property
      */
     public Integer getPropertyInteger(String key, Integer defaultValue) {
         try {
@@ -173,6 +176,7 @@ public class DataProperties extends Properties {
      *            key
      * @param defaultValue
      *            default value to be returned when such property is not present
+     * @return value of the property
      */
     public Long getPropertyLong(String key, Long defaultValue) {
         try {
@@ -193,6 +197,7 @@ public class DataProperties extends Properties {
      * 
      * @param key
      *            key
+     * @return true if there is such property
      */
     public boolean containsPropery(String key) {
         return getProperty(key) != null;
@@ -205,6 +210,7 @@ public class DataProperties extends Properties {
      *            key
      * @param defaultValue
      *            default value to be returned when such property is not present
+     * @return value of the property
      */
     public boolean getPropertyBoolean(String key, boolean defaultValue) {
         try {
@@ -227,6 +233,7 @@ public class DataProperties extends Properties {
      *            key
      * @param defaultValue
      *            default value to be returned when such property is not present
+     * @return value of the property
      */
     public double getPropertyDouble(String key, double defaultValue) {
         try {
@@ -249,6 +256,7 @@ public class DataProperties extends Properties {
      *            key
      * @param defaultValue
      *            default value to be returned when such property is not present
+     * @return value of the property
      */
     public float getPropertyFloat(String key, float defaultValue) {
         try {
@@ -271,6 +279,7 @@ public class DataProperties extends Properties {
      *            key
      * @param defaultValue
      *            default value to be returned when such property is not present
+     * @return value of the property
      */
     public Boolean getPropertyBoolean(String key, Boolean defaultValue) {
         try {
@@ -293,6 +302,7 @@ public class DataProperties extends Properties {
      *            key
      * @param defaultValue
      *            default value to be returned when such property is not present
+     * @return value of the property
      */
     public Double getPropertyDouble(String key, Double defaultValue) {
         try {
@@ -315,6 +325,7 @@ public class DataProperties extends Properties {
      *            key
      * @param defaultValue
      *            default value to be returned when such property is not present
+     * @return value of the property
      */
     public Float getPropertyFloat(String key, Float defaultValue) {
         try {
@@ -383,7 +394,8 @@ public class DataProperties extends Properties {
     }
 
     /**
-     * Returns properties as dictionary.
+     * Returns properties as a map
+     * @return properties as a map
      */
     public Map<String, String> toMap() {
         HashMap<String, String> ret = new HashMap<String, String>();

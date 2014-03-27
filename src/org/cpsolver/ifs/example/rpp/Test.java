@@ -30,62 +30,62 @@ import org.cpsolver.ifs.util.ToolBox;
  * <br>
  * Description of the input problem files can be found at <a href='http://www.fi.muni.cz/~hanka/rpp/instances.html'>http://www.fi.muni.cz/~hanka/rpp/instances.html</a>.
  * Each input problem (e.g., gen22.pl) has the following structure:
- * <ul>
+ * <pre>
  * <code>
- * objects([<br>
- * &nbsp;&nbsp;object(<br>
- * &nbsp;&nbsp;&nbsp;&nbsp;name( rect1 ),<br>
- * &nbsp;&nbsp;&nbsp;&nbsp;size( [ 2, 1 ] ),<br>
- * &nbsp;&nbsp;&nbsp;&nbsp;valid_positions( [ 0-38, 0-13 ] )<br>
- * &nbsp;&nbsp;),<br>
- * &nbsp;&nbsp;object(<br>
- * &nbsp;&nbsp;&nbsp;&nbsp;name( rect2 ),<br>
- * &nbsp;&nbsp;&nbsp;&nbsp;size( [ 2, 1 ] ),<br>
- * &nbsp;&nbsp;&nbsp;&nbsp;valid_positions( [ 0-38, 0-13 ] )<br>
- * &nbsp;&nbsp;), <br>
- * ... <br>
- * &nbsp;&nbsp;object(<br>
- * &nbsp;&nbsp;&nbsp;&nbsp;name( rect200 ),<br>
- * &nbsp;&nbsp;&nbsp;&nbsp;size( [ 2, 1 ] ),<br>
- * &nbsp;&nbsp;&nbsp;&nbsp;valid_positions( [ 0-38, 7-13 ] )<br>
- * &nbsp;&nbsp;)<br>
- * ] ). <br>
+ * objects([
+ * &nbsp;&nbsp;object(
+ * &nbsp;&nbsp;&nbsp;&nbsp;name( rect1 ),
+ * &nbsp;&nbsp;&nbsp;&nbsp;size( [ 2, 1 ] ),
+ * &nbsp;&nbsp;&nbsp;&nbsp;valid_positions( [ 0-38, 0-13 ] )
+ * &nbsp;&nbsp;),
+ * &nbsp;&nbsp;object(
+ * &nbsp;&nbsp;&nbsp;&nbsp;name( rect2 ),
+ * &nbsp;&nbsp;&nbsp;&nbsp;size( [ 2, 1 ] ),
+ * &nbsp;&nbsp;&nbsp;&nbsp;valid_positions( [ 0-38, 0-13 ] )
+ * &nbsp;&nbsp;), 
+ * ... 
+ * &nbsp;&nbsp;object(
+ * &nbsp;&nbsp;&nbsp;&nbsp;name( rect200 ),
+ * &nbsp;&nbsp;&nbsp;&nbsp;size( [ 2, 1 ] ),
+ * &nbsp;&nbsp;&nbsp;&nbsp;valid_positions( [ 0-38, 7-13 ] )
+ * &nbsp;&nbsp;)
+ * ] ). 
  * </code>
- * </ul>
+ * </pre>
  * Stating that the first rectangle (named rect1) has size 2x1 and its valid
  * position are with x between 0 and 38, y between 0 and 13, and so on. <br>
  * MPP instances contain an extra file with the solution (e.g., gen22.solution),
  * with the following structure
- * <ul>
+ * <pre>
  * <code>
  * assigned([[rect1X,[17]], [rect1Y,[5]], [rect2X,[24]], [rect2Y,[4]], ... [rect200X,[37]], [rect200Y,[10]]]).
  * </code>
- * </ul>
+ * </pre>
  * Which means that the first rectangle (named rect1) is to be placed at [17,5],
  * second at [24,4] and so on. <br>
  * There is also a file (e.g., gen22.mpp) describing which input placements are
  * to be prohibited (not that if the input placement is prohibited, it means
  * that also all values with the same X or Y coordinate are prohibited). It has
  * the following structure:
- * <ul>
+ * <pre>
  * <code>
- * perturbation( 1, 0, [] ).<br>
- * perturbation( 2, 0, [] ).<br> 
- * ...<br>
- * perturbation( 1, 2, [44,127] ).<br>
- * perturbation( 2, 2, [80,153] ).<br>
- * ...<br>
- * perturbation( 1, 4, [44,80,127,153] ).<br>
- * perturbation( 2, 4, [48,67,138,170] ). <br>
- * ...<br>
+ * perturbation( 1, 0, [] ).
+ * perturbation( 2, 0, [] ). 
+ * ...
+ * perturbation( 1, 2, [44,127] ).
+ * perturbation( 2, 2, [80,153] ).
+ * ...
+ * perturbation( 1, 4, [44,80,127,153] ).
+ * perturbation( 2, 4, [48,67,138,170] ). 
+ * ...
  * </code>
- * </ul>
+ * </pre>
  * Stating that for instance in the first test with 4 perturbations the
  * rectangles rect44, rect80, rect127 and rect153 will have their initial value
  * prohibited. <br>
  * <br>
  * Test's parameters: <br>
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -139,10 +139,9 @@ import org.cpsolver.ifs.util.ToolBox;
  * Also, the configuration file can consist only from one parameter (named
  * INCLUDE_REGEXP) which is processed as a regular expression of semicolon
  * separated list of property files, for instance
- * <ul>
+ * <pre>
  * <code>INCLUDE_REGEXP=general.ini;{rpp85|rpp90|rpp95|mpp22}.ini;{5min}.ini;{cbs|rw1|tabu20}.ini</code>
- * <br>
- * </ul>
+ * </pre>
  * where {a|b|c|...} means a selection of a, b, c, .. All possible combinations
  * are taken and for each of them an input configuration is combined from the
  * relevant files. So, for instance, the above example will result into the
@@ -165,108 +164,107 @@ import org.cpsolver.ifs.util.ToolBox;
  * folder is created, its name is combined from the names which are in
  * parenthesis. So, for instance the first bunch of tests will output into the
  * folder:
- * <ul>
+ * <pre>
  * ${General.Output}\rpp85_5min_csb\25-Feb-05_191136
- * </ul>
+ * </pre>
  * If one parameter is defined in more than one configuration files (e.g. in
  * general.ini as well as cbs.ini) the one from the file more on the right is
  * taken. <br>
  * <br>
  * An example of the configurations:<br>
  * File<b> general.ini</b>
- * <ul>
+ * <pre>
  * <code>
- * #Default settings common for all configurations<br>
- * General.MPP=false<br>
- * General.InitialAssignment=false<br>
- * General.Output=output\\RPP\\IFS<br>
- * <br>
- * #Value selection heuristics<br>
- * Value.Class=org.cpsolver.ifs.heuristics.GeneralValueSelection<br>
- * Value.WeightWeightedConflicts=0.0<br>
- * Value.RandomWalkProb=0.0<br>
- * Value.WeightConflicts=1.0<br>
- * Value.WeightNrAssignments=0.0<br>
- * Value.WeightValue=0.0<br>
- * Value.Tabu=0<br>
- * <br>
- * #Variable selection heuristics<br>
- * Variable.Class=org.cpsolver.ifs.heuristics.GeneralVariableSelection<br>
- * Variable.RandomSelection=true<br>
- * <br>
- * #Termination condition<br>
- * Termination.Class=org.cpsolver.ifs.termination.GeneralTerminationCondition<br>
- * Termination.MaxIters=-1<br>
- * Termination.TimeOut=-1<br>
- * Termination.StopWhenComplete=true<br>
- * <br>
- * #Solution comparator<br>
- * Comparator.Class=org.cpsolver.ifs.solution.GeneralSolutionComparator<br>
+ * #Default settings common for all configurations
+ * General.MPP=false
+ * General.InitialAssignment=false
+ * General.Output=output\\RPP\\IFS
+ * 
+ * #Value selection heuristics
+ * Value.Class=org.cpsolver.ifs.heuristics.GeneralValueSelection
+ * Value.WeightWeightedConflicts=0.0
+ * Value.RandomWalkProb=0.0
+ * Value.WeightConflicts=1.0
+ * Value.WeightNrAssignments=0.0
+ * Value.WeightValue=0.0
+ * Value.Tabu=0
+ * 
+ * #Variable selection heuristics
+ * Variable.Class=org.cpsolver.ifs.heuristics.GeneralVariableSelection
+ * Variable.RandomSelection=true
+ * 
+ * #Termination condition
+ * Termination.Class=org.cpsolver.ifs.termination.GeneralTerminationCondition
+ * Termination.MaxIters=-1
+ * Termination.TimeOut=-1
+ * Termination.StopWhenComplete=true
+ * 
+ * #Solution comparator
+ * Comparator.Class=org.cpsolver.ifs.solution.GeneralSolutionComparator
  * </code>
- * </ul>
- * <br>
+ * </pre>
+ * 
  * File<b> rpp80.ini</b>
- * <ul>
+ * <pre>
  * <code>
- * #RPP instances with 200 objects and the placement area filled to 80% in average<br>
- * General.Input=input\\rpp\\80<br>
- * Rpp.ProblemWidth=40<br>
- * Rpp.ProblemHeight=14<br>
- * #Use 10 problem instances (this means problem files gen1.pl, gen2.pl,... gen10.pl will be taken), each run 10 times<br>
- * Rpp.Min=1<br>
- * Rpp.Max=10<br>
- * Rpp.NrTests=10<br>
+ * #RPP instances with 200 objects and the placement area filled to 80% in average
+ * General.Input=input\\rpp\\80
+ * Rpp.ProblemWidth=40
+ * Rpp.ProblemHeight=14
+ * #Use 10 problem instances (this means problem files gen1.pl, gen2.pl,... gen10.pl will be taken), each run 10 times
+ * Rpp.Min=1
+ * Rpp.Max=10
+ * Rpp.NrTests=10
  * </code>
- * </ul>
- * <br>
+ * </pre>
+ * 
  * File<b> mpp22.ini</b>
- * <ul>
+ * <pre>
  * <code>
- * #RPP MPP instance 22 (with 200 objects and the placement area filled to 80% in average)<br>
- * #  files gen22.pl (input problem), gen22.solution (initial solution) and gen22.mpp (input perturbations) are to be taken<br>
- * General.Input=input\\rpp-mpp\\gen22<br>
- * Rpp.ProblemWidth=40<br>
- * Rpp.ProblemHeight=14<br>
- * # 0, 4, 8, .. 200 input perturbations to be used<br>
- * Rpp.Min=0<br>
- * Rpp.Max=200<br>
- * Rpp.Step=4<br>
+ * #RPP MPP instance 22 (with 200 objects and the placement area filled to 80% in average)
+ * #  files gen22.pl (input problem), gen22.solution (initial solution) and gen22.mpp (input perturbations) are to be taken
+ * General.Input=input\\rpp-mpp\\gen22
+ * Rpp.ProblemWidth=40
+ * Rpp.ProblemHeight=14
+ * # 0, 4, 8, .. 200 input perturbations to be used
+ * Rpp.Min=0
+ * Rpp.Max=200
+ * Rpp.Step=4
  * </code>
- * </ul>
- * <br>
+ * </pre>
+ * 
  * File<b> 5min.ini</b>
- * <ul>
+ * <pre>
  * <code>
- * #5 minute time limit for each run<br>
- * Termination.TimeOut=300<br>
+ * #5 minute time limit for each run
+ * Termination.TimeOut=300
  * </code>
- * </ul>
- * <br>
+ * </pre>
+ * 
  * File<b> cbs.ini</b>
- * <ul>
+ * <pre>
  * <code>
- * #Use conflict-based statistics<br>
- * Extensions.Classes=org.cpsolver.ifs.extension.ConflictStatistics<br>
- * Value.WeightWeightedConflicts=1.0<br>
+ * #Use conflict-based statistics
+ * Extensions.Classes=org.cpsolver.ifs.extension.ConflictStatistics
+ * Value.WeightWeightedConflicts=1.0
  * </code>
- * </ul>
- * <br>
+ * </pre>
+ * 
  * File<b> tabu20.ini</b>
- * <ul>
+ * <pre>
  * <code>
- * #Use tabu-list of the length 20<br>
- * Value.Tabu=20<br>
+ * #Use tabu-list of the length 20
+ * Value.Tabu=20
  * </code>
- * </ul>
- * <br>
+ * </pre>
+ * 
  * File<b> rw1.ini</b>
- * <ul>
+ * <pre>
  * <code>
- * #Use 1% random walk selection<br>
- * Value.RandomWalkProb=0.01<br>
+ * #Use 1% random walk selection
+ * Value.RandomWalkProb=0.01
  * </code>
- * </ul>
- * <br>
+ * </pre>
  * 
  * @see RPPModel
  * @see org.cpsolver.ifs.extension.ConflictStatistics

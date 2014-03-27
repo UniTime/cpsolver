@@ -56,14 +56,16 @@ public class OverlapCheck {
         iModel = model;
     }
 
-    /** Return student sectioning model */
+    /** Return student sectioning model 
+     * @return problem model
+     **/
     public StudentSectioningModel getModel() {
         return iModel;
     }
 
     /**
      * Check for overlapping sections that are attended by the same student
-     * 
+     * @param a current assignment
      * @return false, if there is such a case
      */
     public boolean check(Assignment<Request, Enrollment> a) {

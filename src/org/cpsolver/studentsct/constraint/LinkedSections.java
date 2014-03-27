@@ -89,16 +89,21 @@ public class LinkedSections {
     
     /**
      * Return offerings of this link
+     * @return offerings of this link
      */
     public Set<Offering> getOfferings() { return iSections.keySet(); }
     
     /**
      * Return subpart (or subparts) of an offering of this link
+     * @param offering an offering of this link
+     * @return subpart (or subparts) of this offering in this link
      */
     public Set<Subpart> getSubparts(Offering offering) { return iSections.get(offering).keySet(); }
     
     /**
      * Return section (or sections) of a subpart of this link
+     * @param subpart subpart of this link
+     * @return section (or sections) of this subpart in this link
      */
     public Set<Section> getSections(Subpart subpart) { return iSections.get(subpart.getConfig().getOffering()).get(subpart); }
     
@@ -147,6 +152,7 @@ public class LinkedSections {
      * of this student is in a conflict, if it does not contain the appropriate sections from
      * {@link LinkedSections#getSubparts(Offering)} and {@link LinkedSections#getSections(Subpart)}.
      * 
+     * @param assignment current assignment
      * @param enrollment given enrollment 
      * @param conflicts found conflicts are given to this interface, see {@link ConflictHandler#onConflict(Enrollment)}
      */
@@ -217,6 +223,7 @@ public class LinkedSections {
      * of this student is in a conflict, if it does not contain the appropriate sections from
      * {@link LinkedSections#getSubparts(Offering)} and {@link LinkedSections#getSections(Subpart)}.
      * 
+     * @param assignment current assignment
      * @param enrollment given enrollment 
      * @return conflicting enrollment
      */
@@ -252,6 +259,9 @@ public class LinkedSections {
     public static interface EnrollmentAssignment {
         /**
          * Return enrollment of the given request
+         * @param request given request
+         * @param index index of the request
+         * @return an enrollment
          */
         public Enrollment getEnrollment(Request request, int index);
     }
@@ -262,6 +272,8 @@ public class LinkedSections {
     public static interface ConflictHandler {
         /**
          * Called when there is a conflict, if false the computation of other conflicts is stopped.
+         * @param conflict a conflicting enrollment
+         * @return stop the computation when false
          */
         public boolean onConflict(Enrollment conflict);
     }
@@ -277,7 +289,7 @@ public class LinkedSections {
         }
         
         /**
-         * Return {@link Request#getAssignment()}
+         * Return {@link Request#getAssignment(Assignment)}
          */
         @Override
         public Enrollment getEnrollment(Request request, int index) {
@@ -317,11 +329,13 @@ public class LinkedSections {
         
         /**
          * Return student
+         * @return student
          */
         public Student getStudent() { return iStudent; }
 
         /**
          * Return linked section
+         * @return linked sections constraint
          */
         public LinkedSections getLinkedSections() { return LinkedSections.this; }
 

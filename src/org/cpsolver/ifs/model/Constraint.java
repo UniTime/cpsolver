@@ -100,6 +100,8 @@ import org.cpsolver.ifs.util.IdGenerator;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * @param <V> Variable
+ * @param <T> Value
  */
 
 public abstract class Constraint<V extends Variable<V, T>, T extends Value<V, T>> implements Comparable<Constraint<V, T>> {
@@ -116,22 +118,31 @@ public abstract class Constraint<V extends Variable<V, T>, T extends Value<V, T>
         iId = iIdGenerator.newId();
     }
 
-    /** The model which the constraint belongs to */
+    /** The model which the constraint belongs to 
+     * @return problem model
+     **/
     public Model<V, T> getModel() {
         return iModel;
     }
 
-    /** Sets the model which the constraint belongs to */
+    /** Sets the model which the constraint belongs to
+     * @param model problem model
+     **/
     public void setModel(Model<V, T> model) {
         iModel = model;
     }
 
-    /** The list of variables of this constraint */
+    /** The list of variables of this constraint 
+     * @return variables of this constraint
+     **/
     public List<V> variables() {
         return iVariables;
     }
 
-    /** The list of variables of this constraint that are assigned */
+    /** The list of variables of this constraint that are assigned 
+     * @param assignment current assignment
+     * @return assigned variables of this constraint
+     **/
     public Collection<V> assignedVariables(Assignment<V, T> assignment) {
         List<V> assigned = new ArrayList<V>();
         for (V v: variables())
@@ -140,23 +151,32 @@ public abstract class Constraint<V extends Variable<V, T>, T extends Value<V, T>
         return assigned;
     }
 
-    /** The number of variables of this constraint */
+    /** The number of variables of this constraint
+     * @return number of variables of this constraint 
+     **/
     public int countVariables() {
         return variables().size();
     }
 
-    /** The number of variables of this constraint that are assigned */
+    /** The number of variables of this constraint that are assigned 
+     * @param assignment current assignment
+     * @return number of variables of this constraint that are assigned 
+     **/
     public int countAssignedVariables(Assignment<V, T> assignment) {
         return assignedVariables(assignment).size();
     }
 
-    /** Add a variable to this constraint */
+    /** Add a variable to this constraint 
+     * @param variable a variable
+     **/
     public void addVariable(V variable) {
         iVariables.add(variable);
         variable.addContstraint(this);
     }
 
-    /** Remove a variable from this constraint */
+    /** Remove a variable from this constraint 
+     * @param variable a variable
+     **/
     public void removeVariable(V variable) {
         variable.removeContstraint(this);
         iVariables.remove(variable);
@@ -168,11 +188,9 @@ public abstract class Constraint<V extends Variable<V, T>, T extends Value<V, T>
      * consistent with the given value if it is assigned to its variable. The
      * computed list of conflicting values is added to the given set of
      * conflicts.
-     * 
-     * @param value
-     *            value to be assigned to its varaible
-     * @param conflicts
-     *            resultant set of conflicting values
+     * @param assignment current assignment
+     * @param value value to be assigned to its variable
+     * @param conflicts resultant set of conflicting values
      */
     public abstract void computeConflicts(Assignment<V, T> assignment, T value, Set<T> conflicts);
 
@@ -180,6 +198,9 @@ public abstract class Constraint<V extends Variable<V, T>, T extends Value<V, T>
      * Returns true if the given assignments are consistent respecting this
      * constraint. This method is used by MAC (see
      * {@link org.cpsolver.ifs.extension.MacPropagation}).
+     * @param value1 a value
+     * @param value2 a value
+     * @return true if the constraint is ok with the assignment
      */
     public boolean isConsistent(T value1, T value2) {
         return true;
@@ -189,6 +210,9 @@ public abstract class Constraint<V extends Variable<V, T>, T extends Value<V, T>
      * Returns true if the given assignment is inconsistent with the existing
      * assignments respecting this constraint. This method is used by MAC (see
      * {@link org.cpsolver.ifs.extension.MacPropagation}).
+     * @param assignment current assignment
+     * @param value given value
+     * @return true if there is a conflict with other assigned variables of the constraint
      */
     public boolean inConflict(Assignment<V, T> assignment, T value) {
         Set<T> conflicts = new HashSet<T>();
@@ -197,9 +221,12 @@ public abstract class Constraint<V extends Variable<V, T>, T extends Value<V, T>
     }
 
     /**
-     * Given value is to be assigned to its varable. In this method, the
-     * constraint should unassigns all varaibles which are in conflict with the
+     * Given value is to be assigned to its variable. In this method, the
+     * constraint should unassigns all variables which are in conflict with the
      * given assignment because of this constraint.
+     * @param assignment current assignment
+     * @param iteration current iteration
+     * @param value assigned value
      */
     public void assigned(Assignment<V, T> assignment, long iteration, T value) {
         Set<T> conf = null;
@@ -223,39 +250,54 @@ public abstract class Constraint<V extends Variable<V, T>, T extends Value<V, T>
 
     /**
      * Given value is unassigned from its variable.
+     * @param assignment current assignment
+     * @param iteration current iteration
+     * @param value unassigned value
      */
     public void unassigned(Assignment<V, T> assignment, long iteration, T value) {
     }
 
-    /** Adds a constraint listener */
+    /** Adds a constraint listener
+     * @param listener a constraint listener
+     **/
     public void addConstraintListener(ConstraintListener<V, T> listener) {
         if (iConstraintListeners == null)
             iConstraintListeners = new ArrayList<ConstraintListener<V, T>>();
         iConstraintListeners.add(listener);
     }
 
-    /** Removes a constraint listener */
+    /** Removes a constraint listener 
+     * @param listener a constraint listener
+     **/
     public void removeConstraintListener(ConstraintListener<V, T> listener) {
         if (iConstraintListeners != null)
             iConstraintListeners.remove(listener);
     }
 
-    /** Returns the list of registered constraint listeners */
+    /** Returns the list of registered constraint listeners 
+     * @return a list of currently registered constraint listeners
+     **/
     public List<ConstraintListener<V, T>> constraintListeners() {
         return iConstraintListeners;
     }
 
-    /** Unique id */
+    /** Unique id 
+     * @return constraint id
+     **/
     public long getId() {
         return iId;
     }
 
-    /** Constraint's name -- for printing purposes */
+    /** Constraint's name -- for printing purposes
+     * @return constraint name
+     **/
     public String getName() {
         return String.valueOf(iId);
     }
 
-    /** Constraint's description -- for printing purposes */
+    /** Constraint's description -- for printing purposes
+     * @return constraint description
+     **/
     public String getDescription() {
         return null;
     }
@@ -269,6 +311,7 @@ public abstract class Constraint<V extends Variable<V, T>, T extends Value<V, T>
      * Returns true if the constraint is hard. Only hard constraints are allowed
      * to unassign a variable when there is a conflict with a value that is
      * being assigned
+     * @return true if the constraint is hard 
      */
     public boolean isHard() {
         return true;

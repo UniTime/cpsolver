@@ -33,8 +33,9 @@ import org.cpsolver.ifs.util.ToolBox;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * 
+ * @param <E> Class of objects that are to be selected from. 
  */
-
 public class RouletteWheelSelection<E> implements Enumeration<E> {
     private List<E> iAdepts = new ArrayList<E>();
     private List<Double> iPoints = new ArrayList<Double>();
@@ -100,22 +101,30 @@ public class RouletteWheelSelection<E> implements Enumeration<E> {
         return selectedObject;
     }
 
-    /** Number of objects in the set */
+    /** Number of objects in the set 
+     * @return number of objects in the set
+     **/
     public int size() {
         return iAdepts.size();
     }
 
-    /** Total value of objects that were already returned by the selection. */
+    /** Total value of objects that were already returned by the selection.
+     * @return total value of objects that were already returned by the selection
+     **/
     public double getUsedPoints() {
         return iUsedPoints;
     }
 
-    /** Total value of objects that are still in the selection. */
+    /** Total value of objects that are still in the selection.
+     * @return total value of objects that are still in the selection
+     **/
     public double getRemainingPoints() {
         return iTotalPoints;
     }
 
-    /** Total value of objects that were added into the selection. */
+    /** Total value of objects that were added into the selection.
+     * @return total value of objects that were added into the selection
+     **/
     public double getTotalPoints() {
         return iTotalPoints + iUsedPoints;
     }

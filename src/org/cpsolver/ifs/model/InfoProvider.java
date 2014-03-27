@@ -29,14 +29,23 @@ import org.cpsolver.ifs.assignment.Assignment;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ *          
+ * @param <V> Variable
+ * @param <T> Value
  */
 public interface InfoProvider<V extends Variable<V, T>, T extends Value<V, T>> {
-    /** Adds some information into the table with information about the solution */
+    /** Adds some information into the table with information about the solution
+     * @param assignment current assignment
+     * @param info info table
+     **/
     public void getInfo(Assignment<V, T> assignment, Map<String, String> info);
 
     /**
      * Adds some information into the table with information about the solution,
      * only consider variables from the given set
+     * @param assignment current assignment
+     * @param info info table 
+     * @param variables sub-problem
      */
     public void getInfo(Assignment<V, T> assignment, Map<String, String> info, Collection<V> variables);
 }

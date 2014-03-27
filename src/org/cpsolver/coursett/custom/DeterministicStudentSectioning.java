@@ -27,9 +27,9 @@ import org.cpsolver.ifs.util.Progress;
  * assigned in this order to the first available group (configuration or lecture). See {@link StudentSectioning}
  * and {@link DefaultStudentSectioning} for more details about sectioning students during course timetabling.
  * <br><br>
- * This deterministic sectioning can be enabled by setting the following parameter:<ul>
+ * This deterministic sectioning can be enabled by setting the following parameter:<pre>
  * <code>StudentSectioning.Class=org.cpsolver.coursett.custom.DeterministicStudentSectioning</code>
- * </ul>
+ * </pre>
  * 
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2014 Tomas Muller<br>

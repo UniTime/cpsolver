@@ -41,7 +41,9 @@ import org.cpsolver.ifs.model.Variable;
  *          Lesser General Public License for more details. <br>
  * <br>
  *          You should have received a copy of the GNU Lesser General Public
- *          License along with this library; if not see <http://www.gnu.org/licenses/>.
+ *          License along with this library; if not see <a href='http://www.gnu.org/licenses'>http://www.gnu.org/licenses</a>.
+ * @param <V> Variable
+ * @param <T> Value
  **/
 public abstract class AssignmentAbstract<V extends Variable<V, T>, T extends Value<V, T>> implements Assignment<V, T> {
     protected AssignmentContextHolder<V, T> iContexts;
@@ -69,17 +71,23 @@ public abstract class AssignmentAbstract<V extends Variable<V, T>, T extends Val
 
     /**
      * Returns assignment of a variable, null if not assigned. To be implemented.
+     * @param variable a variable in question
+     * @return assigned value
      **/
     protected abstract T getValueInternal(V variable);
     
     /**
      * Sets an assignment to a variable (unassigns a variable if the given value is null). To be implemented.
+     * @param iteration current iteration
+     * @param variable a variable to be assigned
+     * @param value new assignment, null if to be unassigned
      **/
     protected abstract void setValueInternal(long iteration, V variable, T value);
     
     /** Assigns a variable with the given value. All the appropriate classes are notified about the change.
      * It is using {@link AssignmentAbstract#setValueInternal(long, Variable, Value)} to store the new 
      * assignment.
+     * @param iteration current iteration
      * @param variable a variable
      * @param value one of its values, null if the variable is to be unassigned
      * @return previous assignment of the variable 

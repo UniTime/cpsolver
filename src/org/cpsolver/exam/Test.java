@@ -87,9 +87,8 @@ import org.dom4j.io.XMLWriter;
  * </ul>
  * <br>
  * <br>
- * Usage: <code>
- * &nbsp;&nbsp;&nbsp;java -Xmx1024m -jar examtt-1.1.jar exam.properties input.xml output.xml
- * </code> <br>
+ * Usage:
+ * <pre><code>java -Xmx1024m -jar examtt-1.1.jar exam.properties input.xml output.xml</code></pre>
  * <br>
  * 
  * @version ExamTT 1.3 (Examination Timetabling)<br>

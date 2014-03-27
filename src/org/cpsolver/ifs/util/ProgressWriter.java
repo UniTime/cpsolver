@@ -6,35 +6,35 @@ import java.io.PrintStream;
  * Prints current progres to {@link PrintStream}. <br>
  * <br>
  * Example usage:
- * <ul>
+ * <pre>
  * <code>
  * Progress.getInstance().addProgressListener(new ProgressWriter(System.out));<br>
  * </code>
- * </ul>
+ * </pre>
  * <br>
  * Example output:
- * <ul>
+ * <pre>
  * <code>
- * Reading course.pl ...       :<br>
- * Reading altcourse.pl ...    :<br>
- * Reading room.pl ...         :<br>
- * Creating rooms ...          : ................................................<br>
- * Creating variables ...      : ................................................<br>
- * Reading students.pl ...     :<br>
- * Reading jenr.pl ...         :<br>
- * Creating jenrl constraints .: ................................................<br>
- * Reading add.pl ...          :<br>
- * Creating group constraints .: ................................................<br>
- * Creating initial assignment : ................................................<br>
- * Creating dept. spread constr: ................................................<br>
- * Input data loaded           : ................................................<br>
- * Initializing solver         :<br>
- * Searching for initial soluti: ................................................<br>
- * Improving found solution ...: ................................................<br>
- * Improving found solution ...: ................................................<br>
+ * Reading course.pl ...       :
+ * Reading altcourse.pl ...    :
+ * Reading room.pl ...         :
+ * Creating rooms ...          : ................................................
+ * Creating variables ...      : ................................................
+ * Reading students.pl ...     :
+ * Reading jenr.pl ...         :
+ * Creating jenrl constraints .: ................................................
+ * Reading add.pl ...          :
+ * Creating group constraints .: ................................................
+ * Creating initial assignment : ................................................
+ * Creating dept. spread constr: ................................................
+ * Input data loaded           : ................................................
+ * Initializing solver         :
+ * Searching for initial soluti: ................................................
+ * Improving found solution ...: ................................................
+ * Improving found solution ...: ................................................
  * Improving found solution ...: ...................................
  * </code>
- * </ul>
+ * </pre>
  * 
  * 
  * @version IFS 1.3 (Iterative Forward Search)<br>

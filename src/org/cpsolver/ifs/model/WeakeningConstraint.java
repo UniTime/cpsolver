@@ -23,12 +23,15 @@ import org.cpsolver.ifs.assignment.Assignment;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * 
+ * @param <V> Variable 
+ * @param <T> Value
  */
-
 public interface WeakeningConstraint<V extends Variable<V, T>, T extends Value<V, T>> {
     /**
      * Weaken the constraint. This method is called if the constraint
      * participates in an unassigned of a variable.
+     * @param assignment current assignment
      */
     public void weaken(Assignment<V, T> assignment);
     
@@ -36,6 +39,8 @@ public interface WeakeningConstraint<V extends Variable<V, T>, T extends Value<V
     /**
      * Weaken the constraint enough so that it can assign the given
      * value.
+     * @param assignment current assignment
+     * @param value a conflicting value to be assigned
      */
     public void weaken(Assignment<V, T> assignment, T value);
 }

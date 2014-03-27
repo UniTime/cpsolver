@@ -31,8 +31,7 @@ import org.dom4j.io.SAXReader;
  * It outputs data for the Table 1 (characteristics of the data sets) and Table 2 (number of rooms and exams of a certain size). 
  * <br>
  * Usage:
- * <code>java -cp cpsolver-all-1.2.jar org.cpsolver.exam.MistaTables problem1.xml problem2.xml ...</code> 
- * <br>
+ * <pre><code>java -cp cpsolver-all-1.2.jar org.cpsolver.exam.MistaTables problem1.xml problem2.xml ...</code></pre>
  * <br>
  * 
  * @version ExamTT 1.3 (Examination Timetabling)<br>

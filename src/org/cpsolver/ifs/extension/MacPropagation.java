@@ -43,8 +43,8 @@ import org.cpsolver.ifs.util.Progress;
  * rather easy. A value vx is deleted from the domain of the variable Vx only if
  * there is a constraint which prohibits the assignment Vx=vx because of the
  * existing assignments (e.g., Vy = vy, Vz = vz). An explanation for the
- * deletion of this value vx is then Vx != vx &#8592; (Vy = vy & ... Vz = vz),
- * where Vy = vy & ... Vz = vz are assignments contained in the prohibiting
+ * deletion of this value vx is then Vx != vx &#8592; (Vy = vy &amp; ... Vz = vz),
+ * where Vy = vy &amp; ... Vz = vz are assignments contained in the prohibiting
  * constraint. In case of arc consistency, a value vx is deleted from the domain
  * of the variable Vx if there is a constraint which does not permit the
  * assignment Vx = vx with other possible assignments of the other variables in
@@ -68,7 +68,7 @@ import org.cpsolver.ifs.util.Progress;
  * variables. <br>
  * <br>
  * Parameters:
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -100,6 +100,8 @@ import org.cpsolver.ifs.util.Progress;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * @param <V> Variable
+ * @param <T> Value
  */
 public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> extends ExtensionWithContext<V, T, MacPropagation<V, T>.NoGood> {
     private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(MacPropagation.class);
@@ -111,13 +113,18 @@ public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
     /** Current iteration */
     protected long iIteration = 0;
 
-    /** Constructor */
+    /** Constructor 
+     * @param solver current solver 
+     * @param properties solver configuration
+     **/
     public MacPropagation(Solver<V, T> solver, DataProperties properties) {
         super(solver, properties);
         iJustForwardCheck = properties.getPropertyBoolean("MacPropagation.JustForwardCheck", false);
     }
 
-    /** Adds a constraint on which arc-consistency is to be maintained */
+    /** Adds a constraint on which arc-consistency is to be maintained 
+     * @param constraint a hard constraint
+     **/
     public void addConstraint(Constraint<V, T> constraint) {
         if (iConstraints == null)
             iConstraints = new ArrayList<Constraint<V, T>>();
@@ -127,6 +134,8 @@ public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
     /**
      * Returns true, if arc-consistency is to be maintained on the given
      * constraint
+     * @param constraint a constraint
+     * @return true if in the set
      */
     public boolean contains(Constraint<V, T> constraint) {
         if (iConstraints == null)
@@ -208,7 +217,10 @@ public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
      * solution. AC3 algorithm is used.
      */
 
-    /** Propagation over the given variable. */
+    /** Propagation over the given variable. 
+     * @param assignment current assignment
+     * @param variable given variable
+     **/
     protected void propagate(Assignment<V, T> assignment, V variable) {
         Queue<V> queue = new LinkedList<V>();
         if (assignment.getValue(variable) != null) {
@@ -226,7 +238,10 @@ public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
             propagate(assignment, queue);
     }
 
-    /** Propagation over the queue of variables. */
+    /** Propagation over the queue of variables.
+     * @param assignment current assignment
+     * @param queue variable queue
+     **/
     protected void propagate(Assignment<V, T> assignment, Queue<V> queue) {
         while (!queue.isEmpty()) {
             V aVariable = queue.poll();
@@ -243,6 +258,8 @@ public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
      * two phases: 1) values that contain this variable in explanation are
      * returned back to domains (marked as good) 2) propagation over variables
      * which contains a value that was marked as good takes place
+     * @param assignment current assignment
+     * @param variable given variable
      */
     public void undoPropagate(Assignment<V, T> assignment, V variable) {
         Map<V, List<T>> undoVars = new HashMap<V, List<T>>();
@@ -328,7 +345,11 @@ public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
         return ret[0];
     }
 
-    /** good values of a variable (values not removed from variables domain) */
+    /** good values of a variable (values not removed from variables domain) 
+     * @param assignment current assignment
+     * @param variable given variable
+     * @return set of good values 
+     **/
     @SuppressWarnings("unchecked")
     public Set<T> goodValues(Assignment<V, T> assignment, V variable) {
         Set<T>[] ret = getContext(assignment).getNoGood(variable);
@@ -358,17 +379,28 @@ public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
         supportValues(assignment, variable).add(value);
     }
 
-    /** variables explanation */
+    /** variables explanation 
+     * @param assignment current assignment 
+     * @param value given value
+     * @return no-good for the value
+     **/
     public Set<T> noGood(Assignment<V, T> assignment, T value) {
         return getContext(assignment).getNoGood(value);
     }
 
-    /** is variable good */
+    /** is variable good
+     * @param assignment current assignment
+     * @param value given value
+     * @return true if there is no no-good set for the value
+     **/
     public boolean isGood(Assignment<V, T> assignment, T value) {
         return getContext(assignment).getNoGood(value) == null;
     }
 
-    /** sets value to be good */
+    /** sets value to be good 
+     * @param assignment current assignment
+     * @param value given value
+     **/
     protected void setGood(Assignment<V, T> assignment, T value) {
         Set<T> noGood = getContext(assignment).getNoGood(value);
         if (noGood != null)
@@ -383,7 +415,11 @@ public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
         getContext(assignment).setNoGood(value, reason);
     }
 
-    /** sets value's explanation */
+    /** sets value's explanation 
+     * @param assignment current assignment
+     * @param value given value
+     * @param reason no-good set for the value
+     **/
     public void setNoGood(Assignment<V, T> assignment, T value, Set<T> reason) {
         Set<T> noGood = noGood(assignment, value);
         if (noGood != null)

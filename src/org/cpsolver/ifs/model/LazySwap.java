@@ -30,6 +30,9 @@ import org.cpsolver.ifs.model.Variable;
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not see
  * <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * 
+ * @param <V> Variable 
+ * @param <T> Value
  */
 public class LazySwap<V extends Variable<V, T>, T extends Value<V, T>> extends LazyNeighbour<V, T> {
     private T iV1, iV2, iOldV1 = null, iOldV2 = null; 

@@ -13,8 +13,8 @@ import java.util.Map;
  * of the earlier class.
  * <br><br>
  * For instructors, the preference is computed using the distance in meters and the three constants 
- * Instructor.NoPreferenceLimit (distance <= limit -> no preference), Instructor.DiscouragedLimit (distance <= limit -> discouraged),
- * Instructor.ProhibitedLimit (distance <= limit -> strongly discouraged), the back-to-back placement is prohibited when the distance is over the last limit.
+ * Instructor.NoPreferenceLimit (distance &lt;= limit &rarr; no preference), Instructor.DiscouragedLimit (distance &lt;= limit &rarr; discouraged),
+ * Instructor.ProhibitedLimit (distance &lt;= limit &rarr; strongly discouraged), the back-to-back placement is prohibited when the distance is over the last limit.
  * 
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
@@ -60,18 +60,30 @@ public class DistanceMetric {
             iA = a; iB = b; iF = f;
         }
         
-        /** Major semiaxe A */
+        /** Major semiaxe A 
+         * @return major semiaxe A
+         **/
         public double a() { return iA; }
-        /** Minor semiaxe B */
+        /** Minor semiaxe B
+         * @return major semiaxe B
+         **/
         public double b() { return iB; }
-        /** Flattening (A-B) / A */
+        /** Flattening (A-B) / A
+         * @return Flattening (A-B) / A 
+         **/
         public double f() { return iF; }
         
-        /** Name of this coordinate system */
+        /** Name of this coordinate system
+         * @return elipsoid name 
+         **/
         public String getEclipsoindName() { return iName; }
-        /** Name of the fist coordinate (e.g., Latitude) */
+        /** Name of the fist coordinate (e.g., Latitude) 
+         * @return first coordinate's name 
+         **/
         public String getFirstCoordinateName() { return iFirstCoord; }
-        /** Name of the second coordinate (e.g., Longitude) */
+        /** Name of the second coordinate (e.g., Longitude)
+         * @return second coordinate's name
+         **/
         public String getSecondCoordinateName() { return iSecondCoord; }
     }
     
@@ -109,7 +121,9 @@ public class DistanceMetric {
     public DistanceMetric() {
     }
     
-    /** With provided ellipsoid */
+    /** With provided ellipsoid 
+     * @param model ellipsoid model
+     **/
     public DistanceMetric(Ellipsoid model) {
         iModel = model;
         if (iModel == Ellipsoid.LEGACY) {
@@ -119,13 +133,18 @@ public class DistanceMetric {
         }
     }
 
-    /** With provided ellipsoid and student speed */
+    /** With provided ellipsoid and student speed
+     * @param model ellipsoid model
+     * @param speed student speed in meters per minute 
+     **/
     public DistanceMetric(Ellipsoid model, double speed) {
         iModel = model;
         iSpeed = speed;
     }
     
-    /** Configured using properties */
+    /** Configured using properties 
+     * @param properties solver configuration
+     **/
     public DistanceMetric(DataProperties properties) {
         if (Ellipsoid.LEGACY.name().equals(properties.getProperty("Distances.Ellipsoid",Ellipsoid.LEGACY.name()))) {
             //LEGACY MODE
@@ -151,12 +170,20 @@ public class DistanceMetric {
         iInstructorLongTravelInMinutes = properties.getPropertyDouble("Instructor.InstructorLongTravelInMinutes", 30.0);
     }
 
-    /** Degrees to radians */
+    /** Degrees to radians 
+     * @param deg degrees
+     * @return radians
+     **/
     protected double deg2rad(double deg) {
         return deg * Math.PI / 180;
     }
     
     /** Compute distance between the two given coordinates
+     * @param lat1 first coordinate's latitude
+     * @param lon1 first coordinate's longitude
+     * @param lat2 second coordinate's latitude
+     * @param lon2 second coordinate's longitude
+     * @return distance in meters
      * @deprecated Use @{link {@link DistanceMetric#getDistanceInMeters(Long, Double, Double, Long, Double, Double)} instead (to include travel time matrix when available).
      */
     @Deprecated
@@ -243,6 +270,11 @@ public class DistanceMetric {
     /**
      * Compute distance in minutes.
      * Property Distances.Speed (in meters per minute) is used to convert meters to minutes, defaults to 1000 meters per 15 minutes (that means 66.67 meters per minute).
+     * @param lat1 first coordinate's latitude
+     * @param lon1 first coordinate's longitude
+     * @param lat2 second coordinate's latitude
+     * @param lon2 second coordinate's longitude
+     * @return distance in minutes
      * @deprecated Use @{link {@link DistanceMetric#getDistanceInMinutes(Long, Double, Double, Long, Double, Double)} instead (to include travel time matrix when available).
      */
     @Deprecated
@@ -253,23 +285,31 @@ public class DistanceMetric {
     /**
      * Converts minutes to meters.
      * Property Distances.Speed (in meters per minute) is used, defaults to 1000 meters per 15 minutes.
+     * @param min minutes to travel
+     * @return meters to travel
      */
     public double minutes2meters(int min) {
         return iSpeed * min;
     }
     
 
-    /** Back-to-back classes in rooms within this limit have neutral preference */
+    /** Back-to-back classes in rooms within this limit have neutral preference 
+     * @return limit in meters
+     **/
     public double getInstructorNoPreferenceLimit() {
         return iInstructorNoPreferenceLimit;
     }
 
-    /** Back-to-back classes in rooms within this limit have discouraged preference */
+    /** Back-to-back classes in rooms within this limit have discouraged preference 
+     * @return limit in meters
+     **/
     public double getInstructorDiscouragedLimit() {
         return iInstructorDiscouragedLimit;
     }
 
-    /** Back-to-back classes in rooms within this limit have strongly discouraged preference, it is prohibited to exceed this limit. */
+    /** Back-to-back classes in rooms within this limit have strongly discouraged preference, it is prohibited to exceed this limit.
+     * @return limit in meters 
+     **/
     public double getInstructorProhibitedLimit() {
         return iInstructorProhibitedLimit;
     }
@@ -277,22 +317,31 @@ public class DistanceMetric {
     /**
      * When Distances.ComputeDistanceConflictsBetweenNonBTBClasses is enabled, distance limit (in minutes)
      * for a long travel.
+     * @return travel time in minutes
      */
     public double getInstructorLongTravelInMinutes() {
         return iInstructorLongTravelInMinutes;
     }
     
-    /** True if legacy mode is used (Euclidian distance where 1 unit is 10 meters) */
+    /** True if legacy mode is used (Euclidian distance where 1 unit is 10 meters) 
+     * @return true if the ellipsoid model is the old one
+     **/
     public boolean isLegacy() {
         return iModel == Ellipsoid.LEGACY;
     }
     
-    /** Maximal travel distance between rooms when no coordinates are given */
+    /** Maximal travel distance between rooms when no coordinates are given 
+     * @return travel time in minutes
+     **/
     public int getMaxTravelDistanceInMinutes() {
         return iMaxTravelTime;
     }
 
-    /** Add travel time between two locations */
+    /** Add travel time between two locations 
+     * @param roomId1 first room's id
+     * @param roomId2 second room's id
+     * @param travelTimeInMinutes travel time in minutes 
+     **/
     public void addTravelTime(Long roomId1, Long roomId2, Integer travelTimeInMinutes) {
         synchronized (iTravelTimes) {
             if (roomId1 == null || roomId2 == null) return;
@@ -314,7 +363,11 @@ public class DistanceMetric {
         }
     }
     
-    /** Return travel time between two locations. */
+    /** Return travel time between two locations. 
+     * @param roomId1 first room's id
+     * @param roomId2 second room's id
+     * @return travel time in minutes
+     **/
     public Integer getTravelTimeInMinutes(Long roomId1, Long roomId2) {
         synchronized (iTravelTimes) {
             if (roomId1 == null || roomId2 == null) return null;
@@ -328,7 +381,15 @@ public class DistanceMetric {
         }
     }
     
-    /** Return travel time between two locations. Travel times are used when available, use coordinates otherwise. */
+    /** Return travel time between two locations. Travel times are used when available, use coordinates otherwise. 
+     * @param roomId1 first room's id
+     * @param lat1 first room's latitude
+     * @param lon1 first room's longitude
+     * @param roomId2 second room's id
+     * @param lat2 second room's latitude
+     * @param lon2 second room's longitude
+     * @return distance in minutes
+     **/
     public Integer getDistanceInMinutes(Long roomId1, Double lat1, Double lon1, Long roomId2, Double lat2, Double lon2) {
         Integer distance = getTravelTimeInMinutes(roomId1, roomId2);
         if (distance != null) return distance;
@@ -339,7 +400,15 @@ public class DistanceMetric {
             return (int) Math.min(getMaxTravelDistanceInMinutes(), Math.round(getDistanceInMeters(lat1, lon1, lat2, lon2) / iSpeed));
     }
     
-    /** Return travel distance between two locations.  Travel times are used when available, use coordinates otherwise. */
+    /** Return travel distance between two locations.  Travel times are used when available, use coordinates otherwise
+     * @param roomId1 first room's id
+     * @param lat1 first room's latitude
+     * @param lon1 first room's longitude
+     * @param roomId2 second room's id
+     * @param lat2 second room's latitude
+     * @param lon2 second room's longitude
+     * @return distance in meters
+     **/
     public double getDistanceInMeters(Long roomId1, Double lat1, Double lon1, Long roomId2, Double lat2, Double lon2) {
         Integer distance = getTravelTimeInMinutes(roomId1, roomId2);
         if (distance != null) return minutes2meters(distance);
@@ -347,18 +416,23 @@ public class DistanceMetric {
         return getDistanceInMeters(lat1, lon1, lat2, lon2);
     }
     
-    /** Return travel times matrix */
+    /** Return travel times matrix
+     * @return travel times matrix
+     **/
     public Map<Long, Map<Long, Integer>> getTravelTimes() { return iTravelTimes; }
     
     /**
      * True if distances should be considered between classes that are NOT back-to-back. Distance in minutes is then 
      * to be compared with the difference between end of the last class and start of the second class plus break time of the first class.
+     * @return true if distances should be considered between classes that are NOT back-to-back
      **/
     public boolean doComputeDistanceConflictsBetweenNonBTBClasses() {
         return iComputeDistanceConflictsBetweenNonBTBClasses;
     }
     
-    /** Few tests */
+    /** Few tests 
+     * @param args program arguments
+     **/
     public static void main(String[] args) {
         System.out.println("Distance between Prague and Zlin: " + new DistanceMetric().getDistanceInMeters(50.087661, 14.420535, 49.226736, 17.668856) / 1000.0 + " km");
         System.out.println("Distance between ENAD and PMU: " + new DistanceMetric().getDistanceInMeters(40.428323, -86.912785, 40.425078, -86.911474) + " m");

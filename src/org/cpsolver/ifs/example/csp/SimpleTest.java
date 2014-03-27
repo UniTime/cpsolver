@@ -29,6 +29,7 @@ import org.cpsolver.ifs.solver.Solver;
 public class SimpleTest {
     /**
      * run the test
+     * @param args program arguments
      */
     public static void main(String[] args) {
         org.apache.log4j.BasicConfigurator.configure();

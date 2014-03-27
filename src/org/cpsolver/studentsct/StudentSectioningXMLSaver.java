@@ -50,7 +50,7 @@ import org.dom4j.io.XMLWriter;
  * <br>
  * <br>
  * Parameters:
- * <table border='1'>
+ * <table border='1' summary='Related Solver Parameters'>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -101,10 +101,10 @@ import org.dom4j.io.XMLWriter;
  * </table>
  * <br>
  * <br>
- * Usage:<br>
- * <code>
- * new StudentSectioningXMLSaver(solver).save(new File("solution.xml"));<br> 
- * </code>
+ * Usage:
+ * <pre><code>
+ * new StudentSectioningXMLSaver(solver).save(new File("solution.xml")); 
+ * </code></pre>
  * 
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>

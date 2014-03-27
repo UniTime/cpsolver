@@ -44,6 +44,7 @@ public class Location extends Value<Operation, Location> {
 
     /**
      * Get start time of the location
+     * @return start time of the location
      */
     public int getStartTime() {
         return iStartTime;
@@ -52,6 +53,7 @@ public class Location extends Value<Operation, Location> {
     /**
      * Get finishing time of the location (start time + operation processing
      * time)
+     * @return finishing time of the location
      */
     public int getFinishingTime() {
         return iStartTime + (variable()).getProcessingTime() - 1;
@@ -83,6 +85,8 @@ public class Location extends Value<Operation, Location> {
 
     /**
      * Returns true if overlap with the given location
+     * @param anotherLocation given location
+     * @return true if overlap with the given location
      */
     public boolean overlap(Location anotherLocation) {
         if (getStartTime() + variable().getProcessingTime() <= anotherLocation.getStartTime())
@@ -93,7 +97,9 @@ public class Location extends Value<Operation, Location> {
     }
 
     /**
-     * Returnts true if before the given location
+     * Returns true if before the given location
+     * @param anotherLocation given location
+     * @return true if before the given location
      */
     public boolean before(Location anotherLocation) {
         if (getStartTime() + variable().getProcessingTime() <= anotherLocation.getStartTime())
@@ -102,7 +108,9 @@ public class Location extends Value<Operation, Location> {
     }
 
     /**
-     * Returnts true if after the given location
+     * Returns true if after the given location
+     * @param anotherLocation given location
+     * @return true if after the given location
      */
     public boolean after(Location anotherLocation) {
         return anotherLocation.before(this);

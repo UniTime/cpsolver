@@ -16,10 +16,10 @@ import org.cpsolver.ifs.util.CSVFile.CSVField;
  * Export student more than two exams a day conflicts between triplets of exams
  * into a CSV file. <br>
  * <br>
- * Usage:<br>
- * <code>
+ * Usage:
+ * <pre><code>
  * &nbsp;&nbsp;&nbsp;&nbsp;new ExamStudentMoreTwoADay(model).report().save(file);
- * </code> <br>
+ * </code></pre>
  * <br>
  * 
  * @version ExamTT 1.3 (Examination Timetabling)<br>
