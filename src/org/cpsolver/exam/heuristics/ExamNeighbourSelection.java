@@ -143,6 +143,8 @@ public class ExamNeighbourSelection extends NeighbourSelectionWithContext<Exam, 
     @Override
     public Neighbour<Exam, ExamPlacement> selectNeighbour(Solution<Exam, ExamPlacement> solution) {
         Neighbour<Exam, ExamPlacement> n = null;
+        if (!isFinalPhase() && !iTerm.canContinue(solution))
+            setFinalPhase(null);
         Context phase = getContext(solution.getAssignment());
         if (isFinalPhase())
             phase.setPhase(9999);
