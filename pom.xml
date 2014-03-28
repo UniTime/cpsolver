@@ -276,12 +276,12 @@
 						</goals>
 						<configuration>
 							<exportAntProperties>true</exportAntProperties>
-							<tasks>
+							<target>
 								<buildnumber />
 								<tstamp>
 									<format property="build.date" pattern="EEE, d MMM yyyy" locale="en" />
 								</tstamp>
-							</tasks>
+							</target>
 						</configuration>
 					</execution>
 				</executions>
@@ -300,6 +300,26 @@
 			</extension>
 		</extensions>
 	</build>
+	
+	<profiles>
+		<profile>
+			<id>docline-java8-disable</id>
+			<activation>
+				<jdk>[1.8,</jdk>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-javadoc-plugin</artifactId>
+						<configuration>
+							<additionalparam>-Xdoclint:none</additionalparam>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 	
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

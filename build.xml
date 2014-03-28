@@ -77,14 +77,14 @@
     </target>
 
     <target name="compile-java" depends="prepare">
-        <javac debug="true" destdir="${build.dir}" source="1.5" target="1.5" includeantruntime="false">
+        <javac debug="true" destdir="${build.dir}" source="1.5" target="1.5" includeantruntime="false" encoding="UTF-8">
             <src path="${build.dir}"/>
             <classpath refid="build.classpath"/>
         </javac>
     </target>
     
     <target name="compile-java-rel" depends="prepare">
-        <javac debug="false" optimize="true" destdir="${build.dir}" source="1.5" target="1.5" includeantruntime="false">
+        <javac debug="false" optimize="true" destdir="${build.dir}" source="1.5" target="1.5" includeantruntime="false" encoding="UTF-8">
             <src path="${build.dir}"/>
             <classpath refid="build.classpath"/>
         </javac>
@@ -178,7 +178,11 @@
     <target name="doc">
         <delete dir="${dist.dir}/doc" failonerror="false"/>
         <mkdir dir="${dist.dir}/doc"/>
-    	<javadoc destdir="${dist.dir}/doc" author="true" version="true" use="true" windowtitle="Constraint Solver API Documentation -- CPSolver v1.2 build ${build.number}" source="1.5" linksource="true" breakiterator="true">
+    	<condition property="javadoc.params" value="-Xdoclint:none" else="">
+    			<equals arg1="${ant.java.version}" arg2="1.8"/>
+    	</condition>
+    	<echo>Extra: ${javadoc.params}</echo>
+    	<javadoc destdir="${dist.dir}/doc" author="true" version="true" use="true" windowtitle="Constraint Solver API Documentation -- CPSolver v1.2 build ${build.number}" source="1.5" linksource="true" breakiterator="true"  encoding="UTF-8" additionalparam="${javadoc.params}">
     		<doctitle><![CDATA[
     		<table border='0' style='font-size: 11pt;font-weight: normal;'><tr><td align='left'>
     		IFS 1.2 (Iterative Forward Search)<br>
@@ -211,6 +215,7 @@
     	<group title="Examination Timetabling" packages="net.sf.cpsolver.exam*"/>
  	   	<link href="http://java.sun.com/j2se/1.5.0/docs/api/"/>
  	   	<link href="http://logging.apache.org/log4j/1.2/apidocs/"/>
+    	<link href="http://dom4j.sourceforge.net/dom4j-1.6.1/apidocs/"/>
  	   	<fileset dir="src" includes="**/*.java"/>
     	<packageset dir="src" includes="**/package.html"/>
  	   	<classpath>
