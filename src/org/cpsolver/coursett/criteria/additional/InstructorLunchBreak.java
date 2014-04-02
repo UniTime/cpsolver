@@ -249,6 +249,7 @@ public class InstructorLunchBreak extends AbstractCriterion<Lecture, Placement> 
          * current preference and incrementing the criterion value by the current
          * preference.
          * 
+         * @param assignment current assignment 
          * @param instructorConstraint
          *            the Instructor constraint of an instructor checked for
          *            criteria
@@ -264,6 +265,8 @@ public class InstructorLunchBreak extends AbstractCriterion<Lecture, Placement> 
         /**
          * Get compact info that is associated with an instructor constraint.
          * Create a new one if none has been created yet.
+         * @param constraint instructor constraint
+         * @return compact info for the given constraint
          */
         protected CompactInfo getCompactInfo(InstructorConstraint constraint) {
             CompactInfo info = iCompactInfos.get(constraint);
@@ -280,6 +283,7 @@ public class InstructorLunchBreak extends AbstractCriterion<Lecture, Placement> 
          * for a day is stored in the CompactInfo.lunchDayViolations of the
          * constraint, which must be set properly before the calling of the method.
          * 
+         * @param assignment current assignment 
          * @param constraint
          *            the Instructor constraint of an instructor checked for a lunch
          *            break
@@ -324,6 +328,9 @@ public class InstructorLunchBreak extends AbstractCriterion<Lecture, Placement> 
         /**
          * Method computes number of violations in days (Mo, Tue, Wed,..) considering
          * each week in the semester separately. Updates the compact infos accordingly.
+         * @param assignment current assignment 
+         * @param constraint instructor constraint
+         * @return current penalty for the given instructor
          */
         public double computeLunchPenalty(Assignment<Lecture, Placement> assignment, InstructorConstraint constraint) {
             double violations = 0d;

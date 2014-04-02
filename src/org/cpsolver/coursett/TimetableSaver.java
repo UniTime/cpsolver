@@ -39,32 +39,43 @@ public abstract class TimetableSaver implements Runnable {
 
     /**
      * Constructor
+     * @param solver current solver
      */
     public TimetableSaver(Solver<Lecture, Placement> solver) {
         iSolver = solver;
     }
 
-    /** Solver */
+    /** Solver 
+     * @return current solver
+     **/
     public Solver<Lecture, Placement> getSolver() {
         return iSolver;
     }
     
-    /** Solution to be saved */
+    /** Solution to be saved 
+     * @return current solution
+     **/
     protected Solution<Lecture, Placement> getSolution() {
         return iSolver.currentSolution();
     }
 
-    /** Model of the solution */
+    /** Model of the solution 
+     * @return problem model
+     **/
     protected TimetableModel getModel() {
         return (TimetableModel) iSolver.currentSolution().getModel();
     }
 
-    /** Current assignment */
+    /** Current assignment 
+     * @return current assignment
+     **/
     public Assignment<Lecture, Placement> getAssignment() {
         return getSolution().getAssignment();
     }
 
-    /** Save the solution */
+    /** Save the solution 
+     * @throws Exception thrown when save fails
+     **/
     public abstract void save() throws Exception;
 
     /**

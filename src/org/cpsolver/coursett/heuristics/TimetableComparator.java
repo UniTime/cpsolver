@@ -113,6 +113,8 @@ public class TimetableComparator extends GeneralSolutionComparator<Lecture, Plac
     
     /** 
      * Use {@link Model#getTotalValue()} instead.
+     * @param currentSolution current solution
+     * @return current value
      */
     @Deprecated
     public double currentValue(Solution<Lecture, Placement> currentSolution) {
@@ -124,6 +126,8 @@ public class TimetableComparator extends GeneralSolutionComparator<Lecture, Plac
     
     /** 
      * Use {@link Solution#getBestValue()} instead.
+     * @param currentSolution current solution
+     * @return best value
      */
     @Deprecated
     public double getBest(Solution<Lecture, Placement> currentSolution) {

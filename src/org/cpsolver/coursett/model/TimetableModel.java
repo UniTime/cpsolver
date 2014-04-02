@@ -163,6 +163,7 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
     /**
      * Returns interface to the student sectioning functions needed during course timetabling.
      * Defaults to an instance of {@link DefaultStudentSectioning}, can be changed using the StudentSectioning.Class parameter.
+     * @return student sectioning
      */
     public StudentSectioning getStudentSectioning() {
         return iStudentSectioning;
@@ -175,6 +176,7 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
     /**
      * Student final sectioning (switching students between sections of the same
      * class in order to minimize overall number of student conflicts)
+     * @param assignment current assignment
      */
     public void switchStudents(Assignment<Lecture, Placement> assignment) {
         getStudentSectioning().switchStudents(new Solution<Lecture, Placement>(this, assignment));
@@ -182,6 +184,8 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
 
     /**
      * String representation -- returns a list of values of objective criteria
+     * @param assignment current assignment
+     * @return comma separated string of {@link TimetablingCriterion#toString(Assignment)}
      */
     public String toString(Assignment<Lecture, Placement> assignment) {
         List<Criterion<Lecture, Placement>> criteria = new ArrayList<Criterion<Lecture,Placement>>(getCriteria());
@@ -196,7 +200,7 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
         String ret = "";
         for (Criterion<Lecture, Placement> criterion: criteria) {
             String val = ((TimetablingCriterion)criterion).toString(assignment);
-            if (!val.isEmpty())
+            if (val != null && !val.isEmpty())
                 ret += ", " + val;
         }
         return (nrUnassignedVariables(assignment) == 0 ? "" : "V:" + nrAssignedVariables(assignment) + "/" + variables().size() + ", ") + "T:" + sDoubleFormat.format(getTotalValue(assignment)) + ret;
@@ -362,27 +366,37 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
         }
     }
 
-    /** The list of all instructor constraints */
+    /** The list of all instructor constraints 
+     * @return list of instructor constraints
+     **/
     public List<InstructorConstraint> getInstructorConstraints() {
         return iInstructorConstraints;
     }
 
-    /** The list of all group constraints */
+    /** The list of all group constraints
+     * @return list of group (distribution) constraints
+     **/
     public List<GroupConstraint> getGroupConstraints() {
         return iGroupConstraints;
     }
 
-    /** The list of all jenrl constraints */
+    /** The list of all jenrl constraints
+     * @return list of join enrollment constraints
+     **/
     public List<JenrlConstraint> getJenrlConstraints() {
         return iJenrlConstraints;
     }
 
-    /** The list of all room constraints */
+    /** The list of all room constraints 
+     * @return list of room constraints
+     **/
     public List<RoomConstraint> getRoomConstraints() {
         return iRoomConstraints;
     }
 
-    /** The list of all departmental spread constraints */
+    /** The list of all departmental spread constraints 
+     * @return list of department spread constraints
+     **/
     public List<DepartmentSpreadConstraint> getDepartmentSpreadConstraints() {
         return iDepartmentSpreadConstraints;
     }
@@ -450,6 +464,9 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
      * Returns the set of conflicting variables with this value, if it is
      * assigned to its variable. Conflicts with constraints that implement
      * {@link WeakeningConstraint} are ignored.
+     * @param assignment current assignment
+     * @param value placement that is being considered
+     * @return computed conflicting assignments
      */
     public Set<Placement> conflictValuesSkipWeakeningConstraints(Assignment<Lecture, Placement> assignment, Placement value) {
         Set<Placement> conflictValues = new HashSet<Placement>();

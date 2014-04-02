@@ -100,6 +100,8 @@ public class TimetableSolver extends Solver<Lecture, Placement> {
     /**
      * Try to improve existing solution by backtracking search of very limited
      * depth. See {@link NeighbourSelectionWithSuggestions} for more details.
+     * @param solution current solution
+     * @param startTime start time
      */
     protected void fixCompleteSolution(Solution<Lecture, Placement> solution, double startTime) {
         Progress progress = Progress.getInstance(solution.getModel());

@@ -49,6 +49,7 @@ public class BreakFlexibleConstraint extends FlexibleConstraint {
 
     /**
      * 
+     * @param id constraint unique id
      * @param owner identifier of distribution preference the constraint was created for
      * @param preference time preference ("R" for required, "P" for prohibited, "-2",
      *            "-1", "1", "2" for soft preference)   
@@ -115,6 +116,13 @@ public class BreakFlexibleConstraint extends FlexibleConstraint {
     
     /**
      * Creates a list of consecutive blocks with back-to-back classes.
+     * @param assignment current assignment
+     * @param dayCode days of week
+     * @param conflicts conflicting assignment
+     * @param value placement in question
+     * @param assignments other considered assignments
+     * @param week selected week
+     * @return classes merged into blocks
      */
     public List<Block> getBreakBlocks(Assignment<Lecture, Placement> assignment, int dayCode, Set<Placement> conflicts, Placement value, HashMap<Lecture, Placement> assignments, BitSet week) {     
         

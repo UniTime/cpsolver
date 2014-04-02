@@ -57,7 +57,9 @@ public abstract class TimetablingCriterion extends AbstractCriterion<Lecture, Pl
         return (level <= 1 ? getWeight() : 0.0);
     }
 
-    /** Abbreviated name of the criterion for {@link TimetablingCriterion#toString()}. */
+    /** Abbreviated name of the criterion for {@link TimetablingCriterion#toString()}. 
+     * @return abbreviated name of the criterion
+     **/
     public String getAbbreviation() {
         return getName().replaceAll("[a-z ]","");
     }
