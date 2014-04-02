@@ -55,7 +55,9 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
     private static Logger sLog = Logger.getLogger(ExamSplitMoves.class);
     private ExamSplitter iSplitter = null;
 
-    /** Constructor */
+    /** Constructor 
+     * @param properties solver configuration
+     **/
     public ExamSplitMoves(DataProperties properties) {}
 
     /** Initialization */
@@ -69,6 +71,7 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
      * Find best available rooms for a new exam (that is to be split from the given one),
      * if is is assigned into the given examination period.
      * 
+     * @param assignment current assignment
      * @param exam an exam to be split
      * @param period a period to be assigned to the new exam
      * @param examSize size of the new exam (i.e., the number of students that will be moved from the given exam to the new one)
@@ -124,6 +127,7 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
     
     /**
      * Find a best split for the given exam. Only improving neighbors are considered. 
+     * @param assignment current assignment
      * @param exam an exam to be split
      * @return best neighbor that will do the split
      */
@@ -196,6 +200,7 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
         
         /**
          * Split an exam into two, assign the new exam into the given placement.
+         * @param assignment current assignment
          * @param exam an exam to be split
          * @param placement a placement to be assigned to the new exam
          */
@@ -253,6 +258,7 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
 
         /**
          * Number of students that will be moved into the new exam.
+         * @return number of students
          */
         public int nrStudents() {
             return iNrStudents;
@@ -260,6 +266,7 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
 
         /**
          * Exam to be split.
+         * @return exam to be split
          */
         public Exam exam() {
             return iExam;
@@ -267,6 +274,7 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
 
         /**
          * Placement of the new exam.
+         * @return placement of the new exam
          */
         public ExamPlacement placement() {
             return iPlacement;
@@ -289,6 +297,8 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
         
         /**
          * Child exam to be removed. 
+         * @param assignment current assignment
+         * @param exam child exam to be merged back 
          */
         public ExamMergeNeighbour(Assignment<Exam, ExamPlacement> assignment, Exam exam) {
             iExam = exam;
@@ -334,6 +344,7 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
         
         /**
          * Number of students that will be moved back to the parent exam or to some other child (if there are any).
+         * @return number of students
          */
         public int nrStudents() {
             return iExam.getStudents().size();
@@ -341,6 +352,7 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
 
         /**
          * Exam to be merged.
+         * @return exam to be merged
          */
         public Exam exam() {
             return iExam;
@@ -362,6 +374,8 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
         
         /**
          * Exam to be shuffled.
+         * @param assignment current exam
+         * @param exam child exam to be shuffled
          */
         public ExamShuffleNeighbour(Assignment<Exam, ExamPlacement> assignment, Exam exam) {
             iExam = exam;
@@ -415,6 +429,7 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
         
         /**
          * Exam to be shuffled.
+         * @return exam to be shuffled
          */
         public Exam exam() {
             return iExam;

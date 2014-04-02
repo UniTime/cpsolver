@@ -59,6 +59,7 @@ public class ExamOwner implements Comparable<ExamOwner> {
 
     /**
      * Unique identifier
+     * @return exam owner unique id
      */
     public long getId() {
         return iId;
@@ -66,6 +67,7 @@ public class ExamOwner implements Comparable<ExamOwner> {
 
     /**
      * Course/section name
+     * @return owner name
      */
     public String getName() {
         return iName;
@@ -73,6 +75,7 @@ public class ExamOwner implements Comparable<ExamOwner> {
 
     /**
      * An exam for this course/section
+     * @return exam associated with this owner
      */
     public Exam getExam() {
         return iExam;

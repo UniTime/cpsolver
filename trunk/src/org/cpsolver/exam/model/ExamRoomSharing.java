@@ -79,6 +79,7 @@ public abstract class ExamRoomSharing  {
      * @param exam examination placement in question
      * @param other exams currently assigned in the room at the requested period
      * @param room examination room in questions
+     * @param conflicts set of conflicting assignments
      */
     public void computeConflicts(ExamPlacement exam, Collection<ExamPlacement> other, ExamRoom room, Set<ExamPlacement> conflicts) {
         // more than one room is required -> no sharing
@@ -95,6 +96,7 @@ public abstract class ExamRoomSharing  {
      * @param exam examination in question
      * @param other exams currently assigned in the room at the requested period
      * @param room examination room in questions
+     * @param conflicts set of conflicting assignments
      */
     public void computeConflicts(Exam exam, Collection<ExamPlacement> other, ExamRoom room, Set<ExamPlacement> conflicts) {
         int total = exam.getSize();
@@ -127,16 +129,24 @@ public abstract class ExamRoomSharing  {
     
     /**
      * True if given two exams can share a room
+     * @param x1 first exam
+     * @param x2 second exam
+     * @return true if the two exams can share a room
      */
     public abstract boolean canShareRoom(Exam x1, Exam x2);
     
     /**
      * Save sharing information (if needed) for a given exam
+     * @param exam exam in question
+     * @param element XML exam element to include sharing information
+     * @param idConvertor id converter
      */
     public void save(Exam exam, Element element, IdConvertor idConvertor) {}
     
     /**
      * Load sharing information (if needed) for a given exam
+     * @param exam exam in question
+     * @param element XML exam element including sharing information
      */
     public void load(Exam exam, Element element) {}
 }

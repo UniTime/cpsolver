@@ -38,7 +38,9 @@ import org.cpsolver.ifs.util.ToolBox;
 public class ExamUnassignedVariableSelection implements VariableSelection<Exam, ExamPlacement> {
     private boolean iRandomSelection = true;
 
-    /** Constructor */
+    /** Constructor 
+     * @param properties solver configuration
+     **/
     public ExamUnassignedVariableSelection(DataProperties properties) {
         iRandomSelection = properties.getPropertyBoolean("ExamUnassignedVariableSelection.random", iRandomSelection);
     }

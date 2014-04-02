@@ -102,6 +102,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      * 
      * @param id
      *            exam unique id
+     * @param name exam name
      * @param length
      *            exam length in minutes
      * @param altSeating
@@ -152,6 +153,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      * {@link Exam#getMaxRooms()} is greater than zero, an exam must be assigned
      * into rooms which overall size (or alternative seating size if
      * {@link Exam#hasAltSeating()}) must be equal or greater than this size.
+     * @return examination size
      */
     public int getSize() {
         return (iSize == null ? Math.max(iMinSize, getStudents().size()) : iSize.intValue());
@@ -159,6 +161,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
 
     /**
      * Override exam size with given value (revert to default when null)
+     * @param size examination size override
      */
     public void setSizeOverride(Integer size) {
         iSize = size;
@@ -166,6 +169,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
 
     /**
      * Override exam size with given value (revert to default when null)
+     * @return examination size override
      */
     public Integer getSizeOverride() {
         return iSize;
@@ -173,6 +177,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
 
     /**
      * Print offset -- for reporting purposes
+     * @return print offset in minutes
      */
     public Integer getPrintOffset() {
         return iPrintOffset;
@@ -180,6 +185,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
 
     /**
      * Print offset -- for reporting purposes
+     * @param printOffset print offset in minutes
      */
     public void setPrintOffset(Integer printOffset) {
         iPrintOffset = printOffset;
@@ -187,6 +193,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
 
     /**
      * Minimal exam size, see {@link Exam#getSize()}
+     * @return minimal examination size
      */
     public int getMinSize() {
         return iMinSize;
@@ -194,6 +201,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
 
     /**
      * Minimal exam size, see {@link Exam#getSize()}
+     * @param minSize minimal examination size
      */
     public void setMinSize(int minSize) {
         iMinSize = minSize;
@@ -415,6 +423,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      * {@link ExamRotationPenalty} in order to put more weight on
      * exams that were badly assigned last time(s) and ensuring some form of
      * fairness.
+     * @return true if the exam has an average period set
      */
     public boolean hasAveragePeriod() {
         return iAveragePeriod >= 0;
@@ -508,6 +517,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
     /**
      * Check all distribution constraint that this exam is involved in
      * 
+     * @param assignment current assignment
      * @param period
      *            a period to be assigned to this exam
      * @return true, if there is no assignment of some other exam in conflict
@@ -562,6 +572,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
     /**
      * Check all distribution constraint that this exam is involved in
      * 
+     * @param assignment current assignment
      * @param room
      *            a room to be assigned to this exam
      * @return true, if there is no assignment of some other exam in conflict
@@ -595,6 +606,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
     /**
      * Check all soft distribution constraint that this exam is involved in
      * 
+     * @param assignment current assignment
      * @param room
      *            a room to be assigned to this exam
      * @return sum of penalties of violated distribution constraints
@@ -652,6 +664,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      * necessary checks are made (availability of rooms, room penalties, room
      * sizes etc.).
      * 
+     * @param assignment current assignment
      * @param period
      *            given period.
      * @return best available rooms for the exam in the given period, null if
@@ -722,6 +735,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      * preferred. All necessary checks are made (availability of rooms, room
      * penalties, room sizes etc.).
      * 
+     * @param assignment current assignment
      * @param period
      *            given period.
      * @return randomly computed set of available rooms for the exam in the
@@ -738,6 +752,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      * preferred. All necessary checks are made (availability of rooms, room
      * penalties, room sizes etc.).
      * 
+     * @param assignment current assignment
      * @param period
      *            given period.
      * @param checkConflicts
@@ -869,6 +884,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      * conflicts allowed, see {@link ExamStudent#canConflict(Exam, Exam)}) that
      * attends some other exam in the given period.
      * 
+     * @param assignment current assignment
      * @param period
      *            a period
      * @return true if there is a student conflict
@@ -890,6 +906,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      * allowed, see {@link ExamStudent#canConflict(Exam, Exam)}) that attend
      * some other exam in the given period.
      * 
+     * @param assignment current assignment
      * @param period
      *            a period
      * @return number of direct student conflicts that are prohibited
@@ -912,6 +929,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      * students with this exam (that does not have direct conflicts allowed, see
      * {@link ExamStudent#canConflict(Exam, Exam)}).
      * 
+     * @param assignment current assignment
      * @param period
      *            a period
      * @return list of {@link Exam} (other than this exam, that are placed in
@@ -934,6 +952,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      * Allow all direct student conflict for the given period (see
      * {@link ExamStudent#canConflict(Exam, Exam)}).
      * 
+     * @param assignment current assignment
      * @param period
      *            a period
      */
@@ -970,12 +989,16 @@ public class Exam extends Variable<Exam, ExamPlacement> {
         return (hasName() ? iName : String.valueOf(getId()));
     }
 
-    /** Exam name */
+    /** Exam name 
+     * @param name examination name
+     **/
     public void setName(String name) {
         iName = name;
     }
 
-    /** Exam name */
+    /** Exam name 
+     * @return true if the examination name is set and it is not empty
+     **/
     public boolean hasName() {
         return iName != null && iName.length() > 0;
     }
@@ -1056,6 +1079,8 @@ public class Exam extends Variable<Exam, ExamPlacement> {
     /**
      * Returns appropriate {@link ExamPeriodPlacement} for the given period, if
      * it is available for this exam, null otherwise.
+     * @param periodId period unique id
+     * @return the appropriate period placement
      */
     public ExamPeriodPlacement getPeriodPlacement(Long periodId) {
         for (ExamPeriodPlacement periodPlacement : iPeriodPlacements) {
@@ -1068,6 +1093,8 @@ public class Exam extends Variable<Exam, ExamPlacement> {
     /**
      * Returns appropriate {@link ExamRoomPlacement} for the given room, if it
      * is available for this exam, null otherwise.
+     * @param roomId room unique id
+     * @return the appropriate room placement
      */
     public ExamRoomPlacement getRoomPlacement(long roomId) {
         for (ExamRoomPlacement roomPlacement : iRoomPlacements) {
@@ -1080,6 +1107,8 @@ public class Exam extends Variable<Exam, ExamPlacement> {
     /**
      * Returns appropriate {@link ExamPeriodPlacement} for the given period, if
      * it is available for this exam, null otherwise.
+     * @param period period in question
+     * @return the appropriate period placement
      */
     public ExamPeriodPlacement getPeriodPlacement(ExamPeriod period) {
         for (ExamPeriodPlacement periodPlacement : getPeriodPlacements()) {
@@ -1092,6 +1121,8 @@ public class Exam extends Variable<Exam, ExamPlacement> {
     /**
      * Returns appropriate {@link ExamRoomPlacement} for the given room, if it
      * is available for this exam, null otherwise.
+     * @param room room in question
+     * @return the appropriate room placement
      */
     public ExamRoomPlacement getRoomPlacement(ExamRoom room) {
         for (ExamRoomPlacement roomPlacement : getRoomPlacements()) {

@@ -55,12 +55,18 @@ public class PredefinedExamRoomSharing extends ExamRoomSharing {
         }
     }
     
-    /** Add a pair of exams that are allowed to share a room */
+    /** Add a pair of exams that are allowed to share a room 
+     * @param x1 first exam
+     * @param x2 second exam
+     **/
     public void addPair(Exam x1, Exam x2) {
         addPair(x1.getId(), x2.getId());
     }
     
-    /** Add a pair of exams that are allowed to share a room */
+    /** Add a pair of exams that are allowed to share a room 
+     * @param examId1 first exam unique id
+     * @param examId2 second exam unique id
+     **/
     public void addPair(Long examId1, Long examId2) {
         if (examId1 < examId2) {
             Set<Long> exams = iSharingMatrix.get(examId1);

@@ -39,6 +39,7 @@ public class ExamRoomComparator implements Comparator<ExamRoomPlacement> {
      * 
      * @param exam
      *            exam for which rooms are to be compared
+     * @param asc room order
      */
     public ExamRoomComparator(Exam exam, boolean asc) {
         iExam = exam;

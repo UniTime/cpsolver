@@ -85,6 +85,8 @@ public class ExamStudentConflictsBySectionCourse {
 
     /**
      * generate report
+     * @param assignment current assignment
+     * @return resultant report
      */
     public CSVFile report(Assignment<Exam, ExamPlacement> assignment) {
         CSVFile csv = new CSVFile();

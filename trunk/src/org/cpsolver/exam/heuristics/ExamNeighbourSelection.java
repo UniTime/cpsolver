@@ -29,17 +29,17 @@ import org.cpsolver.ifs.util.Progress;
  * <ul>
  * <li>Construction phase ({@link ExamConstruction} until all exams are
  * assigned)
- * <li>Hill-climbing phase ({@link ExamHillClimbing} until the given number if
+ * <li>Hill-climbing phase ({@link HillClimber} until the given number if
  * idle iterations)
- * <li>Simulated annealing phase ({@link ExamSimulatedAnnealing} until timeout
+ * <li>Simulated annealing phase ({@link SimulatedAnnealing} until timeout
  * is reached)
  * <ul>
- * <li>Or greate deluge phase (when Exam.GreatDeluge is true,
- * {@link ExamGreatDeluge} until timeout is reached)
+ * <li>Or great deluge phase (when Exam.GreatDeluge is true,
+ * {@link GreatDeluge} until timeout is reached)
  * </ul>
  * <li>At the end (when {@link TerminationCondition#canContinue(Solution)} is
  * false), the search is finished with one sweep of final phase (
- * {@link ExamHillClimbing} until the given number if idle iterations).
+ * {@link HillClimber} until the given number if idle iterations).
  * </ul>
  * <br>
  * <br>
@@ -133,9 +133,9 @@ public class ExamNeighbourSelection extends NeighbourSelectionWithContext<Exam, 
      * <ul>
      * <li>Construction phase ({@link ExamConstruction} until all exams are
      * assigned)
-     * <li>Hill-climbing phase ({@link ExamHillClimbing} until the given number
+     * <li>Hill-climbing phase ({@link HillClimber} until the given number
      * if idle iterations)
-     * <li>Simulated annealing phase ({@link ExamSimulatedAnnealing} until
+     * <li>Simulated annealing phase ({@link SimulatedAnnealing} until
      * timeout is reached)
      * </ul>
      */
@@ -209,7 +209,9 @@ public class ExamNeighbourSelection extends NeighbourSelectionWithContext<Exam, 
         iFinalPhase = true;
     }
 
-    /** Is final phase */
+    /** Is final phase 
+     * @return true if the final phase is upon us
+     **/
     public boolean isFinalPhase() {
         return iFinalPhase;
     }

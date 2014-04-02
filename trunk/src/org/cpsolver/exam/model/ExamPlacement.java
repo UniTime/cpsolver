@@ -72,6 +72,7 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
 
     /**
      * Assigned period
+     * @return assigned period
      */
     public ExamPeriod getPeriod() {
         return iPeriodPlacement.getPeriod();
@@ -79,6 +80,7 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
 
     /**
      * Assigned period placement
+     * @return assigned period placement
      */
     public ExamPeriodPlacement getPeriodPlacement() {
         return iPeriodPlacement;
@@ -98,6 +100,8 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
      * this placement and a room of the given placement. Method
      * {@link ExamRoom#getDistanceInMeters(ExamRoom)} is used to get a distance between
      * two rooms.
+     * @param other other placement
+     * @return maximal distance to the other placement
      */
     public double getDistanceInMeters(ExamPlacement other) {
         if (getRoomPlacements().isEmpty() || other.getRoomPlacements().isEmpty())
@@ -124,6 +128,8 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
 
     /**
      * Overall cost of using this period.
+     * @param assignment current assignment
+     * @return sum of all criteria weighted {@link Criterion#getWeight()} period values {@link ExamCriterion#getPeriodValue(Assignment, ExamPlacement)}
      */
     public double getTimeCost(Assignment<Exam, ExamPlacement> assignment) {
         double weight = 0.0;
@@ -136,6 +142,8 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
 
     /**
      * Overall cost of using this set or rooms.
+     * @param assignment current assignment
+     * @return sum of all criteria weighted {@link Criterion#getWeight()} room values {@link ExamCriterion#getRoomValue(Assignment, ExamPlacement)}
      */
     public double getRoomCost(Assignment<Exam, ExamPlacement> assignment) {
         double weight = 0.0;
@@ -148,6 +156,8 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
 
     /**
      * Room names separated with the given delimiter
+     * @param delim delimiter
+     * @return delimiter separated list of room names
      */
     public String getRoomName(String delim) {
         String roomName = "";
@@ -170,6 +180,8 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
 
     /**
      * String representation -- returns a list of assignment costs
+     * @param assignment current assignment
+     * @return debug string
      */
     public String toString(Assignment<Exam, ExamPlacement> assignment) {
         String ret = "";
@@ -212,6 +224,8 @@ public class ExamPlacement extends Value<Exam, ExamPlacement> {
 
     /**
      * True if given room is between {@link ExamPlacement#getRoomPlacements()}
+     * @param room a room
+     * @return true if this placement contains the given room
      */
     public boolean contains(ExamRoom room) {
         return getRoomPlacements().contains(new ExamRoomPlacement(room));
