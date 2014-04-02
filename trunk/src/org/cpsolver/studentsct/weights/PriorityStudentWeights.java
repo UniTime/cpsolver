@@ -213,6 +213,7 @@ public class PriorityStudentWeights implements StudentWeights {
     
     /**
      * Test case -- run to see the weights for a few courses
+     * @param args program arguments
      */
     public static void main(String[] args) {
         PriorityStudentWeights pw = new PriorityStudentWeights(new DataProperties());

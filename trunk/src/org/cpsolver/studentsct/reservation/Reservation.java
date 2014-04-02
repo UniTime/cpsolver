@@ -81,16 +81,20 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
     
     /**
      * Reservation  id
+     * @return reservation unique id
      */
     public long getId() { return iId; }
     
     /**
      * Reservation limit
+     * @return reservation limit, -1 for unlimited
      */
     public abstract double getReservationLimit();
     
     
-    /** Reservation priority (e.g., individual reservations first) */
+    /** Reservation priority (e.g., individual reservations first) 
+     * @return reservation priority
+     **/
     public abstract int getPriority();
     
     /**
@@ -102,16 +106,19 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
 
     /**
      * Instructional offering on which the reservation is set.
+     * @return instructional offering
      */
     public Offering getOffering() { return iOffering; }
     
     /**
      * One or more configurations on which the reservation is set (optional).
+     * @return instructional offering configurations
      */
     public Set<Config> getConfigs() { return iConfigs; }
     
     /**
      * Add a configuration (of the offering {@link Reservation#getOffering()}) to this reservation
+     * @param config instructional offering configuration
      */
     public void addConfig(Config config) {
         iConfigs.add(config);
@@ -120,11 +127,14 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
     
     /**
      * One or more sections on which the reservation is set (optional).
+     * @return class restrictions
      */
     public Map<Subpart, Set<Section>> getSections() { return iSections; }
     
     /**
      * One or more sections on which the reservation is set (optional).
+     * @param subpart scheduling subpart
+     * @return class restrictions for the given scheduling subpart
      */
     public Set<Section> getSections(Subpart subpart) {
         return iSections.get(subpart);
@@ -133,6 +143,7 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
     /**
      * Add a section (of the offering {@link Reservation#getOffering()}) to this reservation.
      * This will also add all parent sections and the appropriate configuration to the offering.
+     * @param section a class restriction
      */
     public void addSection(Section section) {
         addConfig(section.getSubpart().getConfig());
@@ -150,6 +161,8 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
     
     /**
      * Return true if the given enrollment meets the reservation.
+     * @param enrollment given enrollment
+     * @return true if the given enrollment meets the reservation
      */
     public boolean isIncluded(Enrollment enrollment) {
         // Free time request are never included
@@ -172,7 +185,10 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
     }
     
     /**
-     * True if the enrollment can be done using this configuration
+     * True if the enrollment can be done using this reservation
+     * @param assignment current assignment
+     * @param enrollment given enrollment
+     * @return true if the given enrollment can be assigned
      */
     public boolean canEnroll(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
         // Check if student can use this reservation
@@ -187,16 +203,19 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
     
     /**
      * True if can go over the course / config / section limit. Only to be used in the online sectioning. 
+     * @return can assign over class / configuration / course limit
       */
     public abstract boolean canAssignOverLimit();
     
     /**
      * If true, student must use the reservation (if applicable)
+     * @return must this reservation be used
      */
     public abstract boolean mustBeUsed();
     
     /**
      * Reservation restrictivity (estimated percentage of enrollments that include this reservation, 1.0 reservation on the whole offering)
+     * @return computed restrictivity
      */
     public double getRestrictivity() {
         if (iCachedRestrictivity == null) {
@@ -274,6 +293,7 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
 
     /**
      * Compute limit cap (maximum number of students that can get into the offering using this reservation)
+     * @return reservation limit cap
      */
     public double getLimitCap() {
         if (iLimitCap == null) iLimitCap = getLimitCapNoCache();
@@ -315,6 +335,7 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
     
     /**
      * Reservation limit capped the limit cap (see {@link Reservation#getLimitCap()})
+     * @return reservation limit, -1 if unlimited
      */
     public double getLimit() {
         return min(getLimitCap(), getReservationLimit());
@@ -322,6 +343,7 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
     
     /**
      * True if holding this reservation allows a student to have attend overlapping class. 
+     * @return does this reservation allow for overlaps
      */
     public boolean isAllowOverlap() {
         return false;
@@ -331,6 +353,7 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
      * Set reservation expiration. If a reservation is expired, it works as ordinary reservation
      * (especially the flags mutBeUsed and isAllowOverlap), except it does not block other students
      * of getting into the offering / config / section.  
+     * @param expired is this reservation expired
      */
     public void setExpired(boolean expired) {
         iExpired = expired;
@@ -340,6 +363,7 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
      * True if the reservation is expired. If a reservation is expired, it works as ordinary reservation
      * (especially the flags mutBeUsed and isAllowOverlap), except it does not block other students
      * of getting into the offering / config / section.
+     * @return is this reservation expired
      */
     public boolean isExpired() {
         return iExpired;
@@ -352,13 +376,18 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
     
     /**
      * Available reserved space
+     * @param assignment current assignment
      * @param excludeRequest excluding given request (if not null)
+     * @return available reserved space
      **/
     public double getReservedAvailableSpace(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
         return getContext(assignment).getReservedAvailableSpace(assignment, excludeRequest);
     }
     
-    /** Enrollments assigned using this reservation */
+    /** Enrollments assigned using this reservation 
+     * @param assignment current assignment
+     * @return assigned enrollments of this reservation
+     **/
     public Set<Enrollment> getEnrollments(Assignment<Request, Enrollment> assignment) {
         return getContext(assignment).getEnrollments();
     }
@@ -398,19 +427,25 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
             iUsed -= enrollment.getRequest().getWeight();
         }
         
-        /** Enrollments assigned using this reservation */
+        /** Enrollments assigned using this reservation 
+         * @return assigned enrollments of this reservation
+         **/
         public Set<Enrollment> getEnrollments() {
             return iEnrollments;
         }
         
-        /** Used space */
+        /** Used space 
+         * @return spaced used of this reservation
+         **/
         public double getUsedSpace() {
             return iUsed;
         }
         
         /**
          * Available reserved space
+         * @param assignment current assignment
          * @param excludeRequest excluding given request (if not null)
+         * @return available reserved space
          **/
         public double getReservedAvailableSpace(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
             // Unlimited

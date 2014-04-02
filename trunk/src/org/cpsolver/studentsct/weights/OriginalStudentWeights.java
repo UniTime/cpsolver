@@ -72,7 +72,9 @@ public class OriginalStudentWeights implements StudentWeights {
 
     /**
      * Normalized enrollment penalty -- to be used in
-     * {@link Enrollment#toDouble()}
+     * {@link Enrollment#toDouble(Assignment)}
+     * @param penalty given penalty
+     * @return normalized penalty
      */
     public double normalizePenalty(double penalty) {
         return iNormPenalty / (iNormPenalty + penalty);
@@ -143,6 +145,7 @@ public class OriginalStudentWeights implements StudentWeights {
 
     /**
      * Test case -- run to see the weights for a few courses
+     * @param args program arguments
      */
     public static void main(String[] args) {
         OriginalStudentWeights pw = new OriginalStudentWeights(new DataProperties());

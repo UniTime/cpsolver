@@ -139,6 +139,7 @@ public interface Assignment<V extends Variable<V, T>, T extends Value<V, T>> {
     /**
      * Assignment context for a reference. This can be used to keep assignment dependent computations (e.g., see {@link ConstraintWithContext}).
      * @param reference a reference (which can be stored within the model, e.g., as an instance variable of a constraint)
+     * @param <C> assignment context type
      * @return an {@link AssignmentContext}
      **/
     public <C extends AssignmentContext> C getAssignmentContext(AssignmentContextReference<V, T, C> reference);
@@ -146,6 +147,7 @@ public interface Assignment<V extends Variable<V, T>, T extends Value<V, T>> {
     /**
      * Clear an assignment context that is associated with the given a reference. If there is any created for the reference.
      * @param reference a reference (which can be stored within the model, e.g., as an instance variable of a constraint)
+     * @param <C> assignment context type
      **/
     public <C extends AssignmentContext> void clearContext(AssignmentContextReference<V, T, C> reference);
 }

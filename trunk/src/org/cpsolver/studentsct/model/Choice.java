@@ -102,7 +102,9 @@ public class Choice {
         iHashCode = getId().hashCode();
     }
 
-    /** Instructional offering to which this choice belongs */
+    /** Instructional offering to which this choice belongs 
+     * @return instructional offering
+     **/
     public Offering getOffering() {
         return iOffering;
     }
@@ -110,12 +112,15 @@ public class Choice {
     /**
      * Instructional type (e.g., Lecture, Recitation or Laboratory) to which
      * this choice belongs
+     * @return instructional type
      */
     public String getInstructionalType() {
         return iInstructionalType;
     }
 
-    /** Time location of the choice */
+    /** Time location of the choice
+     * @return selected time
+     **/
     public TimeLocation getTime() {
         return iTime;
     }
@@ -123,6 +128,7 @@ public class Choice {
     /**
      * Instructor(s) id of the choice, can be null if the section has no
      * instructor assigned
+     * @return selected instructors
      */
     public String getInstructorIds() {
         return iInstructorIds;
@@ -131,6 +137,7 @@ public class Choice {
     /**
      * Instructor(s) name of the choice, can be null if the section has no
      * instructor assigned
+     * @return selected instructors
      */
     public String getInstructorNames() {
         return iInstructorNames;
@@ -139,6 +146,8 @@ public class Choice {
     /**
      * Set instructor(s) id and name of the choice, can be null if the section has no
      * instructor assigned
+     * @param instructorIds selected instructor ids
+     * @param instructorNames selected instructor names
      */
     public void setInstructor(String instructorIds, String instructorNames) {
         iInstructorIds = instructorIds;
@@ -149,6 +158,7 @@ public class Choice {
      * Choice id combined from instructionalType, time and instructorIds in the
      * following format: instructionalType|time|instructorIds where time is of
      * format dayCode:startSlot:length:datePatternId
+     * @return choice id
      */
     public String getId() {
         String ret = getInstructionalType() + "|";
@@ -178,6 +188,7 @@ public class Choice {
      * List of sections of the instructional offering which represent this
      * choice. Note that there can be multiple sections with the same choice
      * (e.g., only if the room location differs).
+     * @return set of sections for matching this choice
      */
     public Set<Section> getSections() {
         Set<Section> sections = new HashSet<Section>();
@@ -198,6 +209,7 @@ public class Choice {
      * List of parent sections of sections of the instructional offering which
      * represent this choice. Note that there can be multiple sections with the
      * same choice (e.g., only if the room location differs).
+     * @return set of parent sections
      */
     public Set<Section> getParentSections() {
         Set<Section> parentSections = new HashSet<Section>();
@@ -219,6 +231,7 @@ public class Choice {
     /**
      * Choice name: name of the appropriate subpart + long name of time +
      * instructor(s) name
+     * @return choice name
      */
     public String getName() {
         return (getOffering().getSubparts(getInstructionalType()).iterator().next()).getName()

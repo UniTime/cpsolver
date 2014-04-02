@@ -82,12 +82,15 @@ public abstract class Request extends VariableWithContext<Request, Enrollment, R
     /**
      * Request priority -- if there is a choice, request with lower priority is
      * more preferred to be assigned
+     * @return request priority
      */
     public int getPriority() {
         return iPriority;
     }
 
-    /** Set request priority */
+    /** Set request priority 
+     * @param priority request priority
+     **/
     public void setPriority(int priority) {
         iPriority = priority;
     }
@@ -95,12 +98,15 @@ public abstract class Request extends VariableWithContext<Request, Enrollment, R
     /**
      * True, if the request is alternative (alternative request can be assigned
      * instead of a non-alternative course requests, if it is left unassigned)
+     * @return is alternative request
      */
     public boolean isAlternative() {
         return iAlternative;
     }
 
-    /** Student to which this request belongs */
+    /** Student to which this request belongs 
+     * @return student
+     **/
     public Student getStudent() {
         return iStudent;
     }
@@ -117,7 +123,10 @@ public abstract class Request extends VariableWithContext<Request, Enrollment, R
             return getStudent().compareTo(r.getStudent());
     }
 
-    /** Compute available enrollments */
+    /** Compute available enrollments 
+     * @param assignment current assignment
+     * @return list of all enrollments
+     **/
     public abstract List<Enrollment> computeEnrollments(Assignment<Request, Enrollment> assignment);
 
     /**
@@ -173,12 +182,15 @@ public abstract class Request extends VariableWithContext<Request, Enrollment, R
             enrollment.getReservation().getContext(assignment).unassigned(assignment, enrollment);
     }
 
-    /** Get bound, i.e., the value of the best possible enrollment */
+    /** Get bound, i.e., the value of the best possible enrollment 
+     * @return uppper bound
+     **/
     public abstract double getBound();
 
     /**
      * Request weight, set by default to 1.0, defines the amount of space which
      * will be taken in the section by this request.
+     * @return request weight
      */
     public double getWeight() {
         return iWeight;
@@ -187,12 +199,16 @@ public abstract class Request extends VariableWithContext<Request, Enrollment, R
     /**
      * Set request weight. It defines the amount of space which will be taken in
      * the section by this request.
+     * @param weight request weight
      */
     public void setWeight(double weight) {
         iWeight = weight;
     }
 
-    /** Return true if request is assigned. */
+    /** Return true if request is assigned. 
+     * @param assignment current assignment
+     * @return true if this request is assigned 
+     **/
     public boolean isAssigned(Assignment<Request, Enrollment> assignment) {
         return assignment.getValue(this) != null;
     }

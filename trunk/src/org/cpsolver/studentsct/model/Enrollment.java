@@ -67,6 +67,7 @@ public class Enrollment extends Value<Request, Enrollment> {
      *            selected configuration
      * @param assignments
      *            valid list of sections
+     * @param reservation used reservation
      */
     public Enrollment(Request request, int priority, Course course, Config config, Set<? extends SctAssignment> assignments, Reservation reservation) {
         super(request);
@@ -96,6 +97,7 @@ public class Enrollment extends Value<Request, Enrollment> {
      *            selected configuration
      * @param assignments
      *            valid list of sections
+     * @param assignment current assignment (to guess the reservation)
      */
     public Enrollment(Request request, int priority, Config config, Set<? extends SctAssignment> assignments, Assignment<Request, Enrollment> assignment) {
         this(request, priority, null, config, assignments, null);
@@ -105,6 +107,8 @@ public class Enrollment extends Value<Request, Enrollment> {
     
     /**
      * Guess the reservation based on the enrollment
+     * @param assignment current assignment
+     * @param onlyAvailable use only reservation that have some space left in them
      */
     public void guessReservation(Assignment<Request, Enrollment> assignment, boolean onlyAvailable) {
         if (iCourse != null) {
@@ -127,43 +131,59 @@ public class Enrollment extends Value<Request, Enrollment> {
         }
     }
     
-    /** Student */
+    /** Student 
+     * @return student
+     **/
     public Student getStudent() {
         return iRequest.getStudent();
     }
 
-    /** Request */
+    /** Request 
+     * @return request
+     **/
     public Request getRequest() {
         return iRequest;
     }
 
-    /** True if the request is course request */
+    /** True if the request is course request 
+     * @return true if the request if course request
+     **/
     public boolean isCourseRequest() {
         return iConfig != null;
     }
 
-    /** Offering of the course request */
+    /** Offering of the course request 
+     * @return offering of the course request
+     **/
     public Offering getOffering() {
         return (iConfig == null ? null : iConfig.getOffering());
     }
 
-    /** Config of the course request */
+    /** Config of the course request 
+     * @return config of the course request
+     **/
     public Config getConfig() {
         return iConfig;
     }
     
-    /** Course of the course request */
+    /** Course of the course request 
+     * @return course of the course request
+     **/
     public Course getCourse() {
         return iCourse;
     }
 
-    /** List of assignments (selected sections) */
+    /** List of assignments (selected sections) 
+     * @return assignments (selected sections)
+     **/
     @SuppressWarnings("unchecked")
     public Set<SctAssignment> getAssignments() {
         return (Set<SctAssignment>) iAssignments;
     }
 
-    /** List of sections (only for course request) */
+    /** List of sections (only for course request) 
+     * @return selected sections
+     **/
     @SuppressWarnings("unchecked")
     public Set<Section> getSections() {
         if (isCourseRequest())
@@ -171,7 +191,10 @@ public class Enrollment extends Value<Request, Enrollment> {
         return new HashSet<Section>();
     }
 
-    /** True when this enrollment is overlapping with the given enrollment */
+    /** True when this enrollment is overlapping with the given enrollment 
+     * @param enrl other enrollment
+     * @return true if there is an overlap 
+     **/
     public boolean isOverlapping(Enrollment enrl) {
         if (enrl == null || isAllowOverlap() || enrl.isAllowOverlap())
             return false;
@@ -182,7 +205,9 @@ public class Enrollment extends Value<Request, Enrollment> {
         return false;
     }
 
-    /** Percent of sections that are wait-listed */
+    /** Percent of sections that are wait-listed 
+     * @return percent of sections that are wait-listed
+     **/
     public double percentWaitlisted() {
         if (!isCourseRequest())
             return 0.0;
@@ -195,7 +220,9 @@ public class Enrollment extends Value<Request, Enrollment> {
         return ((double) nrWaitlisted) / getAssignments().size();
     }
 
-    /** Percent of sections that are selected */
+    /** Percent of sections that are selected 
+     * @return percent of sections that are selected
+     **/
     public double percentSelected() {
         if (!isCourseRequest())
             return 0.0;
@@ -208,7 +235,9 @@ public class Enrollment extends Value<Request, Enrollment> {
         return ((double) nrSelected) / getAssignments().size();
     }
 
-    /** Percent of sections that are initial */
+    /** Percent of sections that are initial 
+     * @return percent of sections that of the initial enrollment
+     **/
     public double percentInitial() {
         if (!isCourseRequest())
             return 0.0;
@@ -223,7 +252,9 @@ public class Enrollment extends Value<Request, Enrollment> {
         return ((double) nrInitial) / getAssignments().size();
     }
 
-    /** True if all the sections are wait-listed */
+    /** True if all the sections are wait-listed 
+     * @return all the sections are wait-listed 
+     **/
     public boolean isWaitlisted() {
         if (!isCourseRequest())
             return false;
@@ -236,7 +267,9 @@ public class Enrollment extends Value<Request, Enrollment> {
         return true;
     }
 
-    /** True if all the sections are selected */
+    /** True if all the sections are selected 
+     * @return all the sections are selected
+     **/
     public boolean isSelected() {
         if (!isCourseRequest())
             return false;
@@ -251,6 +284,7 @@ public class Enrollment extends Value<Request, Enrollment> {
     /**
      * Enrollment penalty -- sum of section penalties (see
      * {@link Section#getPenalty()})
+     * @return online penalty
      */
     public double getPenalty() {
         if (iCachedPenalty == null) {
@@ -272,7 +306,9 @@ public class Enrollment extends Value<Request, Enrollment> {
     }
     
     /** Enrollment value
+     * @param assignment current assignment
      * @param precise if false, distance conflicts and time overlaps are ignored (i.e., much faster, but less precise computation)
+     * @return enrollment penalty
      **/
     public double toDouble(Assignment<Request, Enrollment> assignment, boolean precise) {
         if (precise)
@@ -368,7 +404,10 @@ public class Enrollment extends Value<Request, Enrollment> {
         return true;
     }
 
-    /** Distance conflicts, in which this enrollment is involved. */
+    /** Distance conflicts, in which this enrollment is involved. 
+     * @param assignment current assignment
+     * @return distance conflicts
+     **/
     public Set<DistanceConflict.Conflict> distanceConflicts(Assignment<Request, Enrollment> assignment) {
         if (!isCourseRequest())
             return null;
@@ -380,7 +419,10 @@ public class Enrollment extends Value<Request, Enrollment> {
             return null;
     }
 
-    /** Time overlapping conflicts, in which this enrollment is involved. */
+    /** Time overlapping conflicts, in which this enrollment is involved. 
+     * @param assignment current assignment
+     * @return time overlapping conflicts
+     **/
     public Set<TimeOverlapsCounter.Conflict> timeOverlappingConflicts(Assignment<Request, Enrollment> assignment) {
         if (getRequest().getModel() instanceof StudentSectioningModel) {
             TimeOverlapsCounter toc = ((StudentSectioningModel) getRequest().getModel()).getTimeOverlaps();
@@ -401,6 +443,7 @@ public class Enrollment extends Value<Request, Enrollment> {
     
     /**
      * Return total number of slots of all sections in the enrollment.
+     * @return number of slots used
      */
     public int getNrSlots() {
         int ret = 0;
@@ -412,16 +455,19 @@ public class Enrollment extends Value<Request, Enrollment> {
     
     /**
      * Return reservation used for this enrollment
+     * @return used reservation
      */
     public Reservation getReservation() { return iReservation; }
     
     /**
      * Set reservation for this enrollment
+     * @param reservation used reservation
      */
     public void setReservation(Reservation reservation) { iReservation = reservation; }
     
     /**
      * Time stamp of the enrollment
+     * @return enrollment time stamp
      */
     public Long getTimeStamp() {
         return iTimeStamp;
@@ -429,6 +475,7 @@ public class Enrollment extends Value<Request, Enrollment> {
 
     /**
      * Time stamp of the enrollment
+     * @param timeStamp enrollment time stamp
      */
     public void setTimeStamp(Long timeStamp) {
         iTimeStamp = timeStamp;
@@ -436,6 +483,7 @@ public class Enrollment extends Value<Request, Enrollment> {
 
     /**
      * Approval of the enrollment (only used by the online student sectioning)
+     * @return consent approval
      */
     public String getApproval() {
         return iApproval;
@@ -443,6 +491,7 @@ public class Enrollment extends Value<Request, Enrollment> {
 
     /**
      * Approval of the enrollment (only used by the online student sectioning)
+     * @param approval consent approval
      */
     public void setApproval(String approval) {
         iApproval = approval;
@@ -450,6 +499,7 @@ public class Enrollment extends Value<Request, Enrollment> {
     
     /**
      * True if this enrollment can overlap with other enrollments of the student.
+     * @return can overlap with other enrollments of the student
      */
     public boolean isAllowOverlap() {
         return (getReservation() != null && getReservation().isAllowOverlap());
@@ -457,6 +507,7 @@ public class Enrollment extends Value<Request, Enrollment> {
     
     /**
      * Enrollment limit, i.e., the number of students that would be able to get into the offering using this enrollment (if all the sections are empty)  
+     * @return enrollment limit
      */
     public int getLimit() {
         if (!isCourseRequest()) return -1; // free time requests have no limit

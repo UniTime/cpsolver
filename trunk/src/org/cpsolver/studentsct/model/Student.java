@@ -72,22 +72,30 @@ public class Student implements Comparable<Student> {
         iDummy = dummy;
     }
 
-    /** Student unique id */
+    /** Student unique id 
+     * @return student unique id
+     **/
     public long getId() {
         return iId;
     }
 
-    /** Set student unique id */
+    /** Set student unique id 
+     * @param id student unique id
+     **/
     public void setId(long id) {
         iId = id;
     }
 
-    /** Student's course and free time requests */
+    /** Student's course and free time requests 
+     * @return student requests
+     **/
     public List<Request> getRequests() {
         return iRequests;
     }
 
-    /** Number of requests (alternative requests are ignored) */
+    /** Number of requests (alternative requests are ignored) 
+     * @return number of non alternative student requests
+     **/
     public int nrRequests() {
         int ret = 0;
         for (Request r : getRequests()) {
@@ -97,7 +105,9 @@ public class Student implements Comparable<Student> {
         return ret;
     }
 
-    /** Number of alternative requests */
+    /** Number of alternative requests 
+     * @return number of alternative student requests 
+     **/
     public int nrAlternativeRequests() {
         int ret = 0;
         for (Request r : getRequests()) {
@@ -112,6 +122,9 @@ public class Student implements Comparable<Student> {
      * cannot be assigned to a student when the student already has the desired
      * number of requests assigned (i.e., number of non-alternative course
      * requests).
+     * @param assignment current assignment
+     * @param request given request of this student
+     * @return true if the given request can be assigned
      **/
     public boolean canAssign(Assignment<Request, Enrollment> assignment, Request request) {
         if (request.isAssigned(assignment))
@@ -138,6 +151,8 @@ public class Student implements Comparable<Student> {
     /**
      * True if the student has assigned the desired number of requests (i.e.,
      * number of non-alternative course requests).
+     * @param assignment current assignment
+     * @return true if this student has a complete schedule
      */
     public boolean isComplete(Assignment<Request, Enrollment> assignment) {
         int nrRequests = 0;
@@ -153,7 +168,10 @@ public class Student implements Comparable<Student> {
         return nrAssignedRequests == nrRequests;
     }
 
-    /** Number of assigned COURSE requests */
+    /** Number of assigned COURSE requests 
+     * @param assignment current assignment
+     * @return number of assigned course requests
+     **/
     public int nrAssignedRequests(Assignment<Request, Enrollment> assignment) {
         int nrAssignedRequests = 0;
         for (Request r : getRequests()) {
@@ -173,6 +191,7 @@ public class Student implements Comparable<Student> {
     /**
      * Student's dummy flag. Dummy students have lower value and generally
      * should not block "real" students from getting requested courses.
+     * @return true if projected student
      */
     public boolean isDummy() {
         return iDummy;
@@ -181,6 +200,7 @@ public class Student implements Comparable<Student> {
     /**
      * Set student's dummy flag. Dummy students have lower value and generally
      * should not block "real" students from getting requested courses.
+     * @param dummy projected student
      */
     public void setDummy(boolean dummy) {
         iDummy = dummy;
@@ -189,6 +209,7 @@ public class Student implements Comparable<Student> {
     /**
      * List of academic area - classification codes ({@link AcademicAreaCode})
      * for the given student
+     * @return list of academic area abbreviation &amp; classification code pairs
      */
     public List<AcademicAreaCode> getAcademicAreaClasiffications() {
         return iAcadAreaClassifs;
@@ -196,6 +217,7 @@ public class Student implements Comparable<Student> {
 
     /**
      * List of major codes ({@link AcademicAreaCode}) for the given student
+     * @return list of academic area abbreviation &amp; major code pairs
      */
     public List<AcademicAreaCode> getMajors() {
         return iMajors;
@@ -203,6 +225,7 @@ public class Student implements Comparable<Student> {
 
     /**
      * List of major codes ({@link AcademicAreaCode}) for the given student
+     * @return list of academic area abbreviation &amp; minor code pairs
      */
     public List<AcademicAreaCode> getMinors() {
         return iMinors;
@@ -229,6 +252,8 @@ public class Student implements Comparable<Student> {
     
     /**
      * Count number of free time slots overlapping with the given enrollment
+     * @param enrollment given enrollment
+     * @return number of slots overlapping with a free time request
      */
     public int countFreeTimeOverlaps(Enrollment enrollment) {
         if (!enrollment.isCourseRequest()) return 0;
@@ -243,6 +268,8 @@ public class Student implements Comparable<Student> {
     
     /**
      * Count number of free time slots overlapping with the given time
+     * @param time given time
+     * @return number of time slots overlapping with a free time request
      */
     public int countFreeTimeOverlaps(TimeLocation time) {
         int ret = 0;
@@ -258,42 +285,51 @@ public class Student implements Comparable<Student> {
     
     /**
      * Get student external id
+     * @return student external unique id
      */
     public String getExternalId() { return iExternalId; }
     /**
      * Set student external id
+     * @param externalId a free time request
      */
     public void setExternalId(String externalId) { iExternalId = externalId; }
 
     /**
      * Get student name
+     * @return student name
      */
     public String getName() { return iName; }
     /**
      * Set student name
+     * @param name student name
      */
     public void setName(String name) { iName = name; }
     
     /**
      * Linked sections of this student
+     * @return linked sections of this student
      */
     public List<LinkedSections> getLinkedSections() { return iLinkedSections; }
     
     /**
      * Get student status (online sectioning only)
+     * @return student sectioning status
      */
     public String getStatus() { return iStatus; }
     /**
      * Set student status
+     * @param status student sectioning status
      */
     public void setStatus(String status) { iStatus = status; }
     
     /**
      * Get last email time stamp (online sectioning only)
+     * @return student email time stamp
      */
     public Long getEmailTimeStamp() { return iEmailTimeStamp; }
     /**
      * Set last email time stamp
+     * @param emailTimeStamp student email time stamp
      */
     public void setEmailTimeStamp(Long emailTimeStamp) { iEmailTimeStamp = emailTimeStamp; }
 

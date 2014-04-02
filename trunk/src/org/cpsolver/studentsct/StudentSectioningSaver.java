@@ -38,32 +38,43 @@ public abstract class StudentSectioningSaver implements Runnable {
 
     /**
      * Constructor
+     * @param solver current solver
      */
     public StudentSectioningSaver(Solver<Request, Enrollment> solver) {
         iSolver = solver;
     }
 
-    /** Solver */
+    /** Solver 
+     * @return current solver
+     **/
     public Solver<Request, Enrollment> getSolver() {
         return iSolver;
     }
 
-    /** Solution to be saved */
+    /** Solution to be saved 
+     * @return current solution
+     **/
     protected Solution<Request, Enrollment> getSolution() {
         return iSolver.currentSolution();
     }
 
-    /** Model of the solution */
+    /** Model of the solution 
+     * @return problem model
+     **/
     protected StudentSectioningModel getModel() {
         return (StudentSectioningModel) iSolver.currentSolution().getModel();
     }
     
-    /** Current assignment */
+    /** Current assignment 
+     * @return current assignment
+     **/
     protected Assignment<Request, Enrollment> getAssignment() {
         return iSolver.currentSolution().getAssignment();
     }
 
-    /** Save the solution */
+    /** Save the solution 
+     * @throws Exception thrown when the save fails
+     **/
     public abstract void save() throws Exception;
 
     /**

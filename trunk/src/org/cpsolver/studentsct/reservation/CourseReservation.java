@@ -77,6 +77,7 @@ public class CourseReservation extends Reservation {
     
     /**
      * Course offering
+     * @return course offering
      */
     public Course getCourse() {
         return iCourse;

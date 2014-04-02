@@ -98,10 +98,14 @@ public class SectionConflictTable implements StudentSectioningReport {
             iUnavailabilities = unavailabilities;
         }
         
-        /** Has time conflicts */
+        /** Has time conflicts 
+         * @return include time conflicts
+         **/
         public boolean hasOverlaps() { return iOveralps; }
         
-        /** Has availability conflicts */
+        /** Has availability conflicts 
+         * @return include unavailabilities
+         **/
         public boolean hasUnavailabilities() { return iUnavailabilities; }
     }
 
@@ -110,6 +114,7 @@ public class SectionConflictTable implements StudentSectioningReport {
      * 
      * @param model
      *            student sectioning model
+     * @param type report type
      */
     public SectionConflictTable(StudentSectioningModel model, Type type) {
         iModel = model;
@@ -120,7 +125,9 @@ public class SectionConflictTable implements StudentSectioningReport {
         this(model, Type.OVERLAPS_AND_UNAVAILABILITIES);
     }
 
-    /** Return student sectioning model */
+    /** Return student sectioning model 
+     * @return problem model
+     **/
     public StudentSectioningModel getModel() {
         return iModel;
     }
@@ -151,6 +158,7 @@ public class SectionConflictTable implements StudentSectioningReport {
     /**
      * Create report
      * 
+     * @param assignment current assignment
      * @param includeLastLikeStudents
      *            true, if last-like students should be included (i.e.,
      *            {@link Student#isDummy()} is true)

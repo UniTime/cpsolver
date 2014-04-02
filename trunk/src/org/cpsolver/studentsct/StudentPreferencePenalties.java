@@ -100,6 +100,7 @@ public class StudentPreferencePenalties {
      * . The first time gets zero penalty, the second 1/nrTimes, the third
      * 2/nrTimes etc. where nrTimes is the number of times in
      * {@link StudentPreferencePenalties#sStudentRequestDistribution}.
+     * @param disributionType distribution type
      */
     public StudentPreferencePenalties(int disributionType) {
         RouletteWheelSelection<int[]> roulette = new RouletteWheelSelection<int[]>();
@@ -133,6 +134,8 @@ public class StudentPreferencePenalties {
      * Return day index in
      * {@link StudentPreferencePenalties#sStudentRequestDistribution} for the
      * given slot.
+     * @param slot time slot
+     * @return day index
      */
     public static int day(int slot) {
         return slot / Constants.SLOTS_PER_DAY;
@@ -142,6 +145,8 @@ public class StudentPreferencePenalties {
      * Return time index in
      * {@link StudentPreferencePenalties#sStudentRequestDistribution} for the
      * given slot.
+     * @param slot time slot
+     * @return time index
      */
     public static int time(int slot) {
         int s = slot % Constants.SLOTS_PER_DAY;
@@ -155,6 +160,9 @@ public class StudentPreferencePenalties {
     /**
      * Return time of the given day and time index of
      * {@link StudentPreferencePenalties#sStudentRequestDistribution}.
+     * @param day day index
+     * @param time time index
+     * @return day and time as string
      */
     public String toString(int day, int time) {
         if (time == 0)
@@ -165,8 +173,10 @@ public class StudentPreferencePenalties {
     }
 
     /**
-     * Return penalty of the given time. It is comuted as average of the penalty
+     * Return penalty of the given time. It is computed as average of the penalty
      * for each time slot of the time.
+     * @param time time location
+     * @return penalty
      **/
     public double getPenalty(TimeLocation time) {
         int nrSlots = 0;
@@ -182,6 +192,8 @@ public class StudentPreferencePenalties {
     /**
      * Return penalty of an assignment. It is a penalty of its time (see
      * {@link SctAssignment#getTime()}) or zero if the time is null.
+     * @param assignment section assignment
+     * @return penalty
      */
     public double getPenalty(SctAssignment assignment) {
         return (assignment.getTime() == null ? 0.0 : getPenalty(assignment.getTime()));
@@ -190,6 +202,8 @@ public class StudentPreferencePenalties {
     /**
      * Return penalty of an enrollment. It is an average penalty of all its
      * assignments {@link Enrollment#getAssignments()}.
+     * @param enrollment enrollment
+     * @return penalty
      */
     public double getPenalty(Enrollment enrollment) {
         double penalty = 0;
@@ -199,7 +213,10 @@ public class StudentPreferencePenalties {
         return penalty / enrollment.getAssignments().size();
     }
 
-    /** Minimal penalty of a course request */
+    /** Minimal penalty of a course request 
+     * @param request student request
+     * @return minimal penalty
+     **/
     public double getMinPenalty(Request request) {
         if (request instanceof CourseRequest)
             return getMinPenalty((CourseRequest) request);
@@ -208,7 +225,10 @@ public class StudentPreferencePenalties {
         return 0;
     }
 
-    /** Minimal penalty of a course request */
+    /** Minimal penalty of a course request 
+     * @param request course request
+     * @return minimal penalty
+     **/
     public double getMinPenalty(CourseRequest request) {
         double min = Double.MAX_VALUE;
         for (Course course : request.getCourses()) {
@@ -217,7 +237,10 @@ public class StudentPreferencePenalties {
         return (min == Double.MAX_VALUE ? 0.0 : min);
     }
 
-    /** Minimal penalty of an offering */
+    /** Minimal penalty of an offering 
+     * @param offering instructional offering
+     * @return minimal penalty
+     **/
     public double getMinPenalty(Offering offering) {
         double min = Double.MAX_VALUE;
         for (Config config : offering.getConfigs()) {
@@ -226,7 +249,10 @@ public class StudentPreferencePenalties {
         return (min == Double.MAX_VALUE ? 0.0 : min);
     }
 
-    /** Minimal penalty of a config */
+    /** Minimal penalty of a config 
+     * @param config instructional offering configuration
+     * @return minimal penalty
+     **/
     public double getMinPenalty(Config config) {
         double min = 0;
         for (Subpart subpart : config.getSubparts()) {
@@ -235,7 +261,10 @@ public class StudentPreferencePenalties {
         return min / config.getSubparts().size();
     }
 
-    /** Minimal penalty of a subpart */
+    /** Minimal penalty of a subpart 
+     * @param subpart scheduling subpart
+     * @return minimal penalty
+     **/
     public double getMinPenalty(Subpart subpart) {
         double min = Double.MAX_VALUE;
         for (Section section : subpart.getSections()) {
@@ -244,7 +273,10 @@ public class StudentPreferencePenalties {
         return (min == Double.MAX_VALUE ? 0.0 : min);
     }
 
-    /** Maximal penalty of a course request */
+    /** Maximal penalty of a course request 
+     * @param request student request
+     * @return maximal penalty
+     **/
     public double getMaxPenalty(Request request) {
         if (request instanceof CourseRequest)
             return getMaxPenalty((CourseRequest) request);
@@ -253,7 +285,10 @@ public class StudentPreferencePenalties {
         return 0;
     }
 
-    /** Maximal penalty of a course request */
+    /** Maximal penalty of a course request 
+     * @param request student course request
+     * @return maximal penalty
+     **/
     public double getMaxPenalty(CourseRequest request) {
         double max = Double.MIN_VALUE;
         for (Course course : request.getCourses()) {
@@ -262,7 +297,10 @@ public class StudentPreferencePenalties {
         return (max == Double.MIN_VALUE ? 0.0 : max);
     }
 
-    /** Maximal penalty of an offering */
+    /** Maximal penalty of an offering 
+     * @param offering instructional offering
+     * @return maximal penalty
+     **/
     public double getMaxPenalty(Offering offering) {
         double max = Double.MIN_VALUE;
         for (Config config : offering.getConfigs()) {
@@ -271,7 +309,10 @@ public class StudentPreferencePenalties {
         return (max == Double.MIN_VALUE ? 0.0 : max);
     }
 
-    /** Maximal penalty of a config */
+    /** Maximal penalty of a config 
+     * @param config instructional offering config
+     * @return maximal penalty
+     **/
     public double getMaxPenalty(Config config) {
         double max = 0;
         for (Subpart subpart : config.getSubparts()) {
@@ -280,7 +321,10 @@ public class StudentPreferencePenalties {
         return max / config.getSubparts().size();
     }
 
-    /** Maximal penalty of a subpart */
+    /** Maximal penalty of a subpart 
+     * @param subpart scheduling subpart
+     * @return maximal penalty
+     **/
     public double getMaxPenalty(Subpart subpart) {
         double max = Double.MIN_VALUE;
         for (Section section : subpart.getSections()) {
@@ -289,7 +333,11 @@ public class StudentPreferencePenalties {
         return (max == Double.MIN_VALUE ? 0.0 : max);
     }
 
-    /** Minimal and maximal available enrollment penalty of a request */
+    /** Minimal and maximal available enrollment penalty of a request 
+     * @param assignment current assignment
+     * @param request student request
+     * @return minimal and maximal available enrollment penalty
+     **/
     public double[] getMinMaxAvailableEnrollmentPenalty(Assignment<Request, Enrollment> assignment, Request request) {
         if (request instanceof CourseRequest) {
             return getMinMaxAvailableEnrollmentPenalty(assignment, (CourseRequest) request);
@@ -299,7 +347,11 @@ public class StudentPreferencePenalties {
         }
     }
 
-    /** Minimal and maximal available enrollment penalty of a request */
+    /** Minimal and maximal available enrollment penalty of a request 
+     * @param assignment current assignment
+     * @param request student course request
+     * @return minimal and maximal available enrollment penalty
+     **/
     public double[] getMinMaxAvailableEnrollmentPenalty(Assignment<Request, Enrollment> assignment, CourseRequest request) {
         List<Enrollment> enrollments = request.getAvaiableEnrollments(assignment);
         if (enrollments.isEmpty())
@@ -313,7 +365,10 @@ public class StudentPreferencePenalties {
         return new double[] { min, max };
     }
 
-    /** Minimal and maximal available enrollment penalty of a request */
+    /** Minimal and maximal available enrollment penalty of a request 
+     * @param request student request
+     * @return minimal and maximal penalty
+     **/
     public double[] getMinMaxEnrollmentPenalty(Request request) {
         if (request instanceof CourseRequest) {
             return getMinMaxEnrollmentPenalty((CourseRequest) request);
@@ -323,7 +378,10 @@ public class StudentPreferencePenalties {
         }
     }
 
-    /** Minimal and maximal available enrollment penalty of a request */
+    /** Minimal and maximal available enrollment penalty of a request 
+     * @param request student course request
+     * @return minimal and maximal penalty
+     **/
     public double[] getMinMaxEnrollmentPenalty(CourseRequest request) {
         List<Enrollment> enrollments = request.values();
         if (enrollments.isEmpty())
@@ -340,6 +398,8 @@ public class StudentPreferencePenalties {
     /**
      * Set the computed penalties to all sections of all requests of the given
      * student
+     * @param student given student
+     * @param distributionType penalty distribution type
      */
     public static void setPenalties(Student student, int distributionType) {
         if (sDebug)

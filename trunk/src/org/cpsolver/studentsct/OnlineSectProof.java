@@ -75,12 +75,15 @@ public class OnlineSectProof {
         /**
          * Increment vector by 1, returns false it flips from the highest
          * possible number to zero
+         * @return false if flipped back to zero
          */
         public boolean inc() {
             return inc(0);
         }
 
-        /** Base of the sequence */
+        /** Base of the sequence 
+         * @return sequence base
+         **/
         public int base() {
             return iBase;
         }
@@ -96,12 +99,17 @@ public class OnlineSectProof {
             return true;
         }
 
-        /** Count number of occurrences of given number in the sequence */
+        /** Count number of occurrences of given number in the sequence 
+         * @param i given number
+         * @return number of occurrences in the sequence
+         **/
         public int count(int i) {
             return iCnt[i];
         }
 
-        /** Size of the sequence */
+        /** Size of the sequence
+         * @return sequence size
+         **/
         public int size() {
             return iSequence.length;
         }
@@ -109,6 +117,8 @@ public class OnlineSectProof {
         /**
          * Return number on the given position, zero is the number of the least
          * significant value, size()-1 is the highest one
+         * @param i given position
+         * @return number of the given position
          */
         public int seq(int i) {
             return iSequence[i];
@@ -117,6 +127,7 @@ public class OnlineSectProof {
         /**
          * Set the sequence from a string representation (A..0, B..1, C..2,
          * etc.)
+         * @param seq a sequence
          */
         public void set(String seq) {
             for (int i = 0; i < iCnt.length; i++)
@@ -143,6 +154,7 @@ public class OnlineSectProof {
          * If a sequence of all zeros is considered as 0, and the highest
          * possible sequence (sequence of all base-1) is 1, this returns the
          * position of the current sequence between these two bounds.
+         * @return current progress
          */
         public double progress() {
             double ret = 0.0;
@@ -158,6 +170,7 @@ public class OnlineSectProof {
          * Category of a sequence, i.e., a string representation of the count of
          * each number in the sequence. E.g., A5B3C1 means that there are 5
          * zeros, 3 ones, and 1 two int the sequence.
+         * @return sequence category
          */
         public String cat() {
             StringBuffer s = new StringBuffer();
@@ -204,6 +217,8 @@ public class OnlineSectProof {
 
         /**
          * Limit of a column (section of a course).
+         * @param col column
+         * @return limit
          */
         public int limit(int col) {
             return iColumns[col];
@@ -248,6 +263,9 @@ public class OnlineSectProof {
          * of type 0 can be enrolled into the fist section, type 2 into the
          * second section, type 3 into both first and section section, type 4
          * into the third section, type 5 into the first and third section etc.
+         * @param x type
+         * @param col section
+         * @return allowed
          */
         public boolean allow(int x, int col) {
             return ((x + 1) & (1 << col)) != 0;
@@ -257,6 +275,8 @@ public class OnlineSectProof {
          * Number of sections into which a student of a given type can be
          * enrolled (see {@link OnlineSectProof.StudentSequence#allow(int, int)}
          * ).
+         * @param x type
+         * @return number of sections
          */
         public int nrAllow(int x) {
             int ret = 0;
@@ -271,6 +291,8 @@ public class OnlineSectProof {
          * the provided sections (i.e., sum of limits of sections that are
          * allowed fot the student of the given type, see
          * {@link OnlineSectProof.StudentSequence#allow(int, int)}).
+         * @param x type
+         * @return maximal number of students
          */
         public int maxCnt(int x) {
             int ret = 0;
@@ -445,7 +467,9 @@ public class OnlineSectProof {
         public Counter() {
         }
 
-        /** A counter starting from the given number */
+        /** A counter starting from the given number 
+         * @param init initial value
+         **/
         public Counter(int init) {
             iCnt = init;
         }
@@ -455,12 +479,16 @@ public class OnlineSectProof {
             iCnt++;
         }
 
-        /** Increase counter by the given value */
+        /** Increase counter by the given value 
+         * @param val increment
+         **/
         public void inc(int val) {
             iCnt += val;
         }
 
-        /** Return counter value */
+        /** Return counter value 
+         * @return current value
+         **/
         public int intValue() {
             return iCnt;
         }

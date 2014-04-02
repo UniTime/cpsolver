@@ -64,7 +64,7 @@ public class RandomizedBacktrackNeighbourSelection extends BacktrackNeighbourSel
      * 
      * @param properties
      *            configuration
-     * @throws Exception
+     * @throws Exception thrown when the initialization fails
      */
     public RandomizedBacktrackNeighbourSelection(DataProperties properties) throws Exception {
         super(properties);
