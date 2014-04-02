@@ -78,6 +78,7 @@ public class StudentBackToBackConflicts extends ExamCriterion {
      * and another exam that is on the first period of the consecutive day. It
      * can be set by problem property Exams.IsDayBreakBackToBack, or in the
      * input xml file, property isDayBreakBackToBack)
+     * @return true if last exam on one day is back-to-back to the first exam of the following day
      */
     public boolean isDayBreakBackToBack() {
         return iDayBreakBackToBack;
@@ -89,6 +90,7 @@ public class StudentBackToBackConflicts extends ExamCriterion {
      * and another exam that is on the first period of the consecutive day. It
      * can be set by problem property Exams.IsDayBreakBackToBack, or in the
      * input xml file, property isDayBreakBackToBack)
+     * @param dayBreakBackToBack true if last exam on one day is back-to-back to the first exam of the following day
      * 
      */
     public void setDayBreakBackToBack(boolean dayBreakBackToBack) {

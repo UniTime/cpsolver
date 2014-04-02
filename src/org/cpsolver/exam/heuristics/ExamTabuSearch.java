@@ -100,11 +100,13 @@ public class ExamTabuSearch extends NeighbourSelectionWithContext<Exam, ExamPlac
      * <li>TabuSearch.MinSize ... minimum size of the tabu list
      * <li>TabuSearch.MaxSize ... maximum size of the tabu list
      * <li>Value.ValueWeight ... weight of a value (i.e.,
-     * {@link Value#toDouble()})
+     * {@link Value#toDouble(Assignment)})
      * <li>Value.ConflictWeight ... weight of a conflicting value (see
      * {@link Model#conflictValues(Assignment, Value)}), it is also weighted by the past
      * occurrences when conflict-based statistics is used
      * </ul>
+     * @param properties solver configuration
+     * @throws Exception thrown when the initialization fails
      */
     public ExamTabuSearch(DataProperties properties) throws Exception {
         iTabuMinSize = properties.getPropertyInt("TabuSearch.MinSize", iTabuMinSize);

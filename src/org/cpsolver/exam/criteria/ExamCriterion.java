@@ -94,26 +94,35 @@ public abstract class ExamCriterion extends AbstractCriterion<Exam, ExamPlacemen
     
     /**
      * True if this criterion is based on period assignment. Used by {@link ExamPlacement#getTimeCost(Assignment)}.
+     * @return true if this criterion is based on period assignment
      **/
     public boolean isPeriodCriterion() { return true; }
     
     /**
      * Return impact of this criterion on period assignment (if this criterion is based on period assignment). Used by {@link ExamPlacement#getTimeCost(Assignment)}.
+     * @param assignment current assignment
+     * @param value new assignment in question
+     * @return change in the period preference value
      */
     public double getPeriodValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value) { return isPeriodCriterion() ? getValue(assignment, value, null) : 0.0; }
      
     /**
      * True if this criterion is based on room assignment. Used by {@link ExamPlacement#getRoomCost(Assignment)}.
+     * @return true if this criterion is based on room assignment
      **/
     public boolean isRoomCriterion() { return !isPeriodCriterion(); }
     
     /**
      * Return impact of this criterion on room assignment (if this criterion is based on room assignment). Used by {@link ExamPlacement#getRoomCost(Assignment)}.
+     * @param assignment current assignment
+     * @param value new assignment in question
+     * @return change in the room preference value
      */
     public double getRoomValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value) { return isRoomCriterion() ? getValue(assignment, value, null) : 0.0; }
     
     /**
      * Name of the weight parameter in the parameters section of the examination XML file.
+     * @return name of the weight parameter in the XML
      */
     public String getXmlWeightName() {
         String name = getClass().getName().substring(1 + getClass().getName().lastIndexOf('.'));
@@ -122,6 +131,7 @@ public abstract class ExamCriterion extends AbstractCriterion<Exam, ExamPlacemen
     
     /**
      * Put all the parameters of this criterion into a map that is used to write parameters section of the examination XML file.
+     * @param params map of parameters (parameter = value) to be populated
      */
     public void getXmlParameters(Map<String, String> params) {
         params.put(getXmlWeightName(), String.valueOf(getWeight()));
@@ -129,6 +139,7 @@ public abstract class ExamCriterion extends AbstractCriterion<Exam, ExamPlacemen
     
     /**
      * Set all the parameters of this criterion from a map that is read from the parameters section the examination XML file.
+     * @param params map of parameters (parameter = value) loaded from XML
      */
     public void setXmlParameters(Map<String, String> params) {
         try {
@@ -139,6 +150,8 @@ public abstract class ExamCriterion extends AbstractCriterion<Exam, ExamPlacemen
     
     /**
      * Prints criterion value
+     * @param assignment current assignment
+     * @return short string representation (e.g., PP:95% for period preference)
      */
     public abstract String toString(Assignment<Exam, ExamPlacement> assignment);
 }

@@ -130,7 +130,9 @@ public class ExamGreatDeluge extends NeighbourSelectionWithContext<Exam, ExamPla
         getContext(solver.currentSolution().getAssignment()).reset();
     }
 
-    /** Print some information */
+    /** Print some information 
+     * @param solution current solution
+     **/
     protected void info(Solution<Exam, ExamPlacement> solution) {
         Assignment<Exam, ExamPlacement> assignment = solution.getAssignment();
         getContext(assignment).info(solution);
@@ -138,6 +140,8 @@ public class ExamGreatDeluge extends NeighbourSelectionWithContext<Exam, ExamPla
 
     /**
      * Generate neighbour -- select neighbourhood randomly, select neighbour
+     * @param solution current solution
+     * @return a neigbour that was selected
      */
     public Neighbour<Exam, ExamPlacement> genMove(Solution<Exam, ExamPlacement> solution) {
         while (true) {
@@ -149,7 +153,11 @@ public class ExamGreatDeluge extends NeighbourSelectionWithContext<Exam, ExamPla
         }
     }
 
-    /** Accept neighbour */
+    /** Accept neighbour 
+     * @param solution current solution
+     * @param neighbour a neighbour in question
+     * @return true if the neighbour should be accepted
+     **/
     protected boolean accept(Solution<Exam, ExamPlacement> solution, Neighbour<Exam, ExamPlacement> neighbour) {
         if (neighbour instanceof LazyNeighbour) {
             ((LazyNeighbour<Exam, ExamPlacement>)neighbour).setAcceptanceCriterion(this);
@@ -165,7 +173,9 @@ public class ExamGreatDeluge extends NeighbourSelectionWithContext<Exam, ExamPla
         return (value <= 0.0 || neighbour.getModel().getTotalValue(assignment) <= getContext(assignment).getBound());
     }
 
-    /** Increment iteration count, update bound */
+    /** Increment iteration count, update bound 
+     * @param solution current solution
+     **/
     protected void incIter(Solution<Exam, ExamPlacement> solution) {
         getContext(solution.getAssignment()).incIter(solution);
     }

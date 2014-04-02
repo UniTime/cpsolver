@@ -47,6 +47,7 @@ public class ExamInstructor extends Constraint<Exam, ExamPlacement> {
     
     /**
      * True when direct instructor conflicts are not allowed.
+     * @return true if direct conflicts are allowed
      */
     public boolean isAllowDirectConflicts() {
         return iAllowDirectConflicts;
@@ -54,6 +55,7 @@ public class ExamInstructor extends Constraint<Exam, ExamPlacement> {
 
     /**
      * Set to true when direct instructor conflicts are not allowed.
+     * @param allowDirectConflicts true if direct conflicts are allowed
      */
     public void setAllowDirectConflicts(boolean allowDirectConflicts) {
         iAllowDirectConflicts = allowDirectConflicts;
@@ -61,6 +63,9 @@ public class ExamInstructor extends Constraint<Exam, ExamPlacement> {
 
     /**
      * Exam(s) enrolled by the instructor that are scheduled in the given period
+     * @param assignment current assignment
+     * @param period given period
+     * @return exams that are associated with this instructor and placed in the given period
      */
     public Set<Exam> getExams(Assignment<Exam, ExamPlacement> assignment, ExamPeriod period) {
         Set<Exam> exams = ((ExamModel)getModel()).getInstructorsOfPeriod(assignment, period).get(this);
@@ -70,15 +75,21 @@ public class ExamInstructor extends Constraint<Exam, ExamPlacement> {
 
     /**
      * Exam(s) enrolled by the instructor that are scheduled in the given day
+     * @param assignment current assignment
+     * @param period given period
+     * @return exams that are associated with this instructor and placed in the day of the given period
      */
     public Set<Exam> getExamsADay(Assignment<Exam, ExamPlacement> assignment, ExamPeriod period) {
-        Set<Exam> exams = ((ExamModel)getModel()).getInstructorsOfPeriod(assignment, period).get(this);
+        Set<Exam> exams = ((ExamModel)getModel()).getInstructorsOfDay(assignment, period).get(this);
         return (exams != null ? exams : new HashSet<Exam>());
         // return getContext(assignment).getExamsOfDay(period.getDay());
     }
 
     /**
      * Exam(s) enrolled by the instructor that are scheduled in the given day
+     * @param assignment current assignment
+     * @param day given day
+     * @return exams that are associated with this instructor and placed in the given day
      */
     public Set<Exam> getExamsADay(Assignment<Exam, ExamPlacement> assignment, int day) {
         Set<Exam> exams = ((ExamModel)getModel()).getInstructorsOfDay(assignment, day).get(this);
@@ -157,6 +168,7 @@ public class ExamInstructor extends Constraint<Exam, ExamPlacement> {
 
     /**
      * Instructor name
+     * @return true if instructor name is set and not empty
      */
     public boolean hasName() {
         return (iName != null && iName.length() > 0);
@@ -172,6 +184,8 @@ public class ExamInstructor extends Constraint<Exam, ExamPlacement> {
 
     /**
      * Compare two instructors (by instructor ids)
+     * @param o another instructor
+     * @return comparison
      */
     public int compareTo(ExamInstructor o) {
         return toString().compareTo(o.toString());

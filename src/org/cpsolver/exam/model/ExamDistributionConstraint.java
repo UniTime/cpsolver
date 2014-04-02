@@ -120,6 +120,8 @@ public class ExamDistributionConstraint extends ConstraintWithContext<Exam, Exam
      *            constraint unique id
      * @param type
      *            constraint type name
+     * @param hard true if the constraint is hard
+     * @param weight constraint penalty if violated (for soft constraint)
      */
     public ExamDistributionConstraint(long id, String type, boolean hard, int weight) {
         iId = id;
@@ -142,6 +144,7 @@ public class ExamDistributionConstraint extends ConstraintWithContext<Exam, Exam
 
     /**
      * If not hard, penalty for violation
+     * @return constraint penalty if violated
      */
     public int getWeight() {
         return iWeight;
@@ -149,6 +152,7 @@ public class ExamDistributionConstraint extends ConstraintWithContext<Exam, Exam
 
     /**
      * Constraint type
+     * @return constraint type
      */
     public int getType() {
         return iType;
@@ -156,6 +160,7 @@ public class ExamDistributionConstraint extends ConstraintWithContext<Exam, Exam
 
     /**
      * Constraint type name
+     * @return constraint type name (one of {@link ExamDistributionConstraint#sDistType})
      */
     public String getTypeString() {
         return sDistType[iType];
@@ -271,6 +276,8 @@ public class ExamDistributionConstraint extends ConstraintWithContext<Exam, Exam
     /**
      * Return true if this is hard constraint or this is a soft constraint
      * without any violation
+     * @param assignment current assignment
+     * @return true if the constraint is satisfied
      */
     public boolean isSatisfied(Assignment<Exam, ExamPlacement> assignment) {
         return isSatisfied(assignment, null);
@@ -280,8 +287,10 @@ public class ExamDistributionConstraint extends ConstraintWithContext<Exam, Exam
      * Return true if this is hard constraint or this is a soft constraint
      * without any violation
      * 
+     * @param assignment current assignment
      * @param p
      *            exam assignment to be made
+     * @return true if the constraint is satisfied
      */
     public boolean isSatisfied(Assignment<Exam, ExamPlacement> assignment, ExamPlacement p) {
         if (isHard())
@@ -363,12 +372,16 @@ public class ExamDistributionConstraint extends ConstraintWithContext<Exam, Exam
         }
     }
 
-    /** True if the constraint is related to rooms */
+    /** True if the constraint is related to rooms 
+     * @return true if the constraint is related to room placement
+     **/
     public boolean isRoomRelated() {
         return iType == sDistSameRoom || iType == sDistDifferentRoom;
     }
 
-    /** True if the constraint is related to periods */
+    /** True if the constraint is related to periods 
+     * @return true if the constraint is related to period placement
+     **/
     public boolean isPeriodRelated() {
         return !isRoomRelated();
     }

@@ -70,22 +70,31 @@ public class ExamRoomPlacement implements Comparable<ExamRoomPlacement> {
         iMaxPenalty = maxPenalty;
     }
 
-    /** Examination room */
+    /** Examination room 
+     * @return examination room
+     **/
     public ExamRoom getRoom() {
         return iRoom;
     }
 
-    /** Examination room id */
+    /** Examination room id 
+     * @return examination room unique id
+     **/
     public long getId() {
         return getRoom().getId();
     }
 
-    /** Examination room name */
+    /** Examination room name 
+     * @return examination room name
+     **/
     public String getName() {
         return getRoom().getName();
     }
 
-    /** Examination room availability */
+    /** Examination room availability 
+     * @param period given period
+     * @return true if the given period is available in this room
+     **/
     public boolean isAvailable(ExamPeriod period) {
         return iRoom.isAvailable(period) && iRoom.getPenalty(period) <= iMaxPenalty;
     }
@@ -93,6 +102,7 @@ public class ExamRoomPlacement implements Comparable<ExamRoomPlacement> {
     /**
      * Penalty for assignment of an exam into this room
      * {@link Exam#getRoomPlacements()}
+     * @return room assignment penalty
      */
     public int getPenalty() {
         return iPenalty;
@@ -101,6 +111,7 @@ public class ExamRoomPlacement implements Comparable<ExamRoomPlacement> {
     /**
      * Maximal penalty imposed of {@link ExamRoom#getPenalty(ExamPeriod)}, i.e.,
      * a placement with greater penalty is not allowed to be made
+     * @return maximal penalty
      */
     public int getMaxPenalty() {
         return iMaxPenalty;
@@ -109,6 +120,7 @@ public class ExamRoomPlacement implements Comparable<ExamRoomPlacement> {
     /**
      * Penalty for assignment of an exam into this room
      * {@link Exam#getRoomPlacements()}
+     * @param penalty room assignment penalty
      */
     public void setPenalty(int penalty) {
         iPenalty = penalty;
@@ -117,6 +129,7 @@ public class ExamRoomPlacement implements Comparable<ExamRoomPlacement> {
     /**
      * Maximal penalty imposed of {@link ExamRoom#getPenalty(ExamPeriod)}, i.e.,
      * a placement with greater penalty is not allowed to be made
+     * @param maxPenalty maximal penalty
      */
     public void setMaxPenalty(int maxPenalty) {
         iMaxPenalty = maxPenalty;
@@ -125,7 +138,8 @@ public class ExamRoomPlacement implements Comparable<ExamRoomPlacement> {
     /**
      * Penalty for assignment of an exam into this room
      * {@link Exam#getRoomPlacements()} and the given examination period
-     * 
+
+     * @param period given period 
      * @return {@link ExamRoomPlacement#getPenalty()} +
      *         {@link ExamRoom#getPenalty(ExamPeriod)}
      */
@@ -138,7 +152,7 @@ public class ExamRoomPlacement implements Comparable<ExamRoomPlacement> {
      * Room size
      * 
      * @param altSeating
-     *            examination seeting (pass {@link Exam#hasAltSeating()})
+     *            examination seating (pass {@link Exam#hasAltSeating()})
      * @return room size or room alternative size, based on given seating
      */
     public int getSize(boolean altSeating) {
@@ -147,7 +161,8 @@ public class ExamRoomPlacement implements Comparable<ExamRoomPlacement> {
 
     /**
      * Room distance
-     * 
+
+     * @param other another placement
      * @return appropriate {@link ExamRoom#getDistanceInMeters(ExamRoom)}
      */
     public double getDistanceInMeters(ExamRoomPlacement other) {

@@ -182,6 +182,8 @@ public class ExamSimulatedAnnealing extends NeighbourSelectionWithContext<Exam, 
 
     /**
      * Generate neighbour -- select neighbourhood randomly, select neighbour
+     * @param solution current solutoon
+     * @return generated neighbour
      */
     public Neighbour<Exam, ExamPlacement> genMove(Solution<Exam, ExamPlacement> solution) {
         while (true) {
@@ -292,6 +294,7 @@ public class ExamSimulatedAnnealing extends NeighbourSelectionWithContext<Exam, 
         
         /**
          * Increment iteration counter, cool/reheat/restoreBest if necessary
+         * @param solution current solution
          */
         protected void incIter(Solution<Exam, ExamPlacement> solution) {
             if (iT0 < 0) {
@@ -312,6 +315,7 @@ public class ExamSimulatedAnnealing extends NeighbourSelectionWithContext<Exam, 
 
         /**
          * Cool temperature
+         * @param solution current solution
          */
         protected void cool(Solution<Exam, ExamPlacement> solution) {
             iTemperature *= iCoolingRate;
@@ -332,6 +336,7 @@ public class ExamSimulatedAnnealing extends NeighbourSelectionWithContext<Exam, 
 
         /**
          * Reheat temperature
+         * @param solution current solution
          */
         protected void reheat(Solution<Exam, ExamPlacement> solution) {
             iTemperature *= iReheatRate;
@@ -347,6 +352,7 @@ public class ExamSimulatedAnnealing extends NeighbourSelectionWithContext<Exam, 
         
         /**
          * Memorize the iteration when the last best solution was found.
+         * @param solution current solution
          */
         protected void bestSaved(Solution<Exam, ExamPlacement> solution) {
             if (Math.abs(iBestValue - solution.getBestValue()) >= 1.0) {
@@ -370,7 +376,9 @@ public class ExamSimulatedAnnealing extends NeighbourSelectionWithContext<Exam, 
                 return (value <= 0.0 ? 1.0 : Math.exp(-value / iTemperature));
         }
         
-        /** A neighbor with the given value was accepted. */ 
+        /** A neighbor with the given value was accepted. 
+         * @param value change in the solution value
+         **/ 
         protected void accepted(double value) {
             iAcceptIter[value < 0.0 ? 0 : value > 0.0 ? 2 : 1]++;
         }

@@ -77,6 +77,7 @@ public class StudentDistanceBackToBackConflicts extends ExamCriterion {
      * Back-to-back distance. Can be set by
      * problem property Exams.BackToBackDistance, or in the input xml file,
      * property backToBackDistance)
+     * @return back-to-back distance in meters
      */
     public double getBackToBackDistance() {
         return iBackToBackDistance;
@@ -86,6 +87,7 @@ public class StudentDistanceBackToBackConflicts extends ExamCriterion {
      * Back-to-back distance. Can be set by
      * problem property Exams.BackToBackDistance, or in the input xml file,
      * property backToBackDistance)
+     * @param backToBackDistance back-to-back distance in meters
      */
     public void setBackToBackDistance(double backToBackDistance) {
         iBackToBackDistance = backToBackDistance;

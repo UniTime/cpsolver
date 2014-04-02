@@ -100,6 +100,7 @@ public class LargeExamsPenalty extends ExamCriterion {
      * An exam is considered large, if its size is greater or equal to this
      * large size. Value -1 means all exams are small. Can be set by problem
      * property Exams.LargeSize, or in the input xml file, property largeSize)
+     * @return large size
      **/
     public int getLargeSize() {
         return iLargeSize;
@@ -109,6 +110,7 @@ public class LargeExamsPenalty extends ExamCriterion {
      * An exam is considered large, if its size is greater or equal to this
      * large size. Value -1 means all exams are small. Can be set by problem
      * property Exams.LargeSize, or in the input xml file, property largeSize)
+     * @param largeSize large size
      **/
     public void setLargeSize(int largeSize) {
         iLargeSize = largeSize;
@@ -118,6 +120,7 @@ public class LargeExamsPenalty extends ExamCriterion {
      * Period index (number of periods multiplied by this number) for front load
      * criteria for large exams. Can be set by problem property
      * Exams.LargePeriod, or in the input xml file, property largePeriod)
+     * @return large period
      **/
     public double getLargePeriod() {
         return iLargePeriod;
@@ -127,6 +130,7 @@ public class LargeExamsPenalty extends ExamCriterion {
      * Period index (number of periods multiplied by this number) for front load
      * criteria for large exams. Can be set by problem property
      * Exams.LargePeriod, or in the input xml file, property largePeriod)
+     * @param largePeriod large period
      **/
     public void setLargePeriod(double largePeriod) {
         iLargePeriod = largePeriod;

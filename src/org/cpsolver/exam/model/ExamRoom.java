@@ -52,6 +52,7 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
      *            examination timetabling model
      * @param id
      *            unique id
+     * @param name room name
      * @param size
      *            room (normal) seating capacity
      * @param altSize
@@ -100,6 +101,7 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
     /**
      * Normal seating capacity (to be used when {@link Exam#hasAltSeating()} is
      * false)
+     * @return room normal seating capacity
      */
     public int getSize() {
         return iSize;
@@ -108,6 +110,7 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
     /**
      * Alternating seating capacity (to be used when
      * {@link Exam#hasAltSeating()} is true)
+     * @return room examination seating capacity
      */
     public int getAltSize() {
         return iAltSize;
@@ -115,6 +118,7 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
 
     /**
      * X coordinate
+     * @return X-coordinate (latitude)
      */
     public Double getCoordX() {
         return iCoordX;
@@ -122,6 +126,7 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
 
     /**
      * Y coordinate
+     * @return Y-coordinate (longitude)
      */
     public Double getCoordY() {
         return iCoordY;
@@ -130,6 +135,7 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
     /**
      * Exams placed at the given period
      * 
+     * @param assignment current assignment
      * @param period
      *            a period
      * @return a placement of an exam in this room at the given period, null if
@@ -185,7 +191,10 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
         iAvailable[period] = available;
     }
 
-    /** Return room penalty for given period */
+    /** Return room penalty for given period 
+     * @param period given period
+     * @return room penalty for the given period
+     **/
     public int getPenalty(ExamPeriod period) {
         return iPenalty[period.getIndex()];
     }
@@ -194,7 +203,10 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
         return iPenalty[period];
     }
 
-    /** Set room penalty for given period */
+    /** Set room penalty for given period 
+     * @param period given period
+     * @param penalty penalty for the given period
+     **/
     public void setPenalty(ExamPeriod period, int penalty) {
         iPenalty[period.getIndex()] = penalty;
     }
@@ -308,6 +320,7 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
 
     /**
      * Room name
+     * @return true if the room name is set and not empty
      */
     public boolean hasName() {
         return (iName != null && iName.length() > 0);
