@@ -120,12 +120,16 @@ public class OnlineSelection extends BranchBoundSelection {
         init(solver, "Online...");
     }
 
-    /** Use student preference penalties */
+    /** Use student preference penalties 
+     * @return true if student preference penalties are to be used
+     **/
     public boolean isUseStudentPrefPenalties() {
         return iUseStudentPrefPenalties;
     }
 
-    /** Use online penalties */
+    /** Use online penalties 
+     * @return true if online penalties are to be used
+     **/
     public boolean isUsePenalties() {
         return iUsePenalties;
     }
@@ -152,7 +156,10 @@ public class OnlineSelection extends BranchBoundSelection {
         }
     }
 
-    /** Update online sectioning info after the given student is sectioned */
+    /** Update online sectioning info after the given student is sectioned 
+     * @param assignment current assignment
+     * @param student student in question
+     **/
     public void updateSpace(Assignment<Request, Enrollment> assignment, Student student) {
         for (Request request : student.getRequests()) {
             if (!(request instanceof CourseRequest))
@@ -219,6 +226,8 @@ public class OnlineSelection extends BranchBoundSelection {
          * 
          * @param student
          *            selected student
+         * @param assignment current assignment
+         * @param selection selection
          */
         public EpsilonSelection(Student student, Assignment<Request, Enrollment> assignment, Selection selection) {
             super(student, assignment);
@@ -277,7 +286,9 @@ public class OnlineSelection extends BranchBoundSelection {
             return (isAllowed(idx, enrollment) ? null : enrollment);
         }
 
-        /** Student preference penalties */
+        /** Student preference penalties 
+         * @return student preference penalties
+         **/
         public StudentPreferencePenalties getPenalties() {
             return iPenalties;
         }

@@ -40,6 +40,7 @@ public abstract class StudentSectioningLoader implements Runnable {
      * 
      * @param model
      *            an empty instance of timetable model
+     * @param assignment an empty assignment to be populated
      */
     public StudentSectioningLoader(StudentSectioningModel model, Assignment<Request, Enrollment> assignment) {
         iModel = model;
@@ -66,6 +67,7 @@ public abstract class StudentSectioningLoader implements Runnable {
 
     /**
      * Load the model.
+     * @throws Exception thrown when the load fails
      */
     public abstract void load() throws Exception;
 

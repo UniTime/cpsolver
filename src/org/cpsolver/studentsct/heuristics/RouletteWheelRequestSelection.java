@@ -55,7 +55,10 @@ public class RouletteWheelRequestSelection implements VariableSelection<Request,
 
     }
 
-    /** Populate roulette wheel selection, if null or empty. */
+    /** Populate roulette wheel selection, if null or empty. 
+     * @param solution current solution
+     * @return selection
+     **/
     protected RouletteWheelSelection<Request> getRoulette(Solution<Request, Enrollment> solution) {
         if (iRoulette != null && iRoulette.hasMoreElements()) {
             if (iRoulette.getUsedPoints() < 0.1 * iRoulette.getTotalPoints())

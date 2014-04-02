@@ -86,6 +86,7 @@ public class GroupReservation extends IndividualReservation {
     
     /**
      * Set reservation limit (-1 for unlimited)
+     * @param limit reservation limit, -1 if unlimited
      */
     public void setReservationLimit(double limit) {
         iLimit = limit;

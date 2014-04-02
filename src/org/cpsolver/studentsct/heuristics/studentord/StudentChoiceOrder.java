@@ -50,12 +50,16 @@ public class StudentChoiceOrder implements StudentOrder, Comparator<Student> {
         iFast = config.getPropertyBoolean("StudentChoiceOrder.Fast", iFast);
     }
 
-    /** Is order reversed */
+    /** Is order reversed 
+     * @return true if the order is reversed
+     **/
     public boolean isReverse() {
         return iReverse;
     }
 
-    /** Set reverse order */
+    /** Set reverse order 
+     * @param reverse true if students are to be in a reversed order
+     **/
     public void setReverse(boolean reverse) {
         iReverse = reverse;
     }
@@ -107,7 +111,10 @@ public class StudentChoiceOrder implements StudentOrder, Comparator<Student> {
         }
     }
     
-    /** Average number of choices for each student */
+    /** Average number of choices for each student 
+     * @param student given student
+     * @return average number of choices of the given student
+     **/
     public double avgNrChoices(Student student) {
         int nrRequests = 0;
         int nrChoices = 0;

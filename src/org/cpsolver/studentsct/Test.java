@@ -228,7 +228,10 @@ public class Test {
             java.util.Locale.US);
     private static DecimalFormat sDF = new DecimalFormat("0.000");
 
-    /** Load student sectioning model */
+    /** Load student sectioning model 
+     * @param cfg solver configuration
+     * @return loaded solution
+     **/
     public static Solution<Request, Enrollment> load(DataProperties cfg) {
         StudentSectioningModel model = null;
         Assignment<Request, Enrollment> assignment = null;
@@ -279,7 +282,10 @@ public class Test {
         return new Solution<Request, Enrollment>(model, assignment);
     }
 
-    /** Batch sectioning test */
+    /** Batch sectioning test 
+     * @param cfg solver configuration
+     * @return resultant solution
+     **/
     public static Solution<Request, Enrollment> batchSectioning(DataProperties cfg) {
         Solution<Request, Enrollment> solution = load(cfg);
         if (solution == null)
@@ -296,7 +302,11 @@ public class Test {
         return solution;
     }
 
-    /** Online sectioning test */
+    /** Online sectioning test 
+     * @param cfg solver configuration
+     * @return resultant solution
+     * @throws Exception thrown when the sectioning fails
+     **/
     public static Solution<Request, Enrollment> onlineSectioning(DataProperties cfg) throws Exception {
         Solution<Request, Enrollment> solution = load(cfg);
         if (solution == null)
@@ -447,6 +457,8 @@ public class Test {
     /**
      * Minimum and maximum enrollment penalty, i.e.,
      * {@link Enrollment#getPenalty()} of all enrollments
+     * @param request a course request
+     * @return minimum and maximum of the enrollment penalty
      */
     public static double[] getMinMaxEnrollmentPenalty(CourseRequest request) {
         List<Enrollment> enrollments = request.values();
@@ -464,6 +476,9 @@ public class Test {
     /**
      * Minimum and maximum available enrollment penalty, i.e.,
      * {@link Enrollment#getPenalty()} of all available enrollments
+     * @param assignment current assignment
+     * @param request a course request
+     * @return minimum and maximum of the available enrollment penalty
      */
     public static double[] getMinMaxAvailableEnrollmentPenalty(Assignment<Request, Enrollment> assignment, CourseRequest request) {
         List<Enrollment> enrollments = request.getAvaiableEnrollments(assignment);
@@ -587,7 +602,11 @@ public class Test {
         sLog.info("Info: " + ToolBox.dict2string(solution.getExtendedInfo(), 2));
     }
 
-    /** Solve the student sectioning problem using IFS solver */
+    /** Solve the student sectioning problem using IFS solver 
+     * @param solution current solution
+     * @param cfg solver configuration
+     * @return resultant solution
+     **/
     public static Solution<Request, Enrollment> solve(Solution<Request, Enrollment> solution, DataProperties cfg) {
         int nrSolvers = cfg.getPropertyInt("Parallel.NrSolvers", 1);
         Solver<Request, Enrollment> solver = (nrSolvers == 1 ? new Solver<Request, Enrollment>(cfg) : new ParallelSolver<Request, Enrollment>(cfg));
@@ -669,6 +688,8 @@ public class Test {
     /**
      * Load last-like students from an XML file (the one that is used to load
      * last like course demands table in the timetabling application)
+     * @param model problem model
+     * @param xml an XML file
      */
     public static void loadLastLikeCourseDemandsXml(StudentSectioningModel model, File xml) {
         try {
@@ -989,7 +1010,10 @@ public class Test {
         }
     }
 
-    /** Load student infos from a given XML file. */
+    /** Load student infos from a given XML file. 
+     * @param model problem model
+     * @param xml an XML file
+     **/
     public static void loadStudentInfoXml(StudentSectioningModel model, File xml) {
         try {
             sLog.info("Loading student infos from " + xml);
@@ -1041,7 +1065,11 @@ public class Test {
         }
     }
 
-    /** Save solution info as XML */
+    /** Save solution info as XML 
+     * @param solution current solution
+     * @param extra solution extra info
+     * @param file file to write
+     **/
     public static void saveInfoToXML(Solution<Request, Enrollment> solution, Map<String, String> extra, File file) {
         FileOutputStream fos = null;
         try {
@@ -1143,7 +1171,12 @@ public class Test {
         }
     }
 
-    /** Combine students from the provided two files */
+    /** Combine students from the provided two files 
+     * @param cfg solver configuration
+     * @param lastLikeStudentData a file containing last-like student data
+     * @param realStudentData a file containing real student data
+     * @return combined solution
+     **/
     public static Solution<Request, Enrollment> combineStudents(DataProperties cfg, File lastLikeStudentData, File realStudentData) {
         try {
             RandomStudentFilter rnd = new RandomStudentFilter(1.0);
@@ -1217,7 +1250,9 @@ public class Test {
         }
     }
 
-    /** Main */
+    /** Main 
+     * @param args program arguments
+     **/
     public static void main(String[] args) {
         try {
             DataProperties cfg = new DataProperties();

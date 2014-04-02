@@ -30,6 +30,8 @@ import org.cpsolver.studentsct.model.Student;
  */
 
 public interface ProblemStudentsProvider {
-    /** Set of problematic students ({@link Student} objects). */
+    /** Set of problematic students ({@link Student} objects). 
+     * @return set of problematic students
+     **/
     public Set<Student> getProblemStudents();
 }

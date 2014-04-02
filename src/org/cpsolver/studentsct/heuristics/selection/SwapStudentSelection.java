@@ -163,7 +163,11 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
         return iProblemStudents;
     }
 
-    /** Selection subclass for a student */
+    /** Selection subclass for a student 
+     * @param assignment current assignment
+     * @param student selected student
+     * @return swap student selection
+     **/
     public Selection getSelection(Assignment<Request, Enrollment> assignment, Student student) {
         return new Selection(student, assignment);
     }
@@ -182,6 +186,7 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
         /**
          * Constructor
          * 
+         * @param assignment current assignment
          * @param student
          *            given student
          */
@@ -192,6 +197,7 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
 
         /**
          * The actual selection
+         * @return student swap neighbour
          */
         public SwapStudentNeighbour select() {
             if (sDebug)
@@ -301,27 +307,37 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
             return new SwapStudentNeighbour(iBestValue, iBestEnrollment, iBestSwaps);
         }
 
-        /** Was timeout reached during the selection */
+        /** Was timeout reached during the selection 
+         * @return was timeout reached
+         **/
         public boolean isTimeoutReached() {
             return iTimeoutReached;
         }
 
-        /** Time spent in the last selection */
+        /** Time spent in the last selection 
+         * @return search time
+         **/
         public long getTime() {
             return iT1 - iT0;
         }
 
-        /** The best enrollment found. */
+        /** The best enrollment found. 
+         * @return best enrollment
+         **/
         public Enrollment getBestEnrollment() {
             return iBestEnrollment;
         }
 
-        /** Cost of the best enrollment found */
+        /** Cost of the best enrollment found 
+         * @return best value
+         **/
         public double getBestValue() {
             return iBestValue;
         }
 
-        /** Set of problematic students computed in the last selection */
+        /** Set of problematic students computed in the last selection 
+         * @return identified problematic students
+         **/
         public Set<Student> getProblemStudents() {
             return iProblemStudents;
         }
@@ -331,6 +347,7 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
     /**
      * Identify the best swap for the given student
      * 
+     * @param assignment current assignment
      * @param conflict
      *            conflicting enrollment
      * @param enrl

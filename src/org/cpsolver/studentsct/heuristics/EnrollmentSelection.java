@@ -108,12 +108,21 @@ public class EnrollmentSelection implements ValueSelection<Request, Enrollment> 
         }
     }
 
-    /** true, if it is allowed to assign given value */
+    /** true, if it is allowed to assign given value 
+     * @param assignment current assignment
+     * @param value given value
+     * @return true if it is allowed
+     **/
     public boolean isAllowed(Assignment<Request, Enrollment> assignment, Enrollment value) {
         return isAllowed(assignment, value, null);
     }
 
-    /** true, if it is allowed to assign given value */
+    /** true, if it is allowed to assign given value 
+     * @param assignment current assignment
+     * @param value given value
+     * @param conflicts conflicting assignments
+     * @return true if it is allowed
+     **/
     public boolean isAllowed(Assignment<Request, Enrollment> assignment, Enrollment value, Set<Enrollment> conflicts) {
         if (value == null)
             return true;

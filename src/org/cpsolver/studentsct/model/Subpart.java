@@ -68,32 +68,44 @@ public class Subpart implements Comparable<Subpart> {
         iConfig.getSubparts().add(this);
     }
 
-    /** Subpart id */
+    /** Subpart id 
+     * @return scheduling subpart unique id
+     **/
     public long getId() {
         return iId;
     }
 
-    /** Instructional type, e.g., Lecture, Recitation or Laboratory */
+    /** Instructional type, e.g., Lecture, Recitation or Laboratory 
+     * @return instructional type
+     **/
     public String getInstructionalType() {
         return iInstructionalType;
     }
 
-    /** Subpart name */
+    /** Subpart name 
+     * @return scheduling subpart name
+     **/
     public String getName() {
         return iName;
     }
 
-    /** Instructional offering configuration to which this subpart belongs */
+    /** Instructional offering configuration to which this subpart belongs 
+     * @return instructional offering configuration
+     **/
     public Config getConfig() {
         return iConfig;
     }
 
-    /** List of sections */
+    /** List of sections 
+     * @return classes of this scheduling supart
+     **/
     public List<Section> getSections() {
         return iSections;
     }
 
-    /** Parent subpart, if parent-child relation is defined between subparts */
+    /** Parent subpart, if parent-child relation is defined between subparts 
+     * @return parent scheduling subpart
+     **/
     public Subpart getParent() {
         return iParent;
     }
@@ -106,6 +118,8 @@ public class Subpart implements Comparable<Subpart> {
     /**
      * True, if this subpart is parent (or parent of a parent etc.) of the given
      * subpart
+     * @param subpart parent scheduling subpart
+     * @return true if parent (even indirect)
      */
     public boolean isParentOf(Subpart subpart) {
         if (subpart.getParent() == null)
@@ -131,7 +145,9 @@ public class Subpart implements Comparable<Subpart> {
         return Double.compare(getId(), s.getId());
     }
 
-    /** List of available choices of the sections of this subpart. */
+    /** List of available choices of the sections of this subpart. 
+     * @return set of available choices
+     **/
     public Set<Choice> getChoices() {
         Set<Choice> choices = new HashSet<Choice>();
         for (Section section : getSections()) {
@@ -140,7 +156,9 @@ public class Subpart implements Comparable<Subpart> {
         return choices;
     }
 
-    /** Minimal penalty from {@link Section#getPenalty()} */
+    /** Minimal penalty from {@link Section#getPenalty()} 
+     * @return minimal penalty
+     **/
     public double getMinPenalty() {
         double min = Double.MAX_VALUE;
         for (Section section : getSections()) {
@@ -149,7 +167,9 @@ public class Subpart implements Comparable<Subpart> {
         return (min == Double.MAX_VALUE ? 0.0 : min);
     }
 
-    /** Maximal penalty from {@link Section#getPenalty()} */
+    /** Maximal penalty from {@link Section#getPenalty()} 
+     * @return maximal penalty
+     **/
     public double getMaxPenalty() {
         double max = Double.MIN_VALUE;
         for (Section section : getSections()) {
@@ -158,7 +178,9 @@ public class Subpart implements Comparable<Subpart> {
         return (max == Double.MIN_VALUE ? 0.0 : max);
     }
 
-    /** Return children subparts */
+    /** Return children subparts 
+     * @return children scheduling subparts
+     **/
     public List<Subpart> getChildren() {
         List<Subpart> ret = new ArrayList<Subpart>(getConfig().getSubparts().size());
         for (Subpart s : getConfig().getSubparts()) {
@@ -168,18 +190,23 @@ public class Subpart implements Comparable<Subpart> {
         return ret;
     }
     
-    /** Return true if overlaps are allowed, but the number of overlapping slots should be minimized. */
+    /** Return true if overlaps are allowed, but the number of overlapping slots should be minimized. 
+     * @return true if overlaps of classes of this scheduling subpart are allowed
+     **/
     public boolean isAllowOverlap() {
         return iAllowOverlap;
     }
     
-    /** Set to true if overlaps are allowed, but the number of overlapping slots should be minimized (defaults to false). */
+    /** Set to true if overlaps are allowed, but the number of overlapping slots should be minimized (defaults to false). 
+     * @param allowOverlap are overlaps of classes of this scheduling subpart allowed
+     **/
     public void setAllowOverlap(boolean allowOverlap) {
         iAllowOverlap = allowOverlap;
     }
     
     /**
      * Get reservations that require sections of this subpart
+     * @return reservations that require a class of this scheduling subpart
      */
     public List<Reservation> getSectionReservations() {
         if (iSectionReservations == null) {
@@ -204,6 +231,7 @@ public class Subpart implements Comparable<Subpart> {
     
     /**
      * Sum of the section limits (unlimited, if one or more sections are unlimited)
+     * @return total class limit
      */
     public int getLimit() {
         if (iLimit == null)
@@ -233,11 +261,13 @@ public class Subpart implements Comparable<Subpart> {
     
     /**
      * Set credit (Online Student Scheduling only)
+     * @param credit scheduling subpart credit
      */
     public void setCredit(String credit) { iCredit = credit; }
     
     /**
      * Get credit (Online Student Scheduling only)
+     * @return scheduling subpart credit
      */
     public String getCredit() { return iCredit; }
 }

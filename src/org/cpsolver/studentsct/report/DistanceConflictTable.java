@@ -91,7 +91,9 @@ public class DistanceConflictTable implements StudentSectioningReport {
         }
     }
 
-    /** Return student sectioning model */
+    /** Return student sectioning model 
+     * @return problem model
+     **/
     public StudentSectioningModel getModel() {
         return iModel;
     }
@@ -99,6 +101,7 @@ public class DistanceConflictTable implements StudentSectioningReport {
     /**
      * Create report
      * 
+     * @param assignment current assignment
      * @param includeLastLikeStudents
      *            true, if last-like students should be included (i.e.,
      *            {@link Student#isDummy()} is true)

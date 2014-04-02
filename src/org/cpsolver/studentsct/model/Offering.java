@@ -60,17 +60,23 @@ public class Offering {
         iName = name;
     }
 
-    /** Offering id */
+    /** Offering id 
+     * @return instructional offering unique id
+     **/
     public long getId() {
         return iId;
     }
 
-    /** Offering name */
+    /** Offering name 
+     * @return instructional offering name
+     **/
     public String getName() {
         return iName;
     }
 
-    /** Possible configurations */
+    /** Possible configurations 
+     * @return instructional offering configurations
+     **/
     public List<Config> getConfigs() {
         return iConfigs;
     }
@@ -78,6 +84,7 @@ public class Offering {
     /**
      * List of courses. One instructional offering can contain multiple courses
      * (names under which it is offered)
+     * @return list of course offerings
      */
     public List<Course> getCourses() {
         return iCourses;
@@ -86,6 +93,8 @@ public class Offering {
     /**
      * Return section of the given id, if it is part of one of this offering
      * configurations.
+     * @param sectionId class unique id
+     * @return section of the given id
      */
     public Section getSection(long sectionId) {
         for (Config config : getConfigs()) {
@@ -99,7 +108,10 @@ public class Offering {
         return null;
     }
 
-    /** Return course, under which the given student enrolls into this offering. */
+    /** Return course, under which the given student enrolls into this offering. 
+     * @param student given student
+     * @return course of this offering requested by the student
+     **/
     public Course getCourse(Student student) {
         if (getCourses().isEmpty())
             return null;
@@ -116,7 +128,9 @@ public class Offering {
         return getCourses().get(0);
     }
 
-    /** Return set of instructional types, union over all configurations. */
+    /** Return set of instructional types, union over all configurations. 
+     * @return set of instructional types
+     **/
     public Set<String> getInstructionalTypes() {
         Set<String> instructionalTypes = new HashSet<String>();
         for (Config config : getConfigs()) {
@@ -130,6 +144,8 @@ public class Offering {
     /**
      * Return the list of all possible choices of the given instructional type
      * for this offering.
+     * @param instructionalType instructional type
+     * @return set of choices of the given instructional type
      */
     public Set<Choice> getChoices(String instructionalType) {
         Set<Choice> choices = new HashSet<Choice>();
@@ -146,6 +162,8 @@ public class Offering {
     /**
      * Return list of all subparts of the given isntructional type for this
      * offering.
+     * @param instructionalType instructional type
+     * @return subpart of the given instructional type
      */
     public Set<Subpart> getSubparts(String instructionalType) {
         Set<Subpart> subparts = new HashSet<Subpart>();
@@ -158,7 +176,9 @@ public class Offering {
         return subparts;
     }
 
-    /** Minimal penalty from {@link Config#getMinPenalty()} */
+    /** Minimal penalty from {@link Config#getMinPenalty()} 
+     * @return minimal penalty
+     **/
     public double getMinPenalty() {
         double min = Double.MAX_VALUE;
         for (Config config : getConfigs()) {
@@ -167,7 +187,9 @@ public class Offering {
         return (min == Double.MAX_VALUE ? 0.0 : min);
     }
 
-    /** Maximal penalty from {@link Config#getMaxPenalty()} */
+    /** Maximal penalty from {@link Config#getMaxPenalty()} 
+     * @return maximal penalty
+     **/
     public double getMaxPenalty() {
         double max = Double.MIN_VALUE;
         for (Config config : getConfigs()) {
@@ -181,14 +203,19 @@ public class Offering {
         return iName;
     }
     
-    /** Reservations associated with this offering */
+    /** Reservations associated with this offering 
+     * @return reservations for this offering
+     **/
     public List<Reservation> getReservations() { return iReservations; }
     
-    /** True if there are reservations for this offering */
+    /** True if there are reservations for this offering 
+     * @return true if there is at least one reservation
+     **/
     public boolean hasReservations() { return !iReservations.isEmpty(); }
     
     /**
      * Total space in the offering that is not reserved by any reservation 
+     * @return total unreserved space in the offering
      **/
     public double getTotalUnreservedSpace() {
         if (iTotalUnreservedSpace == null)
@@ -229,7 +256,9 @@ public class Offering {
 
     /**
      * Available space in the offering that is not reserved by any reservation 
+     * @param assignment current request
      * @param excludeRequest excluding given request (if not null)
+     * @return remaining unreserved space in the offering
      **/
     public double getUnreservedSpace(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
         // compute available space
