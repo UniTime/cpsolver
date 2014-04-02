@@ -86,6 +86,7 @@ public class ExamHillClimbing extends NeighbourSelectionWithContext<Exam, ExamPl
      * @param properties
      *            problem properties (use HillClimber.MaxIdle to set maximum
      *            number of idle iterations)
+     * @param name solver search phase name
      */
     @SuppressWarnings("unchecked")
     public ExamHillClimbing(DataProperties properties, String name) {

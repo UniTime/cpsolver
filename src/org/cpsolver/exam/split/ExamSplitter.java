@@ -111,7 +111,10 @@ public class ExamSplitter extends ExamCriterion {
         return ((StudentBackToBackConflicts)iStudentBackToBackConflicts).isDayBreakBackToBack();
     }
     
-    /** True, if an exam can be split */
+    /** True, if an exam can be split 
+     * @param exam given exam
+     * @return true if the given exam can be split
+     **/
     public boolean canSplit(Exam exam) {
         if (iParent.containsKey(exam)) return false; // already split
         return true;
@@ -137,6 +140,7 @@ public class ExamSplitter extends ExamCriterion {
     
     /**
      * Split an exam
+     * @param assignment current assignment
      * @param parent an exam to be split
      * @param iteration solver iteration
      * @param placement placement of the new exam
@@ -176,7 +180,10 @@ public class ExamSplitter extends ExamCriterion {
         return child;
     }
     
-    /** True, if the given exam can be merged (it has been split) */
+    /** True, if the given exam can be merged (it has been split) 
+     * @param exam given exam
+     * @return true if the given exam can be merged back 
+     **/
     public boolean canMerge(Exam exam) {
         if (!iParent.containsKey(exam)) return false; // not split
         return true;
@@ -184,6 +191,7 @@ public class ExamSplitter extends ExamCriterion {
     
     /**
      * Merge an exam
+     * @param assignment current assignment
      * @param child an exam to be merged
      * @param iteration solver iteration
      * @return parent exam of the exam that has been deleted; null if the given exam cannot be merged
@@ -229,6 +237,7 @@ public class ExamSplitter extends ExamCriterion {
      * Difference in the total weighted student conflicts (including {@link StudentDirectConflicts},
      * {@link StudentMoreThan2ADayConflicts}, and {@link StudentBackToBackConflicts}) if a student
      * is moved from an exam with one placement into an exam with another placement.
+     * @param assignment current assignment
      * @param student a student in question
      * @param oldPlacement placement of the exam in which the student is now
      * @param newPlacement placement of the exam into which the student would be moved
@@ -292,6 +301,7 @@ public class ExamSplitter extends ExamCriterion {
      * Shuffle students between the given exam and all the other exams in the split (if there are any).
      * Only moves between exams that improve {@link ExamSplitter#delta(Assignment, ExamStudent, ExamPlacement, ExamPlacement)} are
      * considered.
+     * @param assignment current assignment
      * @param exam an exam in question
      * @param iteration solver iteration
      */

@@ -208,16 +208,19 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
     
     /**
      * True if there is an examination sharing model
+     * @return true if there is an examination sharing model
      */
     public boolean hasRoomSharing() { return iRoomSharing != null; }
     
     /**
      * Return examination room sharing model
+     * @return examination room sharing model, if set
      */
     public ExamRoomSharing getRoomSharing() { return iRoomSharing; }
 
     /**
      * Set examination sharing model
+     * @param sharing examination sharing model
      */
     public void setRoomSharing(ExamRoomSharing sharing) {
         iRoomSharing = sharing;
@@ -237,6 +240,7 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
     /**
      * Default maximum number of rooms (can be set by problem property
      * Exams.MaxRooms, or in the input xml file, property maxRooms)
+     * @return default maximum number of rooms for an exam
      */
     public int getMaxRooms() {
         return iMaxRooms;
@@ -245,6 +249,7 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
     /**
      * Default maximum number of rooms (can be set by problem property
      * Exams.MaxRooms, or in the input xml file, property maxRooms)
+     * @param maxRooms default maximum number of rooms for an exam
      */
     public void setMaxRooms(int maxRooms) {
         iMaxRooms = maxRooms;
@@ -263,6 +268,7 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
      *            length of period in minutes
      * @param penalty
      *            period penalty
+     * @return added period
      */
     public ExamPeriod addPeriod(Long id, String day, String time, int length, int penalty) {
         ExamPeriod lastPeriod = (iPeriods.isEmpty() ? null : (ExamPeriod) iPeriods.get(iPeriods.size() - 1));
@@ -283,6 +289,7 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
 
     /**
      * Number of days
+     * @return number of days
      */
     public int getNrDays() {
         return (iPeriods.get(iPeriods.size() - 1)).getDay() + 1;
@@ -290,6 +297,7 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
 
     /**
      * Number of periods
+     * @return number of periods
      */
     public int getNrPeriods() {
         return iPeriods.size();
@@ -306,7 +314,10 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
         return iPeriods;
     }
 
-    /** Period of given unique id */
+    /** Period of given unique id 
+     * @param id period unique id
+     * @return the appropriate period
+     **/
     public ExamPeriod getPeriod(Long id) {
         for (ExamPeriod period : iPeriods) {
             if (period.getId().equals(id))
@@ -321,6 +332,7 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
      * and another exam that is on the first period of the consecutive day. It
      * can be set by problem property Exams.IsDayBreakBackToBack, or in the
      * input xml file, property isDayBreakBackToBack)
+     * @return true if last exam on one day is back-to-back to the first exam of the following day
      * 
      */
     public boolean isDayBreakBackToBack() {
@@ -331,6 +343,7 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
      * Back-to-back distance, can be set by
      * problem property Exams.BackToBackDistance, or in the input xml file,
      * property backToBackDistance)
+     * @return back-to-back distance in meters
      */
     public double getBackToBackDistance() {
         return ((StudentDistanceBackToBackConflicts)getCriterion(StudentDistanceBackToBackConflicts.class)).getBackToBackDistance();
@@ -350,6 +363,7 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
 
     /**
      * Return weighted individual objective criteria.
+     * @param assignment current assignment
      * @return an array of weighted objective criteria
      */
     public double[] getTotalMultiValue(Assignment<Exam, ExamPlacement> assignment) {
@@ -362,6 +376,8 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
 
     /**
      * String representation -- returns a list of values of objective criteria
+     * @param assignment current assignment
+     * @return comma separated list of {@link ExamCriterion#toString(Assignment)}
      */
     public String toString(Assignment<Exam, ExamPlacement> assignment) {
         Set<String> props = new TreeSet<String>();
@@ -434,6 +450,7 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
 
     /**
      * Problem properties
+     * @return solver configuration
      */
     public DataProperties getProperties() {
         return iProperties;
@@ -481,6 +498,8 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
 
     /**
      * Save model (including its solution) into XML.
+     * @param assignment current assignment
+     * @return created XML document
      */
     public Document save(Assignment<Exam, ExamPlacement> assignment) {
         boolean saveInitial = getProperties().getPropertyBoolean("Xml.SaveInitial", true);
@@ -768,6 +787,9 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
 
     /**
      * Load model (including its solution) from XML.
+     * @param document XML document
+     * @param assignment assignment to be loaded
+     * @return true if successfully loaded
      */
     public boolean load(Document document, Assignment<Exam, ExamPlacement> assignment) {
         return load(document, assignment, null);
@@ -775,6 +797,10 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
 
     /**
      * Load model (including its solution) from XML.
+     * @param document XML document
+     * @param assignment assignment to be loaded
+     * @param saveBest callback executed once the best assignment is loaded and assigned
+     * @return true if successfully loaded
      */
     public boolean load(Document document, Assignment<Exam, ExamPlacement> assignment, Callback saveBest) {
         boolean loadInitial = getProperties().getPropertyBoolean("Xml.LoadInitial", true);

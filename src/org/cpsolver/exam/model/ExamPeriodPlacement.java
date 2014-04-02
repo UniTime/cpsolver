@@ -43,17 +43,23 @@ public class ExamPeriodPlacement implements Comparable<ExamPeriodPlacement> {
         iPenalty = penalty;
     }
 
-    /** Examination period */
+    /** Examination period 
+     * @return period
+     **/
     public ExamPeriod getPeriod() {
         return iPeriod;
     }
 
-    /** Examination period id */
+    /** Examination period id 
+     * @return period unique id
+     **/
     public Long getId() {
         return getPeriod().getId();
     }
 
-    /** Examination period index */
+    /** Examination period index 
+     * @return period index
+     **/
     public int getIndex() {
         return getPeriod().getIndex();
     }
@@ -71,6 +77,7 @@ public class ExamPeriodPlacement implements Comparable<ExamPeriodPlacement> {
     
     /**
      * Period penalty for given exam
+     * @return period penalty
      */
     public int getExamPenalty() {
         return iPenalty;

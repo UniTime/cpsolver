@@ -92,6 +92,9 @@ public class ExamConstruction extends NeighbourSelectionWithContext<Exam, ExamPl
      * available rooms {@link Exam#findBestAvailableRooms(Assignment, ExamPeriodPlacement)}.
      * Return null, if there is no such assignment (the problem is considered
      * locally optimal).
+     * @param assignment current assignment
+     * @param model problem model
+     * @return a neighbour to assign or null if none was found
      */
     public Neighbour<Exam, ExamPlacement> checkLocalOptimality(Assignment<Exam, ExamPlacement> assignment, ExamModel model) {
         if (iCheckLocalOptimality) {

@@ -142,7 +142,13 @@ public class Test {
             root.setLevel(Level.INFO);
     }
 
-    /** Generate exam reports */
+    /** Generate exam reports 
+     * @param model problem model
+     * @param assignment current assignment
+     * @param outDir output folder
+     * @param outName output file name prefix
+     * @throws IOException may be thrown when writing fails
+     **/
     public static void createReports(ExamModel model, Assignment<Exam, ExamPlacement> assignment, File outDir, String outName) throws IOException {
         new ExamAssignments(model).report(assignment).save(new File(outDir, outName + ".schdex.csv"));
 

@@ -67,18 +67,23 @@ public class ExamPeriod implements Comparable<ExamPeriod> {
         iPenalty = penalty;
     }
 
-    /** Period unique identifier */
+    /** Period unique identifier 
+     * @return period unique id
+     **/
     public Long getId() {
         return iId;
     }
 
-    /** Period unique identifier */
+    /** Period unique identifier 
+     * @param id period unique id
+     **/
     public void setId(Long id) {
         iId = id;
     }
 
     /**
      * Day string, e.g., 07/12/10
+     * @return day of the period
      */
     public String getDayStr() {
         return iDayStr;
@@ -95,6 +100,7 @@ public class ExamPeriod implements Comparable<ExamPeriod> {
 
     /**
      * Time string, e.g., 8:00am-10:00am
+     * @return time of the period
      */
     public String getTimeStr() {
         return iTimeStr;

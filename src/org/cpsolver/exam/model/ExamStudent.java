@@ -53,6 +53,7 @@ public class ExamStudent extends Constraint<Exam, ExamPlacement> {
     
     /**
      * True if direct student conflicts are allowed for this student
+     * @return direct conflicts are allowed
      */
     public boolean isAllowDirectConflicts() {
         return iAllowDirectConflicts;
@@ -60,6 +61,7 @@ public class ExamStudent extends Constraint<Exam, ExamPlacement> {
 
     /**
      * Set whether direct student conflicts are allowed for this student
+     * @param allowDirectConflicts direct conflicts are allowed
      */
     public void setAllowDirectConflicts(boolean allowDirectConflicts) {
         iAllowDirectConflicts = allowDirectConflicts;
@@ -82,6 +84,9 @@ public class ExamStudent extends Constraint<Exam, ExamPlacement> {
 
     /**
      * Exam(s) enrolled by the student that are scheduled in the given period
+     * @param assignment current assignment
+     * @param period given period
+     * @return set of exams that this student is enrolled into and that are placed in the given period
      */
     public Set<Exam> getExams(Assignment<Exam, ExamPlacement> assignment, ExamPeriod period) {
         Set<Exam> exams = ((ExamModel)getModel()).getStudentsOfPeriod(assignment, period).get(this);
@@ -91,15 +96,21 @@ public class ExamStudent extends Constraint<Exam, ExamPlacement> {
 
     /**
      * Exam(s) enrolled by the student that are scheduled in the given day
+     * @param assignment current assignment
+     * @param period given period
+     * @return set of exams that this student is enrolled into and that are placed in the day of the given period
      */
     public Set<Exam> getExamsADay(Assignment<Exam, ExamPlacement> assignment, ExamPeriod period) {
-        Set<Exam> exams = ((ExamModel)getModel()).getStudentsOfPeriod(assignment, period).get(this);
+        Set<Exam> exams = ((ExamModel)getModel()).getStudentsOfDay(assignment, period).get(this);
         return (exams != null ? exams : new HashSet<Exam>());
         // return getContext(assignment).getExamsOfDay(period.getDay());
     }
 
     /**
      * Exam(s) enrolled by the student that are scheduled in the given day
+     * @param assignment current assignment
+     * @param day given day
+     * @return set of exams that this student is enrolled into and that are placed in the given day
      */
     public Set<Exam> getExamsADay(Assignment<Exam, ExamPlacement> assignment, int day) {
         Set<Exam> exams = ((ExamModel)getModel()).getStudentsOfDay(assignment, day).get(this);
