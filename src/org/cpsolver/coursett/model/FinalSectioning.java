@@ -18,7 +18,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * <br>
  * In the current implementation, students are not re-sectioned during the
  * search, but a student re-sectioning algorithm is called after the solver is
- * finished or upon the user�s request. The re-sectioning is based on a local
+ * finished or upon the user's request. The re-sectioning is based on a local
  * search algorithm where the neighboring assignment is obtained from the
  * current assignment by applying one of the following moves:
  * <ul>
@@ -105,6 +105,7 @@ public class FinalSectioning {
     /**
      * Perform sectioning on the given lecture
      * 
+     * @param assignment current assignment
      * @param lecture
      *            given lecture
      * @param recursive
@@ -139,6 +140,9 @@ public class FinalSectioning {
     /**
      * Swap students between this and the same lectures (lectures which differ
      * only in the section)
+     * @param assignment current assignment
+     * @param lecture a class that is being considered
+     * @param lecturesToRecompute set of classes that may need to be re-considered
      */
     public void findAndPerformMoves(Assignment<Lecture, Placement> assignment, Lecture lecture, HashSet<Lecture> lecturesToRecompute) {
         if (lecture.sameSubpartLectures() == null || assignment.getValue(lecture) == null)
@@ -521,6 +525,7 @@ public class FinalSectioning {
                     continue;
                 jenrl.decJenrl(assignment, firstStudent());
                 if (jenrl.getNrStudents() == 0) {
+                    jenrl.getContext(assignment).unassigned(assignment, null);
                     Object[] vars = jenrl.variables().toArray();
                     for (int j = 0; j < vars.length; j++)
                         jenrl.removeVariable((Lecture) vars[j]);
@@ -536,6 +541,7 @@ public class FinalSectioning {
                         continue;
                     jenrl.decJenrl(assignment, secondStudent());
                     if (jenrl.getNrStudents() == 0) {
+                        jenrl.getContext(assignment).unassigned(assignment, null);
                         Object[] vars = jenrl.variables().toArray();
                         for (int j = 0; j < vars.length; j++)
                             jenrl.removeVariable((Lecture) vars[j]);
@@ -575,9 +581,9 @@ public class FinalSectioning {
                     JenrlConstraint jenrl = firstLecture().jenrlConstraint(lecture);
                     if (jenrl == null) {
                         jenrl = new JenrlConstraint();
-                        iModel.addConstraint(jenrl);
                         jenrl.addVariable(lecture);
                         jenrl.addVariable(firstLecture());
+                        iModel.addConstraint(jenrl);
                         // sLogger.debug(getName()+": add jenr {conf="+jenrl.isInConflict()+", lect="+anotherLecture.getName()+", jenr="+jenrl+"}");
                     }
                     jenrl.incJenrl(assignment, secondStudent());
@@ -825,6 +831,7 @@ public class FinalSectioning {
                         continue;
                     jenrl.decJenrl(assignment, firstStudent());
                     if (jenrl.getNrStudents() == 0) {
+                        jenrl.getContext(assignment).unassigned(assignment, null);
                         Object[] vars = jenrl.variables().toArray();
                         for (int k = 0; k < vars.length; k++)
                             jenrl.removeVariable((Lecture) vars[k]);
@@ -850,6 +857,7 @@ public class FinalSectioning {
                             continue;
                         jenrl.decJenrl(assignment, secondStudent());
                         if (jenrl.getNrStudents() == 0) {
+                            jenrl.getContext(assignment).unassigned(assignment, null);
                             Object[] vars = jenrl.variables().toArray();
                             for (int k = 0; k < vars.length; k++)
                                 jenrl.removeVariable((Lecture) vars[k]);
@@ -909,9 +917,9 @@ public class FinalSectioning {
                         JenrlConstraint jenrl = firstLecture.jenrlConstraint(lecture);
                         if (jenrl == null) {
                             jenrl = new JenrlConstraint();
-                            iModel.addConstraint(jenrl);
                             jenrl.addVariable(firstLecture);
                             jenrl.addVariable(lecture);
+                            iModel.addConstraint(jenrl);
                         }
                         jenrl.incJenrl(assignment, secondStudent());
                     }
