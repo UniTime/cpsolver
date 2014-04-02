@@ -149,6 +149,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
     public static interface AssignmentPairCheck {
         /**
          * Check whether the constraint is satisfied for the given two assignments (required / preferred case)
+         * @param assignment current assignment
          * @param gc Calling group constraint 
          * @param plc1 First placement
          * @param plc2 Second placement
@@ -157,6 +158,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
         public boolean isSatisfied(Assignment<Lecture, Placement> assignment, GroupConstraint gc, Placement plc1, Placement plc2);
         /**
          * Check whether the constraint is satisfied for the given two assignments (prohibited / discouraged case)
+         * @param assignment current assignment
          * @param gc Calling group constraint 
          * @param plc1 First placement
          * @param plc2 Second placement
@@ -668,26 +670,46 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             iMax = max;
         }
         
-        /** Constraint reference */
+        /** Constraint reference
+         * @return constraint reference
+         **/
         public String reference() { return iReference; }
-        /** Constraint name */
+        /** Constraint name
+         * @return constraint name
+         **/
         public String getName() { return iName; }
-        /** Minimum (gap) parameter */
+        /** Minimum (gap) parameter
+         * @return minimum gap (first constraint parameter)
+         **/
         public int getMin() { return iMin; }
-        /** Maximum (gap, hours a day) parameter */
+        /** Maximum (gap, hours a day) parameter 
+         * @return maximum gap (second constraint parameter) 
+         **/
         public int getMax() { return iMax; }
         
-        /** Flag check (true if contains given flag) */
+        /** Flag check (true if contains given flag) 
+         * @param f a flag to check
+         * @return true if present
+         **/
         public boolean is(Flag f) { return (iFlag & f.flag()) != 0; }
 
-        /** Constraint type from reference */
+        /** Constraint type from reference 
+         * @param reference constraint reference
+         * @return constraint of the reference
+         **/
         public static ConstraintType get(String reference) {
             for (ConstraintType t: ConstraintType.values())
                 if (t.reference().equals(reference)) return t;
             return null;
         }
         
-        /** True if a required or preferred constraint is satisfied between a pair of placements */ 
+        /** True if a required or preferred constraint is satisfied between a pair of placements 
+         * @param assignment current assignment
+         * @param gc current constraint
+         * @param plc1 first placement
+         * @param plc2 second placement
+         * @return true if the two placements are consistent with the constraint if preferred or required 
+         **/ 
         public boolean isSatisfied(Assignment<Lecture, Placement> assignment, GroupConstraint gc, Placement plc1, Placement plc2) {
             if (iCheck != null && !iCheck.isSatisfied(gc, plc1, plc2))
                 return false;
@@ -695,7 +717,13 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                 return false;
             return true;
         }
-        /** True if a prohibited or discouraged constraint is satisfied between a pair of placements */ 
+        /** True if a prohibited or discouraged constraint is satisfied between a pair of placements 
+         * @param assignment current assignment
+         * @param gc current constraint
+         * @param plc1 first placement
+         * @param plc2 second placement
+         * @return true if the two placements are consistent with the constraint if discouraged or prohibited 
+         **/ 
         public boolean isViolated(Assignment<Lecture, Placement> assignment, GroupConstraint gc, Placement plc1, Placement plc2) { 
             if (iCheck != null && !iCheck.isViolated(gc, plc1, plc2))
                 return false;
@@ -772,7 +800,9 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
         iPreference = Constants.preference2preferenceLevel(preference);
     }
 
-    /** Constraint id */
+    /** Constraint id 
+     * @return constraint unique id
+     **/
     public Long getConstraintId() {
         return iConstraintId;
     }
@@ -782,26 +812,38 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
         return (iConstraintId == null ? -1 : iConstraintId.longValue());
     }
     
-    /** Generated unique id */
+    /** Generated unique id 
+     * @return generated unique id
+     **/
     protected long getGeneratedId() {
         return iId;
     }
 
-    /** ConstraString type (e.g, {@link ConstraintType#SAME_TIME}) */
+    /** Return constraint type (e.g, {@link ConstraintType#SAME_TIME}) 
+     * @return constraint type
+     **/
     public ConstraintType getType() {
         return iType;
     }
 
+    /**
+     * Set constraint type
+     * @param type constraint type
+     */
     public void setType(ConstraintType type) {
         iType = type;
     }
 
-    /** Is constraint required */
+    /** Is constraint required 
+     * @return true if required
+     **/
     public boolean isRequired() {
         return iIsRequired;
     }
 
-    /** Is constraint prohibited */
+    /** Is constraint prohibited 
+     * @return true if prohibited
+     **/
     public boolean isProhibited() {
         return iIsProhibited;
     }
@@ -809,6 +851,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
     /**
      * Prolog reference: "R" for required, "P" for prohibited", "-2",.."2" for
      * preference
+     * @return prolog preference
      */
     public String getPrologPreference() {
         return Constants.preferenceLevel2preference(iPreference);
@@ -1078,14 +1121,18 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
         }
     }
 
-    /** Constraint preference (0 if prohibited or reqired) */
+    /** Constraint preference (0 if prohibited or required) 
+     * @return constraint preference (if soft)
+     **/
     public int getPreference() {
         return iPreference;
     }
 
     /**
-     * Current constraint preference (0 if prohibited or reqired, depends on
+     * Current constraint preference (0 if prohibited or required, depends on
      * current satisfaction of the constraint)
+     * @param assignment current assignment
+     * @return current preference
      */
     public int getCurrentPreference(Assignment<Lecture, Placement> assignment) {
         if (isHard()) return 0; // no preference
@@ -1116,7 +1163,11 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
         return (nrViolatedPairs > 0 ? Math.abs(iPreference) * nrViolatedPairs : - Math.abs(iPreference));
     }
 
-    /** Current constraint preference change (if given placement is assigned) */
+    /** Current constraint preference change (if given placement is assigned) 
+     * @param assignment current assignment
+     * @param placement placement that is being considered
+     * @return change in the current preference, if assigned 
+     **/
     public int getCurrentPreference(Assignment<Lecture, Placement> assignment, Placement placement) {
         if (isHard()) return 0; // no preference
         if (countAssignedVariables(assignment) + (assignment.getValue(placement.variable()) == null ? 1 : 0) < 2) return 0; // not enough variable

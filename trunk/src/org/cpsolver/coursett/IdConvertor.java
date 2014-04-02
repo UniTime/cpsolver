@@ -49,20 +49,27 @@ public class IdConvertor {
     /**
      * Constructor -- use {@link IdConvertor#getInstance} to get an instance of
      * this class.
+     * @param file file to load / save
      */
     protected IdConvertor(String file) {
         iFile = file;
         load();
     }
 
-    /** Get an instance of IdConvertor class. */
+    /** Get an instance of IdConvertor class. 
+     * @return static instance
+     **/
     public static IdConvertor getInstance() {
         if (sInstance == null)
             sInstance = new IdConvertor(null);
         return sInstance;
     }
 
-    /** Convert id of given type. */
+    /** Convert id of given type. 
+     * @param type object type
+     * @param id unique id
+     * @return serialized (obfuscated) id
+     **/
     public String convert(String type, String id) {
         synchronized (iConversion) {
             HashMap<String, String> conversion = iConversion.get(type);

@@ -41,6 +41,7 @@ public abstract class TimetableLoader implements Runnable {
      * 
      * @param model
      *            an empty instance of timetable model
+     * @param assignment current assignment
      */
     public TimetableLoader(TimetableModel model, Assignment<Lecture, Placement> assignment) {
         iModel = model;
@@ -66,6 +67,7 @@ public abstract class TimetableLoader implements Runnable {
 
     /**
      * Load the model.
+     * @throws Exception thrown when the load fails
      */
     public abstract void load() throws Exception;
 

@@ -54,6 +54,8 @@ public class RoomLocation implements Comparable<RoomLocation> {
      *            x-position of the building
      * @param y
      *            y-position of the building
+     * @param ignoreTooFar true if distance conflicts are to be ignored
+     * @param rc related room constraint
      */
     public RoomLocation(Long id, String name, Long bldgId, int preference, int size, Double x, Double y,
             boolean ignoreTooFar, RoomConstraint rc) {
@@ -68,47 +70,68 @@ public class RoomLocation implements Comparable<RoomLocation> {
         iIgnoreTooFar = ignoreTooFar;
     }
 
-    /** Room id */
+    /** Room id 
+     * @return room unique id
+     **/
     public Long getId() {
         return iId;
     }
 
-    /** Building id */
+    /** Building id 
+     * @return building unique id
+     **/
     public Long getBuildingId() {
         return iBldgId;
     }
 
-    /** Room name */
+    /** Room name 
+     * @return room name
+     **/
     public String getName() {
         return iName;
     }
 
-    /** Room preference */
+    /** Room preference 
+     * @return room preference
+     **/
     public int getPreference() {
         return iPreference;
     }
 
+    /** 
+     * Set room preference
+     * @param preference room preferences
+     */
     public void setPreference(int preference) {
         iPreference = preference;
     }
 
-    /** Room size */
+    /** Room size 
+     * @return room size
+     **/
     public int getRoomSize() {
         return iRoomSize;
     }
 
-    /** Position of the building */
+    /** Position of the building
+     * @param x X-coordinate (latitude) 
+     * @param y Y-coordinate (longitude)
+     **/
     public void setCoordinates(Double x, Double y) {
         iPosX = x;
         iPosY = y;
     }
 
-    /** X-position of the building */
+    /** X-position of the building 
+     * @return X-coordinate (latitude)
+     **/
     public Double getPosX() {
         return iPosX;
     }
 
-    /** Y-position of the building */
+    /** Y-position of the building
+     * @return Y-coordinate (longitude)
+     **/
     public Double getPosY() {
         return iPosY;
     }

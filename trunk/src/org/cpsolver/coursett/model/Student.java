@@ -78,6 +78,8 @@ public class Student implements Comparable<Student> {
     /**
      * Priority of an offering (for the student). Null if not used, or between
      * zero (no priority) and one (highest priority)
+     * @param offeringId instructional offering unique id
+     * @return student's priority
      */
     public Double getPriority(Long offeringId) {
         return offeringId == null ? null : iOfferingPriority.get(offeringId);

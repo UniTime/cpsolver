@@ -96,6 +96,10 @@ public class JenrlConstraint extends BinaryConstraintWithContext<Lecture, Placem
     /**
      * Returns true if the given placements are overlapping or they are
      * back-to-back and too far for students.
+     * @param p1 first placement
+     * @param p2 second placement
+     * @param m distance metrics
+     * @return true if there is a student conflict between the two placements
      */
     public static boolean isInConflict(Placement p1, Placement p2, DistanceMetric m) {
         return !StudentConflict.ignore(p1, p2) && (StudentConflict.distance(m, p1, p2) || StudentConflict.overlaps(p1, p2));
@@ -104,6 +108,10 @@ public class JenrlConstraint extends BinaryConstraintWithContext<Lecture, Placem
     /**
      * Number of joined enrollments if the given value is assigned to the given
      * variable
+     * @param assignment current assignment
+     * @param variable a class
+     * @param value class placement under consideration
+     * @return number of student conflicts caused by this constraint if assigned
      */
     public long jenrl(Assignment<Lecture, Placement> assignment, Lecture variable, Placement value) {
         Lecture other = (first().equals(variable) ? second() : first());
@@ -115,7 +123,10 @@ public class JenrlConstraint extends BinaryConstraintWithContext<Lecture, Placem
         return (getModel() == null ? null : ((TimetableModel)getModel()).getDistanceMetric());
     }
 
-    /** True if the given two lectures overlap in time */
+    /** True if the given two lectures overlap in time 
+     * @param assignment current assignment
+     * @return true if this constraint is conflicting
+     **/
     public boolean isInConflict(Assignment<Lecture, Placement> assignment) {
         return getContext(assignment).isConflicting();
     }
@@ -123,6 +134,8 @@ public class JenrlConstraint extends BinaryConstraintWithContext<Lecture, Placem
     /**
      * Increment the number of joined enrollments (during student final
      * sectioning)
+     * @param assignment current assignment
+     * @param student student added in between the two classes of this constraint
      */
     public void incJenrl(Assignment<Lecture, Placement> assignment, Student student) {
         JenrlConstraintContext context = getContext(assignment);
@@ -150,6 +163,8 @@ public class JenrlConstraint extends BinaryConstraintWithContext<Lecture, Placem
     /**
      * Decrement the number of joined enrollments (during student final
      * sectioning)
+     * @param assignment current assignment
+     * @param student student removed from between the two classes of this constraint
      */
     public void decJenrl(Assignment<Lecture, Placement> assignment, Student student) {
         JenrlConstraintContext context = getContext(assignment);
@@ -167,7 +182,9 @@ public class JenrlConstraint extends BinaryConstraintWithContext<Lecture, Placem
             context.decLimit(jenrlWeight);
     }
 
-    /** Number of joined enrollments (during student final sectioning) */
+    /** Number of joined enrollments (during student final sectioning) 
+     * @return number of joined enrollments
+     **/
     public long getJenrl() {
         return Math.round(iJenrl);
     }
@@ -243,6 +260,7 @@ public class JenrlConstraint extends BinaryConstraintWithContext<Lecture, Placem
     
     /**
      * Returns true if there is {@link IgnoreStudentConflictsConstraint} between the two lectures.
+     * @return true if this constraint is to be ignored
      */
     public boolean isToBeIgnored() {
         return first().isToIgnoreStudentConflictsWith(second());

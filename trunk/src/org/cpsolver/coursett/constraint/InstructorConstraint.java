@@ -74,10 +74,10 @@ public class InstructorConstraint extends ConstraintWithContext<Lecture, Placeme
     /**
      * Constructor
      * 
-     * @param id
-     *            instructor id
-     * @param name
-     *            instructor name
+     * @param id instructor id
+     * @param puid instructor external id
+     * @param name instructor name
+     * @param ignDist true if distance conflicts are to be ignored 
      */
     public InstructorConstraint(Long id, String puid, String name, boolean ignDist) {
         iResourceId = id;
@@ -155,7 +155,11 @@ public class InstructorConstraint extends ConstraintWithContext<Lecture, Placeme
         return available;
     }
 
-    /** Back-to-back preference of two placements (3 means prohibited) */
+    /** Back-to-back preference of two placements (3 means prohibited) 
+     * @param p1 first placement
+     * @param p2 second placement
+     * @return distance preference between the two placements
+     **/
     public int getDistancePreference(Placement p1, Placement p2) {
         TimeLocation t1 = p1.getTimeLocation();
         TimeLocation t2 = p2.getTimeLocation();
@@ -192,7 +196,9 @@ public class InstructorConstraint extends ConstraintWithContext<Lecture, Placeme
         return Constants.sPreferenceLevelNeutral; 
     }
 
-    /** Resource id */
+    /** Resource id 
+     * @return instructor unique id
+     **/
     public Long getResourceId() {
         return iResourceId;
     }
@@ -338,7 +344,11 @@ public class InstructorConstraint extends ConstraintWithContext<Lecture, Placeme
         return "Instructor " + getName();
     }
 
-    /** Back-to-back preference of the given placement */
+    /** Back-to-back preference of the given placement 
+     * @param assignment current assignment
+     * @param value placement under consideration
+     * @return distance preference for the given placement 
+     **/
     public int getPreference(Assignment<Lecture, Placement> assignment, Placement value) {
         Lecture lecture = value.variable();
         Placement placement = value;
@@ -528,7 +538,9 @@ public class InstructorConstraint extends ConstraintWithContext<Lecture, Placeme
         return pref;
     }
 
-    /** Worst back-to-back preference of this instructor */
+    /** Worst back-to-back preference of this instructor 
+     * @return worst possible distance preference 
+     **/
     public int getWorstPreference() {
         return Constants.sPreferenceLevelStronglyDiscouraged * (variables().size() - 1);
     }
@@ -635,7 +647,9 @@ public class InstructorConstraint extends ConstraintWithContext<Lecture, Placeme
             return ret;
         }
 
-        /** Overall back-to-back preference of this instructor */
+        /** Overall back-to-back preference of this instructor 
+         * @return current distance preference
+         **/
         public int getPreference() {
             return iPreference;
         }

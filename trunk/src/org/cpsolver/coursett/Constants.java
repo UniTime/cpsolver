@@ -89,7 +89,10 @@ public class Constants extends org.cpsolver.ifs.Constants {
     /** Preference level: neutral */
     public static final int sPreferenceLevelNeutral = 0;
 
-    /** Convert preference to preference level */
+    /** Convert preference to preference level 
+     * @param prologPref prolog preference (R for required, P for prohibited, -2 strongly preferred, ... 2 strongly discouraged)
+     * @return integer preference
+     **/
     public static int preference2preferenceLevel(String prologPref) {
         if (sPreferenceRequired.equals(prologPref))
             return sPreferenceLevelRequired;
@@ -106,7 +109,10 @@ public class Constants extends org.cpsolver.ifs.Constants {
         return sPreferenceLevelNeutral;
     }
 
-    /** Convert preference level to preference */
+    /** Convert preference level to preference 
+     * @param intPref integer preference
+     * @return prolog preference (R for required, P for prohibited, -2 strongly preferred, ... 2 strongly discouraged)
+     **/
     public static String preferenceLevel2preference(int intPref) {
         if (intPref >= sPreferenceLevelProhibited / 2)
             return sPreferenceProhibited;
@@ -123,7 +129,11 @@ public class Constants extends org.cpsolver.ifs.Constants {
         return sPreferenceNeutral;
     }
 
-    /** Convert time (hour:minute) to time slot */
+    /** Convert time (hour:minute) to time slot 
+     * @param hour hours
+     * @param min minutes
+     * @return time slot
+     **/
     public static int time2slot(int hour, int min) {
         return (hour * 60 + min - FIRST_SLOT_TIME_MIN) / SLOT_LENGTH_MIN;
     }

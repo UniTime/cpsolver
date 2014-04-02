@@ -64,6 +64,9 @@ public class InstructorStudentConflict extends StudentConflict {
     
     /**
      * True if there is at least one student teaching one of the two placements and enrolled in the other.
+     * @param p1 first placement
+     * @param p2 second placement
+     * @return true if there is at least one student of one class teaching the other class
      */
     public boolean instructor(Placement p1, Placement p2) {
         JenrlConstraint jenrl = (p1 == null || p2 == null ? null : p1.variable().jenrlConstraint(p2.variable()));

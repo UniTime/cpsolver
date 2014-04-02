@@ -292,7 +292,10 @@ public class SpreadConstraint extends ConstraintWithContext<Lecture, Placement, 
         return sb.toString();
     }
 
-    /** Department balancing penalty for this department */
+    /** Department balancing penalty for this department 
+     * @param assignment current assignment
+     * @return current penalty
+     **/
     public int getPenalty(Assignment<Lecture, Placement> assignment) {
         return getContext(assignment).getCurrentPenalty();
     }
@@ -385,7 +388,11 @@ public class SpreadConstraint extends ConstraintWithContext<Lecture, Placement, 
         return penalty;
     }
 
-    /** Department balancing penalty of the given placement */
+    /** Department balancing penalty of the given placement 
+     * @param assignment current assignment
+     * @param placement a placement that is being considered
+     * @return change in the penalty if assigned
+     **/
     public int getPenalty(Assignment<Lecture, Placement> assignment, Placement placement) {
         SpreadConstraintContext context = getContext(assignment);
         int firstSlot = placement.getTimeLocation().getStartSlot();

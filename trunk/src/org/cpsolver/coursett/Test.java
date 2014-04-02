@@ -124,13 +124,17 @@ public class Test implements SolutionListener<Lecture, Placement> {
     private boolean initialized = false;
     private Solver<Lecture, Placement> iSolver = null;
 
-    /** Current version */
+    /** Current version 
+     * @return version string
+     **/
     public static String getVersionString() {
         return "IFS Timetable Solver v" + Constants.getVersion() + " build" + Constants.getBuildNumber() + ", "
                 + Constants.getReleaseDate();
     }
 
-    /** Solver initialization */
+    /** Solver initialization 
+     * @param solver current solver
+     **/
     public void init(Solver<Lecture, Placement> solver) {
         iSolver = solver;
         solver.currentSolution().addSolutionListener(this);
@@ -319,7 +323,9 @@ public class Test implements SolutionListener<Lecture, Placement> {
         }
     }
 
-    /** Add a line into the output CSV file when a enw best solution is found. */
+    /** Add a line into the output CSV file when a enw best solution is found. 
+     * @param solution current solution
+     **/
     public void notify(Solution<Lecture, Placement> solution) {
         String colSeparator = ";";
         Assignment<Lecture, Placement> assignment = solution.getAssignment();
@@ -396,7 +402,11 @@ public class Test implements SolutionListener<Lecture, Placement> {
         }
     }
 
-    /** Print room utilization */
+    /** Print room utilization 
+     * @param pw writer
+     * @param model problem model
+     * @param assignment current assignment
+     **/
     public static void printRoomInfo(PrintWriter pw, TimetableModel model, Assignment<Lecture, Placement> assignment) {
         pw.println("Room info:");
         pw.println("id, name, size, used_day, used_total");
@@ -419,7 +429,10 @@ public class Test implements SolutionListener<Lecture, Placement> {
         }
     }
 
-    /** Class information */
+    /** Class information 
+     * @param pw writer
+     * @param model problem model
+     **/
     public static void printClassInfo(PrintWriter pw, TimetableModel model) {
         pw.println("Class info:");
         pw.println("id, name, min_class_limit, max_class_limit, room2limit_ratio, half_hours");
@@ -431,7 +444,10 @@ public class Test implements SolutionListener<Lecture, Placement> {
         }
     }
 
-    /** Create info.txt with some more information about the problem */
+    /** Create info.txt with some more information about the problem 
+     * @param solution current solution
+     * @throws IOException an exception that may be thrown
+     **/
     public static void printSomeStuff(Solution<Lecture, Placement> solution) throws IOException {
         TimetableModel model = (TimetableModel) solution.getModel();
         Assignment<Lecture, Placement> assignment = solution.getAssignment();

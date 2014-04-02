@@ -35,12 +35,16 @@ public abstract class PreferenceCombination {
     boolean iIsRequired = false;
     boolean iIsProhibited = false;
 
-    /** Add preference a preference */
+    /** Add preference a preference 
+     * @param prologPref prolog preference (R for required, P for prohibited, -2 strongly preferred, ... 2 strongly discouraged)
+     **/
     public void addPreferenceProlog(String prologPref) {
         addPreferenceInt(Constants.preference2preferenceLevel(prologPref));
     }
 
-    /** Returns combined preference from the given preferences */
+    /** Returns combined preference from the given preferences 
+     * @param intPref preference
+     **/
     public void addPreferenceInt(int intPref) {
         String prologPref = Constants.preferenceLevel2preference(intPref);
         if (Constants.sPreferenceRequired.equals(prologPref))
