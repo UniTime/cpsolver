@@ -96,22 +96,30 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
         iProjected = projected;
     }
 
-    /** Course offering unique id */
+    /** Course offering unique id 
+     * @return coure offering unqiue id
+     **/
     public long getId() {
         return iId;
     }
 
-    /** Subject area */
+    /** Subject area 
+     * @return subject area abbreviation
+     **/
     public String getSubjectArea() {
         return iSubjectArea;
     }
 
-    /** Course number */
+    /** Course number 
+     * @return course number
+     **/
     public String getCourseNumber() {
         return iCourseNumber;
     }
 
-    /** Course offering name: subject area + course number */
+    /** Course offering name: subject area + course number 
+     * @return course name
+     **/
     public String getName() {
         return iSubjectArea + " " + iCourseNumber;
     }
@@ -121,48 +129,66 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
         return getName();
     }
 
-    /** Instructional offering which is offered under this course offering. */
+    /** Instructional offering which is offered under this course offering. 
+     * @return instructional offering
+     **/
     public Offering getOffering() {
         return iOffering;
     }
 
-    /** Course offering limit */
+    /** Course offering limit 
+     * @return course offering limit, -1 if unlimited
+     **/
     public int getLimit() {
         return iLimit;
     }
 
-    /** Set course offering limit */
+    /** Set course offering limit 
+     * @param limit course offering limit, -1 if unlimited
+     **/
     public void setLimit(int limit) {
         iLimit = limit;
     }
 
-    /** Course offering projected number of students */
+    /** Course offering projected number of students 
+     * @return course projection
+     **/
     public int getProjected() {
         return iProjected;
     }
     
-    /** Called when an enrollment with this course is assigned to a request */
+    /** Called when an enrollment with this course is assigned to a request 
+     * @param assignment current assignment
+     * @param enrollment assigned enrollment
+     **/
     public void assigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
         getContext(assignment).assigned(assignment, enrollment);
     }
 
-    /** Called when an enrollment with this course is unassigned from a request */
+    /** Called when an enrollment with this course is unassigned from a request
+     * @param assignment current assignment
+     * @param enrollment unassigned enrollment
+     */
     public void unassigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
         getContext(assignment).unassigned(assignment, enrollment);
     }
     
-    /** Set of course requests requesting this course */
+    /** Set of course requests requesting this course 
+     * @return request for this course
+     **/
     public Set<CourseRequest> getRequests() {
         return iRequests;
     }
     
     /**
      * Course note
+     * @return course note
      */
     public String getNote() { return iNote; }
     
     /**
      * Course note
+     * @param note course note
      */
     public void setNote(String note) { iNote = note; }
 
@@ -186,12 +212,18 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
      * Enrollment weight -- weight of all requests that are enrolled into this course,
      * excluding the given one. See
      * {@link Request#getWeight()}.
+     * @param assignment current assignment
+     * @param excludeRequest request to exclude
+     * @return enrollment weight
      */
     public double getEnrollmentWeight(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
         return getContext(assignment).getEnrollmentWeight(assignment, excludeRequest);
     }
     
-    /** Set of assigned enrollments */
+    /** Set of assigned enrollments 
+     * @param assignment current assignment
+     * @return assigned enrollments for this course offering
+     **/
     public Set<Enrollment> getEnrollments(Assignment<Request, Enrollment> assignment) {
         return getContext(assignment).getEnrollments();
     }
@@ -229,6 +261,9 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
          * Enrollment weight -- weight of all requests that are enrolled into this course,
          * excluding the given one. See
          * {@link Request#getWeight()}.
+         * @param assignment current assignment
+         * @param excludeRequest request to exclude
+         * @return enrollment weight
          */
         public double getEnrollmentWeight(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
             double weight = iEnrollmentWeight;
@@ -237,7 +272,9 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
             return weight;
         }
         
-        /** Set of assigned enrollments */
+        /** Set of assigned enrollments 
+         * @return assigned enrollments for this course offering
+         **/
         public Set<Enrollment> getEnrollments() {
             return iEnrollments;
         }

@@ -72,7 +72,9 @@ public class StudentSctBBTest extends Model<Request, Enrollment> {
         addConstraint(new StudentConflict(student));
     }
 
-    /** Return the given student */
+    /** Return the given student 
+     * @return selected student
+     **/
     public Student getStudent() {
         return iStudent;
     }
@@ -80,6 +82,7 @@ public class StudentSctBBTest extends Model<Request, Enrollment> {
     /**
      * Compute and return the sectioning solution. It contains only the given
      * student with his/her schedule
+     * @return current solution
      */
     public Solution<Request, Enrollment> getSolution() {
         if (iSolution == null) {
@@ -97,6 +100,7 @@ public class StudentSctBBTest extends Model<Request, Enrollment> {
     /**
      * Return a list of messages ({@link Message} objects) from the sectioning
      * of the given student
+     * @return enrollment messages
      */
     public List<Message> getMessages() {
         Assignment<Request, Enrollment> assignment = getSolution().getAssignment();
@@ -190,22 +194,29 @@ public class StudentSctBBTest extends Model<Request, Enrollment> {
          * Message level (one of {@link StudentSctBBTest.Message#sMsgLevelInfo},
          * {@link StudentSctBBTest.Message#sMsgLevelWarn}, and
          * {@link StudentSctBBTest.Message#sMsgLevelError})
+         * @return message level
          */
         public int getLevel() {
             return iLevel;
         }
 
-        /** Message level as string */
+        /** Message level as string 
+         * @return message level
+         **/
         public String getLevelString() {
             return sMsgLevels[iLevel];
         }
 
-        /** Related course / free time request */
+        /** Related course / free time request 
+         * @return associated student request
+         **/
         public Request getRequest() {
             return iRequest;
         }
 
-        /** Message */
+        /** Message 
+         * @return message text
+         **/
         public String getMessage() {
             return iMessage;
         }

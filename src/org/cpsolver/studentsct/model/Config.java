@@ -71,7 +71,9 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
         iOffering.getConfigs().add(this);
     }
 
-    /** Configuration id */
+    /** Configuration id 
+     * @return instructional offering configuration unique id
+     **/
     public long getId() {
         return iId;
     }
@@ -80,29 +82,38 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
      * Configuration limit. This is defines the maximal number of students that can be
      * enrolled into this configuration at the same time. It is -1 in the case of an
      * unlimited configuration
+     * @return configuration limit
      */
     public int getLimit() {
         return iLimit;
     }
 
-    /** Set configuration limit */
+    /** Set configuration limit 
+     * @param limit configuration limit, -1 if unlimited
+     **/
     public void setLimit(int limit) {
         iLimit = limit;
     }
 
 
 
-    /** Configuration name */
+    /** Configuration name 
+     * @return configuration name
+     **/
     public String getName() {
         return iName;
     }
 
-    /** Instructional offering to which this configuration belongs. */
+    /** Instructional offering to which this configuration belongs. 
+     * @return instructional offering
+     **/
     public Offering getOffering() {
         return iOffering;
     }
 
-    /** List of subparts */
+    /** List of subparts 
+     * @return scheduling subparts
+     **/
     public List<Subpart> getSubparts() {
         return iSubparts;
     }
@@ -112,7 +123,9 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
         return getName();
     }
 
-    /** Average minimal penalty from {@link Subpart#getMinPenalty()} */
+    /** Average minimal penalty from {@link Subpart#getMinPenalty()} 
+     * @return minimal penalty
+     **/
     public double getMinPenalty() {
         double min = 0.0;
         for (Subpart subpart : getSubparts()) {
@@ -121,7 +134,9 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
         return min / getSubparts().size();
     }
 
-    /** Average maximal penalty from {@link Subpart#getMaxPenalty()} */
+    /** Average maximal penalty from {@link Subpart#getMaxPenalty()} 
+     * @return maximal penalty
+     **/
     public double getMaxPenalty() {
         double max = 0.0;
         for (Subpart subpart : getSubparts()) {
@@ -132,7 +147,9 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
     
     /**
      * Available space in the configuration that is not reserved by any config reservation
+     * @param assignment current assignment
      * @param excludeRequest excluding given request (if not null)
+     * @return available space
      **/
     public double getUnreservedSpace(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
         // configuration is unlimited -> there is unreserved space unless there is an unlimited reservation too 
@@ -166,6 +183,7 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
     
     /**
      * Total space in the configuration that cannot be reserved by any config reservation
+     * @return total unreserved space
      **/
     public synchronized double getTotalUnreservedSpace() {
         if (iTotalUnreservedSpace == null)
@@ -211,6 +229,7 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
     
     /**
      * Get reservations for this configuration
+     * @return related reservations
      */
     public synchronized List<Reservation> getReservations() {
         if (iReservations == null) {
@@ -226,6 +245,7 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
     
     /**
      * Get reservations that require this configuration
+     * @return related reservations
      */
     public synchronized List<Reservation> getConfigReservations() {
         if (iConfigReservations == null) {
@@ -266,7 +286,10 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
         return getOffering().getModel();
     }
     
-    /** Set of assigned enrollments */
+    /** Set of assigned enrollments 
+     * @param assignment current assignment
+     * @return enrollments in this configuration
+     **/
     public Set<Enrollment> getEnrollments(Assignment<Request, Enrollment> assignment) {
         return getContext(assignment).getEnrollments();
     }
@@ -275,6 +298,9 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
      * Enrollment weight -- weight of all requests which have an enrollment that
      * contains this config, excluding the given one. See
      * {@link Request#getWeight()}.
+     * @param assignment current assignment
+     * @param excludeRequest request to exclude, null if all requests are to be included
+     * @return enrollment weight
      */
     public double getEnrollmentWeight(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
         return getContext(assignment).getEnrollmentWeight(assignment, excludeRequest);
@@ -282,6 +308,8 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
     
     /**
      * Maximal weight of a single enrollment in the config
+     * @param assignment current assignment
+     * @return maximal enrollment weight
      */
     public double getMaxEnrollmentWeight(Assignment<Request, Enrollment> assignment) {
         return getContext(assignment).getMaxEnrollmentWeight();
@@ -289,6 +317,8 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
 
     /**
      * Minimal weight of a single enrollment in the config
+     * @param assignment current assignment
+     * @return minimal enrollment weight
      */
     public double getMinEnrollmentWeight(Assignment<Request, Enrollment> assignment) {
         return getContext(assignment).getMinEnrollmentWeight();
@@ -367,6 +397,9 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
          * Enrollment weight -- weight of all requests which have an enrollment that
          * contains this config, excluding the given one. See
          * {@link Request#getWeight()}.
+         * @param assignment current assignment
+         * @param excludeRequest request to exclude
+         * @return enrollment weight
          */
         public double getEnrollmentWeight(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
             double weight = iEnrollmentWeight;
@@ -375,13 +408,16 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
             return weight;
         }
         
-        /** Set of assigned enrollments */
+        /** Set of assigned enrollments 
+         * @return assigned enrollments (using this configuration)
+         **/
         public Set<Enrollment> getEnrollments() {
             return iEnrollments;
         }
 
         /**
          * Maximal weight of a single enrollment in the config
+         * @return maximal enrollment weight
          */
         public double getMaxEnrollmentWeight() {
             return iMaxEnrollmentWeight;
@@ -389,6 +425,7 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
 
         /**
          * Minimal weight of a single enrollment in the config
+         * @return minimal enrollment weight
          */
         public double getMinEnrollmentWeight() {
             return iMinEnrollmentWeight;

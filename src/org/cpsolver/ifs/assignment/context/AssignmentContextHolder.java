@@ -46,6 +46,7 @@ public interface AssignmentContextHolder<V extends Variable<V, T>, T extends Val
      * @param assignment current assignment (there is only one assignment associated with one holder, but 
      * the assignment is passed so that {@link HasAssignmentContext#createAssignmentContext(Assignment)} can be called if needed
      * @param reference a reference created by calling {@link Model#createReference(HasAssignmentContext)} 
+     * @param <U> assignment context type
      * @return an assignment context
      */
     public <U extends AssignmentContext> U getAssignmentContext(Assignment<V, T> assignment, AssignmentContextReference<V, T, U> reference);
@@ -53,6 +54,7 @@ public interface AssignmentContextHolder<V extends Variable<V, T>, T extends Val
     /**
      * Clear an assignment context that is associated with the given a reference. If there is any created for the reference.
      * @param reference a reference (which can be stored within the model, e.g., as an instance variable of a constraint)
+     * @param <U> assignment context type
      **/
     public <U extends AssignmentContext> void clearContext(AssignmentContextReference<V, T, U> reference);
 

@@ -95,6 +95,7 @@ public class IndividualReservation extends Reservation {
     
     /**
      * Students in the reservation
+     * @return set of student ids associated with this reservation
      */
     public Set<Long> getStudentIds() {
         return iStudentIds;

@@ -75,6 +75,7 @@ public class CourseRequest extends Request {
      * @param waitlist
      *            time stamp of the request if the student can be put on a wait-list (no alternative
      *            course request will be given instead)
+     * @param timeStamp request time stamp
      */
     public CourseRequest(long id, int priority, boolean alternative, Student student, java.util.List<Course> courses,
             boolean waitlist, Long timeStamp) {
@@ -89,6 +90,7 @@ public class CourseRequest extends Request {
     /**
      * List of requested courses (in the correct order -- first is the requested
      * course, second is the first alternative, etc.)
+     * @return requested course offerings
      */
     public List<Course> getCourses() {
         return iCourses;
@@ -98,6 +100,9 @@ public class CourseRequest extends Request {
      * Create enrollment for the given list of sections. The list of sections
      * needs to be correct, i.e., a section for each subpart of a configuration
      * of one of the requested courses.
+     * @param sections selected sections
+     * @param reservation selected reservation
+     * @return enrollment
      */
     public Enrollment createEnrollment(Set<? extends SctAssignment> sections, Reservation reservation) {
         if (sections == null || sections.isEmpty())
@@ -117,6 +122,9 @@ public class CourseRequest extends Request {
      * Create enrollment for the given list of sections. The list of sections
      * needs to be correct, i.e., a section for each subpart of a configuration
      * of one of the requested courses.
+     * @param assignment current assignment (to guess the reservation)
+     * @param sections selected sections
+     * @return enrollment
      */
     public Enrollment createEnrollment(Assignment<Request, Enrollment> assignment, Set<? extends SctAssignment> sections) {
         Enrollment ret = createEnrollment(sections, null);
@@ -127,6 +135,7 @@ public class CourseRequest extends Request {
     
     /**
      * Maximal domain size (i.e., number of enrollments of a course request), -1 if there is no limit.
+     * @return maximal domain size, -1 if unlimited
      */
     protected int getMaxDomainSize() {
         StudentSectioningModel model = (StudentSectioningModel) getModel();
@@ -153,6 +162,9 @@ public class CourseRequest extends Request {
     /**
      * Return a subset of all enrollments -- randomly select only up to
      * limitEachConfig enrollments of each config.
+     * @param assignment current assignment
+     * @param limitEachConfig maximal number of enrollments in each configuration
+     * @return computed enrollments
      */
     public List<Enrollment> computeRandomEnrollments(Assignment<Request, Enrollment> assignment, int limitEachConfig) {
         List<Enrollment> ret = new ArrayList<Enrollment>();
@@ -405,7 +417,10 @@ public class CourseRequest extends Request {
         }
     }
 
-    /** Return all enrollments that are available */
+    /** Return all enrollments that are available 
+     * @param assignment current assignment
+     * @return all available enrollments
+     **/
     public List<Enrollment> getAvaiableEnrollments(Assignment<Request, Enrollment> assignment) {
         List<Enrollment> ret = new ArrayList<Enrollment>();
         int idx = 0;
@@ -423,8 +438,10 @@ public class CourseRequest extends Request {
      * Return all enrollments that are selected (
      * {@link CourseRequest#isSelected(Section)} is true)
      * 
+     * @param assignment current assignment
      * @param availableOnly
      *            pick only available sections
+     * @return selected enrollments
      */
     public List<Enrollment> getSelectedEnrollments(Assignment<Request, Enrollment> assignment, boolean availableOnly) {
         if (getSelectedChoices().isEmpty())
@@ -445,6 +462,8 @@ public class CourseRequest extends Request {
      * Return all enrollments that are available, pick only the first section of
      * the sections with the same time (of each subpart, {@link Section}
      * comparator is used)
+     * @param assignment current assignment
+     * @return available enrollments 
      */
     public List<Enrollment> getAvaiableEnrollmentsSkipSameTime(Assignment<Request, Enrollment> assignment) {
         List<Enrollment> ret = new ArrayList<Enrollment>();
@@ -462,7 +481,11 @@ public class CourseRequest extends Request {
     }
 
     /**
-     * Return all possible enrollments.
+     * Return all possible enrollments, but pick only the first section of
+     * the sections with the same time (of each subpart, {@link Section}
+     * comparator is used).
+     * @param assignment current assignment
+     * @return computed enrollments 
      */
     public List<Enrollment> getEnrollmentsSkipSameTime(Assignment<Request, Enrollment> assignment) {
         List<Enrollment> ret = new ArrayList<Enrollment>();
@@ -477,7 +500,9 @@ public class CourseRequest extends Request {
         return ret;
     }
 
-    /** Wait-listed choices */
+    /** Wait-listed choices 
+     * @return wait-listed choices
+     **/
     public Set<Choice> getWaitlistedChoices() {
         return iWaitlistedChoices;
     }
@@ -485,12 +510,16 @@ public class CourseRequest extends Request {
     /**
      * Return true when the given section is wait-listed (i.e., its choice is
      * among wait-listed choices)
+     * @param section given section
+     * @return true if the given section matches the wait-listed choices
      */
     public boolean isWaitlisted(Section section) {
         return iWaitlistedChoices.contains(section.getChoice());
     }
 
-    /** Selected choices */
+    /** Selected choices 
+     * @return selected choices
+     **/
     public Set<Choice> getSelectedChoices() {
         return iSelectedChoices;
     }
@@ -498,13 +527,15 @@ public class CourseRequest extends Request {
     /**
      * Return true when the given section is selected (i.e., its choice is among
      * selected choices)
+     * @param section given section
+     * @return true if the given section matches the selected choices
      */
     public boolean isSelected(Section section) {
         return iSelectedChoices.contains(section.getChoice());
     }
 
     /**
-     * Request name: A for alternative, 1 + priority, (w) when waitlist, list of
+     * Request name: A for alternative, 1 + priority, (w) when wait-list, list of
      * course names
      */
     @Override
@@ -526,6 +557,7 @@ public class CourseRequest extends Request {
     /**
      * True if the student can be put on a wait-list (no alternative course
      * request will be given instead)
+     * @return true if the request can be wait-listed
      */
     public boolean isWaitlist() {
         return iWaitlist;
@@ -534,6 +566,7 @@ public class CourseRequest extends Request {
     /**
      * True if the student can be put on a wait-list (no alternative course
      * request will be given instead)
+     * @param waitlist true if the request can be wait-listed
      */
     public void setWaitlist(boolean waitlist) {
         iWaitlist = waitlist;
@@ -541,6 +574,7 @@ public class CourseRequest extends Request {
     
     /**
      * Time stamp of the request
+     * @return request time stamp
      */
     public Long getTimeStamp() {
         return iTimeStamp;
@@ -551,7 +585,10 @@ public class CourseRequest extends Request {
         return getName() + (getWeight() != 1.0 ? " (W:" + sDF.format(getWeight()) + ")" : "");
     }
 
-    /** Return course of the requested courses with the given id */
+    /** Return course of the requested courses with the given id 
+     * @param courseId course offering id
+     * @return course of the given id
+     **/
     public Course getCourse(long courseId) {
         for (Course course : iCourses) {
             if (course.getId() == courseId)
@@ -560,7 +597,10 @@ public class CourseRequest extends Request {
         return null;
     }
 
-    /** Return configuration of the requested courses with the given id */
+    /** Return configuration of the requested courses with the given id 
+     * @param configId instructional offering configuration unique id
+     * @return config of the given id
+     **/
     public Config getConfig(long configId) {
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
@@ -571,7 +611,10 @@ public class CourseRequest extends Request {
         return null;
     }
 
-    /** Return subpart of the requested courses with the given id */
+    /** Return subpart of the requested courses with the given id 
+     * @param subpartId scheduling subpart unique id
+     * @return subpart of the given id
+     **/
     public Subpart getSubpart(long subpartId) {
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
@@ -584,7 +627,10 @@ public class CourseRequest extends Request {
         return null;
     }
 
-    /** Return section of the requested courses with the given id */
+    /** Return section of the requested courses with the given id 
+     * @param sectionId class unique id
+     * @return section of the given id
+     **/
     public Section getSection(long sectionId) {
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
@@ -602,6 +648,7 @@ public class CourseRequest extends Request {
     /**
      * Minimal penalty (minimum of {@link Offering#getMinPenalty()} among
      * requested courses)
+     * @return minimal penalty
      */
     public double getMinPenalty() {
         if (iCachedMinPenalty == null) {
@@ -617,6 +664,7 @@ public class CourseRequest extends Request {
     /**
      * Maximal penalty (maximum of {@link Offering#getMaxPenalty()} among
      * requested courses)
+     * @return maximal penalty
      */
     public double getMaxPenalty() {
         if (iCachedMaxPenalty == null) {
@@ -672,6 +720,8 @@ public class CourseRequest extends Request {
     
     /**
      * Get reservations for this course requests
+     * @param course given course
+     * @return reservations for this course requests and the given course
      */
     public List<Reservation> getReservations(Course course) {
         if (iReservations == null)
@@ -694,6 +744,7 @@ public class CourseRequest extends Request {
     
     /**
      * Return true if there is a reservation for a course of this request
+     * @return true if there is a reservation for a course of this request
      */
     public boolean hasReservations() {
         for (Course course: getCourses())

@@ -43,6 +43,7 @@ public interface StudentWeights extends SolutionComparator<Request, Enrollment> 
     
     /**
      * Return base weight of the given enrollment 
+     * @param assignment current assignment
      * @param enrollment given enrollment
      * @return weight (higher weight means better value)
      */
@@ -50,6 +51,7 @@ public interface StudentWeights extends SolutionComparator<Request, Enrollment> 
     
     /**
      * Return weight of the given enrollment 
+     * @param assignment current assignment
      * @param enrollment given enrollment
      * @param distanceConflicts distance conflicts
      * @param timeOverlappingConflicts time overlapping conflicts
@@ -59,16 +61,24 @@ public interface StudentWeights extends SolutionComparator<Request, Enrollment> 
     
     /**
      * Return weight of a distance conflict
+     * @param assignment current assignment
+     * @param distanceConflict distance conflict
+     * @return weight of the conflict
      */
     public double getDistanceConflictWeight(Assignment<Request, Enrollment> assignment, DistanceConflict.Conflict distanceConflict);
     
     /**
      * Return weight of a time overlapping conflict
+     * @param assignment current assignment
+     * @param enrollment enrollment in question
+     * @param timeOverlap time overlapping conflict
+     * @return weight of the conflict
      */
     public double getTimeOverlapConflictWeight(Assignment<Request, Enrollment> assignment, Enrollment enrollment, TimeOverlapsCounter.Conflict timeOverlap);
     
     /**
      * Return true if free time requests allow overlaps
+     * @return true if free time overlaps are allowed, but the overlapping time is minimized
      */
     public boolean isFreeTimeAllowOverlaps();
     

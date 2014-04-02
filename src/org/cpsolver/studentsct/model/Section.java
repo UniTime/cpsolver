@@ -116,27 +116,36 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
      * Section limit. This is defines the maximal number of students that can be
      * enrolled into this section at the same time. It is -1 in the case of an
      * unlimited section
+     * @return class limit
      */
     public int getLimit() {
         return iLimit;
     }
 
-    /** Set section limit */
+    /** Set section limit 
+     * @param limit class limit
+     **/
     public void setLimit(int limit) {
         iLimit = limit;
     }
 
-    /** Section name */
+    /** Section name 
+     * @return class name
+     **/
     public String getName() {
         return iName;
     }
     
-    /** Set section name */
+    /** Set section name 
+     * @param name class name
+     **/
     public void setName(String name) {
         iName = name;
     }
 
-    /** Scheduling subpart to which this section belongs */
+    /** Scheduling subpart to which this section belongs 
+     * @return scheduling subpart
+     **/
     public Subpart getSubpart() {
         return iSubpart;
     }
@@ -147,6 +156,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
      * enrolled in the parent section as well. Also, the same relation needs to
      * be defined between subpart of this section and the subpart of the parent
      * section.
+     * @return parent class
      */
     public Section getParent() {
         return iParent;
@@ -155,6 +165,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     /**
      * Time/room placement of the section. This can be null, for arranged
      * sections.
+     * @return time and room assignment of this class
      */
     public Placement getPlacement() {
         return iPlacement;
@@ -163,6 +174,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     /**
      * Set time/room placement of the section. This can be null, for arranged
      * sections.
+     * @param placement time and room assignment of this class
      */
     public void setPlacement(Placement placement) {
         iPlacement = placement;
@@ -242,7 +254,9 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
         getContext(assignment).unassigned(assignment, enrollment);
     }
 
-    /** Long name: subpart name + time long name + room names + instructor names */
+    /** Long name: subpart name + time long name + room names + instructor names 
+     * @return long name
+     **/
     public String getLongName() {
         return getSubpart().getName() + " " + getName() + " " + (getTime() == null ? "" : " " + getTime().getLongName())
                 + (getNrRooms() == 0 ? "" : " " + getPlacement().getRoomName(","))
@@ -259,7 +273,9 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
                 + (getPenalty() == 0.0 ? "" : ",P:" + sDF.format(getPenalty())) + ")";
     }
 
-    /** A (student) choice representing this section. */
+    /** A (student) choice representing this section. 
+     * @return choice for this class
+     **/
     public Choice getChoice() {
         return iChoice;
     }
@@ -267,12 +283,15 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     /**
      * Return penalty which is added to an enrollment that contains this
      * section.
+     * @return online penalty
      */
     public double getPenalty() {
         return iPenalty;
     }
 
-    /** Set penalty which is added to an enrollment that contains this section. */
+    /** Set penalty which is added to an enrollment that contains this section. 
+     * @param penalty online penalty
+     **/
     public void setPenalty(double penalty) {
         iPenalty = penalty;
     }
@@ -297,6 +316,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
      * students. This attribute is computed during the batch sectioning (it is
      * the overall weight of dummy students enrolled in this section) and it is
      * being updated with each incomming student during the online sectioning.
+     * @return space held
      */
     public double getSpaceHeld() {
         return iSpaceHeld;
@@ -305,6 +325,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     /**
      * Set the amount of space of this section that is held for incoming
      * students. See {@link Section#getSpaceHeld()} for more info.
+     * @param spaceHeld space held
      */
     public void setSpaceHeld(double spaceHeld) {
         iSpaceHeld = spaceHeld;
@@ -316,8 +337,9 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
      * sectioning (for each dummy student that can attend this section (without
      * any conflict with other enrollments of that student), 1 / x where x is
      * the number of such sections of this subpart is added to this value).
-     * Also, this value is being updated with each incomming student during the
+     * Also, this value is being updated with each incoming student during the
      * online sectioning.
+     * @return space expected
      */
     public double getSpaceExpected() {
         return iSpaceExpected;
@@ -326,6 +348,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     /**
      * Set the amount of space of this section that is expected to be taken by
      * incoming students. See {@link Section#getSpaceExpected()} for more info.
+     * @param spaceExpected space expected
      */
     public void setSpaceExpected(double spaceExpected) {
         iSpaceExpected = spaceExpected;
@@ -333,6 +356,8 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
 
     /**
      * Online sectioning penalty.
+     * @param assignment current assignment
+     * @return online sectioning penalty
      */
     public double getOnlineSectioningPenalty(Assignment<Request, Enrollment> assignment) {
         if (getLimit() <= 0)
@@ -366,7 +391,9 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
 
     /**
      * Available space in the section that is not reserved by any section reservation
+     * @param assignment current assignment
      * @param excludeRequest excluding given request (if not null)
+     * @return unreserved space in this class
      **/
     public double getUnreservedSpace(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
         // section is unlimited -> there is unreserved space unless there is an unlimited reservation too 
@@ -400,6 +427,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     
     /**
      * Total space in the section that cannot be used by any section reservation
+     * @return total unreserved space in this class
      **/
     public double getTotalUnreservedSpace() {
         if (iTotalUnreservedSpace == null)
@@ -446,6 +474,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     
     /**
      * Get reservations for this section
+     * @return reservations that can use this class
      */
     public List<Reservation> getReservations() {
         if (iReservations == null) {
@@ -461,6 +490,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     
     /**
      * Get reservations that require this section
+     * @return reservations that must use this class
      */
     public List<Reservation> getSectionReservations() {
         if (iSectionReservations == null) {
@@ -485,6 +515,8 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     
     /**
      * Return course-dependent section name
+     * @param courseId course offering unique id
+     * @return course dependent class name
      */
     public String getName(long courseId) {
         if (iNameByCourse == null) return getName();
@@ -494,6 +526,8 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     
     /**
      * Set course-dependent section name
+     * @param courseId course offering unique id
+     * @param name course dependent class name
      */
     public void setName(long courseId, String name) {
         if (iNameByCourse == null) iNameByCourse = new HashMap<Long, String>();
@@ -502,6 +536,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
 
     /**
      * Return course-dependent section names
+     * @return map of course-dependent class names
      */
     public Map<Long, String> getNameByCourse() { return iNameByCourse; }
     
@@ -518,16 +553,19 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     
     /**
      * Section note
+     * @return scheduling note
      */
     public String getNote() { return iNote; }
     
     /**
      * Section note
+     * @param note scheduling note
      */
     public void setNote(String note) { iNote = note; }
     
     /**
      * Add section id of a section that student conflicts are to be ignored with
+     * @param sectionId class unique id
      */
     public void addIgnoreConflictWith(long sectionId) {
         if (iIgnoreConflictsWith == null) iIgnoreConflictsWith = new HashSet<Long>();
@@ -536,6 +574,8 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     
     /**
      * Returns true if student conflicts between this section and the given one are to be ignored
+     * @param sectionId class unique id
+     * @return true if student conflicts between these two sections are to be ignored
      */
     public boolean isToIgnoreStudentConflictsWith(long sectionId) {
         return iIgnoreConflictsWith != null && iIgnoreConflictsWith.contains(sectionId);
@@ -543,6 +583,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     
     /**
      * Returns a set of ids of sections that student conflicts are to be ignored with (between this section and the others)
+     * @return set of class unique ids of the sections that student conflicts are to be ignored with 
      */
     public Set<Long> getIgnoreConflictWithSectionIds() {
         return iIgnoreConflictsWith;
@@ -558,6 +599,9 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
      * Enrollment weight -- weight of all requests which have an enrollment that
      * contains this section, excluding the given one. See
      * {@link Request#getWeight()}.
+     * @param assignment current assignment
+     * @param excludeRequest course request to ignore, if any
+     * @return enrollment weight
      */
     public double getEnrollmentWeight(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
         return getContext(assignment).getEnrollmentWeight(assignment, excludeRequest);
@@ -565,6 +609,8 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     
     /**
      * Maximal weight of a single enrollment in the section
+     * @param assignment current assignment
+     * @return maximal enrollment weight
      */
     public double getMaxEnrollmentWeight(Assignment<Request, Enrollment> assignment) {
         return getContext(assignment).getMaxEnrollmentWeight();
@@ -572,6 +618,8 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
 
     /**
      * Minimal weight of a single enrollment in the section
+     * @param assignment current assignment
+     * @return minimal enrollment weight
      */
     public double getMinEnrollmentWeight(Assignment<Request, Enrollment> assignment) {
         return getContext(assignment).getMinEnrollmentWeight();
@@ -651,7 +699,9 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
             }
         }
         
-        /** Set of assigned enrollments */
+        /** Set of assigned enrollments 
+         * @return assigned enrollments of this section
+         **/
         public Set<Enrollment> getEnrollments() {
             return iEnrollments;
         }
@@ -660,6 +710,9 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
          * Enrollment weight -- weight of all requests which have an enrollment that
          * contains this section, excluding the given one. See
          * {@link Request#getWeight()}.
+         * @param assignment current assignment
+         * @param excludeRequest course request to ignore, if any
+         * @return enrollment weight
          */
         public double getEnrollmentWeight(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
             double weight = iEnrollmentWeight;
@@ -670,6 +723,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
         
         /**
          * Maximal weight of a single enrollment in the section
+         * @return maximal enrollment weight
          */
         public double getMaxEnrollmentWeight() {
             return iMaxEnrollmentWeight;
@@ -677,6 +731,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
 
         /**
          * Minimal weight of a single enrollment in the section
+         * @return minimal enrollment weight
          */
         public double getMinEnrollmentWeight() {
             return iMinEnrollmentWeight;

@@ -150,6 +150,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     
     /**
      * Return true if reservation that has {@link Reservation#canAssignOverLimit()} can assign enrollments over the limit
+     * @return true if reservation that has {@link Reservation#canAssignOverLimit()} can assign enrollments over the limit
      */
     public boolean getReservationCanAssignOverTheLimit() {
         return iReservationCanAssignOverTheLimit;
@@ -157,6 +158,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     
     /**
      * Return student weighting model
+     * @return student weighting model
      */
     public StudentWeights getStudentWeights() {
         return iStudentWeights;
@@ -164,6 +166,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
 
     /**
      * Set student weighting model
+     * @param weights student weighting model
      */
     public void setStudentWeights(StudentWeights weights) {
         iStudentWeights = weights;
@@ -171,6 +174,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
 
     /**
      * Students
+     * @return all students in the problem
      */
     public List<Student> getStudents() {
         return iStudents;
@@ -178,6 +182,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
 
     /**
      * Add a student into the model
+     * @param student a student to be added into the problem
      */
     public void addStudent(Student student) {
         iStudents.add(student);
@@ -205,6 +210,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     
     /** 
      * Recompute cached request weights
+     * @param assignment current assignment
      */
     public void requestWeightsChanged(Assignment<Request, Enrollment> assignment) {
         getContext(assignment).requestWeightsChanged(assignment);
@@ -212,6 +218,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
 
     /**
      * Remove a student from the model
+     * @param student a student to be removed from the problem
      */
     public void removeStudent(Student student) {
         iStudents.remove(student);
@@ -254,6 +261,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
 
     /**
      * List of offerings
+     * @return all instructional offerings of the problem
      */
     public List<Offering> getOfferings() {
         return iOfferings;
@@ -261,6 +269,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
 
     /**
      * Add an offering into the model
+     * @param offering an instructional offering to be added into the problem
      */
     public void addOffering(Offering offering) {
         iOfferings.add(offering);
@@ -269,6 +278,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     
     /**
      * Link sections using {@link LinkedSections}
+     * @param sections a linked section constraint to be added into the problem
      */
     public void addLinkedSections(Section... sections) {
         LinkedSections constraint = new LinkedSections(sections);
@@ -278,6 +288,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
 
     /**
      * Link sections using {@link LinkedSections}
+     * @param sections a linked section constraint to be added into the problem
      */
     public void addLinkedSections(Collection<Section> sections) {
         LinkedSections constraint = new LinkedSections(sections);
@@ -287,6 +298,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
 
     /**
      * List of linked sections
+     * @return all linked section constraints of the problem
      */
     public List<LinkedSections> getLinkedSections() {
         return iLinkedSections;
@@ -340,6 +352,9 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
 
     /**
      * Overall solution value
+     * @param assignment current assignment
+     * @param precise true if should be computed
+     * @return solution value
      */
     public double getTotalValue(Assignment<Request, Enrollment> assignment, boolean precise) {
         if (precise) {
@@ -369,6 +384,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
 
     /**
      * Configuration
+     * @return solver configuration
      */
     public DataProperties getProperties() {
         return iProperties;
@@ -394,6 +410,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     /**
      * Compute online student sectioning infos for all sections (see
      * {@link Section#getSpaceExpected()} and {@link Section#getSpaceHeld()}).
+     * @param assignment current assignment
      */
     public void computeOnlineSectioningInfos(Assignment<Request, Enrollment> assignment) {
         clearOnlineSectioningInfos();
@@ -451,6 +468,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     /**
      * Sum of weights of all requests that are not assigned (see
      * {@link Request#getWeight()}).
+     * @param assignment current assignment
+     * @return unassigned request weight
      */
     public double getUnassignedRequestWeight(Assignment<Request, Enrollment> assignment) {
         double weight = 0.0;
@@ -462,6 +481,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
 
     /**
      * Sum of weights of all requests (see {@link Request#getWeight()}).
+     * @return total request weight
      */
     public double getTotalRequestWeight() {
         double weight = 0.0;
@@ -473,6 +493,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
 
     /**
      * Set distance conflict extension
+     * @param dc distance conflicts extension
      */
     public void setDistanceConflict(DistanceConflict dc) {
         iDistanceConflict = dc;
@@ -480,6 +501,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
 
     /**
      * Return distance conflict extension
+     * @return distance conflicts extension
      */
     public DistanceConflict getDistanceConflict() {
         return iDistanceConflict;
@@ -487,6 +509,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
 
     /**
      * Set time overlaps extension
+     * @param toc time overlapping conflicts extension
      */
     public void setTimeOverlaps(TimeOverlapsCounter toc) {
         iTimeOverlaps = toc;
@@ -494,6 +517,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
 
     /**
      * Return time overlaps extension
+     * @return time overlapping conflicts extension
      */
     public TimeOverlapsCounter getTimeOverlaps() {
         return iTimeOverlaps;
@@ -502,6 +526,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     /**
      * Average priority of unassigned requests (see
      * {@link Request#getPriority()})
+     * @param assignment current assignment
+     * @return average priority of unassigned requests
      */
     public double avgUnassignPriority(Assignment<Request, Enrollment> assignment) {
         double totalPriority = 0.0;
@@ -516,6 +542,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     /**
      * Average number of requests per student (see {@link Student#getRequests()}
      * )
+     * @return average number of requests per student
      */
     public double avgNrRequests() {
         double totalRequests = 0.0;
@@ -529,7 +556,10 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         return totalRequests / totalStudents;
     }
 
-    /** Number of last like ({@link Student#isDummy()} equals true) students. */
+    /** Number of last like ({@link Student#isDummy()} equals true) students. 
+     * @param precise true if to be computed
+     * @return number of last like (projected) students
+     **/
     public int getNrLastLikeStudents(boolean precise) {
         if (!precise)
             return iNrDummyStudents;
@@ -541,7 +571,10 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         return nrLastLikeStudents;
     }
 
-    /** Number of real ({@link Student#isDummy()} equals false) students. */
+    /** Number of real ({@link Student#isDummy()} equals false) students. 
+     * @param precise true if to be computed
+     * @return number of real students
+     **/
     public int getNrRealStudents(boolean precise) {
         if (!precise)
             return getStudents().size() - iNrDummyStudents;
@@ -556,6 +589,9 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     /**
      * Number of last like ({@link Student#isDummy()} equals true) students with
      * a complete schedule ({@link Student#isComplete(Assignment)} equals true).
+     * @param assignment current assignment
+     * @param precise true if to be computed
+     * @return number of last like (projected) students with a complete schedule
      */
     public int getNrCompleteLastLikeStudents(Assignment<Request, Enrollment> assignment, boolean precise) {
         if (!precise)
@@ -571,6 +607,9 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     /**
      * Number of real ({@link Student#isDummy()} equals false) students with a
      * complete schedule ({@link Student#isComplete(Assignment)} equals true).
+     * @param assignment current assignment
+     * @param precise true if to be computed
+     * @return number of real students with a complete schedule
      */
     public int getNrCompleteRealStudents(Assignment<Request, Enrollment> assignment, boolean precise) {
         if (!precise)
@@ -586,6 +625,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     /**
      * Number of requests from projected ({@link Student#isDummy()} equals true)
      * students.
+     * @param precise true if to be computed
+     * @return number of requests from projected students 
      */
     public int getNrLastLikeRequests(boolean precise) {
         if (!precise)
@@ -601,6 +642,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     /**
      * Number of requests from real ({@link Student#isDummy()} equals false)
      * students.
+     * @param precise true if to be computed
+     * @return number of requests from real students 
      */
     public int getNrRealRequests(boolean precise) {
         if (!precise)
@@ -616,6 +659,9 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     /**
      * Number of requests from projected ({@link Student#isDummy()} equals true)
      * students that are assigned.
+     * @param assignment current assignment
+     * @param precise true if to be computed
+     * @return number of requests from projected students that are assigned
      */
     public int getNrAssignedLastLikeRequests(Assignment<Request, Enrollment> assignment, boolean precise) {
         if (!precise)
@@ -631,6 +677,9 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     /**
      * Number of requests from real ({@link Student#isDummy()} equals false)
      * students that are assigned.
+     * @param assignment current assignment
+     * @param precise true if to be computed
+     * @return number of requests from real students that are assigned
      */
     public int getNrAssignedRealRequests(Assignment<Request, Enrollment> assignment, boolean precise) {
         if (!precise)
@@ -645,7 +694,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
 
     /**
      * Model extended info. Some more information (that is more expensive to
-     * compute) is added to an ordinary {@link Model#getInfo()}.
+     * compute) is added to an ordinary {@link Model#getInfo(Assignment)}.
      */
     @Override
     public Map<String, String> getExtendedInfo(Assignment<Request, Enrollment> assignment) {
@@ -803,6 +852,9 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     
     /**
      * Quadratic average of two weights.
+     * @param w1 first weight
+     * @param w2 second weight
+     * @return average of the two weights
      */
     public double avg(double w1, double w2) {
         return Math.sqrt(w1 * w2);
@@ -810,11 +862,13 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
 
     /**
      * Maximal domain size (i.e., number of enrollments of a course request), -1 if there is no limit.
+     * @return maximal domain size, -1 if unlimited
      */
     public int getMaxDomainSize() { return iMaxDomainSize; }
 
     /**
      * Maximal domain size (i.e., number of enrollments of a course request), -1 if there is no limit.
+     * @param maxDomainSize maximal domain size, -1 if unlimited
      */
     public void setMaxDomainSize(int maxDomainSize) { iMaxDomainSize = maxDomainSize; }
     
@@ -917,6 +971,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         
         /**
          * Students with complete schedules (see {@link Student#isComplete(Assignment)})
+         * @return students with complete schedule
          */
         public Set<Student> getCompleteStudents() {
             return iCompleteStudents;
@@ -924,6 +979,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         
         /**
          * Number of students with complete schedule
+         * @return number of students with complete schedule
          */
         public int nrComplete() {
             return getCompleteStudents().size();
@@ -931,6 +987,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         
         /** 
          * Recompute cached request weights
+         * @param assignment curent assignment
          */
         public void requestWeightsChanged(Assignment<Request, Enrollment> assignment) {
             iTotalCRWeight = 0.0;
@@ -967,6 +1024,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         
         /**
          * Overall solution value
+         * @return solution value
          */
         public double getTotalValue() {
             return iTotalValue;
@@ -975,6 +1033,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         /**
          * Number of last like ({@link Student#isDummy()} equals true) students with
          * a complete schedule ({@link Student#isComplete(Assignment)} equals true).
+         * @return number of last like (projected) students with a complete schedule
          */
         public int getNrCompleteLastLikeStudents() {
             return iNrCompleteDummyStudents;
@@ -983,6 +1042,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         /**
          * Number of requests from projected ({@link Student#isDummy()} equals true)
          * students that are assigned.
+         * @return number of real students with a complete schedule
          */
         public int getNrAssignedLastLikeRequests() {
             return iNrAssignedDummyRequests;

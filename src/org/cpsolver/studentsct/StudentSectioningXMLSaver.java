@@ -202,6 +202,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
      * 
      * @param outFile
      *            output file
+     * @throws Exception thrown when the save fails
      */
     public void save(File outFile) throws Exception {
         if (outFile == null) {

@@ -88,6 +88,7 @@ public class EqualStudentWeights extends PriorityStudentWeights {
     
     /**
      * Test case -- run to see the weights for a few courses
+     * @param args program arguments
      */
     public static void main(String[] args) {
         EqualStudentWeights pw = new EqualStudentWeights(new DataProperties());

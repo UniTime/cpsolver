@@ -29,6 +29,9 @@ import org.cpsolver.studentsct.model.Student;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public interface StudentOrder {
-    /** Return the given set of students in a particular order */
+    /** Return the given set of students in a particular order 
+     * @param students input list of students
+     * @return new list of students, ordered by this criterion
+     **/
     public List<Student> order(List<Student> students);
 }

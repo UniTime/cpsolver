@@ -136,6 +136,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
      * 
      * @param model
      *            student sectioning model
+     * @param assignment current assignment
      */
     public StudentSectioningXMLLoader(StudentSectioningModel model, Assignment<Request, Enrollment> assignment) {
         super(model, assignment);
@@ -159,22 +160,30 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         }
     }
 
-    /** Set input file (e.g., if it is not set by General.Input property) */
+    /** Set input file (e.g., if it is not set by General.Input property) 
+     * @param inputFile input file
+     **/
     public void setInputFile(File inputFile) {
         iInputFile = inputFile;
     }
 
-    /** Set student filter */
+    /** Set student filter 
+     * @param filter student filter 
+     **/
     public void setStudentFilter(StudentFilter filter) {
         iStudentFilter = filter;
     }
 
-    /** Set whether to load students */
+    /** Set whether to load students 
+     * @param loadStudents true if students are to be loaded
+     **/
     public void setLoadStudents(boolean loadStudents) {
         iLoadStudents = loadStudents;
     }
 
-    /** Set whether to load offerings */
+    /** Set whether to load offerings 
+     * @param loadOfferings true if instructional offerings are to be loaded
+     **/
     public void setLoadOfferings(boolean loadOfferings) {
         iLoadOfferings = loadOfferings;
     }

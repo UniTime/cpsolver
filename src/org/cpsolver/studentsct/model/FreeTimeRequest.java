@@ -115,7 +115,9 @@ public class FreeTimeRequest extends Request implements SctAssignment {
         return false;
     }
 
-    /** Create enrollment of this request */
+    /** Create enrollment of this request 
+     * @return created enrollment
+     **/
     public Enrollment createEnrollment() {
         HashSet<SctAssignment> assignments = new HashSet<SctAssignment>();
         assignments.add(this);
@@ -209,17 +211,25 @@ public class FreeTimeRequest extends Request implements SctAssignment {
                 assigned(assignment, enrollment);
         }
 
-        /** Enrollment with this assignment was assigned to a {@link Request}. */
+        /** Enrollment with this assignment was assigned to a {@link Request}. 
+         * @param assignment current assignment
+         * @param enrollment assigned enrollment
+         **/
         public void assigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
             iEnrollments.add(enrollment);
         }
 
-        /** Enrollment with this assignment was unassigned from a {@link Request}. */
+        /** Enrollment with this assignment was unassigned from a {@link Request}.
+         * @param assignment current assignment
+         * @param enrollment unassigned enrollment
+         */
         public void unassigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
             iEnrollments.remove(enrollment);
         }
         
-        /** Return the list of assigned enrollments that contains this assignment. */
+        /** Return the list of assigned enrollments that contains this assignment. 
+         * @return current enrollments
+         **/
         public Set<Enrollment> getEnrollments() {
             return iEnrollments;
         }

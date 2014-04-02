@@ -86,6 +86,7 @@ public class CurriculumReservation extends Reservation {
 
     /**
      * Set reservation limit (-1 for unlimited)
+     * @param limit reservation limit, -1 for unlimited
      */
     public void setReservationLimit(double limit) {
         iLimit = limit;
@@ -101,6 +102,7 @@ public class CurriculumReservation extends Reservation {
     
     /**
      * Academic area
+     * @return selected academic area
      */
     public String getAcademicArea() {
         return iAcadArea;
@@ -108,6 +110,7 @@ public class CurriculumReservation extends Reservation {
     
     /**
      * Majors
+     * @return selected majors
      */
     public Set<String> getMajors() {
         return iMajors;
@@ -115,6 +118,7 @@ public class CurriculumReservation extends Reservation {
     
     /**
      * Academic classifications
+     * @return selected academic classifications
      */
     public Set<String> getClassifications() {
         return iClassifications;

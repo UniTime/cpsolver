@@ -66,7 +66,9 @@ public class UnbalancedSectionsTable implements StudentSectioningReport {
         iModel = model;
     }
 
-    /** Return student sectioning model */
+    /** Return student sectioning model 
+     * @return problem model
+     **/
     public StudentSectioningModel getModel() {
         return iModel;
     }
@@ -74,6 +76,7 @@ public class UnbalancedSectionsTable implements StudentSectioningReport {
     /**
      * Create report
      * 
+     * @param assignment current assignment
      * @param includeLastLikeStudents
      *            true, if last-like students should be included (i.e.,
      *            {@link Student#isDummy()} is true)

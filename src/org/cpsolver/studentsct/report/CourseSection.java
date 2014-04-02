@@ -35,6 +35,8 @@ public class CourseSection implements Comparable<CourseSection> {
     
     /**
      * Constructor
+     * @param course selected course offering
+     * @param section selected class
      */
     public CourseSection(Course course, Section section) {
         iCourse = course;
@@ -43,11 +45,13 @@ public class CourseSection implements Comparable<CourseSection> {
     
     /**
      * Course
+     * @return selected course offering
      */
     public Course getCourse() { return iCourse; }
     
     /**
      * Class
+     * @return selected class
      */
     public Section getSection() { return iSection; }
     

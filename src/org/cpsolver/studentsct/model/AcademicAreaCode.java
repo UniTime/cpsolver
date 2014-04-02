@@ -43,12 +43,16 @@ public class AcademicAreaCode {
         iCode = code;
     }
 
-    /** Academic area */
+    /** Academic area 
+     * @return academic area abbreviation
+     **/
     public String getArea() {
         return iArea;
     }
 
-    /** Code */
+    /** Code 
+     * @return classification code
+     **/
     public String getCode() {
         return iCode;
     }

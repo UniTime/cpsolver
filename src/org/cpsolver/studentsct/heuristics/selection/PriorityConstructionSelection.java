@@ -103,6 +103,8 @@ public class PriorityConstructionSelection implements NeighbourSelection<Request
     
     /**
      * Find best solution for the next student using {@link BranchBoundSelection}.
+     * @param solution current selection
+     * @return generated neighbour
      */
     public Neighbour<Request, Enrollment> branchAndBound(Solution<Request, Enrollment> solution) {
         while (iStudentsEnumeration.hasNext()) {
@@ -125,7 +127,9 @@ public class PriorityConstructionSelection implements NeighbourSelection<Request
         return null;
     }
     
-    /** Increment cycle */
+    /** Increment cycle 
+     * @param solution current solution
+     **/
     protected void nextCycle(Solution<Request, Enrollment> solution) {
         iCycle ++; iImproved = false;
         sLog.debug("Assigning up to " + iCycle + " requests...");

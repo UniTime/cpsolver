@@ -1119,6 +1119,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * reference an assignment context (see {@link AssignmentContext}) can be accessed using
      * {@link Assignment#getAssignmentContext(AssignmentContextReference)}.
      * @param parent class needing an assignment context
+     * @param <C> assignment context type
      * @return reference to an assignment context
      */
     public synchronized <C extends AssignmentContext> AssignmentContextReference<V,T,C> createReference(HasAssignmentContext<V, T, C> parent) {
@@ -1140,6 +1141,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     /**
      * Remove a reference to an assignment context for the model
      * @param parent class with an assignment context
+     * @param <C> assignment context type
      * @return reference to an assignment context that was removed from the model (if any)
      */
     @SuppressWarnings("unchecked")
