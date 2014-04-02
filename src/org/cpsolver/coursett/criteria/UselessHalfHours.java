@@ -103,7 +103,11 @@ public class UselessHalfHours extends BrokenTimePatterns {
                 !isEmpty(rc, slot + 6, placement));
     }
 
-    /** Number of useless half hours for this room */
+    /** Number of useless half hours for this room 
+     * @param rc room constraint assignment context
+     * @param placement placement that is being considered
+     * @return number of useless slots caused by the given placement
+     **/
     protected static int countUselessSlotsHalfHours(RoomConstraintContext rc, Placement placement) {
         int ret = 0;
         TimeLocation time = placement.getTimeLocation();
@@ -136,7 +140,10 @@ public class UselessHalfHours extends BrokenTimePatterns {
                 !rc.getPlacements(slot + 6).isEmpty());
     }
 
-    /** Number of useless slots for this room */
+    /** Number of useless slots for this room 
+     * @param rc room constraint assignment context
+     * @return current penalty for the given room
+     **/
     public static int countUselessSlotsHalfHours(RoomConstraintContext rc) {
         int ret = 0;
         for (int d = 0; d < Constants.NR_DAYS; d++) {

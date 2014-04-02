@@ -60,6 +60,12 @@ public class TimeLocation {
      *            number of slots
      * @param pref
      *            time preference
+     * @param normPref normalized preference
+     * @param datePatternPreference date pattern preference
+     * @param datePatternId date pattern unique id
+     * @param datePatternName date pattern name
+     * @param weekCode date pattern (binary string with 1 for each day when classes take place)
+     * @param breakTime break time in minutes
      */
     public TimeLocation(int dayCode, int startTime, int length, int pref, double normPref, int datePatternPreference,
             Long datePatternId, String datePatternName, BitSet weekCode, int breakTime) {
@@ -94,7 +100,9 @@ public class TimeLocation {
         this(dayCode, startTime, length, pref, normPref, 0, datePatternId, datePatternName, weekCode, breakTime);
     }
 
-    /** Number of meetings */
+    /** Number of meetings 
+     * @return number of meetings
+     **/
     public int getNrMeetings() {
         return iNrMeetings;
     }
@@ -114,12 +122,16 @@ public class TimeLocation {
         return ret;
     }
 
-    /** Days (combination of 1 for Monday, 2 for Tuesday, ...) */
+    /** Days (combination of 1 for Monday, 2 for Tuesday, ...) 
+     * @return days of the week of this time
+     **/
     public int getDayCode() {
         return iDayCode;
     }
 
-    /** Days for printing purposes */
+    /** Days for printing purposes 
+     * @return day header (e.g., MWF for Monday - Wednesday - Friday time)
+     **/
     public String getDayHeader() {
         StringBuffer sb = new StringBuffer();
         for (int i = 0; i < Constants.DAY_CODES.length; i++)
@@ -128,7 +140,9 @@ public class TimeLocation {
         return sb.toString();
     }
 
-    /** Start time for printing purposes */
+    /** Start time for printing purposes 
+     * @return time header (e.g., 7:30a)
+     **/
     public String getStartTimeHeader() {
         int min = iStartSlot * Constants.SLOT_LENGTH_MIN + Constants.FIRST_SLOT_TIME_MIN;
         int h = min / 60;
@@ -136,7 +150,9 @@ public class TimeLocation {
         return (h > 12 ? h - 12 : h) + ":" + (m < 10 ? "0" : "") + m + (h >= 12 ? "p" : "a");
     }
 
-    /** End time for printing purposes */
+    /** End time for printing purposes 
+     * @return end time (e.g., 8:20a)
+     **/
     public String getEndTimeHeader() {
         int min = (iStartSlot + iLength) * Constants.SLOT_LENGTH_MIN + Constants.FIRST_SLOT_TIME_MIN - getBreakTime();
         int m = min % 60;
@@ -144,7 +160,9 @@ public class TimeLocation {
         return (h > 12 ? h - 12 : h) + ":" + (m < 10 ? "0" : "") + m + (h >= 12 ? "p" : "a");
     }
 
-    /** End time for printing purposes */
+    /** End time for printing purposes 
+     * @return end time not counting break time (e.g., 8:30a)
+     **/
     public String getEndTimeHeaderNoAdj() {
         int min = (iStartSlot + iLength) * Constants.SLOT_LENGTH_MIN + Constants.FIRST_SLOT_TIME_MIN;
         int m = min % 60;
@@ -152,19 +170,27 @@ public class TimeLocation {
         return (h > 12 ? h - 12 : h) + ":" + (m < 10 ? "0" : "") + m + (h >= 12 ? "p" : "a");
     }
 
-    /** Start slot */
+    /** Start slot
+     * @return start slot
+     **/
     public int getStartSlot() {
         return iStartSlot;
     }
 
     /** Used slots in a day (combination of 1..first, 2..second,...) */
 
-    /** true if days overlap */
+    /** true if days overlap
+     * @param anotherLocation another time
+     * @return true if days of the week overlaps
+     **/
     public boolean shareDays(TimeLocation anotherLocation) {
         return ((iDayCode & anotherLocation.iDayCode) != 0);
     }
 
-    /** number of overlapping days */
+    /** number of overlapping days 
+     * @param anotherLocation another time
+     * @return number of days of the week that the two times share
+     **/
     public int nrSharedDays(TimeLocation anotherLocation) {
         int ret = 0;
         for (int i = 0; i < Constants.NR_DAYS; i++) {
@@ -177,25 +203,37 @@ public class TimeLocation {
         return ret;
     }
 
-    /** true if hours overlap */
+    /** true if hours overlap 
+     * @param anotherLocation another time
+     * @return true if the two times overlap in time (just the time of the day is considered)
+     **/
     public boolean shareHours(TimeLocation anotherLocation) {
         return (iStartSlot + iLength > anotherLocation.iStartSlot)
                 && (anotherLocation.iStartSlot + anotherLocation.iLength > iStartSlot);
     }
 
-    /** number of overlapping time slots (ignoring days) */
+    /** number of overlapping time slots (ignoring days) 
+     * @param anotherLocation another time
+     * @return number of time slots the two location overlap
+     **/
     public int nrSharedHours(TimeLocation anotherLocation) {
         int end = Math.min(iStartSlot + iLength, anotherLocation.iStartSlot + anotherLocation.iLength);
         int start = Math.max(iStartSlot, anotherLocation.iStartSlot);
         return (end < start ? 0 : end - start);
     }
 
-    /** true if weeks overlap */
+    /** true if weeks overlap
+     * @param anotherLocation another time
+     * @return true if the date patterns overlap
+     */
     public boolean shareWeeks(TimeLocation anotherLocation) {
         return iWeekCode.intersects(anotherLocation.iWeekCode);
     }
 
-    /** true if weeks overlap */
+    /** true if weeks overlap
+     * @param weekCode another date pattern
+     * @return true if the date patterns overlap
+     */
     public boolean shareWeeks(BitSet weekCode) {
         return iWeekCode.intersects(weekCode);
     }
@@ -204,22 +242,31 @@ public class TimeLocation {
         return iWeekCode.get(day);
     }
 
-    /** true if overlap */
+    /** true if overlap 
+     * @param anotherLocation another time
+     * @return true if the two times overlap, this means that all three checks {@link TimeLocation#shareDays(TimeLocation)}, {@link TimeLocation#shareHours(TimeLocation)} and {@link TimeLocation#shareWeeks(TimeLocation)} are true.
+     **/
     public boolean hasIntersection(TimeLocation anotherLocation) {
         return shareDays(anotherLocation) && shareHours(anotherLocation) && shareWeeks(anotherLocation);
     }
 
-    /** Used slots */
+    /** Used slots 
+     * @return enumeration of used slots
+     **/
     public IntEnumeration getSlots() {
         return new SlotsEnum();
     }
 
-    /** Used start slots (for each meeting) */
+    /** Used start slots (for each meeting) 
+     * @return enumeration of start slots for each meeting of the time
+     **/
     public IntEnumeration getStartSlots() {
         return new StartSlotsEnum();
     }
 
-    /** Days */
+    /** Days 
+     * @return enumeration of days of week of the time
+     **/
     public IntEnumeration getDays() {
         return new DaysEnum();
     }
@@ -235,7 +282,9 @@ public class TimeLocation {
         return iDaysCache;
     }
 
-    /** Text representation */
+    /** Text representation 
+     * @return time name (e.g., MWF 7:30a)
+     **/
     public String getName() {
         return getDayHeader() + " " + getStartTimeHeader();
     }
@@ -249,7 +298,9 @@ public class TimeLocation {
                 + getDatePatternName();
     }
 
-    /** Preference */
+    /** Preference 
+     * @return time preference
+     **/
     public int getPreference() {
         return iPreference;
     }
@@ -258,17 +309,23 @@ public class TimeLocation {
         iPreference = preference;
     }
 
-    /** Length */
+    /** Length 
+     * @return time length (in the number of slots)
+     **/
     public int getLength() {
         return iLength;
     }
 
-    /** Length */
+    /** Length 
+     * @return time length (in the number of slots)
+     **/
     public int getNrSlotsPerMeeting() {
         return iLength;
     }
 
-    /** Normalized preference */
+    /** Normalized preference 
+     * @return normalized preference
+     **/
     public double getNormalizedPreference() {
         return iNormalizedPreference;
     }
@@ -277,7 +334,9 @@ public class TimeLocation {
         iNormalizedPreference = normalizedPreference;
     }
 
-    /** Time pattern model (can be null) */
+    /** Time pattern model (can be null) 
+     * @return time pattern unique id
+     **/
     public Long getTimePatternId() {
         return iTimePatternId;
     }

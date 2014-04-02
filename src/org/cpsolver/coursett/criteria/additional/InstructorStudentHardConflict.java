@@ -53,6 +53,9 @@ public class InstructorStudentHardConflict extends InstructorStudentConflict {
      * One of the lectures is hard, there is a joint enrollment constraint between them, and 
      * there is at least one student that is instructor for one lecture and the other lecture
      * is singleton.
+     * @param l1 first placement
+     * @param l2 second placement
+     * @return true if there is at least one student of one class teaching the other class, and there are no possibility to move the student into an alternative class
      */
     public static boolean oneInstructorOtherHard(Lecture l1, Lecture l2) {
         if (!hard(l1, l2)) return false;

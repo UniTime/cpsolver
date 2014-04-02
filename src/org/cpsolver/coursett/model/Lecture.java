@@ -106,16 +106,17 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     /**
      * Constructor
      * 
-     * @param id
-     *            unique identification
-     * @param name
-     *            class name
-     * @param timeLocations
-     *            set of time locations
-     * @param roomLocations
-     *            set of room location
-     * @param initialPlacement
-     *            initial placement
+     * @param id class unique id
+     * @param solverGroupId solver group unique id 
+     * @param schedulingSubpartId  scheduling subpart unique id
+     * @param name class name
+     * @param timeLocations set of time locations
+     * @param roomLocations set of room location
+     * @param nrRooms number of rooms into which the class is to be assigned
+     * @param initialPlacement initial placement
+     * @param minClassLimit minimum class limit
+     * @param maxClassLimit maximum class limit
+     * @param room2limitRatio room ratio
      */
     public Lecture(Long id, Long solverGroupId, Long schedulingSubpartId, String name,
             java.util.List<TimeLocation> timeLocations, java.util.List<RoomLocation> roomLocations, int nrRooms,
@@ -147,6 +148,8 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     /**
      * Add active jenrl constraint (active mean that there is at least one
      * student between its classes)
+     * @param assignment current assignment
+     * @param constr an active jenrl constraint
      */
     public void addActiveJenrl(Assignment<Lecture, Placement> assignment, JenrlConstraint constr) {
         getContext(assignment).addActiveJenrl(constr);
@@ -155,6 +158,8 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     /**
      * Active jenrl constraints (active mean that there is at least one student
      * between its classes)
+     * @param assignment current assignment
+     * @return set of active jenrl constraints
      */
     public Set<JenrlConstraint> activeJenrls(Assignment<Lecture, Placement> assignment) {
         return getContext(assignment).activeJenrls();
@@ -163,16 +168,24 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     /**
      * Remove active jenrl constraint (active mean that there is at least one
      * student between its classes)
+     * @param assignment current assignment
+     * @param constr an active jenrl constraint
      */
     public void removeActiveJenrl(Assignment<Lecture, Placement> assignment, JenrlConstraint constr) {
         getContext(assignment).removeActiveJenrl(constr);
     }
 
-    /** Class id */
+    /** Class id 
+     * @return class unique id
+     **/
     public Long getClassId() {
         return iClassId;
     }
 
+    /**
+     * Scheduling subpart id
+     * @return scheduling subpart unique id
+     */
     public Long getSchedulingSubpartId() {
         return iSchedulingSubpartId;
     }
@@ -189,7 +202,9 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         return iClassId.longValue();
     }
 
-    /** Instructor name */
+    /** Instructor name 
+     * @return list of instructor names
+     **/
     public List<String> getInstructorNames() {
         List<String> ret = new ArrayList<String>();
         for (InstructorConstraint ic : iInstructorConstraints) {
@@ -208,11 +223,17 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         return sb.toString();
     }
 
-    /** List of enrolled students */
+    /** List of enrolled students 
+     * @return list of enrolled students
+     **/
     public Set<Student> students() {
         return iStudents;
     }
 
+    /**
+     * Total weight of all enrolled students
+     * @return sum of {@link Student#getOfferingWeight(Configuration)} of each enrolled student
+     */
     public double nrWeightedStudents() {
         double w = 0.0;
         for (Student s : iStudents) {
@@ -221,7 +242,10 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         return w;
     }
 
-    /** Add an enrolled student */
+    /** Add an enrolled student 
+     * @param assignment current assignment
+     * @param student a student to add
+     **/
     public void addStudent(Assignment<Lecture, Placement> assignment, Student student) {
         if (!iStudents.add(student))
             return;
@@ -231,6 +255,11 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         iCommitedConflicts.clear();
     }
 
+    /** 
+     * Remove an enrolled student
+     * @param assignment current assignment
+     * @param student a student to remove
+     */
     public void removeStudent(Assignment<Lecture, Placement> assignment, Student student) {
         if (!iStudents.remove(student))
             return;
@@ -240,28 +269,42 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         iCommitedConflicts.clear();
     }
 
-    /** Returns true if the given student is enrolled */
+    /** Returns true if the given student is enrolled 
+     * @param student a student
+     * @return true if the given student is enrolled in this class
+     **/
     public boolean hasStudent(Student student) {
         return iStudents.contains(student);
     }
 
-    /** Set of lectures of the same class (only section is different) */
-    public void setSameSubpartLectures(java.util.List<Lecture> sameSubpartLectures) {
+    /** Set of lectures of the same class (only section is different) 
+     * @param sameSubpartLectures list of lectures of the same scheduling subpart 
+     **/
+    public void setSameSubpartLectures(List<Lecture> sameSubpartLectures) {
         iSameSubpartLectures = sameSubpartLectures;
     }
 
-    /** Set of lectures of the same class (only section is different) */
-    public java.util.List<Lecture> sameSubpartLectures() {
+    /** Set of lectures of the same class (only section is different) 
+     * @return list of lectures of the same scheduling subpart
+     **/
+    public List<Lecture> sameSubpartLectures() {
         return iSameSubpartLectures;
     }
 
-    /** List of students enrolled in this class as well as in the given class */
+    /** List of students enrolled in this class as well as in the given class 
+     * @param lecture a lecture
+     * @return a set of students that are enrolled in both lectures 
+     **/
     public Set<Student> sameStudents(Lecture lecture) {
         JenrlConstraint jenrl = jenrlConstraint(lecture);
         return (jenrl == null ? new HashSet<Student>() : jenrl.getStudents());
     }
 
-    /** List of students of this class in conflict with the given assignment */
+    /** List of students of this class in conflict with the given assignment 
+     * @param assignment current assignment
+     * @param value given placement
+     * @return list of student conflicts
+     **/
     public Set<Student> conflictStudents(Assignment<Lecture, Placement> assignment, Placement value) {
         if (value == null)
             return new HashSet<Student>();
@@ -278,6 +321,8 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     /**
      * List of students of this class which are in conflict with any other
      * assignment
+     * @param assignment current assignment
+     * @return list of student conflicts
      */
     public Set<Student> conflictStudents(Assignment<Lecture, Placement> assignment) {
         Set<Student> ret = new HashSet<Student>();
@@ -297,6 +342,9 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     /**
      * Lectures different from this one, where it is student conflict of the
      * given student between this and the lecture
+     * @param assignment current assignment
+     * @param student a student
+     * @return list of lectures with a student conflict 
      */
     public List<Lecture> conflictLectures(Assignment<Lecture, Placement> assignment, Student student) {
         List<Lecture> ret = new ArrayList<Lecture>();
@@ -310,7 +358,11 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         return ret;
     }
 
-    /** True if this lecture is in a student conflict with the given student */
+    /** True if this lecture is in a student conflict with the given student 
+     * @param assignment current assignment
+     * @param student a student
+     * @return number of other lectures with a student conflict
+     **/
     public int isInConflict(Assignment<Lecture, Placement> assignment, Student student) {
         if (assignment.getValue(this) == null)
             return 0;
@@ -350,7 +402,10 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         }
     }
 
-    /** Domain -- all combinations of room and time locations */
+    /** Domain -- all combinations of room and time locations 
+     * @param allowBreakHard breaking of hard constraints is allowed
+     * @return list of possible placements
+     **/
     public List<Placement> computeValues(boolean allowBreakHard) {
         List<Placement> values = new ArrayList<Placement>(iRoomLocations.size() * iTimeLocations.size());
         for (TimeLocation timeLocation : iTimeLocations) {
@@ -459,7 +514,9 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         return iBestTimePreferenceCache.doubleValue();
     }
 
-    /** Best room preference of this lecture */
+    /** Best room preference of this lecture 
+     * @return best room preference
+     **/
     public int getBestRoomPreference() {
         int ret = Integer.MAX_VALUE;
         for (RoomLocation room : iRoomLocations) {
@@ -471,6 +528,9 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     /**
      * Number of student conflicts caused by the given assignment of this
      * lecture
+     * @param assignment current assignment
+     * @param value a placement
+     * @return number of student conflicts if assigned
      */
     public int countStudentConflicts(Assignment<Lecture, Placement> assignment, Placement value) {
         int studentConflictsSum = 0;
@@ -565,6 +625,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     /**
      * Number of student conflicts caused by the initial assignment of this
      * lecture
+     * @return number of student conflicts with the initial assignment of this class
      */
     public int countInitialStudentConflicts() {
         Placement value = getInitialAssignment();
@@ -583,6 +644,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     /**
      * Table of student conflicts caused by the initial assignment of this
      * lecture in format (another lecture, number)
+     * @return table of student conflicts with the initial assignment of this class
      */
     public Map<Lecture, Long> getInitialStudentConflicts() {
         Placement value = getInitialAssignment();
@@ -601,6 +663,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     /**
      * List of student conflicts caused by the initial assignment of this
      * lecture
+     * @return a set of students in a conflict with the initial assignment of this class
      */
     public Set<Student> initialStudentConflicts() {
         Placement value = getInitialAssignment();
@@ -692,7 +755,10 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
             iClassLimitConstraint = null;
     }
 
-    /** All JENRL constraints of this lecture */
+    /** All JENRL constraints of this lecture 
+     * @param another another class
+     * @return a join enrollment constraint between this and the given class, if there is one 
+     **/
     public JenrlConstraint jenrlConstraint(Lecture another) {
         /*
          * for (Enumeration e=iJenrlConstraints.elements();e.hasMoreElements();)
@@ -702,6 +768,9 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         return iJenrlConstraintsHash.get(another);
     }
 
+    /** All JENRL constraints of this lecture
+     * @return list of all join enrollment constraints in which this lecture is involved
+     **/
     public List<JenrlConstraint> jenrlConstraints() {
         return iJenrlConstraints;
     }
@@ -795,32 +864,44 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         return sb.toString();
     }
 
-    /** Controlling Course Offering Department */
+    /** Controlling Course Offering Department 
+     * @return department unique id
+     **/
     public Long getDepartment() {
         return iDept;
     }
 
-    /** Controlling Course Offering Department */
+    /** Controlling Course Offering Department 
+     * @param dept department unique id
+     **/
     public void setDepartment(Long dept) {
         iDept = dept;
     }
 
-    /** Scheduler (Managing Department) */
+    /** Scheduler (Managing Department) 
+     * @return solver group unique id
+     **/
     public Long getScheduler() {
         return iScheduler;
     }
 
-    /** Scheduler (Managing Department) */
+    /** Scheduler (Managing Department)
+     * @param scheduler solver group unique id 
+     **/
     public void setScheduler(Long scheduler) {
         iScheduler = scheduler;
     }
 
-    /** Departmental spreading constraint */
+    /** Departmental spreading constraint 
+     * @return department spread constraint of this class, if any
+     **/
     public DepartmentSpreadConstraint getDeptSpreadConstraint() {
         return iDeptSpreadConstraint;
     }
 
-    /** Instructor constraint */
+    /** Instructor constraint 
+     * @return instructors of this class
+     **/
     public List<InstructorConstraint> getInstructorConstraints() {
         return iInstructorConstraints;
     }
@@ -841,12 +922,16 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         return iWeakeningConstraints;
     }
 
-    /** All room locations */
+    /** All room locations 
+     * @return possible rooms of this class
+     **/
     public List<RoomLocation> roomLocations() {
         return iRoomLocations;
     }
 
-    /** All time locations */
+    /** All time locations 
+     * @return possible times of this class
+     **/
     public List<TimeLocation> timeLocations() {
         return iTimeLocations;
     }
@@ -1325,6 +1410,8 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     
     /**
      * Returns true if there is {@link IgnoreStudentConflictsConstraint} between the two lectures.
+     * @param other another class
+     * @return true if student conflicts between this and the given calss are to be ignored
      */
    public synchronized boolean isToIgnoreStudentConflictsWith(Lecture other) {
         if (iIgnoreStudentConflictsWith == null) {
@@ -1342,11 +1429,13 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
    /**
     * Get class weight. This weight is used with the criteria. E.g., class that is not meeting all the
     * semester can have a lower weight. Defaults to 1.0
+    * @return class weight
     */
    public double getWeight() { return iWeight; }
    /**
     * Set class weight. This weight is used with the criteria. E.g., class that is not meeting all the
     * semester can have a lower weight.
+    * @param weight class weight
     */
    public void setWeight(double weight) { iWeight = weight; }
    
@@ -1361,6 +1450,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
        /**
         * Add active jenrl constraint (active mean that there is at least one
         * student between its classes)
+        * @param constr active join enrollment constraint 
         */
        public void addActiveJenrl(JenrlConstraint constr) {
            iActiveJenrls.add(constr);
@@ -1369,6 +1459,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
        /**
         * Active jenrl constraints (active mean that there is at least one student
         * between its classes)
+        * @return set of active join enrollment constraints
         */
        public Set<JenrlConstraint> activeJenrls() {
            return iActiveJenrls;
@@ -1377,6 +1468,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
        /**
         * Remove active jenrl constraint (active mean that there is at least one
         * student between its classes)
+        * @param constr active join enrollment constraint
         */
        public void removeActiveJenrl(JenrlConstraint constr) {
            iActiveJenrls.remove(constr);

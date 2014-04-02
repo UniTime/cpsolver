@@ -49,6 +49,7 @@ public class MaxBlockFlexibleConstraint extends FlexibleConstraint {
     
     /**
      * 
+     * @param id constraint unique id
      * @param owner identifier of distribution preference the constraint was created for
      * @param preference time preference ("R" for required, "P" for prohibited, "-2",
      *            "-1", "1", "2" for soft preference)   

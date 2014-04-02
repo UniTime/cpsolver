@@ -62,6 +62,7 @@ public class DefaultStudentSectioning implements StudentSectioning {
     
     /**
      * Constructor
+     * @param model problem model
      */
     public DefaultStudentSectioning(TimetableModel model) {
         iModel = model;
@@ -121,6 +122,7 @@ public class DefaultStudentSectioning implements StudentSectioning {
     
     /**
      * Enroll students into the given classes during the initial data load using {@link InitialSectioning}.
+     * @param assignment current assignment
      * @param offeringId instructional offering id
      * @param courseName course name
      * @param students list of students to be sectioned

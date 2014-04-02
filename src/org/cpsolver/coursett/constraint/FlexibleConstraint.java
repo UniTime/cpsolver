@@ -98,17 +98,10 @@ public abstract class FlexibleConstraint extends ConstraintWithContext<Lecture, 
             }
         }
     }
-
-    /** 
-     * 
-     * @param conflicts conflicting placements to be unassigned
-     * @param assignments assigned placements 
-     * @return the number of violations of the constraint during days and all weeks of the semester
-     */
-    public abstract double getNrViolations(Assignment<Lecture, Placement> assignment, Set<Placement> conflicts, HashMap<Lecture, Placement> assignments);
     
     /**
-     * 
+     * Constructor
+     * @param id unique id
      * @param owner identifier of distribution preference the constraint was created for
      * @param preference time preference ("R" for required, "P" for prohibited, "-2",
      *            "-1", "1", "2" for soft preference)   
@@ -121,11 +114,22 @@ public abstract class FlexibleConstraint extends ConstraintWithContext<Lecture, 
         iPreference = Constants.preference2preferenceLevel(preference);
         iIsRequired = preference.equals(Constants.sPreferenceRequired);        
         iOwner = owner;                
-    } 
+    }
+    
+
+    /** 
+     * Return current number of violations.
+     * @param assignment current assignment
+     * @param conflicts conflicting placements to be unassigned
+     * @param assignments assigned placements 
+     * @return the number of violations of the constraint during days and all weeks of the semester
+     */
+    public abstract double getNrViolations(Assignment<Lecture, Placement> assignment, Set<Placement> conflicts, HashMap<Lecture, Placement> assignments);
+
     
     /**
-     * 
-     * @return i list of bitsets representing datePatterns or null if semester is whole semester is considered
+     * Return weeks of the term.
+     * @return a list of bitsets (one for each week of the term) representing datePatterns or null if semester is whole semester is considered
      */
     public List<BitSet> getWeeks(){
         if (iWeeks == null){
@@ -164,7 +168,8 @@ public abstract class FlexibleConstraint extends ConstraintWithContext<Lecture, 
      * They must be taught in the day included in dayCode.
      * They cannot be included in conflicts
      * Their date pattern intersects with week
-     *  
+     * 
+     * @param assignment current assignment
      * @param dayCode representation of days in week combination
      * @param conflicts placements to be unassigned
      * @param value placement to be assigned
@@ -270,6 +275,7 @@ public abstract class FlexibleConstraint extends ConstraintWithContext<Lecture, 
     /**
      * Prolog reference: "R" for required, "P" for prohibited", "-2",.."2" for
      * preference
+     * @return prolog preference
      */
     public String getPrologPreference() {
         return Constants.preferenceLevel2preference(iPreference);
@@ -278,9 +284,9 @@ public abstract class FlexibleConstraint extends ConstraintWithContext<Lecture, 
     /**
      * Return the current preference of the flexible constraint, considering conflicts and new assignments.
      * Used to compute value for flexible constraint criterion.
-     * 
-     * @param conflicts
-     * @param assignments
+     * @param assignment current assignment
+     * @param conflicts conflicting assignment
+     * @param assignments proposed assignments
      * @return the current preference of the flexible constraint
      */
     public double getCurrentPreference(Assignment<Lecture, Placement> assignment, Set<Placement> conflicts, HashMap<Lecture, Placement> assignments){

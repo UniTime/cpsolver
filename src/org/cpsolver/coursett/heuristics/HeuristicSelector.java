@@ -56,6 +56,7 @@ import java.util.List;
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ * @param <E> A class of the objects that are being selected from
  */
 public class HeuristicSelector<E> {
     private double[] iThreshKoef;
@@ -138,17 +139,24 @@ public class HeuristicSelector<E> {
             iObject = object;
         }
 
-        /** weighted sum in each level */
+        /** weighted sum in each level 
+         * @return weighted sum for each level
+         **/
         public double[] getValues() {
             return iValues;
         }
 
-        /** weighted sum in the given level */
+        /** weighted sum in the given level 
+         * @param level a level
+         * @return weighted sum for the given level
+         **/
         public double getValue(int level) {
             return iValues[level];
         }
 
-        /** given object */
+        /** given object 
+         * @return the object in the selection
+         **/
         public E getObject() {
             return iObject;
         }

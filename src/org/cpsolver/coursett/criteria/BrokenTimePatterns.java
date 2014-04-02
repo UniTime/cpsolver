@@ -147,7 +147,11 @@ public class BrokenTimePatterns extends TimetablingCriterion {
         return assigned.isEmpty() || (placement != null && assigned.size() == 1 && assigned.get(0).variable().equals(placement.variable()));
     }
 
-    /** Number of broken time patterns for this room */
+    /** Number of broken time patterns for this room 
+     * @param rc room constraint
+     * @param placement placement that is being considered
+     * @return number of broken time patterns caused by the given placement
+     **/
     protected static int countUselessSlotsBrokenTimePatterns(RoomConstraintContext rc, Placement placement) {
         int ret = 0;
         TimeLocation time = placement.getTimeLocation();
@@ -185,7 +189,10 @@ public class BrokenTimePatterns extends TimetablingCriterion {
         return ret;
     }
     
-    /** Number of useless slots for this room */
+    /** Number of useless slots for this room 
+     * @param rc room constraint
+     * @return current penalty for the given room
+     **/
     public static int countUselessSlotsBrokenTimePatterns(RoomConstraintContext rc) {
         int ret = 0;
         for (int d = 0; d < Constants.NR_DAYS; d++) {

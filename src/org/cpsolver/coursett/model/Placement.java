@@ -78,17 +78,23 @@ public class Placement extends Value<Lecture, Placement> {
         iHashCode = getName().hashCode();
     }
 
-    /** Time location */
+    /** Time location 
+     * @return time of this placement
+     **/
     public TimeLocation getTimeLocation() {
         return iTimeLocation;
     }
 
-    /** Room location */
+    /** Room location 
+     * @return room of this placement
+     **/
     public RoomLocation getRoomLocation() {
         return iRoomLocation;
     }
 
-    /** Room locations (multi-room placement) */
+    /** Room locations (multi-room placement) 
+     * @return rooms of this placement (if there are more than one)
+     **/
     public List<RoomLocation> getRoomLocations() {
         return iRoomLocations;
     }
@@ -371,7 +377,12 @@ public class Placement extends Value<Lecture, Placement> {
         return variable().getName() + " " + getName();
     }
 
-    /** Distance between two placements */
+    /** Distance between two placements 
+     * @param m distance matrix
+     * @param p1 first placement
+     * @param p2 second placement
+     * @return maximal distance in meters between the two placement
+     **/
     public static double getDistanceInMeters(DistanceMetric m, Placement p1, Placement p2) {
         if (p1.isMultiRoom()) {
             if (p2.isMultiRoom()) {
@@ -406,7 +417,12 @@ public class Placement extends Value<Lecture, Placement> {
         }
     }
     
-    /** Distance between two placements */
+    /** Distance between two placements 
+     * @param m distance matrix
+     * @param p1 first placement
+     * @param p2 second placement
+     * @return maximal distance in minutes between the two placement
+     **/
     public static int getDistanceInMinutes(DistanceMetric m, Placement p1, Placement p2) {
         if (p1.isMultiRoom()) {
             if (p2.isMultiRoom()) {

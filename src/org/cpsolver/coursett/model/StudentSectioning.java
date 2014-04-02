@@ -54,6 +54,7 @@ public interface StudentSectioning {
 
     /**
      * Enroll students into the given offering during the initial data load.
+     * @param assignment current assignment
      * @param offeringId instructional offering id
      * @param courseName course name
      * @param students list of students to be sectioned
@@ -63,17 +64,20 @@ public interface StudentSectioning {
     
     /**
      * Return true if final student sectioning is implemented. 
+     * @return true if final student sectioning is implemented
      */
     public boolean hasFinalSectioning();
     
     /**
      * Run student final sectioning (switching students between sections of the same
      * class in order to minimize overall number of student conflicts).
+     * @param solution current solution
      */
     public void switchStudents(Solution<Lecture, Placement> solution);
     
     /**
      * Perform sectioning on the given lecture
+     * @param assignment current assignment
      * @param lecture given lecture
      * @param recursive recursively resection lectures affected by a student swap
      * @param configAsWell resection students between configurations as well

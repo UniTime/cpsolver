@@ -60,6 +60,15 @@ public class RoomConstraint extends ConstraintWithContext<Lecture, Placement, Ro
 
     /**
      * Constructor
+     * @param id room unique id
+     * @param name room name
+     * @param buildingId building unique id
+     * @param capacity room size
+     * @param roomSharingModel room sharing model
+     * @param x X-coordinate (latitude)
+     * @param y Y-coordinate (longitude)
+     * @param ignoreTooFar ignore distances if set to true
+     * @param constraint hard constraint if true (classes cannot overlap in this room)
      */
     public RoomConstraint(Long id, String name, Long buildingId, int capacity, RoomSharingModel roomSharingModel,
             Double x, Double y, boolean ignoreTooFar, boolean constraint) {
@@ -126,12 +135,16 @@ public class RoomConstraint extends ConstraintWithContext<Lecture, Placement, Ro
         return iRoomSharingModel;
     }
 
-    /** Room id */
+    /** Room id 
+     * @return room unique id
+     **/
     public Long getResourceId() {
         return iResourceId;
     }
 
-    /** Building id */
+    /** Building id 
+     * @return building unique id
+     **/
     public Long getBuildingId() {
         return iBuildingId;
     }
@@ -146,7 +159,9 @@ public class RoomConstraint extends ConstraintWithContext<Lecture, Placement, Ro
         return iName;
     }
 
-    /** Capacity */
+    /** Capacity 
+     * @return room size
+     **/
     public int getCapacity() {
         return iCapacity;
     }
@@ -254,6 +269,9 @@ public class RoomConstraint extends ConstraintWithContext<Lecture, Placement, Ro
     /**
      * Lookup table getResource()[slot] &rarr; lecture using this room placed in the
      * given time slot (null if empty)
+     * @param assignment current assignment
+     * @param slot time slot
+     * @return list of placements in the room in the given time
      */
     public List<Placement> getResource(Assignment<Lecture, Placement> assignment, int slot) {
         return getContext(assignment).getPlacements(slot);
@@ -268,18 +286,25 @@ public class RoomConstraint extends ConstraintWithContext<Lecture, Placement, Ro
         return "Room " + getName();
     }
 
-    /** Position of the building */
+    /** Position of the building 
+     * @param x X-coordinate (latitude)
+     * @param y Y-coordinate (longitude)
+     **/
     public void setCoordinates(Double x, Double y) {
         iPosX = x;
         iPosY = y;
     }
 
-    /** X-position of the building */
+    /** X-position of the building 
+     * @return X-coordinate (latitude)
+     **/
     public Double getPosX() {
         return iPosX;
     }
 
-    /** Y-position of the building */
+    /** Y-position of the building 
+     * @return Y-coordinate (longitude)
+     **/
     public Double getPosY() {
         return iPosY;
     }

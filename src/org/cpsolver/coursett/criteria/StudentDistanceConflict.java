@@ -12,7 +12,7 @@ import org.cpsolver.ifs.util.DistanceMetric;
  * A distance conflict occurs when two classes that are attended by the same student (or students)
  * are placed back-to-back in rooms that are too far a part. The combinations of classes
  * that share students are maintained by {@link JenrlConstraint}. The critical distance is measured
- * by {@link DistanceMetric#getDistanceInMinutes(double, double, double, double)} and compared
+ * by {@link DistanceMetric#getDistanceInMinutes(Long, Double, Double, Long, Double, Double)} and compared
  * witch class break time {@link TimeLocation#getBreakTime()}.
  * <br>
  * 
