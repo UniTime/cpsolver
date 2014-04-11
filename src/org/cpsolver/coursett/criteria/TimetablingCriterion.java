@@ -66,7 +66,7 @@ public abstract class TimetablingCriterion extends AbstractCriterion<Lecture, Pl
     
     public String toString(Assignment<Lecture, Placement> assignment) {
         double val = getValue(assignment);
-        if (Math.abs(val) < 0.005 || getWeight() <= 0.01) return "";
+        if (Math.abs(getWeightedValue(assignment)) < 0.005) return "";
         double[] bounds = getBounds(assignment);
         if (bounds[0] <= val && val <= bounds[1] && bounds[0] < bounds[1] && getName().endsWith(" Preferences"))
             return getAbbreviation() + ":" + getPerc(val, bounds[0], bounds[1]) + "%";
