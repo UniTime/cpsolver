@@ -493,15 +493,37 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
             if (defaultDatePattern == null){                
                 defaultDatePattern = getProperties().getProperty("DatePattern.Default");
             }
-            if (defaultDatePattern == null) return null;
-            
-            // Create default date pattern
-            BitSet fullTerm = new BitSet(defaultDatePattern.length());
-            for (int i = 0; i < defaultDatePattern.length(); i++) {
-                if (defaultDatePattern.charAt(i) == 49) {
-                    fullTerm.set(i);
+            BitSet fullTerm = null;
+            if (defaultDatePattern == null) {
+                // Take the date pattern that is being used most often
+                Map<Long, Integer> counter = new HashMap<Long, Integer>();
+                int max = 0; String name = null; Long id = null;
+                for (Lecture lecture: variables()) {
+                    if (lecture.isCommitted()) continue;
+                    for (TimeLocation time: lecture.timeLocations()) {
+                        if (time.getWeekCode() != null && time.getDatePatternId() != null) {
+                            int count = 1;
+                            if (counter.containsKey(time.getDatePatternId()))
+                                count += counter.get(time.getDatePatternId());
+                            counter.put(time.getDatePatternId(), count);
+                            if (count > max) {
+                                max = count; fullTerm = time.getWeekCode(); name = time.getDatePatternName(); id = time.getDatePatternId();
+                            }
+                        }
+                    }
+                }
+                sLogger.info("Using date pattern " + name + " (id " + id + ") as the default.");
+            } else {
+                // Create default date pattern
+                fullTerm = new BitSet(defaultDatePattern.length());
+                for (int i = 0; i < defaultDatePattern.length(); i++) {
+                    if (defaultDatePattern.charAt(i) == 49) {
+                        fullTerm.set(i);
+                    }
                 }
             }
+            
+            if (fullTerm == null) return null;
             
             // Cut date pattern into weeks (every week contains 7 positive bits)
             iWeeks = new ArrayList<BitSet>();

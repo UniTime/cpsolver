@@ -12,11 +12,11 @@ import java.util.TreeSet;
 import org.cpsolver.coursett.Constants;
 import org.cpsolver.coursett.constraint.InstructorConstraint;
 import org.cpsolver.coursett.constraint.InstructorConstraint.InstructorConstraintContext;
+import org.cpsolver.coursett.criteria.TimetablingCriterion;
 import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
 import org.cpsolver.coursett.model.TimetableModel;
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.criteria.AbstractCriterion;
 import org.cpsolver.ifs.solver.Solver;
 
 
@@ -44,7 +44,7 @@ import org.cpsolver.ifs.solver.Solver;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class InstructorLunchBreak extends AbstractCriterion<Lecture, Placement> {
+public class InstructorLunchBreak extends TimetablingCriterion {
     // lunch attributes
     private double iMultiplier;
     private int iLunchStart, iLunchEnd, iLunchLength;
