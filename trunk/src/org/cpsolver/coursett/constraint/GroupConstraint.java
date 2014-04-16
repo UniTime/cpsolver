@@ -546,6 +546,14 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                 return gc.isEveryOtherDay(plc1, plc2, false);
             }}),
         /**
+          * At Most 3 Hours A Day: Classes are to be placed in a way that there is no more than three hours in any day.
+          */
+        MAX_HRS_DAY_3("MAX_HRS_DAY(3)", "At Most 3 Hours A Day", 36, null, Flag.MAX_HRS_DAY),        
+        /**
+         * At Most 4 Hours A Day: Classes are to be placed in a way that there is no more than four hours in any day.
+         */
+        MAX_HRS_DAY_4("MAX_HRS_DAY(4)", "At Most 4 Hours A Day", 48, null, Flag.MAX_HRS_DAY),        
+        /**
           * At Most 5 Hours A Day: Classes are to be placed in a way that there is no more than five hours in any day.
           */
         MAX_HRS_DAY_5("MAX_HRS_DAY(5)", "At Most 5 Hours A Day", 60, null, Flag.MAX_HRS_DAY),        
@@ -561,6 +569,14 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
          * At Most 8 Hours A Day: Classes are to be placed in a way that there is no more than eight hours in any day.
          */
         MAX_HRS_DAY_8("MAX_HRS_DAY(8)", "At Most 8 Hours A Day", 96, null, Flag.MAX_HRS_DAY),
+        /**
+         * At Most 9 Hours A Day: Classes are to be placed in a way that there is no more than nine hours in any day.
+         */
+        MAX_HRS_DAY_9("MAX_HRS_DAY(9)", "At Most 9 Hours A Day", 108, null, Flag.MAX_HRS_DAY),
+        /**
+         * At Most 10 Hours A Day: Classes are to be placed in a way that there is no more than ten hours in any day.
+         */
+        MAX_HRS_DAY_10("MAX_HRS_DAY(10)", "At Most 10 Hours A Day", 120, null, Flag.MAX_HRS_DAY),
         /**
          * Given classes must be taught during the same weeks (i.e., must have the same date pattern).<br>
          * When prohibited or (strongly) discouraged: any two classes must have non overlapping date patterns.
