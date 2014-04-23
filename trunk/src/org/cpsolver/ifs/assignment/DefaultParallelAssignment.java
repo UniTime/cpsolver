@@ -13,7 +13,7 @@ import org.cpsolver.ifs.solver.ParallelSolver;
 
 
 /**
- * An assignment using the old {@link Variable#getExtra()} to store values of all the
+ * An assignment using the {@link Variable#setAssignments(Value[])} to store values of all the
  * variables of the model. Besides of that, a set of assigned variables is kept in memory.
  * Each extra contains an array of values, indexed by {@link Assignment#getIndex()}.
  * Useful for a small, fixed number of assignments. Used by the {@link ParallelSolver},
@@ -72,16 +72,16 @@ public class DefaultParallelAssignment <V extends Variable<V, T>, T extends Valu
         return iAssignedVariables.keySet();
     }
     
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({ "unchecked", "deprecation" })
     protected T[] getAssignments(V variable) {
         synchronized (variable) {
-            T[] assignments = (T[])variable.getExtra();
+            T[] assignments = variable.getAssignments();
             if (assignments == null) {
                 assignments = (T[])new Value[Math.max(10, 1 + iIndex)];
-                variable.setExtra(assignments);
+                variable.setAssignments(assignments);
             } else if (assignments.length <= iIndex) {
                 assignments = Arrays.copyOf(assignments, 10 + iIndex);
-                variable.setExtra(assignments);
+                variable.setAssignments(assignments);
             }
             return assignments;
         }
