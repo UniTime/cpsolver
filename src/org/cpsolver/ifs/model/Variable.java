@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.cpsolver.ifs.assignment.Assignment;
+import org.cpsolver.ifs.assignment.DefaultParallelAssignment;
 import org.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import org.cpsolver.ifs.util.IdGenerator;
 
@@ -53,6 +54,7 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
     private T iInitialValue = null; // initial value
     /** Assigned value */
     protected T iValue = null; // assigned value
+    private T[] iAssignedValues = null; // assigned values
     private T iBestValue = null; // best value
     private long iBestAssignmentIteration = 0;
     private List<T> iValues = null;
@@ -165,6 +167,26 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
     @Deprecated
     public void setAssignment(T value) {
         iValue = value;
+    }
+    
+    /**
+     * Returns current assignments.
+     * BEWARE: Do not use outside of {@link DefaultParallelAssignment}.
+     * @return currently assigned values
+     **/
+    @Deprecated
+    public T[] getAssignments() {
+        return iAssignedValues;
+    }
+    
+    /**
+     * Sets current assignments.
+     * BEWARE: Do not use outside of {@link DefaultParallelAssignment}.
+     * @param values currently assigned values
+     **/
+    @Deprecated
+    public void setAssignments(T[] values) {
+        iAssignedValues = values;
     }
 
     /** Returns initial assignment 
@@ -428,7 +450,7 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
      * {@link org.cpsolver.ifs.extension.Extension}).
      * @param object extra object
      */
-    public void setExtra(Object object) {
+    public <X> void setExtra(X object) {
         iExtra = object;
     }
 
@@ -437,8 +459,13 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
      * {@link org.cpsolver.ifs.extension.Extension}).
      * @return extra object
      */
-    public Object getExtra() {
-        return iExtra;
+    @SuppressWarnings("unchecked")
+    public <X> X getExtra() {
+        try {
+            return (X) iExtra;
+        } catch (ClassCastException e) {
+            return null;
+        }
     }
 
     /**
