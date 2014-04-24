@@ -660,15 +660,15 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
                 iMaxEnrollmentWeight = Math.max(iMaxEnrollmentWeight, enrollment.getRequest().getWeight());
                 iMinEnrollmentWeight = Math.min(iMinEnrollmentWeight, enrollment.getRequest().getWeight());
             }
-            iEnrollments.add(enrollment);
-            iEnrollmentWeight += enrollment.getRequest().getWeight();
+            if (iEnrollments.add(enrollment))
+                iEnrollmentWeight += enrollment.getRequest().getWeight();
         }
 
         /** Called when an enrollment with this section is unassigned from a request */
         @Override
         public void unassigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
-            iEnrollments.remove(enrollment);
-            iEnrollmentWeight -= enrollment.getRequest().getWeight();
+            if (iEnrollments.remove(enrollment))
+                iEnrollmentWeight -= enrollment.getRequest().getWeight();
             if (iEnrollments.isEmpty()) {
                 iMinEnrollmentWeight = iMaxEnrollmentWeight = 0;
             } else if (iMinEnrollmentWeight != iMaxEnrollmentWeight) {
