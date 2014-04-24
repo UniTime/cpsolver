@@ -2,6 +2,7 @@ package org.cpsolver.ifs.assignment.context;
 
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.extension.Extension;
+import org.cpsolver.ifs.model.Model;
 import org.cpsolver.ifs.model.Value;
 import org.cpsolver.ifs.model.Variable;
 import org.cpsolver.ifs.solver.Solver;
@@ -82,5 +83,11 @@ public abstract class ExtensionWithContext<V extends Variable<V, T>, T extends V
 
     @Override
     public void setContext(AssignmentContext[] context) { iContext = context; }
+    
+    @Override
+    public void unregister(Model<V, T> model) {
+        model.removeReference(this);
+        super.unregister(model);
+    }
 
 }
