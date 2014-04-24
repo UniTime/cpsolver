@@ -416,15 +416,15 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
         /** Notify reservation about an unassignment */
         @Override
         public void assigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
-            iEnrollments.add(enrollment);
-            iUsed += enrollment.getRequest().getWeight();
+            if (iEnrollments.add(enrollment))
+                iUsed += enrollment.getRequest().getWeight();
         }
 
         /** Notify reservation about an assignment */
         @Override
         public void unassigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
-            iEnrollments.remove(enrollment);
-            iUsed -= enrollment.getRequest().getWeight();
+            if (iEnrollments.remove(enrollment))
+                iUsed -= enrollment.getRequest().getWeight();
         }
         
         /** Enrollments assigned using this reservation 
