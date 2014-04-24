@@ -86,7 +86,7 @@ public class RouletteWheelRequestSelection implements VariableSelection<Request,
      * that exceeds its bound.
      */
     @Override
-    public Request selectVariable(Solution<Request, Enrollment> solution) {
+    public synchronized Request selectVariable(Solution<Request, Enrollment> solution) {
         return getRoulette(solution).nextElement();
     }
 }
