@@ -402,8 +402,10 @@ public class CourseRequest extends Request {
                     continue;
                 matchingSectionsThisSubpart.add(section);
             }
-            if (random || limit > 0)
+            if (random || limit > 0) {
+                sectionsThisSubpart = new ArrayList<Section>(sectionsThisSubpart);
                 Collections.shuffle(sectionsThisSubpart);
+            }
             int i = 0;
             for (Section section: matchingSectionsThisSubpart) {
                 sections.add(section);
