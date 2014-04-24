@@ -621,8 +621,23 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             if (!currentEnrollments.isEmpty()) {
                 for (Request request : getModel().variables())
                     getAssignment().unassign(0, request);
-                for (Enrollment enrollment : currentEnrollments)
-                    getAssignment().assign(0, enrollment);
+                // Enrollments with a reservation must go first
+                for (Enrollment enrollment : currentEnrollments) {
+                    if (enrollment.getReservation() == null) continue;
+                    Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
+                    if (conflicts.isEmpty())
+                        getAssignment().assign(0, enrollment);
+                    else
+                        sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
+                }
+                for (Enrollment enrollment : currentEnrollments) {
+                    if (enrollment.getReservation() != null) continue;
+                    Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
+                    if (conflicts.isEmpty())
+                        getAssignment().assign(0, enrollment);
+                    else
+                        sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
+                }
             }
         }
         
