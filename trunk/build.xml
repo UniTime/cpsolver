@@ -99,7 +99,7 @@
         		<include name="lgpl.txt"/>
         	</fileset>
         	<manifest>
-        		<attribute name="Class-Path" value="log4j-1.2.8.jar dom4j-1.6.1.jar" /> 
+        		<attribute name="Class-Path" value="log4j-1.2.17.jar dom4j-1.6.1.jar" /> 
         		<attribute name="Ifs-Version" value="1.3_bld${build.number}"/>
         	</manifest>
         </jar>
@@ -111,7 +111,7 @@
         		<include name="lgpl.txt"/>
         	</fileset>
         	<manifest>
-        		<attribute name="Class-Path" value="log4j-1.2.8.jar dom4j-1.6.1.jar ifs-1.3.jar" /> 
+        		<attribute name="Class-Path" value="log4j-1.2.17.jar dom4j-1.6.1.jar ifs-1.3.jar" /> 
         		<attribute name="CourseTT-Version" value="1.3_bld${build.number}"/>
         		<attribute name="Main-Class" value="org.cpsolver.coursett.Test"/>
         	</manifest>
@@ -124,7 +124,7 @@
         		<include name="lgpl.txt"/>
         	</fileset>
         	<manifest>
-        		<attribute name="Class-Path" value="log4j-1.2.8.jar dom4j-1.6.1.jar ifs-1.3.jar coursett-1.3.jar" /> 
+        		<attribute name="Class-Path" value="log4j-1.2.17.jar dom4j-1.6.1.jar ifs-1.3.jar coursett-1.3.jar" /> 
         		<attribute name="StudentSct-Version" value="1.3_bld${build.number}"/>
         		<attribute name="Main-Class" value="org.cpsolver.studentsct.Test"/>
         	</manifest>
@@ -137,7 +137,7 @@
         		<include name="lgpl.txt"/>
         	</fileset>
         	<manifest>
-        		<attribute name="Class-Path" value="log4j-1.2.8.jar dom4j-1.6.1.jar ifs-1.3.jar" /> 
+        		<attribute name="Class-Path" value="log4j-1.2.17.jar dom4j-1.6.1.jar ifs-1.3.jar" /> 
         		<attribute name="ExamTT-Version" value="1.3_bld${build.number}"/>
         		<attribute name="Main-Class" value="org.cpsolver.exam.Test"/>
         	</manifest>
@@ -150,7 +150,7 @@
         		<include name="lgpl.txt"/>
         	</fileset>
         	<manifest>
-        		<attribute name="Class-Path" value="log4j-1.2.8.jar dom4j-1.6.1.jar" /> 
+        		<attribute name="Class-Path" value="log4j-1.2.17.jar dom4j-1.6.1.jar" /> 
         		<attribute name="Ifs-Version" value="1.3_bld${build.number}"/>
         		<attribute name="CourseTT-Version" value="1.3_bld${build.number}"/>
         		<attribute name="StudentSct-Version" value="1.3_bld${build.number}"/>
