@@ -437,7 +437,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     /** The list of variables with an initial value (i.e., variables with {@link Variable#getInitialAssignment()} not null)
      * @return list of variables with an initial value 
      **/
-    public Collection<V> variablesWithInitialValue() {
+    public synchronized Collection<V> variablesWithInitialValue() {
         if (iVariablesWithInitialValueCache != null)
             return iVariablesWithInitialValueCache;
         iVariablesWithInitialValueCache = new ArrayList<V>();
@@ -449,7 +449,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     }
 
     /** Invalidates cache containing all variables that possess an initial value */
-    protected void invalidateVariablesWithInitialValueCache() {
+    protected synchronized void invalidateVariablesWithInitialValueCache() {
         iVariablesWithInitialValueCache = null;
     }
     
