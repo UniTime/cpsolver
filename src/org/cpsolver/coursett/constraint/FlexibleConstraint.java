@@ -45,7 +45,7 @@ import org.cpsolver.ifs.criteria.Criterion;
  */
 public abstract class FlexibleConstraint extends ConstraintWithContext<Lecture, Placement, FlexibleConstraint.FlexibleConstraintContext> {
 
-    private int iPreference;
+    protected int iPreference;
     private boolean iIsRequired;   
     private String iOwner;
     
@@ -75,6 +75,10 @@ public abstract class FlexibleConstraint extends ConstraintWithContext<Lecture, 
          * Limit number of breaks between adjacent classes on a day.
          */
         MAX_BREAKS("_(MaxBreaks):([0-9]+):([0-9]+)_", MaxBreaksFlexibleConstraint.class, "MaxBreaks"),
+        /**
+         * Limit number of weeks on which an a class can take place.
+         */
+        MAX_WEEKS("_(MaxWeeks):([0-9]+):([0-9]+)_", MaxWeeksFlexibleConstraint.class, "MaxWeeks"),
         ;
         
         private String iPattern;
@@ -436,7 +440,9 @@ public abstract class FlexibleConstraint extends ConstraintWithContext<Lecture, 
     }
     
     public class FlexibleConstraintContext implements AssignmentConstraintContext<Lecture, Placement> {
-        private double iLastPreference = 0;
+        protected double iLastPreference = 0;
+        
+        FlexibleConstraintContext() {}
         
         FlexibleConstraintContext(Assignment<Lecture, Placement> assignment) {
             updateCriterion(assignment);
@@ -455,7 +461,7 @@ public abstract class FlexibleConstraint extends ConstraintWithContext<Lecture, 
         /**
          * Update value of FlexibleConstraintCriterion and number of violated FlexibleConstraints
          */
-        private void updateCriterion(Assignment<Lecture, Placement> assignment) {
+        protected void updateCriterion(Assignment<Lecture, Placement> assignment) {
             if (!isHard()) {
                 Criterion<Lecture, Placement> criterion = getModel().getCriterion(FlexibleConstraintCriterion.class);
                 if (criterion != null) {
