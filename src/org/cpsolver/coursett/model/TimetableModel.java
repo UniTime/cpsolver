@@ -525,19 +525,19 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
             
             if (fullTerm == null) return null;
             
-            // Cut date pattern into weeks (every week contains 7 positive bits)
+            // Cut date pattern into weeks (each week takes 7 consecutive bits, starting on the next positive bit)
             iWeeks = new ArrayList<BitSet>();
-            int cnt = 0;
-            for (int i = 0; i < fullTerm.length(); i++) {
-                if (fullTerm.get(i)) {
-                    int w = (cnt++) / 7;
-                    if (iWeeks.size() == w) {
-                        iWeeks.add(new BitSet(fullTerm.length()));
-                    }
-                    iWeeks.get(w).set(i);
+            for (int i = fullTerm.nextSetBit(0); i < fullTerm.length(); ) {
+                if (!fullTerm.get(i)) {
+                    i++; continue;
                 }
+                BitSet w = new BitSet(i + 7);
+                for (int j = 0; j < 7; j++)
+                    if (fullTerm.get(i + j)) w.set(i + j);
+                iWeeks.add(w);
+                i += 7;
             }
         }
-        return iWeeks;            
+        return iWeeks;
     }
 }
