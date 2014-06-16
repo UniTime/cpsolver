@@ -73,6 +73,7 @@ public class GreatDeluge<V extends Variable<V, T>, T extends Value<V, T>> extend
     private double iCoolRate = 0.9999999;
     private double iUpperBoundRate = 1.05;
     private double iLowerBoundRate = 0.95;
+    private Double[] iCoolRateAdjusts = null;
 
     /**
      * Constructor. Following problem properties are considered:
@@ -94,6 +95,7 @@ public class GreatDeluge<V extends Variable<V, T>, T extends Value<V, T>> extend
         iCoolRate = properties.getPropertyDouble(getParameterBaseName() + ".CoolRate", iCoolRate);
         iUpperBoundRate = properties.getPropertyDouble(getParameterBaseName() + ".UpperBoundRate", iUpperBoundRate);
         iLowerBoundRate = properties.getPropertyDouble(getParameterBaseName() + ".LowerBoundRate", iLowerBoundRate);
+        iCoolRateAdjusts = properties.getPropertyDoubleArry(getParameterBaseName() + ".CoolRateAdjustments", null);
     }
 
     @Override
@@ -134,14 +136,19 @@ public class GreatDeluge<V extends Variable<V, T>, T extends Value<V, T>> extend
             iUpperBound = iBound;
         }
         
+        protected double getCoolRate(int idx) {
+            if (idx < 0 || iCoolRateAdjusts == null || idx >= iCoolRateAdjusts.length || iCoolRateAdjusts[idx] == null) return iCoolRate;
+            return iCoolRate * iCoolRateAdjusts[idx];
+        }
+        
         /** Increment iteration count, update bound */
         @Override
         protected void incIteration(Solution<V, T> solution) {
             super.incIteration(solution);
             if (solution.getBestValue() >= 0.0)
-                iBound *= iCoolRate;
+                iBound *= getCoolRate(solution.getAssignment().getIndex());
             else
-                iBound /= iCoolRate;
+                iBound /= getCoolRate(solution.getAssignment().getIndex());
             if (iIter % 10000 == 0) {
                 info("Iter=" + iIter / 1000 + "k, NonImpIter=" + sDF2.format((iIter - iLastImprovingIter) / 1000.0)
                         + "k, Speed=" + sDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s");
@@ -153,14 +160,17 @@ public class GreatDeluge<V extends Variable<V, T>, T extends Value<V, T>> extend
                 logNeibourStatus();
                 iAcceptedMoves = iMoves = 0;
             }
+            double upperBound = Math.max(solution.getBestValue() + 2.0,(solution.getBestValue() >= 0.0 ?
+                    Math.pow(iUpperBoundRate, 1 + iNrIdle) * solution.getBestValue() :
+                    solution.getBestValue() / Math.pow(iUpperBoundRate, 1 + iNrIdle)));
             double lowerBound = (solution.getBestValue() >= 0.0
                     ? Math.pow(iLowerBoundRate, 1 + iNrIdle) * solution.getBestValue()
                     : solution.getBestValue() / Math.pow(iLowerBoundRate, 1 + iNrIdle));
-            if (iBound < lowerBound) {
+            if (iBound > upperBound) {
+                iBound = upperBound;
+            } else if (iBound < lowerBound) {
                 iNrIdle++;
-                iBound = Math.max(solution.getBestValue() + 2.0,(solution.getBestValue() >= 0.0 ?
-                        Math.pow(iUpperBoundRate, iNrIdle) * solution.getBestValue() :
-                        solution.getBestValue() / Math.pow(iUpperBoundRate, iNrIdle)));
+                iBound = upperBound;
                 iUpperBound = iBound;
                 setProgressPhase("Great Deluge [" + (1 + iNrIdle) + "]...");
             }
