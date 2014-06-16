@@ -89,6 +89,7 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
     private double iRestoreBestLengthCoef = -1;
     private boolean iStochasticHC = false;
     private boolean iRelativeAcceptance = true;
+    private Double[] iCoolingRateAdjusts = null;
 
     /**
      * Constructor. Following problem properties are considered:
@@ -120,6 +121,7 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
         iTemperatureLength = properties.getPropertyLong(getParameterBaseName() + ".TemperatureLength", iTemperatureLength);
         iReheatLengthCoef = properties.getPropertyDouble(getParameterBaseName() + ".ReheatLengthCoef", iReheatLengthCoef);
         iRestoreBestLengthCoef = properties.getPropertyDouble(getParameterBaseName() + ".RestoreBestLengthCoef", iRestoreBestLengthCoef);
+        iCoolingRateAdjusts = properties.getPropertyDoubleArry(getParameterBaseName() + ".CoolingRateAdjustments", null);
         if (iReheatRate < 0)
             iReheatRate = Math.pow(1 / iCoolingRate, iReheatLengthCoef * 1.7);
         if (iRestoreBestLengthCoef < 0)
@@ -155,13 +157,18 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
             iRestoreBestLength = Math.round(iRestoreBestLengthCoef * iTemperatureLength);
             iLastImprovingIter = iIter;
         }
+        
+        protected double getCoolingRate(int idx) {
+            if (idx < 0 || iCoolingRateAdjusts == null || idx >= iCoolingRateAdjusts.length || iCoolingRateAdjusts[idx] == null) return iCoolingRate;
+            return iCoolingRate * iCoolingRateAdjusts[idx];
+        }
 
         /**
          * Cool temperature
          * @param solution current solution
          */
         protected void cool(Solution<V, T> solution) {
-            iTemperature *= iCoolingRate;
+            iTemperature *= getCoolingRate(solution.getAssignment().getIndex());
             info("Iter=" + iIter / 1000 + "k, NonImpIter=" + iDF2.format((iIter - iLastImprovingIter) / 1000.0)
                     + "k, Speed=" + iDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s");
             info("Temperature decreased to " + iDF5.format(iTemperature) + " " + "(#moves=" + iMoves + ", rms(value)="
