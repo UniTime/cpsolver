@@ -44,6 +44,7 @@ public class StepCountingHillClimber<V extends Variable<V, T>, T extends Value<V
     }
     protected int iCounterLimit = 100;
     protected Mode iCounterMode = Mode.ACCEPTED;
+    protected Double[] iCounterLimitAdjusts = null;
 
     /**
      * Constructor
@@ -56,6 +57,9 @@ public class StepCountingHillClimber<V extends Variable<V, T>, T extends Value<V
     public StepCountingHillClimber(DataProperties properties) {
         super(properties);
         iSetHCMode = false;
+        iCounterLimit = properties.getPropertyInt(getParameterBaseName() + ".CounterLimit", iCounterLimit);
+        iCounterMode = Mode.valueOf(properties.getProperty(getParameterBaseName() + ".CounterMode", iCounterMode.name()).toUpperCase());
+        iCounterLimitAdjusts = properties.getPropertyDoubleArry(getParameterBaseName() + ".CounterLimitAdjustments", null);
     }
 
     @Override
@@ -77,6 +81,11 @@ public class StepCountingHillClimber<V extends Variable<V, T>, T extends Value<V
             iCounter = 0;
         }
         
+        protected int getCounterLimit(int idx) {
+            if (idx < 0 || iCounterLimitAdjusts == null || idx >= iCounterLimitAdjusts.length || iCounterLimitAdjusts[idx] == null) return iCounterLimit;
+            return (int) Math.round(iCounterLimit * iCounterLimitAdjusts[idx]);
+        }
+        
         /**
          * Increase iteration number, also update bound when the given number of steps is reached.
          */
@@ -88,7 +97,7 @@ public class StepCountingHillClimber<V extends Variable<V, T>, T extends Value<V
                 logNeibourStatus();
             }
             // iProgress.setProgress(Math.round(100.0 * (iIter - iLastImprovingIter) / iMaxIdleIters));
-            if (iCounter >= iCounterLimit) {
+            if (iCounter >= getCounterLimit(solution.getAssignment().getIndex())) {
                 iBound = solution.getModel().getTotalValue(solution.getAssignment()); 
                 iCounter = 0;
             }
@@ -119,7 +128,7 @@ public class StepCountingHillClimber<V extends Variable<V, T>, T extends Value<V
          */
         @Override
         protected boolean canContinue(Solution<V, T> solution) {
-            return super.canContinue(solution) || iCounter < iCounterLimit || solution.getModel().getTotalValue(solution.getAssignment()) < iBound;
+            return super.canContinue(solution) || iCounter < getCounterLimit(solution.getAssignment().getIndex()) || solution.getModel().getTotalValue(solution.getAssignment()) < iBound;
         }
     }
 }
