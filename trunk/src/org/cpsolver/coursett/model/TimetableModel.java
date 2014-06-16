@@ -525,17 +525,28 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
             
             if (fullTerm == null) return null;
             
-            // Cut date pattern into weeks (each week takes 7 consecutive bits, starting on the next positive bit)
             iWeeks = new ArrayList<BitSet>();
-            for (int i = fullTerm.nextSetBit(0); i < fullTerm.length(); ) {
-                if (!fullTerm.get(i)) {
-                    i++; continue;
+            if (getProperties().getPropertyBoolean("DatePattern.ShiftWeeks", false)) {
+                // Cut date pattern into weeks (each week takes 7 consecutive bits, starting on the next positive bit)
+                for (int i = fullTerm.nextSetBit(0); i < fullTerm.length(); ) {
+                    if (!fullTerm.get(i)) {
+                        i++; continue;
+                    }
+                    BitSet w = new BitSet(i + 7);
+                    for (int j = 0; j < 7; j++)
+                        if (fullTerm.get(i + j)) w.set(i + j);
+                    iWeeks.add(w);
+                    i += 7;
+                }                
+            } else {
+                // Cut date pattern into weeks (each week takes 7 consecutive bits starting on the first bit of the default date pattern, no pauses between weeks)
+                for (int i = fullTerm.nextSetBit(0); i < fullTerm.length(); ) {
+                    BitSet w = new BitSet(i + 7);
+                    for (int j = 0; j < 7; j++)
+                        if (fullTerm.get(i + j)) w.set(i + j);
+                    iWeeks.add(w);
+                    i += 7;
                 }
-                BitSet w = new BitSet(i + 7);
-                for (int j = 0; j < 7; j++)
-                    if (fullTerm.get(i + j)) w.set(i + j);
-                iWeeks.add(w);
-                i += 7;
             }
         }
         return iWeeks;
