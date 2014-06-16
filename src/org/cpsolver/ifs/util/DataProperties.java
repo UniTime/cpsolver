@@ -392,6 +392,27 @@ public class DataProperties extends Properties {
             return defaultValue;
         }
     }
+    
+    public Double[] getPropertyDoubleArry(String key, Double[] defaultValue) {
+        try {
+            if (containsPropery(key)) {
+                StringTokenizer stk = new StringTokenizer(getProperty(key), ",");
+                Double ret[] = new Double[stk.countTokens()];
+                for (int i = 0; stk.hasMoreTokens(); i++) {
+                    String t = stk.nextToken();
+                    ret[i] = ("null".equals(t) ? null : Double.valueOf(t));
+                }
+                return ret;
+            }
+            if (iSaveDefaults && defaultValue != null)
+                setProperty(key, defaultValue);
+            return defaultValue;
+        } catch (NumberFormatException nfe) {
+            if (iSaveDefaults && defaultValue != null)
+                setProperty(key, defaultValue);
+            return defaultValue;
+        }
+    }
 
     /**
      * Returns properties as a map
