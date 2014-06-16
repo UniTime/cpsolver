@@ -402,7 +402,7 @@ public class PlacementSelection implements ValueSelection<Lecture, Placement> {
         double ret = 0.0;
         for (Criterion<Lecture, Placement> criterion: value.variable().getModel().getCriteria()) {
             if (criterion instanceof TimetablingCriterion) {
-                double w = ((TimetablingCriterion)criterion).getPlacementSelectionWeight(level);
+                double w = ((TimetablingCriterion)criterion).getPlacementSelectionWeight(level, assignment.getIndex());
                 if (w != 0.0)
                     ret += w * criterion.getValue(assignment, value, conflicts);
             } else {
