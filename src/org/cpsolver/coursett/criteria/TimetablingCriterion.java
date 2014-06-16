@@ -33,6 +33,7 @@ import org.cpsolver.ifs.solver.Solver;
  */
 public abstract class TimetablingCriterion extends AbstractCriterion<Lecture, Placement> {
     private double[] iPlacementSelectionWeight = null;
+    private Double[][] iPlacementSelectionAdjusts = null;
 
     @Override
     public boolean init(Solver<Lecture, Placement> solver) {
@@ -41,6 +42,11 @@ public abstract class TimetablingCriterion extends AbstractCriterion<Lecture, Pl
             iPlacementSelectionWeight = new double[] { 0.0, 0.0, 0.0 };
             for (int i = 0; i < 3; i++)
                 iPlacementSelectionWeight[i] = solver.getProperties().getPropertyDouble(getPlacementSelectionWeightName() + (1 + i), getPlacementSelectionWeightDefault(i));
+            iPlacementSelectionAdjusts = new Double[][] { null, null, null};
+            for (int i = 0; i < 3; i++) {
+                iPlacementSelectionAdjusts[i] = solver.getProperties().getPropertyDoubleArry(getPlacementSelectionAdjustmentsName() + (1 + i),
+                        solver.getProperties().getPropertyDoubleArry(getPlacementSelectionAdjustmentsName(), null));
+            }
         }
         return true;
     }
@@ -49,8 +55,14 @@ public abstract class TimetablingCriterion extends AbstractCriterion<Lecture, Pl
         return "Placement." + getClass().getName().substring(1 + getClass().getName().lastIndexOf('.')) + "Weight";
     }
     
-    public double getPlacementSelectionWeight(int level) {
-        return iPlacementSelectionWeight == null ? 0.0 : iPlacementSelectionWeight[level];
+    public String getPlacementSelectionAdjustmentsName() {
+        return getPlacementSelectionWeightName() + "Adjustments";
+    }
+    
+    public double getPlacementSelectionWeight(int level, int idx) {
+        double w = (iPlacementSelectionWeight == null ? 0.0 : iPlacementSelectionWeight[level]);
+        if (idx < 0 || iPlacementSelectionAdjusts == null || iPlacementSelectionAdjusts[level] == null || idx >= iPlacementSelectionAdjusts[level].length || iPlacementSelectionAdjusts[level][idx] == null) return w;
+        return w * iPlacementSelectionAdjusts[level][idx];
     }
     
     public double getPlacementSelectionWeightDefault(int level) {
