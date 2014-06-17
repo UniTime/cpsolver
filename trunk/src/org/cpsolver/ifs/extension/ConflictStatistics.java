@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.heuristics.ValueSelection;
@@ -167,6 +168,8 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
     private Map<AssignedValue<T>, List<AssignedValue<T>>> iAssignments = new HashMap<AssignedValue<T>, List<AssignedValue<T>>>();
     private Map<V, List<AssignedValue<T>>> iUnassignedVariables = new HashMap<V, List<AssignedValue<T>>>();
     private Map<AssignedValue<T>, List<AssignedValue<T>>> iNoGoods = new HashMap<AssignedValue<T>, List<AssignedValue<T>>>();
+    
+    private final ReentrantReadWriteLock iLock = new ReentrantReadWriteLock();
 
     public ConflictStatistics(Solver<V, T> solver, DataProperties properties) {
         super(solver, properties);
@@ -188,8 +191,9 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
     }
 
     private void variableUnassigned(long iteration, T unassignedValue, AssignedValue<T> noGood) {
-        synchronized (iAssignments) {
-            if (iteration <= 0) return;
+        if (iteration <= 0) return;
+        iLock.writeLock().lock();
+        try {
             AssignedValue<T> unass = new AssignedValue<T>(iteration, unassignedValue, iAgeing);
             List<AssignedValue<T>> noGoodsForUnassignment = iNoGoods.get(unass);
             if (noGoodsForUnassignment != null) {
@@ -203,13 +207,18 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
                 noGoodsForUnassignment.add(noGood);
                 iNoGoods.put(unass, noGoodsForUnassignment);
             }
+        } finally {
+            iLock.writeLock().unlock();
         }
     }
 
     public void reset() {
-        synchronized (iAssignments) {
+        iLock.writeLock().lock();
+        try {
             iUnassignedVariables.clear();
             iAssignments.clear();
+        } finally {
+            iLock.writeLock().unlock();
         }
     }
 
@@ -221,7 +230,8 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
         if (iteration <= 0) return;
         AssignedValue<T> ass = new AssignedValue<T>(iteration, assignedValue, iAgeing);
         AssignedValue<T> unass = new AssignedValue<T>(iteration, unassignedValue, iAgeing);
-        synchronized (iAssignments) {
+        iLock.writeLock().lock();
+        try {
             if (iAssignments.containsKey(unass)) {
                 List<AssignedValue<T>> asss = iAssignments.get(unass);
                 if (asss.contains(ass)) {
@@ -246,6 +256,8 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
                 asss.add(ass);
                 iUnassignedVariables.put(unassignedValue.variable(), asss);
             }
+        } finally {
+            iLock.writeLock().unlock();
         }
     }
 
@@ -275,7 +287,8 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
      * @return number of unassignments
      */
     public double countRemovals(long iteration, T conflictValue, T value) {
-        synchronized (iAssignments) {
+        iLock.readLock().lock();
+        try {
             List<AssignedValue<T>> asss = iUnassignedVariables.get(conflictValue.variable());
             if (asss == null)
                 return 0;
@@ -284,6 +297,8 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
             if (idx < 0)
                 return 0;
             return (asss.get(idx)).getCounter(iteration);
+        } finally {
+            iLock.readLock().unlock();
         }
     }
 
@@ -297,7 +312,8 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
      * @return number of potential unassignments
      */
     public long countPotentialConflicts(Assignment<V, T> assignment, long iteration, T value, int limit) {
-        synchronized (iAssignments) {
+        iLock.readLock().lock();
+        try {
             List<AssignedValue<T>> asss = iAssignments.get(new AssignedValue<T>(iteration, value, iAgeing));
             if (asss == null)
                 return 0;
@@ -312,11 +328,14 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
                 }
             }
             return count;            
+        } finally {
+            iLock.readLock().unlock();
         }
     }
     
     private int countAssignments(V variable) {
-        synchronized (iAssignments) {
+        iLock.readLock().lock();
+        try {
             List<AssignedValue<T>> assignments = iUnassignedVariables.get(variable);
             if (assignments == null || assignments.isEmpty()) return 0;
             int ret = 0;
@@ -324,12 +343,15 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
                 ret += assignment.getCounter(0);
             }
             return ret;
+        } finally {
+            iLock.readLock().unlock();
         }
     }
 
     @Override
     public String toString() {
-        synchronized (iAssignments) {
+        iLock.readLock().lock();
+        try {
             StringBuffer sb = new StringBuffer("Statistics{");
             TreeSet<V> sortedUnassignedVariables = new TreeSet<V>(new Comparator<V>() {
                 @Override
@@ -363,6 +385,8 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
             }
             sb.append("\n    }");
             return sb.toString();            
+        } finally {
+            iLock.readLock().unlock();
         }
     }
 

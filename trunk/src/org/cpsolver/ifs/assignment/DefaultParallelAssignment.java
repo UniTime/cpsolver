@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.cpsolver.ifs.assignment.context.DefaultParallelAssignmentContextHolder;
 import org.cpsolver.ifs.model.Model;
@@ -45,6 +46,7 @@ import org.cpsolver.ifs.solver.ParallelSolver;
 public class DefaultParallelAssignment <V extends Variable<V, T>, T extends Value<V, T>> extends AssignmentAbstract<V, T> {
     private Map<V, Long> iAssignedVariables = new HashMap<V, Long>();
     private int iIndex;
+    private final ReentrantReadWriteLock iLock = new ReentrantReadWriteLock();
 
     public DefaultParallelAssignment(int threadIndex) {
         super(new DefaultParallelAssignmentContextHolder<V, T>(threadIndex));
@@ -74,7 +76,15 @@ public class DefaultParallelAssignment <V extends Variable<V, T>, T extends Valu
     
     @SuppressWarnings({ "unchecked", "deprecation" })
     protected T[] getAssignments(V variable) {
-        synchronized (variable) {
+        iLock.readLock().lock();
+        try {
+            T[] assignments = variable.getAssignments();
+            if (assignments != null && iIndex < assignments.length) return assignments;
+        } finally {
+            iLock.readLock().unlock();
+        }
+        iLock.writeLock().lock();
+        try {
             T[] assignments = variable.getAssignments();
             if (assignments == null) {
                 assignments = (T[])new Value[Math.max(10, 1 + iIndex)];
@@ -84,6 +94,8 @@ public class DefaultParallelAssignment <V extends Variable<V, T>, T extends Valu
                 variable.setAssignments(assignments);
             }
             return assignments;
+        } finally {
+            iLock.writeLock().unlock();
         }
     }
 
