@@ -9,6 +9,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.cpsolver.coursett.Constants;
 import org.cpsolver.coursett.constraint.ClassLimitConstraint;
@@ -78,7 +80,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     private Set<SpreadConstraint> iSpreadConstraints = new HashSet<SpreadConstraint>();
     private Set<Constraint<Lecture, Placement>> iWeakeningConstraints = new HashSet<Constraint<Lecture, Placement>>();
     private List<InstructorConstraint> iInstructorConstraints = new ArrayList<InstructorConstraint>();
-    private Set<Long> iIgnoreStudentConflictsWith = null;
+    private AtomicReference<Set<Long>> iIgnoreStudentConflictsWith = new AtomicReference<Set<Long>>();
     private ClassLimitConstraint iClassLimitConstraint = null;
 
     private Lecture iParent = null;
@@ -102,6 +104,8 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     private Integer iCacheMinRoomSize = null;
     private Integer iCacheMaxRoomSize = null;
     private Integer iCacheMaxAchievableClassLimit = null;
+    
+    private final ReentrantReadWriteLock iLock = new ReentrantReadWriteLock();
 
     /**
      * Constructor
@@ -252,7 +256,9 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         Placement value = (assignment == null ? null : assignment.getValue(this));
         if (value != null && getModel() != null)
             getModel().getCriterion(StudentCommittedConflict.class).inc(assignment, student.countConflictPlacements(value));
+        iLock.writeLock().lock();
         iCommitedConflicts.clear();
+        iLock.writeLock().unlock();
     }
 
     /** 
@@ -266,7 +272,9 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         Placement value = (assignment == null ? null : assignment.getValue(this));
         if (value != null && getModel() != null)
             getModel().getCriterion(StudentCommittedConflict.class).inc(assignment, -student.countConflictPlacements(value));
+        iLock.writeLock().lock();
         iCommitedConflicts.clear();
+        iLock.writeLock().unlock();
     }
 
     /** Returns true if the given student is enrolled 
@@ -783,28 +791,38 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         return iMaxClassLimit;
     }
 
-    public synchronized int maxAchievableClassLimit() {
-        if (iCacheMaxAchievableClassLimit != null)
-            return iCacheMaxAchievableClassLimit.intValue();
-
-        int maxAchievableClassLimit = Math.min(maxClassLimit(), (int) Math.floor(maxRoomSize() / roomToLimitRatio()));
-
-        if (hasAnyChildren()) {
-
-            for (Long subpartId: getChildrenSubpartIds()) {
-                int maxAchievableChildrenLimit = 0;
-
-                for (Lecture child : getChildren(subpartId)) {
-                    maxAchievableChildrenLimit += child.maxAchievableClassLimit();
-                }
-
-                maxAchievableClassLimit = Math.min(maxAchievableClassLimit, maxAchievableChildrenLimit);
-            }
+    public int maxAchievableClassLimit() {
+        iLock.readLock().lock();
+        try {
+            if (iCacheMaxAchievableClassLimit != null) return iCacheMaxAchievableClassLimit.intValue();
+        } finally {
+            iLock.readLock().unlock();
         }
+        iLock.writeLock().lock();
+        try {
+            if (iCacheMaxAchievableClassLimit != null) return iCacheMaxAchievableClassLimit.intValue();
 
-        maxAchievableClassLimit = Math.max(minClassLimit(), maxAchievableClassLimit);
-        iCacheMaxAchievableClassLimit = new Integer(maxAchievableClassLimit);
-        return maxAchievableClassLimit;
+            int maxAchievableClassLimit = Math.min(maxClassLimit(), (int) Math.floor(maxRoomSize() / roomToLimitRatio()));
+
+            if (hasAnyChildren()) {
+
+                for (Long subpartId: getChildrenSubpartIds()) {
+                    int maxAchievableChildrenLimit = 0;
+
+                    for (Lecture child : getChildren(subpartId)) {
+                        maxAchievableChildrenLimit += child.maxAchievableClassLimit();
+                    }
+
+                    maxAchievableClassLimit = Math.min(maxAchievableClassLimit, maxAchievableChildrenLimit);
+                }
+            }
+
+            maxAchievableClassLimit = Math.max(minClassLimit(), maxAchievableClassLimit);
+            iCacheMaxAchievableClassLimit = new Integer(maxAchievableClassLimit);
+            return maxAchievableClassLimit;
+        } finally {
+            iLock.writeLock().unlock();
+        }
     }
 
     public int classLimit(Assignment<Lecture, Placement> assignment) {
@@ -1078,13 +1096,22 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         return null;
     }
 
-    public synchronized int getCommitedConflicts(Placement placement) {
-        Integer ret = iCommitedConflicts.get(placement);
-        if (ret == null) {
-            ret = new Integer(placement.getCommitedConflicts());
-            iCommitedConflicts.put(placement, ret);
+    public int getCommitedConflicts(Placement placement) {
+        iLock.readLock().lock();
+        try {
+            Integer ret = iCommitedConflicts.get(placement);
+            if (ret != null) return ret;
+        } finally {
+            iLock.readLock().unlock();
         }
-        return ret.intValue();
+        iLock.writeLock().lock();
+        try {
+            int ret = placement.getCommitedConflicts();
+            iCommitedConflicts.put(placement, ret);
+            return ret;
+        } finally {
+            iLock.writeLock().unlock();
+        }
     }
 
     public Set<GroupConstraint> hardGroupSoftConstraints() {
@@ -1095,62 +1122,82 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         return iGroupConstraints;
     }
 
-    public synchronized int minRoomSize() {
-        if (iCacheMinRoomSize != null)
-            return iCacheMinRoomSize.intValue();
-        if (getNrRooms() <= 1) {
-            int min = Integer.MAX_VALUE;
-            for (RoomLocation r : roomLocations()) {
-                if (r.getPreference() <= Constants.sPreferenceLevelProhibited / 2)
-                    min = Math.min(min, r.getRoomSize());
-            }
-            iCacheMinRoomSize = new Integer(min);
-            return min;
-        } else {
-            List<RoomLocation> rooms = new ArrayList<RoomLocation>();
-            for (RoomLocation r: roomLocations())
-                if (r.getPreference() <= Constants.sPreferenceLevelProhibited / 2)
-                    rooms.add(r);
-            Collections.sort(rooms, new Comparator<RoomLocation>() {
-                @Override
-                public int compare(RoomLocation r1, RoomLocation r2) {
-                    if (r1.getRoomSize() < r2.getRoomSize()) return -1;
-                    if (r1.getRoomSize() > r2.getRoomSize()) return 1;
-                    return r1.compareTo(r2);
+    public int minRoomSize() {
+        iLock.readLock().lock();
+        try {
+            if (iCacheMinRoomSize != null) return iCacheMinRoomSize.intValue();
+        } finally {
+            iLock.readLock().unlock();
+        }
+        iLock.writeLock().lock();
+        try {
+            if (iCacheMinRoomSize != null) return iCacheMinRoomSize.intValue();
+            if (getNrRooms() <= 1) {
+                int min = Integer.MAX_VALUE;
+                for (RoomLocation r : roomLocations()) {
+                    if (r.getPreference() <= Constants.sPreferenceLevelProhibited / 2)
+                        min = Math.min(min, r.getRoomSize());
                 }
-            });
-            int min = rooms.isEmpty() ? 0 : rooms.get(Math.min(getNrRooms(), rooms.size()) - 1).getRoomSize();
-            iCacheMinRoomSize = new Integer(min);
-            return min;
+                iCacheMinRoomSize = new Integer(min);
+                return min;
+            } else {
+                List<RoomLocation> rooms = new ArrayList<RoomLocation>();
+                for (RoomLocation r: roomLocations())
+                    if (r.getPreference() <= Constants.sPreferenceLevelProhibited / 2)
+                        rooms.add(r);
+                Collections.sort(rooms, new Comparator<RoomLocation>() {
+                    @Override
+                    public int compare(RoomLocation r1, RoomLocation r2) {
+                        if (r1.getRoomSize() < r2.getRoomSize()) return -1;
+                        if (r1.getRoomSize() > r2.getRoomSize()) return 1;
+                        return r1.compareTo(r2);
+                    }
+                });
+                int min = rooms.isEmpty() ? 0 : rooms.get(Math.min(getNrRooms(), rooms.size()) - 1).getRoomSize();
+                iCacheMinRoomSize = new Integer(min);
+                return min;
+            }
+        } finally {
+            iLock.writeLock().unlock();
         }
     }
 
-    public synchronized int maxRoomSize() {
-        if (iCacheMaxRoomSize != null)
-            return iCacheMaxRoomSize.intValue();
-        if (getNrRooms() <= 1) {
-            int max = Integer.MIN_VALUE;
-            for (RoomLocation r : roomLocations()) {
-                if (r.getPreference() <= Constants.sPreferenceLevelProhibited / 2) 
-                    max = Math.max(max, r.getRoomSize());
-            }
-            iCacheMaxRoomSize = new Integer(max);
-            return max;
-        } else {
-            List<RoomLocation> rooms = new ArrayList<RoomLocation>();
-            for (RoomLocation r: roomLocations())
-                if (r.getPreference() <= Constants.sPreferenceLevelProhibited / 2) rooms.add(r);
-            Collections.sort(rooms, new Comparator<RoomLocation>() {
-                @Override
-                public int compare(RoomLocation r1, RoomLocation r2) {
-                    if (r1.getRoomSize() > r2.getRoomSize()) return -1;
-                    if (r1.getRoomSize() < r2.getRoomSize()) return 1;
-                    return r1.compareTo(r2);
+    public int maxRoomSize() {
+        iLock.readLock().lock();
+        try {
+            if (iCacheMaxRoomSize != null) return iCacheMaxRoomSize.intValue();
+        } finally {
+            iLock.readLock().unlock();
+        }
+        iLock.writeLock().lock();
+        try {
+            if (iCacheMaxRoomSize != null) return iCacheMaxRoomSize.intValue();
+            if (getNrRooms() <= 1) {
+                int max = Integer.MIN_VALUE;
+                for (RoomLocation r : roomLocations()) {
+                    if (r.getPreference() <= Constants.sPreferenceLevelProhibited / 2) 
+                        max = Math.max(max, r.getRoomSize());
                 }
-            });
-            int max = rooms.isEmpty() ? 0 : rooms.get(Math.min(getNrRooms(), rooms.size()) - 1).getRoomSize();
-            iCacheMaxRoomSize = new Integer(max);
-            return max;
+                iCacheMaxRoomSize = new Integer(max);
+                return max;
+            } else {
+                List<RoomLocation> rooms = new ArrayList<RoomLocation>();
+                for (RoomLocation r: roomLocations())
+                    if (r.getPreference() <= Constants.sPreferenceLevelProhibited / 2) rooms.add(r);
+                Collections.sort(rooms, new Comparator<RoomLocation>() {
+                    @Override
+                    public int compare(RoomLocation r1, RoomLocation r2) {
+                        if (r1.getRoomSize() > r2.getRoomSize()) return -1;
+                        if (r1.getRoomSize() < r2.getRoomSize()) return 1;
+                        return r1.compareTo(r2);
+                    }
+                });
+                int max = rooms.isEmpty() ? 0 : rooms.get(Math.min(getNrRooms(), rooms.size()) - 1).getRoomSize();
+                iCacheMaxRoomSize = new Integer(max);
+                return max;
+            }
+        } finally {
+            iLock.writeLock().unlock();
         }
     }
 
@@ -1339,8 +1386,17 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
 
     private int[] iMinMaxRoomPreference = null;
 
-    public synchronized  int[] getMinMaxRoomPreference() {
-        if (iMinMaxRoomPreference == null) {
+    public int[] getMinMaxRoomPreference() {
+        iLock.readLock().lock();
+        try {
+            if (iMinMaxRoomPreference != null) return iMinMaxRoomPreference;
+        } finally {
+            iLock.readLock().unlock();
+        }
+        iLock.writeLock().lock();
+        try {
+            if (iMinMaxRoomPreference != null) return iMinMaxRoomPreference;
+
             if (getNrRooms() <= 0 || roomLocations().isEmpty()) {
                 iMinMaxRoomPreference = new int[] { 0, 0 };
             } else {
@@ -1354,14 +1410,26 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                 }
                 iMinMaxRoomPreference = new int[] { minRoomPref == null ? 0 : minRoomPref, maxRoomPref == null ? 0 : maxRoomPref };
             }
+
+            return iMinMaxRoomPreference;
+        } finally {
+            iLock.writeLock().unlock();
         }
-        return iMinMaxRoomPreference;
     }
 
     private double[] iMinMaxTimePreference = null;
 
-    public synchronized double[] getMinMaxTimePreference() {
-        if (iMinMaxTimePreference == null) {
+    public double[] getMinMaxTimePreference() {
+        iLock.readLock().lock();
+        try {
+            if (iMinMaxTimePreference != null) return iMinMaxTimePreference;
+        } finally {
+            iLock.readLock().unlock();
+        }
+        iLock.writeLock().lock();
+        try {
+            if (iMinMaxTimePreference != null) return iMinMaxTimePreference;
+
             Double minTimePref = null, maxTimePref = null;
             for (TimeLocation t : timeLocations()) {
                 double npref = t.getNormalizedPreference();
@@ -1372,8 +1440,11 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                 }
             }
             iMinMaxTimePreference = new double[] { minTimePref == null ? 0.0 : minTimePref, maxTimePref == null ? 0.0 : maxTimePref };
+            
+            return iMinMaxTimePreference;
+        } finally {
+            iLock.writeLock().unlock();
         }
-        return iMinMaxTimePreference;
     }
 
     public void setOrd(int ord) {
@@ -1404,26 +1475,28 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         return StudentConflict.hard(this, other);
     }
     
-    public synchronized void clearIgnoreStudentConflictsWithCache() {
-        iIgnoreStudentConflictsWith = null;
+    public void clearIgnoreStudentConflictsWithCache() {
+        iIgnoreStudentConflictsWith.set(null);
     }
     
     /**
      * Returns true if there is {@link IgnoreStudentConflictsConstraint} between the two lectures.
      * @param other another class
-     * @return true if student conflicts between this and the given calss are to be ignored
+     * @return true if student conflicts between this and the given calls are to be ignored
      */
-   public synchronized boolean isToIgnoreStudentConflictsWith(Lecture other) {
-        if (iIgnoreStudentConflictsWith == null) {
-            iIgnoreStudentConflictsWith = new HashSet<Long>();
-            for (Constraint<Lecture, Placement> constraint: constraints()) {
-                if (constraint instanceof IgnoreStudentConflictsConstraint)
-                    for (Lecture x: constraint.variables()) {
-                        if (!x.equals(this)) iIgnoreStudentConflictsWith.add(x.getClassId());
-                    }
-            }
-        }
-        return iIgnoreStudentConflictsWith.contains(other.getClassId());
+   public boolean isToIgnoreStudentConflictsWith(Lecture other) {
+       Set<Long> cache = iIgnoreStudentConflictsWith.get();
+       if (cache != null)
+           return cache.contains(other.getClassId());
+       cache = new HashSet<Long>();
+       for (Constraint<Lecture, Placement> constraint: constraints()) {
+           if (constraint instanceof IgnoreStudentConflictsConstraint)
+               for (Lecture x: constraint.variables()) {
+                   if (!x.equals(this)) cache.add(x.getClassId());
+               }
+       }
+       iIgnoreStudentConflictsWith.set(cache);
+       return cache.contains(other);
     }
    
    /**

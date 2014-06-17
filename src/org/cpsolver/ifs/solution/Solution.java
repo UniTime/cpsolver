@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.model.Model;
@@ -54,7 +55,6 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
     private long iFailedIterations = 0;
     private double iTime = 0.0;
 
-    private boolean iBestComplete = false;
     private Map<String, String> iBestInfo = null;
     private long iBestIteration = -1;
     private long iBestFailedIterations = -1;
@@ -64,6 +64,7 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
 
     private List<SolutionListener<V, T>> iSolutionListeners = new ArrayList<SolutionListener<V, T>>();
     private PerturbationsCounter<V, T> iPerturbationsCounter = null;
+    private final ReentrantReadWriteLock iLock = new ReentrantReadWriteLock();
 
     /** Constructor 
      * @param model problem model
@@ -265,7 +266,7 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
      * @return true if the best solution has all the variables assigned
      */
     public boolean isBestComplete() {
-        return iBestComplete;
+        return getModel().getBestUnassignedVariables() == 0;
     }
     
     /**
@@ -310,17 +311,19 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
 
     /** Clear the best ever found solution */
     public void clearBest() {
-        synchronized (getModel()) {
+        iLock.writeLock().lock();
+        try {
             getModel().clearBest();
             iBestInfo = null;
             iBestTime = -1;
             iBestIteration = -1;
             iBestFailedIterations = 0;
-            iBestComplete = false;
             iBestIndex = -1;
             iBestPerturbationsPenaly = -1.0;
             for (SolutionListener<V, T> listener : iSolutionListeners)
                 listener.bestCleared(this);
+        } finally {
+            iLock.writeLock().unlock();
         }
     }
     
@@ -337,13 +340,13 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
      * @param master master solution into which information about the best solution are to be copied as well
      */
     public void saveBest(Solution<V, T> master) {
-        synchronized (getModel()) {
+        iLock.writeLock().lock();
+        try {
             getModel().saveBest(iAssignment);
             iBestInfo = getInfo();
             iBestTime = getTime();
             iBestIteration = getIteration();
             iBestFailedIterations = getFailedIterations();
-            iBestComplete = isComplete();
             iBestIndex = getAssignment().getIndex();
             iBestPerturbationsPenaly = (iPerturbationsCounter == null ? 0.0 : iPerturbationsCounter.getPerturbationPenalty(getAssignment(), getModel()));
             for (SolutionListener<V, T> listener : iSolutionListeners)
@@ -357,12 +360,50 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
                 master.iBestTime = iBestTime;
                 master.iBestIteration = iBestIteration;
                 master.iBestFailedIterations = iBestFailedIterations;
-                master.iBestComplete = iBestComplete;
                 master.iBestPerturbationsPenaly = iBestPerturbationsPenaly;
                 master.iBestIndex = iBestIndex;
             }
+        } finally {
+            iLock.writeLock().unlock();
         }
     }
+    
+    public boolean saveBestIfImproving(Solution<V, T> master, SolutionComparator<V, T> comparator) {
+        master.iLock.readLock().lock();
+        try {
+            if (iBestInfo != null && !comparator.isBetterThanBestSolution(this)) return false;
+        } finally {
+            master.iLock.readLock().unlock();
+        }
+        master.iLock.writeLock().lock();
+        try {
+            if (iBestInfo != null && !comparator.isBetterThanBestSolution(this)) return false;
+            getModel().saveBest(iAssignment);
+            iBestInfo = getInfo();
+            iBestTime = getTime();
+            iBestIteration = getIteration();
+            iBestFailedIterations = getFailedIterations();
+            iBestIndex = getAssignment().getIndex();
+            iBestPerturbationsPenaly = (iPerturbationsCounter == null ? 0.0 : iPerturbationsCounter.getPerturbationPenalty(getAssignment(), getModel()));
+            for (SolutionListener<V, T> listener : iSolutionListeners)
+                listener.bestSaved(this);
+            
+            master.iIteration = iIteration;
+            master.iFailedIterations = iFailedIterations;
+            master.iTime = iTime;
+            master.iBestInfo = iBestInfo;
+            master.iBestTime = iBestTime;
+            master.iBestIteration = iBestIteration;
+            master.iBestFailedIterations = iBestFailedIterations;
+            master.iBestPerturbationsPenaly = iBestPerturbationsPenaly;
+            master.iBestIndex = iBestIndex;
+
+            return true;
+        } finally {
+            master.iLock.writeLock().unlock();
+        }
+    }
+        
     
     /**
      * Save the current solution as the best ever found solution (it also calls
@@ -377,13 +418,16 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
      * calls {@link Model#restoreBest(Assignment)})
      */
     public void restoreBest() {
-        synchronized (getModel()) {
+        iLock.readLock().lock();
+        try {
             getModel().restoreBest(iAssignment);
             iTime = iBestTime;
             iIteration = iBestIteration;
             iFailedIterations = iBestFailedIterations;
             for (SolutionListener<V, T> listener : iSolutionListeners)
                 listener.bestRestored(this);
+        } finally {
+            iLock.readLock().unlock();
         }
     }
 

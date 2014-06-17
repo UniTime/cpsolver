@@ -10,6 +10,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.DefaultSingleAssignment;
@@ -87,6 +88,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     private List<Constraint<V, T>> iConstraints = new ArrayList<Constraint<V, T>>();
     private List<GlobalConstraint<V, T>> iGlobalConstraints = new ArrayList<GlobalConstraint<V, T>>();
     private Collection<V> iVariablesWithInitialValueCache = null;
+    private final ReentrantReadWriteLock iVariablesWithInitialValueLock = new ReentrantReadWriteLock();
 
     private List<ModelListener<V, T>> iModelListeners = new ArrayList<ModelListener<V, T>>();
     private List<InfoProvider<V, T>> iInfoProviders = new ArrayList<InfoProvider<V, T>>();
@@ -101,7 +103,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     private Assignment<V, T> iAssignment = null;
     private Assignment<V, T> iEmptyAssignment = null;
     private Map<Integer, AssignmentContextReference<V, T, ? extends AssignmentContext>> iAssignmentContextReferences = new HashMap<Integer, AssignmentContextReference<V, T, ? extends AssignmentContext>>();
-
+    
     /** Constructor */
     public Model() {
     }
@@ -437,20 +439,34 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     /** The list of variables with an initial value (i.e., variables with {@link Variable#getInitialAssignment()} not null)
      * @return list of variables with an initial value 
      **/
-    public synchronized Collection<V> variablesWithInitialValue() {
-        if (iVariablesWithInitialValueCache != null)
-            return iVariablesWithInitialValueCache;
-        iVariablesWithInitialValueCache = new ArrayList<V>();
-        for (V variable : iVariables) {
-            if (variable.getInitialAssignment() != null)
-                iVariablesWithInitialValueCache.add(variable);
+    public Collection<V> variablesWithInitialValue() {
+        iVariablesWithInitialValueLock.readLock().lock();
+        try {
+            if (iVariablesWithInitialValueCache != null)
+                return iVariablesWithInitialValueCache;
+        } finally {
+            iVariablesWithInitialValueLock.readLock().unlock();
         }
-        return iVariablesWithInitialValueCache;
+        iVariablesWithInitialValueLock.writeLock().lock();
+        try {
+            if (iVariablesWithInitialValueCache != null)
+                return iVariablesWithInitialValueCache;
+            iVariablesWithInitialValueCache = new ArrayList<V>();
+            for (V variable : iVariables) {
+                if (variable.getInitialAssignment() != null)
+                    iVariablesWithInitialValueCache.add(variable);
+            }
+            return iVariablesWithInitialValueCache;
+        } finally {
+            iVariablesWithInitialValueLock.writeLock().unlock();
+        }
     }
 
     /** Invalidates cache containing all variables that possess an initial value */
-    protected synchronized void invalidateVariablesWithInitialValueCache() {
+    protected void invalidateVariablesWithInitialValueCache() {
+        iVariablesWithInitialValueLock.writeLock().lock();
         iVariablesWithInitialValueCache = null;
+        iVariablesWithInitialValueLock.writeLock().unlock();
     }
     
     /** Called before a value is assigned to its variable
