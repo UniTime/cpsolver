@@ -58,7 +58,7 @@ public class StudentLuchBreak extends StudentConflict {
 
     @Override
     public boolean isApplicable(Lecture l1, Lecture l2) {
-        return applicable(l1, l2);
+        return l1 != null && l2 != null && !ignore(l1, l2) && applicable(l1, l2);
     }
     
     @Override

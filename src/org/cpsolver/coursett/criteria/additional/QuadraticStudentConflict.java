@@ -38,7 +38,7 @@ public class QuadraticStudentConflict extends StudentConflict {
     
     @Override
     public boolean isApplicable(Lecture l1, Lecture l2) {
-        return applicable(l1, l2);
+        return l1 != null && l2 != null && !ignore(l1, l2) && applicable(l1, l2);
     }
 
     @Override
@@ -58,7 +58,7 @@ public class QuadraticStudentConflict extends StudentConflict {
     
     @Override
     public void incJenrl(Assignment<Lecture, Placement> assignment, JenrlConstraint jenrl, double studentWeight, Double conflictPriority, Student student) {
-        if (inConflict(assignment.getValue(jenrl.first()), assignment.getValue(jenrl.second()))) {
+        if (isApplicable(jenrl.first(), jenrl.second()) && inConflict(assignment.getValue(jenrl.first()), assignment.getValue(jenrl.second()))) {
             inc(assignment, (jenrl.jenrl() * jenrl.jenrl()) - (jenrl.jenrl() - studentWeight) * (jenrl.jenrl() - studentWeight));
         }
     }

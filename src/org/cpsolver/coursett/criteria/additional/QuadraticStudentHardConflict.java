@@ -34,7 +34,7 @@ public class QuadraticStudentHardConflict extends QuadraticStudentConflict {
 
     @Override
     public boolean isApplicable(Lecture l1, Lecture l2) {
-        return hard(l1, l2);
+        return l1 != null && l2 != null && !ignore(l1, l2) && hard(l1, l2);
     }
 
     @Override
