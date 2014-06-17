@@ -39,13 +39,8 @@ import org.cpsolver.ifs.util.DataProperties;
 public class IgnoredStudentConflict extends StudentConflict {
     
     @Override
-    public boolean inConflict(Placement p1, Placement p2) {
-        return ignore(p1, p2) && (overlaps(p1, p2) || distance(getMetrics(), p1, p2));
-    }
-    
-    @Override
     public boolean isApplicable(Lecture l1, Lecture l2) {
-        return ignore(l1, l2) && applicable(l1, l2);
+        return l1 != null && l2 != null && ignore(l1, l2) && applicable(l1, l2);
     }
     
     @Override

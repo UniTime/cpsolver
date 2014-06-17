@@ -47,18 +47,18 @@ public class ImportantStudentConflict extends StudentConflict {
     }
     
     @Override
-    public boolean inConflict(Placement p1, Placement p2) {
-        return super.inConflict(p1, p2) && important(p1, p2); 
+    public boolean isApplicable(Lecture l1, Lecture l2) {
+        return l1 != null && l2 != null && !ignore(l1, l2) && applicable(l1, l2) && important(l1, l2);
     }
     
-    public boolean important(Placement p1, Placement p2) {
-        JenrlConstraint jenrl = (p1 == null || p2 == null ? null : p1.variable().jenrlConstraint(p2.variable()));
+    public boolean important(Lecture l1, Lecture l2) {
+        JenrlConstraint jenrl = (l1 == null || l2 == null ? null : l1.jenrlConstraint(l2));
         return jenrl != null && jenrl.priority() > 0.0; 
     }
     
     @Override
     public void incJenrl(Assignment<Lecture, Placement> assignment, JenrlConstraint jenrl, double studentWeight, Double conflictPriority, Student student) {
-        if (super.inConflict(assignment.getValue(jenrl.first()), assignment.getValue(jenrl.second())) && conflictPriority != null)
+        if (isApplicable(jenrl.first(), jenrl.second()) && inConflict(assignment.getValue(jenrl.first()), assignment.getValue(jenrl.second())) && conflictPriority != null)
             inc(assignment, studentWeight * conflictPriority);
     }
     

@@ -50,15 +50,9 @@ public class IgnoredCommittedStudentConflict extends StudentConflict {
     
     @Override
     public boolean isApplicable(Lecture l1, Lecture l2) {
-        return ignore(l1, l2) && committed(l1, l2); // only committed student conflicts
+        return l1 != null && l2 != null && ignore(l1, l2) && committed(l1, l2);
     }
 
-
-    @Override
-    public boolean inConflict(Placement p1, Placement p2) {
-        return ignore(p1, p2) && committed(p1, p2) && super.inConflict(p1, p2);
-    }
-    
     public int countCommittedConflicts(Student student, Placement placement) {
         if (student.getCommitedPlacements() == null) return 0;
         int conflicts = 0;
@@ -66,7 +60,7 @@ public class IgnoredCommittedStudentConflict extends StudentConflict {
         for (Placement commitedPlacement : student.getCommitedPlacements()) {
             Lecture commitedLecture = commitedPlacement.variable();
             if (lecture.getSchedulingSubpartId() != null && lecture.getSchedulingSubpartId().equals(commitedLecture.getSchedulingSubpartId())) continue;
-            if (ignore(placement, commitedPlacement) && (overlaps(placement, commitedPlacement) || distance(getMetrics(), placement, commitedPlacement)))
+            if (ignore(lecture, commitedLecture) && (overlaps(placement, commitedPlacement) || distance(getMetrics(), placement, commitedPlacement)))
                 conflicts ++;
         }
         if (conflicts == 0) return 0;
