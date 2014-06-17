@@ -23,7 +23,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * The MaxWeeks constraint limits the number of weeks during which the given set of classes are taught.<br>
  * It has two parameters: a maximal number of weeks during which the given set of classes can be placed
  * and a day code indicating what days of week are considered.<br>
- * Reference _MaxWeeks:3:48_ translates to a maximum number of 3 weeks, but only for classes that are placed on Fridays and Saturdays
+ * Reference _MaxWeeks:3:6_ translates to a maximum number of 3 weeks, but only for classes that are placed on Fridays and Saturdays
  * (64 for Monday, 32 for Tuesday, 16 for Wednesday, 8 for Thursday, 4 for Friday, 2 for Saturday, and 1 for Sunday).
  * If the second parameter is zero, all days of week are considered.<br>
  * 
