@@ -336,9 +336,8 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
                         
                         onAssigned(iStartTime, iSolution);
                         
-                        if ((iSaveBestUnassigned < 0 || iSaveBestUnassigned >= iAssignment.nrUnassignedVariables(iModel)) && getSolutionComparator().isBetterThanBestSolution(iSolution)) {
-                            iSolution.saveBest(currentSolution());
-                        }
+                        if (iSaveBestUnassigned < 0 || iSaveBestUnassigned >= iAssignment.nrUnassignedVariables(iModel))
+                            iSolution.saveBestIfImproving(currentSolution(), getSolutionComparator());
                     }
                 }
 

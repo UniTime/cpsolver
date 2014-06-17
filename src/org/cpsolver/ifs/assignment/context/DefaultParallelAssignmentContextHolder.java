@@ -1,6 +1,7 @@
 package org.cpsolver.ifs.assignment.context;
 
 import java.util.Arrays;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.DefaultParallelAssignment;
@@ -39,6 +40,7 @@ import org.cpsolver.ifs.model.Variable;
  **/
 public class DefaultParallelAssignmentContextHolder<V extends Variable<V, T>, T extends Value<V, T>> extends AssignmentContextHolderMap<V, T> {
     private int iIndex = -1;
+    private final ReentrantReadWriteLock iLock = new ReentrantReadWriteLock();
 
     public DefaultParallelAssignmentContextHolder(int threadIndex) {
         iIndex = threadIndex;
@@ -50,7 +52,16 @@ public class DefaultParallelAssignmentContextHolder<V extends Variable<V, T>, T 
      * @return an initialized array of the appropriate assignment contexts
      */
     protected AssignmentContext[] getContexts(CanHoldContext holder) {
-        synchronized (holder) {
+        iLock.readLock().lock();
+        try {
+            AssignmentContext[] contexts = holder.getContext();
+            if (contexts != null && iIndex < contexts.length)
+                return contexts;
+        } finally {
+            iLock.readLock().unlock();
+        }
+        iLock.writeLock().lock();
+        try {
             AssignmentContext[] contexts = holder.getContext();
             if (contexts == null) {
                 contexts = new AssignmentContext[Math.max(10, 1 + iIndex)];
@@ -60,6 +71,8 @@ public class DefaultParallelAssignmentContextHolder<V extends Variable<V, T>, T 
                 holder.setContext(contexts);
             }
             return contexts;
+        } finally {
+            iLock.writeLock().unlock();
         }
     }
     
