@@ -32,7 +32,7 @@ public class StudentHardConflict extends StudentConflict {
         
     @Override
     public boolean isApplicable(Lecture l1, Lecture l2) {
-        return !ignore(l1, l2) && hard(l1, l2); // only hard student conflicts, but including committed
+        return l1 != null && l2 != null && !ignore(l1, l2) && hard(l1, l2); // only hard student conflicts, but including committed
     }
 
     @Override

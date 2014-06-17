@@ -102,7 +102,7 @@ public class JenrlConstraint extends BinaryConstraintWithContext<Lecture, Placem
      * @return true if there is a student conflict between the two placements
      */
     public static boolean isInConflict(Placement p1, Placement p2, DistanceMetric m) {
-        return !StudentConflict.ignore(p1, p2) && (StudentConflict.distance(m, p1, p2) || StudentConflict.overlaps(p1, p2));
+        return p1 != null && p2 != null && !StudentConflict.ignore(p1.variable(), p2.variable()) && (StudentConflict.distance(m, p1, p2) || StudentConflict.overlaps(p1, p2));
     }
 
     /**

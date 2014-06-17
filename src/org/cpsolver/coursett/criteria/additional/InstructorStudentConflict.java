@@ -58,18 +58,18 @@ public class InstructorStudentConflict extends StudentConflict {
     }
     
     @Override
-    public boolean inConflict(Placement p1, Placement p2) {
-        return super.inConflict(p1, p2) && instructor(p1, p2); 
+    public boolean isApplicable(Lecture l1, Lecture l2) {
+        return l1 != null && l2 != null && !ignore(l1, l2) && applicable(l1, l2) && instructor(l1, l2);
     }
     
     /**
-     * True if there is at least one student teaching one of the two placements and enrolled in the other.
-     * @param p1 first placement
-     * @param p2 second placement
+     * True if there is at least one student teaching one of the two classes and enrolled in the other.
+     * @param p1 first lecture
+     * @param p2 second lecture
      * @return true if there is at least one student of one class teaching the other class
      */
-    public boolean instructor(Placement p1, Placement p2) {
-        JenrlConstraint jenrl = (p1 == null || p2 == null ? null : p1.variable().jenrlConstraint(p2.variable()));
+    public boolean instructor(Lecture l1, Lecture l2) {
+        JenrlConstraint jenrl = (l1 == null || l2 == null ? null : l1.jenrlConstraint(l2));
         if (jenrl == null) return false;
         return jenrl.getNrInstructors() > 0;
     }
@@ -79,7 +79,7 @@ public class InstructorStudentConflict extends StudentConflict {
      */
     @Override
     public void incJenrl(Assignment<Lecture, Placement> assignment, JenrlConstraint jenrl, double studentWeight, Double conflictPriority, Student student) {
-        if (super.inConflict(assignment.getValue(jenrl.first()), assignment.getValue(jenrl.second())) && student.getInstructor() != null
+        if (isApplicable(jenrl.first(), jenrl.second()) && inConflict(assignment.getValue(jenrl.first()), assignment.getValue(jenrl.second())) && student.getInstructor() != null
                 && (student.getInstructor().variables().contains(jenrl.first()) || student.getInstructor().variables().contains(jenrl.second())))
             inc(assignment, studentWeight);
     }

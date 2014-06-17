@@ -47,15 +47,9 @@ public class StudentCommittedConflict extends StudentConflict {
     
     @Override
     public boolean isApplicable(Lecture l1, Lecture l2) {
-        return !ignore(l1, l2) && committed(l1, l2); // only committed student conflicts
+        return l1 != null && l2 != null && !ignore(l1, l2) && committed(l1, l2); // only committed student conflicts
     }
 
-
-    @Override
-    public boolean inConflict(Placement p1, Placement p2) {
-        return !ignore(p1, p2) && committed(p1, p2) && super.inConflict(p1, p2);
-    }
-        
     @Override
     public double[] getBounds(Assignment<Lecture, Placement> assignment, Collection<Lecture> variables) {
         double[] bounds = super.getBounds(assignment, variables);
