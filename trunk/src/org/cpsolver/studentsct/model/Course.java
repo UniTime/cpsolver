@@ -227,6 +227,24 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
     public Set<Enrollment> getEnrollments(Assignment<Request, Enrollment> assignment) {
         return getContext(assignment).getEnrollments();
     }
+    
+    /**
+     * Maximal weight of a single enrollment in the course
+     * @param assignment current assignment
+     * @return maximal enrollment weight
+     */
+    public double getMaxEnrollmentWeight(Assignment<Request, Enrollment> assignment) {
+        return getContext(assignment).getMaxEnrollmentWeight();
+    }
+
+    /**
+     * Minimal weight of a single enrollment in the course
+     * @param assignment current assignment
+     * @return minimal enrollment weight
+     */
+    public double getMinEnrollmentWeight(Assignment<Request, Enrollment> assignment) {
+        return getContext(assignment).getMinEnrollmentWeight();
+    }
 
     @Override
     public CourseContext createAssignmentContext(Assignment<Request, Enrollment> assignment) {
@@ -236,6 +254,8 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
     public class CourseContext implements AssignmentConstraintContext<Request, Enrollment> {
         private double iEnrollmentWeight = 0.0;
         private Set<Enrollment> iEnrollments = new HashSet<Enrollment>();
+        private double iMaxEnrollmentWeight = 0.0;
+        private double iMinEnrollmentWeight = 0.0;
 
         public CourseContext(Assignment<Request, Enrollment> assignment) {
             for (CourseRequest request: getRequests()) {
@@ -247,6 +267,12 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
 
         @Override
         public void assigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+            if (iEnrollments.isEmpty()) {
+                iMinEnrollmentWeight = iMaxEnrollmentWeight = enrollment.getRequest().getWeight();
+            } else {
+                iMaxEnrollmentWeight = Math.max(iMaxEnrollmentWeight, enrollment.getRequest().getWeight());
+                iMinEnrollmentWeight = Math.min(iMinEnrollmentWeight, enrollment.getRequest().getWeight());
+            }
             if (iEnrollments.add(enrollment))
                 iEnrollmentWeight += enrollment.getRequest().getWeight();
         }
@@ -255,6 +281,34 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
         public void unassigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
             if (iEnrollments.remove(enrollment))
                 iEnrollmentWeight -= enrollment.getRequest().getWeight();
+            if (iEnrollments.isEmpty()) {
+                iMinEnrollmentWeight = iMaxEnrollmentWeight = 0;
+            } else if (iMinEnrollmentWeight != iMaxEnrollmentWeight) {
+                if (iMinEnrollmentWeight == enrollment.getRequest().getWeight()) {
+                    double newMinEnrollmentWeight = Double.MAX_VALUE;
+                    for (Enrollment e : iEnrollments) {
+                        if (e.getRequest().getWeight() == iMinEnrollmentWeight) {
+                            newMinEnrollmentWeight = iMinEnrollmentWeight;
+                            break;
+                        } else {
+                            newMinEnrollmentWeight = Math.min(newMinEnrollmentWeight, e.getRequest().getWeight());
+                        }
+                    }
+                    iMinEnrollmentWeight = newMinEnrollmentWeight;
+                }
+                if (iMaxEnrollmentWeight == enrollment.getRequest().getWeight()) {
+                    double newMaxEnrollmentWeight = Double.MIN_VALUE;
+                    for (Enrollment e : iEnrollments) {
+                        if (e.getRequest().getWeight() == iMaxEnrollmentWeight) {
+                            newMaxEnrollmentWeight = iMaxEnrollmentWeight;
+                            break;
+                        } else {
+                            newMaxEnrollmentWeight = Math.max(newMaxEnrollmentWeight, e.getRequest().getWeight());
+                        }
+                    }
+                    iMaxEnrollmentWeight = newMaxEnrollmentWeight;
+                }
+            }
         }
         
         /**
@@ -277,6 +331,22 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
          **/
         public Set<Enrollment> getEnrollments() {
             return iEnrollments;
+        }
+        
+        /**
+         * Maximal weight of a single enrollment in the course
+         * @return maximal enrollment weight
+         */
+        public double getMaxEnrollmentWeight() {
+            return iMaxEnrollmentWeight;
+        }
+
+        /**
+         * Minimal weight of a single enrollment in the course
+         * @return minimal enrollment weight
+         */
+        public double getMinEnrollmentWeight() {
+            return iMinEnrollmentWeight;
         }
     }
 }
