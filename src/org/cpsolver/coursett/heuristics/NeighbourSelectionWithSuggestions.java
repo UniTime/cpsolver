@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
 
 import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
@@ -98,7 +99,9 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
 
         NeighbourSelectionWithSuggestionsContext context = new NeighbourSelectionWithSuggestionsContext(solution);
 
-        synchronized (solution.getAssignment()) {
+        Lock lock = solution.getLock().writeLock();
+        lock.lock();
+        try {
             // System.out.println("BEFORE BT ("+lecture.getName()+"): nrAssigned="+iSolution.getModel().assignedVariables().size()+",  value="+iCmp.currentValue(iSolution));
 
             List<Lecture> initialLectures = new ArrayList<Lecture>(1);
@@ -106,6 +109,8 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
             backtrack(context, initialLectures, new HashMap<Lecture, Placement>(), new HashMap<Lecture, Placement>(), depth);
 
             // System.out.println("AFTER  BT ("+lecture.getName()+"): nrAssigned="+iSolution.getModel().assignedVariables().size()+",  value="+iCmp.currentValue(iSolution));
+        } finally {
+            lock.unlock();
         }
 
         return context.getSuggestionNeighbour();

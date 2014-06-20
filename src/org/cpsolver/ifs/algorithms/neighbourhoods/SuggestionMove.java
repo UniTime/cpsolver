@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
 
 import org.cpsolver.coursett.heuristics.NeighbourSelectionWithSuggestions;
 import org.cpsolver.ifs.algorithms.HillClimber;
@@ -72,12 +73,17 @@ public class SuggestionMove<V extends Variable<V, T>, T extends Value<V, T>> ext
     
     @Override
     public Neighbour<V, T> selectNeighbour(Solution<V, T> solution) {
-        V variable = ToolBox.random(solution.getModel().variables());
-        SwapNeighbour n = backtrack(
-                solution, solution.getModel().getTotalValue(solution.getAssignment()),
-                solution.getModel().nrUnassignedVariables(solution.getAssignment()),
-                JProf.currentTimeMillis(), variable, new HashMap<V, T>(), new HashMap<V, T>(), iSuggestionDepth);
-        return n;
+        Lock lock = solution.getLock().readLock();
+        lock.lock();
+        try {
+            V variable = ToolBox.random(solution.getModel().variables());
+            return backtrack(
+                    solution, solution.getModel().getTotalValue(solution.getAssignment()),
+                    solution.getModel().nrUnassignedVariables(solution.getAssignment()),
+                    JProf.currentTimeMillis(), variable, new HashMap<V, T>(), new HashMap<V, T>(), iSuggestionDepth);
+        } finally {
+            lock.unlock();
+        }
     }
     
     private boolean containsCommited(Solution<V, T> solution, Collection<T> values) {
