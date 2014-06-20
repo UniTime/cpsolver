@@ -92,9 +92,9 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
      * @return config's new unreserved space
      */
     public static double getUnreservedSpace(Assignment<Request, Enrollment> assignment, Config config, Request request) {
-        return config.getUnreservedSpace(assignment, request) - request.getWeight() + Math.max(config.getMaxEnrollmentWeight(assignment), request.getWeight()) - sNominalWeight;
+        return Math.min(config.getUnreservedSpace(assignment, request), config.getOffering().getUnreservedSpace(assignment, request))
+                - request.getWeight() + Math.max(config.getMaxEnrollmentWeight(assignment), request.getWeight()) - sNominalWeight;
     }
-
 
     /**
      * A given enrollment is conflicting, if the reservation's remaining available space
@@ -274,9 +274,7 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
             }
                 
             // check configuration unavailable space too
-            double unreserved = Math.min(
-                    config.getOffering().getUnreservedSpace(assignment, enrollment.getRequest()) - enrollment.getRequest().getWeight(),
-                    getUnreservedSpace(assignment, config, enrollment.getRequest()));
+            double unreserved = getUnreservedSpace(assignment, config, enrollment.getRequest());
                 
             if (unreserved < 0.0) {
                 // no unreserved space available -> cannot be assigned
@@ -392,8 +390,7 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
             // check unreserved space;
             return config.getOffering().getTotalUnreservedSpace() < enrollment.getRequest().getWeight() || 
                    config.getTotalUnreservedSpace() < enrollment.getRequest().getWeight() ||
-                   getUnreservedSpace(assignment, config, enrollment.getRequest()) < 0.0 ||
-                   config.getOffering().getUnreservedSpace(assignment, enrollment.getRequest()) < enrollment.getRequest().getWeight();
+                   getUnreservedSpace(assignment, config, enrollment.getRequest()) < 0.0;
         }
     }
     

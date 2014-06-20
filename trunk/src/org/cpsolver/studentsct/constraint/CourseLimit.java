@@ -64,6 +64,7 @@ import org.cpsolver.studentsct.model.Request;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class CourseLimit extends GlobalConstraint<Request, Enrollment> {
+    private static double sNominalWeight = 0.00001;
     private boolean iPreferDummyStudents = false;
 
     /**
@@ -79,7 +80,11 @@ public class CourseLimit extends GlobalConstraint<Request, Enrollment> {
 
 
     /**
-     * Enrollment weight of a course if the given request is assigned.
+     * Enrollment weight of a course if the given request is assigned. In order
+     * to overcome rounding problems with last-like students ( e.g., 5 students
+     * are projected to two sections of limit 2 -- each section can have up to 3
+     * of these last-like students), the weight of the request with the highest
+     * weight in the section is changed to a small nominal weight.
      * 
      * @param assignment current assignment
      * @param course
@@ -90,7 +95,7 @@ public class CourseLimit extends GlobalConstraint<Request, Enrollment> {
      * @return section's new weight
      */
     public static double getEnrollmentWeight(Assignment<Request, Enrollment> assignment, Course course, Request request) {
-        return course.getEnrollmentWeight(assignment, request) + request.getWeight();
+        return course.getEnrollmentWeight(assignment, request) + request.getWeight() - Math.max(course.getMaxEnrollmentWeight(assignment), request.getWeight()) + sNominalWeight;
     }
 
     /**
@@ -220,7 +225,7 @@ public class CourseLimit extends GlobalConstraint<Request, Enrollment> {
         double enrlWeight = getEnrollmentWeight(assignment, course, enrollment.getRequest());
         
         // above limit -> conflict
-        return (enrlWeight > course.getLimit());
+        return (enrlWeight > course.getLimit() + sNominalWeight);
     }
     
     @Override
