@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
 
 import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
@@ -135,32 +136,38 @@ public class TimeSwap extends RandomSwapMove<Lecture, Placement> {
         List<TimeLocation> values = variable.timeLocations();
         if (values.isEmpty()) return null;
         
-        int valIdx = ToolBox.random(values.size());
-        int attempts = 0;
-        for (int i = 0; i < values.size(); i++) {
-            TimeLocation time = values.get((i + valIdx) % values.size());
-            if (time.getPreference() > 50) continue;
-            if (time.equals(conflict.getTimeLocation())) continue;
-            
-            Placement value = null;
-            if (variable.getNrRooms() == 0)
-                value = new Placement(variable, time, (RoomLocation) null);
-            else if (variable.getNrRooms() == 1)
-                value = new Placement(variable, time, conflict.getRoomLocation());
-            else
-                value = new Placement(variable, time, conflict.getRoomLocations());
-            if (!value.isValid() || solution.getModel().inConflict(assignment, value)) continue;
-            
-            assignment.assign(solution.getIteration(), value);
-            Double v = resolve(solution, total, startTime, assignments, conflicts, 1 + index);
-            assignment.unassign(solution.getIteration(), variable);
-            attempts ++;
-            
-            if (v != null && (!iHC || v <= 0)) {
-                assignments.put(variable, value);
-                return v;
+        Lock lock = solution.getLock().writeLock();
+        lock.lock();
+        try {
+            int valIdx = ToolBox.random(values.size());
+            int attempts = 0;
+            for (int i = 0; i < values.size(); i++) {
+                TimeLocation time = values.get((i + valIdx) % values.size());
+                if (time.getPreference() > 50) continue;
+                if (time.equals(conflict.getTimeLocation())) continue;
+                
+                Placement value = null;
+                if (variable.getNrRooms() == 0)
+                    value = new Placement(variable, time, (RoomLocation) null);
+                else if (variable.getNrRooms() == 1)
+                    value = new Placement(variable, time, conflict.getRoomLocation());
+                else
+                    value = new Placement(variable, time, conflict.getRoomLocations());
+                if (!value.isValid() || solution.getModel().inConflict(assignment, value)) continue;
+                
+                assignment.assign(solution.getIteration(), value);
+                Double v = resolve(solution, total, startTime, assignments, conflicts, 1 + index);
+                assignment.unassign(solution.getIteration(), variable);
+                attempts ++;
+                
+                if (v != null && (!iHC || v <= 0)) {
+                    assignments.put(variable, value);
+                    return v;
+                }
+                if (attempts >= iMaxAttempts || isTimeLimitReached(startTime)) break;
             }
-            if (attempts >= iMaxAttempts || isTimeLimitReached(startTime)) break;
+        } finally {
+            lock.unlock();
         }
             
         return null;

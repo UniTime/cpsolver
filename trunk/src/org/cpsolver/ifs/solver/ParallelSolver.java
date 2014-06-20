@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.Lock;
 
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.DefaultParallelAssignment;
@@ -138,9 +139,7 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
             if ((iSaveBestUnassigned < 0 || iSaveBestUnassigned >= currentSolution().getAssignment().nrUnassignedVariables(currentSolution().getModel())) && (currentSolution().getBestInfo() == null || getSolutionComparator().isBetterThanBestSolution(currentSolution()))) {
                 if (currentSolution().getAssignment().nrAssignedVariables() == currentSolution().getModel().variables().size())
                     sLogger.info("Complete solution " + ToolBox.dict2string(currentSolution().getInfo(), 1) + " was found.");
-                synchronized (currentSolution()) {
-                    currentSolution().saveBest();
-                }
+                currentSolution().saveBest();
             }
 
             if (currentSolution().getModel().variables().isEmpty()) {
@@ -297,7 +296,9 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
                         }
                         
                         // Assign selected value to the selected variable
-                        synchronized (iSolution) {
+                        Lock lock = iSolution.getLock().writeLock();
+                        lock.lock();
+                        try {
                             Map<V, T> undo = new HashMap<V, T>();
                             for (V var: assignments.keySet())
                                 undo.put(var, iSolution.getAssignment().unassign(iSolution.getIteration(), var));
@@ -328,6 +329,8 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
                             if ((iSaveBestUnassigned < 0 || iSaveBestUnassigned >= iSolution.getAssignment().nrUnassignedVariables(iModel)) && getSolutionComparator().isBetterThanBestSolution(iSolution)) {
                                 iSolution.saveBest();
                             }
+                        } finally {
+                            lock.unlock();
                         }
                     } else {
                         // Assign selected value to the selected variable
@@ -349,8 +352,12 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
                     onFailure();
                 }
             }
-            synchronized (currentSolution()) {
+            Lock lock = currentSolution().getLock().writeLock();
+            lock.lock();
+            try {
                 iNrFinished ++;
+            } finally {
+                lock.unlock();
             }
         }
         

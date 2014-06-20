@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
 
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.heuristics.NeighbourSelection;
@@ -82,40 +83,46 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
             int valIdx = ToolBox.random(values.size());
             T old = variable.getAssignment(assignment);
             
-            int attempts = 0;
-            long startTime = JProf.currentTimeMillis();
-            for (int j = 0; j < values.size(); j++) {
-                T value = values.get((j + valIdx) % values.size());
-                if (value.equals(old)) continue;
-                
-                Set<T> conflicts = model.conflictValues(assignment, value);
-                if (conflicts.contains(value)) continue;
-                if (conflicts.isEmpty()) {
-                    SimpleNeighbour<V, T> n = new SimpleNeighbour<V, T>(variable, value);
-                    if (!iHC || n.value(assignment) <= 0) return n;
-                    else continue;
+            Lock lock = solution.getLock().writeLock();
+            lock.lock();
+            try {
+                int attempts = 0;
+                long startTime = JProf.currentTimeMillis();
+                for (int j = 0; j < values.size(); j++) {
+                    T value = values.get((j + valIdx) % values.size());
+                    if (value.equals(old)) continue;
+                    
+                    Set<T> conflicts = model.conflictValues(assignment, value);
+                    if (conflicts.contains(value)) continue;
+                    if (conflicts.isEmpty()) {
+                        SimpleNeighbour<V, T> n = new SimpleNeighbour<V, T>(variable, value);
+                        if (!iHC || n.value(assignment) <= 0) return n;
+                        else continue;
+                    }
+                    
+                    Map<V, T> assignments = new HashMap<V, T>();
+                    assignments.put(variable, value);
+                    
+                    for (T conflict: conflicts)
+                        assignment.unassign(solution.getIteration(), conflict.variable());
+                    assignment.assign(solution.getIteration(), value);
+                    
+                    Double v = resolve(solution, total, startTime, assignments, new ArrayList<T>(conflicts), 0);
+                    if (!conflicts.isEmpty())
+                        attempts ++;
+                    
+                    assignment.unassign(solution.getIteration(), variable);
+                    for (T conflict: conflicts)
+                        assignment.assign(solution.getIteration(), conflict);
+                    if (old != null) assignment.assign(solution.getIteration(), old);
+                    
+                    if (v != null)
+                        return new SwapNeighbour(assignments.values(), v);
+                    
+                    if (attempts >= iMaxAttempts) break;
                 }
-                
-                Map<V, T> assignments = new HashMap<V, T>();
-                assignments.put(variable, value);
-                
-                for (T conflict: conflicts)
-                    assignment.unassign(solution.getIteration(), conflict.variable());
-                assignment.assign(solution.getIteration(), value);
-                
-                Double v = resolve(solution, total, startTime, assignments, new ArrayList<T>(conflicts), 0);
-                if (!conflicts.isEmpty())
-                    attempts ++;
-                
-                assignment.unassign(solution.getIteration(), variable);
-                for (T conflict: conflicts)
-                    assignment.assign(solution.getIteration(), conflict);
-                if (old != null) assignment.assign(solution.getIteration(), old);
-                
-                if (v != null)
-                    return new SwapNeighbour(assignments.values(), v);
-                
-                if (attempts >= iMaxAttempts) break;
+            } finally {
+                lock.unlock();
             }
         }
         return null;
