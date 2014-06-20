@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
 
 
 import org.apache.log4j.Logger;
@@ -121,13 +122,15 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
      * @param variable selected variable
      * @return a neighbour, null if not found
      **/
-    public synchronized Neighbour<V, T> selectNeighbour(Solution<V, T> solution, V variable) {
+    public Neighbour<V, T> selectNeighbour(Solution<V, T> solution, V variable) {
         if (variable == null)
             return null;
 
         BacktrackNeighbourSelectionContext context = new BacktrackNeighbourSelectionContext(solution);
         
-        synchronized (solution) {
+        Lock lock = solution.getLock().writeLock();
+        lock.lock();
+        try {
             if (sLog.isDebugEnabled())
                 sLog.debug("-- before BT (" + variable.getName() + "): nrAssigned=" + solution.getAssignment().nrAssignedVariables() + ",  value=" + solution.getModel().getTotalValue(solution.getAssignment()));
 
@@ -137,6 +140,8 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
 
             if (sLog.isDebugEnabled())
                 sLog.debug("-- after  BT (" + variable.getName() + "): nrAssigned=" + solution.getAssignment().nrAssignedVariables() + ",  value=" + solution.getModel().getTotalValue(solution.getAssignment()));
+        } finally {
+            lock.unlock();
         }
 
         if (sLog.isDebugEnabled())

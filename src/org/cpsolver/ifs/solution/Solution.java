@@ -149,11 +149,16 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
      * @param success true if the last iteration was successful
      **/
     public void update(double time, boolean success) {
-        iTime = time;
-        iIteration++;
-        if (!success) iFailedIterations ++;
-        for (SolutionListener<V, T> listener : iSolutionListeners)
-            listener.solutionUpdated(this);
+        iLock.writeLock().lock();
+        try {
+            iTime = time;
+            iIteration++;
+            if (!success) iFailedIterations ++;
+            for (SolutionListener<V, T> listener : iSolutionListeners)
+                listener.solutionUpdated(this);
+        } finally {
+            iLock.writeLock().unlock();
+        }
     }
     
     /** Update time, increment current iteration 
@@ -410,7 +415,12 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
      * {@link Model#saveBest(Assignment)})
      */
     public void saveBest() {
-        saveBest(null);
+        iLock.writeLock().lock();
+        try {
+            saveBest(null);
+        } finally {
+            iLock.writeLock().unlock();
+        }
     }
 
     /**
@@ -418,7 +428,7 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
      * calls {@link Model#restoreBest(Assignment)})
      */
     public void restoreBest() {
-        iLock.readLock().lock();
+        iLock.writeLock().lock();
         try {
             getModel().restoreBest(iAssignment);
             iTime = iBestTime;
@@ -427,7 +437,7 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
             for (SolutionListener<V, T> listener : iSolutionListeners)
                 listener.bestRestored(this);
         } finally {
-            iLock.readLock().unlock();
+            iLock.writeLock().unlock();
         }
     }
 
@@ -451,4 +461,6 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
     public List<SolutionListener<V, T>> getSolutionListeners() {
         return iSolutionListeners;
     }
+    
+    public ReentrantReadWriteLock getLock() { return iLock; }
 }

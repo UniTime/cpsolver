@@ -7,6 +7,7 @@ import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
+import java.util.concurrent.locks.Lock;
 
 import org.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import org.cpsolver.ifs.extension.ConflictStatistics;
@@ -625,9 +626,7 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
                         && (iCurrentSolution.getBestInfo() == null || getSolutionComparator().isBetterThanBestSolution(iCurrentSolution))) {
                     if (iCurrentSolution.getModel().variables().size() == iCurrentSolution.getAssignment().nrAssignedVariables())
                         sLogger.info("Complete solution " + ToolBox.dict2string(iCurrentSolution.getInfo(), 1) + " was found.");
-                    synchronized (iCurrentSolution) {
-                        iCurrentSolution.saveBest();
-                    }
+                    iCurrentSolution.saveBest();
                 }
 
                 if (iCurrentSolution.getModel().variables().isEmpty()) {
@@ -647,18 +646,20 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
                     }
                     if (neighbour == null) {
                         sLogger.debug("No neighbour selected.");
-                        synchronized (iCurrentSolution) {
-                            // still update the solution (increase iteration etc.)
-                            iCurrentSolution.update(JProf.currentTimeSec() - startTime, false);
-                        }
+                        // still update the solution (increase iteration etc.)
+                        iCurrentSolution.update(JProf.currentTimeSec() - startTime, false);
                         continue;
                     }
 
                     // Assign selected value to the selected variable
-                    synchronized (iCurrentSolution) {
+                    Lock lock = iCurrentSolution.getLock().writeLock();
+                    lock.lock();
+                    try {
                         neighbour.assign(iCurrentSolution.getAssignment(), iCurrentSolution.getIteration());
-                        iCurrentSolution.update(JProf.currentTimeSec() - startTime);
+                    } finally {
+                        lock.unlock();
                     }
+                    iCurrentSolution.update(JProf.currentTimeSec() - startTime);
 
                     onAssigned(startTime, iCurrentSolution);
 
@@ -667,9 +668,7 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
                         if (iCurrentSolution.getModel().variables().size() == iCurrentSolution.getAssignment().nrAssignedVariables()) {
                             iProgress.debug("Complete solution of value " + iCurrentSolution.getModel().getTotalValue(iCurrentSolution.getAssignment()) + " was found.");
                         }
-                        synchronized (iCurrentSolution) {
-                            iCurrentSolution.saveBest();
-                        }
+                        iCurrentSolution.saveBest();
                     }
 
                     // Increment progress bar
