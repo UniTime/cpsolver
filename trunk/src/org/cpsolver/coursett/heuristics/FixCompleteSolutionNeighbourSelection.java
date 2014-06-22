@@ -52,6 +52,7 @@ public class FixCompleteSolutionNeighbourSelection extends NeighbourSelectionWit
     private long iIncompleteSolutionFixInterval = 5000;
     private NeighbourSelectionWithSuggestions iSuggestions = null;
     private Progress iProgress = null;
+    private Solver<Lecture, Placement> iSolver = null;
 
     public FixCompleteSolutionNeighbourSelection(DataProperties config, NeighbourSelection<Lecture, Placement> parent) throws Exception {
         iParent = parent;
@@ -72,6 +73,7 @@ public class FixCompleteSolutionNeighbourSelection extends NeighbourSelectionWit
         iProgress = Progress.getInstance(solver.currentSolution().getModel());
         iLastIncompleteSolutionFixIteration = -1;
         iLastCompleteSolutionFixIteration = -1;
+        iSolver = solver;
     }
 
     /**
@@ -116,7 +118,7 @@ public class FixCompleteSolutionNeighbourSelection extends NeighbourSelectionWit
             }
         }
         
-        while (context.getPhase() > 0) {
+        while (context.getPhase() > 0 && !iSolver.isStop()) {
             if (context.hasMoreElements()) {
                 Lecture variable = context.nextElement();
                 // iProgress.incProgress();
