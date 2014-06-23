@@ -74,51 +74,57 @@ public class TimeSwap extends RandomSwapMove<Lecture, Placement> {
             List<TimeLocation> values = lecture.timeLocations();
             if (values.isEmpty()) continue;
             
-            int attempts = 0;
-            long startTime = JProf.currentTimeMillis();
-            int valIdx = ToolBox.random(values.size());
-            for (int j = 0; j < values.size(); j++) {
-                TimeLocation time = values.get((j + valIdx) % values.size());
-                if (time.getPreference() > 50) continue;
-                if (time.equals(old.getTimeLocation())) continue;
-                
-                Placement placement = null;
-                if (lecture.getNrRooms() == 0)
-                    placement = new Placement(lecture, time, (RoomLocation) null);
-                else if (lecture.getNrRooms() == 1)
-                    placement = new Placement(lecture, time, old.getRoomLocation());
-                else
-                    placement = new Placement(lecture, time, old.getRoomLocations());
-                if (!placement.isValid()) continue;
+            Lock lock = solution.getLock().writeLock();
+            lock.lock();
+            try {
+                int attempts = 0;
+                long startTime = JProf.currentTimeMillis();
+                int valIdx = ToolBox.random(values.size());
+                for (int j = 0; j < values.size(); j++) {
+                    TimeLocation time = values.get((j + valIdx) % values.size());
+                    if (time.getPreference() > 50) continue;
+                    if (time.equals(old.getTimeLocation())) continue;
+                    
+                    Placement placement = null;
+                    if (lecture.getNrRooms() == 0)
+                        placement = new Placement(lecture, time, (RoomLocation) null);
+                    else if (lecture.getNrRooms() == 1)
+                        placement = new Placement(lecture, time, old.getRoomLocation());
+                    else
+                        placement = new Placement(lecture, time, old.getRoomLocations());
+                    if (!placement.isValid()) continue;
 
-                Set<Placement> conflicts = model.conflictValues(assignment, placement);
-                if (conflicts.contains(placement)) continue;
-                if (conflicts.isEmpty()) {
-                    SimpleNeighbour<Lecture, Placement> n = new SimpleNeighbour<Lecture, Placement>(lecture, placement);
-                    if (!iHC || n.value(assignment) <= 0) return n;
-                    else continue;
+                    Set<Placement> conflicts = model.conflictValues(assignment, placement);
+                    if (conflicts.contains(placement)) continue;
+                    if (conflicts.isEmpty()) {
+                        SimpleNeighbour<Lecture, Placement> n = new SimpleNeighbour<Lecture, Placement>(lecture, placement);
+                        if (!iHC || n.value(assignment) <= 0) return n;
+                        else continue;
+                    }
+                    
+                    Map<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
+                    assignments.put(lecture, placement);
+                    
+                    for (Placement conflict: conflicts)
+                        assignment.unassign(solution.getIteration(), conflict.variable());
+                    assignment.assign(solution.getIteration(), placement);
+                    
+                    Double v = resolve(solution, total, startTime, assignments, new ArrayList<Placement>(conflicts), 0);
+                    if (!conflicts.isEmpty())
+                        attempts ++;
+                    
+                    assignment.unassign(solution.getIteration(), lecture);
+                    for (Placement conflict: conflicts)
+                        assignment.assign(solution.getIteration(), conflict);
+                    assignment.assign(solution.getIteration(), old);
+                    
+                    if (v != null)
+                        return new SwapNeighbour(assignments.values(), v);
+                    
+                    if (attempts >= iMaxAttempts) break;
                 }
-                
-                Map<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
-                assignments.put(lecture, placement);
-                
-                for (Placement conflict: conflicts)
-                    assignment.unassign(solution.getIteration(), conflict.variable());
-                assignment.assign(solution.getIteration(), placement);
-                
-                Double v = resolve(solution, total, startTime, assignments, new ArrayList<Placement>(conflicts), 0);
-                if (!conflicts.isEmpty())
-                    attempts ++;
-                
-                assignment.unassign(solution.getIteration(), lecture);
-                for (Placement conflict: conflicts)
-                    assignment.assign(solution.getIteration(), conflict);
-                assignment.assign(solution.getIteration(), old);
-                
-                if (v != null)
-                    return new SwapNeighbour(assignments.values(), v);
-                
-                if (attempts >= iMaxAttempts) break;
+            } finally {
+                lock.unlock();
             }
         }
         return null;
@@ -136,38 +142,32 @@ public class TimeSwap extends RandomSwapMove<Lecture, Placement> {
         List<TimeLocation> values = variable.timeLocations();
         if (values.isEmpty()) return null;
         
-        Lock lock = solution.getLock().writeLock();
-        lock.lock();
-        try {
-            int valIdx = ToolBox.random(values.size());
-            int attempts = 0;
-            for (int i = 0; i < values.size(); i++) {
-                TimeLocation time = values.get((i + valIdx) % values.size());
-                if (time.getPreference() > 50) continue;
-                if (time.equals(conflict.getTimeLocation())) continue;
-                
-                Placement value = null;
-                if (variable.getNrRooms() == 0)
-                    value = new Placement(variable, time, (RoomLocation) null);
-                else if (variable.getNrRooms() == 1)
-                    value = new Placement(variable, time, conflict.getRoomLocation());
-                else
-                    value = new Placement(variable, time, conflict.getRoomLocations());
-                if (!value.isValid() || solution.getModel().inConflict(assignment, value)) continue;
-                
-                assignment.assign(solution.getIteration(), value);
-                Double v = resolve(solution, total, startTime, assignments, conflicts, 1 + index);
-                assignment.unassign(solution.getIteration(), variable);
-                attempts ++;
-                
-                if (v != null && (!iHC || v <= 0)) {
-                    assignments.put(variable, value);
-                    return v;
-                }
-                if (attempts >= iMaxAttempts || isTimeLimitReached(startTime)) break;
+        int valIdx = ToolBox.random(values.size());
+        int attempts = 0;
+        for (int i = 0; i < values.size(); i++) {
+            TimeLocation time = values.get((i + valIdx) % values.size());
+            if (time.getPreference() > 50) continue;
+            if (time.equals(conflict.getTimeLocation())) continue;
+            
+            Placement value = null;
+            if (variable.getNrRooms() == 0)
+                value = new Placement(variable, time, (RoomLocation) null);
+            else if (variable.getNrRooms() == 1)
+                value = new Placement(variable, time, conflict.getRoomLocation());
+            else
+                value = new Placement(variable, time, conflict.getRoomLocations());
+            if (!value.isValid() || solution.getModel().inConflict(assignment, value)) continue;
+            
+            assignment.assign(solution.getIteration(), value);
+            Double v = resolve(solution, total, startTime, assignments, conflicts, 1 + index);
+            assignment.unassign(solution.getIteration(), variable);
+            attempts ++;
+            
+            if (v != null && (!iHC || v <= 0)) {
+                assignments.put(variable, value);
+                return v;
             }
-        } finally {
-            lock.unlock();
+            if (attempts >= iMaxAttempts || isTimeLimitReached(startTime)) break;
         }
             
         return null;
