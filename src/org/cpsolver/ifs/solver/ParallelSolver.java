@@ -86,7 +86,7 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
     @Override
     public void setInitalSolution(Model<V, T> model) {
         int nrSolvers = Math.abs(getProperties().getPropertyInt("Parallel.NrSolvers", 4));
-        setInitalSolution(new Solution<V, T>(model, nrSolvers > 1 ? new DefaultParallelAssignment<V, T>() : new DefaultSingleAssignment<V, T>(), 0, 0));
+        setInitalSolution(new Solution<V, T>(model, nrSolvers > 1 ? new DefaultParallelAssignment<V, T>(0) : new DefaultSingleAssignment<V, T>(), 0, 0));
     }
     
     /**
@@ -245,7 +245,7 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
             iStartTime = startTime;
             iSingle = hasSingleSolution();
             iModel = iCurrentSolution.getModel();
-            iSolution = (iSingle ? iCurrentSolution : createParallelSolution(1 + iIndex));
+            iSolution = (iSingle || index == 0 ? iCurrentSolution : createParallelSolution(iIndex));
             iAssignment = iSolution.getAssignment();
         }
         
@@ -334,7 +334,13 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
                         }
                     } else {
                         // Assign selected value to the selected variable
-                        neighbour.assign(iAssignment, iSolution.getIteration());
+                        Lock lock = iSolution.getLock().writeLock();
+                        lock.lock();
+                        try {
+                            neighbour.assign(iAssignment, iSolution.getIteration());
+                        } finally {
+                            lock.unlock();
+                        }
                         iSolution.update(time);
                         
                         onAssigned(iStartTime, iSolution);
