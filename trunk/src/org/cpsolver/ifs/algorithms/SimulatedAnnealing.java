@@ -90,6 +90,8 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
     private boolean iStochasticHC = false;
     private boolean iRelativeAcceptance = true;
     private Double[] iCoolingRateAdjusts = null;
+    private int iTrainingValues = 10000;
+    private double iTrainingProbability = 0.01;
 
     /**
      * Constructor. Following problem properties are considered:
@@ -122,6 +124,8 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
         iReheatLengthCoef = properties.getPropertyDouble(getParameterBaseName() + ".ReheatLengthCoef", iReheatLengthCoef);
         iRestoreBestLengthCoef = properties.getPropertyDouble(getParameterBaseName() + ".RestoreBestLengthCoef", iRestoreBestLengthCoef);
         iCoolingRateAdjusts = properties.getPropertyDoubleArry(getParameterBaseName() + ".CoolingRateAdjustments", null);
+        iTrainingValues = properties.getPropertyInt(getParameterBaseName() + ".TrainingValues", iTrainingValues);
+        iTrainingProbability = properties.getPropertyDouble(getParameterBaseName() + ".TrainingProbability", iTrainingProbability);
         if (iReheatRate < 0)
             iReheatRate = Math.pow(1 / iCoolingRate, iReheatLengthCoef * 1.7);
         if (iRestoreBestLengthCoef < 0)
@@ -141,26 +145,58 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
         private int iMoves = 0;
         private double iAbsValue = 0;
         private double iBestValue = 0;
-        private long iLastImprovingIter = 0;
+        private long iLastImprovingIter = -1;
         private long iLastReheatIter = 0;
         private long iLastCoolingIter = 0;
         private int iAcceptIter[] = new int[] { 0, 0, 0 };
         private long iReheatLength = 0;
         private long iRestoreBestLength = 0;
+        private int iTrainingIterations = 0;
+        private double iTrainingTotal = 0.0;
 
         /** Setup the temperature */
         @Override
         protected void activate(Solution<V, T> solution) {
             super.activate(solution);
+            iTrainingTotal = 0.0; iTrainingIterations = 0;
             iTemperature = iInitialTemperature;
             iReheatLength = Math.round(iReheatLengthCoef * iTemperatureLength);
             iRestoreBestLength = Math.round(iRestoreBestLengthCoef * iTemperatureLength);
-            iLastImprovingIter = iIter;
+            iLastImprovingIter = -1;
         }
         
         protected double getCoolingRate(int idx) {
             if (idx < 0 || iCoolingRateAdjusts == null || idx >= iCoolingRateAdjusts.length || iCoolingRateAdjusts[idx] == null) return iCoolingRate;
             return iCoolingRate * iCoolingRateAdjusts[idx];
+        }
+        
+        /**
+         * Set initial temperature based on the training period
+         * @param solution current solution
+         */
+        protected void train(Solution<V, T> solution) {
+            double value = iTrainingTotal / iTrainingIterations;
+            if (iStochasticHC) {
+                iInitialTemperature = - value / Math.log(1.0 / iTrainingProbability - 1.0);
+            } else {
+                iInitialTemperature = - value / Math.log(iTrainingProbability);
+            }
+            iTemperature = iInitialTemperature;
+            info("Iter=" + iIter / 1000 + (iLastImprovingIter < 0 ? "" : "k, NonImpIter=" + iDF2.format((iIter - iLastImprovingIter) / 1000.0))
+                    + "k, Speed=" + iDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s, " +
+                    "Value=" + iDF2.format(solution.getModel().getTotalValue(solution.getAssignment())) +
+                    ", Best=" + iDF2.format(solution.getBestValue()) +
+                    " (" + iDF2.format(100.0 * solution.getModel().getTotalValue(solution.getAssignment()) / solution.getBestValue()) + " %)");
+            info("Temperature set to " + iDF5.format(iTemperature) + " " + "(" + 
+                    "p(+0.1)=" + iDF2.format(100.0 * prob(0.1)) + "%, " +
+                    "p(+1)=" + iDF2.format(100.0 * prob(1)) + "%, " +
+                    "p(+10)=" + iDF5.format(100.0 * prob(10)) + "%, " +
+                    "p(+" + iDF2.format(value) + ")=" + iDF5.format(100.0 * prob(value)) + "%)");
+            logNeibourStatus();
+            iIter = 0; iLastImprovingIter = -1; iBestValue = solution.getBestValue();
+            iAcceptIter = new int[] { 0, 0, 0 };
+            iMoves = 0;
+            iAbsValue = 0;
         }
 
         /**
@@ -168,9 +204,13 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
          * @param solution current solution
          */
         protected void cool(Solution<V, T> solution) {
-            iTemperature *= getCoolingRate(solution.getAssignment().getIndex());
-            info("Iter=" + iIter / 1000 + "k, NonImpIter=" + iDF2.format((iIter - iLastImprovingIter) / 1000.0)
-                    + "k, Speed=" + iDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s");
+            iTemperature *= getCoolingRate(solution.getAssignment().getIndex() - 1);
+            info("Iter=" + iIter / 1000 + (iLastImprovingIter < 0 ? "" : "k, NonImpIter=" + iDF2.format((iIter - iLastImprovingIter) / 1000.0))
+                    + "k, Speed=" + iDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s, " +
+                    "Value=" + iDF2.format(solution.getModel().getTotalValue(solution.getAssignment())) +
+                    ", Best=" + iDF2.format(solution.getBestValue()) +
+                    " (" + iDF2.format(100.0 * solution.getModel().getTotalValue(solution.getAssignment()) / solution.getBestValue()) + " %), " +
+                    "Step=" + iDF2.format(1.0 * (iIter - Math.max(iLastReheatIter, iLastImprovingIter)) / iTemperatureLength));
             info("Temperature decreased to " + iDF5.format(iTemperature) + " " + "(#moves=" + iMoves + ", rms(value)="
                     + iDF2.format(Math.sqrt(iAbsValue / iMoves)) + ", " + "accept=-"
                     + iDF2.format(100.0 * iAcceptIter[0] / iMoves) + "/"
@@ -193,14 +233,18 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
          */
         protected void reheat(Solution<V, T> solution) {
             iTemperature *= iReheatRate;
-            info("Iter=" + iIter / 1000 + "k, NonImpIter=" + iDF2.format((iIter - iLastImprovingIter) / 1000.0)
-                    + "k, Speed=" + iDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s");
+            info("Iter=" + iIter / 1000 + (iLastImprovingIter < 0 ? "" : "k, NonImpIter=" + iDF2.format((iIter - iLastImprovingIter) / 1000.0))
+                    + "k, Speed=" + iDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s, " +
+                    "Value=" + iDF2.format(solution.getModel().getTotalValue(solution.getAssignment())) +
+                    ", Best=" + iDF2.format(solution.getBestValue()) +
+                    " (" + iDF2.format(100.0 * solution.getModel().getTotalValue(solution.getAssignment()) / solution.getBestValue()) + " %)");
             info("Temperature increased to " + iDF5.format(iTemperature) + " "
                     + (prob(-1) < 1.0 ? "p(-1)=" + iDF2.format(100.0 * prob(-1)) + "%, " : "") + "p(+1)="
                     + iDF2.format(100.0 * prob(1)) + "%, " + "p(+10)=" + iDF5.format(100.0 * prob(10)) + "%, " + "p(+100)="
                     + iDF10.format(100.0 * prob(100)) + "%)");
             logNeibourStatus();
             iLastReheatIter = iIter;
+            iLastImprovingIter = -1; iBestValue = solution.getBestValue();
             setProgressPhase("Simulated Annealing [" + iDF2.format(iTemperature) + "]...");
         }
 
@@ -210,7 +254,7 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
          */
         protected void restoreBest(Solution<V, T> solution) {
             solution.restoreBest();
-            iLastImprovingIter = iIter;
+            iLastImprovingIter = -1;
         }
 
         /**
@@ -240,7 +284,20 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
         protected boolean accept(Assignment<V, T> assignment, Model<V, T> model, Neighbour<V, T> neighbour, double value, boolean lazy) {
             iMoves ++;
             iAbsValue += value * value;
-            double prob = prob(iRelativeAcceptance ? value : (lazy ? model.getTotalValue(assignment) : value + model.getTotalValue(assignment)) - iBestValue);
+            double v = (iRelativeAcceptance ? value : (lazy ? model.getTotalValue(assignment) : value + model.getTotalValue(assignment)) - iBestValue);
+            if (iTrainingIterations < iTrainingValues) {
+                if (v <= 0.0) {
+                    iAcceptIter[value < 0.0 ? 0 : value > 0.0 ? 2 : 1]++;
+                    return true;
+                } else {
+                    iTrainingIterations ++; iTrainingTotal += v;
+                }
+                return false;
+            }
+            double prob = prob(v);
+            if (v > 0) {
+                iTrainingIterations ++; iTrainingTotal += v;
+            }
             if (prob >= 1.0 || ToolBox.random() < prob) {
                 iAcceptIter[value < 0.0 ? 0 : value > 0.0 ? 2 : 1]++;
                 return true;
@@ -255,9 +312,17 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
         protected void incIteration(Solution<V, T> solution) {
             super.incIteration(solution);
             iIter++;
-            if (iIter > iLastImprovingIter + iRestoreBestLength)
+            if (iInitialTemperature <= 0.0) {
+                if (iTrainingIterations < iTrainingValues) {
+                    setProgress(Math.round(100.0 * iTrainingIterations / iTrainingValues));
+                    return;
+                } else {
+                    train(solution);
+                }
+            }
+            if (iLastImprovingIter >= 0 && iIter > iLastImprovingIter + iRestoreBestLength)
                 restoreBest(solution);
-            if (iIter > Math.max(iLastReheatIter, iLastImprovingIter) + iReheatLength)
+            if (iLastImprovingIter >= 0 && iIter > Math.max(iLastReheatIter, iLastImprovingIter) + iReheatLength)
                 reheat(solution);
             if (iIter > iLastCoolingIter + iTemperatureLength)
                 cool(solution);
@@ -274,7 +339,6 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
                 iLastImprovingIter = iIter;
                 iBestValue = solution.getBestValue();
             }
-            iLastImprovingIter = iIter;
         }
     }
 
