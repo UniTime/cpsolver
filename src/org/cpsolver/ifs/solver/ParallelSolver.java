@@ -86,7 +86,8 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
     @Override
     public void setInitalSolution(Model<V, T> model) {
         int nrSolvers = Math.abs(getProperties().getPropertyInt("Parallel.NrSolvers", 4));
-        setInitalSolution(new Solution<V, T>(model, nrSolvers > 1 ? new DefaultParallelAssignment<V, T>(0) : new DefaultSingleAssignment<V, T>(), 0, 0));
+        boolean updateMasterSolution = getProperties().getPropertyBoolean("Parallel.UpdateMasterSolution", false);
+        setInitalSolution(new Solution<V, T>(model, nrSolvers > 1 ? new DefaultParallelAssignment<V, T>(updateMasterSolution ? 1 : 0) : new DefaultSingleAssignment<V, T>(), 0, 0));
     }
     
     /**
@@ -148,10 +149,10 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
             }
             
             if (!iStop) {
-                for (int i = 0; i < iNrSolvers; i++) {
+                for (int i = 1; i <= iNrSolvers; i++) {
                     SolverThread thread = new SolverThread(i, startTime);
                     thread.setPriority(THREAD_PRIORITY);
-                    thread.setName("Solver-" + (1 + i));
+                    thread.setName("Solver-" + i);
                     thread.start();
                     iSolvers.add(thread);
                 }
@@ -245,7 +246,7 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
             iStartTime = startTime;
             iSingle = hasSingleSolution();
             iModel = iCurrentSolution.getModel();
-            iSolution = (iSingle || index == 0 ? iCurrentSolution : createParallelSolution(iIndex));
+            iSolution = (iSingle || iCurrentSolution.getAssignment().getIndex() == index ? iCurrentSolution : createParallelSolution(iIndex));
             iAssignment = iSolution.getAssignment();
         }
         
@@ -338,11 +339,11 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
                         lock.lock();
                         try {
                             neighbour.assign(iAssignment, iSolution.getIteration());
+                            iSolution.update(time);
                         } finally {
                             lock.unlock();
                         }
-                        iSolution.update(time);
-                        
+
                         onAssigned(iStartTime, iSolution);
                         
                         if (iSaveBestUnassigned < 0 || iSaveBestUnassigned >= iAssignment.nrUnassignedVariables(iModel))
