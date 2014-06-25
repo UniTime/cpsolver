@@ -146,9 +146,9 @@ public class GreatDeluge<V extends Variable<V, T>, T extends Value<V, T>> extend
         protected void incIteration(Solution<V, T> solution) {
             super.incIteration(solution);
             if (solution.getBestValue() >= 0.0)
-                iBound *= getCoolRate(solution.getAssignment().getIndex());
+                iBound *= getCoolRate(solution.getAssignment().getIndex() - 1);
             else
-                iBound /= getCoolRate(solution.getAssignment().getIndex());
+                iBound /= getCoolRate(solution.getAssignment().getIndex() - 1);
             if (iIter % 10000 == 0) {
                 info("Iter=" + iIter / 1000 + "k, NonImpIter=" + sDF2.format((iIter - iLastImprovingIter) / 1000.0)
                         + "k, Speed=" + sDF2.format(1000.0 * iIter / (JProf.currentTimeMillis() - iT0)) + " it/s");
