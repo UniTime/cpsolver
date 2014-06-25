@@ -11,7 +11,6 @@ import org.cpsolver.ifs.model.Value;
 import org.cpsolver.ifs.model.Variable;
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
-import org.cpsolver.ifs.termination.TerminationCondition;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.Progress;
 
@@ -24,11 +23,7 @@ import org.cpsolver.ifs.util.Progress;
  * <li>Construction phase ({@link StandardNeighbourSelection} until all variables are assigned)
  * <li>Hill-climbing phase ({@link HillClimber} until the given number if idle iterations)
  * <li>Simulated annealing phase ({@link SimulatedAnnealing} until timeout is reached)
- * <ul>
  * <li>Or great deluge phase (when Search.GreatDeluge is true, {@link GreatDeluge} until timeout is reached)
- * </ul>
- * <li>At the end (when {@link TerminationCondition#canContinue(Solution)} is false),
- * the search is finished with one sweep of final phase ({@link HillClimber} until the given number if idle iterations).
  * </ul>
  * <br>
  * <br>
