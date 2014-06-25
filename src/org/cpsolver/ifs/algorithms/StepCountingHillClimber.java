@@ -97,7 +97,7 @@ public class StepCountingHillClimber<V extends Variable<V, T>, T extends Value<V
                 logNeibourStatus();
             }
             // iProgress.setProgress(Math.round(100.0 * (iIter - iLastImprovingIter) / iMaxIdleIters));
-            if (iCounter >= getCounterLimit(solution.getAssignment().getIndex())) {
+            if (iCounter >= getCounterLimit(solution.getAssignment().getIndex() - 1)) {
                 iBound = solution.getModel().getTotalValue(solution.getAssignment()); 
                 iCounter = 0;
             }
@@ -128,7 +128,7 @@ public class StepCountingHillClimber<V extends Variable<V, T>, T extends Value<V
          */
         @Override
         protected boolean canContinue(Solution<V, T> solution) {
-            return super.canContinue(solution) || iCounter < getCounterLimit(solution.getAssignment().getIndex()) || solution.getModel().getTotalValue(solution.getAssignment()) < iBound;
+            return super.canContinue(solution) || iCounter < getCounterLimit(solution.getAssignment().getIndex() - 1) || solution.getModel().getTotalValue(solution.getAssignment()) < iBound;
         }
     }
 }
