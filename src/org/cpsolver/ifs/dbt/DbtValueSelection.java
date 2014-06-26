@@ -153,7 +153,7 @@ public class DbtValueSelection<V extends Variable<V, T>, T extends Value<V, T>> 
 
         if (iProp != null) {
             values = new ArrayList<T>(iProp.goodValues(assignment, selectedVariable).size());
-            for (T value : selectedVariable.values()) {
+            for (T value : selectedVariable.values(solution.getAssignment())) {
                 if (!iProp.isGood(assignment, value)) {
                     continue;
                 }
@@ -174,8 +174,8 @@ public class DbtValueSelection<V extends Variable<V, T>, T extends Value<V, T>> 
                 }
             }
         } else {
-            values = new ArrayList<T>(selectedVariable.values().size());
-            for (T value : selectedVariable.values()) {
+            values = new ArrayList<T>(selectedVariable.values(solution.getAssignment()).size());
+            for (T value : selectedVariable.values(solution.getAssignment())) {
                 if (solution.getModel().conflictValues(assignment, value).isEmpty()) {
                     if (solution.isBestComplete() && solution.getModel().getBestValue() > solution.getModel().getTotalValue(assignment) + value.toDouble(assignment)) {
                         values.add(value);

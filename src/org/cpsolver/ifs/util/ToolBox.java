@@ -9,11 +9,14 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
 
@@ -427,11 +430,302 @@ public class ToolBox {
         }
     }
     
+    /**
+     * Convert array of elements into a list
+     * @param obj array of elements
+     * @return list of elements
+     */
     public static <E> List<E> toList(E... obj) {
         List<E> ret = new ArrayList<E>(obj == null ? 0 : obj.length);
         if (obj != null)
             for (E e: obj)
                 ret.add(e);
         return ret;
+    }
+    
+    /**
+     * Compute number of K-tuples of N elements
+     * @param N number of elements (e.g., number of room locations in a domain)
+     * @param K size of a tuple (e.g., number of rooms a class needs)
+     * @return
+     */
+    public static long binomial(int N, int K) {
+        long ret = 1;
+        for (int k = 0; k < K; k++)
+            ret = ret * (N-k) / (k+1);
+        return ret;
+    }
+    
+    /**
+     * Create random sample (m-tuple) of given list of elements
+     * @param items list of elements
+     * @param m size of a tuple
+     * @return random subset of the list of size m
+     */
+    public static <E> Set<E> sample(List<E> items, int m) {
+        HashSet<E> res = new HashSet<E>(m);
+        int n = items.size();
+        for(int i = n - m; i < n; i++){
+            int pos = getRandom().nextInt(i+1);
+            E item = items.get(pos);
+            if (res.contains(item))
+                res.add(items.get(i));
+            else
+                res.add(item);
+        }
+        return res;
+    }
+    
+    /**
+     * Generate given permutation
+     * @param items list of elements
+     * @param m size of a tuple (permutation)
+     * @param id position of the permutation in the list of all permutations of m-tuples of the given list of elements
+     * @return given subset of the list of size m
+     */
+    public static <E> List<E> permutation(final List<E> items, int m, long id) {
+        List<E> ret = new ArrayList<E>();
+        int n = items.size();
+        int p = -1;
+        for (int i = 0; i < m - 1; i++) {
+            p ++;
+            for (long r = binomial(n - p - 1, m - i - 1); r <= id; r = binomial(n - p - 1, m - i - 1))  {
+                id -= r; p ++;
+            }
+            ret.add(items.get(p));
+        }
+        ret.add(items.get(p + 1 + (int)id));
+        return ret;
+    }
+    
+    /**
+     * Generate a list of samples of the given list
+     * @param items list of elements
+     * @param m size of a sample
+     * @param count number of samples
+     * @return list of samples (m-tuples) of the given items 
+     */
+    public static <E> Enumeration<Collection<E>> sample(final List<E> items, final int m, final int count) {
+        final long limit = binomial(items.size(), m);
+        if (count >= limit) return permutations(items, m);
+        return new Enumeration<Collection<E>>() {
+            int el = 0; 
+            Set<Long> used = new HashSet<Long>();
+
+            @Override
+            public boolean hasMoreElements() {
+                return el < count && el < limit;
+            }
+            
+            @Override
+            public Set<E> nextElement() {
+                int n = items.size();
+                for (;;) {
+                    HashSet<E> res = new HashSet<E>(m);
+                    TreeSet<Integer> ids = new TreeSet<Integer>();
+                    for(int i = n - m; i < n; i++){
+                        int pos = getRandom().nextInt(i+1);
+                        E item = items.get(pos);
+                        if (res.contains(item)) {
+                            res.add(items.get(i));
+                            ids.add(i);
+                        } else {
+                            res.add(item);
+                            ids.add(pos);
+                        }
+                    }
+                    long fp = 0;
+                    for (Integer id: ids) {
+                        fp = (n * fp) + id;
+                    }
+                    if (used.add(fp)) {
+                        el ++;
+                        return res;
+                    }
+                }
+            }
+        };
+    }
+    
+    /**
+     * Generate a list of all permutations of size m of the given list
+     * @param items list of elements
+     * @param m size of a permutation
+     * @return list of all permutations (m-tuples) of the given items 
+     */
+    public static <E> Enumeration<Collection<E>> permutations(final List<E> items, final int m) {
+        return new Enumeration<Collection<E>>() {
+            int n = items.size();
+            int[] p = null;
+            
+            @Override
+            public boolean hasMoreElements() {
+                return p == null || p[0] < n - m;
+            }
+            
+            @Override
+            public Collection<E> nextElement() {
+                if (p == null) {
+                    p = new int[m];
+                    for (int i = 0; i < m; i++)
+                        p[i] = i;
+                } else {
+                    for (int i = m - 1; i >= 0; i--) {
+                        p[i] = p[i] + 1;
+                        for (int j = i + 1; j < m; j++)
+                            p[j] = p[j - 1] + 1;
+                        if (i == 0 || p[i] <= n - (m - i)) break;
+                    }
+                }
+                List<E> ret = new ArrayList<E>();
+                for (int i = 0; i < m; i++)
+                    ret.add(items.get(p[i]));
+                return ret;
+            }
+        };
+    }
+    
+    /**
+     * Generate a list of random samples combined of the given two lists
+     * @param items1 list of first elements
+     * @param m1 size of a first sample
+     * @param items2 list of second elements
+     * @param m2 size of a second sample
+     * @param count number of samples
+     * @return list of samples where each sample contains m1 elements of the first list and m2 elements of the second list 
+     */
+    private static <E> Enumeration<Collection<E>> sample(final List<E> items1, final int m1, final List<E> items2, final int m2, final int count) {
+        final long c1 = binomial(items1.size(), m1);
+        final long c2 = binomial(items2.size(), m2);
+        final long limit = c1 * c2;
+        if (limit <= 10l * count && 10l * count < Integer.MAX_VALUE) {
+            return new Enumeration<Collection<E>>() {
+                Set<Integer> used = new HashSet<Integer>();
+
+                @Override
+                public boolean hasMoreElements() {
+                    return used.size() < count && used.size() < limit;
+                }
+                
+                @Override
+                public Collection<E> nextElement() {
+                    int id;
+                    do {
+                        id = getRandom().nextInt((int)limit);
+                    } while (!used.add(id));
+                    List<E> res = new ArrayList<E>(m1 + m2);
+                    if (m1 > 0)
+                        res.addAll(permutation(items1, m1, id / c2));
+                    if (m2 > 0)
+                        res.addAll(permutation(items2, m2, id % c2));
+                    return res;
+                }
+            };            
+        } else {
+            return new Enumeration<Collection<E>>() {
+                int n1 = items1.size(), n2 = items2.size();
+                int el = 0; 
+                Set<Long> used = new HashSet<Long>();
+
+                @Override
+                public boolean hasMoreElements() {
+                    return el < count && el < limit;
+                }
+                
+                @Override
+                public Collection<E> nextElement() {
+                    for (;;) {
+                        HashSet<E> res = new HashSet<E>(m1 + m2);
+                        TreeSet<Integer> ids1 = new TreeSet<Integer>();
+                        if (m1 == n1) {
+                            // Special case 1: first permutation contains all elements
+                            res.addAll(items1);
+                        } else if (m1 + 1 == n1) {
+                            // Special case 2: first permutation contains all elements but one
+                            int pos = getRandom().nextInt(n1);
+                            for (int i = 0; i < n1; i++)
+                                if (i != pos) res.add(items1.get(i));
+                            ids1.add(pos);
+                        } else {
+                            for(int i = n1 - m1; i < n1; i++){
+                                int pos = getRandom().nextInt(i+1);
+                                E item = items1.get(pos);
+                                if (res.contains(item)) {
+                                    res.add(items1.get(i));
+                                    ids1.add(i);
+                                } else {
+                                    res.add(item);
+                                    ids1.add(pos);
+                                }
+                            }
+                        }
+                        TreeSet<Integer> ids2 = new TreeSet<Integer>();
+                        if (m2 == n2) {
+                            // Special case 1: second permutation contains all elements
+                            res.addAll(items2);
+                        } else if (m2 + 1 == n2) {
+                            // Special case 2: second permutation contains all elements but one
+                            int pos = getRandom().nextInt(n2);
+                            for (int i = 0; i < n2; i++)
+                                if (i != pos) res.add(items2.get(i));
+                            ids2.add(pos);
+                        } else {
+                            for(int i = n2 - m2; i < n2; i++){
+                                int pos = getRandom().nextInt(i+1);
+                                E item = items2.get(pos);
+                                if (res.contains(item)) {
+                                    res.add(items2.get(i));
+                                    ids2.add(n1 + i);
+                                } else {
+                                    res.add(item);
+                                    ids2.add(n1 + pos);
+                                }
+                            }
+                        }
+                        long fp = 0;
+                        for (Integer id: ids1) fp = (n1 * fp) + id;
+                        for (Integer id: ids2) fp = (n2 * fp) + id;
+                        if (used.add(fp)) {
+                            el ++;
+                            return res;
+                        }
+                    }
+                }
+            };
+        }
+    }
+
+    /**
+     * Generate a list of random samples combined of the given two lists
+     * @param preferred list of preferred elements
+     * @param additional list of additional elements
+     * @param m size of a sample
+     * @param count number of samples
+     * @return list of samples of size m, preferring as many elements of the preferred list as possible 
+     */
+    public static <E> Enumeration<Collection<E>> sample(final List<E> preferred, final List<E> additional, final int m, final int count) {
+        return new Enumeration<Collection<E>>() {
+            long limit = Math.min(count, binomial(preferred.size() + additional.size(), m));
+            int k = Math.min(m, preferred.size());
+            int el = 0;
+            Enumeration<Collection<E>> e = sample(preferred, k, additional, m - k, count);
+            
+            @Override
+            public boolean hasMoreElements() {
+                return el < limit;
+            }
+            
+            @Override
+            public Collection<E> nextElement() {
+                if (e.hasMoreElements()) {
+                    el ++;
+                    return e.nextElement();
+                }
+                k = Math.max(Math.min(k - 1, preferred.size() - 1), 0);
+                e = sample(preferred, k, additional, m - k, count);
+                el ++;
+                return e.nextElement();
+            }
+        };
     }
 }

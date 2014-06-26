@@ -326,7 +326,7 @@ public class TimetableModel extends Model<Activity, Location> {
             int start = starts.get(i);
             int room = arooms.get(i);
             Location location = null;
-            for (Location l : activity.values()) {
+            for (Location l : activity.values(assignment)) {
                 if (l.getSlot() == start && l.getResource(0).getResourceId().equals("r" + (room + 1))) {
                     location = l;
                     break;
@@ -762,7 +762,7 @@ public class TimetableModel extends Model<Activity, Location> {
                 List<Resource> res = new ArrayList<Resource>();
                 for (Iterator<?> j = usResEl.elementIterator("Resource"); j.hasNext();)
                     res.add(resTab.get(((Element) j.next()).getText()));
-                for (Location loc : a.values()) {
+                for (Location loc : a.values(assignment)) {
                     if (loc.getSlot() != slot || loc.getResources().length != res.size())
                         continue;
                     boolean same = true;

@@ -81,7 +81,7 @@ public class DbtPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
         Set<T> noGood = new HashSet<T>(1);
 
         noGood.add(value);
-        for (T anotherValue : value.variable().values()) {
+        for (T anotherValue : value.variable().values(assignment)) {
             if (anotherValue.equals(value) || !isGood(assignment, anotherValue))
                 continue;
             setNoGood(assignment, anotherValue, noGood);
@@ -186,7 +186,7 @@ public class DbtPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
         if (variable != null && value == null) {
             Set<T> noGoods = new HashSet<T>();
 
-            for (T val : variable.values()) {
+            for (T val : variable.values(assignment)) {
                 if (noGood(assignment, val) != null) {
                     noGoods.addAll(noGood(assignment, val));
                 }

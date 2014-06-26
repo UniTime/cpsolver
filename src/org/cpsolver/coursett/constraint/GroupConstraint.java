@@ -118,6 +118,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
     private int iDayOfWeekOffset = 0;
     private boolean iPrecedenceConsiderDatePatterns = true;
     private int iForwardCheckMaxDepth = 2;
+    private int iForwardCheckMaxDomainSize = 1000;
     
     /**
      * Group constraints that can be checked on pairs of classes (e.g., same room means any two classes are in the same room),
@@ -762,6 +763,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             iDayOfWeekOffset = config.getPropertyInt("DatePattern.DayOfWeekOffset", 0);
             iPrecedenceConsiderDatePatterns = config.getPropertyBoolean("Precedence.ConsiderDatePatterns", true);
             iForwardCheckMaxDepth = config.getPropertyInt("ForwardCheck.MaxDepth", iForwardCheckMaxDepth);
+            iForwardCheckMaxDomainSize = config.getPropertyInt("ForwardCheck.MaxDomainSize", iForwardCheckMaxDomainSize);
         }
     }
 
@@ -900,6 +902,14 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
 
     @Override
     public void computeConflicts(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
+        computeConflicts(assignment, value, conflicts, true);
+    }
+    
+    public void computeConflictsNoForwardCheck(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
+        computeConflicts(assignment, value, conflicts, false);
+    }
+    
+    public void computeConflicts(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts, boolean fwdCheck) {
         if (!isHard())
             return;
         for (Lecture v : variables()) {
@@ -939,7 +949,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
         }
         
         // Forward checking
-        forwardCheck(assignment, value, conflicts, new HashSet<GroupConstraint>(), iForwardCheckMaxDepth - 1);
+        if (fwdCheck) forwardCheck(assignment, value, conflicts, new HashSet<GroupConstraint>(), iForwardCheckMaxDepth - 1);
     }
     
     public void forwardCheck(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts, Set<GroupConstraint> ignore, int depth) {
@@ -969,7 +979,16 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                 boolean shareRoomAndOverlaps = canShareRoom();
                 Placement support = null;
                 int nrSupports = 0;
-                for (Placement other: lecture.values()) {
+                if (lecture.nrValues() >= iForwardCheckMaxDomainSize) {
+                    // ignore variables with large domains
+                    return;
+                }
+                List<Placement> values = lecture.values(assignment);
+                if (values.isEmpty()) {
+                    // ignore variables with empty domain
+                    return;
+                }
+                for (Placement other: values) {
                     if (nrSupports < 2) {
                         if (isSatisfiedPair(assignment, value, other)) {
                             if (support == null) support = other;
@@ -1084,7 +1103,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                 boolean shareRoomAndOverlaps = canShareRoom();
                 Placement support = null;
                 int nrSupports = 0;
-                for (Placement other: lecture.values()) {
+                for (Placement other: lecture.values(assignment)) {
                     if (nrSupports < 2) {
                         if (isSatisfiedPair(assignment, value, other)) {
                             if (support == null) support = other;

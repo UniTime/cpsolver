@@ -78,7 +78,7 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
         int varIdx = ToolBox.random(model.variables().size());
         for (int i = 0; i < model.variables().size(); i++) {
             V variable = model.variables().get((i + varIdx) % model.variables().size());
-            List<T> values = variable.values();
+            List<T> values = variable.values(solution.getAssignment());
             if (values.isEmpty()) continue;
             int valIdx = ToolBox.random(values.size());
             T old = variable.getAssignment(assignment);
@@ -156,7 +156,7 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
         T conflict = conflicts.get(index);
         V variable = conflict.variable();
         
-        List<T> values = variable.values();
+        List<T> values = variable.values(solution.getAssignment());
         if (values.isEmpty()) return null;
         
         int valIdx = ToolBox.random(values.size());

@@ -445,9 +445,9 @@ public class Test {
                             CSPBinaryConstraint c = (CSPBinaryConstraint) i.next();
                             log.println("      " + c.getName() + " (" + c.first().getName() + ","
                                     + c.second().getName() + ")");
-                            for (CSPValue v0 : c.first().values()) {
+                            for (CSPValue v0 : c.first().values(best.getAssignment())) {
                                 log.print("        ");
-                                for (CSPValue v1 : c.second().values())
+                                for (CSPValue v1 : c.second().values(best.getAssignment()))
                                     log.print(c.isConsistent(v0, v1) ? "1 " : "0 ");
                             }
                             log.println();

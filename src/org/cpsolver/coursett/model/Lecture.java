@@ -1,8 +1,10 @@
 package org.cpsolver.coursett.model;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -32,6 +34,7 @@ import org.cpsolver.ifs.model.Constraint;
 import org.cpsolver.ifs.model.GlobalConstraint;
 import org.cpsolver.ifs.model.WeakeningConstraint;
 import org.cpsolver.ifs.util.DistanceMetric;
+import org.cpsolver.ifs.util.ToolBox;
 
 
 /**
@@ -100,6 +103,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
 
     public static boolean sSaveMemory = false;
     public static boolean sAllowBreakHard = false;
+    private int iMaxRoomCombinations = -1;
 
     private Integer iCacheMinRoomSize = null;
     private Integer iCacheMaxRoomSize = null;
@@ -382,39 +386,17 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         }
         return ret;
     }
-
-    private void computeValues(List<Placement> values, boolean allowBreakHard, TimeLocation timeLocation,
-            List<RoomLocation> roomLocations, int idx) {
-        if (roomLocations.size() == iNrRooms) {
-            Placement p = new Placement(this, timeLocation, roomLocations);
-            p.setVariable(this);
-            if (sSaveMemory && !isValid(p))
-                return;
-            if (getInitialAssignment() != null && p.equals(getInitialAssignment()))
-                setInitialAssignment(p);
-            // if (getAssignment() != null && getAssignment().equals(p)) iValue = getAssignment();
-            if (getBestAssignment() != null && getBestAssignment().equals(p)) setBestAssignment(p, getBestAssignmentIteration());
-            values.add(p);
-            return;
-        }
-        for (int i = idx; i < iRoomLocations.size(); i++) {
-            RoomLocation roomLocation = iRoomLocations.get(i);
-            if (!allowBreakHard && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(roomLocation.getPreference())))
-                continue;
-
-            if (roomLocation.getRoomConstraint() != null && !roomLocation.getRoomConstraint().isAvailable(this, timeLocation, getScheduler()))
-                continue;
-            roomLocations.add(roomLocation);
-            computeValues(values, allowBreakHard, timeLocation, roomLocations, i + 1);
-            roomLocations.remove(roomLocations.size() - 1);
-        }
+    
+    private boolean isCacheDomain() {
+        return isCommitted() || (!sSaveMemory && (iNrRooms <= 1 || getMaxRoomCombinations() <= 0 || ToolBox.binomial(iRoomLocations.size(), iNrRooms) <= getMaxRoomCombinations()));
     }
-
+    
     /** Domain -- all combinations of room and time locations 
+     * @param assignment current assignment
      * @param allowBreakHard breaking of hard constraints is allowed
      * @return list of possible placements
      **/
-    public List<Placement> computeValues(boolean allowBreakHard) {
+    public List<Placement> computeValues(Assignment<Lecture, Placement> assignment, boolean allowBreakHard) {
         List<Placement> values = new ArrayList<Placement>(iRoomLocations.size() * iTimeLocations.size());
         for (TimeLocation timeLocation : iTimeLocations) {
             if (!allowBreakHard && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(timeLocation.getPreference())))
@@ -451,26 +433,59 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                 values.add(p);
             } else if (iNrRooms == 1) {
                 for (RoomLocation roomLocation : iRoomLocations) {
-                    if (!allowBreakHard && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(roomLocation.getPreference())))
-                        continue;
-                    if (roomLocation.getPreference() > 500)
-                        continue;
-                    if (roomLocation.getRoomConstraint() != null
-                            && !roomLocation.getRoomConstraint().isAvailable(this, timeLocation, getScheduler()))
-                        continue;
+                    if (!allowBreakHard && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(roomLocation.getPreference()))) continue;
+                    if (roomLocation.getPreference() > 500) continue;
+                    if (roomLocation.getRoomConstraint() != null && !roomLocation.getRoomConstraint().isAvailable(this, timeLocation, getScheduler())) continue;
                     Placement p = new Placement(this, timeLocation, roomLocation);
                     p.setVariable(this);
-                    if (sSaveMemory && !isValid(p))
-                        continue;
-                    if (getInitialAssignment() != null && p.equals(getInitialAssignment()))
-                        setInitialAssignment(p);
-                    // if (getAssignment() != null && getAssignment().equals(p)) iValue = getAssignment();
-                    if (getBestAssignment() != null && getBestAssignment().equals(p))
-                        setBestAssignment(p, getBestAssignmentIteration());
+                    if (sSaveMemory && !isValid(p)) continue;
+                    if (getInitialAssignment() != null && p.equals(getInitialAssignment())) setInitialAssignment(p);
+                    if (getBestAssignment() != null && getBestAssignment().equals(p)) setBestAssignment(p, getBestAssignmentIteration());
                     values.add(p);
                 }
             } else {
-                computeValues(values, allowBreakHard, timeLocation, new ArrayList<RoomLocation>(iNrRooms), 0);
+                if (getMaxRoomCombinations() > 0 && ToolBox.binomial(iRoomLocations.size(), iNrRooms) > getMaxRoomCombinations()) {
+                    if (getInitialAssignment() != null && getInitialAssignment().getNrRooms() == getNrRooms()) {
+                        Placement p = new Placement(this, timeLocation, new ArrayList<RoomLocation>(getInitialAssignment().getRoomLocations()));
+                        p.setVariable(this);
+                        if (p.equals(getInitialAssignment())) setInitialAssignment(p);
+                        values.add(p);
+                    }
+                    List<RoomLocation> available = new ArrayList<RoomLocation>(iRoomLocations.size());
+                    List<RoomLocation> other = new ArrayList<RoomLocation>(iRoomLocations.size());
+                    for (RoomLocation room: iRoomLocations) {
+                        if (room.getRoomConstraint() != null && !room.getRoomConstraint().isAvailable(this, timeLocation, getScheduler())) continue;
+                        if (Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(room.getPreference()))) continue;
+                        if (assignment != null && room.getRoomConstraint() != null && !room.getRoomConstraint().getContext(assignment).inConflict(this, timeLocation)) {
+                            available.add(room);
+                        } else {
+                            other.add(room);
+                        }
+                    }
+                    if (available.size() + other.size() < iNrRooms) continue;
+                    for (Enumeration<Collection<RoomLocation>> e = ToolBox.sample(available, other, iNrRooms, getMaxRoomCombinations()); e.hasMoreElements(); ) {
+                        Placement p = new Placement(this, timeLocation, new ArrayList<RoomLocation>(e.nextElement()));
+                        if (getInitialAssignment() != null && p.sameRooms(getInitialAssignment())) continue;
+                        p.setVariable(this);
+                        values.add(p);
+                    }
+                } else {
+                    List<RoomLocation> rooms = new ArrayList<RoomLocation>(iRoomLocations.size());
+                    for (RoomLocation room: iRoomLocations) {
+                        if (!allowBreakHard && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(room.getPreference()))) continue;
+                        if (room.getRoomConstraint() != null && !room.getRoomConstraint().isAvailable(this, timeLocation, getScheduler())) continue;
+                        rooms.add(room);
+                    }
+                    if (rooms.size() < iNrRooms) continue;
+                    for (Enumeration<Collection<RoomLocation>> e = ToolBox.permutations(rooms, iNrRooms); e.hasMoreElements(); ) {
+                        Placement p = new Placement(this, timeLocation, new ArrayList<RoomLocation>(e.nextElement()));
+                        p.setVariable(this);
+                        if (sSaveMemory && !isValid(p)) continue;
+                        if (getInitialAssignment() != null && p.equals(getInitialAssignment())) setInitialAssignment(p);
+                        if (getBestAssignment() != null && getBestAssignment().equals(p)) setBestAssignment(p, getBestAssignmentIteration());
+                        values.add(p);
+                    }
+                }
             }
         }
         return values;
@@ -482,23 +497,23 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
 
     /** All values */
     @Override
-    public List<Placement> values() {
-        if (super.values() == null) {
+    public List<Placement> values(Assignment<Lecture, Placement> assignment) {
+        if (super.values(assignment) == null) {
             if (getInitialAssignment() != null && iTimeLocations.size() == 1 && iRoomLocations.size() == getNrRooms()) {
                 List<Placement> values = new ArrayList<Placement>(1);
                 values.add(getInitialAssignment());
                 setValues(values);
+                return values;
+            } else if (isCacheDomain()) {
+                List<Placement> values = computeValues(null, sAllowBreakHard); 
+                setValues(values);
+                return values;
             } else {
-                if (isCommitted() || !sSaveMemory)
-                    setValues(computeValues(sAllowBreakHard));
+                return computeValues(assignment, sAllowBreakHard);
             }
+        } else {
+            return super.values(assignment);
         }
-        if (isCommitted())
-            return super.values();
-        if (sSaveMemory) {
-            return computeValues(sAllowBreakHard);
-        } else
-            return super.values();
     }
 
     @Override
@@ -872,16 +887,6 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         return getName();
     }
 
-    public String getValuesString() {
-        StringBuffer sb = new StringBuffer();
-        for (Placement p : values()) {
-            if (sb.length() > 0)
-                sb.append(", ");
-            sb.append(p.getName());
-        }
-        return sb.toString();
-    }
-
     /** Controlling Course Offering Department 
      * @return department unique id
      **/
@@ -972,24 +977,28 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         return ret;
     }
 
-    public int nrValues() {
-        int ret = 0;
-        for (Placement placement : values()) {
-            if (!Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(placement
-                    .getRoomPreference()))
-                    && !Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(placement
-                            .getTimeLocation().getPreference())))
-                ret++;
-        }
-        return ret;
+    public long nrValues() {
+        int nrTimes = 0;
+        for (TimeLocation time: timeLocations())
+            if (!Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(time.getPreference())))
+                nrTimes ++;
+        int nrRooms = 0;
+        for (RoomLocation room : iRoomLocations)
+            if (!Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(room.getPreference())))
+                nrRooms ++;
+        long estNrValues = nrTimes;
+        if (getNrRooms() > 1 && getMaxRoomCombinations() > 0)
+            estNrValues *= Math.min(getMaxRoomCombinations(), ToolBox.binomial(nrRooms, getNrRooms()));
+        else
+            estNrValues *= ToolBox.binomial(nrRooms, getNrRooms());
+        return estNrValues;
     }
 
     public int nrValues(TimeLocation time) {
         int ret = 0;
         for (RoomLocation room : iRoomLocations) {
             if (!Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(room.getPreference()))
-                    && (room.getRoomConstraint() == null || room.getRoomConstraint().isAvailable(this, time,
-                            getScheduler())))
+                    && (room.getRoomConstraint() == null || room.getRoomConstraint().isAvailable(this, time, getScheduler())))
                 ret++;
         }
         return ret;
@@ -999,8 +1008,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         int ret = 0;
         for (TimeLocation time : iTimeLocations) {
             if (!Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(time.getPreference()))
-                    && (room.getRoomConstraint() == null || room.getRoomConstraint().isAvailable(this, time,
-                            getScheduler())))
+                    && (room.getRoomConstraint() == null || room.getRoomConstraint().isAvailable(this, time,getScheduler())))
                 ret++;
         }
         return ret;
@@ -1220,7 +1228,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     }
 
     public boolean isSingleton() {
-        return values().size() == 1;
+        return getNrRooms() == roomLocations().size() && timeLocations().size() == 1;
     }
 
     public boolean isValid(Placement placement) {
@@ -1288,17 +1296,16 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     }
 
     public void purgeInvalidValues(boolean interactiveMode) {
-        if (isCommitted() || Lecture.sSaveMemory)
-            return;
+    	if (isCommitted() || sSaveMemory) return;
         TimetableModel model = (TimetableModel) getModel();
         if (model == null)
             return;
-        List<Placement> newValues = new ArrayList<Placement>(values().size());
-        for (Placement placement : values()) {
+        List<Placement> newValues = new ArrayList<Placement>(values(null).size());
+        for (Placement placement : values(null)) {
             if (placement.isValid())
                 newValues.add(placement);
         }
-        if (!interactiveMode && newValues.size() != values().size()) {
+        if (!interactiveMode && newValues.size() != values(null).size()) {
             for (Iterator<TimeLocation> i = timeLocations().iterator(); i.hasNext();) {
                 TimeLocation timeLocation = i.next();
                 boolean hasPlacement = false;
@@ -1546,5 +1553,13 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
        public void removeActiveJenrl(JenrlConstraint constr) {
            iActiveJenrls.remove(constr);
        }
+   }
+   
+   public int getMaxRoomCombinations() {
+       return iMaxRoomCombinations;
+   }
+   
+   public void setMaxRoomCombinations(int maxRoomCombinations) {
+       iMaxRoomCombinations = maxRoomCombinations;
    }
 }

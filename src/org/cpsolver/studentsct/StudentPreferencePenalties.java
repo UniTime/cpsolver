@@ -8,6 +8,7 @@ import java.util.List;
 import org.cpsolver.coursett.Constants;
 import org.cpsolver.coursett.model.TimeLocation;
 import org.cpsolver.ifs.assignment.Assignment;
+import org.cpsolver.ifs.assignment.EmptyAssignment;
 import org.cpsolver.ifs.heuristics.RouletteWheelSelection;
 import org.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
 import org.cpsolver.studentsct.model.Config;
@@ -383,7 +384,7 @@ public class StudentPreferencePenalties {
      * @return minimal and maximal penalty
      **/
     public double[] getMinMaxEnrollmentPenalty(CourseRequest request) {
-        List<Enrollment> enrollments = request.values();
+        List<Enrollment> enrollments = request.values(new EmptyAssignment<Request, Enrollment>());
         if (enrollments.isEmpty())
             return new double[] { 0, 0 };
         double min = Double.MAX_VALUE, max = Double.MIN_VALUE;

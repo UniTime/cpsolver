@@ -472,7 +472,10 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
         Set<Placement> conflictValues = new HashSet<Placement>();
         for (Constraint<Lecture, Placement> constraint : value.variable().hardConstraints()) {
             if (constraint instanceof WeakeningConstraint) continue;
-            constraint.computeConflicts(assignment, value, conflictValues);
+            if (constraint instanceof GroupConstraint)
+                ((GroupConstraint)constraint).computeConflictsNoForwardCheck(assignment, value, conflictValues);
+            else
+                constraint.computeConflicts(assignment, value, conflictValues);
         }
         for (GlobalConstraint<Lecture, Placement> constraint : globalConstraints()) {
             if (constraint instanceof WeakeningConstraint) continue;

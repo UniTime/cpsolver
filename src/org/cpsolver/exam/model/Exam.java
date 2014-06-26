@@ -213,10 +213,10 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      * @return list of {@link ExamPlacement}
      */
     @Override
-    public List<ExamPlacement> values() {
-        if (super.values() == null)
+    public List<ExamPlacement> values(Assignment<Exam, ExamPlacement> assignment) {
+        if (super.values(assignment) == null)
             init();
-        return super.values();
+        return super.values(assignment);
     }
 
     /**

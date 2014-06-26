@@ -78,7 +78,7 @@ public class Rectangle extends Variable<Rectangle, Location> {
         iProhibitedX = x;
         iProhibitedY = y;
         setValues(computeValues());
-        if (getInitialAssignment() != null && !values().contains(getInitialAssignment()))
+        if (getInitialAssignment() != null && !values(null).contains(getInitialAssignment()))
             setInitialAssignment(null);
     }
 
@@ -157,7 +157,7 @@ public class Rectangle extends Variable<Rectangle, Location> {
         iMaxX = maxX;
         iMinY = minY;
         iMaxY = maxY;
-        if (getInitialAssignment() != null && !values().contains(getInitialAssignment()))
+        if (getInitialAssignment() != null && !values(null).contains(getInitialAssignment()))
             setInitialAssignment(null);
     }
 

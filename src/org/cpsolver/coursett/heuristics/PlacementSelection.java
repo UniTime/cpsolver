@@ -263,7 +263,7 @@ public class PlacementSelection implements ValueSelection<Lecture, Placement> {
             }
         }
 
-        List<Placement> values = selectedVariable.values();
+        List<Placement> values = selectedVariable.values(solution.getAssignment());
         if (iRW && ToolBox.random() <= iRandomWalkProb) {
             for (int i = 0; i < 5; i++) {
                 Placement ret = ToolBox.random(values);

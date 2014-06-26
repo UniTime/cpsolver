@@ -73,7 +73,7 @@ public class CSPVariable extends Variable<CSPVariable, CSPValue> {
      * @param rnd random number generator
      */
     public void generateInitialValue(Random rnd) {
-        CSPValue aValue = values().get((int) (rnd.nextFloat() * values().size()));
+        CSPValue aValue = values(null).get((int) (rnd.nextFloat() * values(null).size()));
         setInitialAssignment(aValue);
     }
 

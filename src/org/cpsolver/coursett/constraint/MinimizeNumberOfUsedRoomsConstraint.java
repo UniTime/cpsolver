@@ -119,8 +119,8 @@ public class MinimizeNumberOfUsedRoomsConstraint extends ConstraintWithContext<L
         for (Lecture lecture : variables()) {
             if (lecture.getNrRooms() == 0)
                 continue;
-            List<Placement> values = lecture.values();
-            for (Placement p : lecture.values()) {
+            List<Placement> values = lecture.values(null);
+            for (Placement p : lecture.values(null)) {
                 int firstSlot = p.getTimeLocation().getStartSlot();
                 if (firstSlot > Constants.DAY_SLOTS_LAST)
                     continue;

@@ -167,7 +167,7 @@ public class EnrollmentSelection implements ValueSelection<Request, Enrollment> 
             }
         }
 
-        List<Enrollment> values = selectedVariable.values();
+        List<Enrollment> values = selectedVariable.values(assignment);
         if (ToolBox.random() <= iRandomWalkProb) {
             Enrollment value = ToolBox.random(values);
             if (isAllowed(assignment, value))
