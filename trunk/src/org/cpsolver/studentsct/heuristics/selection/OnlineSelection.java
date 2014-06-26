@@ -173,7 +173,7 @@ public class OnlineSelection extends BranchBoundSelection {
                 // sLog.debug("  -- space held for "+section+" decreased by 1 (to "+section.getSpaceHeld()+")");
             }
             List<Enrollment> feasibleEnrollments = new ArrayList<Enrollment>();
-            for (Enrollment enrl : courseRequest.values()) {
+            for (Enrollment enrl : courseRequest.values(assignment)) {
                 boolean overlaps = false;
                 for (Request otherRequest : courseRequest.getStudent().getRequests()) {
                     if (otherRequest.equals(courseRequest) || !(otherRequest instanceof CourseRequest))

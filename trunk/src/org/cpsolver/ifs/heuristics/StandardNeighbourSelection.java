@@ -162,7 +162,7 @@ public class StandardNeighbourSelection<V extends Variable<V, T>, T extends Valu
         if (variable == null)
             sLogger.debug("No variable selected.");
 
-        if (variable != null && !variable.hasValues()) {
+        if (variable != null && variable.values(solution.getAssignment()).isEmpty()) {
             sLogger.debug("Variable " + variable.getName() + " has no values.");
             return null;
         }

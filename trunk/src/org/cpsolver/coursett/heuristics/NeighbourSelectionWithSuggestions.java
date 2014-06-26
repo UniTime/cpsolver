@@ -141,7 +141,7 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
             if (context.isTimeoutReached()) break;
             if (resolvedLectures.containsKey(lecture))
                 continue;
-            placements: for (Placement placement : lecture.values()) {
+            placements: for (Placement placement : lecture.values(assignment)) {
                 if (context.isTimeoutReached()) break;
                 Placement cur = assignment.getValue(lecture);
                 if (placement.equals(cur))

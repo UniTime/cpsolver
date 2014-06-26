@@ -99,9 +99,9 @@ public class CourseConflictTable implements StudentSectioningReport {
      * True, if there is no pair of enrollments of r1 and r2 that is not in a
      * hard conflict
      */
-    private boolean areInHardConfict(Request r1, Request r2) {
-        for (Enrollment e1 : r1.values()) {
-            for (Enrollment e2 : r2.values()) {
+    private boolean areInHardConfict(Assignment<Request, Enrollment> assignment, Request r1, Request r2) {
+        for (Enrollment e1 : r1.values(assignment)) {
+            for (Enrollment e2 : r2.values(assignment)) {
                 if (!e1.isOverlapping(e2))
                     return false;
             }
@@ -177,7 +177,7 @@ public class CourseConflictTable implements StudentSectioningReport {
                 if (courseRequest.getStudent().isComplete(assignment))
                     continue;
 
-                List<Enrollment> values = courseRequest.values();
+                List<Enrollment> values = courseRequest.values(assignment);
                 SectionLimit limitConstraint = null;
                 for (GlobalConstraint<Request, Enrollment> c: getModel().globalConstraints()) {
                     if (c instanceof SectionLimit) {
@@ -257,7 +257,7 @@ public class CourseConflictTable implements StudentSectioningReport {
                                     + partThisConflict;
                             double nrStudW = (weight == null ? 0.0 : ((Double) weight[1]).doubleValue())
                                     + weightThisConflict;
-                            boolean noAlt = (weight == null ? areInHardConfict(request, conflict.getRequest())
+                            boolean noAlt = (weight == null ? areInHardConfict(assignment, request, conflict.getRequest())
                                     : ((Boolean) weight[2]).booleanValue());
                             HashSet<String> expl = (weight == null ? new HashSet<String>()
                                     : (HashSet<String>) weight[3]);

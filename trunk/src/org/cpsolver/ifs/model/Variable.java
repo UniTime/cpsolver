@@ -8,6 +8,7 @@ import java.util.Map;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.DefaultParallelAssignment;
 import org.cpsolver.ifs.assignment.DefaultSingleAssignment;
+import org.cpsolver.ifs.assignment.EmptyAssignment;
 import org.cpsolver.ifs.util.IdGenerator;
 
 
@@ -100,11 +101,20 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
     public void setModel(Model<V, T> model) {
         iModel = model;
     }
-
-    /** Domain 
+    
+    /** Variable's domain, use {@link Variable#values(Assignment)} instead. 
      * @return all possible values of this variable
      **/
+    @Deprecated
     public List<T> values() {
+        return values(new EmptyAssignment<V, T>());
+    }
+
+    /** Variable's domain 
+     * @param assignment current assignment (if the domain is dependent on the current assignment)
+     * @return all possible values of this variable
+     **/
+    public List<T> values(Assignment<V, T> assignment) {
         return iValues;
     }
 
@@ -118,6 +128,7 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
     /** True, if the variable's domain is not empty 
      * @return true if there is at least one value in the domain 
      **/
+    @Deprecated
     public boolean hasValues() {
         return !values().isEmpty();
     }
@@ -349,8 +360,7 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
 
     @Override
     public String toString() {
-        return "Variable{name=" + getName() + ", initial=" + getInitialAssignment() + ", values=" + values().size() +
-        		", constraints=" + iConstraints.size() + "}";
+        return "Variable{name=" + getName() + ", initial=" + getInitialAssignment() + ", values=" + values(null).size() + ", constraints=" + iConstraints.size() + "}";
     }
 
     /** Unique id 

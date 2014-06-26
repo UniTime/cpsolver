@@ -378,7 +378,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
                     long allValues = 0;
                     for (Lecture variable : ((TimetableModel) solution.getModel()).unassignedVariables(assignment)) {
                         goodValues += iProp.goodValues(assignment, variable).size();
-                        allValues += variable.values().size();
+                        allValues += variable.values(solution.getAssignment()).size();
                         if (!iProp.goodValues(assignment, variable).isEmpty())
                             goodVariables++;
                     }
@@ -517,7 +517,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
             subparts.add(lect.getSchedulingSubpartId());
             nrStudentEnrls += (lect.students() == null ? 0 : lect.students().size());
             students.addAll(lect.students());
-            nrValues += lect.values().size();
+            nrValues += lect.values(solution.getAssignment()).size();
             nrReqRooms += lect.getNrRooms();
             for (RoomLocation room: lect.roomLocations())
                 if (room.getPreference() < Constants.sPreferenceLevelProhibited / 2)
@@ -527,8 +527,8 @@ public class Test implements SolutionListener<Lecture, Placement> {
                     nrTimes ++;
             totalMinLimit += lect.minClassLimit();
             totalMaxLimit += lect.maxClassLimit();
-            if (!lect.values().isEmpty()) {
-                Placement p = lect.values().get(0);
+            if (!lect.values(solution.getAssignment()).isEmpty()) {
+                Placement p = lect.values(solution.getAssignment()).get(0);
                 nrMeetings += p.getTimeLocation().getNrMeetings();
                 nrHalfHours += p.getTimeLocation().getNrMeetings() * p.getTimeLocation().getNrSlotsPerMeeting();
                 totalMaxNormTimePref += lect.getMinMaxTimePreference()[1];
@@ -561,7 +561,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
                     }
                 }
             }
-            if (lect.values().size() == 1) {
+            if (lect.values(solution.getAssignment()).size() == 1) {
                 nrSingleValueVariables++;
             }
             if (lect.timeLocations().size() == 1) {
@@ -597,9 +597,9 @@ public class Test implements SolutionListener<Lecture, Placement> {
                     nrInevitableStudentConflicts += jenrl.getJenrl();
                     pw.println("Inevitable " + jenrl.getJenrl() + " student conflicts between " + jenrl.first() + " "
                             + t1 + " and " + jenrl.second() + " " + t2);
-                } else if (jenrl.first().values().size() == 1 && jenrl.second().values().size() == 1) {
-                    Placement p1 = jenrl.first().values().get(0);
-                    Placement p2 = jenrl.second().values().get(0);
+                } else if (jenrl.first().values(solution.getAssignment()).size() == 1 && jenrl.second().values(solution.getAssignment()).size() == 1) {
+                    Placement p1 = jenrl.first().values(solution.getAssignment()).get(0);
+                    Placement p2 = jenrl.second().values(solution.getAssignment()).get(0);
                     if (JenrlConstraint.isInConflict(p1, p2, ((TimetableModel)p1.variable().getModel()).getDistanceMetric())) {
                         nrInevitableStudentConflicts += jenrl.getJenrl();
                         pw.println("Inevitable " + jenrl.getJenrl()

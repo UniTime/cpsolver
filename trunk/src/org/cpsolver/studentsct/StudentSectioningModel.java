@@ -429,7 +429,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 }
                 List<Enrollment> feasibleEnrollments = new ArrayList<Enrollment>();
                 int totalLimit = 0;
-                for (Enrollment enrl : courseRequest.values()) {
+                for (Enrollment enrl : courseRequest.values(assignment)) {
                     boolean overlaps = false;
                     for (Request otherRequest : student.getRequests()) {
                         if (otherRequest.equals(courseRequest) || !(otherRequest instanceof CourseRequest))

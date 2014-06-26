@@ -98,7 +98,7 @@ public class ViolatedInitials<V extends Variable<V, T>, T extends Value<V, T>> e
                 continue;
             if (assignment.getValue(variable) != null)
                 continue;
-            for (T value : variable.values()) {
+            for (T value : variable.values(assignment)) {
                 if (!constraint.isConsistent(aValue, value))
                     ret.add(value);
             }

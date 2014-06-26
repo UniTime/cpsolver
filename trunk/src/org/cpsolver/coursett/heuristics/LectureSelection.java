@@ -238,7 +238,7 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
             // remove variables that have no values
             unassignedVariables = new ArrayList<Lecture>(unassignedVariables.size());
             for (Lecture variable : model.unassignedVariables(assignment)) {
-                if (!variable.values().isEmpty())
+                if (!variable.values(solution.getAssignment()).isEmpty())
                     unassignedVariables.add(variable);
             }
         }
@@ -301,7 +301,7 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
                         return ToolBox.random(assignment.assignedVariables());
                     for (int attempt = 0; attempt < 10; attempt++) {
                         Lecture noGoodVariable = ToolBox.random(noGoodVariables);
-                        Placement noGoodValue = ToolBox.random(noGoodVariable.values());
+                        Placement noGoodValue = ToolBox.random(noGoodVariable.values(solution.getAssignment()));
                         if (!iProp.noGood(assignment, noGoodValue).isEmpty())
                             return ToolBox.random(iProp.noGood(assignment, noGoodValue)).variable();
                     }
@@ -318,7 +318,7 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
                     if (iTabu != null && iTabu.contains(variable))
                         continue;
 
-                    iMaxDomainSize = Math.max(iMaxDomainSize, variable.values().size());
+                    iMaxDomainSize = Math.max(iMaxDomainSize, variable.values(solution.getAssignment()).size());
                     iMaxGoodDomainSize = (iProp == null ? 0 : Math.max(iMaxGoodDomainSize, iProp.goodValues(assignment, variable).size()));
                     iMaxConstraints = Math.max(iMaxConstraints, variable.constraints().size());
                 }
@@ -329,7 +329,7 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
                 for (Lecture variable : variables) {
 
                     long pointsThisVariable = Math.round(
-                            iDomainSizeWeight * (((double) (iMaxDomainSize - variable.values().size())) / ((double) iMaxDomainSize)) +
+                            iDomainSizeWeight * (((double) (iMaxDomainSize - variable.values(solution.getAssignment()).size())) / ((double) iMaxDomainSize)) +
                             (iProp == null ? 0.0 : iGoodValuesWeight * (((double) (iMaxGoodDomainSize - iProp.goodValues(assignment, variable).size())) / ((double) iMaxGoodDomainSize))) +
                             iConstraintsWeight * (((double) (iMaxConstraints - variable.constraints().size())) / ((double) iMaxConstraints)) +
                             iInitialAssignmentWeight * (variable.getInitialAssignment() != null ? model.conflictValues(assignment, variable.getInitialAssignment()).size() : 0.0));
@@ -369,7 +369,7 @@ public class LectureSelection implements VariableSelection<Lecture, Placement> {
                     if (iTabu != null && iTabu.contains(variable))
                         continue;
 
-                    long good = (long) (iDomainSizeWeight * variable.values().size() +
+                    long good = (long) (iDomainSizeWeight * variable.values(solution.getAssignment()).size() +
                             iGoodValuesWeight * (iProp == null ? 0 : iProp.goodValues(assignment, variable).size()) +
                             iConstraintsWeight * variable.constraints().size() +
                             iInitialAssignmentWeight * (variable.getInitialAssignment() != null ? model.conflictValues(assignment, variable.getInitialAssignment()).size() : 0.0));

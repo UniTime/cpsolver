@@ -522,6 +522,9 @@ public class TimetableXMLLoader extends TimetableLoader {
                 lecture.setOrd(ord++);
 
             lecture.setWeight(Double.parseDouble(classEl.attributeValue("weight", "1.0")));
+            
+            if (lecture.getNrRooms() > 1)
+                lecture.setMaxRoomCombinations(Integer.parseInt(classEl.attributeValue("maxRoomCombinations", "-1")));
 
             if (config != null)
                 lecture.setConfiguration(config);
@@ -891,7 +894,7 @@ public class TimetableXMLLoader extends TimetableLoader {
                 Lecture var = null;
                 do {
                     var = ToolBox.random(getModel().variables());
-                } while (var.getInitialAssignment() == null || var.values().size() <= 1);
+                } while (var.getInitialAssignment() == null || var.values(getAssignment()).size() <= 1);
                 var.removeInitialValue();
             }
         }

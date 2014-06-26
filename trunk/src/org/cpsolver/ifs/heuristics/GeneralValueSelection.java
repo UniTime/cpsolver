@@ -213,7 +213,7 @@ public class GeneralValueSelection<V extends Variable<V, T>, T extends Value<V, 
         }
 
         T oldValue = solution.getAssignment().getValue(selectedVariable);
-        List<T> values = selectedVariable.values();
+        List<T> values = selectedVariable.values(solution.getAssignment());
         if (ToolBox.random() <= iRandomWalkProb)
             return ToolBox.random(values);
         if (iProp != null && oldValue == null && ToolBox.random() <= iGoodSelectionProb) {
