@@ -180,7 +180,7 @@ public class SectionConflictTable implements StudentSectioningReport {
                 CourseRequest courseRequest = (CourseRequest) request;
                 if (courseRequest.getStudent().isComplete(assignment)) continue;
                 
-                List<Enrollment> values = courseRequest.values();
+                List<Enrollment> values = courseRequest.values(assignment);
 
                 SectionLimit limitConstraint = null;
                 for (GlobalConstraint<Request, Enrollment> c: getModel().globalConstraints()) {

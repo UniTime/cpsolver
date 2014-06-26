@@ -163,7 +163,7 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
      * @return values of the given variable that will be considered
      **/
     protected Iterator<T> values(BacktrackNeighbourSelectionContext context, V variable) {
-        return variable.values().iterator();
+        return variable.values(context.getAssignment()).iterator();
     }
 
     /** Check bound 

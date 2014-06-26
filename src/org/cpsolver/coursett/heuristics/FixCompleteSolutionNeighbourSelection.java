@@ -129,7 +129,7 @@ public class FixCompleteSolutionNeighbourSelection extends NeighbourSelectionWit
                     if (currentValue == null)
                         continue;
                     double currentVal = currentValue.toDouble(solution.getAssignment());
-                    for (Placement value : variable.values()) {
+                    for (Placement value : variable.values(solution.getAssignment())) {
                         if (value.equals(currentValue))
                             continue;
                         if (solution.getModel().conflictValues(solution.getAssignment(), value).isEmpty()) {

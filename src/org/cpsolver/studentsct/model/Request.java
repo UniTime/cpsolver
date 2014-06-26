@@ -3,7 +3,6 @@ package org.cpsolver.studentsct.model;
 import java.util.List;
 
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.assignment.EmptyAssignment;
 import org.cpsolver.ifs.assignment.context.AssignmentContext;
 import org.cpsolver.ifs.assignment.context.VariableWithContext;
 import org.cpsolver.studentsct.StudentSectioningModel;
@@ -134,11 +133,11 @@ public abstract class Request extends VariableWithContext<Request, Enrollment, R
      * {@link Request#computeEnrollments(Assignment)} is used.
      */
     @Override
-    public List<Enrollment> values() {
-        List<Enrollment> values = super.values();
+    public List<Enrollment> values(Assignment<Request, Enrollment> assignment) {
+        List<Enrollment> values = super.values(assignment);
         if (values != null)
             return values;
-        values = computeEnrollments(getModel() == null ? new EmptyAssignment<Request, Enrollment>() : getModel().getEmptyAssignment());
+        values = computeEnrollments(assignment);
         if (sCacheValues)
             setValues(values);
         return values;

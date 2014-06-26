@@ -62,14 +62,14 @@ public class CSPBinaryConstraint extends BinaryConstraint<CSPVariable, CSPValue>
      *            random number generator
      */
     public void init(Random rndNumGen) {
-        int numberOfAllPairs = first().values().size() * second().values().size();
+        int numberOfAllPairs = first().values(null).size() * second().values(null).size();
         int[][] allPairs = new int[numberOfAllPairs][];
         int idx = 0;
 
-        iIsConsistent = new boolean[first().values().size()][second().values().size()];
+        iIsConsistent = new boolean[first().values(null).size()][second().values(null).size()];
 
-        for (CSPValue v1 : first().values()) {
-            for (CSPValue v2 : second().values()) {
+        for (CSPValue v1 : first().values(null)) {
+            for (CSPValue v2 : second().values(null)) {
                 iIsConsistent[(int) v1.toDouble()][(int) v2.toDouble()] = false;
                 allPairs[idx++] = new int[] { (int) v1.toDouble(), (int) v2.toDouble() };
             }

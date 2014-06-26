@@ -225,7 +225,7 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
         double[] bounds = new double[] { 0.0, 0.0 };
         for (V v: variables) {
             Double min = null, max = null;
-            for (T t: v.values()) {
+            for (T t: v.values(assignment)) {
                 double value = getValue(assignment, t, null);
                 if (min == null) { min = value; max = value; continue; }
                 min = Math.min(min, value);

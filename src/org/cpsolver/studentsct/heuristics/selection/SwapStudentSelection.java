@@ -228,7 +228,7 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
                 if (iMaxValues > 0 && request instanceof CourseRequest) {
                     values = ((CourseRequest) request).computeRandomEnrollments(iAssignment, iMaxValues);
                 } else
-                    values = request.values();
+                    values = request.values(iAssignment);
                 for (Enrollment enrollment : values) {
                     if (iTimeout > 0 && (JProf.currentTimeMillis() - iT0) > iTimeout) {
                         if (!iTimeoutReached) {
@@ -361,7 +361,7 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
     public static Enrollment bestSwap(Assignment<Request, Enrollment> assignment, Enrollment conflict, Enrollment enrl, Set<Student> problematicStudents) {
         Enrollment bestEnrollment = null;
         double bestValue = 0;
-        for (Enrollment enrollment : conflict.getRequest().values()) {
+        for (Enrollment enrollment : conflict.getRequest().values(assignment)) {
             if (conflict.variable().getModel().inConflict(assignment, enrollment))
                 continue;
             double value = enrollment.toDouble(assignment);
@@ -372,7 +372,7 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
         }
         if (bestEnrollment == null && problematicStudents != null) {
             boolean added = false;
-            for (Enrollment enrollment : conflict.getRequest().values()) {
+            for (Enrollment enrollment : conflict.getRequest().values(assignment)) {
                 Set<Enrollment> conflicts = conflict.variable().getModel().conflictValues(assignment, enrollment);
                 for (Enrollment c : conflicts) {
                     if (enrl.getStudent().isDummy() && !c.getStudent().isDummy())

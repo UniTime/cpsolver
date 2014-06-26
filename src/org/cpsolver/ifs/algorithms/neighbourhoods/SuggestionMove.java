@@ -121,7 +121,7 @@ public class SuggestionMove<V extends Variable<V, T>, T extends Value<V, T>> ext
             if (resolvedVariables.containsKey(variable)) return null;
         }
         
-        List<T> values = variable.values();
+        List<T> values = variable.values(solution.getAssignment());
         if (values.isEmpty()) return null;
         
         int idx = ToolBox.random(values.size());

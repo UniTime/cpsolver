@@ -404,6 +404,18 @@ public class RoomConstraint extends ConstraintWithContext<Lecture, Placement, Ro
             }
             return ret;
         }
+        
+        public boolean inConflict(Lecture lecture, TimeLocation time) {
+            for (Enumeration<Integer> e = time.getSlots(); e.hasMoreElements();) {
+                int slot = e.nextElement();
+                for (Placement confPlacement : getPlacements(slot)) {
+                    if (!confPlacement.getTimeLocation().shareWeeks(time.getWeekCode())) continue;
+                    if (confPlacement.variable().equals(lecture)) continue;
+                    if (!confPlacement.variable().canShareRoom(lecture)) return true;
+                }
+            }
+            return false;
+        }
 
     }
 }

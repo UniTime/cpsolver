@@ -64,7 +64,7 @@ public class RandomMove<V extends Variable<V, T>, T extends Value<V, T>> impleme
         int varIdx = ToolBox.random(model.variables().size());
         for (int i = 0; i < model.variables().size(); i++) {
             V variable = model.variables().get((i + varIdx) % model.variables().size());
-            List<T> values = variable.values();
+            List<T> values = variable.values(solution.getAssignment());
             if (values.isEmpty()) continue;
             int valIdx = ToolBox.random(values.size());
             for (int j = 0; j < values.size(); j++) {

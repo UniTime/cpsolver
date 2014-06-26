@@ -179,7 +179,7 @@ public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
 
         HashSet<T> noGood = new HashSet<T>(1);
         noGood.add(value);
-        for (Iterator<T> i = value.variable().values().iterator(); i.hasNext();) {
+        for (Iterator<T> i = value.variable().values(assignment).iterator(); i.hasNext();) {
             T anotherValue = i.next();
             if (anotherValue.equals(value))
                 continue;
@@ -199,7 +199,7 @@ public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
         if (!isGood(assignment, value))
             sLogger.error(value.variable().getName() + " = " + value.getName()
                     + " -- not good value unassigned (noGood:" + noGood(assignment, value) + ")");
-        for (Iterator<T> i = value.variable().values().iterator(); i.hasNext();) {
+        for (Iterator<T> i = value.variable().values(assignment).iterator(); i.hasNext();) {
             T anotherValue = i.next();
             if (!isGood(assignment, anotherValue)) {
                 Set<T> noGood = anotherValue.conflicts(assignment);
@@ -504,7 +504,7 @@ public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
     private Set<T> reason(Assignment<V, T> assignment, Constraint<V, T> constraint, V aVariable, T aValue) {
         Set<T> ret = new HashSet<T>();
 
-        for (Iterator<T> i = aVariable.values().iterator(); i.hasNext();) {
+        for (Iterator<T> i = aVariable.values(assignment).iterator(); i.hasNext();) {
             T value = i.next();
             if (constraint.isConsistent(aValue, value)) {
                 if (noGood(assignment, value) == null)
@@ -539,7 +539,7 @@ public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
             }
             for (Iterator<V> i = getModel().variables().iterator(); i.hasNext();) {
                 V aVariable = i.next();
-                for (Iterator<T> j = aVariable.values().iterator(); j.hasNext();) {
+                for (Iterator<T> j = aVariable.values(assignment).iterator(); j.hasNext();) {
                     T aValue = j.next();
                     Set<T> noGood = aValue.conflicts(assignment);
                     initNoGood(assignment, aValue, noGood);
@@ -563,7 +563,7 @@ public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
             for (Iterator<V> i = getModel().variables().iterator(); i.hasNext();) {
                 V aVariable = i.next();
                 List<T> values2delete = new ArrayList<T>();
-                for (Iterator<T> j = aVariable.values().iterator(); j.hasNext();) {
+                for (Iterator<T> j = aVariable.values(assignment).iterator(); j.hasNext();) {
                     T aValue = j.next();
                     if (!isGood(assignment, aValue) && noGood(assignment, aValue).isEmpty()) {
                         values2delete.add(aValue);
@@ -571,7 +571,7 @@ public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
                 }
                 for (T val : values2delete)
                     aVariable.removeValue(0, val);
-                if (aVariable.values().isEmpty()) {
+                if (aVariable.values(assignment).isEmpty()) {
                     sLogger.error(aVariable.getName() + " has empty domain!");
                 }
                 iProgress.incProgress();

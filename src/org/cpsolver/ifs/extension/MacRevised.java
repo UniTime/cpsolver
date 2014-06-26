@@ -125,7 +125,7 @@ public class MacRevised<V extends Variable<V, T>, T extends Value<V, T>> extends
         Set<T> noGood = new HashSet<T>(1);
         noGood.add(value);
         List<T> queue = new ArrayList<T>();
-        for (Iterator<T> i = value.variable().values().iterator(); i.hasNext();) {
+        for (Iterator<T> i = value.variable().values(assignment).iterator(); i.hasNext();) {
             T anotherValue = i.next();
             if (anotherValue.equals(value) || !isGood(assignment, anotherValue))
                 continue;
@@ -190,7 +190,7 @@ public class MacRevised<V extends Variable<V, T>, T extends Value<V, T>> extends
         for (V aVariable : constraint.variables()) {
             if (aVariable.equals(noGoodValue.variable()))
                 continue;
-            for (Iterator<T> j = aVariable.values().iterator(); j.hasNext();) {
+            for (Iterator<T> j = aVariable.values(assignment).iterator(); j.hasNext();) {
                 T aValue = j.next();
                 if (isGood(assignment, aValue) && constraint.isConsistent(noGoodValue, aValue)
                         && !hasSupport(assignment, constraint, aValue, noGoodValue.variable())) {
@@ -226,7 +226,7 @@ public class MacRevised<V extends Variable<V, T>, T extends Value<V, T>> extends
 
     public Set<T> explanation(Assignment<V, T> assignment, Constraint<V, T> constraint, T value, V variable) {
         Set<T> expl = new HashSet<T>();
-        for (T aValue : variable.values()) {
+        for (T aValue : variable.values(assignment)) {
             if (constraint.isConsistent(aValue, value)) {
                 expl.addAll(noGood(assignment, aValue));
             }
@@ -236,7 +236,7 @@ public class MacRevised<V extends Variable<V, T>, T extends Value<V, T>> extends
 
     public Set<T> supports(Assignment<V, T> assignment, Constraint<V, T> constraint, T value, V variable) {
         Set<T> sup = new HashSet<T>();
-        for (T aValue : variable.values()) {
+        for (T aValue : variable.values(assignment)) {
             if (!isGood(assignment, aValue))
                 continue;
             if (!constraint.isConsistent(aValue, value))
@@ -247,7 +247,7 @@ public class MacRevised<V extends Variable<V, T>, T extends Value<V, T>> extends
     }
 
     public boolean hasSupport(Assignment<V, T> assignment, Constraint<V, T> constraint, T value, V variable) {
-        for (T aValue : variable.values()) {
+        for (T aValue : variable.values(assignment)) {
             if (isGood(assignment, aValue) && constraint.isConsistent(aValue, value)) {
                 // sLogger.debug("    -- "+variable.getName()+" = "+aValue.getName()+" supports "
                 // +
@@ -445,7 +445,7 @@ public class MacRevised<V extends Variable<V, T>, T extends Value<V, T>> extends
             List<T> queue = new ArrayList<T>();
             for (Iterator<V> i = getModel().variables().iterator(); i.hasNext();) {
                 V aVariable = i.next();
-                for (Iterator<T> j = aVariable.values().iterator(); j.hasNext();) {
+                for (Iterator<T> j = aVariable.values(assignment).iterator(); j.hasNext();) {
                     T aValue = j.next();
                     initNoGood(assignment, aValue, null);
                     goodValues(assignment, aVariable).add(aValue);

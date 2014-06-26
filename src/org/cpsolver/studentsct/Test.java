@@ -31,6 +31,7 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.DefaultSingleAssignment;
+import org.cpsolver.ifs.assignment.EmptyAssignment;
 import org.cpsolver.ifs.heuristics.BacktrackNeighbourSelection;
 import org.cpsolver.ifs.model.Neighbour;
 import org.cpsolver.ifs.solution.Solution;
@@ -461,7 +462,7 @@ public class Test {
      * @return minimum and maximum of the enrollment penalty
      */
     public static double[] getMinMaxEnrollmentPenalty(CourseRequest request) {
-        List<Enrollment> enrollments = request.values();
+        List<Enrollment> enrollments = request.values(new EmptyAssignment<Request, Enrollment>());
         if (enrollments.isEmpty())
             return new double[] { 0, 0 };
         double min = Double.MAX_VALUE, max = Double.MIN_VALUE;

@@ -309,12 +309,13 @@ public class SpreadConstraint extends ConstraintWithContext<Lecture, Placement, 
                 histogramPerDay[i][j] = 0.0;
         int totalUsedSlots = 0;
         for (Lecture lecture : variables()) {
-            Placement firstPlacement = (lecture.values().isEmpty() ? null : lecture.values().get(0));
+            List<Placement>  values = lecture.values(assignment);
+            Placement firstPlacement = (values.isEmpty() ? null : values.get(0));
             if (firstPlacement != null) {
                 totalUsedSlots += firstPlacement.getTimeLocation().getNrSlotsPerMeeting()
                         * firstPlacement.getTimeLocation().getNrMeetings();
             }
-            for (Placement p : lecture.values()) {
+            for (Placement p : values) {
                 int firstSlot = p.getTimeLocation().getStartSlot();
                 if (firstSlot > Constants.DAY_SLOTS_LAST)
                     continue;
@@ -326,7 +327,7 @@ public class SpreadConstraint extends ConstraintWithContext<Lecture, Placement, 
                     int dayCode = p.getTimeLocation().getDayCode();
                     for (int j = 0; j < Constants.NR_DAYS_WEEK; j++) {
                         if ((dayCode & Constants.DAY_CODES[j]) != 0) {
-                            histogramPerDay[i - Constants.DAY_SLOTS_FIRST][j] += 1.0 / lecture.values().size();
+                            histogramPerDay[i - Constants.DAY_SLOTS_FIRST][j] += 1.0 / values.size();
                         }
                     }
                 }
@@ -468,12 +469,13 @@ public class SpreadConstraint extends ConstraintWithContext<Lecture, Placement, 
                     histogramPerDay[i][j] = 0.0;
             int totalUsedSlots = 0;
             for (Lecture lecture : variables()) {
-                Placement firstPlacement = (lecture.values().isEmpty() ? null : (Placement) lecture.values().get(0));
+                List<Placement>  values = lecture.values(assignment);
+                Placement firstPlacement = (values.isEmpty() ? null : values.get(0));
                 if (firstPlacement != null) {
                     totalUsedSlots += firstPlacement.getTimeLocation().getNrSlotsPerMeeting()
                             * firstPlacement.getTimeLocation().getNrMeetings();
                 }
-                for (Placement p : lecture.values()) {
+                for (Placement p : values) {
                     int firstSlot = p.getTimeLocation().getStartSlot();
                     if (firstSlot > Constants.DAY_SLOTS_LAST)
                         continue;
@@ -485,7 +487,7 @@ public class SpreadConstraint extends ConstraintWithContext<Lecture, Placement, 
                         int dayCode = p.getTimeLocation().getDayCode();
                         for (int j = 0; j < Constants.NR_DAYS_WEEK; j++) {
                             if ((dayCode & Constants.DAY_CODES[j]) != 0) {
-                                histogramPerDay[i - Constants.DAY_SLOTS_FIRST][j] += 1.0 / lecture.values().size();
+                                histogramPerDay[i - Constants.DAY_SLOTS_FIRST][j] += 1.0 / values.size();
                             }
                         }
                     }

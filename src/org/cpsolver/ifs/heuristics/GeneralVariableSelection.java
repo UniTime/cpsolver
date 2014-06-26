@@ -146,7 +146,7 @@ public class GeneralVariableSelection<V extends Variable<V, T>, T extends Value<
                         return ToolBox.random(solution.getAssignment().assignedVariables());
                     for (int attempt = 0; attempt < 10; attempt++) {
                         V noGoodVariable = ToolBox.random(noGoodVariables);
-                        T noGoodValue = ToolBox.random(noGoodVariable.values());
+                        T noGoodValue = ToolBox.random(noGoodVariable.values(solution.getAssignment()));
                         Set<T> noGood = iProp.noGood(solution.getAssignment(), noGoodValue);
                         if (noGood != null && !noGood.isEmpty())
                             return ToolBox.random(noGood).variable();
