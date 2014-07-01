@@ -447,7 +447,7 @@ public class ToolBox {
      * Compute number of K-tuples of N elements
      * @param N number of elements (e.g., number of room locations in a domain)
      * @param K size of a tuple (e.g., number of rooms a class needs)
-     * @return
+     * @return number of different K-tupples of N elements
      */
     public static long binomial(int N, int K) {
         long ret = 1;
