@@ -64,8 +64,8 @@ public class InstructorStudentConflict extends StudentConflict {
     
     /**
      * True if there is at least one student teaching one of the two classes and enrolled in the other.
-     * @param p1 first lecture
-     * @param p2 second lecture
+     * @param l1 first lecture
+     * @param l2 second lecture
      * @return true if there is at least one student of one class teaching the other class
      */
     public boolean instructor(Lecture l1, Lecture l2) {
@@ -74,9 +74,6 @@ public class InstructorStudentConflict extends StudentConflict {
         return jenrl.getNrInstructors() > 0;
     }
     
-    /**
-     * 
-     */
     @Override
     public void incJenrl(Assignment<Lecture, Placement> assignment, JenrlConstraint jenrl, double studentWeight, Double conflictPriority, Student student) {
         if (isApplicable(jenrl.first(), jenrl.second()) && inConflict(assignment.getValue(jenrl.first()), assignment.getValue(jenrl.second())) && student.getInstructor() != null
