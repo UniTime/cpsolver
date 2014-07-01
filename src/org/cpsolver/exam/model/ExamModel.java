@@ -379,6 +379,7 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
      * @param assignment current assignment
      * @return comma separated list of {@link ExamCriterion#toString(Assignment)}
      */
+    @Override
     public String toString(Assignment<Exam, ExamPlacement> assignment) {
         Set<String> props = new TreeSet<String>();
         for (Criterion<Exam, ExamPlacement> criterion: getCriteria()) {
