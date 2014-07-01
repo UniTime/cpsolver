@@ -3,7 +3,6 @@ package org.cpsolver.coursett.criteria;
 import org.cpsolver.coursett.heuristics.PlacementSelection;
 import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
-import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.criteria.AbstractCriterion;
 import org.cpsolver.ifs.solver.Solver;
 
@@ -67,26 +66,5 @@ public abstract class TimetablingCriterion extends AbstractCriterion<Lecture, Pl
     
     public double getPlacementSelectionWeightDefault(int level) {
         return (level <= 1 ? getWeight() : 0.0);
-    }
-
-    /** Abbreviated name of the criterion for {@link TimetablingCriterion#toString()}. 
-     * @return abbreviated name of the criterion
-     **/
-    public String getAbbreviation() {
-        return getName().replaceAll("[a-z ]","");
-    }
-    
-    public String toString(Assignment<Lecture, Placement> assignment) {
-        double val = getValue(assignment);
-        if (Math.abs(getWeightedValue(assignment)) < 0.005) return "";
-        double[] bounds = getBounds(assignment);
-        if (bounds[0] <= val && val <= bounds[1] && bounds[0] < bounds[1] && getName().endsWith(" Preferences"))
-            return getAbbreviation() + ":" + getPerc(val, bounds[0], bounds[1]) + "%";
-        else if (bounds[1] <= val && val <= bounds[0] && bounds[1] < bounds[0] && getName().endsWith(" Preferences"))
-            return getAbbreviation() + ":" + getPercRev(val, bounds[1], bounds[0]) + "%";
-        else if (bounds[0] != val || val != bounds[1])
-            return getAbbreviation() + ":" + sDoubleFormat.format(getValue(assignment));
-        else
-            return "";
     }
 }

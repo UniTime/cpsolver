@@ -207,4 +207,12 @@ public interface Criterion<V extends Variable<V, T>, T extends Value<V, T>> exte
      * @param assignment current assignment
      **/
     public void bestRestored(Assignment<V, T> assignment);
+    
+    /**
+     * Simple text representation of the criterion and its value. E.g., X:x where X is the {@link AbstractCriterion#getAbbreviation()} 
+     * and x is the current value {@link AbstractCriterion#getValue(Assignment)}.
+     * @param assignment current assignment
+     * @return short string representation (e.g., PP:95% for period preference)
+     */
+    public String toString(Assignment<V, T> assignment);
 }

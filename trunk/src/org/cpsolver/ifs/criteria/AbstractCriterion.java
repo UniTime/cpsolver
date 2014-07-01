@@ -6,6 +6,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import org.cpsolver.coursett.criteria.TimetablingCriterion;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
 import org.cpsolver.ifs.assignment.context.AssignmentContext;
@@ -482,5 +483,33 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
     @Deprecated
     public void inc(double value) {
         inc(getModel().getDefaultAssignment(), value);
+    }
+    
+    /** Abbreviated name of the criterion for {@link TimetablingCriterion#toString()}. 
+     * @return abbreviated name of the criterion
+     **/
+    public String getAbbreviation() {
+        return getName().replaceAll("[a-z ]","");
+    }
+    
+    /**
+     * Simple text representation of the criterion and its value. E.g., X:x where X is the {@link AbstractCriterion#getAbbreviation()} 
+     * and x is the current value {@link AbstractCriterion#getValue(Assignment)}.
+     * @param assignment current assignment
+     * @return short string representation (e.g., PP:95% for period preference)
+     */
+    @Override
+    public String toString(Assignment<V, T> assignment) {
+        double val = getValue(assignment);
+        if (Math.abs(getWeightedValue(assignment)) < 0.005) return "";
+        double[] bounds = getBounds(assignment);
+        if (bounds[0] <= val && val <= bounds[1] && bounds[0] < bounds[1] && getName().endsWith(" Preferences"))
+            return getAbbreviation() + ":" + getPerc(val, bounds[0], bounds[1]) + "%";
+        else if (bounds[1] <= val && val <= bounds[0] && bounds[1] < bounds[0] && getName().endsWith(" Preferences"))
+            return getAbbreviation() + ":" + getPercRev(val, bounds[1], bounds[0]) + "%";
+        else if (bounds[0] != val || val != bounds[1])
+            return getAbbreviation() + ":" + sDoubleFormat.format(getValue(assignment));
+        else
+            return "";
     }
 }
