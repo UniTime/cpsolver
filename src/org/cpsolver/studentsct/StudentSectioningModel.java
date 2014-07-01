@@ -836,6 +836,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         });
     }
         
+    @Override
     public String toString(Assignment<Request, Enrollment> assignment) {
         return   (getNrRealStudents(false) > 0 ? "RRq:" + getNrAssignedRealRequests(assignment, false) + "/" + getNrRealRequests(false) + ", " : "")
                 + (getNrLastLikeStudents(false) > 0 ? "DRq:" + getNrAssignedLastLikeRequests(assignment, false) + "/" + getNrLastLikeRequests(false) + ", " : "")

@@ -2,6 +2,7 @@ package org.cpsolver.ifs.model;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.HashMap;
@@ -12,6 +13,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.cpsolver.coursett.criteria.TimetablingCriterion;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import org.cpsolver.ifs.assignment.EmptyAssignment;
@@ -552,6 +554,30 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     @Override
     public String toString() {
         return "Model{\n    variables=" + ToolBox.col2string(variables(), 2) + ",\n    constraints=" + ToolBox.col2string(constraints(), 2) + ",\n  }";
+    }
+    
+    /**
+     * String representation -- returns a list of values of objective criteria
+     * @param assignment current assignment
+     * @return comma separated string of {@link TimetablingCriterion#toString(Assignment)}
+     */
+    public String toString(Assignment<V, T> assignment) {
+        List<Criterion<V, T>> criteria = new ArrayList<Criterion<V,T>>(getCriteria());
+        Collections.sort(criteria, new Comparator<Criterion<V, T>>() {
+            @Override
+            public int compare(Criterion<V, T> c1, Criterion<V, T> c2) {
+                int cmp = -Double.compare(c1.getWeight(), c2.getWeight());
+                if (cmp != 0) return cmp;
+                return c1.getName().compareTo(c2.getName());
+            }
+        });
+        String ret = "";
+        for (Criterion<V, T> criterion: criteria) {
+            String val = criterion.toString(assignment);
+            if (val != null && !val.isEmpty())
+                ret += ", " + val;
+        }
+        return (nrUnassignedVariables(assignment) == 0 ? "" : "V:" + nrAssignedVariables(assignment) + "/" + variables().size() + ", ") + "T:" + sDoubleFormat.format(getTotalValue(assignment)) + ret;
     }
 
     protected String getPerc(double value, double min, double max) {
