@@ -147,11 +147,4 @@ public abstract class ExamCriterion extends AbstractCriterion<Exam, ExamPlacemen
         } catch (NumberFormatException e) {
         } catch (NullPointerException e) {}
     }
-    
-    /**
-     * Prints criterion value
-     * @param assignment current assignment
-     * @return short string representation (e.g., PP:95% for period preference)
-     */
-    public abstract String toString(Assignment<Exam, ExamPlacement> assignment);
 }

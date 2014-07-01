@@ -7,6 +7,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.cpsolver.coursett.criteria.TimetablingCriterion;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.model.Model;
 import org.cpsolver.ifs.model.Value;
@@ -180,9 +181,14 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
         iPerturbationsCounter = solver.getPerturbationsCounter();
     }
 
+    /**
+     * String representation -- returns a list of values of objective criteria
+     * @param assignment current assignment
+     * @return comma separated string of {@link TimetablingCriterion#toString(Assignment)}
+     */
     @Override
     public String toString() {
-        return "Solution{\n  model=" + iModel + ",\n  iteration=" + iIteration + ",\n  time=" + iTime + "\n}";
+        return getModel().toString(getAssignment()) + (getFailedIterations() > 0 ? ", F:" + sTimeFormat.format(100.0 * getFailedIterations() / getIteration()) + "%" : "");
     }
 
     /**

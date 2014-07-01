@@ -3,8 +3,6 @@ package org.cpsolver.coursett.model;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.List;
@@ -37,7 +35,6 @@ import org.cpsolver.coursett.criteria.StudentHardConflict;
 import org.cpsolver.coursett.criteria.StudentOverlapConflict;
 import org.cpsolver.coursett.criteria.TimePreferences;
 import org.cpsolver.coursett.criteria.TimeViolations;
-import org.cpsolver.coursett.criteria.TimetablingCriterion;
 import org.cpsolver.coursett.criteria.TooBigRooms;
 import org.cpsolver.coursett.criteria.UselessHalfHours;
 import org.cpsolver.coursett.criteria.placement.DeltaTimePreference;
@@ -180,30 +177,6 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
      */
     public void switchStudents(Assignment<Lecture, Placement> assignment) {
         getStudentSectioning().switchStudents(new Solution<Lecture, Placement>(this, assignment));
-    }
-
-    /**
-     * String representation -- returns a list of values of objective criteria
-     * @param assignment current assignment
-     * @return comma separated string of {@link TimetablingCriterion#toString(Assignment)}
-     */
-    public String toString(Assignment<Lecture, Placement> assignment) {
-        List<Criterion<Lecture, Placement>> criteria = new ArrayList<Criterion<Lecture,Placement>>(getCriteria());
-        Collections.sort(criteria, new Comparator<Criterion<Lecture, Placement>>() {
-            @Override
-            public int compare(Criterion<Lecture, Placement> c1, Criterion<Lecture, Placement> c2) {
-                int cmp = -Double.compare(c1.getWeight(), c2.getWeight());
-                if (cmp != 0) return cmp;
-                return c1.getName().compareTo(c2.getName());
-            }
-        });
-        String ret = "";
-        for (Criterion<Lecture, Placement> criterion: criteria) {
-            String val = ((TimetablingCriterion)criterion).toString(assignment);
-            if (val != null && !val.isEmpty())
-                ret += ", " + val;
-        }
-        return (nrUnassignedVariables(assignment) == 0 ? "" : "V:" + nrAssignedVariables(assignment) + "/" + variables().size() + ", ") + "T:" + sDoubleFormat.format(getTotalValue(assignment)) + ret;
     }
 
     public Map<String, String> getBounds(Assignment<Lecture, Placement> assignment) {
