@@ -1,6 +1,5 @@
 package org.cpsolver.coursett.constraint;
 
-import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -228,10 +227,11 @@ public class SpreadConstraint extends ConstraintWithContext<Lecture, Placement, 
         int[][] nrCourses = new int[Constants.SLOTS_PER_DAY_NO_EVENINGS][Constants.NR_DAYS_WEEK];
         for (int i = 0; i < Constants.SLOTS_PER_DAY_NO_EVENINGS; i++)
             for (int j = 0; j < Constants.NR_DAYS_WEEK; j++)
-                nrCourses[i][j] = context.getNrCourses()[i][j];
+                nrCourses[i][j] = context.getNrCourses(i + Constants.DAY_SLOTS_FIRST, j, placement);
         tryAssign(assignment, placement, nrCourses);
         // sLogger.debug("  -- nrCurses="+fmt(nrCourses));
         for (Lecture lect : variables()) {
+            if (lect.equals(placement.variable())) continue;
             if (conflicts.contains(lect)) {
                 penalty -= tryUnassign(assignment, assignment.getValue(lect), nrCourses);
             }
@@ -382,7 +382,7 @@ public class SpreadConstraint extends ConstraintWithContext<Lecture, Placement, 
                 continue;
             if (day >= Constants.NR_DAYS_WEEK)
                 continue;
-            int dif = context.getNrCourses(time,day) - context.getMaxCourses(time, day);
+            int dif = 1 + context.getNrCourses(time, day, placement) - context.getMaxCourses(time, day);
             if (dif > penalty)
                 penalty = dif;
         }
@@ -399,7 +399,6 @@ public class SpreadConstraint extends ConstraintWithContext<Lecture, Placement, 
         int firstSlot = placement.getTimeLocation().getStartSlot();
         if (firstSlot > Constants.DAY_SLOTS_LAST)
             return 0;
-        Placement initialPlacement = assignment.getValue(placement.variable());
         int endSlot = firstSlot + placement.getTimeLocation().getNrSlotsPerMeeting() - 1;
         if (endSlot < Constants.DAY_SLOTS_FIRST)
             return 0;
@@ -411,7 +410,7 @@ public class SpreadConstraint extends ConstraintWithContext<Lecture, Placement, 
             if ((dayCode & placement.getTimeLocation().getDayCode()) == 0)
                 continue;
             for (int i = min; i <= max; i++) {
-                if (context.getNrCourses(i, j) >= context.getMaxCourses(i, j) + (initialPlacement == null ? 0 : context.getCourses(i, j).contains(initialPlacement) ? 1 : 0))
+                if (context.getNrCourses(i, j, placement) >= context.getMaxCourses(i, j))
                     penalty++;
             }
         }
@@ -445,21 +444,18 @@ public class SpreadConstraint extends ConstraintWithContext<Lecture, Placement, 
     public class SpreadConstraintContext implements AssignmentConstraintContext<Lecture, Placement> {
         private int iMaxAllowedPenalty = 0;
         private long iUnassignment = 0;
-        private int[][] iNrCourses = null;
-        private List<Placement>[][] iCourses = null;
+        private Set<Placement>[][] iCourses = null;
         private int iMaxCourses[][] = null;
         private int iCurrentPenalty = 0;
 
         @SuppressWarnings("unchecked")
         public SpreadConstraintContext(Assignment<Lecture, Placement> assignment) {
-            iNrCourses = new int[Constants.SLOTS_PER_DAY_NO_EVENINGS][Constants.NR_DAYS_WEEK];
-            iCourses = new List[Constants.SLOTS_PER_DAY_NO_EVENINGS][Constants.NR_DAYS_WEEK];
+            iCourses = new Set[Constants.SLOTS_PER_DAY_NO_EVENINGS][Constants.NR_DAYS_WEEK];
             if (iInteractive)
                 iUnassignmentsToWeaken = 0;
-            for (int i = 0; i < iNrCourses.length; i++) {
+            for (int i = 0; i < iCourses.length; i++) {
                 for (int j = 0; j < Constants.NR_DAYS_WEEK; j++) {
-                    iNrCourses[i][j] = 0;
-                    iCourses[i][j] = new ArrayList<Placement>(10);
+                    iCourses[i][j] = new HashSet<Placement>(10);
                 }
             }
             double histogramPerDay[][] = new double[Constants.SLOTS_PER_DAY_NO_EVENINGS][Constants.NR_DAYS_WEEK];
@@ -517,7 +513,6 @@ public class SpreadConstraint extends ConstraintWithContext<Lecture, Placement, 
                     for (int j = 0; j < Constants.NR_DAYS_WEEK; j++) {
                         int dayCode = Constants.DAY_CODES[j];
                         if ((dayCode & placement.getTimeLocation().getDayCode()) != 0) {
-                            iNrCourses[i - Constants.DAY_SLOTS_FIRST][j]++;
                             iCourses[i - Constants.DAY_SLOTS_FIRST][j].add(placement);
                         }
                     }
@@ -526,7 +521,7 @@ public class SpreadConstraint extends ConstraintWithContext<Lecture, Placement, 
             iCurrentPenalty = 0;
             for (int i = 0; i < Constants.SLOTS_PER_DAY_NO_EVENINGS; i++) {
                 for (int j = 0; j < Constants.NR_DAYS_WEEK; j++) {
-                    iCurrentPenalty += Math.max(0, iNrCourses[i][j] - iMaxCourses[i][j]);
+                    iCurrentPenalty += Math.max(0, iCourses[i][j].size() - iMaxCourses[i][j]);
                 }
             }
             iMaxAllowedPenalty = iCurrentPenalty;
@@ -547,8 +542,7 @@ public class SpreadConstraint extends ConstraintWithContext<Lecture, Placement, 
                 for (int j = 0; j < Constants.NR_DAYS_WEEK; j++) {
                     int dayCode = Constants.DAY_CODES[j];
                     if ((dayCode & placement.getTimeLocation().getDayCode()) != 0) {
-                        iNrCourses[i - Constants.DAY_SLOTS_FIRST][j]++;
-                        if (iNrCourses[i - Constants.DAY_SLOTS_FIRST][j] > iMaxCourses[i - Constants.DAY_SLOTS_FIRST][j])
+                        if (iCourses[i - Constants.DAY_SLOTS_FIRST][j].size() > iMaxCourses[i - Constants.DAY_SLOTS_FIRST][j])
                             iCurrentPenalty++;
                         iCourses[i - Constants.DAY_SLOTS_FIRST][j].add(placement);
                     }
@@ -570,9 +564,8 @@ public class SpreadConstraint extends ConstraintWithContext<Lecture, Placement, 
                 for (int j = 0; j < Constants.NR_DAYS_WEEK; j++) {
                     int dayCode = Constants.DAY_CODES[j];
                     if ((dayCode & placement.getTimeLocation().getDayCode()) != 0) {
-                        if (iNrCourses[i - Constants.DAY_SLOTS_FIRST][j] > iMaxCourses[i - Constants.DAY_SLOTS_FIRST][j])
+                        if (iCourses[i - Constants.DAY_SLOTS_FIRST][j].size() > iMaxCourses[i - Constants.DAY_SLOTS_FIRST][j])
                             iCurrentPenalty--;
-                        iNrCourses[i - Constants.DAY_SLOTS_FIRST][j]--;
                         iCourses[i - Constants.DAY_SLOTS_FIRST][j].remove(placement);
                     }
                 }
@@ -588,20 +581,17 @@ public class SpreadConstraint extends ConstraintWithContext<Lecture, Placement, 
             return iMaxCourses[time - Constants.DAY_SLOTS_FIRST][day];
         }
 
-        public int[][] getNrCourses() {
-            return iNrCourses;
+        public int getNrCourses(int time, int day, Placement placement) {
+            if (placement == null) return getCourses(time, day).size();
+            int nrCourses = 0;
+            for (Placement p: getCourses(time, day))
+                if (!p.variable().equals(placement.variable())) 
+                    nrCourses ++;
+            return nrCourses;
         }
         
-        public int getNrCourses(int time, int day) {
-            return iNrCourses[time - Constants.DAY_SLOTS_FIRST][day];
-        }
-
-        public List<Placement> getCourses(int time, int day) {
+        public Set<Placement> getCourses(int time, int day) {
             return iCourses[time - Constants.DAY_SLOTS_FIRST][day];
-        }
-        
-        public List<Placement>[][] getCourses() {
-            return iCourses;
         }
         
         public int getUnassignmentsToWeaken() {
