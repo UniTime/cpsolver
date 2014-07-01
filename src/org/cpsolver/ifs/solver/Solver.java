@@ -612,6 +612,7 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
                 onStart();
 
                 double startTime = JProf.currentTimeSec();
+                int timeout = getProperties().getPropertyInt("Termination.TimeOut", 1800);
                 if (isUpdateProgress()) {
                     if (iCurrentSolution.getBestInfo() == null) {
                         iProgress.setPhase("Searching for initial solution ...", iCurrentSolution.getModel()
@@ -620,7 +621,6 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
                         iProgress.setPhase("Improving found solution ...");
                     }
                 }
-                long prog = 9999;
                 sLogger.info("Initial solution:" + ToolBox.dict2string(iCurrentSolution.getInfo(), 1));
                 if ((iSaveBestUnassigned < 0 || iSaveBestUnassigned >= iCurrentSolution.getAssignment().nrUnassignedVariables(iCurrentSolution.getModel()))
                         && (iCurrentSolution.getBestInfo() == null || getSolutionComparator().isBetterThanBestSolution(iCurrentSolution))) {
@@ -659,7 +659,8 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
                     } finally {
                         lock.unlock();
                     }
-                    iCurrentSolution.update(JProf.currentTimeSec() - startTime);
+                    double time = JProf.currentTimeSec() - startTime;
+                    iCurrentSolution.update(time);
 
                     onAssigned(startTime, iCurrentSolution);
 
@@ -674,13 +675,9 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
                     // Increment progress bar
                     if (isUpdateProgress()) {
                         if (iCurrentSolution.getBestInfo() != null && iCurrentSolution.getModel().getBestUnassignedVariables() == 0) {
-                            prog++;
-                            if (prog == 10000) {
+                            if (!"Improving found solution ...".equals(iProgress.getPhase()))
                                 iProgress.setPhase("Improving found solution ...");
-                                prog = 0;
-                            } else {
-                                iProgress.setProgress(prog / 100);
-                            }
+                            iProgress.setProgress(Math.min(100, (int)Math.round(100 * time / timeout)));
                         } else if ((iCurrentSolution.getBestInfo() == null || iCurrentSolution.getModel().getBestUnassignedVariables() > 0) && (iCurrentSolution.getAssignment().nrAssignedVariables() > iProgress.getProgress())) {
                             iProgress.setProgress(iCurrentSolution.getAssignment().nrAssignedVariables());
                         }
