@@ -1103,6 +1103,15 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                 boolean shareRoomAndOverlaps = canShareRoom();
                 Placement support = null;
                 int nrSupports = 0;
+                if (lecture.nrValues() >= iForwardCheckMaxDomainSize) {
+                    // ignore variables with large domains
+                    return true;
+                }
+                List<Placement> values = lecture.values(assignment);
+                if (values.isEmpty()) {
+                    // ignore variables with empty domain
+                    return true;
+                }
                 for (Placement other: lecture.values(assignment)) {
                     if (nrSupports < 2) {
                         if (isSatisfiedPair(assignment, value, other)) {
@@ -1133,7 +1142,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                         if (other instanceof WeakeningConstraint) continue;
                         if (other instanceof GroupConstraint) {
                             GroupConstraint gc = (GroupConstraint)other;
-                            if (depth > 1 && !ignore.contains(gc) && !gc.forwardCheck(assignment, support, ignore, depth - 1)) return false;
+                            if (depth > 0 && !ignore.contains(gc) && !gc.forwardCheck(assignment, support, ignore, depth - 1)) return false;
                         } else {
                             if (other.inConflict(assignment, support)) return false;
                         }
