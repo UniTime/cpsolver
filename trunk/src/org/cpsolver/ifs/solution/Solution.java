@@ -183,7 +183,6 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
 
     /**
      * String representation -- returns a list of values of objective criteria
-     * @param assignment current assignment
      * @return comma separated string of {@link TimetablingCriterion#toString(Assignment)}
      */
     @Override
