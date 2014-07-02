@@ -115,6 +115,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
     private int iDayOfWeekOffset = 0;
     private boolean iPrecedenceConsiderDatePatterns = true;
     private int iForwardCheckMaxDepth = 2;
+    private int iForwardCheckMaxDomainSize = 1000;
     
     /**
      * Group constraints that can be checked on pairs of classes (e.g., same room means any two classes are in the same room),
@@ -195,7 +196,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                 return !plc1.getTimeLocation().shareDays(plc2.getTimeLocation());
             }}),
         /**
-         * Back-To-Back & Same Room: Classes must be offered in adjacent time segments and must be placed in the same room.
+         * Back-To-Back &amp; Same Room: Classes must be offered in adjacent time segments and must be placed in the same room.
          * Given classes must also be taught on the same days.<BR>
          * When prohibited or (strongly) discouraged: classes cannot be back-to-back. There must be at least half-hour
          * between these classes, and they must be taught on the same days and in the same room.
@@ -672,6 +673,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
             iDayOfWeekOffset = config.getPropertyInt("DatePattern.DayOfWeekOffset", 0);
             iPrecedenceConsiderDatePatterns = config.getPropertyBoolean("Precedence.ConsiderDatePatterns", true);
             iForwardCheckMaxDepth = config.getPropertyInt("ForwardCheck.MaxDepth", iForwardCheckMaxDepth);
+            iForwardCheckMaxDomainSize = config.getPropertyInt("ForwardCheck.MaxDomainSize", iForwardCheckMaxDomainSize);
         }
         if (!isHard()) {
             iLastPreference = getCurrentPreference();
@@ -867,6 +869,14 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                 boolean shareRoomAndOverlaps = canShareRoom();
                 Placement support = null;
                 int nrSupports = 0;
+                if (lecture.nrValues() >= iForwardCheckMaxDomainSize) {
+                    // ignore variables with large domains
+                    return;
+                }
+                if (lecture.values().isEmpty()) {
+                    // ignore variables with empty domain
+                    return;
+                }
                 for (Placement other: lecture.values()) {
                     if (nrSupports < 2) {
                         if (isSatisfiedPair(value, other)) {
@@ -981,6 +991,14 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                 boolean shareRoomAndOverlaps = canShareRoom();
                 Placement support = null;
                 int nrSupports = 0;
+                if (lecture.nrValues() >= iForwardCheckMaxDomainSize) {
+                    // ignore variables with large domains
+                    return true;
+                }
+                if (lecture.values().isEmpty()) {
+                    // ignore variables with empty domain
+                    return true;
+                }
                 for (Placement other: lecture.values()) {
                     if (nrSupports < 2) {
                         if (isSatisfiedPair(value, other)) {
@@ -1011,7 +1029,7 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
                         if (other instanceof WeakeningConstraint) continue;
                         if (other instanceof GroupConstraint) {
                             GroupConstraint gc = (GroupConstraint)other;
-                            if (depth > 1 && !ignore.contains(gc) && !gc.forwardCheck(support, ignore, depth - 1)) return false;
+                            if (depth > 0 && !ignore.contains(gc) && !gc.forwardCheck(support, ignore, depth - 1)) return false;
                         } else {
                             if (other.inConflict(support)) return false;
                         }
