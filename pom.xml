@@ -74,9 +74,9 @@
 	</dependencies>
 	
 	<scm>
-		<connection>scm:svn:http://cpsolver.googlecode.com/svn/trunk/</connection>
-		<developerConnection>scm:svn:https://cpsolver.googlecode.com/svn/trunk/</developerConnection>
-		<url>http://code.google.com/p/cpsolver/source/browse</url>
+		<connection>scm:svn:http://cpsolver.googlecode.com/svn/branches/maint_CPSolver12/</connection>
+		<developerConnection>scm:svn:https://cpsolver.googlecode.com/svn/branches/maint_CPSolver12/</developerConnection>
+		<url>http://code.google.com/p/cpsolver/source/browse/branches/maint_CPSolver12</url>
 	</scm>
 	
 	<build>
