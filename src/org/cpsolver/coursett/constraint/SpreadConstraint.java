@@ -571,9 +571,6 @@ public class SpreadConstraint extends ConstraintWithContext<Lecture, Placement, 
                 }
             }
             getCriterion().inc(assignment, iCurrentPenalty);
-            if (iCurrentPenalty < 0) {
-                System.err.println("Current penalty is negative for " + SpreadConstraint.this + " (" + iCurrentPenalty + ")");
-            }
         }
         
         public int[][] getMaxCourses() {
