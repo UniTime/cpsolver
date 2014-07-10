@@ -317,8 +317,9 @@ public class Exam extends Variable<Exam, ExamPlacement> {
             if (sizeBound < getSize())
                 break;
             ExamRoomPlacement room = iRoomPlacements.get(roomIdx);
-            if (!room.isAvailable(period))
-                continue;
+            if (!room.isAvailable(period)) {
+                roomIdx ++; continue;
+            }
             roomsSoFar.add(room);
             genRoomSets(period, maxRoomSets, roomSets, roomIdx + 1, maxRooms - 1, roomsSoFar, sizeSoFar
                     + room.getSize(hasAltSeating()), penaltySoFar + room.getPenalty(period));
