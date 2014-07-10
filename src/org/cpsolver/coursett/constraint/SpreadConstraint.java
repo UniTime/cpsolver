@@ -542,9 +542,9 @@ public class SpreadConstraint extends ConstraintWithContext<Lecture, Placement, 
                 for (int j = 0; j < Constants.NR_DAYS_WEEK; j++) {
                     int dayCode = Constants.DAY_CODES[j];
                     if ((dayCode & placement.getTimeLocation().getDayCode()) != 0) {
-                        if (iCourses[i - Constants.DAY_SLOTS_FIRST][j].size() > iMaxCourses[i - Constants.DAY_SLOTS_FIRST][j])
+                        if (iCourses[i - Constants.DAY_SLOTS_FIRST][j].add(placement) &&
+                            iCourses[i - Constants.DAY_SLOTS_FIRST][j].size() > iMaxCourses[i - Constants.DAY_SLOTS_FIRST][j])
                             iCurrentPenalty++;
-                        iCourses[i - Constants.DAY_SLOTS_FIRST][j].add(placement);
                     }
                 }
             }
@@ -564,13 +564,16 @@ public class SpreadConstraint extends ConstraintWithContext<Lecture, Placement, 
                 for (int j = 0; j < Constants.NR_DAYS_WEEK; j++) {
                     int dayCode = Constants.DAY_CODES[j];
                     if ((dayCode & placement.getTimeLocation().getDayCode()) != 0) {
-                        if (iCourses[i - Constants.DAY_SLOTS_FIRST][j].size() > iMaxCourses[i - Constants.DAY_SLOTS_FIRST][j])
+                        if (iCourses[i - Constants.DAY_SLOTS_FIRST][j].size() > iMaxCourses[i - Constants.DAY_SLOTS_FIRST][j] &&
+                            iCourses[i - Constants.DAY_SLOTS_FIRST][j].remove(placement))
                             iCurrentPenalty--;
-                        iCourses[i - Constants.DAY_SLOTS_FIRST][j].remove(placement);
                     }
                 }
             }
             getCriterion().inc(assignment, iCurrentPenalty);
+            if (iCurrentPenalty < 0) {
+                System.err.println("Current penalty is negative for " + SpreadConstraint.this + " (" + iCurrentPenalty + ")");
+            }
         }
         
         public int[][] getMaxCourses() {
