@@ -1395,15 +1395,15 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         if (idx == variables().size() && newConflicts.isEmpty())
             return bestConflicts;
         if (isSatisfiedSeqCheck(assignments, considerCurrentAssignments, conflicts)) {
-            if (bestConflicts == null || bestConflicts.size() > newConflicts.size())
+            if (bestConflicts == null) {
                 return new HashSet<Placement>(newConflicts);
-            if (bestConflicts.size() == newConflicts.size()) {
+            } else {
                 int b = 0, n = 0;
                 for (Placement value: assignments.values()) {
                     if (value != null && bestConflicts.contains(value)) b++;
                     if (value != null && newConflicts.contains(value)) n++;
                 }
-                if (n < b)
+                if (n < b || (n == b && newConflicts.size() < bestConflicts.size()))
                     return new HashSet<Placement>(newConflicts);
             }
             return bestConflicts;
