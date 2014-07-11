@@ -291,12 +291,12 @@ public class Exam extends Variable<Exam, ExamPlacement> {
             if (sizeBound < getSize())
                 break;
             ExamRoomPlacement room = iRoomPlacements.get(roomIdx);
-            if (!room.isAvailable(period))
-                continue;
-            roomsSoFar.add(room);
-            genRoomSets(period, maxRoomSets, roomSets, roomIdx + 1, maxRooms - 1, roomsSoFar, sizeSoFar
-                    + room.getSize(hasAltSeating()), penaltySoFar + room.getPenalty(period));
-            roomsSoFar.remove(room);
+            if (room.isAvailable(period)) {
+                roomsSoFar.add(room);
+                genRoomSets(period, maxRoomSets, roomSets, roomIdx + 1, maxRooms - 1, roomsSoFar,
+                        sizeSoFar + room.getSize(hasAltSeating()), penaltySoFar + room.getPenalty(period));
+                roomsSoFar.remove(room);
+            }
             sizeBound -= room.getSize(hasAltSeating());
             if (roomIdx + maxRooms < iRoomPlacements.size())
                 sizeBound += iRoomPlacements.get(roomIdx + maxRooms).getSize(hasAltSeating());
