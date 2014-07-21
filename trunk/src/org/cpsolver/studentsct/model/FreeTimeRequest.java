@@ -160,7 +160,7 @@ public class FreeTimeRequest extends Request implements SctAssignment {
     @Override
     public String getName() {
         return (isAlternative() ? "A" : "") + (1 + getPriority() + (isAlternative() ? -getStudent().nrRequests() : 0))
-                + ". Free Time " + getTime().getDayHeader() + " " + getTime().getStartTimeHeader() + " - " + getTime().getEndTimeHeader();
+                + ". Free Time " + getTime().getDayHeader() + " " + getTime().getStartTimeHeader(true) + " - " + getTime().getEndTimeHeader(true);
     }
 
     @Override

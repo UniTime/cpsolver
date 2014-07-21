@@ -536,32 +536,32 @@ public class Test {
                     File outDir = new File(model.getProperties().getProperty("General.Output", "."));
                     outDir.mkdirs();
                     CourseConflictTable cct = new CourseConflictTable((StudentSectioningModel) solution.getModel());
-                    cct.createTable(solution.getAssignment(), true, false).save(new File(outDir, "conflicts-lastlike.csv"));
-                    cct.createTable(solution.getAssignment(), false, true).save(new File(outDir, "conflicts-real.csv"));
+                    cct.createTable(solution.getAssignment(), true, false, true).save(new File(outDir, "conflicts-lastlike.csv"));
+                    cct.createTable(solution.getAssignment(), false, true, true).save(new File(outDir, "conflicts-real.csv"));
 
                     DistanceConflictTable dct = new DistanceConflictTable((StudentSectioningModel) solution.getModel());
-                    dct.createTable(solution.getAssignment(), true, false).save(new File(outDir, "distances-lastlike.csv"));
-                    dct.createTable(solution.getAssignment(), false, true).save(new File(outDir, "distances-real.csv"));
+                    dct.createTable(solution.getAssignment(), true, false, true).save(new File(outDir, "distances-lastlike.csv"));
+                    dct.createTable(solution.getAssignment(), false, true, true).save(new File(outDir, "distances-real.csv"));
                     
                     SectionConflictTable sct = new SectionConflictTable((StudentSectioningModel) solution.getModel(), SectionConflictTable.Type.OVERLAPS);
-                    sct.createTable(solution.getAssignment(), true, false).save(new File(outDir, "time-conflicts-lastlike.csv"));
-                    sct.createTable(solution.getAssignment(), false, true).save(new File(outDir, "time-conflicts-real.csv"));
+                    sct.createTable(solution.getAssignment(), true, false, true).save(new File(outDir, "time-conflicts-lastlike.csv"));
+                    sct.createTable(solution.getAssignment(), false, true, true).save(new File(outDir, "time-conflicts-real.csv"));
                     
                     SectionConflictTable ust = new SectionConflictTable((StudentSectioningModel) solution.getModel(), SectionConflictTable.Type.UNAVAILABILITIES);
-                    ust.createTable(solution.getAssignment(), true, false).save(new File(outDir, "availability-conflicts-lastlike.csv"));
-                    ust.createTable(solution.getAssignment(), false, true).save(new File(outDir, "availability-conflicts-real.csv"));
+                    ust.createTable(solution.getAssignment(), true, false, true).save(new File(outDir, "availability-conflicts-lastlike.csv"));
+                    ust.createTable(solution.getAssignment(), false, true, true).save(new File(outDir, "availability-conflicts-real.csv"));
                     
                     SectionConflictTable ct = new SectionConflictTable((StudentSectioningModel) solution.getModel(), SectionConflictTable.Type.OVERLAPS_AND_UNAVAILABILITIES);
-                    ct.createTable(solution.getAssignment(), true, false).save(new File(outDir, "section-conflicts-lastlike.csv"));
-                    ct.createTable(solution.getAssignment(), false, true).save(new File(outDir, "section-conflicts-real.csv"));
+                    ct.createTable(solution.getAssignment(), true, false, true).save(new File(outDir, "section-conflicts-lastlike.csv"));
+                    ct.createTable(solution.getAssignment(), false, true, true).save(new File(outDir, "section-conflicts-real.csv"));
                     
                     UnbalancedSectionsTable ubt = new UnbalancedSectionsTable((StudentSectioningModel) solution.getModel());
-                    ubt.createTable(solution.getAssignment(), true, false).save(new File(outDir, "unbalanced-lastlike.csv"));
-                    ubt.createTable(solution.getAssignment(), false, true).save(new File(outDir, "unbalanced-real.csv"));
+                    ubt.createTable(solution.getAssignment(), true, false, true).save(new File(outDir, "unbalanced-lastlike.csv"));
+                    ubt.createTable(solution.getAssignment(), false, true, true).save(new File(outDir, "unbalanced-real.csv"));
                     
                     TimeOverlapConflictTable toc = new TimeOverlapConflictTable((StudentSectioningModel) solution.getModel());
-                    toc.createTable(solution.getAssignment(), true, false).save(new File(outDir, "time-overlaps-lastlike.csv"));
-                    toc.createTable(solution.getAssignment(), false, true).save(new File(outDir, "time-overlaps-real.csv"));
+                    toc.createTable(solution.getAssignment(), true, false, true).save(new File(outDir, "time-overlaps-lastlike.csv"));
+                    toc.createTable(solution.getAssignment(), false, true, true).save(new File(outDir, "time-overlaps-real.csv"));
                 } catch (IOException e) {
                     sLog.error(e.getMessage(), e);
                 }

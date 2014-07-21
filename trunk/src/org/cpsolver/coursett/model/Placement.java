@@ -199,12 +199,16 @@ public class Placement extends Value<Lecture, Placement> {
 
     @Override
     public String getName() {
+        return getName(true);
+    }
+    
+    public String getName(boolean useAmPm) {
         Lecture lecture = variable();
-        return getTimeLocation().getName() + " " + getRoomName(", ")
+        return getTimeLocation().getName(useAmPm) + " " + getRoomName(", ")
                 + (lecture != null && lecture.getInstructorName() != null ? " " + lecture.getInstructorName() : "");
     }
 
-    public String getLongName() {
+    public String getLongName(boolean useAmPm) {
         Lecture lecture = variable();
         if (isMultiRoom()) {
             StringBuffer sb = new StringBuffer();
@@ -213,12 +217,17 @@ public class Placement extends Value<Lecture, Placement> {
                     sb.append(", ");
                 sb.append(r.getName());
             }
-            return getTimeLocation().getLongName() + " " + sb
+            return getTimeLocation().getLongName(useAmPm) + " " + sb
                     + (lecture.getInstructorName() != null ? " " + lecture.getInstructorName() : "");
         } else
-            return getTimeLocation().getLongName()
+            return getTimeLocation().getLongName(useAmPm)
                     + (getRoomLocation() == null ? "" : " " + getRoomLocation().getName())
                     + (lecture.getInstructorName() != null ? " " + lecture.getInstructorName() : "");
+    }
+    
+    @Deprecated
+    public String getLongName() {
+        return getLongName(true);
     }
 
     public boolean sameRooms(Placement placement) {
@@ -504,9 +513,9 @@ public class Placement extends Value<Lecture, Placement> {
         return true;
     }
 
-    public String getNotValidReason(Assignment<Lecture, Placement> assignment) {
+    public String getNotValidReason(Assignment<Lecture, Placement> assignment, boolean useAmPm) {
         Lecture lecture = variable();
-        String reason = lecture.getNotValidReason(assignment, this);
+        String reason = lecture.getNotValidReason(assignment, this, useAmPm);
         if (reason != null)
             return reason;
         for (InstructorConstraint ic : lecture.getInstructorConstraints()) {
@@ -514,11 +523,11 @@ public class Placement extends Value<Lecture, Placement> {
                 if (!ic.isAvailable(lecture, getTimeLocation())) {
                     for (Placement c: ic.getUnavailabilities()) {
                         if (c.getTimeLocation().hasIntersection(getTimeLocation()) && !lecture.canShareRoom(c.variable()))
-                            return "instructor " + ic.getName() + " not available at " + getTimeLocation().getLongName() + " due to " + c.variable().getName();
+                            return "instructor " + ic.getName() + " not available at " + getTimeLocation().getLongName(useAmPm) + " due to " + c.variable().getName();
                     }
-                    return "instructor " + ic.getName() + " not available at " + getTimeLocation().getLongName();
+                    return "instructor " + ic.getName() + " not available at " + getTimeLocation().getLongName(useAmPm);
                 } else
-                    return "placement " + getTimeLocation().getLongName() + " " + getRoomName(", ") + " is too far for instructor " + ic.getName();
+                    return "placement " + getTimeLocation().getLongName(useAmPm) + " " + getRoomName(", ") + " is too far for instructor " + ic.getName();
             }
         }
         if (lecture.getNrRooms() > 0) {
@@ -531,13 +540,13 @@ public class Placement extends Value<Lecture, Placement> {
                                 if (roomLocation.getRoomConstraint().getAvailableArray()[slot] != null) {
                                     for (Placement c : roomLocation.getRoomConstraint().getAvailableArray()[slot]) {
                                         if (c.getTimeLocation().hasIntersection(getTimeLocation()) && !lecture.canShareRoom(c.variable())) {
-                                            return "room " + roomLocation.getName() + " not available at " + getTimeLocation().getLongName() + " due to " + c.variable().getName();
+                                            return "room " + roomLocation.getName() + " not available at " + getTimeLocation().getLongName(useAmPm) + " due to " + c.variable().getName();
                                         }
                                     }
                                 }
                             }
                         }
-                        return "room " + roomLocation.getName() + " not available at " + getTimeLocation().getLongName();
+                        return "room " + roomLocation.getName() + " not available at " + getTimeLocation().getLongName(useAmPm);
                     }
                 }
             } else {
@@ -548,16 +557,21 @@ public class Placement extends Value<Lecture, Placement> {
                             if (getRoomLocation().getRoomConstraint().getAvailableArray()[slot] != null) {
                                 for (Placement c : getRoomLocation().getRoomConstraint().getAvailableArray()[slot]) {
                                     if (c.getTimeLocation().hasIntersection(getTimeLocation()) && !lecture.canShareRoom(c.variable())) {
-                                        return "room " + getRoomLocation().getName() + " not available at " + getTimeLocation().getLongName() + " due to " + c.variable().getName();
+                                        return "room " + getRoomLocation().getName() + " not available at " + getTimeLocation().getLongName(useAmPm) + " due to " + c.variable().getName();
                                     }
                                 }
                             }
                         }
                     }
-                    return "room " + getRoomLocation().getName() + " not available at " + getTimeLocation().getLongName();
+                    return "room " + getRoomLocation().getName() + " not available at " + getTimeLocation().getLongName(useAmPm);
             }
         }
         return reason;
+    }
+    
+    @Deprecated
+    public String getNotValidReason(Assignment<Lecture, Placement> assignment) {
+        return getNotValidReason(assignment, true);
     }
 
     public int getNrRooms() {

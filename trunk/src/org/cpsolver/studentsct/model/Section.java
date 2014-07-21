@@ -254,19 +254,25 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
         getContext(assignment).unassigned(assignment, enrollment);
     }
 
-    /** Long name: subpart name + time long name + room names + instructor names 
+    /** Long name: subpart name + time long name + room names + instructor names
+     * @param useAmPm use 12-hour format 
      * @return long name
      **/
-    public String getLongName() {
-        return getSubpart().getName() + " " + getName() + " " + (getTime() == null ? "" : " " + getTime().getLongName())
+    public String getLongName(boolean useAmPm) {
+        return getSubpart().getName() + " " + getName() + " " + (getTime() == null ? "" : " " + getTime().getLongName(useAmPm))
                 + (getNrRooms() == 0 ? "" : " " + getPlacement().getRoomName(","))
                 + (getChoice().getInstructorNames() == null ? "" : " " + getChoice().getInstructorNames());
+    }
+    
+    @Deprecated
+    public String getLongName() {
+        return getLongName(true);
     }
 
     @Override
     public String toString() {
         return getSubpart().getConfig().getOffering().getName() + " " + getSubpart().getName() + " " + getName()
-                + (getTime() == null ? "" : " " + getTime().getLongName())
+                + (getTime() == null ? "" : " " + getTime().getLongName(true))
                 + (getNrRooms() == 0 ? "" : " " + getPlacement().getRoomName(","))
                 + (getChoice().getInstructorNames() == null ? "" : " " + getChoice().getInstructorNames()) + " (L:"
                 + (getLimit() < 0 ? "unlimited" : "" + getLimit())

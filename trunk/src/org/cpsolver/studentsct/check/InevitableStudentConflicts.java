@@ -182,7 +182,7 @@ public class InevitableStudentConflicts {
                                 if (r instanceof CourseRequest) {
                                     key.add(((CourseRequest) r).getCourses().get(0));
                                 } else {
-                                    key.add("Free " + ((FreeTimeRequest) r).getTime().getLongName());
+                                    key.add("Free " + ((FreeTimeRequest) r).getTime().getLongName(true));
                                 }
                             }
                             Object[] counter = noGoods.get(key);
@@ -302,7 +302,7 @@ public class InevitableStudentConflicts {
             if (a instanceof Section)
                 sb.append(((Section) a).getSubpart().getName() + " ");
             if (a.getTime() != null)
-                sb.append(a.getTime().getLongName());
+                sb.append(a.getTime().getLongName(true));
             if (i.hasNext())
                 sb.append(", ");
         }
