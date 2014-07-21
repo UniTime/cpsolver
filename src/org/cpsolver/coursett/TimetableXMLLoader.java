@@ -465,8 +465,7 @@ public class TimetableXMLLoader extends TimetableLoader {
                 if (prohibitedTime != null && prohibitedTime.getDayCode() == tl.getDayCode()
                         && prohibitedTime.getStartSlot() == tl.getStartSlot()
                         && prohibitedTime.getLength() == tl.getLength()) {
-                    sLogger.info("Time " + tl.getLongName() + " is prohibited for class "
-                            + classEl.attributeValue("id"));
+                    sLogger.info("Time " + tl.getLongName(true) + " is prohibited for class " + classEl.attributeValue("id"));
                     continue;
                 }
                 if ("true".equals(timeLocationEl.attributeValue("solution")))
@@ -867,7 +866,7 @@ public class TimetableXMLLoader extends TimetableLoader {
             if (conflictConstraints.isEmpty()) {
                 if (!placement.isValid()) {
                     sLogger.warn("WARNING: Lecture " + lecture.getName() + " does not contain assignment "
-                            + placement.getLongName() + " in its domain (" + placement.getNotValidReason(getAssignment()) + ").");
+                            + placement.getLongName(true) + " in its domain (" + placement.getNotValidReason(getAssignment(), true) + ").");
                 } else
                     getAssignment().assign(0, placement);
             } else {

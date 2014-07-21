@@ -140,36 +140,73 @@ public class TimeLocation {
         return sb.toString();
     }
 
-    /** Start time for printing purposes 
+    /** Start time for printing purposes
+     * @param useAmPm use 12-hour format 
      * @return time header (e.g., 7:30a)
      **/
-    public String getStartTimeHeader() {
+    public String getStartTimeHeader(boolean useAmPm) {
         int min = iStartSlot * Constants.SLOT_LENGTH_MIN + Constants.FIRST_SLOT_TIME_MIN;
         int h = min / 60;
         int m = min % 60;
-        return (h > 12 ? h - 12 : h) + ":" + (m < 10 ? "0" : "") + m + (h >= 12 ? "p" : "a");
+        if (useAmPm)
+            return (h > 12 ? h - 12 : h) + ":" + (m < 10 ? "0" : "") + m + (h >= 12 ? "p" : "a");
+        else
+            return h + ":" + (m < 10 ? "0" : "") + m;
+    }
+    
+    /** Start time for printing purposes 
+     * @return time header (e.g., 7:30a)
+     **/
+    @Deprecated
+    public String getStartTimeHeader() {
+        return getStartTimeHeader(true);
     }
 
     /** End time for printing purposes 
+     * @param useAmPm use 12-hour format
      * @return end time (e.g., 8:20a)
      **/
-    public String getEndTimeHeader() {
+    public String getEndTimeHeader(boolean useAmPm) {
         int min = (iStartSlot + iLength) * Constants.SLOT_LENGTH_MIN + Constants.FIRST_SLOT_TIME_MIN - getBreakTime();
         int m = min % 60;
         int h = min / 60;
-        return (h > 12 ? h - 12 : h) + ":" + (m < 10 ? "0" : "") + m + (h >= 12 ? "p" : "a");
+        if (useAmPm)
+            return (h > 12 ? h - 12 : h) + ":" + (m < 10 ? "0" : "") + m + (h >= 12 ? "p" : "a");
+        else
+            return h + ":" + (m < 10 ? "0" : "") + m;
+    }
+    
+    /** End time for printing purposes 
+     * @return end time (e.g., 8:20a)
+     **/
+    @Deprecated
+    public String getEndTimeHeader() {
+        return getEndTimeHeader(true);
+    }
+
+
+    /** End time for printing purposes 
+     * @param useAmPm use 12-hour format
+     * @return end time not counting break time (e.g., 8:30a)
+     **/
+    public String getEndTimeHeaderNoAdj(boolean useAmPm) {
+        int min = (iStartSlot + iLength) * Constants.SLOT_LENGTH_MIN + Constants.FIRST_SLOT_TIME_MIN;
+        int m = min % 60;
+        int h = min / 60;
+        if (useAmPm)
+            return (h > 12 ? h - 12 : h) + ":" + (m < 10 ? "0" : "") + m + (h >= 12 ? "p" : "a");
+        else
+            return h + ":" + (m < 10 ? "0" : "") + m;
     }
 
     /** End time for printing purposes 
      * @return end time not counting break time (e.g., 8:30a)
      **/
+    @Deprecated
     public String getEndTimeHeaderNoAdj() {
-        int min = (iStartSlot + iLength) * Constants.SLOT_LENGTH_MIN + Constants.FIRST_SLOT_TIME_MIN;
-        int m = min % 60;
-        int h = min / 60;
-        return (h > 12 ? h - 12 : h) + ":" + (m < 10 ? "0" : "") + m + (h >= 12 ? "p" : "a");
+        return getEndTimeHeaderNoAdj(true);
     }
-
+    
     /** Start slot
      * @return start slot
      **/
@@ -283,19 +320,33 @@ public class TimeLocation {
     }
 
     /** Text representation 
+     * @param useAmPm 12-hour format
      * @return time name (e.g., MWF 7:30a)
      **/
+    public String getName(boolean useAmPm) {
+        return getDayHeader() + " " + getStartTimeHeader(useAmPm);
+    }
+    
+    @Deprecated
     public String getName() {
-        return getDayHeader() + " " + getStartTimeHeader();
+        return getName(true);
     }
 
+    public String getLongName(boolean useAmPm) {
+        return getDayHeader() + " " + getStartTimeHeader(useAmPm) + " - " + getEndTimeHeader(useAmPm) + " " + getDatePatternName();
+    }
+    
+    @Deprecated
     public String getLongName() {
-        return getDayHeader() + " " + getStartTimeHeader() + " - " + getEndTimeHeader() + " " + getDatePatternName();
+        return getLongName(true);
     }
 
+    public String getLongNameNoAdj(boolean useAmPm) {
+        return getDayHeader() + " " + getStartTimeHeader(useAmPm) + " - " + getEndTimeHeaderNoAdj(useAmPm) + " " + getDatePatternName();
+    }
+    
     public String getLongNameNoAdj() {
-        return getDayHeader() + " " + getStartTimeHeader() + " - " + getEndTimeHeaderNoAdj() + " "
-                + getDatePatternName();
+        return getLongNameNoAdj(true);
     }
 
     /** Preference 

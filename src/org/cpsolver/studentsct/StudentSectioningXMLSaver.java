@@ -302,7 +302,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                                     timeLocationEl.addAttribute("datePatternName", tl.getDatePatternName());
                                 timeLocationEl.addAttribute("dates", bitset2string(tl.getWeekCode()));
                                 if (iShowNames)
-                                    timeLocationEl.setText(tl.getLongName());
+                                    timeLocationEl.setText(tl.getLongName(true));
                             }
                             for (RoomLocation rl : section.getRooms()) {
                                 Element roomLocationEl = sectionEl.addElement("room");
@@ -434,7 +434,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                             requestEl.addAttribute("datePattern", tl.getDatePatternId().toString());
                         requestEl.addAttribute("dates", bitset2string(tl.getWeekCode()));
                         if (iShowNames)
-                            requestEl.setText(tl.getLongName());
+                            requestEl.setText(tl.getLongName(true));
                     }
                     if (iSaveInitial && request.getInitialAssignment() != null) {
                         requestEl.addElement("initial");
@@ -487,7 +487,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                                 sectionEl.setText(section.getName()
                                         + " "
                                         + (section.getTime() == null ? " Arr Hrs" : " "
-                                                + section.getTime().getLongName())
+                                                + section.getTime().getLongName(true))
                                         + (section.getNrRooms() == 0 ? "" : " "
                                                 + section.getPlacement().getRoomName(","))
                                         + (section.getChoice().getInstructorNames() == null ? "" : " "
@@ -506,7 +506,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                                 sectionEl.setText(section.getName()
                                         + " "
                                         + (section.getTime() == null ? " Arr Hrs" : " "
-                                                + section.getTime().getLongName())
+                                                + section.getTime().getLongName(true))
                                         + (section.getNrRooms() == 0 ? "" : " "
                                                 + section.getPlacement().getRoomName(","))
                                         + (section.getChoice().getInstructorNames() == null ? "" : " "
@@ -525,7 +525,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                                 sectionEl.setText(section.getName()
                                         + " "
                                         + (section.getTime() == null ? " Arr Hrs" : " "
-                                                + section.getTime().getLongName())
+                                                + section.getTime().getLongName(true))
                                         + (section.getNrRooms() == 0 ? "" : " "
                                                 + section.getPlacement().getRoomName(","))
                                         + (section.getChoice().getInstructorNames() == null ? "" : " "

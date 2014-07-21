@@ -1259,7 +1259,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         return true;
     }
 
-    public String getNotValidReason(Assignment<Lecture, Placement> assignment, Placement placement) {
+    public String getNotValidReason(Assignment<Lecture, Placement> assignment, Placement placement, boolean useAmPm) {
         TimetableModel model = (TimetableModel) getModel();
         if (model == null)
             return "no model for class " + getName();
@@ -1284,15 +1284,20 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
             for (Placement confPlacement : conflicts) {
                 Lecture lecture = confPlacement.variable();
                 if (lecture.isCommitted()) {
-                    return placement.getLongName() + " conflicts with " + lecture.getName() + " "
-                            + confPlacement.getLongName() + " due to constraint " + cname;
+                    return placement.getLongName(useAmPm) + " conflicts with " + lecture.getName() + " "
+                            + confPlacement.getLongName(useAmPm) + " due to constraint " + cname;
                 }
                 if (confPlacement.equals(placement)) {
-                    return placement.getLongName() + " is not valid due to constraint " + cname;
+                    return placement.getLongName(useAmPm) + " is not valid due to constraint " + cname;
                 }
             }
         }
         return null;
+    }
+    
+    @Deprecated
+    public String getNotValidReason(Assignment<Lecture, Placement> assignment, Placement placement) {
+        return getNotValidReason(assignment, placement, true);
     }
 
     public void purgeInvalidValues(boolean interactiveMode) {

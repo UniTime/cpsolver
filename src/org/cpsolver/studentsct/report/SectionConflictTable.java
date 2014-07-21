@@ -165,9 +165,10 @@ public class SectionConflictTable implements StudentSectioningReport {
      * @param includeRealStudents
      *            true, if real students should be included (i.e.,
      *            {@link Student#isDummy()} is false)
+     * @param useAmPm use 12-hour format
      * @return report as comma separated text file
      */
-    public CSVFile createTable(Assignment<Request, Enrollment> assignment, boolean includeLastLikeStudents, boolean includeRealStudents) {
+    public CSVFile createTable(Assignment<Request, Enrollment> assignment, boolean includeLastLikeStudents, boolean includeRealStudents, boolean useAmPm) {
         HashMap<Course, Map<Section, Double[]>> unavailabilities = new HashMap<Course, Map<Section,Double[]>>();
         HashMap<Course, Set<Long>> totals = new HashMap<Course, Set<Long>>();
         HashMap<CourseSection, Map<CourseSection, Double>> conflictingPairs = new HashMap<CourseSection, Map<CourseSection,Double>>();
@@ -422,7 +423,7 @@ public class SectionConflictTable implements StudentSectioningReport {
                     }
                     
                     line.add(new CSVFile.CSVField(section.getSubpart().getName() + " " + section.getName(course.getId())));
-                    line.add(new CSVFile.CSVField(section.getTime() == null ? "" : section.getTime().getDayHeader() + " " + section.getTime().getStartTimeHeader() + " - " + section.getTime().getEndTimeHeader()));
+                    line.add(new CSVFile.CSVField(section.getTime() == null ? "" : section.getTime().getDayHeader() + " " + section.getTime().getStartTimeHeader(useAmPm) + " - " + section.getTime().getEndTimeHeader(useAmPm)));
                     
                     if (iType.hasUnavailabilities()) {
                         line.add(new CSVFile.CSVField(sectionUnavailable != null ? sDF2.format(sectionUnavailable[0]) : ""));
@@ -452,7 +453,7 @@ public class SectionConflictTable implements StudentSectioningReport {
                         }
                         
                         line.add(new CSVFile.CSVField(firstClass ? section.getSubpart().getName() + " " + section.getName(course.getId()): ""));
-                        line.add(new CSVFile.CSVField(firstClass ? section.getTime() == null ? "" : section.getTime().getDayHeader() + " " + section.getTime().getStartTimeHeader() + " - " + section.getTime().getEndTimeHeader(): ""));
+                        line.add(new CSVFile.CSVField(firstClass ? section.getTime() == null ? "" : section.getTime().getDayHeader() + " " + section.getTime().getStartTimeHeader(useAmPm) + " - " + section.getTime().getEndTimeHeader(useAmPm): ""));
                         
                         if (iType.hasUnavailabilities()) {
                             line.add(new CSVFile.CSVField(firstClass && sectionUnavailable != null ? sDF2.format(sectionUnavailable[0]): ""));
@@ -466,7 +467,7 @@ public class SectionConflictTable implements StudentSectioningReport {
                         }
                         
                         line.add(new CSVFile.CSVField(other.getCourse().getName() + " " + other.getSection().getSubpart().getName() + " " + other.getSection().getName(other.getCourse().getId())));
-                        line.add(new CSVFile.CSVField(other.getSection().getTime().getDayHeader() + " " + other.getSection().getTime().getStartTimeHeader() + " - " + other.getSection().getTime().getEndTimeHeader()));
+                        line.add(new CSVFile.CSVField(other.getSection().getTime().getDayHeader() + " " + other.getSection().getTime().getStartTimeHeader(useAmPm) + " - " + other.getSection().getTime().getEndTimeHeader(useAmPm)));
                         line.add(new CSVFile.CSVField(sDF2.format(pair.get(other))));
                         line.add(new CSVFile.CSVField(sDF2.format(pair.get(other) / total.size())));
                         
@@ -487,6 +488,6 @@ public class SectionConflictTable implements StudentSectioningReport {
     public CSVFile create(Assignment<Request, Enrollment> assignment, DataProperties properties) {
         iType = Type.valueOf(properties.getProperty("type", iType.name()));
         iOverlapsAllEnrollments = properties.getPropertyBoolean("overlapsIncludeAll", true);
-        return createTable(assignment, properties.getPropertyBoolean("lastlike", false), properties.getPropertyBoolean("real", true));
+        return createTable(assignment, properties.getPropertyBoolean("lastlike", false), properties.getPropertyBoolean("real", true), properties.getPropertyBoolean("useAmPm", true));
     }
 }
