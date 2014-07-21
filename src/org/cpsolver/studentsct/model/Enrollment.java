@@ -335,11 +335,11 @@ public class Enrollment extends Value<Request, Enrollment> {
             String ret = (course == null ? getConfig() == null ? "" : getConfig().getName() : course.getName());
             for (Iterator<? extends SctAssignment> i = getAssignments().iterator(); i.hasNext();) {
                 Section assignment = (Section) i.next();
-                ret += "\n  " + assignment.getLongName() + (i.hasNext() ? "," : "");
+                ret += "\n  " + assignment.getLongName(true) + (i.hasNext() ? "," : "");
             }
             return ret;
         } else if (getRequest() instanceof FreeTimeRequest) {
-            return "Free Time " + ((FreeTimeRequest) getRequest()).getTime().getLongName();
+            return "Free Time " + ((FreeTimeRequest) getRequest()).getTime().getLongName(true);
         } else {
             String ret = "";
             for (Iterator<? extends SctAssignment> i = getAssignments().iterator(); i.hasNext();) {

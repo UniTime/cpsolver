@@ -236,7 +236,7 @@ public class Choice {
     public String getName() {
         return (getOffering().getSubparts(getInstructionalType()).iterator().next()).getName()
                 + " "
-                + (getTime() == null ? "" : getTime().getLongName())
+                + (getTime() == null ? "" : getTime().getLongName(true))
                 + (getInstructorIds() == null ? "" : getInstructorNames() != null ? " " + getInstructorNames() : " "
                         + getInstructorIds());
     }

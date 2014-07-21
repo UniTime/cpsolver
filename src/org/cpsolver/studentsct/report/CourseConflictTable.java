@@ -120,13 +120,13 @@ public class CourseConflictTable implements StudentSectioningReport {
      * @return a set of explanations, (e.g., AB 101 Lec 1 MWF 7:30 - 8:20 vs AB
      *         201 Lec 1 F 7:30 - 9:20)
      */
-    private Set<String> explanations(Assignment<Request, Enrollment> assignment, Enrollment enrl, Enrollment conflict) {
+    private Set<String> explanations(Assignment<Request, Enrollment> assignment, Enrollment enrl, Enrollment conflict, boolean useAmPm) {
         Set<String> expl = new HashSet<String>();
         for (Section s1 : enrl.getSections()) {
             for (Section s2 : conflict.getSections()) {
                 if (s1.isOverlapping(s2))
-                    expl.add(s1.getSubpart().getName() + " " + s1.getTime().getLongName() + " vs "
-                            + s2.getSubpart().getName() + " " + s2.getTime().getLongName());
+                    expl.add(s1.getSubpart().getName() + " " + s1.getTime().getLongName(useAmPm) + " vs "
+                            + s2.getSubpart().getName() + " " + s2.getTime().getLongName(useAmPm));
             }
         }
         for (Section s1 : enrl.getSections()) {
@@ -158,10 +158,11 @@ public class CourseConflictTable implements StudentSectioningReport {
      * @param includeRealStudents
      *            true, if real students should be included (i.e.,
      *            {@link Student#isDummy()} is false)
+     * @param useAmPm use 12-hour format
      * @return report as comma separated text file
      */
     @SuppressWarnings("unchecked")
-    public CSVFile createTable(Assignment<Request, Enrollment> assignment, boolean includeLastLikeStudents, boolean includeRealStudents) {
+    public CSVFile createTable(Assignment<Request, Enrollment> assignment, boolean includeLastLikeStudents, boolean includeRealStudents, boolean useAmPm) {
         CSVFile csv = new CSVFile();
         csv.setHeader(new CSVFile.CSVField[] { new CSVFile.CSVField("UnasgnCrs"), new CSVFile.CSVField("ConflCrs"),
                 new CSVFile.CSVField("NrStud"), new CSVFile.CSVField("StudWeight"), new CSVFile.CSVField("NoAlt"),
@@ -261,7 +262,7 @@ public class CourseConflictTable implements StudentSectioningReport {
                                     : ((Boolean) weight[2]).booleanValue());
                             HashSet<String> expl = (weight == null ? new HashSet<String>()
                                     : (HashSet<String>) weight[3]);
-                            expl.addAll(explanations(assignment, enrollment, conflict));
+                            expl.addAll(explanations(assignment, enrollment, conflict, useAmPm));
                             conflictCourseTable.put(conflictCourse, new Object[] { new Double(nrStud),
                                     new Double(nrStudW), new Boolean(noAlt), expl });
                         }
@@ -307,6 +308,6 @@ public class CourseConflictTable implements StudentSectioningReport {
     
     @Override
     public CSVFile create(Assignment<Request, Enrollment> assignment, DataProperties properties) {
-        return createTable(assignment, properties.getPropertyBoolean("lastlike", false), properties.getPropertyBoolean("real", true));
+        return createTable(assignment, properties.getPropertyBoolean("lastlike", false), properties.getPropertyBoolean("real", true), properties.getPropertyBoolean("useAmPm", true));
     }
 }

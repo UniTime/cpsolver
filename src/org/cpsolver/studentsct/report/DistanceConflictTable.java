@@ -108,9 +108,10 @@ public class DistanceConflictTable implements StudentSectioningReport {
      * @param includeRealStudents
      *            true, if real students should be included (i.e.,
      *            {@link Student#isDummy()} is false)
+     * @param useAmPm use 12-hour format
      * @return report as comma separated text file
      */
-    public CSVFile createTable(Assignment<Request, Enrollment> assignment, boolean includeLastLikeStudents, boolean includeRealStudents) {
+    public CSVFile createTable(Assignment<Request, Enrollment> assignment, boolean includeLastLikeStudents, boolean includeRealStudents, boolean useAmPm) {
         CSVFile csv = new CSVFile();
         csv.setHeader(new CSVFile.CSVField[] { new CSVFile.CSVField("Course"), new CSVFile.CSVField("Total\nConflicts"),
                 new CSVFile.CSVField("Class"), new CSVFile.CSVField("Meeting Time"), new CSVFile.CSVField("Room"),
@@ -257,7 +258,7 @@ public class DistanceConflictTable implements StudentSectioningReport {
                     line.add(new CSVFile.CSVField(firstCourse && firstClass ? total.size() : ""));
                     
                     line.add(new CSVFile.CSVField(firstClass ? section.getSubpart().getName() + " " + section.getName(course.getId()): ""));
-                    line.add(new CSVFile.CSVField(firstClass ? section.getTime() == null ? "" : section.getTime().getDayHeader() + " " + section.getTime().getStartTimeHeader() + " - " + section.getTime().getEndTimeHeader(): ""));
+                    line.add(new CSVFile.CSVField(firstClass ? section.getTime() == null ? "" : section.getTime().getDayHeader() + " " + section.getTime().getStartTimeHeader(useAmPm) + " - " + section.getTime().getEndTimeHeader(useAmPm): ""));
                         
                     line.add(new CSVFile.CSVField(firstClass ? rooms : ""));
                     
@@ -265,7 +266,7 @@ public class DistanceConflictTable implements StudentSectioningReport {
                     line.add(new CSVFile.CSVField(firstClass && sectionOverlap != null ? sDF2.format(((double)sectionOverlap.size()) / total.size()) : ""));
 
                     line.add(new CSVFile.CSVField(other.getCourse().getName() + " " + other.getSection().getSubpart().getName() + " " + other.getSection().getName(other.getCourse().getId())));
-                    line.add(new CSVFile.CSVField(other.getSection().getTime().getDayHeader() + " " + other.getSection().getTime().getStartTimeHeader() + " - " + other.getSection().getTime().getEndTimeHeader()));
+                    line.add(new CSVFile.CSVField(other.getSection().getTime().getDayHeader() + " " + other.getSection().getTime().getStartTimeHeader(useAmPm) + " - " + other.getSection().getTime().getEndTimeHeader(useAmPm)));
                     
                     String or = "";
                     if (other.getSection().getRooms() != null)
@@ -295,6 +296,6 @@ public class DistanceConflictTable implements StudentSectioningReport {
 
     @Override
     public CSVFile create(Assignment<Request, Enrollment> assignment, DataProperties properties) {
-        return createTable(assignment, properties.getPropertyBoolean("lastlike", false), properties.getPropertyBoolean("real", true));
+        return createTable(assignment, properties.getPropertyBoolean("lastlike", false), properties.getPropertyBoolean("real", true), properties.getPropertyBoolean("useAmPm", true));
     }
 }
