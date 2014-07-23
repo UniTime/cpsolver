@@ -945,36 +945,40 @@ public class Test {
                     String file = stk.nextToken();
                     sLog.debug("Loading " + file + " ...");
                     BufferedReader in = new BufferedReader(new FileReader(file));
-                    String line;
-                    while ((line = in.readLine()) != null) {
-                        if (line.length() < 55)
-                            continue;
-                        char code = line.charAt(12);
-                        if (code == 'H' || code == 'T')
-                            continue; // skip header and tail
-                        if (code == 'D' || code == 'K')
-                            continue; // skip delete nad cancel
-                        long studentId = Long.parseLong(line.substring(2, 11));
-                        Student student = students.get(new Long(studentId));
-                        if (student == null) {
-                            sLog.info("  -- student " + studentId + " not found");
-                            continue;
+                    try {
+                        String line;
+                        while ((line = in.readLine()) != null) {
+                            if (line.length() < 55)
+                                continue;
+                            char code = line.charAt(12);
+                            if (code == 'H' || code == 'T')
+                                continue; // skip header and tail
+                            if (code == 'D' || code == 'K')
+                                continue; // skip delete nad cancel
+                            long studentId = Long.parseLong(line.substring(2, 11));
+                            Student student = students.get(new Long(studentId));
+                            if (student == null) {
+                                sLog.info("  -- student " + studentId + " not found");
+                                continue;
+                            }
+                            sLog.info("  -- reading student " + studentId);
+                            String area = line.substring(15, 18).trim();
+                            if (area.length() == 0)
+                                continue;
+                            String clasf = line.substring(18, 20).trim();
+                            String major = line.substring(21, 24).trim();
+                            String minor = line.substring(24, 27).trim();
+                            student.getAcademicAreaClasiffications().clear();
+                            student.getMajors().clear();
+                            student.getMinors().clear();
+                            student.getAcademicAreaClasiffications().add(new AcademicAreaCode(area, clasf));
+                            if (major.length() > 0)
+                                student.getMajors().add(new AcademicAreaCode(area, major));
+                            if (minor.length() > 0)
+                                student.getMinors().add(new AcademicAreaCode(area, minor));
                         }
-                        sLog.info("  -- reading student " + studentId);
-                        String area = line.substring(15, 18).trim();
-                        if (area.length() == 0)
-                            continue;
-                        String clasf = line.substring(18, 20).trim();
-                        String major = line.substring(21, 24).trim();
-                        String minor = line.substring(24, 27).trim();
-                        student.getAcademicAreaClasiffications().clear();
-                        student.getMajors().clear();
-                        student.getMinors().clear();
-                        student.getAcademicAreaClasiffications().add(new AcademicAreaCode(area, clasf));
-                        if (major.length() > 0)
-                            student.getMajors().add(new AcademicAreaCode(area, major));
-                        if (minor.length() > 0)
-                            student.getMinors().add(new AcademicAreaCode(area, minor));
+                    } finally {
+                        in.close();
                     }
                 }
             }

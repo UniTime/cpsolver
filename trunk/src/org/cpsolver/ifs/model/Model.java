@@ -484,7 +484,6 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * @param iteration current iteration
      * @param value a value to be assigned
      **/
-    @SuppressWarnings("deprecation")
     public void beforeAssigned(Assignment<V, T> assignment, long iteration, T value) {
         beforeAssigned(iteration, value);
         for (ModelListener<V, T> listener : iModelListeners)
@@ -504,7 +503,6 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * @param iteration current iteration
      * @param value a value to be unassigned
      **/
-    @SuppressWarnings("deprecation")
     public void beforeUnassigned(Assignment<V, T> assignment, long iteration, T value) {
         beforeUnassigned(iteration, value);
         for (ModelListener<V, T> listener : iModelListeners)
@@ -524,7 +522,6 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * @param iteration current iteration
      * @param value a value that was assigned
      **/
-    @SuppressWarnings("deprecation")
     public void afterAssigned(Assignment<V, T> assignment,  long iteration, T value) {
         afterAssigned(iteration, value);
         for (ModelListener<V, T> listener : iModelListeners)
@@ -544,7 +541,6 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * @param iteration current iteration
      * @param value a value that was unassigned
      **/
-    @SuppressWarnings("deprecation")
     public void afterUnassigned(Assignment<V, T> assignment, long iteration, T value) {
         afterUnassigned(iteration, value);
         for (ModelListener<V, T> listener : iModelListeners)
