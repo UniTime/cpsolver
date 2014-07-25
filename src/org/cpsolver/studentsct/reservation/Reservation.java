@@ -274,6 +274,19 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
     }
     
     /**
+     * Priority first, than restrictivity (more restrictive first), than id 
+     */
+    @Override
+    public int compareTo(Reservation r) {
+        if (getPriority() != r.getPriority()) {
+            return (getPriority() < r.getPriority() ? -1 : 1);
+        }
+        int cmp = Double.compare(getRestrictivity(), r.getRestrictivity());
+        if (cmp != 0) return cmp;
+        return new Long(getId()).compareTo(r.getId());
+    }
+    
+    /**
      * Return minimum of two limits where -1 counts as unlimited (any limit is smaller)
      */
     private static double min(double l1, double l2) {

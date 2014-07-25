@@ -316,6 +316,17 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
             return cmp;
         return Double.compare(getId(), s.getId());
     }
+    
+    /**
+     * Compare two sections, prefer sections with lower penalty
+     */
+    @Override
+    public int compareTo(Section s) {
+        int cmp = Double.compare(getPenalty(), s.getPenalty());
+        if (cmp != 0)
+            return cmp;
+        return Double.compare(getId(), s.getId());
+    }
 
     /**
      * Return the amount of space of this section that is held for incoming
