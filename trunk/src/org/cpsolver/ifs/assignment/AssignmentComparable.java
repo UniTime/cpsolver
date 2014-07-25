@@ -30,14 +30,22 @@ import org.cpsolver.ifs.model.Variable;
  * @param <V> Variable
  * @param <T> Value
  **/
-public interface AssignmentComparable<X, V extends Variable<V, T>, T extends Value<V, T>> {
+public interface AssignmentComparable<X, V extends Variable<V, T>, T extends Value<V, T>> extends Comparable<X> {
     
 	/**
 	 * Compare this object with a given one.
 	 * @param assignment current assignment
 	 * @param other other instance
-	 * @return comparisong of this instance and the given one
+	 * @return comparison of this instance and the given one
 	 */
     public int compareTo(Assignment<V, T> assignment, X other);
-
+    
+    @Deprecated
+    @Override
+    /**
+     * Compare this object with a given one.
+     * @param other other instance
+     * @return comparison of this instance and the given one
+     */
+    public int compareTo(X other);
 }
