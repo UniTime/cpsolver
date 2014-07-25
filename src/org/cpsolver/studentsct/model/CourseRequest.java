@@ -325,7 +325,7 @@ public class CourseRequest extends Request {
                 }
                 if (!canOverLimit) {
                     boolean reservationMustBeUsed = false;
-                    reservations: for (Reservation r: (availableOnly ? new TreeSet<Reservation>(getReservations(course)) : getReservations(course))) {
+                    reservations: for (Reservation r: (availableOnly ? getSortedReservations(assignment, course) : getReservations(course))) {
                         if (r.mustBeUsed()) reservationMustBeUsed = true;
                         if (!r.isIncluded(e)) continue;
                         if (availableOnly && r.getReservedAvailableSpace(assignment, this) < getWeight()) continue;
@@ -743,6 +743,17 @@ public class CourseRequest extends Request {
         return reservations;
     }
     private Map<Course, List<Reservation>> iReservations = null;
+    
+    /**
+     * Get reservations for this course requests ordered using {@link Reservation#compareTo(Assignment, Reservation)}
+     * @param course given course
+     * @return reservations for this course requests and the given course
+     */
+    public TreeSet<Reservation> getSortedReservations(Assignment<Request, Enrollment> assignment, Course course) {
+        TreeSet<Reservation> reservations = new TreeSet<Reservation>(new AssignmentComparator<Reservation, Request, Enrollment>(assignment));
+        reservations.addAll(getReservations(course));
+        return reservations;
+    }
     
     /**
      * Return true if there is a reservation for a course of this request
