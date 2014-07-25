@@ -89,12 +89,18 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
      * @param request
      *            a request of a student to be assigned containing the given
      *            section
+     * @param hasReservation
+     *            true if the enrollment in question has a reservation (only not matching the given configuration) 
      * @return config's new unreserved space
      */
-    public static double getUnreservedSpace(Assignment<Request, Enrollment> assignment, Config config, Request request) {
-        return Math.min(config.getUnreservedSpace(assignment, request), config.getOffering().getUnreservedSpace(assignment, request))
-                - request.getWeight() + Math.max(config.getMaxEnrollmentWeight(assignment), request.getWeight()) - sNominalWeight;
+    public static double getUnreservedSpace(Assignment<Request, Enrollment> assignment, Config config, Request request, boolean hasReservation) {
+        if (hasReservation) // only check the config's unreserved space
+            return config.getUnreservedSpace(assignment, request) - request.getWeight() + Math.max(config.getMaxEnrollmentWeight(assignment), request.getWeight()) - sNominalWeight;
+        else // no reservation -- also check offering's unreserved space
+            return Math.min(config.getUnreservedSpace(assignment, request), config.getOffering().getUnreservedSpace(assignment, request))
+                    - request.getWeight() + Math.max(config.getMaxEnrollmentWeight(assignment), request.getWeight()) - sNominalWeight;
     }
+
 
     /**
      * A given enrollment is conflicting, if the reservation's remaining available space
@@ -203,7 +209,7 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
                     return;
                 }
 
-                double unreserved = getUnreservedSpace(assignment, config, enrollment.getRequest());
+                double unreserved = getUnreservedSpace(assignment, config, enrollment.getRequest(), true);
 
                 if (unreserved < 0.0) {
                     // no unreserved space available -> cannot be assigned
@@ -274,7 +280,7 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
             }
                 
             // check configuration unavailable space too
-            double unreserved = getUnreservedSpace(assignment, config, enrollment.getRequest());
+            double unreserved = getUnreservedSpace(assignment, config, enrollment.getRequest(), false);
                 
             if (unreserved < 0.0) {
                 // no unreserved space available -> cannot be assigned
@@ -385,12 +391,12 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
             
             // if not configuration reservation, check configuration unreserved space too
             return (!hasConfigReservation(enrollment) &&
-                    getUnreservedSpace(assignment, config, enrollment.getRequest()) < 0.0);
+                    getUnreservedSpace(assignment, config, enrollment.getRequest(), true) < 0.0);
         } else {
             // check unreserved space;
             return config.getOffering().getTotalUnreservedSpace() < enrollment.getRequest().getWeight() || 
                    config.getTotalUnreservedSpace() < enrollment.getRequest().getWeight() ||
-                   getUnreservedSpace(assignment, config, enrollment.getRequest()) < 0.0;
+                   getUnreservedSpace(assignment, config, enrollment.getRequest(), false) < 0.0;
         }
     }
     
