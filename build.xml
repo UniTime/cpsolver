@@ -1,4 +1,5 @@
-<project name="CPSolver 1.3" default="dist" basedir=".">
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE project>
 <!--
 	IFS 1.3 (Iterative Forward Search)
 	CourseTT 1.3 (University Course Timetabling)
@@ -20,6 +21,7 @@
 	You should have received a copy of the GNU Lesser General Public
 	License along with this library; if not see <http://www.gnu.org/licenses/>.
 -->
+<project name="CPSolver 1.3" default="dist" basedir=".">
     <property environment="env"/>
 
     <property name="build.dir" value="tmp"/>
