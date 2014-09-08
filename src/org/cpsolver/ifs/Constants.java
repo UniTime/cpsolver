@@ -1,5 +1,9 @@
 package org.cpsolver.ifs;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
 /**
  * IFS common constants. <br>
  * <br>
@@ -25,16 +29,28 @@ package org.cpsolver.ifs;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class Constants {
-    protected static final String VERSION = "${project.version}";
-    protected static final String BLD_NUMBER = "${build.number}";
-    protected static final String REL_DATE = "${build.date}";
-
+	private static Properties sProperties = null;
+	
+	private static Properties getProperties() {
+		if (sProperties == null) {
+			sProperties = new Properties();
+			InputStream in = Constants.class.getClassLoader().getResourceAsStream("cpsolver.version");
+			if (in != null) {
+				try {
+					sProperties.load(in);
+					in.close();
+				} catch (IOException e) {}
+			}
+		}
+		return sProperties;
+	}
+	
     /**
      * Version
      * @return current solver version
      */
     public static String getVersion() {
-        return VERSION;
+    	return getProperties().getProperty("project.version", "1.3");
     }
 
     /**
@@ -42,7 +58,7 @@ public class Constants {
      * @return current solver build number
      */
     public static String getBuildNumber() {
-        return BLD_NUMBER;
+    	return getProperties().getProperty("cpsolver.build_nbr", "?");
     }
 
     /**
@@ -50,6 +66,6 @@ public class Constants {
      * @return current solver release date
      */
     public static String getReleaseDate() {
-        return REL_DATE;
+    	return getProperties().getProperty("cpsolver.rel_date", "?");
     }
 }
