@@ -48,29 +48,17 @@
             <format property="build.date" pattern="EEE, d MMM yyyy" locale="en"/>
         </tstamp>
         <echo message="Build date: ${build.date}"/>
-        <propertyfile file="build.date" comment="Build info">
-            <entry  key="build.date" value="${build.date}"/>
-        	<entry  key="build.number" value="${build.number}"/>
-        </propertyfile>
+    	<exec executable="svnversion" outputproperty="revision.number" />
+    	<echo message="Revision number: ${revision.number}"/>
         <copy todir="${build.dir}" overwrite="Yes" preservelastmodified="Yes">
             <fileset dir="${src.dir}" includes="**/*.java"/>
         </copy>
-        <replace file="${build.dir}/org/cpsolver/ifs/Constants.java">
-            <replacetoken>${build.number}</replacetoken>
-            <replacevalue>@build.number@</replacevalue>
-        </replace>
-        <replace file="${build.dir}/org/cpsolver/ifs/Constants.java">
-            <replacetoken>${build.date}</replacetoken>
-            <replacevalue>@build.date@</replacevalue>
-        </replace>
-        <replace file="${build.dir}/org/cpsolver/ifs/Constants.java">
-            <replacetoken>${project.version}</replacetoken>
-            <replacevalue>1.3</replacevalue>
-        </replace>
-        <replace file="${build.dir}/org/cpsolver/ifs/Constants.java" propertyFile="build.date">
-            <replacefilter token="@build.number@" property="build.number"/>
-            <replacefilter token="@build.date@" property="build.date"/>
-        </replace>
+        <propertyfile file="cpsolver.version">
+        	<entry key="cpsolver.version" value="1.3"/>
+			<entry key="cpsolver.build_nbr" value="${build.number}"/>
+			<entry key="cpsolver.rel_date" value="${build.date}"/>
+			<entry key="cpsolver.revision" value="${revision.number}"/>
+        </propertyfile>
         <path id="build.classpath">
             <fileset dir="${lib.dir}">
             	<include name="*.jar"/>
@@ -97,8 +85,9 @@
             <fileset dir="${build.dir}">
                 <include name="org/cpsolver/ifs/**/*.class"/>
             </fileset>
-        	<fileset dir="${base.dir}/..">
+        	<fileset dir="${basedir}">
         		<include name="lgpl.txt"/>
+        		<include name="cpsolver.version"/>
         	</fileset>
         	<manifest>
         		<attribute name="Class-Path" value="log4j-1.2.17.jar dom4j-1.6.1.jar" /> 
@@ -109,8 +98,9 @@
             <fileset dir="${build.dir}">
                 <include name="org/cpsolver/coursett/**/*.class"/>
             </fileset>
-        	<fileset dir="${base.dir}/..">
+        	<fileset dir="${basedir}">
         		<include name="lgpl.txt"/>
+        		<include name="cpsolver.version"/>
         	</fileset>
         	<manifest>
         		<attribute name="Class-Path" value="log4j-1.2.17.jar dom4j-1.6.1.jar ifs-1.3.jar" /> 
@@ -122,8 +112,9 @@
             <fileset dir="${build.dir}">
                 <include name="org/cpsolver/studentsct/**/*.class"/>
             </fileset>
-        	<fileset dir="${base.dir}/..">
+        	<fileset dir="${basedir}">
         		<include name="lgpl.txt"/>
+        		<include name="cpsolver.version"/>
         	</fileset>
         	<manifest>
         		<attribute name="Class-Path" value="log4j-1.2.17.jar dom4j-1.6.1.jar ifs-1.3.jar coursett-1.3.jar" /> 
@@ -135,8 +126,9 @@
             <fileset dir="${build.dir}">
                 <include name="org/cpsolver/exam/**/*.class"/>
             </fileset>
-        	<fileset dir="${base.dir}/..">
+        	<fileset dir="${basedir}">
         		<include name="lgpl.txt"/>
+        		<include name="cpsolver.version"/>
         	</fileset>
         	<manifest>
         		<attribute name="Class-Path" value="log4j-1.2.17.jar dom4j-1.6.1.jar ifs-1.3.jar" /> 
@@ -148,8 +140,9 @@
             <fileset dir="${build.dir}">
                 <include name="org/cpsolver/**/*.class"/>
             </fileset>
-        	<fileset dir="${base.dir}/..">
+        	<fileset dir="${basedir}">
         		<include name="lgpl.txt"/>
+        		<include name="cpsolver.version"/>
         	</fileset>
         	<manifest>
         		<attribute name="Class-Path" value="log4j-1.2.17.jar dom4j-1.6.1.jar" /> 
@@ -171,7 +164,7 @@
 
     <target name="done">
         <delete dir="${build.dir}" failonerror="false"/>
-        <delete file="build.date"/>
+        <delete file="cpsolver.version"/>
     </target>
     
     <target name="build-debug" depends="clean,prepare,compile-java,compile-jar,copy-libs,done"/>
@@ -184,7 +177,7 @@
     			<equals arg1="${ant.java.version}" arg2="1.8"/>
     	</condition>
     	<echo>Extra: ${javadoc.params}</echo>
-    	<javadoc destdir="${dist.dir}/doc" author="true" version="true" use="true" windowtitle="Constraint Solver API Documentation -- CPSolver v1.3 build ${build.number}" source="1.5" linksource="true" breakiterator="true" encoding="UTF-8" additionalparam="${javadoc.params}">
+    	<javadoc destdir="${dist.dir}/doc" author="true" version="true" use="true" windowtitle="Constraint Solver API Documentation -- CPSolver v1.3 build ${build.number}" source="1.6" linksource="true" breakiterator="true" encoding="UTF-8" additionalparam="${javadoc.params}">
     		<doctitle><![CDATA[
     		<table border='0' style='font-size: 11pt;font-weight: normal;'><tr><td align='left'>
     		IFS 1.3 (Iterative Forward Search)<br>
@@ -241,21 +234,10 @@
 				<include name="**/*.java"/>
 				<include name="**/*.html"/>
 			</fileset>
+			<fileset dir="${basedir}">
+        		<include name="cpsolver.version"/>
+        	</fileset>
 		</copy>
-        <replace file="${build.dir}/org/cpsolver/ifs/Constants.java">
-            <replacetoken>int BLD_NUMBER = -1</replacetoken>
-            <replacevalue>int BLD_NUMBER = @build.number@</replacevalue>
-        </replace>
-        <replace file="${build.dir}/org/cpsolver/ifs/Constants.java">
-            <replacetoken>String REL_DATE = "Unknown"</replacetoken>
-            <replacevalue>String REL_DATE = "@build.date@"</replacevalue>
-        </replace>
-        <replace file="${build.dir}/org/cpsolver/ifs/Constants.java" propertyFile="build.date">
-            <replacefilter token="@build.date@" property="build.date"/>
-        </replace>
-        <replace file="${build.dir}/org/cpsolver/ifs/Constants.java" propertyFile="build.date">
-            <replacefilter token="@build.number@" property="build.number"/>
-        </replace>
 	</target>
 	
 	<target name="dist" depends="clean,prepare,compile-java,compile-jar,copy-libs,src,doc,done">
@@ -279,7 +261,7 @@
 				<include name="src/**/*"/>
 				<include name="lib/**/*"/>
 			</fileset>
-        	<fileset dir="${base.dir}/..">
+        	<fileset dir="${basedir}">
         		<include name="lgpl.txt"/>
         	</fileset>
 		</zip>
