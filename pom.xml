@@ -326,14 +326,13 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 
-	<!--
 	<parent>
 		<groupId>org.sonatype.oss</groupId>
 		<artifactId>oss-parent</artifactId>
 		<version>7</version>
 	</parent>
-	-->
-	
+
+	<!-- 	
 	<distributionManagement>
 		<repository>
 			<id>cpsolver.org</id>
@@ -341,4 +340,5 @@
 			<url>ftp://maven.cpsolver.org</url>
 		</repository>
 	</distributionManagement>
+	 -->
 </project>
