@@ -40,7 +40,7 @@ import org.cpsolver.ifs.util.DataProperties;
 public class DistributionPreferences extends TimetablingCriterion {
     
     public DistributionPreferences() {
-        iValueUpdateType = ValueUpdateType.NoUpdate;
+        setValueUpdateType(ValueUpdateType.NoUpdate);
     }
     
     @Override
