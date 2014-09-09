@@ -76,7 +76,7 @@ public class ExamSplitter extends ExamCriterion {
     
     /** Examination splitter criterion. */
     public ExamSplitter() {
-        iValueUpdateType = ValueUpdateType.NoUpdate;
+        setValueUpdateType(ValueUpdateType.NoUpdate);
     }
     
     /** Initialization */

@@ -39,7 +39,7 @@ import org.cpsolver.ifs.util.DataProperties;
 public abstract class PlacementSelectionCriterion extends TimetablingCriterion {
 
     public PlacementSelectionCriterion() {
-        iValueUpdateType = ValueUpdateType.NoUpdate;
+        setValueUpdateType(ValueUpdateType.NoUpdate);
     }
     
     @Override

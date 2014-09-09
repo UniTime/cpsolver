@@ -47,7 +47,7 @@ import org.cpsolver.ifs.util.DataProperties;
 public class BrokenTimePatterns extends TimetablingCriterion {
     
     public BrokenTimePatterns() {
-        iValueUpdateType = ValueUpdateType.NoUpdate;
+        setValueUpdateType(ValueUpdateType.NoUpdate);
     }
     
     @Override

@@ -57,7 +57,7 @@ public abstract class ModelWithContext<V extends Variable<V, T>, T extends Value
         /** Context is to be updated manually. */
         NoUpdate
     }
-    protected ContextUpdateType iContextUpdateType = ContextUpdateType.BeforeUnassignedAfterAssigned;
+    private ContextUpdateType iContextUpdateType = ContextUpdateType.BeforeUnassignedAfterAssigned;
     
     public ModelWithContext() {
         super();
@@ -99,7 +99,7 @@ public abstract class ModelWithContext<V extends Variable<V, T>, T extends Value
     @Override
     public void beforeUnassigned(Assignment<V, T> assignment, long iteration, T value) {
         super.beforeUnassigned(assignment, iteration, value);
-        switch (iContextUpdateType) {
+        switch (getContextUpdateType()) {
             case BeforeUnassignedAfterAssigned:
             case BeforeUnassignedBeforeAssigned:
                 getContext(assignment).unassigned(assignment, value);
@@ -109,7 +109,7 @@ public abstract class ModelWithContext<V extends Variable<V, T>, T extends Value
     @Override
     public void afterUnassigned(Assignment<V, T> assignment, long iteration, T value) {
         super.afterUnassigned(assignment, iteration, value);
-        switch (iContextUpdateType) {
+        switch (getContextUpdateType()) {
             case AfterUnassignedAfterAssigned:
             case AfterUnassignedBeforeAssigned:
                 getContext(assignment).unassigned(assignment, value);
@@ -119,7 +119,7 @@ public abstract class ModelWithContext<V extends Variable<V, T>, T extends Value
     @Override
     public void afterAssigned(Assignment<V, T> assignment, long iteration, T value) {
         super.afterAssigned(assignment, iteration, value);
-        switch (iContextUpdateType) {
+        switch (getContextUpdateType()) {
             case AfterUnassignedAfterAssigned:
             case BeforeUnassignedAfterAssigned:
                 getContext(assignment).assigned(assignment, value);
@@ -129,11 +129,19 @@ public abstract class ModelWithContext<V extends Variable<V, T>, T extends Value
     @Override
     public void beforeAssigned(Assignment<V, T> assignment, long iteration, T value) {
         super.beforeAssigned(assignment, iteration, value);
-        switch (iContextUpdateType) {
+        switch (getContextUpdateType()) {
             case AfterUnassignedBeforeAssigned:
             case BeforeUnassignedBeforeAssigned:
                 getContext(assignment).assigned(assignment, value);
         }
+    }
+
+    public ContextUpdateType getContextUpdateType() {
+        return iContextUpdateType;
+    }
+
+    public void setContextUpdateType(ContextUpdateType iContextUpdateType) {
+        this.iContextUpdateType = iContextUpdateType;
     }
 
 }

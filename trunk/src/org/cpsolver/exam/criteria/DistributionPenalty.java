@@ -48,7 +48,7 @@ public class DistributionPenalty extends ExamCriterion {
     protected Integer iSoftDistributions = null;
     
     public DistributionPenalty() {
-        iValueUpdateType = ValueUpdateType.NoUpdate; 
+        setValueUpdateType(ValueUpdateType.NoUpdate); 
     }
     
     

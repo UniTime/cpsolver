@@ -52,7 +52,7 @@ public class InstructorLunchBreak extends TimetablingCriterion {
     private List<BitSet> iWeeks = null;
     
     public InstructorLunchBreak() {
-        iValueUpdateType = ValueUpdateType.AfterUnassignedAfterAssigned;
+        setValueUpdateType(ValueUpdateType.AfterUnassignedAfterAssigned);
     }
 
     @Override

@@ -40,7 +40,7 @@ public class Perturbations extends TimetablingCriterion {
     private PerturbationsCounter<Lecture, Placement> iPerturbationsCounter = null;
     
     public Perturbations() {
-        iValueUpdateType = ValueUpdateType.NoUpdate;
+        setValueUpdateType(ValueUpdateType.NoUpdate);
     }
     
     @Override
