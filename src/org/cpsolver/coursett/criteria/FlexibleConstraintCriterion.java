@@ -42,7 +42,7 @@ public class FlexibleConstraintCriterion extends TimetablingCriterion  {
     private boolean iDebug;
     
     public FlexibleConstraintCriterion(){       
-        iValueUpdateType = ValueUpdateType.NoUpdate;
+        setValueUpdateType(ValueUpdateType.NoUpdate);
     }
 
     @Override

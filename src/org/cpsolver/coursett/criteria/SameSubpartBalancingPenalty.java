@@ -40,7 +40,7 @@ import org.cpsolver.ifs.util.DataProperties;
 public class SameSubpartBalancingPenalty extends TimetablingCriterion {
     
     public SameSubpartBalancingPenalty() {
-        iValueUpdateType = ValueUpdateType.NoUpdate;
+        setValueUpdateType(ValueUpdateType.NoUpdate);
     }
     
     @Override

@@ -46,7 +46,7 @@ public class StudentConflict extends TimetablingCriterion {
     protected boolean iIncludeConflicts = false;
     
     public StudentConflict() {
-        iValueUpdateType = ValueUpdateType.BeforeUnassignedBeforeAssigned;
+        setValueUpdateType(ValueUpdateType.BeforeUnassignedBeforeAssigned);
     }
     
     @Override

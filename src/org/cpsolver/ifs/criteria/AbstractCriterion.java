@@ -69,7 +69,6 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
     /**
      * Defines how the overall value of the criterion should be automatically updated (using {@link Criterion#getValue(Value, Set)}).
      */
-    @SuppressWarnings("javadoc")
     protected static enum ValueUpdateType {
         /** Update is done before an unassignment (decrement) and before an assignment (increment). */
         BeforeUnassignedBeforeAssigned,
@@ -82,7 +81,7 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
         /** Criterion is to be updated manually (e.g., using {@link Criterion#inc(Assignment, double)}). */
         NoUpdate
     }
-    protected ValueUpdateType iValueUpdateType = ValueUpdateType.BeforeUnassignedBeforeAssigned;
+    private ValueUpdateType iValueUpdateType = ValueUpdateType.BeforeUnassignedBeforeAssigned;
 
     /** Defines weight name (to be used to get the criterion weight from the configuration). 
      * @return name of the weight associated with this criterion
@@ -242,7 +241,7 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
 
     @Override
     public void beforeAssigned(Assignment<V, T> assignment, long iteration, T value) {
-        switch (iValueUpdateType) {
+        switch (getValueUpdateType()) {
             case AfterUnassignedBeforeAssigned:
             case BeforeUnassignedBeforeAssigned:
                 getContext(assignment).assigned(assignment, value);
@@ -251,7 +250,7 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
 
     @Override
     public void afterAssigned(Assignment<V, T> assignment, long iteration, T value) {
-        switch (iValueUpdateType) {
+        switch (getValueUpdateType()) {
             case AfterUnassignedAfterAssigned:
             case BeforeUnassignedAfterAssigned:
                 getContext(assignment).assigned(assignment, value);
@@ -260,7 +259,7 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
 
     @Override
     public void beforeUnassigned(Assignment<V, T> assignment, long iteration, T value) {
-        switch (iValueUpdateType) {
+        switch (getValueUpdateType()) {
             case BeforeUnassignedAfterAssigned:
             case BeforeUnassignedBeforeAssigned:
                 getContext(assignment).unassigned(assignment, value);
@@ -269,7 +268,7 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
 
     @Override
     public void afterUnassigned(Assignment<V, T> assignment, long iteration, T value) {
-        switch (iValueUpdateType) {
+        switch (getValueUpdateType()) {
             case AfterUnassignedAfterAssigned:
             case AfterUnassignedBeforeAssigned:
                 getContext(assignment).unassigned(assignment, value);
@@ -380,7 +379,7 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
          * @param assignment current assignment
          **/
         protected ValueContext(Assignment<V, T> assignment) {
-            if (iValueUpdateType != ValueUpdateType.NoUpdate)
+            if (getValueUpdateType() != ValueUpdateType.NoUpdate)
                 iTotal = AbstractCriterion.this.getValue(assignment, getModel().variables());
         }
         
@@ -511,5 +510,13 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
             return getAbbreviation() + ":" + sDoubleFormat.format(getValue(assignment));
         else
             return "";
+    }
+
+    public ValueUpdateType getValueUpdateType() {
+        return iValueUpdateType;
+    }
+
+    public void setValueUpdateType(ValueUpdateType iValueUpdateType) {
+        this.iValueUpdateType = iValueUpdateType;
     }
 }

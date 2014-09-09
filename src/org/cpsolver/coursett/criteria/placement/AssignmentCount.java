@@ -38,7 +38,7 @@ import org.cpsolver.ifs.util.Counter;
 public class AssignmentCount extends PlacementSelectionCriterion {
     
     public AssignmentCount() {
-        iValueUpdateType = ValueUpdateType.BeforeUnassignedAfterAssigned;
+        setValueUpdateType(ValueUpdateType.BeforeUnassignedAfterAssigned);
     }
     
     @Override
