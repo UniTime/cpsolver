@@ -97,7 +97,7 @@ public class CurriculumReservation extends Reservation {
      */
     @Override
     public int getPriority() {
-        return 3;
+        return 500;
     }
     
     /**

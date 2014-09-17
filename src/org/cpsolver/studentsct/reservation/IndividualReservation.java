@@ -82,7 +82,7 @@ public class IndividualReservation extends Reservation {
      */
     @Override
     public int getPriority() {
-        return 0;
+        return 100;
     }
 
     /**
