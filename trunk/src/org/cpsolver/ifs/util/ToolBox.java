@@ -435,7 +435,6 @@ public class ToolBox {
      * @param obj array of elements
      * @return list of elements
      */
-    @SafeVarargs
     public static <E> List<E> toList(E... obj) {
         List<E> ret = new ArrayList<E>(obj == null ? 0 : obj.length);
         if (obj != null)
