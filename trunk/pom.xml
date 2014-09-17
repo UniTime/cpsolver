@@ -25,7 +25,7 @@
 	
 	<groupId>org.unitime</groupId>
 	<artifactId>cpsolver</artifactId>
-	<version>1.3-SNAPSHOT</version>
+	<version>1.3.33</version>
 	<packaging>jar</packaging>
 	
 	<name>CPSolver</name>
@@ -74,9 +74,9 @@
 	</dependencies>
 	
 	<scm>
-		<connection>scm:svn:http://cpsolver.googlecode.com/svn/trunk/</connection>
-		<developerConnection>scm:svn:https://cpsolver.googlecode.com/svn/trunk/</developerConnection>
-		<url>http://code.google.com/p/cpsolver/source/browse</url>
+		<connection>scm:svn:http://cpsolver.googlecode.com/svn/tags/cpsolver-1.3.33</connection>
+		<developerConnection>scm:svn:https://cpsolver.googlecode.com/svn/tags/cpsolver-1.3.33</developerConnection>
+		<url>http://code.google.com/p/cpsolver/source/browse/tags/cpsolver-1.3.33</url>
 	</scm>
 	
 	<build>
@@ -85,7 +85,7 @@
 		<sourceDirectory>src</sourceDirectory>
 		<resources>
 			<resource>
-				<directory/>
+				<directory />
 				<includes>
 					<include>lgpl.txt</include>
 				</includes>
@@ -274,10 +274,10 @@
 									<format property="build.date" pattern="EEE, d MMM yyyy" locale="en" />
 								</tstamp>
 								<propertyfile file="${project.build.directory}/cpsolver.version" comment="CPSolver version file">
-									<entry key="cpsolver.version" value="${project.version}"/>
-									<entry key="cpsolver.build_nbr" value="${build.number}"/>
-									<entry key="cpsolver.rel_date" value="${build.date}"/>
-									<entry key="cpsolver.revision" value="${revision.number}"/>
+									<entry key="cpsolver.version" value="${project.version}" />
+									<entry key="cpsolver.build_nbr" value="${build.number}" />
+									<entry key="cpsolver.rel_date" value="${build.date}" />
+									<entry key="cpsolver.revision" value="${revision.number}" />
 								</propertyfile>
 							</target>
 						</configuration>
