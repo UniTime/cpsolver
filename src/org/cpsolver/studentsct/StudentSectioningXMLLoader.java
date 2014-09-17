@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-
 import org.cpsolver.coursett.model.Placement;
 import org.cpsolver.coursett.model.RoomLocation;
 import org.cpsolver.coursett.model.TimeLocation;
@@ -36,6 +35,7 @@ import org.cpsolver.studentsct.reservation.DummyReservation;
 import org.cpsolver.studentsct.reservation.GroupReservation;
 import org.cpsolver.studentsct.reservation.IndividualReservation;
 import org.cpsolver.studentsct.reservation.Reservation;
+import org.cpsolver.studentsct.reservation.ReservationOverride;
 import org.dom4j.Document;
 import org.dom4j.Element;
 import org.dom4j.io.SAXReader;
@@ -432,6 +432,16 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                         }
                     } else if ("dummy".equals(reservationEl.attributeValue("type"))) {
                         r = new DummyReservation(offering);
+                    } else if ("override".equals(reservationEl.attributeValue("type"))) {
+                        Set<Long> studentIds = new HashSet<Long>();
+                        for (Iterator<?> k = reservationEl.elementIterator("student"); k.hasNext(); ) {
+                            Element studentEl = (Element)k.next();
+                            studentIds.add(Long.parseLong(studentEl.attributeValue("id")));
+                        }
+                        r = new ReservationOverride(Long.valueOf(reservationEl.attributeValue("id")), offering, studentIds);
+                        ((ReservationOverride)r).setMustBeUsed("true".equals(reservationEl.attributeValue("mustBeUsed", "false")));
+                        ((ReservationOverride)r).setAllowOverlap("true".equals(reservationEl.attributeValue("allowOverlap", "false")));
+                        ((ReservationOverride)r).setCanAssignOverLimit("true".equals(reservationEl.attributeValue("canAssignOverLimit", "false")));
                     }
                     if (r == null) {
                         sLogger.error("Unknown reservation type "+ reservationEl.attributeValue("type"));

@@ -37,6 +37,7 @@ import org.cpsolver.studentsct.reservation.DummyReservation;
 import org.cpsolver.studentsct.reservation.GroupReservation;
 import org.cpsolver.studentsct.reservation.IndividualReservation;
 import org.cpsolver.studentsct.reservation.Reservation;
+import org.cpsolver.studentsct.reservation.ReservationOverride;
 import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
 import org.dom4j.Element;
@@ -345,6 +346,14 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                             reservationEl.addElement("student").addAttribute("id", getId("student", studentId));
                         if (gr.getReservationLimit() >= 0.0)
                             reservationEl.addAttribute("limit", String.valueOf(gr.getReservationLimit()));
+                    } else if (r instanceof ReservationOverride) {
+                        reservationEl.addAttribute("type", "override");
+                        ReservationOverride o = (ReservationOverride)r;
+                        for (Long studentId: o.getStudentIds())
+                            reservationEl.addElement("student").addAttribute("id", getId("student", studentId));
+                        if (o.mustBeUsed()) reservationEl.addAttribute("mustBeUsed", "true");
+                        if (o.isAllowOverlap()) reservationEl.addAttribute("allowOverlap", "true");
+                        if (o.canAssignOverLimit()) reservationEl.addAttribute("canAssignOverLimit", "true");
                     } else if (r instanceof IndividualReservation) {
                         reservationEl.addAttribute("type", "individual");
                         for (Long studentId: ((IndividualReservation)r).getStudentIds())

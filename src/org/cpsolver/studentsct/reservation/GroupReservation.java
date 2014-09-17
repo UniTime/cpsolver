@@ -65,7 +65,7 @@ public class GroupReservation extends IndividualReservation {
      */
     @Override
     public int getPriority() {
-        return 1;
+        return 200;
     }
 
     /**
