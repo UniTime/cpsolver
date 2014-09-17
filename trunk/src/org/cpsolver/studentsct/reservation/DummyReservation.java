@@ -51,7 +51,7 @@ public class DummyReservation extends Reservation {
      */
     @Override
     public int getPriority() {
-        return 4;
+        return 600;
     }
 
     /**
