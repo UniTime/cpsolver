@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE project>
+<!--
+	IFS 1.3 (Iterative Forward Search)
+	CourseTT 1.3 (University Course Timetabling)
+	StudentSct 1.3 (Student Sectioning)
+	ExamTT 1.3 (Examination Timetabling)
+	Copyright (C) 2007 - 2014 Tomas Muller
+	muller@unitime.org, http://muller.unitime.org
+	
+	This library is free software; you can redistribute it and/or
+	modify it under the terms of the GNU Lesser General Public
+	License as published by the Free Software Foundation; either
+	version 2.1 of the License, or (at your option) any later version.
+
+	This library is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+	Lesser General Public License for more details.
+
+	You should have received a copy of the GNU Lesser General Public
+	License along with this library; if not see <http://www.gnu.org/licenses/>.
+-->
+<project name="CPSolver 1.3" default="dist" basedir=".">
+    <property environment="env"/>
+
+    <property name="build.dir" value="tmp"/>
+    <property name="dist.dir" value="dist"/>
+    <property name="dist-lib.dir" value="${dist.dir}/bin"/>
+    <property name="lib.dir" location="lib"/>
+    <property name="src.dir" location="src"/>
+    
+    <target name="clean">
+        <delete dir="${build.dir}" failonerror="false"/>
+    </target>
+    
+    <target name="init">
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${dist-lib.dir}"/>
+        <echo message="Source files: ${src.dir}"/>
+        <echo message="Libs: ${lib.dir}"/>
+    </target>
+    
+    <target name="prepare" depends="init">
+        <buildnumber/>
+        <echo message="Build number: ${build.number}"/>
+        <tstamp>
+            <format property="build.date" pattern="EEE, d MMM yyyy" locale="en"/>
+        </tstamp>
+        <echo message="Build date: ${build.date}"/>
+    	<exec executable="svnversion" outputproperty="revision.number" />
+    	<echo message="Revision number: ${revision.number}"/>
+        <copy todir="${build.dir}" overwrite="Yes" preservelastmodified="Yes">
+            <fileset dir="${src.dir}" includes="**/*.java"/>
+        </copy>
+        <propertyfile file="cpsolver.version">
+        	<entry key="cpsolver.version" value="1.3"/>
+			<entry key="cpsolver.build_nbr" value="${build.number}"/>
+			<entry key="cpsolver.rel_date" value="${build.date}"/>
+			<entry key="cpsolver.revision" value="${revision.number}"/>
+        </propertyfile>
+        <path id="build.classpath">
+            <fileset dir="${lib.dir}">
+            	<include name="*.jar"/>
+            </fileset>
+        </path>
+    </target>
+
+    <target name="compile-java" depends="prepare">
+        <javac debug="true" destdir="${build.dir}" source="1.6" target="1.6" includeantruntime="false" encoding="UTF-8">
+            <src path="${build.dir}"/>
+            <classpath refid="build.classpath"/>
+        </javac>
+    </target>
+    
+    <target name="compile-java-rel" depends="prepare">
+        <javac debug="false" optimize="true" destdir="${build.dir}" source="1.6" target="1.6" includeantruntime="false" encoding="UTF-8">
+            <src path="${build.dir}"/>
+            <classpath refid="build.classpath"/>
+        </javac>
+    </target>
+
+    <target name="compile-jar">
+        <jar destfile="${dist-lib.dir}/ifs-1.3.jar">
+            <fileset dir="${build.dir}">
+                <include name="org/cpsolver/ifs/**/*.class"/>
+            </fileset>
+        	<fileset dir="${basedir}">
+        		<include name="lgpl.txt"/>
+        		<include name="cpsolver.version"/>
+        	</fileset>
+        	<manifest>
+        		<attribute name="Class-Path" value="log4j-1.2.17.jar dom4j-1.6.1.jar" /> 
+        		<attribute name="Ifs-Version" value="1.3_bld${build.number}"/>
+        	</manifest>
+        </jar>
+        <jar destfile="${dist-lib.dir}/coursett-1.3.jar">
+            <fileset dir="${build.dir}">
+                <include name="org/cpsolver/coursett/**/*.class"/>
+            </fileset>
+        	<fileset dir="${basedir}">
+        		<include name="lgpl.txt"/>
+        		<include name="cpsolver.version"/>
+        	</fileset>
+        	<manifest>
+        		<attribute name="Class-Path" value="log4j-1.2.17.jar dom4j-1.6.1.jar ifs-1.3.jar" /> 
+        		<attribute name="CourseTT-Version" value="1.3_bld${build.number}"/>
+        		<attribute name="Main-Class" value="org.cpsolver.coursett.Test"/>
+        	</manifest>
+        </jar>
+        <jar destfile="${dist-lib.dir}/studentsct-1.3.jar">
+            <fileset dir="${build.dir}">
+                <include name="org/cpsolver/studentsct/**/*.class"/>
+            </fileset>
+        	<fileset dir="${basedir}">
+        		<include name="lgpl.txt"/>
+        		<include name="cpsolver.version"/>
+        	</fileset>
+        	<manifest>
+        		<attribute name="Class-Path" value="log4j-1.2.17.jar dom4j-1.6.1.jar ifs-1.3.jar coursett-1.3.jar" /> 
+        		<attribute name="StudentSct-Version" value="1.3_bld${build.number}"/>
+        		<attribute name="Main-Class" value="org.cpsolver.studentsct.Test"/>
+        	</manifest>
+        </jar>
+        <jar destfile="${dist-lib.dir}/examtt-1.3.jar">
+            <fileset dir="${build.dir}">
+                <include name="org/cpsolver/exam/**/*.class"/>
+            </fileset>
+        	<fileset dir="${basedir}">
+        		<include name="lgpl.txt"/>
+        		<include name="cpsolver.version"/>
+        	</fileset>
+        	<manifest>
+        		<attribute name="Class-Path" value="log4j-1.2.17.jar dom4j-1.6.1.jar ifs-1.3.jar" /> 
+        		<attribute name="ExamTT-Version" value="1.3_bld${build.number}"/>
+        		<attribute name="Main-Class" value="org.cpsolver.exam.Test"/>
+        	</manifest>
+        </jar>
+        <jar destfile="${dist-lib.dir}/cpsolver-all-1.3.jar">
+            <fileset dir="${build.dir}">
+                <include name="org/cpsolver/**/*.class"/>
+            </fileset>
+        	<fileset dir="${basedir}">
+        		<include name="lgpl.txt"/>
+        		<include name="cpsolver.version"/>
+        	</fileset>
+        	<manifest>
+        		<attribute name="Class-Path" value="log4j-1.2.17.jar dom4j-1.6.1.jar" /> 
+        		<attribute name="Ifs-Version" value="1.3_bld${build.number}"/>
+        		<attribute name="CourseTT-Version" value="1.3_bld${build.number}"/>
+        		<attribute name="StudentSct-Version" value="1.3_bld${build.number}"/>
+        		<attribute name="ExamTT-Version" value="1.3_bld${build.number}"/>
+        		<attribute name="Main-Class" value="org.cpsolver.coursett.Test"/>
+        	</manifest>
+        </jar>
+    </target>
+
+    <target name="copy-libs" depends="init">
+        <copy todir="${dist-lib.dir}" overwrite="Yes" preservelastmodified="Yes">
+            <fileset dir="${lib.dir}" includes="log4j.jar" />
+            <fileset dir="${lib.dir}" includes="dom4j.jar" />
+      </copy>
+    </target>
+
+    <target name="done">
+        <delete dir="${build.dir}" failonerror="false"/>
+        <delete file="cpsolver.version"/>
+    </target>
+    
+    <target name="build-debug" depends="clean,prepare,compile-java,compile-jar,copy-libs,done"/>
+    <target name="build" depends="clean,prepare,compile-java-rel,compile-jar,copy-libs,done"/>
+
+    <target name="doc">
+        <delete dir="${dist.dir}/doc" failonerror="false"/>
+        <mkdir dir="${dist.dir}/doc"/>
+    	<condition property="javadoc.params" value="-Xdoclint:none" else="">
+    			<equals arg1="${ant.java.version}" arg2="1.8"/>
+    	</condition>
+    	<echo>Extra: ${javadoc.params}</echo>
+    	<javadoc destdir="${dist.dir}/doc" author="true" version="true" use="true" windowtitle="Constraint Solver API Documentation -- CPSolver v1.3 build ${build.number}" source="1.6" linksource="true" breakiterator="true" encoding="UTF-8" additionalparam="${javadoc.params}">
+    		<doctitle><![CDATA[
+    		<table border='0' style='font-size: 11pt;font-weight: normal;'><tr><td align='left'>
+    		IFS 1.3 (Iterative Forward Search)<br>
+    		CourseTT 1.3 (University Course Timetabling)<br>
+    		StudentSct 1.3 (Student Sectioning)<br>
+    		ExamTT 1.3 (Examination Timetabling)<br>
+    		Copyright (C) 2006 - 2014 Tomas Muller<br>
+    		<a href='mailto:muller@unitime.org'>muller@unitime.org</a><br>
+    		<a href='http://muller.unitime.org'>http://muller.unitime.org</a><br>
+    		<br>
+    		This library is free software; you can redistribute it and/or
+    		modify it under the terms of the GNU Lesser General Public
+    		License as published by the Free Software Foundation; either
+    		version 2.1 of the License, or (at your option) any later version.
+    		<br><br>
+    		This library is distributed in the hope that it will be useful,
+    		but WITHOUT ANY WARRANTY; without even the implied warranty of
+    		MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    		Lesser General Public License for more details.
+    		<br><br>
+    		You should have received a copy of the GNU Lesser General Public
+    		License along with this library; if not see
+    		<a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+    		</td></tr></table>
+   			]]></doctitle>
+ 	   	<group title="Iterative Forward Search" packages="org.cpsolver.ifs*"/>
+ 	   	<group title="Iterative Forward Search Examples" packages="org.cpsolver.ifs.example*"/>
+   	   	<group title="University Course Timetabling" packages="org.cpsolver.coursett*"/>
+       	<group title="Student Sectioning" packages="org.cpsolver.studentsct*"/>
+    	<group title="Examination Timetabling" packages="org.cpsolver.exam*"/>
+ 	   	<link href="http://docs.oracle.com/javase/6/docs/api/"/>
+ 	   	<link href="http://logging.apache.org/log4j/1.2/apidocs/"/>
+    	<link href="http://dom4j.sourceforge.net/dom4j-1.6.1/apidocs/"/>
+ 	   	<fileset dir="src" includes="**/*.java"/>
+    	<packageset dir="src" includes="**/package.html"/>
+ 	   	<classpath>
+ 	   		<fileset dir="${lib.dir}">
+ 	   			<include name="**/*.jar"/>
+ 	   		</fileset>
+ 	   	</classpath>
+    	</javadoc>
+    	<replace dir="${dist.dir}/doc">
+    		<include name="**/*.html"/>
+    		<replacetoken>Tomas Muller</replacetoken>
+    		<replacevalue><![CDATA[Tom&#225;&#353; M&#252;ller]]></replacevalue>
+		</replace>
+    </target>
+	
+	<target name="src">
+        <delete dir="${dist.dir}/src" failonerror="false"/>
+        <mkdir dir="${dist.dir}/src"/>
+		<copy todir="${dist.dir}/src" overwrite="Yes" preservelastmodified="Yes">
+			<fileset dir="${src.dir}">
+				<include name="**/*.java"/>
+				<include name="**/*.html"/>
+			</fileset>
+			<fileset dir="${basedir}">
+        		<include name="cpsolver.version"/>
+        	</fileset>
+		</copy>
+	</target>
+	
+	<target name="dist" depends="clean,prepare,compile-java,compile-jar,copy-libs,src,doc,done">
+        <delete dir="${dist.dir}/lib" failonerror="false"/>
+        <mkdir dir="${dist.dir}/lib"/>
+		<copy todir="${dist.dir}/lib" overwrite="Yes" preservelastmodified="Yes">
+			<fileset dir="${lib.dir}">
+				<include name="**/*.jar"/>
+				<exclude name="servlet.jar"/>
+			</fileset>
+		</copy>
+		<copy todir="${dist-lib.dir}" overwrite="Yes" preservelastmodified="Yes">
+			<fileset dir="${lib.dir}">
+				<include name="**/*.dll"/>
+			</fileset>
+		</copy>
+		<zip destfile="${dist.dir}/cpsolver-1.3_bld${build.number}.zip">
+			<fileset dir="${dist.dir}">
+				<include name="bin/**/*"/>
+				<include name="doc/**/*"/>
+				<include name="src/**/*"/>
+				<include name="lib/**/*"/>
+			</fileset>
+        	<fileset dir="${basedir}">
+        		<include name="lgpl.txt"/>
+        	</fileset>
+		</zip>
+	</target>
+
+	<target name="dist-nojprof" depends="dist"/>
+	
+	<target name="deploy">
+			<exec command="mvn">
+					<arg value="deploy"/>
+			</exec>
+	</target>
+	
+	<target name="dist-deploy" depends="dist,deploy"/>
+</project>
