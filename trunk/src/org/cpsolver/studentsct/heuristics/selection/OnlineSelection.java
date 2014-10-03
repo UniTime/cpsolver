@@ -118,6 +118,8 @@ public class OnlineSelection extends BranchBoundSelection {
     @Override
     public void init(Solver<Request, Enrollment> solver) {
         init(solver, "Online...");
+        if (iBranchBound != null)
+            iBranchBound.init(solver, "Online...");
     }
 
     /** Use student preference penalties 
