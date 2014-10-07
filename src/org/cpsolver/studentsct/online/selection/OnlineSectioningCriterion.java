@@ -168,7 +168,7 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
         Request r = getRequest(index);
         return r != null && r instanceof FreeTimeRequest;
     }
-
+    
     @Override
     public int compare(Assignment<Request, Enrollment> assignment, Enrollment[] current, Enrollment[] best) {
         if (best == null)
@@ -196,15 +196,16 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
         if (getModel().getTimeOverlaps() != null) {
             int bestTimeOverlaps = 0, currentTimeOverlaps = 0;
             for (int idx = 0; idx < current.length; idx++) {
-                if (best[idx] != null && best[idx].getAssignments() != null) {
+                if (best[idx] != null && best[idx].getAssignments() != null
+                		&& best[idx].getRequest() instanceof CourseRequest) {
                     for (int x = 0; x < idx; x++) {
                         if (best[x] != null && best[x].getAssignments() != null
-                                && best[x].getRequest() instanceof CourseRequest)
+                        		&& best[x].getRequest() instanceof CourseRequest)
                             bestTimeOverlaps += getModel().getTimeOverlaps().nrConflicts(best[x], best[idx]);
                     }
                     for (int x = 0; x < idx; x++) {
                         if (current[x] != null && current[x].getAssignments() != null
-                                && current[x].getRequest() instanceof CourseRequest)
+                        		&& current[x].getRequest() instanceof CourseRequest)
                             currentTimeOverlaps += getModel().getTimeOverlaps().nrConflicts(current[x], current[idx]);
                     }
                 }
@@ -433,13 +434,13 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
         if (getModel().getTimeOverlaps() != null) {
             int bestTimeOverlaps = 0, currentTimeOverlaps = 0;
             for (int idx = 0; idx < current.length; idx++) {
-                if (best[idx] != null) {
+                if (best[idx] != null && best[idx].getRequest() instanceof CourseRequest) {
                     for (int x = 0; x < idx; x++) {
                         if (best[x] != null && best[x].getRequest() instanceof CourseRequest)
                             bestTimeOverlaps += getModel().getTimeOverlaps().nrConflicts(best[x], best[idx]);
                     }
                 }
-                if (current[idx] != null && idx < maxIdx) {
+                if (current[idx] != null && idx < maxIdx && current[idx].getRequest() instanceof CourseRequest) {
                     for (int x = 0; x < idx; x++) {
                         if (current[x] != null && current[x].getRequest() instanceof CourseRequest)
                             currentTimeOverlaps += getModel().getTimeOverlaps().nrConflicts(current[x], current[idx]);
