@@ -7,7 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.cpsolver.ifs.assignment.context.AssignmentContextHolderMap;
+import org.cpsolver.ifs.assignment.context.InheritedAssignmentContextHolder;
 import org.cpsolver.ifs.model.Value;
 import org.cpsolver.ifs.model.Variable;
 
@@ -45,9 +45,13 @@ public class InheritedAssignment<V extends Variable<V, T>, T extends Value<V, T>
     private Set<V> iDirty = new HashSet<V>();
     private Map<V, Long> iIteration = new HashMap<V, Long>();
 
-    public InheritedAssignment(Assignment<V, T> parent) {
-        super(new AssignmentContextHolderMap<V, T>());
+    public InheritedAssignment(Assignment<V, T> parent, int index) {
+        super(new InheritedAssignmentContextHolder<V, T>());
         iParent = parent;
+    }
+    
+    public InheritedAssignment(Assignment<V, T> parent) {
+        this(parent, -1);
     }
     
     @Override
@@ -68,7 +72,7 @@ public class InheritedAssignment<V extends Variable<V, T>, T extends Value<V, T>
     public Collection<T> assignedValues() {
         Set<T> values = new HashSet<T>();
         for (T val: iParent.assignedValues()) {
-            if (!iDirty.contains(val.variable()))
+            if (val != null && !iDirty.contains(val.variable()))
                 values.add(val);
         }
         values.addAll(iAssignments.values());
@@ -82,7 +86,7 @@ public class InheritedAssignment<V extends Variable<V, T>, T extends Value<V, T>
     
     @Override
     protected T getValueInternal(V variable) {
-        T value = iAssignments.get(variable);
+        T value = (iAssignments.isEmpty() ? null : iAssignments.get(variable));
         return (value != null ? value : iDirty.contains(variable) ? null : iParent.getValue(variable));
    }
 
@@ -99,5 +103,13 @@ public class InheritedAssignment<V extends Variable<V, T>, T extends Value<V, T>
                 iIteration.put(variable, iteration);
             iDirty.remove(variable);
         }
+    }
+    
+    /**
+     * Return parent assignment.
+     * @return parent assignment
+     */
+    public Assignment<V, T> getParentAssignment() {
+        return iParent;
     }
 }
