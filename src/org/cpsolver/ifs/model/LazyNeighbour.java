@@ -49,6 +49,15 @@ public abstract class LazyNeighbour<V extends Variable<V, T>, T extends Value<V,
     }
     
     /**
+     * Return acceptance criterion (to be used by a search strategy before the 
+     * neighbour is accepted, so that it can be undone if desired)  
+     * @return acceptance criterion
+     */
+    public LazyNeighbourAcceptanceCriterion<V,T> getAcceptanceCriterion() {
+        return iCriterion;
+    }
+    
+    /**
      * Assign neighbour, check given acceptance criterion, and undo
      * assignment if the change is not accepted. 
      */
