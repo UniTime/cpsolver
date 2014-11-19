@@ -10,6 +10,8 @@ import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.DefaultParallelAssignment;
 import org.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import org.cpsolver.ifs.assignment.InheritedAssignment;
+import org.cpsolver.ifs.model.LazyNeighbour;
+import org.cpsolver.ifs.model.LazyNeighbour.LazyNeighbourAcceptanceCriterion;
 import org.cpsolver.ifs.model.Model;
 import org.cpsolver.ifs.model.Neighbour;
 import org.cpsolver.ifs.model.Value;
@@ -253,6 +255,8 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
         @Override
         public void run() {
             try {
+                boolean neighbourCheck = getProperties().getPropertyBoolean("ParallelSolver.SingleSolutionNeighbourCheck", false);
+                
                 while (!iStop) {
                     // Break if cannot continue
                     if (!getTerminationCondition().canContinue(iSolution)) break;
@@ -300,6 +304,14 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
                         Lock lock = iSolution.getLock().writeLock();
                         lock.lock();
                         try {
+                            LazyNeighbourAcceptanceCriterion<V,T> lazy = null;
+                            double before = 0, value = 0;
+                            if (neighbour instanceof LazyNeighbour) {
+                                lazy = ((LazyNeighbour<V, T>)neighbour).getAcceptanceCriterion();
+                            } else if (neighbourCheck) {
+                                before = iSolution.getModel().getTotalValue(iSolution.getAssignment());
+                                value = neighbour.value(current.getAssignment());
+                            }
                             Map<V, T> undo = new HashMap<V, T>();
                             for (V var: assignments.keySet())
                                 undo.put(var, iSolution.getAssignment().unassign(iSolution.getIteration(), var));
@@ -310,6 +322,15 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
                                     fail = true; break;
                                 }
                                 iSolution.getAssignment().assign(iSolution.getIteration(), val);
+                            }
+                            if (lazy != null) {
+                                double after = iSolution.getModel().getTotalValue(iSolution.getAssignment());
+                                if (!lazy.accept(iSolution.getAssignment(), (LazyNeighbour<V, T>) neighbour, after - before))
+                                    fail = true;
+                            } else if (neighbourCheck) {
+                                double after = iSolution.getModel().getTotalValue(iSolution.getAssignment());
+                                if (before + value < after && after - before > 0 && !getSolutionComparator().isBetterThanBestSolution(iSolution))
+                                    fail = true;
                             }
                             if (fail) {
                                 for (V var: undo.keySet())
