@@ -42,7 +42,7 @@ import org.cpsolver.ifs.util.DataProperties;
  **/
 public abstract class ExtensionWithContext<V extends Variable<V, T>, T extends Value<V, T>, C extends AssignmentContext> extends Extension<V, T> implements HasAssignmentContext<V, T, C>, CanHoldContext {
     private AssignmentContextReference<V, T, C> iContextReference = null;
-    private AssignmentContext[] iContext = null;
+    private AssignmentContext[] iContext = new AssignmentContext[CanHoldContext.sMaxSize];
     
     public ExtensionWithContext(Solver<V, T> solver, DataProperties properties) {
         super(solver, properties);
@@ -62,14 +62,9 @@ public abstract class ExtensionWithContext<V extends Variable<V, T>, T extends V
      * @param assignment given assignment
      * @return assignment context associated with this extension and the given assignment
      */
-    @SuppressWarnings("unchecked")
     @Override
     public C getContext(Assignment<V, T> assignment) {
-        if (iContext != null && assignment.getIndex() >= 0 && assignment.getIndex() < iContext.length) {
-            AssignmentContext c = iContext[assignment.getIndex()];
-            if (c != null) return (C)c;
-        }
-        return assignment.getAssignmentContext(getAssignmentContextReference());
+        return AssignmentContextHelper.getContext(this, assignment);
     }
 
     @Override
@@ -80,9 +75,6 @@ public abstract class ExtensionWithContext<V extends Variable<V, T>, T extends V
 
     @Override
     public AssignmentContext[] getContext() { return iContext; }
-
-    @Override
-    public void setContext(AssignmentContext[] context) { iContext = context; }
     
     @Override
     public void unregister(Model<V, T> model) {

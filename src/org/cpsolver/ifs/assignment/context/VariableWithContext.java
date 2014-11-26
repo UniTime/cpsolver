@@ -39,7 +39,7 @@ import org.cpsolver.ifs.model.Variable;
  **/
 public abstract class VariableWithContext<V extends Variable<V, T>, T extends Value<V, T>, C extends AssignmentContext> extends Variable<V, T> implements HasAssignmentContext<V, T, C>, CanHoldContext {
     private AssignmentContextReference<V, T, C> iContextReference = null;
-    private AssignmentContext[] iContext = null;
+    private AssignmentContext[] iContext = new AssignmentContext[CanHoldContext.sMaxSize];
     
     /** Constructor */
     public VariableWithContext() {
@@ -87,7 +87,4 @@ public abstract class VariableWithContext<V extends Variable<V, T>, T extends Va
 
     @Override
     public AssignmentContext[] getContext() { return iContext; }
-
-    @Override
-    public void setContext(AssignmentContext[] context) { iContext = context; }
 }

@@ -10,15 +10,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-
 import org.apache.log4j.Logger;
 import org.cpsolver.ifs.assignment.Assignment;
+import org.cpsolver.ifs.assignment.InheritedAssignment;
+import org.cpsolver.ifs.assignment.OptimisticInheritedAssignment;
 import org.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
 import org.cpsolver.ifs.assignment.context.ModelWithContext;
 import org.cpsolver.ifs.model.Constraint;
 import org.cpsolver.ifs.model.ConstraintListener;
 import org.cpsolver.ifs.model.InfoProvider;
 import org.cpsolver.ifs.model.Model;
+import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.studentsct.constraint.ConfigLimit;
 import org.cpsolver.studentsct.constraint.CourseLimit;
@@ -1072,4 +1074,10 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             return iAssignedCRWeight;
         }
     }
+    
+    @Override
+    public InheritedAssignment<Request, Enrollment> createInheritedAssignment(Solution<Request, Enrollment> solution, int index) {
+        return new OptimisticInheritedAssignment<>(solution, index);
+    }
+
 }

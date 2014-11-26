@@ -34,7 +34,7 @@ import org.cpsolver.ifs.model.Variable;
  **/
 public abstract class AbstractClassWithContext<V extends Variable<V, T>, T extends Value<V, T>, C extends AssignmentContext> implements HasAssignmentContext<V, T, C>, CanHoldContext {
     private AssignmentContextReference<V, T, C> iContextReference = null;
-    private AssignmentContext[] iContext = null;
+    private AssignmentContext[] iContext = new AssignmentContext[CanHoldContext.sMaxSize];
     private C iSingleContextWhenNoModel = null;
   
     /**
@@ -44,7 +44,6 @@ public abstract class AbstractClassWithContext<V extends Variable<V, T>, T exten
      * @param assignment given assignment
      * @return assignment context associated with this object and the given assignment
      */
-    @SuppressWarnings("unchecked")
     @Override
     public C getContext(Assignment<V, T> assignment) {
         if (getModel() == null) {
@@ -52,11 +51,7 @@ public abstract class AbstractClassWithContext<V extends Variable<V, T>, T exten
                 iSingleContextWhenNoModel = createAssignmentContext(assignment);
             return iSingleContextWhenNoModel;
         }
-        if (iContext != null && assignment.getIndex() >= 0 && assignment.getIndex() < iContext.length) {
-            AssignmentContext c = iContext[assignment.getIndex()];
-            if (c != null) return (C)c;
-        }
-        return assignment.getAssignmentContext(getAssignmentContextReference());
+        return AssignmentContextHelper.getContext(this, assignment);
     }
     
     @Override
@@ -72,9 +67,6 @@ public abstract class AbstractClassWithContext<V extends Variable<V, T>, T exten
     @Override
     public AssignmentContext[] getContext() { return iContext; }
 
-    @Override
-    public void setContext(AssignmentContext[] context) { iContext = context; }
-    
     /**
      * Get the model. This is used to create an assignment context if needed.
      * @return model

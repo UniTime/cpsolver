@@ -1,8 +1,5 @@
 package org.cpsolver.ifs.assignment.context;
 
-import java.util.Arrays;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.DefaultParallelAssignment;
 import org.cpsolver.ifs.model.Value;
@@ -39,55 +36,25 @@ import org.cpsolver.ifs.model.Variable;
  * @param <T> Value
  **/
 public class DefaultParallelAssignmentContextHolder<V extends Variable<V, T>, T extends Value<V, T>> extends AssignmentContextHolderMap<V, T> {
-    private int iIndex = -1;
-    private final ReentrantReadWriteLock iLock = new ReentrantReadWriteLock();
+    protected int iIndex = -1;
 
     public DefaultParallelAssignmentContextHolder(int threadIndex) {
         iIndex = threadIndex;
     }
     
-    /**
-     * Returns contexts as an existing, big enough array.
-     * @param holder assignment context holder
-     * @return an initialized array of the appropriate assignment contexts
-     */
-    protected AssignmentContext[] getContexts(CanHoldContext holder) {
-        iLock.readLock().lock();
-        try {
-            AssignmentContext[] contexts = holder.getContext();
-            if (contexts != null && iIndex < contexts.length)
-                return contexts;
-        } finally {
-            iLock.readLock().unlock();
-        }
-        iLock.writeLock().lock();
-        try {
-            AssignmentContext[] contexts = holder.getContext();
-            if (contexts == null) {
-                contexts = new AssignmentContext[Math.max(10, 1 + iIndex)];
-                holder.setContext(contexts);
-            } else if (contexts.length <= iIndex) {
-                contexts = Arrays.copyOf(contexts, iIndex + 10);
-                holder.setContext(contexts);
-            }
-            return contexts;
-        } finally {
-            iLock.writeLock().unlock();
-        }
-    }
-    
     @Override
     @SuppressWarnings("unchecked")
     public <U extends AssignmentContext> U getAssignmentContext(Assignment<V, T> assignment, AssignmentContextReference<V, T, U> reference) {
-        if (iIndex >= 0 && reference.getParent() instanceof CanHoldContext) {
-            AssignmentContext[] contexts = getContexts((CanHoldContext)reference.getParent());
-            AssignmentContext context = contexts[iIndex];
-            if (context != null) return (U) context;
+        if (iIndex >= 0 && iIndex < CanHoldContext.sMaxSize && reference.getParent() instanceof CanHoldContext) {
+            AssignmentContext[] contexts = ((CanHoldContext)reference.getParent()).getContext();
+            U context = (U)contexts[iIndex];
             
-            context = reference.getParent().createAssignmentContext(assignment);
-            contexts[iIndex] = context;
+            if (context == null) {
+                context = reference.getParent().createAssignmentContext(assignment);
+                contexts[iIndex] = context;
+            }
             
-            return (U) context;
+            return context;
         } else {
             return super.getAssignmentContext(assignment, reference);
         }
@@ -95,8 +62,8 @@ public class DefaultParallelAssignmentContextHolder<V extends Variable<V, T>, T 
     
     @Override
     public <C extends AssignmentContext> void clearContext(AssignmentContextReference<V, T, C> reference) {
-        if (iIndex >= 0 && reference.getParent() instanceof CanHoldContext) {
-            AssignmentContext[] contexts = getContexts((CanHoldContext)reference.getParent());
+        if (iIndex >= 0 && iIndex < CanHoldContext.sMaxSize && reference.getParent() instanceof CanHoldContext) {
+            AssignmentContext[] contexts = ((CanHoldContext)reference.getParent()).getContext();
             contexts[iIndex] = null;
         } else {
             super.clearContext(reference);

@@ -1,8 +1,5 @@
 package org.cpsolver.ifs.assignment.context;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.InheritedAssignment;
 import org.cpsolver.ifs.model.Value;
@@ -39,10 +36,12 @@ import org.cpsolver.ifs.model.Variable;
  * @param <V> Variable
  * @param <T> Value
  **/
-public class InheritedAssignmentContextHolder<V extends Variable<V, T>, T extends Value<V, T>> implements AssignmentContextHolder<V, T> {
-    private Map<Integer,AssignmentContext> iContexts = new HashMap<Integer, AssignmentContext>();
+public class InheritedAssignmentContextHolder<V extends Variable<V, T>, T extends Value<V, T>> extends DefaultParallelAssignmentContextHolder<V, T> {
+    private long iVersion;
     
-    public InheritedAssignmentContextHolder() {
+    public InheritedAssignmentContextHolder(int index, long version) {
+        super(index);
+        iVersion = version;
     }
 
     /**
@@ -56,21 +55,56 @@ public class InheritedAssignmentContextHolder<V extends Variable<V, T>, T extend
     @Override
     @SuppressWarnings("unchecked")
     public <U extends AssignmentContext> U getAssignmentContext(Assignment<V, T> assignment, AssignmentContextReference<V, T, U> reference) {
-        U context = (U) iContexts.get(reference.getIndex());
-        if (context != null) return context;
-        
-        if (reference.getParent() instanceof CanInheritContext)
-            context = ((CanInheritContext<V, T, U>)reference.getParent()).inheritAssignmentContext(assignment,
-                    ((InheritedAssignment<V, T>)assignment).getParentAssignment().getAssignmentContext(reference));
-        else
-            context = reference.getParent().createAssignmentContext(assignment);
-        iContexts.put(reference.getIndex(), context);
-        return context;
+        if (iIndex >= 0 && iIndex < CanHoldContext.sMaxSize && reference.getParent() instanceof CanHoldContext) {
+            AssignmentContext[] contexts = ((CanHoldContext)reference.getParent()).getContext();
+
+            VersionedContext<U> context = (VersionedContext<U>)contexts[iIndex];
+            if (context == null) {
+                context = new VersionedContext<U>();
+                contexts[iIndex] = context;
+            }
+            
+            if (!context.isCurrent(iVersion)) {
+                if (reference.getParent() instanceof CanInheritContext)
+                    context.setContent(((CanInheritContext<V, T, U>)reference.getParent()).inheritAssignmentContext(assignment,
+                            ((InheritedAssignment<V, T>)assignment).getParentAssignment().getAssignmentContext(reference)), iVersion);
+                else
+                    context.setContent(reference.getParent().createAssignmentContext(assignment), iVersion);
+            }
+            
+            return context.getContent();
+        } else {
+            U context = (U) iContexts.get(reference.getIndex());
+            if (context != null) return context;
+            
+            if (reference.getParent() instanceof CanInheritContext)
+                context = ((CanInheritContext<V, T, U>)reference.getParent()).inheritAssignmentContext(assignment,
+                        ((InheritedAssignment<V, T>)assignment).getParentAssignment().getAssignmentContext(reference));
+            else
+                context = reference.getParent().createAssignmentContext(assignment);
+            iContexts.put(reference.getIndex(), context);
+            
+            return context;
+        }
     }
     
-    @Override
-    public <C extends AssignmentContext> void clearContext(AssignmentContextReference<V, T, C> reference) {
-        iContexts.remove(reference.getIndex());
+    public static class VersionedContext<U extends AssignmentContext> implements AssignmentContext {
+        U iContent = null;
+        long iContentVersion = -1;
+        
+        VersionedContext() {}
+        
+        public U getContent() {
+            return iContent;
+        }
+        
+        public void setContent(U content, long version) {
+            iContent = content;
+            iContentVersion = version;
+        }
+        
+        public boolean isCurrent(long version) {
+            return iContent != null && iContentVersion == version;
+        }
     }
-
 }

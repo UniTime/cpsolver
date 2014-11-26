@@ -37,8 +37,8 @@ import org.cpsolver.ifs.model.Variable;
  * @param <T> Value
  **/
 public class AssignmentArray<V extends Variable<V, T>, T extends Value<V, T>> extends AssignmentAbstract<V, T> {
-    private Object[] iAssignments = new Object[1000];
-    private Long[] iIteration = new Long[1000];
+    protected Object[] iAssignments = new Object[1000];
+    protected Long[] iIteration = new Long[1000];
     
     /** Creates an empty assignment 
      * @param contexts assignment context holder

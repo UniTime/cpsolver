@@ -1,14 +1,16 @@
 package org.cpsolver.ifs.assignment;
 
+import org.cpsolver.ifs.assignment.context.InheritedAssignmentContextHolder;
 import org.cpsolver.ifs.model.Value;
 import org.cpsolver.ifs.model.Variable;
+import org.cpsolver.ifs.solution.Solution;
 
 /**
- * An assignment inherited from some other assignment with only a few local
- * modifications. This can be used to pass a "copy" of an assignment to a neighbor
- * selection. 
+ * Default inherited assignment. This assignment is based on {@link DefaultParallelAssignment} and creates
+ * a full copy of the given assignment during its creation. This inherited assignment is slower than
+ * {@link OptimisticInheritedAssignment}, but more reliable. Useful for small problems with a lot of constraints.
  * 
- * @see Assignment
+ * @see InheritedAssignment
  * 
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2014 Tomas Muller<br>
@@ -30,17 +32,23 @@ import org.cpsolver.ifs.model.Variable;
  * @param <V> Variable
  * @param <T> Value
  **/
-public interface InheritedAssignment<V extends Variable<V, T>, T extends Value<V, T>> extends Assignment<V, T> {
-    
-    /**
-     * Return parent assignment.
-     * @return parent assignment
-     */
-    public Assignment<V, T> getParentAssignment();
-    
-    /**
-     * Version of the assignment (usually the iteration of the parent assignment at the time of creation)
-     * @return version of the inherited assignment
-     */
-    public long getVersion();
+public class DefaultInheritedAssignment<V extends Variable<V, T>, T extends Value<V, T>> extends DefaultParallelAssignment<V, T> implements InheritedAssignment<V, T> {
+    private Assignment<V, T> iParent;
+    private long iVersion = -1;
+
+    public DefaultInheritedAssignment(Solution<V, T> parent, int index) {
+        super(new InheritedAssignmentContextHolder<V, T>(index, parent.getIteration()), index, parent);
+        iParent = parent.getAssignment();
+        iVersion = parent.getIteration();
+    }
+
+    @Override
+    public Assignment<V, T> getParentAssignment() {
+        return iParent;
+    }
+
+    @Override
+    public long getVersion() {
+        return iVersion;
+    }
 }
