@@ -10,6 +10,7 @@ import org.cpsolver.coursett.criteria.TimetablingCriterion;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
 import org.cpsolver.ifs.assignment.context.AssignmentContext;
+import org.cpsolver.ifs.assignment.context.AssignmentContextHelper;
 import org.cpsolver.ifs.assignment.context.AssignmentContextReference;
 import org.cpsolver.ifs.assignment.context.CanHoldContext;
 import org.cpsolver.ifs.assignment.context.ConstraintWithContext;
@@ -62,7 +63,7 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
     protected boolean iDebug = false;
     
     private AssignmentContextReference<V, T, ValueContext> iContextReference = null;
-    private AssignmentContext[] iContext = null;
+    private AssignmentContext[] iContext = new AssignmentContext[CanHoldContext.sMaxSize];
     private int iLastCacheId = 0;
 
     
@@ -130,14 +131,9 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
      * @param assignment given assignment
      * @return assignment context associated with this constraint and the given assignment
      */
-    @SuppressWarnings("unchecked")
     @Override
     public ValueContext getContext(Assignment<V, T> assignment) {
-        if (iContext != null && assignment.getIndex() >= 0 && assignment.getIndex() < iContext.length) {
-            AssignmentContext c = iContext[assignment.getIndex()];
-            if (c != null) return (ValueContext) c;
-        }
-        return assignment.getAssignmentContext(getAssignmentContextReference());
+        return AssignmentContextHelper.getContext(this, assignment);
     }
     
     @Override
@@ -154,11 +150,6 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
     @Override
     public AssignmentContext[] getContext() {
         return iContext;
-    }
-
-    @Override
-    public void setContext(AssignmentContext[] context) {
-        iContext = context;
     }
     
     @Override

@@ -7,7 +7,6 @@ import org.cpsolver.ifs.model.Neighbour;
 import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.solver.SolverListener;
 import org.cpsolver.ifs.util.DataProperties;
-import org.cpsolver.ifs.util.ToolBox;
 import org.cpsolver.studentsct.heuristics.selection.BacktrackSelection;
 import org.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
 import org.cpsolver.studentsct.heuristics.selection.PriorityConstructionSelection;
@@ -77,7 +76,6 @@ import org.cpsolver.studentsct.model.Request;
  */
 
 public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<Request, Enrollment> implements SolverListener<Request, Enrollment> {
-    private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(StudentSctNeighbourSelection.class);
     private boolean iUseConstruction = false;
 
     public StudentSctNeighbourSelection(DataProperties properties) throws Exception {
@@ -145,7 +143,6 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
     @Override
     public void changeSelection(int selectionIndex) {
         super.changeSelection(selectionIndex);
-        sLog.debug("Current solution: " + ToolBox.dict2string(iSolver.currentSolution().getExtendedInfo(), 2));
     }
 
     @Override

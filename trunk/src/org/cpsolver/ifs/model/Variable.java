@@ -1,5 +1,6 @@
 package org.cpsolver.ifs.model;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -9,6 +10,7 @@ import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.DefaultParallelAssignment;
 import org.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import org.cpsolver.ifs.assignment.EmptyAssignment;
+import org.cpsolver.ifs.assignment.context.CanHoldContext;
 import org.cpsolver.ifs.util.IdGenerator;
 
 
@@ -55,7 +57,8 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
     private T iInitialValue = null; // initial value
     /** Assigned value */
     protected T iValue = null; // assigned value
-    private T[] iAssignedValues = null; // assigned values
+    @SuppressWarnings("unchecked")
+    private Value<V, T>[] iAssignedValues = (Value<V, T>[])Array.newInstance(Value.class, CanHoldContext.sMaxSize); // assigned values
     private T iBestValue = null; // best value
     private long iBestAssignmentIteration = 0;
     private List<T> iValues = null;
@@ -186,18 +189,8 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
      * @return currently assigned values
      **/
     @Deprecated
-    public T[] getAssignments() {
+    public Value<V, T>[] getAssignments() {
         return iAssignedValues;
-    }
-    
-    /**
-     * Sets current assignments.
-     * BEWARE: Do not use outside of {@link DefaultParallelAssignment}.
-     * @param values currently assigned values
-     **/
-    @Deprecated
-    public void setAssignments(T[] values) {
-        iAssignedValues = values;
     }
 
     /** Returns initial assignment 
@@ -360,7 +353,7 @@ public class Variable<V extends Variable<V, T>, T extends Value<V, T>> implement
 
     @Override
     public String toString() {
-        return "Variable{name=" + getName() + ", initial=" + getInitialAssignment() + ", values=" + values(null).size() + ", constraints=" + iConstraints.size() + "}";
+        return getName();
     }
 
     /** Unique id 

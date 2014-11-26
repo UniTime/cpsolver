@@ -1,15 +1,19 @@
 package org.cpsolver.ifs.solver;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.DefaultParallelAssignment;
 import org.cpsolver.ifs.assignment.DefaultSingleAssignment;
-import org.cpsolver.ifs.assignment.InheritedAssignment;
+import org.cpsolver.ifs.assignment.context.CanHoldContext;
 import org.cpsolver.ifs.model.LazyNeighbour;
 import org.cpsolver.ifs.model.LazyNeighbour.LazyNeighbourAcceptanceCriterion;
 import org.cpsolver.ifs.model.Model;
@@ -68,7 +72,7 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
     /** Starts solver */
     @Override
     public void start() {
-        int nrSolvers = Math.abs(getProperties().getPropertyInt("Parallel.NrSolvers", 4));
+        int nrSolvers = Math.min(Math.abs(getProperties().getPropertyInt("Parallel.NrSolvers", 4)), CanHoldContext.sMaxSize - 1);
         if (nrSolvers == 1) {
             super.start();
         } else {
@@ -87,7 +91,7 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
     /** Sets initial solution */
     @Override
     public void setInitalSolution(Model<V, T> model) {
-        int nrSolvers = Math.abs(getProperties().getPropertyInt("Parallel.NrSolvers", 4));
+        int nrSolvers = Math.min(Math.abs(getProperties().getPropertyInt("Parallel.NrSolvers", 4)), CanHoldContext.sMaxSize - 1);
         boolean updateMasterSolution = getProperties().getPropertyBoolean("Parallel.UpdateMasterSolution", false);
         setInitalSolution(new Solution<V, T>(model, nrSolvers > 1 ? new DefaultParallelAssignment<V, T>(updateMasterSolution ? 1 : 0) : new DefaultSingleAssignment<V, T>(), 0, 0));
     }
@@ -112,6 +116,7 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
     protected class SynchronizationThread extends Thread {
         private int iNrSolvers;
         private List<SolverThread> iSolvers = new ArrayList<SolverThread>();
+        private AssignmentThread iAssignmentThread = null;
         
         SynchronizationThread(int nrSolvers) {
             iNrSolvers = nrSolvers;
@@ -130,7 +135,6 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
             initSolver();
             onStart();
             
-            double startTime = JProf.currentTimeSec();
             if (isUpdateProgress()) {
                 if (currentSolution().getBestInfo() == null) {
                     iProgress.setPhase("Searching for initial solution ...", currentSolution().getModel().variables().size());
@@ -150,14 +154,23 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
                 iStop = true;
             }
             
+            BlockingQueue<Neighbour<V, T>> queue = null;
+            if (hasSingleSolution() && iNrSolvers > 1 && getProperties().getPropertyBoolean("ParallelSolver.SingleSolutionQueue", false))
+                queue = new ArrayBlockingQueue<Neighbour<V, T>>(2 * iNrSolvers);
+            
             if (!iStop) {
                 for (int i = 1; i <= iNrSolvers; i++) {
-                    SolverThread thread = new SolverThread(i, startTime);
+                    SolverThread thread = new SolverThread(i, queue);
                     thread.setPriority(THREAD_PRIORITY);
                     thread.setName("Solver-" + i);
                     thread.start();
                     iSolvers.add(thread);
                 }
+            }
+            
+            if (queue != null) {
+                iAssignmentThread = new AssignmentThread(queue);
+                iAssignmentThread.start();
             }
             
             int timeout = getProperties().getPropertyInt("Termination.TimeOut", 1800);
@@ -186,6 +199,11 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
             for (SolverThread thread: iSolvers) {
                 try {
                     thread.join();
+                } catch (InterruptedException e) {}
+            }
+            if (iAssignmentThread != null) {
+                try {
+                    iAssignmentThread.join();
                 } catch (InterruptedException e) {}
             }
             
@@ -242,27 +260,59 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
         private Model<V, T> iModel;
         private Solution<V, T> iSolution;
         private Assignment<V, T> iAssignment;
+        private BlockingQueue<Neighbour<V, T>> iQueue;
         
-        public SolverThread(int index, double startTime) {
+        public SolverThread(int index, BlockingQueue<Neighbour<V, T>> queue) {
             iIndex = index;
-            iStartTime = startTime;
             iSingle = hasSingleSolution();
             iModel = iCurrentSolution.getModel();
             iSolution = (iSingle || iCurrentSolution.getAssignment().getIndex() == index ? iCurrentSolution : createParallelSolution(iIndex));
             iAssignment = iSolution.getAssignment();
+            iQueue = queue;
         }
         
         @Override
         public void run() {
+            iStartTime = JProf.currentTimeSec();
             try {
                 boolean neighbourCheck = getProperties().getPropertyBoolean("ParallelSolver.SingleSolutionNeighbourCheck", false);
+                boolean tryLazyFirst = getProperties().getPropertyBoolean("ParallelSolver.SingleSolutionTryLazyFirst", false);
                 
                 while (!iStop) {
                     // Break if cannot continue
                     if (!getTerminationCondition().canContinue(iSolution)) break;
                     
                     // Create a sub-solution if needed
-                    Solution<V, T> current = (iSingle ? new Solution<V, T>(iModel, new InheritedAssignment<V, T>(iSolution.getAssignment()), iSolution.getIteration(), iSolution.getTime()) : iSolution);
+                    Solution<V, T> current = iSolution;
+                    if (iSingle) {
+                        current = new Solution<V, T>(iModel, iModel.createInheritedAssignment(iSolution, iIndex), iSolution.getIteration(), iSolution.getTime());
+                        current.addSolutionListener(new SolutionListener<V, T>() {
+                            @Override
+                            public void solutionUpdated(Solution<V, T> solution) {
+                            }
+
+                            @Override
+                            public void getInfo(Solution<V, T> solution, Map<String, String> info) {
+                            }
+
+                            @Override
+                            public void getInfo(Solution<V, T> solution, Map<String, String> info, Collection<V> variables) {
+                            }
+
+                            @Override
+                            public void bestCleared(Solution<V, T> solution) {
+                            }
+
+                            @Override
+                            public void bestSaved(Solution<V, T> solution) {
+                            }
+
+                            @Override
+                            public void bestRestored(Solution<V, T> solution) {
+                                iSolution.restoreBest();
+                            }
+                        });
+                    }
 
                     // Neighbour selection
                     Neighbour<V, T> neighbour = null;
@@ -287,6 +337,13 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
                     }
                     
                     if (iSingle) {
+                        if (iQueue != null) {
+                            do {
+                                if (iQueue.offer(neighbour, 1000, TimeUnit.MILLISECONDS)) break;
+                            } while (!iStop && getTerminationCondition().canContinue(iSolution));
+                            continue;
+                        }
+                        
                         Map<V, T> assignments = null;
                         try {
                             assignments = neighbour.assignments();
@@ -300,6 +357,15 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
                             continue;
                         }
                         
+                        if (tryLazyFirst && neighbour instanceof LazyNeighbour) {
+                            LazyNeighbour<V, T> lazy = (LazyNeighbour<V, T>)neighbour;
+                            double before = current.getModel().getTotalValue(current.getAssignment());
+                            neighbour.assign(current.getAssignment(), current.getIteration());
+                            double after = current.getModel().getTotalValue(current.getAssignment());
+                            if (!lazy.getAcceptanceCriterion().accept(current.getAssignment(), lazy, after - before))
+                                continue;
+                        }
+                        
                         // Assign selected value to the selected variable
                         Lock lock = iSolution.getLock().writeLock();
                         lock.lock();
@@ -307,6 +373,7 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
                             LazyNeighbourAcceptanceCriterion<V,T> lazy = null;
                             double before = 0, value = 0;
                             if (neighbour instanceof LazyNeighbour) {
+                                before = iSolution.getModel().getTotalValue(iSolution.getAssignment());
                                 lazy = ((LazyNeighbour<V, T>)neighbour).getAcceptanceCriterion();
                             } else if (neighbourCheck) {
                                 before = iSolution.getModel().getTotalValue(iSolution.getAssignment());
@@ -323,14 +390,16 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
                                 }
                                 iSolution.getAssignment().assign(iSolution.getIteration(), val);
                             }
-                            if (lazy != null) {
-                                double after = iSolution.getModel().getTotalValue(iSolution.getAssignment());
-                                if (!lazy.accept(iSolution.getAssignment(), (LazyNeighbour<V, T>) neighbour, after - before))
-                                    fail = true;
-                            } else if (neighbourCheck) {
-                                double after = iSolution.getModel().getTotalValue(iSolution.getAssignment());
-                                if (before + value < after && after - before > 0 && !getSolutionComparator().isBetterThanBestSolution(iSolution))
-                                    fail = true;
+                            if (!fail) {
+                                if (lazy != null) {
+                                    double after = iSolution.getModel().getTotalValue(iSolution.getAssignment());
+                                    if (!lazy.accept(iSolution.getAssignment(), (LazyNeighbour<V, T>) neighbour, after - before))
+                                        fail = true;
+                                } else if (neighbourCheck) {
+                                    double after = iSolution.getModel().getTotalValue(iSolution.getAssignment());
+                                    if (before + value < after && before < after && !getSolutionComparator().isBetterThanBestSolution(iSolution))
+                                        fail = true;
+                                }
                             }
                             if (fail) {
                                 for (V var: undo.keySet())
@@ -360,7 +429,7 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
                         lock.lock();
                         try {
                             neighbour.assign(iAssignment, iSolution.getIteration());
-                            iSolution.update(time);
+                            iSolution.update(time, currentSolution());
                         } finally {
                             lock.unlock();
                         }
@@ -390,4 +459,124 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
         }
         
     }
+    
+    /**
+     * Solver thread
+     */
+    protected class AssignmentThread extends Thread {
+        private double iStartTime;
+        private Solution<V, T> iSolution;
+        private BlockingQueue<Neighbour<V, T>> iQueue;
+        
+        public AssignmentThread(BlockingQueue<Neighbour<V, T>> queue) {
+            setName("Assignment");
+            setPriority(1 + THREAD_PRIORITY);
+            iSolution = iCurrentSolution;
+            iQueue = queue;
+        }
+        
+        @Override
+        public void run() {
+            iStartTime = JProf.currentTimeSec();
+            try {
+                boolean neighbourCheck = getProperties().getPropertyBoolean("ParallelSolver.SingleSolutionNeighbourCheck", false);
+                
+                while (!iStop) {
+                    // Break if cannot continue
+                    if (!getTerminationCondition().canContinue(iSolution)) break;
+                    
+                    // Create a sub-solution if needed
+                    Neighbour<V, T> neighbour = iQueue.poll(1000, TimeUnit.MILLISECONDS);
+                    
+                    if (neighbour == null) continue;
+
+                    double time = JProf.currentTimeSec() - iStartTime;
+                    
+                    Map<V, T> assignments = null;
+                    try {
+                        assignments = neighbour.assignments();
+                    } catch (UnsupportedOperationException e) {
+                        sLogger.error("Failed to enumerate " + neighbour.getClass().getSimpleName(), e);
+                    }
+                    if (assignments == null) {
+                        sLogger.debug("No assignments returned.");
+                        // still update the solution (increase iteration etc.)
+                        iSolution.update(time, false);
+                        continue;
+                    }
+                    
+                    // Assign selected value to the selected variable
+                    Lock lock = iSolution.getLock().writeLock();
+                    lock.lock();
+                    try {
+                        LazyNeighbourAcceptanceCriterion<V,T> lazy = null;
+                        double before = 0, value = 0;
+                        if (neighbour instanceof LazyNeighbour) {
+                            before = iSolution.getModel().getTotalValue(iSolution.getAssignment());
+                            lazy = ((LazyNeighbour<V, T>)neighbour).getAcceptanceCriterion();
+                        } else if (neighbourCheck) {
+                            before = iSolution.getModel().getTotalValue(iSolution.getAssignment());
+                            value = neighbour.value(iSolution.getAssignment());
+                        }
+                        Map<V, T> undo = new HashMap<V, T>();
+                        for (V var: assignments.keySet())
+                            undo.put(var, iSolution.getAssignment().unassign(iSolution.getIteration(), var));
+                        boolean fail = false;
+                        for (T val: assignments.values()) {
+                            if (val == null) continue;
+                            if (iSolution.getModel().inConflict(iSolution.getAssignment(), val)) {
+                                fail = true; break;
+                            }
+                            iSolution.getAssignment().assign(iSolution.getIteration(), val);
+                        }
+                        if (!fail) {
+                            if (lazy != null) {
+                                double after = iSolution.getModel().getTotalValue(iSolution.getAssignment());
+                                if (!lazy.accept(iSolution.getAssignment(), (LazyNeighbour<V, T>) neighbour, after - before))
+                                    fail = true;
+                            } else if (neighbourCheck) {
+                                double after = iSolution.getModel().getTotalValue(iSolution.getAssignment());
+                                if (before + value < after && before < after && !getSolutionComparator().isBetterThanBestSolution(iSolution))
+                                    fail = true;
+                            }
+                        }
+                        if (fail) {
+                            for (V var: undo.keySet())
+                                iSolution.getAssignment().unassign(iSolution.getIteration(), var);
+                            for (T val: undo.values())
+                                if (val != null)
+                                    iSolution.getAssignment().assign(iSolution.getIteration(), val);
+                        }
+                        iSolution.update(time, !fail);
+                        if (fail) {
+                            for (SolverListener<V, T> listener : iSolverListeners)
+                                listener.neighbourFailed(iSolution.getAssignment(), iSolution.getIteration(), neighbour);
+                            continue;
+                        }
+                        
+                        onAssigned(iStartTime, iSolution);
+
+                        if ((iSaveBestUnassigned < 0 || iSaveBestUnassigned >= iSolution.getAssignment().nrUnassignedVariables(iSolution.getModel())) && getSolutionComparator().isBetterThanBestSolution(iSolution)) {
+                            iSolution.saveBest();
+                        }
+                    } finally {
+                        lock.unlock();
+                    }
+                }
+
+            } catch (Exception ex) {
+                sLogger.error(ex.getMessage(), ex);
+                iProgress.fatal(getName() + " failed, reason:" + ex.getMessage(), ex);
+            }
+            Lock lock = currentSolution().getLock().writeLock();
+            lock.lock();
+            try {
+                iNrFinished ++;
+            } finally {
+                lock.unlock();
+            }
+        }
+        
+    }
+
 }

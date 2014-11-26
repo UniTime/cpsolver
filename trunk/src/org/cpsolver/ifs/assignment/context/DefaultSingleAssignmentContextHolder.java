@@ -43,15 +43,10 @@ public class DefaultSingleAssignmentContextHolder<V extends Variable<V, T>, T ex
     @SuppressWarnings("unchecked")
     public <U extends AssignmentContext> U getAssignmentContext(Assignment<V, T> assignment, AssignmentContextReference<V, T, U> reference) {
         if (reference.getParent() instanceof CanHoldContext) {
-            CanHoldContext holder = (CanHoldContext)reference.getParent();
-            AssignmentContext[] contexts = holder.getContext();
-            if (contexts != null)
-                return (U) contexts[0];
-            
-            U context = reference.getParent().createAssignmentContext(assignment);
-            holder.setContext(new AssignmentContext[] {context});
-
-            return context;
+            AssignmentContext[] contexts = ((CanHoldContext)reference.getParent()).getContext();
+            if (contexts[0] == null)
+                contexts[0] = reference.getParent().createAssignmentContext(assignment);
+            return (U)contexts[0];
         } else {
             return super.getAssignmentContext(assignment, reference);
         }
@@ -60,8 +55,8 @@ public class DefaultSingleAssignmentContextHolder<V extends Variable<V, T>, T ex
     @Override
     public <C extends AssignmentContext> void clearContext(AssignmentContextReference<V, T, C> reference) {
         if (reference.getParent() instanceof CanHoldContext) {
-            CanHoldContext holder = (CanHoldContext)reference.getParent();
-            holder.setContext(null);
+            AssignmentContext[] contexts = ((CanHoldContext)reference.getParent()).getContext();
+            contexts[0] = null;
         } else {
             super.clearContext(reference);
         }

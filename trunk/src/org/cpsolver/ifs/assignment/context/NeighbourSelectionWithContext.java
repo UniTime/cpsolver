@@ -40,7 +40,7 @@ import org.cpsolver.ifs.solver.Solver;
  **/
 public abstract class NeighbourSelectionWithContext<V extends Variable<V, T>, T extends Value<V, T>, C extends AssignmentContext> implements NeighbourSelection<V, T>, HasAssignmentContext<V, T, C>, CanHoldContext {
     private AssignmentContextReference<V, T, C> iContextReference = null;
-    private AssignmentContext[] iContext = null;
+    private AssignmentContext[] iContext = new AssignmentContext[CanHoldContext.sMaxSize];
     protected C iContextOverride = null;
 
     @Override
@@ -67,16 +67,11 @@ public abstract class NeighbourSelectionWithContext<V extends Variable<V, T>, T 
      * @param assignment given assignment
      * @return assignment context associated with this selection and the given assignment
      */
-    @SuppressWarnings("unchecked")
     @Override
     public C getContext(Assignment<V, T> assignment) {
         if (iContextOverride != null)
             return iContextOverride;
-        if (iContext != null && assignment.getIndex() >= 0 && assignment.getIndex() < iContext.length) {
-            AssignmentContext c = iContext[assignment.getIndex()];
-            if (c != null) return (C)c;
-        }
-        return assignment.getAssignmentContext(getAssignmentContextReference());
+        return AssignmentContextHelper.getContext(this, assignment);
     }
     
     @Override
@@ -87,8 +82,12 @@ public abstract class NeighbourSelectionWithContext<V extends Variable<V, T>, T 
 
     @Override
     public AssignmentContext[] getContext() { return iContext; }
-
-    @Override
-    public void setContext(AssignmentContext[] context) { iContext = context; }
-
+    
+    /**
+     * Has context override
+     * @return true if all threads are using the same context
+     */
+    public boolean hasContextOverride() {
+        return iContextOverride != null;
+    }
 }
