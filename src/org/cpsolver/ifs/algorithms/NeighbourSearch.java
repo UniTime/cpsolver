@@ -220,7 +220,7 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
             if (n != null && accept(context, solution, n))
                 return n;
         }
-        context.deactivate(solution);
+        context.deactivateIfNeeded(solution);
         return null;
     }
     
@@ -282,6 +282,15 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
     }
     
     /**
+     * In single solution multiple threads environments return true if the given solution is of the first thread
+     * @param solution current solution
+     * @return if the current thread is master (can alter bound etc.)
+     */
+    public boolean isMaster(Solution<V, T> solution) {
+        return !hasContextOverride() || solution.getAssignment().getIndex() <= 1;
+    }
+    
+    /**
      * Search context
      */
     public abstract class NeighbourSearchContext implements AssignmentContext, SolutionListener<V, T> {
@@ -297,7 +306,7 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
             setProgressPhase(iPhase + "...");
         }
         
-        private void activateIfNeeded(Solution<V, T> solution) {
+        private synchronized void activateIfNeeded(Solution<V, T> solution) {
             if (iT0 < 0) activate(solution);
         }
         
@@ -306,6 +315,10 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
          **/
         protected void deactivate(Solution<V, T> solution) {
             iT0 = -1;
+        }
+        
+        private synchronized void deactivateIfNeeded(Solution<V, T> solution) {
+            if (isMaster(solution)) deactivate(solution);
         }
         
         /**

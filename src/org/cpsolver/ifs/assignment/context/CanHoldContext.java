@@ -30,9 +30,14 @@ import org.cpsolver.ifs.assignment.Assignment;
  *          License along with this library; if not see <a href='http://www.gnu.org/licenses'>http://www.gnu.org/licenses</a>.
  **/
 public interface CanHoldContext {
+    /**
+     * Maximum number of assignment contexts to be held
+     */
+    public static int sMaxSize = 17;
     
+    /**
+     * An array of {@link CanHoldContext#sMaxSize} assignment contexts
+     * @return assignment contexts
+     */
     public AssignmentContext[] getContext();
-    
-    public void setContext(AssignmentContext[] context);
-
 }

@@ -312,21 +312,23 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
         protected void incIteration(Solution<V, T> solution) {
             super.incIteration(solution);
             iIter++;
-            if (iInitialTemperature <= 0.0) {
-                if (iTrainingIterations < iTrainingValues) {
-                    setProgress(Math.round(100.0 * iTrainingIterations / iTrainingValues));
-                    return;
-                } else {
-                    train(solution);
+            if (isMaster(solution)) {
+                if (iInitialTemperature <= 0.0) {
+                    if (iTrainingIterations < iTrainingValues) {
+                        setProgress(Math.round(100.0 * iTrainingIterations / iTrainingValues));
+                        return;
+                    } else {
+                        train(solution);
+                    }
                 }
+                if (iLastImprovingIter >= 0 && iIter > iLastImprovingIter + iRestoreBestLength)
+                    restoreBest(solution);
+                if (iLastImprovingIter >= 0 && iIter > Math.max(iLastReheatIter, iLastImprovingIter) + iReheatLength)
+                    reheat(solution);
+                if (iIter > iLastCoolingIter + iTemperatureLength)
+                    cool(solution);
+                setProgress(Math.round(100.0 * (iIter - Math.max(iLastReheatIter, iLastImprovingIter)) / iReheatLength));
             }
-            if (iLastImprovingIter >= 0 && iIter > iLastImprovingIter + iRestoreBestLength)
-                restoreBest(solution);
-            if (iLastImprovingIter >= 0 && iIter > Math.max(iLastReheatIter, iLastImprovingIter) + iReheatLength)
-                reheat(solution);
-            if (iIter > iLastCoolingIter + iTemperatureLength)
-                cool(solution);
-            setProgress(Math.round(100.0 * (iIter - Math.max(iLastReheatIter, iLastImprovingIter)) / iReheatLength));
         }
 
         /**

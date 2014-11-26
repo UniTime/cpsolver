@@ -15,12 +15,15 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.cpsolver.coursett.criteria.TimetablingCriterion;
 import org.cpsolver.ifs.assignment.Assignment;
+import org.cpsolver.ifs.assignment.DefaultInheritedAssignment;
 import org.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import org.cpsolver.ifs.assignment.EmptyAssignment;
+import org.cpsolver.ifs.assignment.InheritedAssignment;
 import org.cpsolver.ifs.assignment.context.AssignmentContext;
 import org.cpsolver.ifs.assignment.context.AssignmentContextReference;
 import org.cpsolver.ifs.assignment.context.HasAssignmentContext;
 import org.cpsolver.ifs.criteria.Criterion;
+import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.ToolBox;
 
@@ -1230,5 +1233,16 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
         if (iEmptyAssignment == null)
             iEmptyAssignment = new EmptyAssignment<V, T>();
         return iEmptyAssignment;
+    }
+    
+    
+    /**
+     * Create a new inherited assignment from the given solution
+     * @param solution a solution that is using this model
+     * @param index thread index of the new assignment
+     * @return a new inherited assignment
+     */
+    public InheritedAssignment<V, T> createInheritedAssignment(Solution<V, T> solution, int index) {
+        return new DefaultInheritedAssignment<V, T>(solution, index);
     }
 }

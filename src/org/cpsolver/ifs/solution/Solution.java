@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.cpsolver.coursett.criteria.TimetablingCriterion;
@@ -65,7 +66,7 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
 
     private List<SolutionListener<V, T>> iSolutionListeners = new ArrayList<SolutionListener<V, T>>();
     private PerturbationsCounter<V, T> iPerturbationsCounter = null;
-    private final ReentrantReadWriteLock iLock = new ReentrantReadWriteLock();
+    private final ReadWriteLock iLock = new ReentrantReadWriteLock(false);
 
     /** Constructor 
      * @param model problem model
@@ -148,8 +149,9 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
     /** Update time, increment current iteration 
      * @param time updated solver time
      * @param success true if the last iteration was successful
+     * @param master master solution
      **/
-    public void update(double time, boolean success) {
+    public void update(double time, boolean success, Solution<V, T> master) {
         iLock.writeLock().lock();
         try {
             iTime = time;
@@ -157,6 +159,11 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
             if (!success) iFailedIterations ++;
             for (SolutionListener<V, T> listener : iSolutionListeners)
                 listener.solutionUpdated(this);
+            if (master != null) {
+                master.iTime = iTime;
+                master.iIteration++;
+                if (!success) master.iFailedIterations ++;
+            }
         } finally {
             iLock.writeLock().unlock();
         }
@@ -164,9 +171,25 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
     
     /** Update time, increment current iteration 
      * @param time updated solver time
+     * @param success true if the last iteration was successful
+     **/
+    public void update(double time, boolean success) {
+        update(time, success, null);
+    }
+    
+    /** Update time, increment current iteration 
+     * @param time updated solver time
+     * @param master master solution
+     **/
+    public void update(double time, Solution<V, T> master) {
+        update(time, true, master);
+    }
+    
+    /** Update time, increment current iteration 
+     * @param time updated solver time
      **/
     public void update(double time) {
-        update(time, true);
+        update(time, true, null);
     }
 
     /** Initialization 
@@ -224,6 +247,10 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
         ret.put("Iteration", getIteration() + (getFailedIterations() > 0 ? " (" + sTimeFormat.format(100.0 * getFailedIterations() / getIteration())+ "% failed)" : ""));
         if (getTime() > 0)
             ret.put("Speed", sTimeFormat.format((getIteration()) / getTime()) + " it/s");
+        if (getBestIteration() > 0)
+            ret.put("Best Iteration", getBestIteration() + (getBestFailedIterations() > 0 ? " (" + sTimeFormat.format(100.0 * getBestFailedIterations() / getBestIteration())+ "% failed)" : ""));
+        if (getBestTime() > 0)
+            ret.put("Best Time", sTimeFormat.format(getBestTime() / 60.0) + " min (" + sTimeFormat.format((getBestIteration()) / getBestTime()) + " it/s)");
         for (SolutionListener<V, T> listener : iSolutionListeners)
             listener.getInfo(this, ret);
         return ret;
@@ -363,9 +390,9 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
                 listener.bestSaved(this);
             
             if (master != null) {
-                master.iIteration = iIteration;
-                master.iFailedIterations = iFailedIterations;
-                master.iTime = iTime;
+                // master.iIteration = iIteration;
+                // master.iFailedIterations = iFailedIterations;
+                // master.iTime = iTime;
                 master.iBestInfo = iBestInfo;
                 master.iBestTime = iBestTime;
                 master.iBestIteration = iBestIteration;
@@ -398,9 +425,9 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
             for (SolutionListener<V, T> listener : iSolutionListeners)
                 listener.bestSaved(this);
             
-            master.iIteration = iIteration;
-            master.iFailedIterations = iFailedIterations;
-            master.iTime = iTime;
+            // master.iIteration = iIteration;
+            // master.iFailedIterations = iFailedIterations;
+            // master.iTime = iTime;
             master.iBestInfo = iBestInfo;
             master.iBestTime = iBestTime;
             master.iBestIteration = iBestIteration;
@@ -436,9 +463,9 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
         iLock.writeLock().lock();
         try {
             getModel().restoreBest(iAssignment);
-            iTime = iBestTime;
-            iIteration = iBestIteration;
-            iFailedIterations = iBestFailedIterations;
+            // iTime = iBestTime;
+            // iIteration = iBestIteration;
+            // iFailedIterations = iBestFailedIterations;
             for (SolutionListener<V, T> listener : iSolutionListeners)
                 listener.bestRestored(this);
         } finally {
@@ -467,5 +494,9 @@ public class Solution<V extends Variable<V, T>, T extends Value<V, T>> {
         return iSolutionListeners;
     }
     
-    public ReentrantReadWriteLock getLock() { return iLock; }
+    /**
+     * Return solution lock
+     * @return read-write lock used to lock the solution during a change
+     */
+    public ReadWriteLock getLock() { return iLock; }
 }

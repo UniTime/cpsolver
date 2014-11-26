@@ -1,20 +1,21 @@
 package org.cpsolver.ifs.assignment;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.Lock;
 
+import org.cpsolver.ifs.assignment.context.AssignmentContextHolder;
 import org.cpsolver.ifs.assignment.context.DefaultParallelAssignmentContextHolder;
 import org.cpsolver.ifs.model.Model;
 import org.cpsolver.ifs.model.Value;
 import org.cpsolver.ifs.model.Variable;
+import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.ParallelSolver;
 
 
 /**
- * An assignment using the {@link Variable#setAssignments(Value[])} to store values of all the
+ * An assignment using the {@link Variable#getAssignments()} to store values of all the
  * variables of the model. Besides of that, a set of assigned variables is kept in memory.
  * Each extra contains an array of values, indexed by {@link Assignment#getIndex()}.
  * Useful for a small, fixed number of assignments. Used by the {@link ParallelSolver},
@@ -46,7 +47,6 @@ import org.cpsolver.ifs.solver.ParallelSolver;
 public class DefaultParallelAssignment <V extends Variable<V, T>, T extends Value<V, T>> extends AssignmentAbstract<V, T> {
     private Map<V, Long> iAssignedVariables = new HashMap<V, Long>();
     private int iIndex;
-    private final ReentrantReadWriteLock iLock = new ReentrantReadWriteLock();
 
     public DefaultParallelAssignment(int threadIndex) {
         super(new DefaultParallelAssignmentContextHolder<V, T>(threadIndex));
@@ -62,6 +62,19 @@ public class DefaultParallelAssignment <V extends Variable<V, T>, T extends Valu
         for (V variable: model.variables())
             setValueInternal(0, variable, assignment != null ? assignment.getValue(variable) : null);
     }
+    
+    public DefaultParallelAssignment(AssignmentContextHolder<V, T> contexts, int threadIndex, Solution<V, T> solution) {
+        super(contexts);
+        iIndex = threadIndex;
+        Lock lock = solution.getLock().readLock();
+        lock.lock();
+        try {
+            for (V variable: solution.getModel().variables())
+                setValueInternal(0, variable, solution.getAssignment().getValue(variable));
+        } finally {
+            lock.unlock();
+        }
+    }
 
     @Override
     public long getIteration(V variable) {
@@ -74,39 +87,16 @@ public class DefaultParallelAssignment <V extends Variable<V, T>, T extends Valu
         return iAssignedVariables.keySet();
     }
     
-    @SuppressWarnings({ "unchecked", "deprecation" })
-    protected T[] getAssignments(V variable) {
-        iLock.readLock().lock();
-        try {
-            T[] assignments = variable.getAssignments();
-            if (assignments != null && iIndex < assignments.length) return assignments;
-        } finally {
-            iLock.readLock().unlock();
-        }
-        iLock.writeLock().lock();
-        try {
-            T[] assignments = variable.getAssignments();
-            if (assignments == null) {
-                assignments = (T[])new Value[Math.max(10, 1 + iIndex)];
-                variable.setAssignments(assignments);
-            } else if (assignments.length <= iIndex) {
-                assignments = Arrays.copyOf(assignments, 10 + iIndex);
-                variable.setAssignments(assignments);
-            }
-            return assignments;
-        } finally {
-            iLock.writeLock().unlock();
-        }
-    }
-
     @Override
+    @SuppressWarnings({ "deprecation", "unchecked" })
     protected T getValueInternal(V variable) {
-        return getAssignments(variable)[iIndex];
+        return (T) variable.getAssignments()[iIndex];
     }
     
     @Override
+    @SuppressWarnings("deprecation")
     protected void setValueInternal(long iteration, V variable, T value) {
-        getAssignments(variable)[iIndex] = value;
+        variable.getAssignments()[iIndex] = value;
         if (value == null)
             iAssignedVariables.remove(variable);
         else

@@ -40,7 +40,7 @@ import org.cpsolver.ifs.model.Variable;
  **/
 public abstract class ConstraintWithContext<V extends Variable<V, T>, T extends Value<V, T>, C extends AssignmentConstraintContext<V, T>> extends Constraint<V, T> implements HasAssignmentContext<V, T, C>, CanHoldContext {
     private AssignmentContextReference<V, T, C> iContextReference = null;
-    private AssignmentContext[] iContext = null;
+    private AssignmentContext[] iContext = new AssignmentContext[CanHoldContext.sMaxSize];
     
     public ConstraintWithContext() {
         super();
@@ -63,14 +63,9 @@ public abstract class ConstraintWithContext<V extends Variable<V, T>, T extends 
      * @param assignment given assignment
      * @return assignment context associated with this constraint and the given assignment
      */
-    @SuppressWarnings("unchecked")
     @Override
     public C getContext(Assignment<V, T> assignment) {
-        if (iContext != null && assignment.getIndex() >= 0 && assignment.getIndex() < iContext.length) {
-            AssignmentContext c = iContext[assignment.getIndex()];
-            if (c != null) return (C)c;
-        }
-        return assignment.getAssignmentContext(getAssignmentContextReference());
+        return AssignmentContextHelper.getContext(this, assignment);
     }
 
     @Override
@@ -82,9 +77,6 @@ public abstract class ConstraintWithContext<V extends Variable<V, T>, T extends 
     @Override
     public AssignmentContext[] getContext() { return iContext; }
 
-    @Override
-    public void setContext(AssignmentContext[] context) { iContext = context; }
-    
     @Override
     public void assigned(Assignment<V, T> assignment, long iteration, T value) {
         super.assigned(assignment, iteration, value);

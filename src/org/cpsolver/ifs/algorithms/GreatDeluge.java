@@ -160,21 +160,23 @@ public class GreatDeluge<V extends Variable<V, T>, T extends Value<V, T>> extend
                 logNeibourStatus();
                 iAcceptedMoves = iMoves = 0;
             }
-            double upperBound = Math.max(solution.getBestValue() + 2.0,(solution.getBestValue() >= 0.0 ?
-                    Math.pow(iUpperBoundRate, 1 + iNrIdle) * solution.getBestValue() :
-                    solution.getBestValue() / Math.pow(iUpperBoundRate, 1 + iNrIdle)));
-            double lowerBound = (solution.getBestValue() >= 0.0
-                    ? Math.pow(iLowerBoundRate, 1 + iNrIdle) * solution.getBestValue()
-                    : solution.getBestValue() / Math.pow(iLowerBoundRate, 1 + iNrIdle));
-            if (iBound > upperBound) {
-                iBound = upperBound;
-            } else if (iBound < lowerBound) {
-                iNrIdle++;
-                iBound = upperBound;
-                iUpperBound = iBound;
-                setProgressPhase("Great Deluge [" + (1 + iNrIdle) + "]...");
+            if (isMaster(solution)) {
+                double upperBound = Math.max(solution.getBestValue() + 2.0,(solution.getBestValue() >= 0.0 ?
+                        Math.pow(iUpperBoundRate, 1 + iNrIdle) * solution.getBestValue() :
+                        solution.getBestValue() / Math.pow(iUpperBoundRate, 1 + iNrIdle)));
+                double lowerBound = (solution.getBestValue() >= 0.0
+                        ? Math.pow(iLowerBoundRate, 1 + iNrIdle) * solution.getBestValue()
+                        : solution.getBestValue() / Math.pow(iLowerBoundRate, 1 + iNrIdle));
+                if (iBound > upperBound) {
+                    iBound = upperBound;
+                } else if (iBound < lowerBound) {
+                    iNrIdle++;
+                    iBound = upperBound;
+                    iUpperBound = iBound;
+                    setProgressPhase("Great Deluge [" + (1 + iNrIdle) + "]...");
+                }
+                setProgress(100 - Math.round(100.0 * (iBound - lowerBound) / (iUpperBound - lowerBound)));
             }
-            setProgress(100 - Math.round(100.0 * (iBound - lowerBound) / (iUpperBound - lowerBound)));
             iMoves++;
         }
         

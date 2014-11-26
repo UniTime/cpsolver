@@ -36,7 +36,7 @@ import org.cpsolver.ifs.model.Variable;
  * @param <T> Value
  **/
 public class AssignmentContextHolderMap<V extends Variable<V, T>, T extends Value<V, T>> implements AssignmentContextHolder<V, T> {
-    private Map<Integer,AssignmentContext> iContexts = new HashMap<Integer, AssignmentContext>();
+    protected Map<Integer,AssignmentContext> iContexts = new HashMap<Integer, AssignmentContext>();
 
     public AssignmentContextHolderMap() {
     }
