@@ -1077,7 +1077,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     
     @Override
     public InheritedAssignment<Request, Enrollment> createInheritedAssignment(Solution<Request, Enrollment> solution, int index) {
-        return new OptimisticInheritedAssignment<>(solution, index);
+        return new OptimisticInheritedAssignment<Request, Enrollment>(solution, index);
     }
 
 }
