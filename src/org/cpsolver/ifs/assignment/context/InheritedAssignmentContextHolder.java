@@ -61,10 +61,13 @@ public class InheritedAssignmentContextHolder<V extends Variable<V, T>, T extend
             VersionedContext<U> context = (VersionedContext<U>)contexts[iIndex];
             if (context == null) {
                 context = new VersionedContext<U>();
+                if (reference.getParent() instanceof CanInheritContext)
+                    context.setContent(((CanInheritContext<V, T, U>)reference.getParent()).inheritAssignmentContext(assignment,
+                            ((InheritedAssignment<V, T>)assignment).getParentAssignment().getAssignmentContext(reference)), iVersion);
+                else
+                    context.setContent(reference.getParent().createAssignmentContext(assignment), iVersion);
                 contexts[iIndex] = context;
-            }
-            
-            if (!context.isCurrent(iVersion)) {
+            } else if (!context.isCurrent(iVersion)) {
                 if (reference.getParent() instanceof CanInheritContext)
                     context.setContent(((CanInheritContext<V, T, U>)reference.getParent()).inheritAssignmentContext(assignment,
                             ((InheritedAssignment<V, T>)assignment).getParentAssignment().getAssignmentContext(reference)), iVersion);
@@ -104,7 +107,7 @@ public class InheritedAssignmentContextHolder<V extends Variable<V, T>, T extend
         }
         
         public boolean isCurrent(long version) {
-            return iContent != null && iContentVersion == version;
+            return iContentVersion == version;
         }
     }
 }
