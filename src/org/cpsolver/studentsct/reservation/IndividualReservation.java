@@ -37,13 +37,34 @@ public class IndividualReservation extends Reservation {
     private Set<Long> iStudentIds = new HashSet<Long>();
     
     /**
+     * Individual reservations are of the top priority
+     */
+    public static final int DEFAULT_PRIORITY = 100;
+    /**
+     * Individual or group reservation must be used (unless it is expired)
+     */
+    public static final boolean DEFAULT_MUST_BE_USED = true;
+    /**
+     * Individual reservations are the only reservations that can be assigned over the limit.
+     */
+    public static final boolean DEFAULT_CAN_ASSIGN_OVER_LIMIT = true;
+    /**
+     * Overlaps are allowed for individual reservations. 
+     */
+    public static final boolean DEFAULT_ALLOW_OVERLAP = true;
+    
+    /**
      * Constructor
-     * @param id unique id
-     * @param offering offering for which the reservation is
+     * @param id reservation unique id
+     * @param offering instructional offering on which the reservation is set
+     * @param priority reservation priority
+     * @param mustBeUsed must this reservation be used
+     * @param canAssignOverLimit can assign over class / configuration / course limit
+     * @param allowOverlap does this reservation allow for overlaps
      * @param studentIds one or more students
      */
-    public IndividualReservation(long id, Offering offering, Long... studentIds) {
-        super(id, offering);
+    protected IndividualReservation(long id, Offering offering, int priority, boolean mustBeUsed, boolean canAssignOverLimit, boolean allowOverlap, Long... studentIds) {
+        super(id, offering, priority, mustBeUsed, canAssignOverLimit, allowOverlap);
         for (Long studentId: studentIds) {
             iStudentIds.add(studentId);
         }
@@ -55,34 +76,34 @@ public class IndividualReservation extends Reservation {
      * @param offering offering for which the reservation is
      * @param studentIds one or more students
      */
-    public IndividualReservation(long id, Offering offering, Collection<Long> studentIds) {
-        super(id, offering);
-        iStudentIds.addAll(studentIds);
-    }
-
-    /**
-     * Individual reservations are the only reservations that can be assigned over the limit.
-     */
-    @Override
-    public boolean canAssignOverLimit() {
-        return true;
+    public IndividualReservation(long id, Offering offering, Long... studentIds) {
+        this(id, offering, DEFAULT_PRIORITY, DEFAULT_MUST_BE_USED, DEFAULT_CAN_ASSIGN_OVER_LIMIT, DEFAULT_ALLOW_OVERLAP, studentIds);
     }
     
     /**
-     * Individual or group reservation must be used (unless it is expired)
-     * @return true if not expired, false if expired
+     * Constructor
+     * @param id reservation unique id
+     * @param offering instructional offering on which the reservation is set
+     * @param priority reservation priority
+     * @param mustBeUsed must this reservation be used
+     * @param canAssignOverLimit can assign over class / configuration / course limit
+     * @param allowOverlap does this reservation allow for overlaps
+     * @param studentIds one or more students
      */
-    @Override
-    public boolean mustBeUsed() {
-        return !isExpired();
+    protected IndividualReservation(long id, Offering offering, int priority, boolean mustBeUsed, boolean canAssignOverLimit, boolean allowOverlap, Collection<Long> studentIds) {
+        super(id, offering, priority, mustBeUsed, canAssignOverLimit, allowOverlap);
+        iStudentIds.addAll(studentIds);
     }
 
+
     /**
-     * Individual reservations are of the top priority
+     * Constructor
+     * @param id unique id
+     * @param offering offering for which the reservation is
+     * @param studentIds one or more students
      */
-    @Override
-    public int getPriority() {
-        return 100;
+    public IndividualReservation(long id, Offering offering, Collection<Long> studentIds) {
+        this(id, offering, DEFAULT_PRIORITY, DEFAULT_MUST_BE_USED, DEFAULT_CAN_ASSIGN_OVER_LIMIT, DEFAULT_ALLOW_OVERLAP, studentIds);
     }
 
     /**
@@ -109,13 +130,4 @@ public class IndividualReservation extends Reservation {
         return iStudentIds.size();
     }
     
-    /**
-     * Overlaps are allowed for individual reservations. 
-     */
-    @Override
-    public boolean isAllowOverlap() {
-        return true;
-    }
-
-
 }

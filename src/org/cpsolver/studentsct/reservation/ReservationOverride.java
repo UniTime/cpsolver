@@ -34,9 +34,22 @@ import org.cpsolver.studentsct.model.Offering;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class ReservationOverride extends IndividualReservation {
-    private boolean iMustBeUsed = false;
-    private boolean iAllowOverlap = false;
-    private boolean iAllowOverLimit = false;
+    /**
+     * Reservation priority (lower than individual and group reservations)
+     */
+    public static final int DEFAULT_PRIORITY = 300;
+    /**
+     * Reservation override does not need to be used by default
+     */
+    public static final boolean DEFAULT_MUST_BE_USED = false;
+    /**
+     * Reservation override cannot be assigned over the limit by default.
+     */
+    public static final boolean DEFAULT_CAN_ASSIGN_OVER_LIMIT = false;
+    /**
+     * Overlaps are not allowed for group reservation overrides by default. 
+     */
+    public static final boolean DEFAULT_ALLOW_OVERLAPS = false;
     
     /**
      * Constructor
@@ -45,7 +58,7 @@ public class ReservationOverride extends IndividualReservation {
      * @param studentIds one or more students
      */
     public ReservationOverride(long id, Offering offering, Long... studentIds) {
-        super(id, offering, studentIds);
+        super(id, offering, DEFAULT_PRIORITY, DEFAULT_MUST_BE_USED, DEFAULT_CAN_ASSIGN_OVER_LIMIT, DEFAULT_ALLOW_OVERLAP, studentIds);
     }
     
     /**
@@ -55,61 +68,6 @@ public class ReservationOverride extends IndividualReservation {
      * @param studentIds one or more students
      */
     public ReservationOverride(long id, Offering offering, Collection<Long> studentIds) {
-        super(id, offering, studentIds);
-    }
-
-    /**
-     * Set if the override must be used
-     * @param mustBeUsed true if the override must be used (if not expired)
-     */
-    public void setMustBeUsed(boolean mustBeUsed) { iMustBeUsed = mustBeUsed; }
-
-    /**
-     * Return if the override must be used (unless it is expired)
-     * @return true if must be used and not expired
-     */
-    @Override
-    public boolean mustBeUsed() {
-        return iMustBeUsed && !isExpired();
-    }
-    
-    /**
-     * Set if the override allows for time conflicts
-     * @param allowOverlap true if time overlaps are allowed
-     */
-    public void setAllowOverlap(boolean allowOverlap) {
-        iAllowOverlap = allowOverlap;
-    }
-    
-    /**
-     * Overlaps are allowed for individual reservations. 
-     */
-    @Override
-    public boolean isAllowOverlap() {
-        return iAllowOverlap;
-    }
-
-    /**
-     * Set if the override allows for over the limit assignment
-     * @param allowOverLimit true if the student can get into the course, configuration, or class over the limit
-     */
-    public void setCanAssignOverLimit(boolean allowOverLimit) {
-        iAllowOverLimit = allowOverLimit;
-    }
-    
-    /**
-     * Individual reservations are the only reservations that can be assigned over the limit.
-     */
-    @Override
-    public boolean canAssignOverLimit() {
-        return iAllowOverLimit;
-    }
-    
-    /**
-     * Overrides comes just after individual and group reservations
-     */
-    @Override
-    public int getPriority() {
-        return 300;
+        super(id, offering, DEFAULT_PRIORITY, DEFAULT_MUST_BE_USED, DEFAULT_CAN_ASSIGN_OVER_LIMIT, DEFAULT_ALLOW_OVERLAP, studentIds);
     }
 }
