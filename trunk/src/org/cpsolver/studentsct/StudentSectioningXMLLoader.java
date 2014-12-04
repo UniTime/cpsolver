@@ -439,9 +439,6 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                             studentIds.add(Long.parseLong(studentEl.attributeValue("id")));
                         }
                         r = new ReservationOverride(Long.valueOf(reservationEl.attributeValue("id")), offering, studentIds);
-                        ((ReservationOverride)r).setMustBeUsed("true".equals(reservationEl.attributeValue("mustBeUsed", "false")));
-                        ((ReservationOverride)r).setAllowOverlap("true".equals(reservationEl.attributeValue("allowOverlap", "false")));
-                        ((ReservationOverride)r).setCanAssignOverLimit("true".equals(reservationEl.attributeValue("canAssignOverLimit", "false")));
                     }
                     if (r == null) {
                         sLogger.error("Unknown reservation type "+ reservationEl.attributeValue("type"));
@@ -456,6 +453,10 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                         Element sectionEl = (Element)k.next();
                         r.addSection(sectionTable.get(Long.parseLong(sectionEl.attributeValue("id"))));
                     }
+                    r.setPriority(Integer.parseInt(reservationEl.attributeValue("priority", String.valueOf(r.getPriority()))));
+                    r.setMustBeUsed("true".equals(reservationEl.attributeValue("mustBeUsed", r.mustBeUsed() ? "true" : "false")));
+                    r.setAllowOverlap("true".equals(reservationEl.attributeValue("allowOverlap", r.isAllowOverlap() ? "true" : "false")));
+                    r.setCanAssignOverLimit("true".equals(reservationEl.attributeValue("canAssignOverLimit", r.canAssignOverLimit() ? "true" : "false")));
                 } 
             }
         } else {

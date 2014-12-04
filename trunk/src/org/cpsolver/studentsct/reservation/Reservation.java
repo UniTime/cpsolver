@@ -67,16 +67,36 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
     /** One or more sections, if applicable */
     private Map<Subpart, Set<Section>> iSections = new HashMap<Subpart, Set<Section>>();
     
+    /** Reservation priority */
+    private int iPriority = 100;
+    
+    /** Must this reservation be used */
+    private boolean iMustBeUsed = false;
+    
+    /** Can assign over class / configuration / course limit */
+    private boolean iCanAssignOverLimit = false;
+    
+    /** Does this reservation allow for overlaps */
+    private boolean iAllowOverlap = false;
+    
     /**
      * Constructor
      * @param id reservation unique id
      * @param offering instructional offering on which the reservation is set
+     * @param priority reservation priority
+     * @param mustBeUsed must this reservation be used
+     * @param canAssignOverLimit can assign over class / configuration / course limit
+     * @param allowOverlap does this reservation allow for overlaps
      */
-    public Reservation(long id, Offering offering) {
+    public Reservation(long id, Offering offering, int priority, boolean mustBeUsed, boolean canAssignOverLimit, boolean allowOverlap) {
         iId = id;
         iOffering = offering;
         iOffering.getReservations().add(this);
         iOffering.clearReservationCache();
+        iPriority = priority;
+        iMustBeUsed = mustBeUsed;
+        iCanAssignOverLimit = canAssignOverLimit;
+        iAllowOverlap = allowOverlap;
     }
     
     /**
@@ -95,7 +115,17 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
     /** Reservation priority (e.g., individual reservations first) 
      * @return reservation priority
      **/
-    public abstract int getPriority();
+    public int getPriority() {
+        return iPriority;
+    }
+    
+    /**
+     * Set reservation priority (e.g., individual reservations first) 
+     * @param priority reservation priority
+     */
+    public void setPriority(int priority) {
+        iPriority = priority; 
+    }
     
     /**
      * Returns true if the student is applicable for the reservation
@@ -205,13 +235,33 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
      * True if can go over the course / config / section limit. Only to be used in the online sectioning. 
      * @return can assign over class / configuration / course limit
       */
-    public abstract boolean canAssignOverLimit();
+    public boolean canAssignOverLimit() {
+        return iCanAssignOverLimit;
+    }
     
     /**
-     * If true, student must use the reservation (if applicable)
+     * Set to true if a student meeting this reservation can go over the course / config / section limit.
+     * @param canAssignOverLimit can assign over class / configuration / course limit
+     */
+    public void setCanAssignOverLimit(boolean canAssignOverLimit) {
+        iCanAssignOverLimit = canAssignOverLimit;
+    }
+    
+    /**
+     * If true, student must use the reservation (if applicable). Expired reservations do not need to be used. 
      * @return must this reservation be used
      */
-    public abstract boolean mustBeUsed();
+    public boolean mustBeUsed() {
+        return iMustBeUsed && !isExpired();
+    }
+    
+    /**
+     * Set to true if the student must use the reservation (if applicable)
+     * @param mustBeUsed must this reservation be used
+     */
+    public void setMustBeUsed(boolean mustBeUsed) {
+        iMustBeUsed = mustBeUsed;
+    }
     
     /**
      * Reservation restrictivity (estimated percentage of enrollments that include this reservation, 1.0 reservation on the whole offering)
@@ -359,7 +409,15 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
      * @return does this reservation allow for overlaps
      */
     public boolean isAllowOverlap() {
-        return false;
+        return iAllowOverlap;
+    }
+    
+    /**
+     * Set to true if holding this reservation allows a student to have attend overlapping class.
+     * @param allowOverlap does this reservation allow for overlaps
+     */
+    public void setAllowOverlap(boolean allowOverlap) {
+        iAllowOverlap = allowOverlap;
     }
     
     /**

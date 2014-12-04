@@ -351,9 +351,6 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                         ReservationOverride o = (ReservationOverride)r;
                         for (Long studentId: o.getStudentIds())
                             reservationEl.addElement("student").addAttribute("id", getId("student", studentId));
-                        if (o.mustBeUsed()) reservationEl.addAttribute("mustBeUsed", "true");
-                        if (o.isAllowOverlap()) reservationEl.addAttribute("allowOverlap", "true");
-                        if (o.canAssignOverLimit()) reservationEl.addAttribute("canAssignOverLimit", "true");
                     } else if (r instanceof IndividualReservation) {
                         reservationEl.addAttribute("type", "individual");
                         for (Long studentId: ((IndividualReservation)r).getStudentIds())
@@ -375,6 +372,10 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                     } else if (r instanceof DummyReservation) {
                         reservationEl.addAttribute("type", "dummy");
                     }
+                    reservationEl.addAttribute("priority", String.valueOf(r.getPriority()));
+                    if (r.mustBeUsed()) reservationEl.addAttribute("mustBeUsed", "true");
+                    if (r.isAllowOverlap()) reservationEl.addAttribute("allowOverlap", "true");
+                    if (r.canAssignOverLimit()) reservationEl.addAttribute("canAssignOverLimit", "true");
                     for (Config config: r.getConfigs())
                         reservationEl.addElement("config").addAttribute("id", getId("config", config.getId()));
                     for (Map.Entry<Subpart, Set<Section>> entry: r.getSections().entrySet()) {
