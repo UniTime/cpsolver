@@ -322,7 +322,7 @@ public class Test {
                             break;
                         }
                     }
-                    if (reservationLimit <= 0)
+                    if (reservationLimit <= 0 && !reservation.mustBeUsed())
                         continue;
                 }
                 boolean applicable = originalStudent != null && reservation.isApplicable(originalStudent);
