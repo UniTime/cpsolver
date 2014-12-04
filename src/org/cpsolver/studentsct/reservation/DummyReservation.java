@@ -31,11 +31,29 @@ import org.cpsolver.studentsct.model.Student;
 public class DummyReservation extends Reservation {
     
     /**
+     * Dummy reservation has low priority
+     */
+    public static final int DEFAULT_PRIORITY = 600;
+    /**
+     * Dummy reservation does not need to be used
+     */
+    public static final boolean DEFAULT_MUST_BE_USED = false;
+    /**
+     * Dummy reservations can not assign over the limit.
+     */
+    public static final boolean DEFAULT_CAN_ASSIGN_OVER_LIMIT = false;
+    /**
+     * Overlaps are not allowed for dummy reservations. 
+     */
+    public static final boolean DEFAULT_ALLOW_OVERLAP = false;
+    
+    
+    /**
      * Constructor
      * @param offering offering on which the reservation is set
      */
     public DummyReservation(Offering offering) {
-        super(offering.getId(), offering);
+        super(offering.getId(), offering, DEFAULT_PRIORITY, DEFAULT_MUST_BE_USED, DEFAULT_CAN_ASSIGN_OVER_LIMIT, DEFAULT_ALLOW_OVERLAP);
     }
 
     /**
@@ -47,35 +65,10 @@ public class DummyReservation extends Reservation {
     }
 
     /**
-     * Dummy reservation has low priority
-     */
-    @Override
-    public int getPriority() {
-        return 600;
-    }
-
-    /**
      * Dummy reservation is not applicable to any students
      */
     @Override
     public boolean isApplicable(Student student) {
-        return false;
-    }
-
-    /**
-     * Dummy reservation cannot go over the limit
-     */
-    @Override
-    public boolean canAssignOverLimit() {
-        return false;
-    }
-
-    
-    /**
-     * Dummy reservation do not need to be used
-     */
-    @Override
-    public boolean mustBeUsed() {
         return false;
     }
 

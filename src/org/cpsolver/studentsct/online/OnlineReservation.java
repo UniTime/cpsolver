@@ -28,12 +28,8 @@ import org.cpsolver.studentsct.model.Student;
  */
 public class OnlineReservation extends org.cpsolver.studentsct.reservation.Reservation {
     private int iType;
-    private int iPriority;
-    private boolean iOver;
     private int iLimit;
     private boolean iApply;
-    private boolean iMustUse;
-    private boolean iAllowOverlap;
     
     /**
      * Constructor 
@@ -49,14 +45,10 @@ public class OnlineReservation extends org.cpsolver.studentsct.reservation.Reser
      * @param expired true if the reservation is expired
      */
     public OnlineReservation(int type, long id, Offering offering, int priority, boolean over, int limit, boolean apply, boolean mustUse, boolean allowOverlap, boolean expired) {
-            super(id, offering);
+            super(id, offering, priority, mustUse, over, allowOverlap);
             iType = type;
-            iPriority = priority;
-            iOver = over;
             iLimit = limit;
             iApply = apply;
-            iMustUse = mustUse;
-            iAllowOverlap = allowOverlap;
             setExpired(expired);
     }
     
@@ -65,32 +57,12 @@ public class OnlineReservation extends org.cpsolver.studentsct.reservation.Reser
     }
     
     @Override
-    public boolean canAssignOverLimit() {
-            return iOver;
-    }
-
-    @Override
-    public boolean mustBeUsed() {
-            return iMustUse;
-    }
-    
-    @Override
     public double getReservationLimit() {
             return iLimit;
     }
 
     @Override
-    public int getPriority() {
-            return iPriority;
-    }
-
-    @Override
     public boolean isApplicable(Student student) {
             return iApply;
-    }
-
-    @Override
-    public boolean isAllowOverlap() {
-            return iAllowOverlap;
     }
 }

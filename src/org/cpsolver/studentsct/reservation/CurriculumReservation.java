@@ -42,6 +42,23 @@ public class CurriculumReservation extends Reservation {
     private Set<String> iMajors = new HashSet<String>();
     
     /**
+     * Reservation priority (lower than individual and group reservations)
+     */
+    public static final int DEFAULT_PRIORITY = 500;
+    /**
+     * Curriculum reservation does not need to be used
+     */
+    public static final boolean DEFAULT_MUST_BE_USED = false;
+    /**
+     * Curriculum reservations can not assign over the limit.
+     */
+    public static final boolean DEFAULT_CAN_ASSIGN_OVER_LIMIT = false;
+    /**
+     * Overlaps are not allowed for curriculum reservations. 
+     */
+    public static final boolean DEFAULT_ALLOW_OVERLAP = false;
+    
+    /**
      * Constructor
      * @param id unique id
      * @param limit reservation limit (-1 for unlimited)
@@ -51,29 +68,13 @@ public class CurriculumReservation extends Reservation {
      * @param majors zero or more majors (majors must match if not empty)
      */
     public CurriculumReservation(long id, double limit, Offering offering, String acadArea, Collection<String> classifications, Collection<String> majors) {
-        super(id, offering);
+        super(id, offering, DEFAULT_PRIORITY, DEFAULT_MUST_BE_USED, DEFAULT_CAN_ASSIGN_OVER_LIMIT, DEFAULT_ALLOW_OVERLAP);
         iLimit = limit;
         iAcadArea = acadArea;
         if (classifications != null)
             iClassifications.addAll(classifications);
         if (majors != null)
             iMajors.addAll(majors);
-    }
-
-    /**
-     * Curriculum reservation cannot go over the limit
-     */
-    @Override
-    public boolean canAssignOverLimit() {
-        return false;
-    }
-    
-    /**
-     * Curriculum reservation do not need to be used
-     */
-    @Override
-    public boolean mustBeUsed() {
-        return false;
     }
 
     /**
@@ -92,13 +93,6 @@ public class CurriculumReservation extends Reservation {
         iLimit = limit;
     }
 
-    /**
-     * Reservation priority (lower than individual and group reservations)
-     */
-    @Override
-    public int getPriority() {
-        return 500;
-    }
     
     /**
      * Academic area

@@ -35,6 +35,23 @@ import org.cpsolver.studentsct.model.Offering;
  */
 public class GroupReservation extends IndividualReservation {
     private double iLimit;
+    
+    /**
+     * Group reservations are of the second highest priority
+     */
+    public static final int DEFAULT_PRIORITY = 200;
+    /**
+     * Individual or group reservation must be used (unless it is expired)
+     */
+    public static final boolean DEFAULT_MUST_BE_USED = true;
+    /**
+     * Group reservations cannot be assigned over the limit.
+     */
+    public static final boolean DEFAULT_CAN_ASSIGN_OVER_LIMIT = false;
+    /**
+     * Overlaps are not allowed for group reservations. 
+     */
+    public static final boolean DEFAULT_ALLOW_OVERLAPS = false;
 
     /**
      * Constructor
@@ -44,7 +61,7 @@ public class GroupReservation extends IndividualReservation {
      * @param studentIds one or more students
      */
     public GroupReservation(long id, double limit, Offering offering, Long... studentIds) {
-        super(id, offering, studentIds);
+        super(id, offering, DEFAULT_PRIORITY, DEFAULT_MUST_BE_USED, DEFAULT_CAN_ASSIGN_OVER_LIMIT, DEFAULT_ALLOW_OVERLAP, studentIds);
         iLimit = limit;
     }
     
@@ -56,24 +73,8 @@ public class GroupReservation extends IndividualReservation {
      * @param studentIds one or more students
      */
     public GroupReservation(long id, double limit, Offering offering, Collection<Long> studentIds) {
-        super(id, offering, studentIds);
+        super(id, offering, DEFAULT_PRIORITY, DEFAULT_MUST_BE_USED, DEFAULT_CAN_ASSIGN_OVER_LIMIT, DEFAULT_ALLOW_OVERLAP, studentIds);
         iLimit = limit;
-    }
-
-    /**
-     * Group reservations are of the second highest priority
-     */
-    @Override
-    public int getPriority() {
-        return 200;
-    }
-
-    /**
-     * Group reservations can not be assigned over the limit.
-     */
-    @Override
-    public boolean canAssignOverLimit() {
-        return false;
     }
 
     /**
@@ -90,13 +91,5 @@ public class GroupReservation extends IndividualReservation {
      */
     public void setReservationLimit(double limit) {
         iLimit = limit;
-    }
-    
-    /**
-     * Overlaps are allowed for individual reservations. 
-     */
-    @Override
-    public boolean isAllowOverlap() {
-        return false;
     }
 }

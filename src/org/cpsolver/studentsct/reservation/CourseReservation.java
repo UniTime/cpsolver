@@ -34,29 +34,30 @@ public class CourseReservation extends Reservation {
     private Course iCourse;
     
     /**
+     * Reservation priority (lower than individual and group reservations)
+     */
+    public static final int DEFAULT_PRIORITY = 400;
+    /**
+     * Course reservation does not need to be used
+     */
+    public static final boolean DEFAULT_MUST_BE_USED = false;
+    /**
+     * Course reservations can not assign over the limit.
+     */
+    public static final boolean DEFAULT_CAN_ASSIGN_OVER_LIMIT = true;
+    /**
+     * Overlaps are not allowed for course reservations. 
+     */
+    public static final boolean DEFAULT_ALLOW_OVERLAP = false;
+    
+    /**
      * Constructor
      * @param id unique id
      * @param course course offering on which the reservation is set
      */
     public CourseReservation(long id, Course course) {
-        super(id, course.getOffering());
+        super(id, course.getOffering(), DEFAULT_PRIORITY, DEFAULT_MUST_BE_USED, DEFAULT_CAN_ASSIGN_OVER_LIMIT, DEFAULT_ALLOW_OVERLAP);
         iCourse = course;
-    }
-
-    /**
-     * Curriculum reservation cannot go over the limit
-     */
-    @Override
-    public boolean canAssignOverLimit() {
-        return false;
-    }
-    
-    /**
-     * Course reservation do not need to be used
-     */
-    @Override
-    public boolean mustBeUsed() {
-        return false;
     }
 
     /**
@@ -65,14 +66,6 @@ public class CourseReservation extends Reservation {
     @Override
     public double getReservationLimit() {
         return iCourse.getLimit();
-    }
-
-    /**
-     * Reservation priority (lower than individual and group reservations)
-     */
-    @Override
-    public int getPriority() {
-        return 400;
     }
     
     /**
