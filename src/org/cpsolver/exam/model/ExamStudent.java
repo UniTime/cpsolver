@@ -49,6 +49,7 @@ public class ExamStudent extends Constraint<Exam, ExamPlacement> {
         super();
         iAllowDirectConflicts = model.getProperties().getPropertyBoolean("Student.AllowDirectConflicts", iAllowDirectConflicts);
         iId = id;
+        setModel(model);
     }
     
     /**
