@@ -58,6 +58,7 @@ import org.cpsolver.ifs.util.DataProperties;
 public class HillClimber<V extends Variable<V, T>, T extends Value<V, T>> extends NeighbourSearch<V, T> {
     protected int iMaxIdleIters = 10000;
     protected boolean iSetHCMode = false;
+    protected static double sEPS = 1e10;
 
     /**
      * Constructor
@@ -143,7 +144,7 @@ public class HillClimber<V extends Variable<V, T>, T extends Value<V, T>> extend
          */
         @Override
         protected boolean accept(Assignment<V, T> assignment, Model<V, T> model, Neighbour<V, T> neighbour, double value, boolean lazy) {
-            if (value < 0) iLastImprovingIter = iIter;
+            if (value < -sEPS) iLastImprovingIter = iIter;
             return value <= 0;
         }
     }
