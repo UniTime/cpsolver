@@ -666,8 +666,22 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                 if (request.getAssignment() != null)
                     request.unassign(0);
             }
+            // Enrollments with a reservation must go first
             for (Enrollment enrollment : currentEnrollments) {
-                enrollment.variable().assign(0, enrollment);
+                if (enrollment.getReservation() == null) continue;
+                Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(enrollment);
+                if (conflicts.isEmpty())
+                    enrollment.variable().assign(0, enrollment);
+                else
+                    sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
+            }
+            for (Enrollment enrollment : currentEnrollments) {
+                if (enrollment.getReservation() != null) continue;
+                Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(enrollment);
+                if (conflicts.isEmpty())
+                    enrollment.variable().assign(0, enrollment);
+                else
+                    sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
             }
         }
     }
@@ -776,7 +790,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
     
     /**
      * Load enrollment
-     * @param enrollmentEl entrollment element (current, best, or initial)
+     * @param enrollmentEl enrollment element (current, best, or initial)
      * @param request parent request
      * @return loaded enrollment
      */
