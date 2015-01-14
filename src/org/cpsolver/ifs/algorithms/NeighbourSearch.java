@@ -69,6 +69,7 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
     private boolean iRandomSelection = false;
     private boolean iUpdatePoints = false;
     private double iTotalBonus;
+    private Solver<V, T> iSolver = null;
 
     @SuppressWarnings("unchecked")
     public NeighbourSearch(DataProperties properties) {
@@ -162,6 +163,7 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
     public void init(Solver<V, T> solver) {
         super.init(solver);
         iProgress = Progress.getInstance(solver.currentSolution().getModel());
+        iSolver = solver;
         solver.currentSolution().addSolutionListener(this);
         // solver.setUpdateProgress(false);
         for (NeighbourSelection<V, T> neighbour: iNeighbours)
@@ -215,6 +217,7 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
         NeighbourSearchContext context = getContext(solution.getAssignment());
         context.activateIfNeeded(solution);
         while (context.canContinue(solution)) {
+            if (iSolver != null && iSolver.isStop()) return null;
             context.incIteration(solution);
             Neighbour<V,T> n = generateMove(solution);
             if (n != null && accept(context, solution, n))
