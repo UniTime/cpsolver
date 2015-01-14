@@ -51,7 +51,7 @@ public class GroupReservation extends IndividualReservation {
     /**
      * Overlaps are not allowed for group reservations. 
      */
-    public static final boolean DEFAULT_ALLOW_OVERLAPS = false;
+    public static final boolean DEFAULT_ALLOW_OVERLAP = false;
 
     /**
      * Constructor
