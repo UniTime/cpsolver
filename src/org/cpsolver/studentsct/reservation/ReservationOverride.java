@@ -49,7 +49,7 @@ public class ReservationOverride extends IndividualReservation {
     /**
      * Overlaps are not allowed for group reservation overrides by default. 
      */
-    public static final boolean DEFAULT_ALLOW_OVERLAPS = false;
+    public static final boolean DEFAULT_ALLOW_OVERLAP = false;
     
     /**
      * Constructor
