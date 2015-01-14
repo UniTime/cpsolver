@@ -1,9 +1,9 @@
 <!--
-	IFS 1.3 (Iterative Forward Search)
-	CourseTT 1.3 (University Course Timetabling)
-	StudentSct 1.3 (Student Sectioning)
-	ExamTT 1.3 (Examination Timetabling)
-	Copyright (C) 2007 - 2014 Tomas Muller
+	IFS 1.2 (Iterative Forward Search)
+	CourseTT 1.2 (University Course Timetabling)
+	StudentSct 1.2 (Student Sectioning)
+	ExamTT 1.2 (Examination Timetabling)
+	Copyright (C) 2007 - 2010 Tomas Muller
 	muller@unitime.org, http://muller.unitime.org
 	
 	This library is free software; you can redistribute it and/or modify
@@ -25,7 +25,7 @@
 	
 	<groupId>org.unitime</groupId>
 	<artifactId>cpsolver</artifactId>
-	<version>1.3-SNAPSHOT</version>
+	<version>1.2.153</version>
 	<packaging>jar</packaging>
 	
 	<name>CPSolver</name>
@@ -64,7 +64,7 @@
 		<dependency>
 			<groupId>log4j</groupId>
 			<artifactId>log4j</artifactId>
-			<version>1.2.17</version>
+			<version>1.2.8</version>
 		</dependency>
 		<dependency>
 			<groupId>dom4j</groupId>
@@ -74,29 +74,38 @@
 	</dependencies>
 	
 	<scm>
-		<connection>scm:svn:http://cpsolver.googlecode.com/svn/trunk/</connection>
-		<developerConnection>scm:svn:https://cpsolver.googlecode.com/svn/trunk/</developerConnection>
-		<url>http://code.google.com/p/cpsolver/source/browse</url>
+		<connection>scm:svn:http://cpsolver.googlecode.com/svn/tags/cpsolver-1.2.153</connection>
+		<developerConnection>scm:svn:https://cpsolver.googlecode.com/svn/tags/cpsolver-1.2.153</developerConnection>
+		<url>http://code.google.com/p/cpsolver/source/browse/tags/cpsolver-1.2.153</url>
 	</scm>
 	
 	<build>
 		<directory>dist</directory>
 		<finalName>${project.artifactId}-${project.version}</finalName>
-		<sourceDirectory>src</sourceDirectory>
 		<resources>
+			<resource>
+				<directory>src</directory>
+				<filtering>true</filtering>
+				<targetPath>${project.build.directory}/src</targetPath>
+				<includes>
+					<include>**/Constants.java</include>
+				</includes>
+			</resource>
+			<resource>
+				<directory>src</directory>
+				<targetPath>${project.build.directory}/src</targetPath>
+				<excludes>
+					<exclude>**/Constants.java</exclude>
+				</excludes>
+			</resource>
 			<resource>
 				<directory />
 				<includes>
 					<include>lgpl.txt</include>
 				</includes>
 			</resource>
-			<resource>
-				<directory>${project.build.directory}</directory>
-				<includes>
-					<include>cpsolver.version</include>
-				</includes>
-			</resource>
 		</resources>
+		<sourceDirectory>${project.build.directory}/src</sourceDirectory>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -111,7 +120,7 @@
 					<archive>
 						<manifest>
 							<addClasspath>true</addClasspath>
-							<mainClass>org.cpsolver.coursett.Test</mainClass>
+							<mainClass>net.sf.cpsolver.coursett.Test</mainClass>
 						</manifest>
 						<manifestEntries>
 							<Build-Number>${build.number}</Build-Number>
@@ -143,8 +152,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>2.5.1</version>
 				<configuration>
-					<source>1.6</source>
-					<target>1.6</target>
+					<source>1.5</source>
+					<target>1.5</target>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -156,18 +165,18 @@
 					<version>true</version>
 					<use>true</use>
 					<windowtitle>Constraint Solver API Documentation -- ${project.name} v${project.version}</windowtitle>
-					<source>1.6</source>
+					<source>1.5</source>
 					<linksource>true</linksource>
 					<breakiterator>true</breakiterator>
 					<detectLinks>true</detectLinks>
 					<outputDirectory>${project.build.directory}/doc</outputDirectory>
 					<doctitle><![CDATA[
     					<table border='0' style='font-size: 11pt;font-weight: normal;'><tr><td align='left'>
-    					IFS 1.3 (Iterative Forward Search)<br>
-    					CourseTT 1.3 (University Course Timetabling)<br>
-    					StudentSct 1.3 (Student Sectioning)<br>
-    					ExamTT 1.3 (Examination Timetabling)<br>
-    					Copyright (C) 2006 - 2014 Tom&#225;&#353; M&#252;ller<br>
+    					IFS 1.2 (Iterative Forward Search)<br>
+    					CourseTT 1.2 (University Course Timetabling)<br>
+    					StudentSct 1.2 (Student Sectioning)<br>
+    					ExamTT 1.2 (Examination Timetabling)<br>
+    					Copyright (C) 2006 - 2010 Tom&#225;&#353; M&#252;ller<br>
     					<a href='mailto:muller@unitime.org'>muller@unitime.org</a><br>
     					<a href='http://muller.unitime.org'>http://muller.unitime.org</a><br>
     					<br>
@@ -189,23 +198,23 @@
 					<groups>
 						<group>
 							<title>Iterative Forward Search</title>
-							<packages>org.cpsolver.ifs*</packages>
+							<packages>net.sf.cpsolver.ifs*</packages>
 						</group>
 						<group>
 							<title>Iterative Forward Search Examples</title>
-							<packages>org.cpsolver.ifs.example*</packages>
+							<packages>net.sf.cpsolver.ifs.example*</packages>
 						</group>
 						<group>
 							<title>University Course Timetabling</title>
-							<packages>org.cpsolver.coursett*</packages>
+							<packages>net.sf.cpsolver.coursett*</packages>
 						</group>
 						<group>
 							<title>Student Sectioning</title>
-							<packages>org.cpsolver.studentsct*</packages>
+							<packages>net.sf.cpsolver.studentsct*</packages>
 						</group>
 						<group>
 							<title>Examination Timetabling</title>
-							<packages>org.cpsolver.exam*</packages>
+							<packages>net.sf.cpsolver.exam*</packages>
 						</group>
 					</groups>
 				</configuration>
@@ -268,17 +277,10 @@
 						<configuration>
 							<exportAntProperties>true</exportAntProperties>
 							<target>
-								<loadproperties srcFile="build.number" />
-								<!--  <buildnumber /> -->
+								<buildnumber />
 								<tstamp>
 									<format property="build.date" pattern="EEE, d MMM yyyy" locale="en" />
 								</tstamp>
-								<propertyfile file="${project.build.directory}/cpsolver.version" comment="CPSolver version file">
-									<entry key="cpsolver.version" value="${project.version}" />
-									<entry key="cpsolver.build_nbr" value="${build.number}" />
-									<entry key="cpsolver.rel_date" value="${build.date}" />
-									<entry key="cpsolver.revision" value="${revision.number}" />
-								</propertyfile>
 							</target>
 						</configuration>
 					</execution>
@@ -288,16 +290,6 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-release-plugin</artifactId>
 				<version>2.3.1</version>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-eclipse-plugin</artifactId>
-				<version>2.9</version>
-				<configuration>
-					<classpathContainers>
-						<classpathContainer>org.eclipse.jdt.launching.JRE_CONTAINER</classpathContainer>
-					</classpathContainers>
-				</configuration>
 			</plugin>
 		</plugins>
 		<extensions>
@@ -332,19 +324,19 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
-
+	
 	<parent>
 		<groupId>org.sonatype.oss</groupId>
 		<artifactId>oss-parent</artifactId>
 		<version>7</version>
 	</parent>
-
-	<!-- 	
+	
+	<!-- 
 	<distributionManagement>
 		<repository>
-			<id>cpsolver.org</id>
-			<name>CPSolver Release Repository</name>
-			<url>ftp://maven.cpsolver.org</url>
+			<id>unitime.org</id>
+			<name>UniTime Release Repository</name>
+			<url>ftp://unitime.org/releases</url>
 		</repository>
 	</distributionManagement>
 	 -->
