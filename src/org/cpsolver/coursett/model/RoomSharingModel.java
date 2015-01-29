@@ -1,6 +1,8 @@
 package org.cpsolver.coursett.model;
 
 import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeSet;
 
 import org.cpsolver.coursett.Constants;
 
@@ -43,6 +45,8 @@ public class RoomSharingModel {
 
     public char iFreeForAllPrefChar = sFreeForAllPrefChar;
     public char iNotAvailablePrefChar = sNotAvailablePrefChar;
+    
+    private Map<Character, Long> iPatternMapping = null;
 
     protected RoomSharingModel(int step) {
     	iStep = step;
@@ -50,6 +54,29 @@ public class RoomSharingModel {
     
     protected RoomSharingModel() {
         this(6);
+    }
+    
+    public RoomSharingModel(int step, Map<Character, Long> managerIds, String pattern, Character freeForAllPrefChar, Character notAvailablePrefChar) {
+        iStep = step;
+        iPreference = new Long[getNrDays()][getNrTimes()];
+        iDepartmentIds = new Long[managerIds == null ? 0 : managerIds.size()];
+        iDepartmentIdx = new HashMap<Long, Integer>();
+        if (managerIds != null) {
+            iPatternMapping = new HashMap<Character, Long>(managerIds);
+            int i = 0;
+            for (Character ch: new TreeSet<Character>(managerIds.keySet())) {
+                Long id = managerIds.get(ch);
+                iDepartmentIds[i] = id;
+                iDepartmentIdx.put(id, i);
+                i++;
+            }
+        }
+        if (freeForAllPrefChar != null)
+            iFreeForAllPrefChar = freeForAllPrefChar;
+        if (notAvailablePrefChar != null)
+            iNotAvailablePrefChar = notAvailablePrefChar;
+
+        setPreferences(pattern);
     }
 
     public RoomSharingModel(int step, Long[] managerIds, String pattern, Character freeForAllPrefChar, Character notAvailablePrefChar) {
@@ -141,6 +168,22 @@ public class RoomSharingModel {
             return -1;
         return idx.intValue();
     }
+    
+    public char getCharacter(Long departmentId) {
+        if (iPatternMapping != null) {
+            for (Map.Entry<Character, Long> e: iPatternMapping.entrySet()) {
+                if (e.getValue().equals(departmentId)) return e.getKey();
+            }
+        }
+        return (char) ('0' + getIndex(departmentId));
+    }
+    
+    public Long getDepartmentId(char ch) {
+        if (iPatternMapping != null)
+            return iPatternMapping.get(ch);
+        else
+            return iDepartmentIds[(ch - '0')];
+    }
 
     public String getPreferences() {
         StringBuffer sb = new StringBuffer();
@@ -151,7 +194,7 @@ public class RoomSharingModel {
                 else if (iPreference[d][t].equals(sNotAvailablePref))
                     sb.append(getNotAvailablePrefChar());
                 else
-                    sb.append((char) ('0' + getIndex(iPreference[d][t])));
+                    sb.append(getCharacter(iPreference[d][t]));
             }
         return sb.toString();
     }
@@ -168,7 +211,7 @@ public class RoomSharingModel {
                     } else if (pref == getFreeForAllPrefChar()) {
                         iPreference[d][t] = sFreeForAllPref;
                     } else {
-                        iPreference[d][t] = iDepartmentIds[(pref - '0')];
+                        iPreference[d][t] = getDepartmentId(pref);
                     }
                 }
         } catch (NullPointerException e) {

@@ -242,9 +242,10 @@ public class TimetableXMLSaver extends TimetableSaver {
                         String.valueOf(sharingModel.getFreeForAllPrefChar()));
                 sharingEl.addElement("notAvailable").addAttribute("value",
                         String.valueOf(sharingModel.getNotAvailablePrefChar()));
-                for (int i = 0; i < sharingModel.getNrDepartments(); i++) {
-                    sharingEl.addElement("department").addAttribute("value", String.valueOf((char) ('0' + i)))
-                            .addAttribute("id", getId("dept", sharingModel.getDepartmentIds()[i]));
+                for (Long id: sharingModel.getDepartmentIds()) {
+                    sharingEl.addElement("department")
+                        .addAttribute("value", String.valueOf(sharingModel.getCharacter(id)))
+                        .addAttribute("id", getId("dept", id));
                 }
             }
             if (roomConstraint.getType() != null && iShowNames)
