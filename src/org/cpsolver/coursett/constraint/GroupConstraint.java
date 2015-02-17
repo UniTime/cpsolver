@@ -1604,9 +1604,11 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             else if (assignment != null)
                 placement = assignment.getValue(lecture);
             if (placement == null) {
-                lengths.add(lecture.timeLocations().get(0).getLength());
+            	if (!lecture.timeLocations().isEmpty())
+            		lengths.add(lecture.timeLocations().get(0).getLength());
             } else if (conflicts != null && conflicts.contains(placement)) {
-                lengths.add(lecture.timeLocations().get(0).getLength());
+            	if (!lecture.timeLocations().isEmpty())
+            		lengths.add(lecture.timeLocations().get(0).getLength());
             } else {
                 int pos = placement.getTimeLocation().getStartSlot();
                 int length = placement.getTimeLocation().getLength();
