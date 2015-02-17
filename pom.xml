@@ -29,7 +29,7 @@
 	<packaging>jar</packaging>
 	
 	<name>CPSolver</name>
-	<url>http://code.google.com/p/cpsolver</url>
+	<url>http://www.cpsolver.org</url>
 	<description>
 		The constraint solver library contains a local search based framework that allows
 		modeling of a problem using constraint programming primitives (variables, values, constraints).
@@ -74,9 +74,10 @@
 	</dependencies>
 	
 	<scm>
-		<connection>scm:svn:http://cpsolver.googlecode.com/svn/trunk/</connection>
-		<developerConnection>scm:svn:https://cpsolver.googlecode.com/svn/trunk/</developerConnection>
-		<url>http://code.google.com/p/cpsolver/source/browse</url>
+		<connection>scm:git:git://github.com/tomas-muller/cpsolver.git</connection>
+		<developerConnection>scm:git:git@github.com:tomas-muller/cpsolver.git</developerConnection>
+		<url>https://github.com/tomas-muller/cpsolver</url>
+		<tag>HEAD</tag>
 	</scm>
 	
 	<build>
