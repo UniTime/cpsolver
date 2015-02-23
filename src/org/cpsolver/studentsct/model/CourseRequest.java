@@ -725,7 +725,7 @@ public class CourseRequest extends Request {
      * @param course given course
      * @return reservations for this course requests and the given course
      */
-    public List<Reservation> getReservations(Course course) {
+    public synchronized List<Reservation> getReservations(Course course) {
         if (iReservations == null)
             iReservations = new HashMap<Course, List<Reservation>>();
         List<Reservation> reservations = iReservations.get(course);
@@ -769,7 +769,7 @@ public class CourseRequest extends Request {
     /**
      * Clear reservation information that was cached on this section
      */
-    public void clearReservationCache() {
+    public synchronized void clearReservationCache() {
         if (iReservations != null) iReservations.clear();
     }
 }

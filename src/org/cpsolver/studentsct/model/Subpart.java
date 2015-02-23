@@ -208,7 +208,7 @@ public class Subpart implements Comparable<Subpart> {
      * Get reservations that require sections of this subpart
      * @return reservations that require a class of this scheduling subpart
      */
-    public List<Reservation> getSectionReservations() {
+    public synchronized List<Reservation> getSectionReservations() {
         if (iSectionReservations == null) {
             iSectionReservations = new ArrayList<Reservation>();
             for (Reservation r: getConfig().getOffering().getReservations()) {
@@ -223,7 +223,7 @@ public class Subpart implements Comparable<Subpart> {
     /**
      * Clear reservation information that was cached on this subpart or below
      */
-    public void clearReservationCache() {
+    public synchronized void clearReservationCache() {
         for (Section s: getSections())
             s.clearReservationCache();
         iSectionReservations = null;

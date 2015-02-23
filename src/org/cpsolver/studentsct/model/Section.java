@@ -451,7 +451,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
      * Total space in the section that cannot be used by any section reservation
      * @return total unreserved space in this class
      **/
-    public double getTotalUnreservedSpace() {
+    public synchronized double getTotalUnreservedSpace() {
         if (iTotalUnreservedSpace == null)
             iTotalUnreservedSpace = getTotalUnreservedSpaceNoCache();
         return iTotalUnreservedSpace;
@@ -498,7 +498,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
      * Get reservations for this section
      * @return reservations that can use this class
      */
-    public List<Reservation> getReservations() {
+    public synchronized List<Reservation> getReservations() {
         if (iReservations == null) {
             iReservations = new ArrayList<Reservation>();
             for (Reservation r: getSubpart().getConfig().getOffering().getReservations()) {
@@ -514,7 +514,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
      * Get reservations that require this section
      * @return reservations that must use this class
      */
-    public List<Reservation> getSectionReservations() {
+    public synchronized List<Reservation> getSectionReservations() {
         if (iSectionReservations == null) {
             iSectionReservations = new ArrayList<Reservation>();
             for (Reservation r: getSubpart().getSectionReservations()) {
@@ -529,7 +529,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     /**
      * Clear reservation information that was cached on this section
      */
-    public void clearReservationCache() {
+    public synchronized void clearReservationCache() {
         iReservations = null;
         iSectionReservations = null;
         iTotalUnreservedSpace = null;

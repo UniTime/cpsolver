@@ -217,7 +217,7 @@ public class Offering {
      * Total space in the offering that is not reserved by any reservation 
      * @return total unreserved space in the offering
      **/
-    public double getTotalUnreservedSpace() {
+    public synchronized double getTotalUnreservedSpace() {
         if (iTotalUnreservedSpace == null)
             iTotalUnreservedSpace = getTotalUnreservedSpaceNoCache();
         return iTotalUnreservedSpace;
@@ -295,7 +295,7 @@ public class Offering {
     /**
      * Clear reservation information that was cached on this offering or below
      */
-    public void clearReservationCache() {
+    public synchronized void clearReservationCache() {
         for (Config c: getConfigs())
             c.clearReservationCache();
         for (Course c: getCourses())
