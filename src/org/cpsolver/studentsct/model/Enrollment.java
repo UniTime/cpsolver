@@ -251,6 +251,26 @@ public class Enrollment extends Value<Request, Enrollment> {
         }
         return ((double) nrInitial) / getAssignments().size();
     }
+    
+    /** Percent of sections that have same time as the initial assignment 
+     * @return percent of sections that have same time as the initial assignment
+     **/
+    public double percentSameTime() {
+        if (!isCourseRequest())
+            return 0.0;
+        if (getRequest().getInitialAssignment() == null)
+            return 0.0;
+        Enrollment ie = getRequest().getInitialAssignment();
+        int nrInitial = 0;
+        for (Section section : getSections()) {
+            for (Section initial: ie.getSections()) {
+                if (section.getSubpart().getInstructionalType().equals(initial.getSubpart().getInstructionalType()) && section.sameTime(initial)) {
+                    nrInitial ++;
+                }
+            }
+        }
+        return ((double) nrInitial) / getAssignments().size();
+    }
 
     /** True if all the sections are wait-listed 
      * @return all the sections are wait-listed 

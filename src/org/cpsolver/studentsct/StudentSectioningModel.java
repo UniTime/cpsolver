@@ -71,7 +71,7 @@ import org.cpsolver.studentsct.weights.StudentWeights;
  */
 public class StudentSectioningModel extends ModelWithContext<Request, Enrollment, StudentSectioningModel.StudentSectioningModelContext> {
     private static Logger sLog = Logger.getLogger(StudentSectioningModel.class);
-    protected static DecimalFormat sDecimalFormat = new DecimalFormat("0.000");
+    protected static DecimalFormat sDecimalFormat = new DecimalFormat("0.00");
     private List<Student> iStudents = new ArrayList<Student>();
     private List<Offering> iOfferings = new ArrayList<Offering>();
     private List<LinkedSections> iLinkedSections = new ArrayList<LinkedSections>();
@@ -887,6 +887,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         private int iNrAssignedDummyRequests = 0, iNrCompleteDummyStudents = 0;
         private double iAssignedCRWeight = 0.0, iAssignedDummyCRWeight = 0.0;
         private double iReservedSpace = 0.0;
+        private double iAssignedInitialCRWeight = 0.0;
+        private double iAssignedSameSectionWeight = 0.0, iAssignedSameChoiceWeight = 0.0, iAssignedSameTimeWeight = 0.0;
 
         public StudentSectioningModelContext(Assignment<Request, Enrollment> assignment) {
             for (Request request: variables()) {
@@ -908,8 +910,15 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             double value = enrollment.getRequest().getWeight() * iStudentWeights.getWeight(assignment, enrollment);
             iTotalValue -= value;
             enrollment.variable().getContext(assignment).setLastWeight(value);
-            if (enrollment.isCourseRequest())
+            if (enrollment.isCourseRequest()) {
                 iAssignedCRWeight += enrollment.getRequest().getWeight();
+                if (enrollment.getRequest().getInitialAssignment() != null) {
+                    iAssignedInitialCRWeight += enrollment.getRequest().getWeight();
+                    iAssignedSameSectionWeight += enrollment.getRequest().getWeight() * enrollment.percentInitial();
+                    iAssignedSameChoiceWeight += enrollment.getRequest().getWeight() * enrollment.percentSelected();
+                    iAssignedSameTimeWeight += enrollment.getRequest().getWeight() * enrollment.percentSameTime();
+                }
+            }
             if (enrollment.getReservation() != null)
                 iReservedSpace += enrollment.getRequest().getWeight();
             if (enrollment.isCourseRequest() && ((CourseRequest)enrollment.getRequest()).hasReservations())
@@ -941,8 +950,15 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 value = enrollment.getRequest().getWeight() * iStudentWeights.getWeight(assignment, enrollment);
             iTotalValue += value;
             cx.setLastWeight(null);
-            if (enrollment.isCourseRequest())
+            if (enrollment.isCourseRequest()) {
                 iAssignedCRWeight -= enrollment.getRequest().getWeight();
+                if (enrollment.getRequest().getInitialAssignment() != null) {
+                    iAssignedInitialCRWeight -= enrollment.getRequest().getWeight();
+                    iAssignedSameSectionWeight -= enrollment.getRequest().getWeight() * enrollment.percentInitial();
+                    iAssignedSameChoiceWeight -= enrollment.getRequest().getWeight() * enrollment.percentSelected();
+                    iAssignedSameTimeWeight -= enrollment.getRequest().getWeight() * enrollment.percentSameTime();
+                }
+            }
             if (enrollment.getReservation() != null)
                 iReservedSpace -= enrollment.getRequest().getWeight();
             if (enrollment.isCourseRequest() && ((CourseRequest)enrollment.getRequest()).hasReservations())
@@ -1009,10 +1025,18 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                     if (cr)
                         iTotalDummyCRWeight += request.getWeight();
                 }
-                if (assignment.getValue(request) != null) {
-                    if (cr)
+                Enrollment e = assignment.getValue(request);
+                if (e != null) {
+                    if (cr) {
                         iAssignedCRWeight += request.getWeight();
-                    if (assignment.getValue(request).getReservation() != null)
+                        if (e.getRequest().getInitialAssignment() != null) {
+                            iAssignedInitialCRWeight += request.getWeight();
+                            iAssignedSameSectionWeight += request.getWeight() * e.percentInitial();
+                            iAssignedSameChoiceWeight += request.getWeight() * e.percentSelected();
+                            iAssignedSameTimeWeight += request.getWeight() * e.percentSameTime();
+                        }
+                    }
+                    if (e.getReservation() != null)
                         iReservedSpace += request.getWeight();
                     if (cr && ((CourseRequest)request).hasReservations())
                         iTotalReservedSpace += request.getWeight();
@@ -1055,7 +1079,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         public void getInfo(Assignment<Request, Enrollment> assignment, Map<String, String> info) {
             if (iTotalCRWeight > 0.0) {
                 info.put("Assigned course requests", sDecimalFormat.format(100.0 * iAssignedCRWeight / iTotalCRWeight) + "% (" + (int)Math.round(iAssignedCRWeight) + "/" + (int)Math.round(iTotalCRWeight) + ")");
-                if (getNrLastLikeStudents(false) != getStudents().size() && iTotalCRWeight != iTotalDummyCRWeight) {
+                if (iNrDummyStudents > 0 && iNrDummyStudents != getStudents().size() && iTotalCRWeight != iTotalDummyCRWeight) {
                     if (iTotalDummyCRWeight > 0.0)
                         info.put("Projected assigned course requests", sDecimalFormat.format(100.0 * iAssignedDummyCRWeight / iTotalDummyCRWeight) + "% (" + (int)Math.round(iAssignedDummyCRWeight) + "/" + (int)Math.round(iTotalDummyCRWeight) + ")");
                     info.put("Real assigned course requests", sDecimalFormat.format(100.0 * (iAssignedCRWeight - iAssignedDummyCRWeight) / (iTotalCRWeight - iTotalDummyCRWeight)) +
@@ -1063,7 +1087,14 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 }
             }
             if (iTotalReservedSpace > 0.0)
-                info.put("Reservations", sDoubleFormat.format(100.0 * iReservedSpace / iTotalReservedSpace) + "% (" + Math.round(iReservedSpace) + "/" + Math.round(iTotalReservedSpace) + ")"); 
+                info.put("Reservations", sDoubleFormat.format(100.0 * iReservedSpace / iTotalReservedSpace) + "% (" + Math.round(iReservedSpace) + "/" + Math.round(iTotalReservedSpace) + ")");
+            if (iAssignedInitialCRWeight > 0.0) {
+                info.put("Perturbations: same section assigned", sDoubleFormat.format(100.0 * iAssignedSameSectionWeight / iAssignedInitialCRWeight) + "% (" + Math.round(iAssignedSameSectionWeight) + "/" + Math.round(iAssignedInitialCRWeight) + ")");
+                if (iAssignedSameChoiceWeight > iAssignedSameSectionWeight)
+                    info.put("Perturbations: same choice assigned",sDoubleFormat.format(100.0 * iAssignedSameChoiceWeight / iAssignedInitialCRWeight) + "% (" + Math.round(iAssignedSameChoiceWeight) + "/" + Math.round(iAssignedInitialCRWeight) + ")");
+                if (iAssignedSameTimeWeight > iAssignedSameChoiceWeight)
+                    info.put("Perturbations: same time assigned", sDoubleFormat.format(100.0 * iAssignedSameTimeWeight / iAssignedInitialCRWeight) + "% (" + Math.round(iAssignedSameTimeWeight) + "/" + Math.round(iAssignedInitialCRWeight) + ")");
+            }
         }
 
         @Override

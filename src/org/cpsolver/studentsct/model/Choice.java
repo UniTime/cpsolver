@@ -124,6 +124,15 @@ public class Choice {
     public TimeLocation getTime() {
         return iTime;
     }
+    
+    /**
+     * Return true if the given choice has the same instructional type and time
+     * return true if the two choices have the same ime
+     */
+    public boolean sameTime(Choice choice) {
+        return getInstructionalType().equals(choice.getInstructionalType()) &&
+                (getTime() == null ? choice.getTime() == null : getTime().equals(choice.getTime()));
+    }
 
     /**
      * Instructor(s) id of the choice, can be null if the section has no

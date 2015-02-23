@@ -204,5 +204,85 @@ public class EqualStudentWeights extends PriorityStudentWeights {
             }
             System.out.println(cr + ": " + df.format(w[0]) + "  " + df.format(w[1]) + "  " + df.format(w[2]));
         }
+        
+        System.out.println("Same choice sections:");
+        pw.iMPP = true;
+        for (Request r: s.getRequests()) {
+            CourseRequest cr = (CourseRequest)r;
+            double[] w = new double[] {0.0, 0.0, 0.0};
+            double dif = 0;
+            for (int i = 0; i < cr.getCourses().size(); i++) {
+                Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
+                Set<SctAssignment> sections = new HashSet<SctAssignment>();
+                sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
+                Enrollment e = new Enrollment(cr, i, cfg, sections, assignment);
+                Set<SctAssignment> other = new HashSet<SctAssignment>();
+                other.add(new Section(1, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
+                cr.setInitialAssignment(new Enrollment(cr, i, cfg, other, assignment));
+                w[i] = pw.getWeight(assignment, e, null, null);
+                dif = pw.getDifference(e);
+            }
+            System.out.println(cr + ": " + df.format(w[0]) + "  " + df.format(w[1]) + "  " + df.format(w[2]) + " (" + df.format(dif) + ")");
+        }
+        
+        System.out.println("Same time sections:");
+        for (Request r: s.getRequests()) {
+            CourseRequest cr = (CourseRequest)r;
+            double dif = 0;
+            double[] w = new double[] {0.0, 0.0, 0.0};
+            for (int i = 0; i < cr.getCourses().size(); i++) {
+                Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
+                Set<SctAssignment> sections = new HashSet<SctAssignment>();
+                sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
+                Enrollment e = new Enrollment(cr, i, cfg, sections, assignment);
+                Set<SctAssignment> other = new HashSet<SctAssignment>();
+                other.add(new Section(1, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, "1", "Josef Novak", null));
+                cr.setInitialAssignment(new Enrollment(cr, i, cfg, other, assignment));
+                w[i] = pw.getWeight(assignment, e, null, null);
+                dif = pw.getDifference(e);
+            }
+            System.out.println(cr + ": " + df.format(w[0]) + "  " + df.format(w[1]) + "  " + df.format(w[2]) + " (" + df.format(dif) + ")");
+        }
+        
+        System.out.println("Different time sections:");
+        Placement q = new Placement(null, new TimeLocation(1, 102, 12, 0, 0, null, null, new BitSet(), 10), new ArrayList<RoomLocation>());
+        for (Request r: s.getRequests()) {
+            CourseRequest cr = (CourseRequest)r;
+            double[] w = new double[] {0.0, 0.0, 0.0};
+            double dif = 0;
+            for (int i = 0; i < cr.getCourses().size(); i++) {
+                Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
+                Set<SctAssignment> sections = new HashSet<SctAssignment>();
+                sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
+                Enrollment e = new Enrollment(cr, i, cfg, sections, assignment);
+                Set<SctAssignment> other = new HashSet<SctAssignment>();
+                other.add(new Section(1, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), q, null, null, null));
+                cr.setInitialAssignment(new Enrollment(cr, i, cfg, other, assignment));
+                w[i] = pw.getWeight(assignment, e, null, null);
+                dif = pw.getDifference(e);
+            }
+            System.out.println(cr + ": " + df.format(w[0]) + "  " + df.format(w[1]) + "  " + df.format(w[2]) + " (" + df.format(dif) + ")");
+        }
+        
+        System.out.println("Two sections, one same choice, one same time:");
+        for (Request r: s.getRequests()) {
+            CourseRequest cr = (CourseRequest)r;
+            double[] w = new double[] {0.0, 0.0, 0.0};
+            double dif = 0;
+            for (int i = 0; i < cr.getCourses().size(); i++) {
+                Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
+                Set<SctAssignment> sections = new HashSet<SctAssignment>();
+                sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
+                sections.add(new Section(1, 1, "y", new Subpart(1, "Rec", "Rec", cfg, null), p, null, null, null));
+                Enrollment e = new Enrollment(cr, i, cfg, sections, assignment);
+                Set<SctAssignment> other = new HashSet<SctAssignment>();
+                other.add(new Section(2, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
+                other.add(new Section(3, 1, "y", new Subpart(1, "Rec", "Rec", cfg, null), p, "1", "Josef Novak", null));
+                cr.setInitialAssignment(new Enrollment(cr, i, cfg, other, assignment));
+                w[i] = pw.getWeight(assignment, e, null, null);
+                dif = pw.getDifference(e);
+            }
+            System.out.println(cr + ": " + df.format(w[0]) + "  " + df.format(w[1]) + "  " + df.format(w[2]) + " (" + df.format(dif) + ")");
+        }
     }
 }

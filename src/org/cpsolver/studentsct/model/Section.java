@@ -186,6 +186,11 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
         return (iPlacement == null ? null : iPlacement.getTimeLocation());
     }
 
+    /** True if the time assignment is the same */
+    public boolean sameTime(Section section) {
+        return getTime() == null ? section.getTime() == null : getTime().equals(section.getTime());
+    }
+
     /** Number of rooms in which the section meet. */
     @Override
     public int getNrRooms() {
