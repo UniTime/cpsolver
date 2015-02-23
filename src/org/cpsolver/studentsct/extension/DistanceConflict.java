@@ -104,7 +104,7 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
     
     
     private Map<Long, Map<Long, Integer>> iDistanceCache = new HashMap<Long, Map<Long,Integer>>();
-    protected int getDistanceInMinutes(RoomLocation r1, RoomLocation r2) {
+    protected synchronized int getDistanceInMinutes(RoomLocation r1, RoomLocation r2) {
         if (r1.getId().compareTo(r2.getId()) > 0) return getDistanceInMinutes(r2, r1);
         if (r1.getId().equals(r2.getId()) || r1.getIgnoreTooFar() || r2.getIgnoreTooFar())
             return 0;
