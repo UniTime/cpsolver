@@ -876,6 +876,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 + sDecimalFormat.format(-getTotalValue(assignment))
                 + (getDistanceConflict() == null ? "" : ", DC:" + getDistanceConflict().getTotalNrConflicts(assignment))
                 + (getTimeOverlaps() == null ? "" : ", TOC:" + getTimeOverlaps().getTotalNrConflicts(assignment))
+                + (iMPP ? ", IS:" + sDecimalFormat.format(100.0 * getContext(assignment).iAssignedSameSectionWeight / iTotalMPPCRWeight) + "%" : "")
+                + (iMPP ? ", IT:" + sDecimalFormat.format(100.0 * getContext(assignment).iAssignedSameTimeWeight / iTotalMPPCRWeight) + "%" : "")
                 + ", %:" + sDecimalFormat.format(-100.0 * getTotalValue(assignment) / (getStudents().size() - iNrDummyStudents + 
                         (iProjectedStudentWeight < 0.0 ? iNrDummyStudents * (iTotalDummyWeight / iNrDummyRequests) :iProjectedStudentWeight * iTotalDummyWeight)));
 
