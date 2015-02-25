@@ -10,6 +10,7 @@ import org.cpsolver.ifs.assignment.AssignmentComparable;
 import org.cpsolver.ifs.assignment.context.AbstractClassWithContext;
 import org.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
 import org.cpsolver.ifs.model.Model;
+import org.cpsolver.studentsct.StudentSectioningModel;
 import org.cpsolver.studentsct.model.Config;
 import org.cpsolver.studentsct.model.Course;
 import org.cpsolver.studentsct.model.CourseRequest;
@@ -237,6 +238,14 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
       */
     public boolean canAssignOverLimit() {
         return iCanAssignOverLimit;
+    }
+    
+    /**
+     * True if the batch solver can assign the reservation over the course / config / section limit.
+     * @return {@link Reservation#canAssignOverLimit()} and {@link StudentSectioningModel#getReservationCanAssignOverTheLimit()}
+     */
+    public boolean canBatchAssignOverLimit() {
+        return canAssignOverLimit() && (iOffering.getModel() == null || ((StudentSectioningModel)iOffering.getModel()).getReservationCanAssignOverTheLimit());
     }
     
     /**

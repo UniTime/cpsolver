@@ -241,9 +241,9 @@ public class CourseRequest extends Request {
             return;
         if (idx == 0) { // run only once for each configuration
             boolean canOverLimit = false;
-            if (availableOnly && (getModel() == null || ((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit())) {
+            if (availableOnly) {
                 for (Reservation r: getReservations(course)) {
-                    if (!r.canAssignOverLimit()) continue;
+                    if (!r.canBatchAssignOverLimit()) continue;
                     if (!r.getConfigs().isEmpty() && !r.getConfigs().contains(config)) continue;
                     if (r.getReservedAvailableSpace(assignment, this) < getWeight()) continue;
                     canOverLimit = true; break;
@@ -315,9 +315,9 @@ public class CourseRequest extends Request {
                     }
                 }
                 boolean canOverLimit = false;
-                if (availableOnly &&  (getModel() == null || ((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit())) {
+                if (availableOnly) {
                     for (Reservation r: getReservations(course)) {
-                        if (!r.canAssignOverLimit() || !r.isIncluded(e)) continue;
+                        if (!r.canBatchAssignOverLimit() || !r.isIncluded(e)) continue;
                         if (r.getReservedAvailableSpace(assignment, this) < getWeight()) continue;
                         enrollments.add(new Enrollment(this, priority, null, config, new HashSet<SctAssignment>(sections), r));
                         canOverLimit = true;
@@ -365,9 +365,9 @@ public class CourseRequest extends Request {
                 if (selectedOnly && !isSelected(section))
                     continue;
                 boolean canOverLimit = false;
-                if (availableOnly && (getModel() == null || ((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit())) {
+                if (availableOnly) {
                     for (Reservation r: getReservations(course)) {
-                        if (!r.canAssignOverLimit()) continue;
+                        if (!r.canBatchAssignOverLimit()) continue;
                         if (r.getSections(subpart) != null && !r.getSections(subpart).contains(section)) continue;
                         if (r.getReservedAvailableSpace(assignment, this) < getWeight()) continue;
                         canOverLimit = true; break;

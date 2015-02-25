@@ -113,11 +113,9 @@ public class Enrollment extends Value<Request, Enrollment> {
     public void guessReservation(Assignment<Request, Enrollment> assignment, boolean onlyAvailable) {
         if (iCourse != null) {
             Reservation best = null;
-            boolean canAssignOverTheLimit = (variable().getModel() == null || ((StudentSectioningModel)variable().getModel()).getReservationCanAssignOverTheLimit());
             for (Reservation reservation: ((CourseRequest)iRequest).getReservations(iCourse)) {
                 if (reservation.isIncluded(this)) {
-                    if (onlyAvailable && reservation.getContext(assignment).getReservedAvailableSpace(assignment, iRequest) < iRequest.getWeight() &&
-                       (!reservation.canAssignOverLimit() || !canAssignOverTheLimit))
+                    if (onlyAvailable && reservation.getContext(assignment).getReservedAvailableSpace(assignment, iRequest) < iRequest.getWeight() && !reservation.canBatchAssignOverLimit())
                         continue;
                     if (best == null || best.getPriority() > reservation.getPriority()) {
                         best = reservation;

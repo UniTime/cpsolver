@@ -8,7 +8,6 @@ import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.model.GlobalConstraint;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.ToolBox;
-import org.cpsolver.studentsct.StudentSectioningModel;
 import org.cpsolver.studentsct.model.Config;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
@@ -199,7 +198,7 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
             // if not configuration reservation -> check configuration unavailable space
             if (!hasConfigReservation(enrollment)) {
                 // check reservation can assign over the limit
-                if (((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit() && reservation.canAssignOverLimit())
+                if (reservation.canBatchAssignOverLimit())
                     return;
 
                 // check the total first (basically meaning that there will never be enough space in 
@@ -386,7 +385,7 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
                 return true;
             
             // check reservation can assign over the limit
-            if (((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit() && reservation.canAssignOverLimit())
+            if (reservation.canBatchAssignOverLimit())
                 return false;
             
             // if not configuration reservation, check configuration unreserved space too

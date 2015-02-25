@@ -8,7 +8,6 @@ import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.model.GlobalConstraint;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.ToolBox;
-import org.cpsolver.studentsct.StudentSectioningModel;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.Section;
@@ -149,8 +148,7 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
     @Override
     public void computeConflicts(Assignment<Request, Enrollment> assignment, Enrollment enrollment, Set<Enrollment> conflicts) {
         // check reservation can assign over the limit
-        if (((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit() &&
-            enrollment.getReservation() != null && enrollment.getReservation().canAssignOverLimit())
+        if (enrollment.getReservation() != null && enrollment.getReservation().canBatchAssignOverLimit())
             return;
 
         // exclude free time requests
@@ -327,8 +325,7 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
     @Override
     public boolean inConflict(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
         // check reservation can assign over the limit
-        if (((StudentSectioningModel)getModel()).getReservationCanAssignOverTheLimit() &&
-            enrollment.getReservation() != null && enrollment.getReservation().canAssignOverLimit())
+        if (enrollment.getReservation() != null && enrollment.getReservation().canBatchAssignOverLimit())
             return false;
 
         // exclude free time requests
