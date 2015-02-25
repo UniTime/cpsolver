@@ -354,14 +354,14 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
                 iMaxEnrollmentWeight = Math.max(iMaxEnrollmentWeight, enrollment.getRequest().getWeight());
                 iMinEnrollmentWeight = Math.min(iMinEnrollmentWeight, enrollment.getRequest().getWeight());
             }
-            if (iEnrollments.add(enrollment))
+            if (iEnrollments.add(enrollment) && (enrollment.getReservation() == null || !enrollment.getReservation().canBatchAssignOverLimit()))
                 iEnrollmentWeight += enrollment.getRequest().getWeight();
         }
 
         /** Called when an enrollment with this config is unassigned from a request */
         @Override
         public void unassigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
-            if (iEnrollments.remove(enrollment))
+            if (iEnrollments.remove(enrollment) && (enrollment.getReservation() == null || !enrollment.getReservation().canBatchAssignOverLimit()))
                 iEnrollmentWeight -= enrollment.getRequest().getWeight();
             if (iEnrollments.isEmpty()) {
                 iMinEnrollmentWeight = iMaxEnrollmentWeight = 0;
@@ -403,8 +403,11 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
          */
         public double getEnrollmentWeight(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
             double weight = iEnrollmentWeight;
-            if (excludeRequest != null && assignment.getValue(excludeRequest) != null && iEnrollments.contains(assignment.getValue(excludeRequest)))
-                weight -= excludeRequest.getWeight();
+            if (excludeRequest != null) {
+                Enrollment enrollment = assignment.getValue(excludeRequest);
+                if (enrollment != null && iEnrollments.contains(enrollment) && (enrollment.getReservation() == null || !enrollment.getReservation().canBatchAssignOverLimit()))
+                    weight -= excludeRequest.getWeight();
+            }
             return weight;
         }
         
