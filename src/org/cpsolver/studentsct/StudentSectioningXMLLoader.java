@@ -523,9 +523,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             r.addSection(sectionTable.get(Long.parseLong(sectionEl.attributeValue("id"))));
         }
         r.setPriority(Integer.parseInt(reservationEl.attributeValue("priority", String.valueOf(r.getPriority()))));
-        System.out.println("A: " + r + " (" + r.mustBeUsed() + ")");
         r.setMustBeUsed("true".equals(reservationEl.attributeValue("mustBeUsed", r.mustBeUsed() ? "true" : "false")));
-        System.out.println("B: " + r + " (" + r.mustBeUsed() + ")");
         r.setAllowOverlap("true".equals(reservationEl.attributeValue("allowOverlap", r.isAllowOverlap() ? "true" : "false")));
         r.setCanAssignOverLimit("true".equals(reservationEl.attributeValue("canAssignOverLimit", r.canAssignOverLimit() ? "true" : "false")));
         return r;
