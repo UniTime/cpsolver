@@ -241,5 +241,13 @@ public abstract class Request extends VariableWithContext<Request, Enrollment, R
     public RequestContext createAssignmentContext(Assignment<Request, Enrollment> assignment) {
         return new RequestContext(assignment);
     }
+    
+    /**
+     * Return true if this request can track MPP
+     * @return true if the request is course request and it either has an initial enrollment or some selected choices.
+     */
+    public boolean isMPP() {
+        return false;
+    }
 
 }

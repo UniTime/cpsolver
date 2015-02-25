@@ -132,10 +132,10 @@ public class PriorityStudentWeights implements StudentWeights {
     /**
      * Return how much the given enrollment is different from the initial enrollment
      * @param enrollment given enrollment
-     * @return 1.0 when all the sections are the same, 0.0 when all the section are different (including different times)
+     * @return 0.0 when all the sections are the same, 1.0 when all the section are different (including different times)
      */
     protected double getDifference(Enrollment enrollment) {
-        if (!enrollment.isCourseRequest()) return 0.0;
+        if (!enrollment.getRequest().isMPP()) return 1.0;
         Enrollment other = enrollment.getRequest().getInitialAssignment();
         if (other != null) {
             double similarSections = 0.0;
@@ -187,10 +187,10 @@ public class PriorityStudentWeights implements StudentWeights {
                 }
                 return 1.0 - similarSections / enrollment.getAssignments().size();
             } else {
-                return 0.0;
+                return 1.0;
             }
         } else {
-            return 0.0;
+            return 1.0;
         }
     }
 

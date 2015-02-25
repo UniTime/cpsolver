@@ -102,7 +102,7 @@ public class RndUnProblStudSelection extends RandomUnassignmentSelection {
         if (!iProblemStudents.isEmpty() && Math.random() < iRandom) {
             Student student = ToolBox.random(iProblemStudents);
             iProblemStudents.remove(student);
-            return new UnassignStudentNeighbour(student);
+            return new UnassignStudentNeighbour(student, solution.getAssignment());
         }
         Progress.getInstance(solution.getModel()).incProgress();
         return null;

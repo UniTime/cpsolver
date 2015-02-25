@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
-
 import org.apache.log4j.Logger;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.heuristics.NeighbourSelection;
@@ -666,6 +665,15 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             List<Enrollment> values = null;
             if (request instanceof CourseRequest) {
                 CourseRequest courseRequest = (CourseRequest) request;
+                if (courseRequest.getInitialAssignment() != null) {
+                    Enrollment enrollment = courseRequest.getInitialAssignment();
+                    if (!inConflict(idx, enrollment)) {
+                        iAssignment[idx] = enrollment;
+                        backTrack(idx + 1);
+                        iAssignment[idx] = null;
+                        return;
+                    }
+                }
                 if (!courseRequest.getSelectedChoices().isEmpty()) {
                     if (sDebug)
                         sLog.debug("    -- selection among selected enrollments");

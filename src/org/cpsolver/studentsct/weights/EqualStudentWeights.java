@@ -75,6 +75,7 @@ public class EqualStudentWeights extends PriorityStudentWeights {
     @Override
     public boolean isBetterThanBestSolution(Solution<Request, Enrollment> currentSolution) {
         if (currentSolution.getBestInfo() == null) return true;
+        if (iMPP) return super.isBetterThanBestSolution(currentSolution);
         int unassigned = currentSolution.getModel().nrUnassignedVariables(currentSolution.getAssignment());
         if (currentSolution.getModel().getBestUnassignedVariables() != unassigned)
             return currentSolution.getModel().getBestUnassignedVariables() > unassigned;

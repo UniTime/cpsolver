@@ -7,6 +7,7 @@ import org.cpsolver.ifs.model.Neighbour;
 import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.solver.SolverListener;
 import org.cpsolver.ifs.util.DataProperties;
+import org.cpsolver.studentsct.heuristics.selection.AssignInitialSelection;
 import org.cpsolver.studentsct.heuristics.selection.BacktrackSelection;
 import org.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
 import org.cpsolver.studentsct.heuristics.selection.PriorityConstructionSelection;
@@ -77,10 +78,12 @@ import org.cpsolver.studentsct.model.Request;
 
 public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<Request, Enrollment> implements SolverListener<Request, Enrollment> {
     private boolean iUseConstruction = false;
+    private boolean iMPP = false;
 
     public StudentSctNeighbourSelection(DataProperties properties) throws Exception {
         super(properties);
         iUseConstruction = properties.getPropertyBoolean("Sectioning.UsePriorityConstruction", iUseConstruction);
+        iMPP = properties.getPropertyBoolean("General.MPP", false);
     }
 
     @Override
@@ -92,6 +95,9 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
     }
 
     public void setup(Solver<Request, Enrollment> solver) {
+        if (iMPP)
+            registerSelection(new AssignInitialSelection(solver.getProperties()));
+        
         // Phase 1: section all students using incremental branch & bound (no
         // unassignments)
         registerSelection(iUseConstruction ?

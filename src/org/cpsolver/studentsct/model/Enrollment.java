@@ -258,18 +258,34 @@ public class Enrollment extends Value<Request, Enrollment> {
     public double percentSameTime() {
         if (!isCourseRequest())
             return 0.0;
-        if (getRequest().getInitialAssignment() == null)
-            return 0.0;
         Enrollment ie = getRequest().getInitialAssignment();
-        int nrInitial = 0;
-        for (Section section : getSections()) {
-            for (Section initial: ie.getSections()) {
-                if (section.getSubpart().getInstructionalType().equals(initial.getSubpart().getInstructionalType()) && section.sameTime(initial)) {
-                    nrInitial ++;
+        if (ie != null) {
+            int nrInitial = 0;
+            sections: for (Section section : getSections()) {
+                for (Section initial: ie.getSections()) {
+                    if (section.getSubpart().getInstructionalType().equals(initial.getSubpart().getInstructionalType()) && section.sameTime(initial)) {
+                        nrInitial ++;
+                        continue sections;
+                    }
                 }
             }
+            return ((double) nrInitial) / getAssignments().size();
         }
-        return ((double) nrInitial) / getAssignments().size();
+        Set<Choice> selected = ((CourseRequest)getRequest()).getSelectedChoices();
+        if (!selected.isEmpty()) {
+            int nrInitial = 0;
+            sections: for (Section section : getSections()) {
+                for (Choice choice: selected) {
+                    if (section.getChoice().sameTime(choice)) {
+                        nrInitial ++;
+                        continue sections;
+                    }
+                    
+                }
+            }
+            return ((double) nrInitial) / getAssignments().size();
+        }
+        return 0.0;
     }
 
     /** True if all the sections are wait-listed 
@@ -407,6 +423,7 @@ public class Enrollment extends Value<Request, Enrollment> {
             }
         }
         if (getReservation() != null) ret = "(r) " + ret;
+        if (getRequest().isMPP()) ret += " [i" + sDF.format(100.0 * percentInitial()) + "/t" + sDF.format(100.0 * percentSameTime()) + "]";
         return ret;
     }
 

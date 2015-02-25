@@ -1,5 +1,6 @@
 package org.cpsolver.studentsct.heuristics.selection;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -95,7 +96,7 @@ public class RandomUnassignmentSelection implements NeighbourSelection<Request, 
     public Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
         if (Math.random() < iRandom) {
             Student student = ToolBox.random(iStudents);
-            return new UnassignStudentNeighbour(student);
+            return new UnassignStudentNeighbour(student, solution.getAssignment());
         }
         Progress.getInstance(solution.getModel()).incProgress();
         return null;
@@ -104,6 +105,7 @@ public class RandomUnassignmentSelection implements NeighbourSelection<Request, 
     /** Unassignment of all requests of a student */
     public static class UnassignStudentNeighbour implements Neighbour<Request, Enrollment> {
         private Student iStudent = null;
+        private List<Request> iRequests = new ArrayList<Request>();
 
         /**
          * Constructor
@@ -111,14 +113,29 @@ public class RandomUnassignmentSelection implements NeighbourSelection<Request, 
          * @param student
          *            a student to be unassigned
          */
-        public UnassignStudentNeighbour(Student student) {
+        public UnassignStudentNeighbour(Student student, Assignment<Request, Enrollment> assignment) {
             iStudent = student;
+            for (Request request : iStudent.getRequests()) {
+                if (canUnassign(assignment.getValue(request)))
+                    iRequests.add(request);
+            }
+        }
+        
+        /**
+         * Check if the given enrollment can be unassigned
+         * @param enrollment given enrollment
+         * @return if running MPP, do not unassign initial enrollments
+         */
+        public boolean canUnassign(Enrollment enrollment) {
+            if (enrollment == null) return false;
+            if (enrollment.getRequest().isMPP() && enrollment.equals(enrollment.getRequest().getInitialAssignment())) return false;
+            return true;
         }
 
         @Override
         public double value(Assignment<Request, Enrollment> assignment) {
             double val = 0;
-            for (Request request : iStudent.getRequests()) {
+            for (Request request : iRequests) {
                 Enrollment enrollment = assignment.getValue(request);
                 if (enrollment != null)
                     val -= enrollment.toDouble(assignment);
@@ -129,7 +146,7 @@ public class RandomUnassignmentSelection implements NeighbourSelection<Request, 
         /** All requests of the given student are unassigned */
         @Override
         public void assign(Assignment<Request, Enrollment> assignment, long iteration) {
-            for (Request request : iStudent.getRequests())
+            for (Request request : iRequests)
                 assignment.unassign(iteration, request);
         }
 
@@ -144,7 +161,7 @@ public class RandomUnassignmentSelection implements NeighbourSelection<Request, 
         @Override
         public Map<Request, Enrollment> assignments() {
             Map<Request, Enrollment> ret = new HashMap<Request, Enrollment>();
-            for (Request request : iStudent.getRequests())
+            for (Request request : iRequests)
                 ret.put(request, null);
             return ret;
         }

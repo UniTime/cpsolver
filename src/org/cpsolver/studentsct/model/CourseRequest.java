@@ -355,6 +355,9 @@ public class CourseRequest extends Request {
             List<Section> matchingSectionsThisSubpart = new ArrayList<Section>(subpart.getSections().size());
             boolean hasChildren = !subpart.getChildren().isEmpty();
             for (Section section : sectionsThisSubpart) {
+                if (getInitialAssignment() != null && (getModel() != null && ((StudentSectioningModel)getModel()).getKeepInitialAssignments()) &&
+                        !getInitialAssignment().getAssignments().contains(section))
+                    continue;
                 if (section.getParent() != null && !sections.contains(section.getParent()))
                     continue;
                 if (section.isOverlapping(sections))
@@ -771,5 +774,16 @@ public class CourseRequest extends Request {
      */
     public synchronized void clearReservationCache() {
         if (iReservations != null) iReservations.clear();
+    }
+    
+    /**
+     * Return true if this request can track MPP
+     * @return true if the request is course request and it either has an initial enrollment or some selected choices.
+     */
+    @Override
+    public boolean isMPP() {
+        StudentSectioningModel model = (StudentSectioningModel) getModel();
+        if (model == null || !model.isMPP()) return false;
+        return !getStudent().isDummy() && (getInitialAssignment() != null || !getSelectedChoices().isEmpty()); 
     }
 }
