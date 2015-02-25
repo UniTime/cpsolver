@@ -82,7 +82,6 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     private int iNrDummyStudents = 0, iNrDummyRequests = 0;
     private double iTotalDummyWeight = 0.0;
     private double iTotalCRWeight = 0.0, iTotalDummyCRWeight = 0.0;
-    private double iTotalReservedSpace = 0.0;
     private double iTotalMPPCRWeight = 0.0;
     private StudentWeights iStudentWeights = null;
     private boolean iReservationCanAssignOverTheLimit;
@@ -915,7 +914,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         private double iTotalValue = 0.0;
         private int iNrAssignedDummyRequests = 0, iNrCompleteDummyStudents = 0;
         private double iAssignedCRWeight = 0.0, iAssignedDummyCRWeight = 0.0;
-        private double iReservedSpace = 0.0;
+        private double iReservedSpace = 0.0, iTotalReservedSpace = 0.0;
         private double iAssignedSameSectionWeight = 0.0, iAssignedSameChoiceWeight = 0.0, iAssignedSameTimeWeight = 0.0;
 
         public StudentSectioningModelContext(Assignment<Request, Enrollment> assignment) {
