@@ -9,6 +9,7 @@ import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.AssignmentComparable;
 import org.cpsolver.ifs.assignment.context.AbstractClassWithContext;
 import org.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import org.cpsolver.ifs.assignment.context.CanInheritContext;
 import org.cpsolver.ifs.model.Model;
 import org.cpsolver.studentsct.StudentSectioningModel;
 import org.cpsolver.studentsct.model.Config;
@@ -52,7 +53,8 @@ import org.cpsolver.studentsct.model.Subpart;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public abstract class Reservation extends AbstractClassWithContext<Request, Enrollment, Reservation.ReservationContext> implements AssignmentComparable<Reservation, Request, Enrollment> {
+public abstract class Reservation extends AbstractClassWithContext<Request, Enrollment, Reservation.ReservationContext>
+    implements AssignmentComparable<Reservation, Request, Enrollment>, CanInheritContext<Request, Enrollment, Reservation.ReservationContext> {
     /** Reservation unique id */
     private long iId = 0;
     
@@ -477,12 +479,20 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
         return new ReservationContext(assignment);
     }
     
+
+    @Override
+    public ReservationContext inheritAssignmentContext(Assignment<Request, Enrollment> assignment, ReservationContext parentContext) {
+        return new ReservationContext(parentContext);
+    }
+
+    
     public class ReservationContext implements AssignmentConstraintContext<Request, Enrollment> {
         /** Enrollments included in this reservation */
         private Set<Enrollment> iEnrollments = new HashSet<Enrollment>();
         
         /** Used part of the limit */
         private double iUsed = 0;
+        private boolean iReadOnly = false;
 
         public ReservationContext(Assignment<Request, Enrollment> assignment) {
             for (Course course: getOffering().getCourses())
@@ -492,10 +502,20 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
                         assigned(assignment, enrollment);
                 }
         }
+        
+        public ReservationContext(ReservationContext parent) {
+            iUsed = parent.iUsed;
+            iEnrollments = parent.iEnrollments;
+            iReadOnly = true;
+        }
 
         /** Notify reservation about an unassignment */
         @Override
         public void assigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+            if (iReadOnly) {
+                iEnrollments = new HashSet<Enrollment>(iEnrollments);
+                iReadOnly = false;
+            }
             if (iEnrollments.add(enrollment))
                 iUsed += enrollment.getRequest().getWeight();
         }
@@ -503,6 +523,10 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
         /** Notify reservation about an assignment */
         @Override
         public void unassigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+            if (iReadOnly) {
+                iEnrollments = new HashSet<Enrollment>(iEnrollments);
+                iReadOnly = false;
+            }
             if (iEnrollments.remove(enrollment))
                 iUsed -= enrollment.getRequest().getWeight();
         }

@@ -8,6 +8,7 @@ import java.util.Set;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.context.AbstractClassWithContext;
 import org.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import org.cpsolver.ifs.assignment.context.CanInheritContext;
 import org.cpsolver.ifs.model.Model;
 import org.cpsolver.studentsct.reservation.Reservation;
 
@@ -44,7 +45,7 @@ import org.cpsolver.studentsct.reservation.Reservation;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class Config extends AbstractClassWithContext<Request, Enrollment, Config.ConfigContext> {
+public class Config extends AbstractClassWithContext<Request, Enrollment, Config.ConfigContext> implements CanInheritContext<Request, Enrollment, Config.ConfigContext> {
     private long iId = -1;
     private String iName = null;
     private Offering iOffering = null;
@@ -329,13 +330,21 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
         return new ConfigContext(assignment);
     }
     
+
+    @Override
+    public ConfigContext inheritAssignmentContext(Assignment<Request, Enrollment> assignment, ConfigContext parentContext) {
+        return new ConfigContext(parentContext);
+    }
+    
     public class ConfigContext implements AssignmentConstraintContext<Request, Enrollment> {
         private double iEnrollmentWeight = 0.0;
         private double iMaxEnrollmentWeight = 0.0;
         private double iMinEnrollmentWeight = 0.0;
-        private Set<Enrollment> iEnrollments = new HashSet<Enrollment>();
+        private Set<Enrollment> iEnrollments = null;
+        private boolean iReadOnly = false;
 
         public ConfigContext(Assignment<Request, Enrollment> assignment) {
+            iEnrollments = new HashSet<Enrollment>();
             for (Course course: getOffering().getCourses()) {
                 for (CourseRequest request: course.getRequests()) {
                     Enrollment enrollment = assignment.getValue(request);
@@ -344,10 +353,22 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
                 }
             }
         }
+        
+        public ConfigContext(ConfigContext parent) {
+            iEnrollmentWeight = parent.iEnrollmentWeight;
+            iMaxEnrollmentWeight = parent.iMaxEnrollmentWeight;
+            iMinEnrollmentWeight = parent.iMinEnrollmentWeight;
+            iEnrollments = parent.iEnrollments;
+            iReadOnly = true;
+        }
 
         /** Called when an enrollment with this config is assigned to a request */
         @Override
         public void assigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+            if (iReadOnly) {
+                iEnrollments = new HashSet<Enrollment>(iEnrollments);
+                iReadOnly = false;
+            }
             if (iEnrollments.isEmpty()) {
                 iMinEnrollmentWeight = iMaxEnrollmentWeight = enrollment.getRequest().getWeight();
             } else {
@@ -361,6 +382,10 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
         /** Called when an enrollment with this config is unassigned from a request */
         @Override
         public void unassigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+            if (iReadOnly) {
+                iEnrollments = new HashSet<Enrollment>(iEnrollments);
+                iReadOnly = false;
+            }
             if (iEnrollments.remove(enrollment) && (enrollment.getReservation() == null || !enrollment.getReservation().canBatchAssignOverLimit()))
                 iEnrollmentWeight -= enrollment.getRequest().getWeight();
             if (iEnrollments.isEmpty()) {

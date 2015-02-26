@@ -15,6 +15,7 @@ import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.AssignmentComparable;
 import org.cpsolver.ifs.assignment.context.AbstractClassWithContext;
 import org.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import org.cpsolver.ifs.assignment.context.CanInheritContext;
 import org.cpsolver.ifs.model.Model;
 import org.cpsolver.studentsct.reservation.Reservation;
 
@@ -52,7 +53,7 @@ import org.cpsolver.studentsct.reservation.Reservation;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class Section extends AbstractClassWithContext<Request, Enrollment, Section.SectionContext> implements SctAssignment, AssignmentComparable<Section, Request, Enrollment> {
+public class Section extends AbstractClassWithContext<Request, Enrollment, Section.SectionContext> implements SctAssignment, AssignmentComparable<Section, Request, Enrollment>, CanInheritContext<Request, Enrollment, Section.SectionContext>{
     private static DecimalFormat sDF = new DecimalFormat("0.000");
     private long iId = -1;
     private String iName = null;
@@ -657,13 +658,20 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
         return new SectionContext(assignment);
     }
     
+    @Override
+    public SectionContext inheritAssignmentContext(Assignment<Request, Enrollment> assignment, SectionContext parentContext) {
+        return new SectionContext(parentContext);
+    }
+    
     public class SectionContext implements AssignmentConstraintContext<Request, Enrollment> {
-        private Set<Enrollment> iEnrollments = new HashSet<Enrollment>();
+        private Set<Enrollment> iEnrollments = null;
         private double iEnrollmentWeight = 0.0;
         private double iMaxEnrollmentWeight = 0.0;
         private double iMinEnrollmentWeight = 0.0;
+        private boolean iReadOnly = false;
 
         public SectionContext(Assignment<Request, Enrollment> assignment) {
+            iEnrollments = new HashSet<Enrollment>();
             for (Course course: getSubpart().getConfig().getOffering().getCourses()) {
                 for (CourseRequest request: course.getRequests()) {
                     Enrollment enrollment = assignment.getValue(request);
@@ -672,10 +680,22 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
                 }
             }
         }
+        
+        public SectionContext(SectionContext parent) {
+            iEnrollmentWeight = parent.iEnrollmentWeight;
+            iMaxEnrollmentWeight = parent.iMaxEnrollmentWeight;
+            iMinEnrollmentWeight = parent.iMinEnrollmentWeight;
+            iEnrollments = parent.iEnrollments;
+            iReadOnly = true;
+        }
 
         /** Called when an enrollment with this section is assigned to a request */
         @Override
         public void assigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+            if (iReadOnly) {
+                iEnrollments = new HashSet<Enrollment>(iEnrollments);
+                iReadOnly = false;
+            }
             if (iEnrollments.isEmpty()) {
                 iMinEnrollmentWeight = iMaxEnrollmentWeight = enrollment.getRequest().getWeight();
             } else {
@@ -689,6 +709,10 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
         /** Called when an enrollment with this section is unassigned from a request */
         @Override
         public void unassigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+            if (iReadOnly) {
+                iEnrollments = new HashSet<Enrollment>(iEnrollments);
+                iReadOnly = false;
+            }
             if (iEnrollments.remove(enrollment) && (enrollment.getReservation() == null || !enrollment.getReservation().canBatchAssignOverLimit()))
                 iEnrollmentWeight -= enrollment.getRequest().getWeight();
             if (iEnrollments.isEmpty()) {

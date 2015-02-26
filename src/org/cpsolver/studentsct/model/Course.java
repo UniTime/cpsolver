@@ -7,6 +7,7 @@ import java.util.Set;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.context.AbstractClassWithContext;
 import org.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import org.cpsolver.ifs.assignment.context.CanInheritContext;
 import org.cpsolver.ifs.model.Model;
 
 
@@ -39,7 +40,7 @@ import org.cpsolver.ifs.model.Model;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class Course extends AbstractClassWithContext<Request, Enrollment, Course.CourseContext> {
+public class Course extends AbstractClassWithContext<Request, Enrollment, Course.CourseContext> implements CanInheritContext<Request, Enrollment, Course.CourseContext> {
     private long iId = -1;
     private String iSubjectArea = null;
     private String iCourseNumber = null;
@@ -251,22 +252,42 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
         return new CourseContext(assignment);
     }
     
+
+    @Override
+    public CourseContext inheritAssignmentContext(Assignment<Request, Enrollment> assignment, CourseContext parentContext) {
+        return new CourseContext(parentContext);
+    }
+    
     public class CourseContext implements AssignmentConstraintContext<Request, Enrollment> {
         private double iEnrollmentWeight = 0.0;
-        private Set<Enrollment> iEnrollments = new HashSet<Enrollment>();
+        private Set<Enrollment> iEnrollments = null;
         private double iMaxEnrollmentWeight = 0.0;
         private double iMinEnrollmentWeight = 0.0;
+        private boolean iReadOnly = false;
 
         public CourseContext(Assignment<Request, Enrollment> assignment) {
+            iEnrollments = new HashSet<Enrollment>();
             for (CourseRequest request: getRequests()) {
                 Enrollment enrollment = assignment.getValue(request);
                 if (enrollment != null && Course.this.equals(enrollment.getCourse()))
                     assigned(assignment, enrollment);
             }
         }
+        
+        public CourseContext(CourseContext parent) {
+            iEnrollmentWeight = parent.iEnrollmentWeight;
+            iMinEnrollmentWeight = parent.iMinEnrollmentWeight;
+            iMaxEnrollmentWeight = parent.iMaxEnrollmentWeight;
+            iEnrollments = parent.iEnrollments;
+            iReadOnly = true;
+        }
 
         @Override
         public void assigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+            if (iReadOnly) {
+                iEnrollments = new HashSet<Enrollment>(iEnrollments);
+                iReadOnly = false;
+            }
             if (iEnrollments.isEmpty()) {
                 iMinEnrollmentWeight = iMaxEnrollmentWeight = enrollment.getRequest().getWeight();
             } else {
@@ -279,6 +300,10 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
 
         @Override
         public void unassigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+            if (iReadOnly) {
+                iEnrollments = new HashSet<Enrollment>(iEnrollments);
+                iReadOnly = false;
+            }
             if (iEnrollments.remove(enrollment) && (enrollment.getReservation() == null || !enrollment.getReservation().canBatchAssignOverLimit()))
                 iEnrollmentWeight -= enrollment.getRequest().getWeight();
             if (iEnrollments.isEmpty()) {
