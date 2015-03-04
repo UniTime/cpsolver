@@ -23,6 +23,7 @@ import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Offering;
 import org.cpsolver.studentsct.model.Request;
+import org.cpsolver.studentsct.model.RequestGroup;
 import org.cpsolver.studentsct.model.SctAssignment;
 import org.cpsolver.studentsct.model.Section;
 import org.cpsolver.studentsct.model.Student;
@@ -74,7 +75,8 @@ public class PriorityStudentWeights implements StudentWeights {
     protected boolean iMPP = false;
     protected double iPerturbationFactor = 0.100;
     protected double iSameChoiceWeight = 0.900;
-    protected double iSameTimeWeight = 0.700; 
+    protected double iSameTimeWeight = 0.700;
+    protected double iGroupFactor = 0.100;
     
     public PriorityStudentWeights(DataProperties config) {
         iPriorityFactor = config.getPropertyDouble("StudentWeights.Priority", iPriorityFactor);
@@ -91,6 +93,7 @@ public class PriorityStudentWeights implements StudentWeights {
         iPerturbationFactor = config.getPropertyDouble("StudentWeights.Perturbation", iPerturbationFactor);
         iSameChoiceWeight = config.getPropertyDouble("StudentWeights.SameChoice", iSameChoiceWeight);
         iSameTimeWeight = config.getPropertyDouble("StudentWeights.SameTime", iSameTimeWeight);
+        iGroupFactor = config.getPropertyDouble("StudentWeights.SameGroup", iGroupFactor);
     }
         
     public double getWeight(Request request) {
@@ -236,6 +239,19 @@ public class PriorityStudentWeights implements StudentWeights {
             double difference = getDifference(enrollment);
             if (difference > 0.0)
                 weight *= (1.0 - difference * iPerturbationFactor);
+        }
+        if (enrollment.isCourseRequest() && iGroupFactor != 0.0) {
+            double sameGroup = 0.0; int groupCount = 0;
+            for (RequestGroup g: ((CourseRequest)enrollment.getRequest()).getRequestGroups()) {
+                if (g.getCourse().equals(enrollment.getCourse())) {
+                    sameGroup += g.getEnrollmentSpread(assignment, enrollment);
+                    groupCount ++;
+                }
+            }
+            if (groupCount > 0) {
+                double difference = 1.0 - sameGroup / groupCount;
+                weight *= (1.0 - difference * iGroupFactor);
+            }
         }
         return round(weight);
     }

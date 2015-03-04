@@ -28,6 +28,7 @@ import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.FreeTimeRequest;
 import org.cpsolver.studentsct.model.Offering;
 import org.cpsolver.studentsct.model.Request;
+import org.cpsolver.studentsct.model.RequestGroup;
 import org.cpsolver.studentsct.model.Section;
 import org.cpsolver.studentsct.model.Student;
 import org.cpsolver.studentsct.model.Subpart;
@@ -639,6 +640,11 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         }
         if (iSaveBest && request.getBestAssignment() != null) {
             saveEnrollment(requestEl.addElement("best"), request.getBestAssignment());
+        }
+        for (RequestGroup g: request.getRequestGroups()) {
+            Element groupEl = requestEl.addElement("group").addAttribute("id", getId("group", g.getId())).addAttribute("course", getId("course", g.getCourse().getId()));
+            if (iShowNames)
+                groupEl.addAttribute("name", g.getName());
         }
     }
     

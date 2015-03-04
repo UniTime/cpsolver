@@ -27,6 +27,7 @@ import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.FreeTimeRequest;
 import org.cpsolver.studentsct.model.Offering;
 import org.cpsolver.studentsct.model.Request;
+import org.cpsolver.studentsct.model.RequestGroup;
 import org.cpsolver.studentsct.model.Section;
 import org.cpsolver.studentsct.model.Student;
 import org.cpsolver.studentsct.model.Subpart;
@@ -803,6 +804,19 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             Element choiceEl = (Element) k.next();
             courseRequest.getSelectedChoices().add(
                     new Choice(offeringTable.get(Long.valueOf(choiceEl.attributeValue("offering"))), choiceEl.getText()));
+        }
+        groups: for (Iterator<?> k = requestEl.elementIterator("group"); k.hasNext();) {
+            Element groupEl = (Element) k.next();
+            long gid = Long.parseLong(groupEl.attributeValue("id"));
+            String gname = groupEl.attributeValue("name", "g" + gid);
+            Course course = courseTable.get(Long.valueOf(groupEl.attributeValue("course")));
+            for (RequestGroup g: course.getRequestGroups()) {
+                if (g.getId() == gid) {
+                    courseRequest.addRequestGroup(g);
+                    continue groups;
+                }
+            }
+            courseRequest.addRequestGroup(new RequestGroup(gid, gname, course));
         }
         return courseRequest;
     }

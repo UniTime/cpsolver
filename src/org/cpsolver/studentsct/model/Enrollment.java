@@ -394,10 +394,19 @@ public class Enrollment extends Value<Request, Enrollment> {
         if (toc != null)
             for (TimeOverlapsCounter.Conflict c: toc)
                 share += c.getShare();
-        String ret = sDF.format(toDouble(a)) + "/" + sDF.format(getRequest().getBound())
+        String ret = toDouble(a) + "/" + sDF.format(getRequest().getBound())
                 + (getPenalty() == 0.0 ? "" : "/" + sDF.format(getPenalty()))
                 + (dc == null || dc.isEmpty() ? "" : "/dc:" + dc.size())
                 + (share <= 0 ? "" : "/toc:" + share);
+        if (getRequest() instanceof CourseRequest) {
+            double sameGroup = 0.0; int groupCount = 0;
+            for (RequestGroup g: ((CourseRequest)getRequest()).getRequestGroups()) {
+                sameGroup += g.getEnrollmentSpread(a, this);
+                groupCount ++;
+            }
+            if (groupCount > 0)
+                ret += "/g:" + sDF.format(sameGroup / groupCount);
+        }
         if (getRequest() instanceof CourseRequest) {
             ret += " ";
             for (Iterator<? extends SctAssignment> i = getAssignments().iterator(); i.hasNext();) {

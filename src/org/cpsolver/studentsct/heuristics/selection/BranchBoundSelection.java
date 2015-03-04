@@ -26,7 +26,7 @@ import org.cpsolver.studentsct.StudentSectioningModel;
 import org.cpsolver.studentsct.constraint.LinkedSections;
 import org.cpsolver.studentsct.extension.DistanceConflict;
 import org.cpsolver.studentsct.extension.TimeOverlapsCounter;
-import org.cpsolver.studentsct.heuristics.studentord.StudentChoiceRealFirstOrder;
+import org.cpsolver.studentsct.heuristics.studentord.StudentGroupsChoiceRealFirstOrder;
 import org.cpsolver.studentsct.heuristics.studentord.StudentOrder;
 import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
@@ -98,7 +98,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
     public static boolean sDebug = false;
     protected Queue<Student> iStudents = null;
     protected boolean iMinimizePenalty = false;
-    protected StudentOrder iOrder = new StudentChoiceRealFirstOrder();
+    protected StudentOrder iOrder = new StudentGroupsChoiceRealFirstOrder();
     protected double iDistConfWeight = 1.0;
 
     /**
@@ -665,7 +665,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             List<Enrollment> values = null;
             if (request instanceof CourseRequest) {
                 CourseRequest courseRequest = (CourseRequest) request;
-                if (courseRequest.getInitialAssignment() != null) {
+                if (courseRequest.getInitialAssignment() != null && iModel.isMPP()) {
                     Enrollment enrollment = courseRequest.getInitialAssignment();
                     if (!inConflict(idx, enrollment)) {
                         iAssignment[idx] = enrollment;

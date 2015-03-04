@@ -55,6 +55,7 @@ public class CourseRequest extends Request {
     private Long iTimeStamp = null;
     private Double iCachedMinPenalty = null, iCachedMaxPenalty = null;
     public static boolean sSameTimePrecise = false;
+    private Set<RequestGroup> iRequestGroups = new HashSet<RequestGroup>();
 
     /**
      * Constructor
@@ -785,5 +786,47 @@ public class CourseRequest extends Request {
         StudentSectioningModel model = (StudentSectioningModel) getModel();
         if (model == null || !model.isMPP()) return false;
         return !getStudent().isDummy() && (getInitialAssignment() != null || !getSelectedChoices().isEmpty()); 
+    }
+    
+    /**
+     * Add request group to this request.
+     * @param group request group to be added
+     */
+    public void addRequestGroup(RequestGroup group) {
+        iRequestGroups.add(group);
+        group.addRequest(this);
+    }
+    
+    /**
+     * Removed request group from this request.
+     * @param group request group to be removed
+     */
+    public void removeRequestGroup(RequestGroup group) {
+        iRequestGroups.remove(group);
+        group.removeRequest(this);
+    }
+
+    /**
+     * Lists request groups of this request
+     * @return request groups of this course requests
+     */
+    public Set<RequestGroup> getRequestGroups() {
+        return iRequestGroups;
+    }
+    
+    @Override
+    public void variableAssigned(Assignment<Request, Enrollment> assignment, long iteration, Enrollment enrollment) {
+        super.variableAssigned(assignment, iteration, enrollment);
+        for (RequestGroup g: getRequestGroups())
+            if (g.getCourse().equals(enrollment.getCourse()))
+                g.assigned(assignment, enrollment);
+    }
+
+    @Override
+    public void variableUnassigned(Assignment<Request, Enrollment> assignment, long iteration, Enrollment enrollment) {
+        super.variableUnassigned(assignment, iteration, enrollment);
+        for (RequestGroup g: getRequestGroups())
+            if (g.getCourse().equals(enrollment.getCourse()))
+                g.unassigned(assignment, enrollment);
     }
 }

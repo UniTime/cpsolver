@@ -48,6 +48,7 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
     private int iLimit = 0, iProjected = 0;
     private Set<CourseRequest> iRequests = Collections.synchronizedSet(new HashSet<CourseRequest>());
     private String iNote = null;
+    private Set<RequestGroup> iRequestGroups = new HashSet<RequestGroup>();
 
     /**
      * Constructor
@@ -245,6 +246,31 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
      */
     public double getMinEnrollmentWeight(Assignment<Request, Enrollment> assignment) {
         return getContext(assignment).getMinEnrollmentWeight();
+    }
+    
+    /**
+     * Add request group of this course. This is automatically called 
+     * by the constructor of the {@link RequestGroup}.
+     * @param group request group to be added
+     */
+    public void addRequestGroup(RequestGroup group) {
+        iRequestGroups.add(group);
+    }
+    
+    /**
+     * Remove request group from this course.
+     * @param group request group to be removed
+     */
+    public void removeRequestGroup(RequestGroup group) {
+        iRequestGroups.remove(group);
+    }
+    
+    /**
+     * Lists all the request groups of this course
+     * @return all request groups of this course
+     */
+    public Set<RequestGroup> getRequestGroups() {
+        return iRequestGroups;
     }
 
     @Override
