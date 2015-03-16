@@ -260,6 +260,7 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> implem
 
     @Override
     public void weaken() {
+        if (second() == null) return;
         iTwiggle += ((TimetableModel)second().getModel()).getProperties().getPropertyDouble("General.JenrlMaxConflictsWeaken", 0.001);
         double maxConflicts = ((TimetableModel)second().getModel()).getProperties().getPropertyDouble("General.JenrlMaxConflicts", 1.0) + iTwiggle;
         if (maxConflicts >= 0.0 && maxConflicts < 1.0) {
@@ -271,7 +272,7 @@ public class JenrlConstraint extends BinaryConstraint<Lecture, Placement> implem
 
     @Override
     public void weaken(Placement value) {
-        if (inConflict(value)) {
+        if (second() != null && inConflict(value)) {
             double maxConflicts = ((TimetableModel)second().getModel()).getProperties().getPropertyDouble("General.JenrlMaxConflicts", 1.0) + iTwiggle;
             iTwiggle = (iJenrl + 0.00001) / Math.min(first().maxClassLimit(), second().maxClassLimit()) - maxConflicts;
             if (maxConflicts + iTwiggle >= 0.0 && maxConflicts + iTwiggle < 1.0) {
