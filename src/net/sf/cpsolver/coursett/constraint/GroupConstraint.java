@@ -677,7 +677,8 @@ public class GroupConstraint extends Constraint<Lecture, Placement> {
         }
         if (!isHard()) {
             iLastPreference = getCurrentPreference();
-            getModel().getCriterion(DistributionPreferences.class).inc(iLastPreference);
+            if (model != null)
+                model.getCriterion(DistributionPreferences.class).inc(iLastPreference);
         }
     }
 
