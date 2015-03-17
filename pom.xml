@@ -29,7 +29,7 @@
 	<packaging>jar</packaging>
 	
 	<name>CPSolver</name>
-	<url>http://code.google.com/p/cpsolver</url>
+	<url>http://www.cpsolver.org</url>
 	<description>
 		The constraint solver library contains a local search based framework that allows
 		modeling of a problem using constraint programming primitives (variables, values, constraints).
@@ -74,9 +74,10 @@
 	</dependencies>
 	
 	<scm>
-		<connection>scm:svn:http://cpsolver.googlecode.com/svn/branches/maint_CPSolver12/</connection>
-		<developerConnection>scm:svn:https://cpsolver.googlecode.com/svn/branches/maint_CPSolver12/</developerConnection>
-		<url>http://code.google.com/p/cpsolver/source/browse/branches/maint_CPSolver12</url>
+		<connection>scm:git:git://github.com/tomas-muller/cpsolver.git</connection>
+		<developerConnection>scm:git:git@github.com:tomas-muller/cpsolver.git</developerConnection>
+		<url>https://github.com/tomas-muller/cpsolver</url>
+		<tag>cpsolver-1.2</tag>
 	</scm>
 	
 	<build>
@@ -289,7 +290,14 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-release-plugin</artifactId>
-				<version>2.3.1</version>
+				<version>2.5</version>
+				<dependencies>
+						<dependency>
+						<groupId>org.apache.maven.scm</groupId>
+						<artifactId>maven-scm-provider-gitexe</artifactId>
+						<version>1.9.1</version>
+					</dependency>
+				</dependencies>
 			</plugin>
 		</plugins>
 		<extensions>
