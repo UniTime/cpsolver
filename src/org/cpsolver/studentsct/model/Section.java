@@ -68,6 +68,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     private double iSpaceHeld = 0.0;
     private String iNote = null;
     private Set<Long> iIgnoreConflictsWith = null;
+    private boolean iCancelled = false;
 
     /**
      * Constructor
@@ -647,6 +648,18 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     public double getMinEnrollmentWeight(Assignment<Request, Enrollment> assignment) {
         return getContext(assignment).getMinEnrollmentWeight();
     }
+    
+    /**
+     * Return cancelled flag of the class.
+     * @return true if the class is cancelled
+     */
+    public boolean isCancelled() { return iCancelled; }
+    
+    /**
+     * Set cancelled flag of the class.
+     * @param cancelled true if the class is cancelled
+     */
+    public void setCancelled(boolean cancelled) { iCancelled = cancelled; }
     
     @Override
     public Model<Request, Enrollment> getModel() {

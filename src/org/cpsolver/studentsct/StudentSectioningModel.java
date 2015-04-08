@@ -22,6 +22,7 @@ import org.cpsolver.ifs.model.InfoProvider;
 import org.cpsolver.ifs.model.Model;
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.util.DataProperties;
+import org.cpsolver.studentsct.constraint.CancelledSections;
 import org.cpsolver.studentsct.constraint.ConfigLimit;
 import org.cpsolver.studentsct.constraint.CourseLimit;
 import org.cpsolver.studentsct.constraint.FixInitialAssignments;
@@ -144,6 +145,10 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         if (properties.getPropertyBoolean("Sectioning.RequiredReservations", true)) {
             RequiredReservation requiredReservation = new RequiredReservation();
             addGlobalConstraint(requiredReservation);
+        }
+        if (properties.getPropertyBoolean("Sectioning.CancelledSections", true)) {
+            CancelledSections cancelledSections = new CancelledSections();
+            addGlobalConstraint(cancelledSections);
         }
         if (iMPP && iKeepInitials) {
             addGlobalConstraint(new FixInitialAssignments());

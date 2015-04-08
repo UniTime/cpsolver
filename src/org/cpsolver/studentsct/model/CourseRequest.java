@@ -356,6 +356,8 @@ public class CourseRequest extends Request {
             List<Section> matchingSectionsThisSubpart = new ArrayList<Section>(subpart.getSections().size());
             boolean hasChildren = !subpart.getChildren().isEmpty();
             for (Section section : sectionsThisSubpart) {
+                if (section.isCancelled())
+                    continue;
                 if (getInitialAssignment() != null && (getModel() != null && ((StudentSectioningModel)getModel()).getKeepInitialAssignments()) &&
                         !getInitialAssignment().getAssignments().contains(section))
                     continue;
