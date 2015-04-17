@@ -96,7 +96,7 @@ public class ResectioningWeights extends StudentSchedulingAssistantWeights {
                     }
                 }
             }
-            int size = enrollment.getAssignments().size();
+            double size = enrollment.getAssignments().size();
             double sameChoiceFraction = (size - sameChoice) / size;
             double sameTimeFraction = (size - sameTime) / size;
             double sameRoomsFraction = (size - sameRooms) / size;
