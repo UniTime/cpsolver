@@ -656,6 +656,43 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                         !plc1.getTimeLocation().shareDays(plc2.getTimeLocation()) ||
                         !plc1.sameRooms(plc2);
             }}), 
+        /**
+         * 6 Hour Work Day: Classes are to be placed in a way that there is no more than six hours between the start of the first class and the end of the class one on any day.
+         */
+        WORKDAY_6("WORKDAY(6)", "6 Hour Work Day", 72, new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                TimeLocation t1 = plc1.getTimeLocation(), t2 = plc2.getTimeLocation();
+                if (t1 == null || t2 == null || !t1.shareDays(t2) || !t1.shareWeeks(t2)) return true;
+                return Math.max(t1.getStartSlot() + t1.getNrMeetings(), t2.getStartSlot() + t2.getNrMeetings()) - Math.min(t1.getStartSlot(), t2.getStartSlot()) < gc.getType().getMax();
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) { return true; }
+            }),
+        /**
+         * 7 Hour Work Day: Classes are to be placed in a way that there is no more than seven hours between the start of the first class and the end of the class one on any day.
+         */
+        WORKDAY_7("WORKDAY(7)", "7 Hour Work Day", 84, WORKDAY_6.check()),
+        /**
+         * 8 Hour Work Day: Classes are to be placed in a way that there is no more than eight hours between the start of the first class and the end of the class one on any day.
+         */
+        WORKDAY_8("WORKDAY(8)", "8 Hour Work Day", 96, WORKDAY_6.check()),
+        /**
+         * 9 Hour Work Day: Classes are to be placed in a way that there is no more than nine hours between the start of the first class and the end of the class one on any day.
+         */
+        WORKDAY_9("WORKDAY(9)", "9 Hour Work Day", 108, WORKDAY_6.check()),
+        /**
+         * 10 Hour Work Day: Classes are to be placed in a way that there is no more than ten hours between the start of the first class and the end of the class one on any day.
+         */
+        WORKDAY_10("WORKDAY(10)", "10 Hour Work Day", 120, WORKDAY_6.check()),
+        /**
+         * 11 Hour Work Day: Classes are to be placed in a way that there is no more than eleven hours between the start of the first class and the end of the class one on any day.
+         */
+        WORKDAY_11("WORKDAY(11)", "11 Hour Work Day", 132, WORKDAY_6.check()),
+        /**
+         * 12 Hour Work Day: Classes are to be placed in a way that there is no more than twelve hours between the start of the first class and the end of the class one on any day.
+         */
+        WORKDAY_12("WORKDAY(12)", "12 Hour Work Day", 144, WORKDAY_6.check()),
         ;
         
         String iReference, iName;
