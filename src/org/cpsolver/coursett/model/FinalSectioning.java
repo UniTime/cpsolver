@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.cpsolver.coursett.constraint.JenrlConstraint;
+import org.cpsolver.coursett.criteria.StudentCommittedConflict;
 import org.cpsolver.coursett.criteria.StudentConflict;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.util.Progress;
@@ -155,6 +156,8 @@ public class FinalSectioning {
                     break;
                 if (m.perform(assignment))
                     lecturesToRecompute.add(m.secondLecture());
+                else
+                    m.getUndoMove().perform(assignment);
             }
         } else if (!iWeighStudents) {
             while (true) {
@@ -163,6 +166,8 @@ public class FinalSectioning {
                     break;
                 if (m.perform(assignment))
                     lecturesToRecompute.add(m.secondLecture());
+                else
+                    m.getUndoMove().perform(assignment);
             }
         }
 
@@ -179,6 +184,8 @@ public class FinalSectioning {
                 if (m != null) {
                     if (m.perform(assignment))
                         lecturesToRecompute.add(m.secondLecture());
+                    else
+                        m.getUndoMove().perform(assignment);
                 }
             }
         } else {
@@ -204,6 +211,8 @@ public class FinalSectioning {
             if (m != null) {
                 if (m.perform(assignment))
                     lecturesToRecompute.addAll(m.secondLectures());
+                else
+                    m.getUndoMove().perform(assignment);
             }
         }
     }
@@ -514,9 +523,18 @@ public class FinalSectioning {
         public List<Move> getChildMoves() {
             return iChildMoves;
         }
+        
+        public Move getUndoMove() {
+            Move ret = new Move(iSecondLecture, iFirstStudent, iFirstLecture, iSecondStudent);
+            if (iChildMoves != null)
+                for (Move move: iChildMoves)
+                    ret.addChildMove(move.getUndoMove());
+            return ret;
+        }
 
         public boolean perform(Assignment<Lecture, Placement> assignment) {
-            double conflicts = firstLecture().getModel().getCriterion(StudentConflict.class).getValue(assignment);
+            double conflicts = firstLecture().getModel().getCriterion(StudentConflict.class).getValue(assignment) +
+                    firstLecture().getModel().getCriterion(StudentCommittedConflict.class).getValue(assignment);
             for (Lecture lecture : firstStudent().getLectures()) {
                 if (lecture.equals(firstLecture()))
                     continue;
@@ -596,7 +614,7 @@ public class FinalSectioning {
                 }
             }
             // sLogger.debug("Solution after swap is "+iModel.getInfo()+".");
-            return firstLecture().getModel().getCriterion(StudentConflict.class).getValue(assignment) < conflicts;
+            return firstLecture().getModel().getCriterion(StudentConflict.class).getValue(assignment) + firstLecture().getModel().getCriterion(StudentCommittedConflict.class).getValue(assignment) < conflicts;
         }
 
         public double getDelta(Assignment<Lecture, Placement> assignment) {
@@ -812,9 +830,17 @@ public class FinalSectioning {
         public Set<Lecture> secondLectures() {
             return iSecondLectures;
         }
+        
+        public MoveBetweenCfgs getUndoMove() {
+            MoveBetweenCfgs ret = new MoveBetweenCfgs(iSecondConfig, iFirstStudent, iFirstConfig, iSecondStudent);
+            ret.secondLectures().addAll(iFirstLectures);
+            ret.firstLectures().addAll(iSecondLectures);
+            return ret;
+        }
 
         public boolean perform(Assignment<Lecture, Placement> assignment) {
-            double conflicts = firstLectures().iterator().next().getModel().getCriterion(StudentConflict.class).getValue(assignment);
+            double conflicts = firstLectures().iterator().next().getModel().getCriterion(StudentConflict.class).getValue(assignment) +
+                    firstLectures().iterator().next().getModel().getCriterion(StudentCommittedConflict.class).getValue(assignment);
             firstStudent().removeConfiguration(firstConfiguration());
             firstStudent().addConfiguration(secondConfiguration());
             for (Lecture lecture : firstStudent().getLectures()) {
@@ -925,7 +951,8 @@ public class FinalSectioning {
                     }
                 }
             }
-            return firstLectures().iterator().next().getModel().getCriterion(StudentConflict.class).getValue(assignment) < conflicts;
+            return firstLectures().iterator().next().getModel().getCriterion(StudentConflict.class).getValue(assignment) + 
+                    firstLectures().iterator().next().getModel().getCriterion(StudentCommittedConflict.class).getValue(assignment) < conflicts;
         }
 
         public double getDelta(Assignment<Lecture, Placement> assignment) {
