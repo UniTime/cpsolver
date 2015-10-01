@@ -32,7 +32,6 @@ import org.cpsolver.ifs.solver.Solver;
  * @param <V> Variable
  * @param <T> Value
  **/
-@SuppressWarnings("javadoc")
 public class ValueComparator<V extends Variable<V, T>, T extends Value<V, T>> extends AssignmentComparator<T, V, T> {
     
     public ValueComparator(Assignment<V, T> assignment) {

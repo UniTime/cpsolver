@@ -4,11 +4,9 @@ import java.util.Set;
 
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.model.GlobalConstraint;
-import org.cpsolver.studentsct.model.Config;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.Section;
-import org.cpsolver.studentsct.reservation.Reservation;
 
 
 /**

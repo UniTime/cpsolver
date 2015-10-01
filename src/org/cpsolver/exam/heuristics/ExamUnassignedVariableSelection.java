@@ -13,7 +13,7 @@ import org.cpsolver.ifs.util.ToolBox;
 
 /**
  * Unassigned variable selection. The "biggest" variable (using
- * {@link Variable#compareTo(Object)}) unassigned variable is selected. One is
+ * {@link Variable#compareTo(Variable)}) unassigned variable is selected. One is
  * selected randomly if there are more than one of such variables.
  * 
  * @version ExamTT 1.3 (Examination Timetabling)<br>

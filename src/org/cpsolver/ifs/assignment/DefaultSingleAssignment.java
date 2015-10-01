@@ -42,7 +42,6 @@ import org.cpsolver.ifs.solver.Solver;
  * @param <V> Variable
  * @param <T> Value
  **/
-@SuppressWarnings("javadoc")
 public class DefaultSingleAssignment<V extends Variable<V, T>, T extends Value<V, T>> extends AssignmentAbstract<V, T> {
     private Set<V> iAssignedVariables = new HashSet<V>();
 
