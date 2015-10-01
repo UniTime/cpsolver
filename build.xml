@@ -48,7 +48,10 @@
             <format property="build.date" pattern="EEE, d MMM yyyy" locale="en"/>
         </tstamp>
         <echo message="Build date: ${build.date}"/>
-    	<exec executable="svnversion" outputproperty="revision.number" />
+    	<exec executable="git" outputproperty="revision.number">
+    			<arg value="rev-parse"/>
+    			<arg value="HEAD"/>
+    	</exec>
     	<echo message="Revision number: ${revision.number}"/>
         <copy todir="${build.dir}" overwrite="Yes" preservelastmodified="Yes">
             <fileset dir="${src.dir}" includes="**/*.java"/>
