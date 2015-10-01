@@ -320,6 +320,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
             courseEl.addAttribute("limit", String.valueOf(course.getLimit()));
         if (iShowNames && course.getProjected() != 0)
             courseEl.addAttribute("projected", String.valueOf(course.getProjected()));
+        if (iShowNames && course.getCredit() != null)
+            courseEl.addAttribute("credit", course.getCredit());
     }
     
     /**
@@ -349,8 +351,11 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         subpartEl.addAttribute("itype", subpart.getInstructionalType());
         if (subpart.getParent() != null)
             subpartEl.addAttribute("parent", getId("subpart", subpart.getParent().getId()));
-        if (iShowNames)
+        if (iShowNames) {
             subpartEl.addAttribute("name", subpart.getName());
+            if (subpart.getCredit() != null)
+                subpartEl.addAttribute("credit", subpart.getCredit());
+        }
         if (subpart.isAllowOverlap())
             subpartEl.addAttribute("allowOverlap", "true");
         for (Section section : subpart.getSections()) {

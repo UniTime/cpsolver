@@ -49,6 +49,7 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
     private Set<CourseRequest> iRequests = Collections.synchronizedSet(new HashSet<CourseRequest>());
     private String iNote = null;
     private Set<RequestGroup> iRequestGroups = new HashSet<RequestGroup>();
+    private String iCredit = null;
 
     /**
      * Constructor
@@ -272,6 +273,18 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
     public Set<RequestGroup> getRequestGroups() {
         return iRequestGroups;
     }
+    
+    /**
+     * Set credit (Online Student Scheduling only)
+     * @param credit scheduling subpart credit
+     */
+    public void setCredit(String credit) { iCredit = credit; }
+    
+    /**
+     * Get credit (Online Student Scheduling only)
+     * @return scheduling subpart credit
+     */
+    public String getCredit() { return iCredit; }
 
     @Override
     public CourseContext createAssignmentContext(Assignment<Request, Enrollment> assignment) {

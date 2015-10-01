@@ -323,6 +323,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                 courseEl.attributeValue("courseNbr", "C" + courseEl.attributeValue("id")),
                 offering, Integer.parseInt(courseEl.attributeValue("limit", "-1")),
                 Integer.parseInt(courseEl.attributeValue("projected", "0")));
+        course.setCredit(courseEl.attributeValue("credit"));
         return course;
     }
     
@@ -369,7 +370,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                 config,
                 parentSubpart);
         subpart.setAllowOverlap("true".equals(subpartEl.attributeValue("allowOverlap", "false")));
-        
+        subpart.setCredit(subpartEl.attributeValue("credit"));
         
         for (Iterator<?> l = subpartEl.elementIterator("section"); l.hasNext();) {
             Element sectionEl = (Element) l.next();
