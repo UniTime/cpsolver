@@ -29,7 +29,7 @@ public class AssignmentContextHelper {
                 }
                 
                 if (!context.isCurrent(version)) {
-                    if (source instanceof CanInheritContext)
+                    if (source instanceof CanInheritContext && contexts[0] != null)
                         context.setContent(((CanInheritContext<V, T, C>)source).inheritAssignmentContext(assignment, (C)contexts[0]), version);
                     else
                         context.setContent(source.createAssignmentContext(assignment), version);
