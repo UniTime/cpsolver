@@ -3,7 +3,6 @@ package org.cpsolver.ifs.heuristics;
 import java.util.ArrayList;
 import java.util.List;
 
-
 import org.apache.log4j.Logger;
 import org.cpsolver.ifs.model.Neighbour;
 import org.cpsolver.ifs.model.Value;
@@ -50,8 +49,8 @@ import org.cpsolver.ifs.util.DataProperties;
  */
 public class RoundRobinNeighbourSelection<V extends Variable<V, T>, T extends Value<V, T>> extends StandardNeighbourSelection<V, T> {
     protected static Logger sLogger = Logger.getLogger(RoundRobinNeighbourSelection.class);
-    protected int iSelectionIdx = -1;
-    protected List<NeighbourSelection<V, T>> iSelections = new ArrayList<NeighbourSelection<V, T>>();
+    private int iSelectionIdx = -1;
+    private List<NeighbourSelection<V, T>> iSelections = new ArrayList<NeighbourSelection<V, T>>();
     protected Solver<V, T> iSolver = null;
 
     /**
@@ -88,7 +87,7 @@ public class RoundRobinNeighbourSelection<V extends Variable<V, T>, T extends Va
     public Neighbour<V, T> selectNeighbour(Solution<V, T> solution) {
         while (true) {
             int selectionIndex = getSelectionIndex();
-            NeighbourSelection<V, T> selection = iSelections.get(selectionIndex);
+            NeighbourSelection<V, T> selection = iSelections.get(selectionIndex % iSelections.size());
             Neighbour<V, T> neighbour = selection.selectNeighbour(solution);
             if (neighbour != null)
                 return neighbour;
@@ -96,24 +95,35 @@ public class RoundRobinNeighbourSelection<V extends Variable<V, T>, T extends Va
         }
     }
     
-    public synchronized int getSelectionIndex() {
-        if (iSelectionIdx == -1) {
-            iSelectionIdx = 0;
-            iSelections.get(iSelectionIdx).init(iSolver);
+    public int getSelectionIndex() {
+        if (iSelectionIdx == -1) changeSelection(-1);
+        iSolver.currentSolution().getLock().readLock().lock();
+        try {
+            return iSelectionIdx;
+        } finally {
+            iSolver.currentSolution().getLock().readLock().unlock();
         }
-        return iSelectionIdx;
     }
 
     /** Change selection 
      * @param selectionIndex current selection index 
      **/
-    public synchronized void changeSelection(int selectionIndex) {
-        int newSelectionIndex = (1 + selectionIndex) % iSelections.size();
-        if (newSelectionIndex == iSelectionIdx) return; // already changed
-        iSelectionIdx = newSelectionIndex;
-        sLogger.debug("Phase changed to " + (newSelectionIndex + 1));
-        if (iSolver.currentSolution().getBestInfo() == null || iSolver.getSolutionComparator().isBetterThanBestSolution(iSolver.currentSolution()))
-            iSolver.currentSolution().saveBest();
-        iSelections.get(iSelectionIdx).init(iSolver);
+    public void changeSelection(int selectionIndex) {
+        iSolver.currentSolution().getLock().writeLock().lock();
+        try {
+            int newSelectionIndex = 1 + selectionIndex;
+            if (newSelectionIndex <= iSelectionIdx) return; // already changed
+            iSelectionIdx = newSelectionIndex;
+            sLogger.info("Phase changed to " + ((newSelectionIndex % iSelections.size()) + 1));
+            if (iSolver.currentSolution().getBestInfo() == null || iSolver.getSolutionComparator().isBetterThanBestSolution(iSolver.currentSolution()))
+                iSolver.currentSolution().saveBest();
+            iSelections.get(iSelectionIdx % iSelections.size()).init(iSolver);
+        } finally {
+            iSolver.currentSolution().getLock().writeLock().unlock();
+        }
+    }
+    
+    public NeighbourSelection<V, T> getSelection() {
+        return iSelections.get(getSelectionIndex() % iSelections.size());
     }
 }

@@ -168,7 +168,7 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
 
     @Override
     public void neighbourFailed(Assignment<Request, Enrollment> assignment, long iteration, Neighbour<Request, Enrollment> neighbour) {
-        NeighbourSelection<Request, Enrollment> selection = iSelections.get(getSelectionIndex());
+        NeighbourSelection<Request, Enrollment> selection = getSelection();
         if (neighbour instanceof BranchBoundSelection.BranchBoundNeighbour && selection instanceof BranchBoundSelection)
             ((BranchBoundSelection)selection).addStudent(((BranchBoundSelection.BranchBoundNeighbour)neighbour).getStudent());
     }
