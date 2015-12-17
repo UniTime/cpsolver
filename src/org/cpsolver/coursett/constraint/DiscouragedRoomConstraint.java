@@ -82,6 +82,13 @@ public class DiscouragedRoomConstraint extends RoomConstraint implements Weakeni
         return new DiscouragedRoomConstraintContext(assignment);
     }
 
+    @Override
+    public void unassigned(Assignment<Lecture, Placement> assignment, long iteration, Placement placement) {
+        super.unassigned(assignment, iteration, placement);
+        if (!placement.hasRoomLocation(getResourceId()))
+            ((DiscouragedRoomConstraintContext)getContext(assignment)).weaken();
+    }
+
     public class DiscouragedRoomConstraintContext extends RoomConstraintContext {
         int iUsage = 0;
         int iLimit = 0;
@@ -103,8 +110,6 @@ public class DiscouragedRoomConstraint extends RoomConstraint implements Weakeni
             super.unassigned(assignment, placement);
             if (placement.hasRoomLocation(getResourceId()) && !placement.variable().isCommitted())
                 iUsage --;
-            else
-                weaken();
         }
 
         public int getLimit() {
