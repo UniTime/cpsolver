@@ -410,12 +410,16 @@ public class Test implements SolutionListener<Lecture, Placement> {
     public static void printRoomInfo(PrintWriter pw, TimetableModel model, Assignment<Lecture, Placement> assignment) {
         pw.println("Room info:");
         pw.println("id, name, size, used_day, used_total");
+        int firstDaySlot = model.getProperties().getPropertyInt("General.FirstDaySlot", Constants.DAY_SLOTS_FIRST);
+        int lastDaySlot = model.getProperties().getPropertyInt("General.LastDaySlot", Constants.DAY_SLOTS_LAST);
+        int firstWorkDay = model.getProperties().getPropertyInt("General.FirstWorkDay", 0);
+        int lastWorkDay = model.getProperties().getPropertyInt("General.LastWorkDay", Constants.NR_DAYS_WEEK - 1);
         for (RoomConstraint rc : model.getRoomConstraints()) {
             int used_day = 0;
             int used_total = 0;
-            for (int day = 0; day < Constants.NR_DAYS_WEEK; day++) {
-                for (int time = 0; time < Constants.SLOTS_PER_DAY_NO_EVENINGS; time++) {
-                    if (!rc.getContext(assignment).getPlacements(day * Constants.SLOTS_PER_DAY + time + Constants.DAY_SLOTS_FIRST).isEmpty())
+            for (int day = firstWorkDay; day <= lastWorkDay; day++) {
+                for (int time = firstDaySlot; time <= lastDaySlot; time++) {
+                    if (!rc.getContext(assignment).getPlacements(day * Constants.SLOTS_PER_DAY + time).isEmpty())
                         used_day++;
                 }
             }
@@ -509,6 +513,10 @@ public class Test implements SolutionListener<Lecture, Placement> {
         int[] totalUsedSlots = new int[sizeLimits.length];
         int[] totalUsedSeats = new int[sizeLimits.length];
         int[] totalUsedSeats2 = new int[sizeLimits.length];
+        int firstDaySlot = model.getProperties().getPropertyInt("General.FirstDaySlot", Constants.DAY_SLOTS_FIRST);
+        int lastDaySlot = model.getProperties().getPropertyInt("General.LastDaySlot", Constants.DAY_SLOTS_LAST);
+        int firstWorkDay = model.getProperties().getPropertyInt("General.FirstWorkDay", 0);
+        int lastWorkDay = model.getProperties().getPropertyInt("General.LastWorkDay", Constants.NR_DAYS_WEEK - 1);
         for (Lecture lect : model.variables()) {
             if (lect.getConfiguration() != null) {
                 offerings.add(lect.getConfiguration().getOfferingId());
@@ -544,12 +552,10 @@ public class Test implements SolutionListener<Lecture, Placement> {
                         hasRoomConstraint = true;
                 }
                 if (hasRoomConstraint && lect.getNrRooms() > 0) {
-                    for (int d = 0; d < Constants.NR_DAYS_WEEK; d++) {
+                    for (int d = firstWorkDay; d <= lastWorkDay; d++) {
                         if ((time.getDayCode() & Constants.DAY_CODES[d]) == 0)
                             continue;
-                        for (int t = Math.max(time.getStartSlot(), Constants.DAY_SLOTS_FIRST); t <= Math.min(time
-                                .getStartSlot()
-                                + time.getLength() - 1, Constants.DAY_SLOTS_LAST); t++) {
+                        for (int t = Math.max(time.getStartSlot(), firstDaySlot); t <= Math.min(time.getStartSlot() + time.getLength() - 1, lastDaySlot); t++) {
                             for (int l = 0; l < sizeLimits.length; l++) {
                                 if (sizeLimits[l] <= lect.minRoomSize()) {
                                     totalUsedSlots[l] += lect.getNrRooms();
@@ -750,8 +756,8 @@ public class Test implements SolutionListener<Lecture, Placement> {
                     }
                 }
             }
-            for (int d = 0; d < Constants.NR_DAYS_WEEK; d++) {
-                for (int t = Constants.DAY_SLOTS_FIRST; t <= Constants.DAY_SLOTS_LAST; t++) {
+            for (int d = firstWorkDay; d <= lastWorkDay; d++) {
+                for (int t = firstDaySlot; t <= lastDaySlot; t++) {
                     if (rc.isAvailable(d * Constants.SLOTS_PER_DAY + t)) {
                         for (int l = 0; l < sizeLimits.length; l++) {
                             if (sizeLimits[l] <= rc.getCapacity()) {
@@ -837,6 +843,10 @@ public class Test implements SolutionListener<Lecture, Placement> {
             DecimalFormat dx = new DecimalFormat("000");
             PrintWriter w = new PrintWriter(new FileWriter(file));
             TimetableModel m = (TimetableModel) s.getModel();
+            int firstDaySlot = m.getProperties().getPropertyInt("General.FirstDaySlot", Constants.DAY_SLOTS_FIRST);
+            int lastDaySlot = m.getProperties().getPropertyInt("General.LastDaySlot", Constants.DAY_SLOTS_LAST);
+            int firstWorkDay = m.getProperties().getPropertyInt("General.FirstWorkDay", 0);
+            int lastWorkDay = m.getProperties().getPropertyInt("General.LastWorkDay", Constants.NR_DAYS_WEEK - 1);
             Assignment<Lecture, Placement> a = s.getAssignment();
             int idx = 1;
             w.println("000." + dx.format(idx++) + " Assigned variables," + a.nrAssignedVariables());
@@ -943,13 +953,9 @@ public class Test implements SolutionListener<Lecture, Placement> {
             w.println("000." + dx.format(bidx++) + " Time preferences max," + maxTimePref);
             w.println("000." + dx.format(bidx++) + " Room preferences min," + minRoomPref);
             w.println("000." + dx.format(bidx++) + " Room preferences max," + maxRoomPref);
-            w.println("000."
-                    + dx.format(bidx++)
-                    + " Useless half-hours max,"
-                    + (Constants.sPreferenceLevelStronglyDiscouraged * m.getRoomConstraints().size()
-                            * Constants.SLOTS_PER_DAY_NO_EVENINGS * Constants.NR_DAYS_WEEK));
-            w.println("000." + dx.format(bidx++) + " Too big room max,"
-                    + (Constants.sPreferenceLevelStronglyDiscouraged * m.variables().size()));
+            w.println("000." + dx.format(bidx++) + " Useless half-hours max," +
+                    (Constants.sPreferenceLevelStronglyDiscouraged * m.getRoomConstraints().size() * (lastDaySlot - firstDaySlot + 1) * (lastWorkDay - firstWorkDay + 1)));
+            w.println("000." + dx.format(bidx++) + " Too big room max," + (Constants.sPreferenceLevelStronglyDiscouraged * m.variables().size()));
             w.println("000." + dx.format(bidx++) + " Distribution preferences min," + minGrPref);
             w.println("000." + dx.format(bidx++) + " Distribution preferences max," + maxGrPref);
             w.println("000." + dx.format(bidx++) + " Back-to-back instructor pref max," + worstInstrPref);
@@ -1064,34 +1070,20 @@ public class Test implements SolutionListener<Lecture, Placement> {
                 w.println(dx.format(scheduler) + "." + dx.format(bidx++) + " Room preferences min," + minRoomPref);
                 w.println(dx.format(scheduler) + "." + dx.format(bidx++) + " Room preferences max," + maxRoomPref);
                 w.println(dx.format(scheduler) + "." + dx.format(idx++) + " Useless half-hours," + uselessSlots);
-                w
-                        .println(dx.format(scheduler)
-                                + "."
-                                + dx.format(bidx++)
-                                + " Useless half-hours max,"
-                                + (Constants.sPreferenceLevelStronglyDiscouraged * rcs
-                                        * Constants.SLOTS_PER_DAY_NO_EVENINGS * Constants.NR_DAYS_WEEK));
+                w.println(dx.format(scheduler) + "." + dx.format(bidx++) + " Useless half-hours max," +
+                        (Constants.sPreferenceLevelStronglyDiscouraged * rcs * (lastDaySlot - firstDaySlot + 1) * (lastWorkDay - firstWorkDay + 1)));
                 w.println(dx.format(scheduler) + "." + dx.format(idx++) + " Too big room," + tooBigRooms);
-                w.println(dx.format(scheduler) + "." + dx.format(bidx++) + " Too big room max,"
-                        + (Constants.sPreferenceLevelStronglyDiscouraged * vars.size()));
+                w.println(dx.format(scheduler) + "." + dx.format(bidx++) + " Too big room max," + (Constants.sPreferenceLevelStronglyDiscouraged * vars.size()));
                 w.println(dx.format(scheduler) + "." + dx.format(idx++) + " Distribution preferences," + grPref);
-                w
-                        .println(dx.format(scheduler) + "." + dx.format(bidx++) + " Distribution preferences min,"
-                                + minGrPref);
-                w
-                        .println(dx.format(scheduler) + "." + dx.format(bidx++) + " Distribution preferences max,"
-                                + maxGrPref);
+                w.println(dx.format(scheduler) + "." + dx.format(bidx++) + " Distribution preferences min," + minGrPref);
+                w.println(dx.format(scheduler) + "." + dx.format(bidx++) + " Distribution preferences max," + maxGrPref);
                 if (m.getProperties().getPropertyBoolean("General.UseDistanceConstraints", true))
-                    w.println(dx.format(scheduler) + "." + dx.format(idx++) + " Back-to-back instructor pref,"
-                            + instPref);
-                w.println(dx.format(scheduler) + "." + dx.format(bidx++) + " Back-to-back instructor pref max,"
-                        + worstInstrPref);
+                    w.println(dx.format(scheduler) + "." + dx.format(idx++) + " Back-to-back instructor pref," + instPref);
+                w.println(dx.format(scheduler) + "." + dx.format(bidx++) + " Back-to-back instructor pref max," + worstInstrPref);
                 if (m.getProperties().getPropertyBoolean("General.DeptBalancing", true)) {
-                    w.println(dx.format(scheduler) + "." + dx.format(idx++) + " Department balancing penalty,"
-                            + sDoubleFormat.format((deptSpreadPen) / 12.0));
+                    w.println(dx.format(scheduler) + "." + dx.format(idx++) + " Department balancing penalty," + sDoubleFormat.format((deptSpreadPen) / 12.0));
                 }
-                w.println(dx.format(scheduler) + "." + dx.format(idx++) + " Same subpart balancing penalty,"
-                        + sDoubleFormat.format((spreadPen) / 12.0));
+                w.println(dx.format(scheduler) + "." + dx.format(idx++) + " Same subpart balancing penalty," + sDoubleFormat.format((spreadPen) / 12.0));
             }
             w.flush();
             w.close();

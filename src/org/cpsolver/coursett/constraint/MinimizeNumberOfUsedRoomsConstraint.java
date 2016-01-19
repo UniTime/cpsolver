@@ -51,9 +51,14 @@ import org.cpsolver.ifs.util.DataProperties;
 
 public class MinimizeNumberOfUsedRoomsConstraint extends ConstraintWithContext<Lecture, Placement, MinimizeNumberOfUsedRoomsConstraint.MinimizeNumberOfUsedRoomsConstraintContext> implements WeakeningConstraint<Lecture, Placement> {
     private int iUnassignmentsToWeaken = 250;
+    private int iFirstDaySlot, iLastDaySlot, iFirstWorkDay, iLastWorkDay;
 
     public MinimizeNumberOfUsedRoomsConstraint(DataProperties config) {
         iUnassignmentsToWeaken = config.getPropertyInt("MinimizeNumberOfUsedRooms.Unassignments2Weaken", iUnassignmentsToWeaken);
+        iFirstDaySlot = config.getPropertyInt("General.FirstDaySlot", Constants.DAY_SLOTS_FIRST);
+        iLastDaySlot = config.getPropertyInt("General.LastDaySlot", Constants.DAY_SLOTS_LAST);
+        iFirstWorkDay = config.getPropertyInt("General.FirstWorkDay", 0);
+        iLastWorkDay = config.getPropertyInt("General.LastWorkDay", Constants.NR_DAYS_WEEK - 1);
     }
 
     @Override
@@ -112,9 +117,9 @@ public class MinimizeNumberOfUsedRoomsConstraint extends ConstraintWithContext<L
             if (lecture.isCommitted() || lecture.roomLocations().size() == 1)
                 mandatoryRooms.addAll(lecture.roomLocations());
         }
-        double histogram[][] = new double[Constants.SLOTS_PER_DAY][Constants.NR_DAYS_WEEK];
-        for (int i = 0; i < Constants.SLOTS_PER_DAY_NO_EVENINGS; i++)
-            for (int j = 0; j < Constants.NR_DAYS_WEEK; j++)
+        double histogram[][] = new double[iLastDaySlot - iFirstDaySlot + 1][iLastWorkDay - iFirstWorkDay + 1];
+        for (int i = 0; i < iLastDaySlot - iFirstDaySlot + 1; i++)
+            for (int j = 0; j < iLastWorkDay - iFirstWorkDay + 1; j++)
                 histogram[i][j] = 0.0;
         for (Lecture lecture : variables()) {
             if (lecture.getNrRooms() == 0)
@@ -122,24 +127,24 @@ public class MinimizeNumberOfUsedRoomsConstraint extends ConstraintWithContext<L
             List<Placement> values = lecture.values(null);
             for (Placement p : lecture.values(null)) {
                 int firstSlot = p.getTimeLocation().getStartSlot();
-                if (firstSlot > Constants.DAY_SLOTS_LAST)
+                if (firstSlot > iLastDaySlot)
                     continue;
                 int endSlot = firstSlot + p.getTimeLocation().getNrSlotsPerMeeting() - 1;
-                if (endSlot < Constants.DAY_SLOTS_FIRST)
+                if (endSlot < iFirstDaySlot)
                     continue;
-                for (int i = firstSlot; i <= endSlot; i++) {
+                for (int i = Math.max(firstSlot, iFirstDaySlot); i <= Math.min(endSlot, iLastDaySlot); i++) {
                     int dayCode = p.getTimeLocation().getDayCode();
-                    for (int j = 0; j < Constants.NR_DAYS_WEEK; j++) {
+                    for (int j = iFirstWorkDay; j <= iLastWorkDay; j++) {
                         if ((dayCode & Constants.DAY_CODES[j]) != 0) {
-                            histogram[i][j] += ((double) lecture.getNrRooms()) / values.size();
+                            histogram[i - iFirstDaySlot][j - iFirstWorkDay] += ((double) lecture.getNrRooms()) / values.size();
                         }
                     }
                 }
             }
         }
         int maxAverageRooms = 0;
-        for (int i = 0; i < Constants.SLOTS_PER_DAY_NO_EVENINGS; i++)
-            for (int j = 0; j < Constants.NR_DAYS_WEEK; j++)
+        for (int i = 0; i < iLastDaySlot - iFirstDaySlot + 1; i++)
+            for (int j = 0; j < iLastWorkDay - iFirstWorkDay + 1; j++)
                 maxAverageRooms = Math.max(maxAverageRooms, (int) Math.ceil(histogram[i][j]));
         return Math.max(1, Math.max(mandatoryRooms.size(), maxAverageRooms));
     }

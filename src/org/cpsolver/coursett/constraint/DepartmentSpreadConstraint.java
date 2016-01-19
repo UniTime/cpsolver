@@ -1,5 +1,6 @@
 package org.cpsolver.coursett.constraint;
 
+import org.cpsolver.coursett.Constants;
 import org.cpsolver.coursett.criteria.DepartmentBalancingPenalty;
 import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
@@ -156,8 +157,15 @@ public class DepartmentSpreadConstraint extends SpreadConstraint {
     private Long iDepartment = null;
 
     public DepartmentSpreadConstraint(DataProperties config, Long department, String name) {
-        super(name, config.getPropertyDouble("DeptBalancing.SpreadFactor", 1.20), config.getPropertyInt(
-                "DeptBalancing.Unassignments2Weaken", 250), config.getPropertyBoolean("General.InteractiveMode", false));
+        super(name,
+                config.getPropertyDouble("DeptBalancing.SpreadFactor", 1.20),
+                config.getPropertyInt("DeptBalancing.Unassignments2Weaken", 250),
+                config.getPropertyBoolean("General.InteractiveMode", false),
+                config.getPropertyInt("General.FirstDaySlot", Constants.DAY_SLOTS_FIRST),
+                config.getPropertyInt("General.LastDaySlot", Constants.DAY_SLOTS_LAST),
+                config.getPropertyInt("General.FirstWorkDay", 0),
+                config.getPropertyInt("General.LastWorkDay", Constants.NR_DAYS_WEEK - 1)
+                );
         iDepartment = department;
     }
 

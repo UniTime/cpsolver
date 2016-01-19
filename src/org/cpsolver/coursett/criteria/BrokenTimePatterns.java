@@ -14,6 +14,7 @@ import org.cpsolver.coursett.model.RoomLocation;
 import org.cpsolver.coursett.model.TimeLocation;
 import org.cpsolver.coursett.model.TimetableModel;
 import org.cpsolver.ifs.assignment.Assignment;
+import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
 
 
@@ -45,9 +46,19 @@ import org.cpsolver.ifs.util.DataProperties;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class BrokenTimePatterns extends TimetablingCriterion {
+    private int iFirstDaySlot, iLastDaySlot, iFirstWorkDay, iLastWorkDay;
     
     public BrokenTimePatterns() {
         setValueUpdateType(ValueUpdateType.NoUpdate);
+    }
+    
+    @Override
+    public boolean init(Solver<Lecture, Placement> solver) {
+        iFirstDaySlot = solver.getProperties().getPropertyInt("General.FirstDaySlot", Constants.DAY_SLOTS_FIRST);
+        iLastDaySlot = solver.getProperties().getPropertyInt("General.LastDaySlot", Constants.DAY_SLOTS_LAST);
+        iFirstWorkDay = solver.getProperties().getPropertyInt("General.FirstWorkDay", 0);
+        iLastWorkDay = solver.getProperties().getPropertyInt("General.LastWorkDay", Constants.NR_DAYS_WEEK - 1);
+        return super.init(solver);
     }
     
     @Override
@@ -114,9 +125,8 @@ public class BrokenTimePatterns extends TimetablingCriterion {
     @Override
     protected double[] computeBounds(Assignment<Lecture, Placement> assignment) {
         return new double[] {
-                ((TimetableModel)getModel()).getRoomConstraints().size() * Constants.SLOTS_PER_DAY_NO_EVENINGS * Constants.NR_DAYS_WEEK,
-                0.0
-        };
+                ((TimetableModel)getModel()).getRoomConstraints().size() * (iLastWorkDay - iFirstWorkDay + 1) * (iLastDaySlot - iFirstDaySlot + 1),
+                0.0 };
     }
     
     @Override
@@ -135,7 +145,7 @@ public class BrokenTimePatterns extends TimetablingCriterion {
             }
         }
         return new double[] {
-                constraints.size() * Constants.SLOTS_PER_DAY_NO_EVENINGS * Constants.NR_DAYS_WEEK,
+                constraints.size() * (iLastWorkDay - iFirstWorkDay + 1) * (iLastDaySlot - iFirstDaySlot + 1),
                 0.0 };
     }
     

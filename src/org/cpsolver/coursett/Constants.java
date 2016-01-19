@@ -44,8 +44,7 @@ public class Constants extends org.cpsolver.ifs.Constants {
     public static int DAY_SLOTS_FIRST = (7 * 60 + 30) / 5; // day starts at 7:30
 
     /** Number of slots per day */
-    public static int DAY_SLOTS_LAST = (17 * 60 + 30) / 5 - 1; // day ends at
-                                                               // 17:30
+    public static int DAY_SLOTS_LAST = (17 * 60 + 30) / 5 - 1; // day ends at 17:30
 
     /** Number of slots per day w/o evening hours */
     public static int SLOTS_PER_DAY_NO_EVENINGS = DAY_SLOTS_LAST - DAY_SLOTS_FIRST + 1;

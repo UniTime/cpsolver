@@ -121,6 +121,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
     private boolean iMaxNHoursADayConsiderDatePatterns = true;
     private int iForwardCheckMaxDepth = 2;
     private int iForwardCheckMaxDomainSize = 1000;
+    private int iNrWorkDays = 5;
     
     /**
      * Group constraints that can be checked on pairs of classes (e.g., same room means any two classes are in the same room),
@@ -804,6 +805,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             iForwardCheckMaxDepth = config.getPropertyInt("ForwardCheck.MaxDepth", iForwardCheckMaxDepth);
             iForwardCheckMaxDomainSize = config.getPropertyInt("ForwardCheck.MaxDomainSize", iForwardCheckMaxDomainSize);
             iMaxNHoursADayConsiderDatePatterns = config.getPropertyBoolean("MaxNHoursADay.ConsiderDatePatterns", iMaxNHoursADayConsiderDatePatterns);
+            iNrWorkDays = (config.getPropertyInt("General.LastWorkDay", 4) - config.getPropertyInt("General.FirstWorkDay", 0) + 1);
         }
     }
 
@@ -1478,7 +1480,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                     f2 = i;
             }
         }
-        return ((e1 + 1) % Constants.NR_DAYS_WEEK == f2);
+        return ((e1 + 1) % iNrWorkDays == f2);
     }
 
     private boolean isEveryOtherDay(Placement p1, Placement p2, boolean firstGoesFirst) {
@@ -1514,7 +1516,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                     f2 = i;
             }
         }
-        return ((e1 + 2) % Constants.NR_DAYS_WEEK == f2);
+        return ((e1 + 2) % iNrWorkDays == f2);
     }
 
     private static boolean sameDays(int[] days1, int[] days2) {
