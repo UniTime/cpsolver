@@ -647,7 +647,7 @@ public class SuggestionsBranchAndBound {
                 Enrollment enrollment = iAssignment.getValue(iSelectedRequest);
                 if (enrollment != null && enrollment.getAssignments().contains(iSelectedEnrollment))
                     return true;
-                if (iSelectedEnrollmentChangeTime) {
+                if (iSelectedEnrollmentChangeTime && iSelectedSection.getSubpart().getSections().size() > iMaxSuggestions) {
                     Section selectedEnrollment = null;
                     for (Iterator<Section> i = enrollment.getSections().iterator(); i.hasNext();) {
                         Section section = i.next();
