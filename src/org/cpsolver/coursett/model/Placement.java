@@ -47,6 +47,8 @@ public class Placement extends Value<Lecture, Placement> {
     private List<RoomLocation> iRoomLocations = null;
     private Long iAssignmentId = null;
     private int iHashCode = 0;
+    private Double iTimePenalty = null;
+    private Integer iRoomPenalty = null;
 
     /**
      * Constructor
@@ -612,5 +614,29 @@ public class Placement extends Value<Lecture, Placement> {
 
     public void setAssignment(Object assignment) {
         iAssignment = assignment;
+    }
+
+    public double getTimePenalty() {
+        if (iTimeLocation == null) return 0.0;
+        if (iTimePenalty == null) {
+            double[] bounds = variable().getMinMaxTimePreference();
+            double npref = iTimeLocation.getNormalizedPreference();
+            if (iTimeLocation.getPreference() < Constants.sPreferenceLevelRequired / 2) npref = bounds[0];
+            else if (iTimeLocation.getPreference() > Constants.sPreferenceLevelProhibited / 2) npref = bounds[1];
+            iTimePenalty = npref - bounds[0];
+        }
+        return iTimePenalty;
+    }
+
+    public int getRoomPenalty() {
+        if (getNrRooms() == 0) return 0;
+        if (iRoomPenalty == null) {
+            int pref = getRoomPreference();
+            int[] bounds = variable().getMinMaxRoomPreference();
+            if (pref < Constants.sPreferenceLevelRequired / 2) pref = bounds[0];
+            if (pref > Constants.sPreferenceLevelProhibited / 2) pref = bounds[1];
+            iRoomPenalty = pref - bounds[0];
+        }
+        return iRoomPenalty;
     }
 }

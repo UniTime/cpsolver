@@ -3,7 +3,6 @@ package org.cpsolver.coursett.criteria;
 import java.util.Collection;
 import java.util.Set;
 
-import org.cpsolver.coursett.Constants;
 import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
 import org.cpsolver.ifs.assignment.Assignment;
@@ -48,13 +47,7 @@ public class RoomPreferences extends TimetablingCriterion {
     }
     
     private int preference(Placement value) {
-        int pref = value.getRoomPreference();
-        if (pref < Constants.sPreferenceLevelRequired / 2)
-            return value.variable().getMinMaxRoomPreference()[0];
-        else if (pref > Constants.sPreferenceLevelProhibited / 2)
-            return value.variable().getMinMaxRoomPreference()[1];
-        else
-            return pref;
+        return value.getRoomPenalty();
     }
     
     @Override
@@ -73,8 +66,7 @@ public class RoomPreferences extends TimetablingCriterion {
         for (Lecture lect: variables) {
             if (lect.isCommitted()) continue;
             int[] p = lect.getMinMaxRoomPreference();
-            bounds[0] += lect.getWeight() * p[0];
-            bounds[1] += lect.getWeight() * p[1];
+            bounds[1] += lect.getWeight() * (p[1] - p[0]);
         }
         return bounds;
     }

@@ -3,7 +3,6 @@ package org.cpsolver.coursett.criteria;
 import java.util.Collection;
 import java.util.Set;
 
-import org.cpsolver.coursett.Constants;
 import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
 import org.cpsolver.coursett.model.TimeLocation;
@@ -48,13 +47,7 @@ public class TimePreferences extends TimetablingCriterion {
     }
     
     private double preference(Placement value) {
-        int pref = value.getTimeLocation().getPreference();
-        if (pref < Constants.sPreferenceLevelRequired / 2)
-            return value.variable().getMinMaxTimePreference()[0];
-        else if (pref > Constants.sPreferenceLevelProhibited / 2)
-            return value.variable().getMinMaxTimePreference()[1];
-        else
-            return value.getTimeLocation().getNormalizedPreference();
+        return value.getTimePenalty();
     }
 
     @Override
@@ -73,8 +66,7 @@ public class TimePreferences extends TimetablingCriterion {
         for (Lecture lect: variables) {
             if (lect.isCommitted()) continue;
             double[] p = lect.getMinMaxTimePreference();
-            bounds[0] += lect.getWeight() * p[0];
-            bounds[1] += lect.getWeight() * p[1];
+            bounds[1] += lect.getWeight() * (p[1] - p[0]);
         }
         return bounds;
     }

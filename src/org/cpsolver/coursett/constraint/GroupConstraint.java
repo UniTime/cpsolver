@@ -1824,7 +1824,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
         private void updateCriterion(Assignment<Lecture, Placement> assignment) {
             if (!isHard()) {
                 getModel().getCriterion(DistributionPreferences.class).inc(assignment, -iLastPreference);
-                iLastPreference = getCurrentPreference(assignment);
+                iLastPreference = getCurrentPreference(assignment) + Math.abs(iPreference);
                 getModel().getCriterion(DistributionPreferences.class).inc(assignment, iLastPreference);
             }
         }

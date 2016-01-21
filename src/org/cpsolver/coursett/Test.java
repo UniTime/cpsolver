@@ -902,12 +902,10 @@ public class Test implements SolutionListener<Lecture, Placement> {
                 students.addAll(lecture.students());
 
                 int[] minMaxRoomPref = lecture.getMinMaxRoomPreference();
-                minRoomPref += minMaxRoomPref[0];
-                maxRoomPref += minMaxRoomPref[1];
+                maxRoomPref += minMaxRoomPref[1] - minMaxRoomPref[0];
 
                 double[] minMaxTimePref = lecture.getMinMaxTimePreference();
-                minTimePref += minMaxTimePref[0];
-                maxTimePref += minMaxTimePref[1];
+                maxTimePref += minMaxTimePref[1] - minMaxTimePref[0];
                 for (Constraint<Lecture, Placement> c : lecture.constraints()) {
                     if (!used.add(c))
                         continue;
@@ -921,10 +919,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
                         GroupConstraint gc = (GroupConstraint) c;
                         if (gc.isHard())
                             continue;
-                        minGrPref -= Math.abs(gc.getPreference());
-                        maxGrPref += 0;
-                        // minGrPref += Math.min(gc.getPreference(), 0);
-                        // maxGrPref += Math.max(gc.getPreference(), 0);
+                        maxGrPref += Math.abs(gc.getPreference()) * (1 + (gc.variables().size() * (gc.variables().size() - 1)) / 2);
                     }
                 }
             }

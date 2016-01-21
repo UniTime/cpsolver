@@ -80,8 +80,7 @@ public class DistributionPreferences extends TimetablingCriterion {
         double[] bounds = new double[] { 0.0, 0.0 };
         for (GroupConstraint gc: ((TimetableModel)getModel()).getGroupConstraints()) {
             if (!gc.isHard()) {
-                bounds[0] -= Math.abs(gc.getPreference());
-                bounds[1] += Math.abs(gc.getPreference()) * (gc.variables().size() * (gc.variables().size() - 1)) / 2;
+                bounds[1] += Math.abs(gc.getPreference()) * (1 + (gc.variables().size() * (gc.variables().size() - 1)) / 2);
             }
         }
         return bounds;
@@ -94,8 +93,7 @@ public class DistributionPreferences extends TimetablingCriterion {
         for (Lecture lect: variables) {
             for (GroupConstraint gc: lect.groupConstraints()) {
                 if (!gc.isHard() && constraints.add(gc)) {
-                    bounds[0] -= Math.abs(gc.getPreference());
-                    bounds[1] += Math.abs(gc.getPreference()) * (gc.variables().size() * (gc.variables().size() - 1)) / 2;
+                    bounds[1] += Math.abs(gc.getPreference()) * (1 + (gc.variables().size() * (gc.variables().size() - 1)) / 2);
                 }
             }
         }
