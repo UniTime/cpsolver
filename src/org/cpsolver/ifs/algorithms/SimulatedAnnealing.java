@@ -244,8 +244,10 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
                     + iDF10.format(100.0 * prob(100)) + "%)");
             logNeibourStatus();
             iLastReheatIter = iIter;
-            iLastImprovingIter = -1; iBestValue = solution.getBestValue();
-            setProgressPhase("Simulated Annealing [" + iDF2.format(iTemperature) + "]...");
+            if (iTemperature > iInitialTemperature)
+                iLastImprovingIter = -1;
+            iBestValue = solution.getBestValue();
+            setProgressPhase("Simulated Annealing [" + iDF5.format(iTemperature) + "]...");
         }
 
         /**
@@ -253,6 +255,7 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
          * @param solution current solution
          */
         protected void restoreBest(Solution<V, T> solution) {
+            info("Best solution restored.");
             solution.restoreBest();
             iLastImprovingIter = -1;
         }
