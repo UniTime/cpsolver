@@ -1,13 +1,8 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package org.cpsolver.coursett.criteria.additional;
 
-import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -18,580 +13,472 @@ import org.cpsolver.coursett.criteria.TimetablingCriterion;
 import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.model.Value;
-import org.cpsolver.ifs.model.Variable;
-import org.cpsolver.ifs.solution.Solution;
-import org.cpsolver.ifs.solution.SolutionListener;
-import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
 
 /**
- *  This class represent fairness criterion for instructors
- * @author Rostislav Burget <BurgetRostislav@gmail.com>
- * <br>
- * implemented criterion: Instructor Fairness
- * <br>
+ * This class represent fairness criterion for instructors.
+ *  Criterion iteratively evaluate instructors fairness, based on absolute 
+ *  deviation of the individual satisfaction of instructors time (or time and 
+ *  room) requirements.
+ * @author Rostislav Burget <BurgetRostislav@gmail.com> <br>
+ *         implemented criterion: Instructor Fairness <br>
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2015 Rostislav Burget <BurgetRostislav@gmail.com><br>
- * <br>
+ *          <br>
  *          This library is free software; you can redistribute it and/or modify
  *          it under the terms of the GNU Lesser General Public License as
  *          published by the Free Software Foundation; either version 3 of the
  *          License, or (at your option) any later version. <br>
- * <br>
+ *          <br>
  *          This library is distributed in the hope that it will be useful, but
  *          WITHOUT ANY WARRANTY; without even the implied warranty of
  *          MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  *          Lesser General Public License for more details. <br>
- * <br>
+ *          <br>
  *          You should have received a copy of the GNU Lesser General Public
  *          License along with this library; if not see
- *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/
+ *          </a>.
  */
-public class InstructorFairness extends TimetablingCriterion implements SolutionListener<Lecture, Placement> {
-        
+public class InstructorFairness extends TimetablingCriterion {
+
+    /**
+     *
+     */
     public InstructorFairness() {
         setValueUpdateType(ValueUpdateType.BeforeUnassignedAfterAssigned);
     }
 
-    /*
-    * After initialization of criterion initial set of values for instructors 
-    * is created and  SolutionListener is created
-    */
-    @Override
-    public boolean init(Solver<Lecture, Placement> solver) {   
-        super.init(solver);
-        InstructorFairnessContext context = (InstructorFairnessContext)getContext(solver.currentSolution().getAssignment());
-        context.initialSetOfBestInstructorVal();
-        if (solver.currentSolution().isComplete()){
-            context.setCompleteSolutionFound();
-        }else{
-            solver.currentSolution().addSolutionListener(this);
-        }
-        return true; 
-    }
-    
-    /*
-    * The method check if Complete solution was found
-    */
-    @Override
-    public void solutionUpdated(Solution<Lecture, Placement> solution) {
-        if (solution.isComplete()){
-            InstructorFairnessContext context = (InstructorFairnessContext)getContext(solution.getAssignment());
-            context.setCompleteSolutionFound();
-        }
-    }
-    
     @Override
     public double getWeightDefault(DataProperties config) {
         return config.getPropertyDouble("Comparator.InstructorFairnessPreferenceWeight", 1.0);
     }
-    
+
     @Override
     public String getPlacementSelectionWeightName() {
         return "Placement.InstructorFairnessPreferenceWeight";
     }
-    
-    
+
+    @Override
+    public void bestSaved(Assignment<Lecture, Placement> assignment) {
+        iBest = getValue(assignment);
+    }
+
     @Override
     public double getValue(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
         double ret = 0.0;
-        InstructorFairnessContext context = (InstructorFairnessContext)getContext(assignment);
-        if (!context.isActive()) {return ret;}
-        if (context.allInstructorsAssigned()&&!(value.variable().getInstructorConstraints().isEmpty())){
+        InstructorFairnessContext context = (InstructorFairnessContext) getContext(assignment);
+        if (context.allInstructorsAssigned(assignment) && !value.variable().getInstructorConstraints().isEmpty()) {
             List<InstructorConstraint> insConstraints = value.variable().getInstructorConstraints();
-            ret = (context.getDiffInstrValue(insConstraints,context.fairnessDouble(assignment,value)))/insConstraints.size();
-            if (conflicts!=null){
-                for(Placement conflict:conflicts){
-                    if (context.allInstructorsAssigned()&&!(conflict.variable().getInstructorNames().isEmpty())){
-                        List<String> instructors2 = conflict.variable().getInstructorNames();
-                        ret -= ((context.getDiffInstrValue(instructors2,context.fairnessDouble(assignment,conflict)))/instructors2.size());
+            ret = (context.getDiffInstrValue(insConstraints, context.fairnessDouble(assignment, value))) / insConstraints.size();
+            if (conflicts != null) {
+                for (Placement conflict : conflicts) {
+                    if (!conflict.variable().getInstructorConstraints().isEmpty()) {
+                        List<InstructorConstraint> insConstraints2 = conflict.variable().getInstructorConstraints();
+                        ret -= (context.getDiffInstrValue(insConstraints2, context.fairnessDouble(assignment, conflict))) / insConstraints2.size();
                     }
                 }
             }
         }
-        
         return ret;
     }
-    
+
     @Override
     public double getValue(Assignment<Lecture, Placement> assignment) {
-        InstructorFairnessContext context = (InstructorFairnessContext)getContext(assignment);
-        if (context.allInstructorsAssigned()){
+        InstructorFairnessContext context = (InstructorFairnessContext) getContext(assignment);
+        if (context.allInstructorsAssigned(assignment))
             return context.getObjectiveValue();
+        return 0.0;
+    }
+
+    @Override
+    public double getValue(Assignment<Lecture, Placement> assignment, Collection<Lecture> variables) {
+        InstructorFairnessContext context = (InstructorFairnessContext) getContext(assignment);
+        if (context.allInstructorsAssigned(assignment)) {
+            Set<InstructorConstraint> constraints = new HashSet<InstructorConstraint>();
+            for (Lecture lecture : variables) {
+                constraints.addAll(lecture.getInstructorConstraints());
+            }
+            return context.getObjectiveValue(constraints);
         }
         return 0.0;
-
     }
 
     @Override
     public void getInfo(Assignment<Lecture, Placement> assignment, Map<String, String> info) {
-        if (getValue(assignment) != 0.0){
-            info.put(getName(), sDoubleFormat.format(getValue(assignment)));
-        }
+        double value = getValue(assignment);
+        if (value != 0.0)
+            info.put(getName(), sDoubleFormat.format(value));
     }
-    
-     @Override
+
+    @Override
     public void getInfo(Assignment<Lecture, Placement> assignment, Map<String, String> info, Collection<Lecture> variables) {
-        if (getValue(assignment) != 0.0){
-            double total = 0;
-            for (Lecture lec:variables){
-                total+=getValue(assignment,lec.getAssignment(assignment),null);
-            }
-            info.put(getName(), sDoubleFormat.format(total));
-        }
+        double value = getValue(assignment, variables);
+        if (value != 0.0)
+            info.put(getName(), sDoubleFormat.format(value));
     }
-    
+
     @Override
     public void getExtendedInfo(Assignment<Lecture, Placement> assignment, Map<String, String> info) {
         if (iDebug) {
-            InstructorFairnessContext context = (InstructorFairnessContext)getContext(assignment);
+            InstructorFairnessContext context = (InstructorFairnessContext) getContext(assignment);
             String[] fairnessInfo = context.testFairness(assignment);
-            info.put("[C] " + getName(), 
-                    " Avarage ins pen: " + fairnessInfo[0]+ 
-                    ", Sum of squared pen: " + fairnessInfo[1]+ 
-                    ", Pmax: " + fairnessInfo[2] +
-                    ", Pdev: " + fairnessInfo[3] +
-                    ", Perror: " + fairnessInfo[4] +
-                    ", Pss: " + fairnessInfo[5] +
-                    ", Jain's index: " + fairnessInfo[6] +
-                    ", Worst inst pen: " + fairnessInfo[7] +
-                    ", Instructor fairness: " + fairnessInfo[8]);    
-        }
-    }    
-    
-    @Override
-    public void beforeUnassigned(Assignment<Lecture, Placement> assignment, long iteration, Placement value) {
-        InstructorFairnessContext context = (InstructorFairnessContext)getContext(assignment);
-        if (context.isFirstIterDone()){
-            countInstructorUnassignedFair(assignment,value);
-        }else{
-            countInstructorFair(assignment);
-            countInstructorUnassignedFair(assignment,value);
+            info.put(getName() + " Details",
+                    fairnessInfo[8] + " (avg: " + fairnessInfo[0] + ", rms: " + fairnessInfo[1] +
+                    ", Pmax: " + fairnessInfo[2] + ", Pdev: " + fairnessInfo[3] + ", Perror: " + fairnessInfo[4] +
+                    ", Pss: " + fairnessInfo[5] + ", Jain's index: " + fairnessInfo[6] + ", max: " + fairnessInfo[7] + ")");
         }
     }
-
-    @Override
-    public void afterAssigned(Assignment<Lecture, Placement> assignment, long iteration, Placement value) {
-        InstructorFairnessContext context = (InstructorFairnessContext)getContext(assignment);
-        if (context.isFirstIterDone()){
-            countInstructorAssignedFair(assignment,value);
-        }else{
-            countInstructorFair(assignment);
-        }
-    }
-    
-    
-    /**
-     *  This method set fairness values to all instructors
-     * 
-     * @param assignment current assignment
-     */
-    
-    
-    public void countInstructorFair(Assignment<Lecture, Placement> assignment){
-        InstructorFairnessContext context = (InstructorFairnessContext)getContext(assignment);
-        if (context.allInstructorsAssigned()){
-            Collection<Lecture> assignedLectures = assignment.assignedVariables();
-            context.refreshInstructors();
-            for (Lecture lec:assignedLectures){
-                if (lec.getInstructorConstraints() !=null){
-                    List<InstructorConstraint> insConstraints = lec.getInstructorConstraints();
-
-                    double critValue = 0.0;
-                    //critValue += lec.getModel().getCriterion(RoomPreferences.class).getWeightedValue(assignment, lec.getAssignment(assignment),null);
-                    critValue += lec.getModel().getCriterion(TimePreferences.class).getWeightedValue(assignment, lec.getAssignment(assignment),null);
-
-                    for(InstructorConstraint ic:insConstraints){
-                        context.addInstructorValue(ic.getResourceId(), critValue);
-                    }
-                }
-            }
-            context.countInstrMeanFairValue();
-            context.setFirstIterDone();
-        }
-    }
-
 
     /**
-     *  Method actualize values of instructors whose lecture was just assigned
-     * 
-     * @param assignment
-     * @param value
+     * Context for InstructorFairness
      */
-    
-    public void countInstructorAssignedFair(Assignment<Lecture, Placement> assignment, Placement value){
-        InstructorFairnessContext context = (InstructorFairnessContext)getContext(assignment);
-        Lecture lec = value.variable();
-        if (lec.getInstructorConstraints() !=null){
-            List<InstructorConstraint> insConstraints = lec.getInstructorConstraints();
-            
-            double critValue = 0.0;
-            //critValue += lec.getModel().getCriterion(RoomPreferences.class).getWeightedValue(assignment, value,null);
-            critValue += lec.getModel().getCriterion(TimePreferences.class).getWeightedValue(assignment, value,null);
-            
-            for(InstructorConstraint ic:insConstraints){
-                if (!context.addInstructorValue(ic.getResourceId(), critValue)){
-                    throw new IllegalArgumentException("Couldnt add value to instructor (instructor is not added in context)"); 
-                }
-            }
-        }
-        context.countInstrMeanFairValue();  
-    }
-
-
-    /**
-     *  Method actualize values of instructors whose lecture will be unassigned
-     * 
-     * @param assignment
-     * @param value
-     */
-    
-    public void countInstructorUnassignedFair(Assignment<Lecture, Placement> assignment, Placement value){
-        InstructorFairnessContext context = (InstructorFairnessContext)getContext(assignment);
-        Lecture lec = value.variable();
-        if (lec.getInstructorConstraints() !=null){
-            List<InstructorConstraint> insConstraints = lec.getInstructorConstraints();
-            
-            double critValue = 0.0;
-            //critValue += lec.getModel().getCriterion(RoomPreferences.class).getWeightedValue(assignment, value,null);
-            critValue += lec.getModel().getCriterion(TimePreferences.class).getWeightedValue(assignment, value,null);
-          
-            for(InstructorConstraint ic:insConstraints){
-                if (!context.decreaseInstructorValue(ic.getResourceId(), critValue)){
-                    throw new IllegalArgumentException("Couldnt decrease value of instructor (instructor is not added in context)"); 
-                }
-            }
-        }
-        context.countInstrMeanFairValue();
-    }
-
-    @Override
-    public void getInfo(Solution<Lecture, Placement> solution, Map<String, String> info) {
-    }
-
-    @Override
-    public void getInfo(Solution<Lecture, Placement> solution, Map<String, String> info, Collection<Lecture> variables) {
-    }
-
-    @Override
-    public void bestCleared(Solution<Lecture, Placement> solution) {
-    }
-
-    @Override
-    public void bestSaved(Solution<Lecture, Placement> solution) {
-    }
-
-    @Override
-    public void bestRestored(Solution<Lecture, Placement> solution) {
-    }
-    
-    /**
-     *  Context for InstructorFairness
-     * 
-     * @param <V>
-     * @param <T>
-     */
-    public class InstructorFairnessContext<V extends Variable<V, T>, T extends Value<V, T>> extends ValueContext{
+    public class InstructorFairnessContext extends ValueContext {
+        private TreeMap<Long, Instructor> iId2Instructor = new TreeMap<Long, Instructor>();
+        private double iInstrMeanFairValue = 0.0;
+        private boolean iFullTreeMap = false;
+        private boolean iFirstIterDone = false;
 
         /**
-         *   
-         * @param assignment current assignment
-         * @param weight weight of InstructorFairness
-         */
-        public InstructorFairnessContext(Assignment<Lecture, Placement> assignment,double weight) {
-            initialSetOfBestInstructorVal();
-            if (assignment.nrUnassignedVariables(getModel())==0){
-                setCompleteSolutionFound();
-            }
-            this.weight = weight;
-        }
-
-        private Solution<V, T> bestSolution;
-        private TreeMap<Long,Instructor> stringInstMap = new TreeMap<Long,Instructor>();
-
-
-        DecimalFormat df = new DecimalFormat("####0.00");
-        private double[] instructorsValue;
-        private boolean active = false;
-        private double instrMeanFairValue = 0.0;
-        private boolean completeSolutionFound = false;
-        private boolean fullTreeMap = false;
-        private boolean firstIterDone = false;
-        private double weight;
-
-        public void setCompleteSolutionFound() {
-            this.completeSolutionFound = true;
-        }
-
-        public double getInstrMeanFairValue() {
-            return instrMeanFairValue;
-        }
-
-        public boolean isFirstIterDone() {
-            return firstIterDone;
-        }
-
-        public void setFirstIterDone() {
-            this.firstIterDone = true;
-        }
-
-        public Solution<V, T> getBestSolution() {
-            return bestSolution;
-        }
-
-        public int getNumOfIstructors(){
-            return stringInstMap.size();
-        }
-
-        public Collection<Instructor> getInstructorsWithAssig() {
-            return stringInstMap.values();
-        }
-
-        public void setBestSolution(Solution<V, T> bestSolution) {
-            this.bestSolution = bestSolution;
-        }
-
-        public void activate() {
-            active = true;
-        }
-
-        public void deActivate() {
-            active = false;
-        }
-
-        public boolean isActive() {
-            return active;
-        }
-
-        public double[] getInstructorsValue(){
-            return instructorsValue;
-        }  
-
-
-        /**
-         * Set best values for all instructors 
          * 
+         * @param assignment
+         *            current assignment
          */
-        
-        public void initialSetOfBestInstructorVal(){
-            deActivate();
-            if (getModel().getEmptyAssignment().unassignedVariables(getModel()).iterator().hasNext() &&
-                    getModel().getEmptyAssignment().unassignedVariables(getModel()).iterator().next() instanceof Lecture){
+        public InstructorFairnessContext(Assignment<Lecture, Placement> assignment) {
+            countInstructorFair(assignment);
+        }
 
-                getInstructors((Collection<Lecture>) getModel().getEmptyAssignment().unassignedVariables(getModel()));
-                for (Lecture lecture : (Collection<Lecture>) getModel().getEmptyAssignment().unassignedVariables(getModel())) {
-                    double bestPossibleValue = 1000.0;
+        @Override
+        protected void assigned(Assignment<Lecture, Placement> assignment, Placement value) {
+            if (isFirstIterDone()) {
+                countInstructorAssignedFair(assignment, value);
+            } else {
+                countInstructorFair(assignment);
+            }
+        }
 
-                    for (Placement t : lecture.computeValues((Assignment<Lecture, Placement>) getModel().getEmptyAssignment(),true)) {
-                        if (fairnessDouble((Assignment<Lecture, Placement>) getModel().getEmptyAssignment(),t) < bestPossibleValue) {
-                            bestPossibleValue = fairnessDouble((Assignment<Lecture, Placement>) getModel().getEmptyAssignment(),t);
+        @Override
+        protected void unassigned(Assignment<Lecture, Placement> assignment, Placement value) {
+            if (isFirstIterDone()) {
+                countInstructorUnassignedFair(assignment, value);
+            } else {
+                if (countInstructorFair(assignment))
+                    countInstructorUnassignedFair(assignment, value);
+            }
+        }
+
+        /**
+         * This method set fairness values to all instructors
+         * 
+         * @param assignment
+         * @return false if complete solution wasn't found
+         */
+        public boolean countInstructorFair(Assignment<Lecture, Placement> assignment) {
+            if (allInstructorsAssigned(assignment)) {
+                iId2Instructor.clear();
+                for (Lecture lecture : getModel().variables()) {
+                    Double bestPossibleValue = null;
+
+                    for (Placement t : lecture.values(assignment)) {
+                        double f = fairnessDouble(assignment, t);
+                        if (bestPossibleValue == null || f < bestPossibleValue)
+                            bestPossibleValue = f;
+                    }
+
+                    Placement placement = assignment.getValue(lecture);
+                    for (InstructorConstraint ic : lecture.getInstructorConstraints()) {
+                        Instructor s = iId2Instructor.get(ic.getResourceId());
+                        if (s == null) {
+                            s = new Instructor(ic.getResourceId());
+                            iId2Instructor.put(ic.getResourceId(), s);
+                        }
+                        if (bestPossibleValue != null)
+                            s.addBestValue(bestPossibleValue);
+                        if (placement != null) {
+                            s.addValue(fairnessDouble(assignment, placement));
+                            s.incNumOfClasses();
                         }
                     }
-
-                    for (InstructorConstraint ic : lecture.getInstructorConstraints()) {
-                        Instructor s = stringInstMap.get(ic.getResourceId());
-                        s.addBestValue(bestPossibleValue);
-                    }
-                    
                 }
-            }  
-        activate();            
+                countInstrMeanFairValue();
+                setFirstIterDone();
+                return true;
+            } else {
+                return false;
+            }
         }
 
         /**
-         * add all instructors in variables to TreeMap<Long,Instructor> stringInstMap
+         * Method actualize values of instructors whose lecture was just
+         * assigned
          * 
-         * @param variables Collection of Lectures 
+         * @param assignment 
+         * @param value placement of lecture
          */
-        
-        public void getInstructors(Collection<Lecture> variables) {
-            for (Lecture lecture : variables) {
-                for (InstructorConstraint ic: lecture.getInstructorConstraints()){
-                    stringInstMap.put(ic.getResourceId(), new Instructor(ic.getResourceId()));
+
+        public void countInstructorAssignedFair(Assignment<Lecture, Placement> assignment, Placement value) {
+            Lecture lec = value.variable();
+            if (lec.getInstructorConstraints() != null) {
+                List<InstructorConstraint> insConstraints = lec.getInstructorConstraints();
+                double critValue = fairnessDouble(assignment, lec.getAssignment(assignment));
+                for (InstructorConstraint ic : insConstraints) {
+                    if (!addInstructorValue(ic.getResourceId(), critValue)) {
+                        throw new IllegalArgumentException("Instructor " + ic.getResourceId() + " is not present in the context.");
+                    }
                 }
             }
+            countInstrMeanFairValue();
         }
 
-        public boolean allInstructorsAssigned(){
-            if (!fullTreeMap) {
-                fullTreeMap = completeSolutionFound;
+        /**
+         * Method actualize values of instructors whose lecture will be
+         * unassigned
+         * 
+         * @param assignment
+         * @param value placement of lecture
+         */
+
+        public void countInstructorUnassignedFair(Assignment<Lecture, Placement> assignment, Placement value) {
+            Lecture lec = value.variable();
+            if (lec.getInstructorConstraints() != null) {
+                List<InstructorConstraint> insConstraints = lec.getInstructorConstraints();
+                double critValue = fairnessDouble(assignment, lec.getAssignment(assignment));
+                for (InstructorConstraint ic : insConstraints) {
+                    if (!decreaseInstructorValue(ic.getResourceId(), critValue)) {
+                        throw new IllegalArgumentException("Instructor " + ic.getResourceId() + " is not present in the context.");
+                    }
+                }
             }
-            return fullTreeMap;
+            countInstrMeanFairValue();
+        }
+
+        /**
+         *
+         * @return instructor mean fair value 
+         */
+        public double getInstrMeanFairValue() {
+            return iInstrMeanFairValue;
+        }
+
+        /**
+         *
+         * @return if first iteration was done
+         */
+        public boolean isFirstIterDone() {
+            return iFirstIterDone;
+        }
+
+        /**
+         * set first iteration done to true
+         */
+        public void setFirstIterDone() {
+            this.iFirstIterDone = true;
+        }
+
+        /**
+         *
+         * @return number of instructors
+         */
+        public int getNumOfIstructors() {
+            return iId2Instructor.size();
+        }
+
+        /**
+         *
+         * @return Collection of instructors in context
+         */
+        public Collection<Instructor> getInstructorsWithAssig() {
+            return iId2Instructor.values();
+        }
+
+        /**
+         * Return if complete solution (all variables assigned) was found 
+         * in this context
+         * @param assignment
+         * @return true if in this context were all variables assigned 
+         * false otherwise
+         */
+        public boolean allInstructorsAssigned(Assignment<Lecture, Placement> assignment) {
+            if (!iFullTreeMap) {
+                iFullTreeMap = (assignment.nrAssignedVariables() > 0 && assignment.nrUnassignedVariables(getModel()) == 0 && getModel().getBestUnassignedVariables() == 0);
+            }
+            return iFullTreeMap;
         }
 
         /**
          * adding value to instructor in stringInstMap
          *
-         * @param insID
-         * @param value
-         * @return false if instructor not in map
+         * @param insID instructor ID
+         * @param value that should be added
+         * @return false if instructor is not in iId2Instructor
          */
-        
-        public boolean addInstructorValue(Long insID,double value){
-            if (stringInstMap.get(insID)!=null){
-                Instructor s = stringInstMap.get(insID);
+
+        public boolean addInstructorValue(Long insID, double value) {
+            Instructor s = iId2Instructor.get(insID);
+            if (s != null) {
                 s.addValue(value);
                 s.incNumOfClasses();
-                stringInstMap.put(insID, s);
                 return true;
-            }else{
+            } else {
                 return false;
             }
         }
-
 
         /**
          * adding value to instructor in stringInstMap
          * 
-         * @param insID
-         * @param value
-         * @return
+         * @param insID instructor ID
+         * @param value value that should be subtracted
+         * @return false if instructor is not iId2Instructor
          */
-        
-        public boolean decreaseInstructorValue(Long insID,double value){
-            if (stringInstMap.get(insID)!=null){
-                Instructor s = stringInstMap.get(insID);
+
+        public boolean decreaseInstructorValue(Long insID, double value) {
+            Instructor s = iId2Instructor.get(insID);
+            if (s != null) {
                 s.removeValue(value);
                 s.decNumOfClasses();
-                stringInstMap.put(insID, s);
                 return true;
-            }else{
+            } else {
                 return false;
             }
         }
 
         /**
-         *  compute and return mean fair value of instructors in stringInstMap
+         * compute and return mean fair value of instructors in iId2Instructor
          */
-        
-        public void countInstrMeanFairValue(){
-            if (stringInstMap.size()!=0){
-                double sum=0.0;
-                for(Map.Entry<Long,Instructor> entry : stringInstMap.entrySet()) {
-                    Instructor ins = entry.getValue();
+
+        public void countInstrMeanFairValue() {
+            if (!iId2Instructor.isEmpty()) {
+                double sum = 0.0;
+                for (Instructor ins: iId2Instructor.values()) {
                     sum += ins.getFinalValue();
                 }
-                instrMeanFairValue = sum/stringInstMap.size();
+                iInstrMeanFairValue = sum / iId2Instructor.size();
             }
         }
 
-                
         /**
-         * Method compute and return difference between value of instructor and mean 
-         *   fair value for all instrutors in entry list
+         * Method estimates value of placement for instructors in entry list
          * 
          * @param instructorsList
          * @param placementValue
-         * @return
+         * @return estimated value of placement for instructors in entry list
          */
-        
-        
-        public double getDiffInstrValue(List<InstructorConstraint> instructorsList,double placementValue){
+
+        public double getDiffInstrValue(List<InstructorConstraint> instructorsList, double placementValue) {
             double ret = 0.0;
-            for (InstructorConstraint ic:instructorsList){
-                if (stringInstMap.get(ic.getResourceId()) != null){
-                    Instructor i = stringInstMap.get(ic.getResourceId());
-                    if (i.getFinalValue()> instrMeanFairValue) {
-                        ret +=((i.getFinalValue()-instrMeanFairValue)/i.getNumOfClasses())+(placementValue-instrMeanFairValue);
-                    }else{
-                        ret -=((instrMeanFairValue-i.getFinalValue())/i.getNumOfClasses())+(instrMeanFairValue-placementValue);
+            for (InstructorConstraint ic : instructorsList) {
+                Instructor i = iId2Instructor.get(ic.getResourceId());
+                if (i != null) {
+                    if (i.getFinalValue() > iInstrMeanFairValue) {
+                        ret += ((i.getFinalValue() - iInstrMeanFairValue) / i.getNumOfClasses()) + (placementValue - iInstrMeanFairValue);
+                    } else {
+                        ret -= ((iInstrMeanFairValue - i.getFinalValue()) / i.getNumOfClasses()) + (iInstrMeanFairValue - placementValue);
                     }
                 }
             }
             return ret;
         }
 
-
         /**
-         * fairness value based on pdev (pdev sec. part)
+         * Fairness value based on pdev (pdev sec. part) of all instructors
          * 
-         * @return 
+         * @return Objective value of all instructors
          */
-        
-        public double getObjectiveValue(){
+
+        public double getObjectiveValue() {
             double ret = 0.0;
-            for(Map.Entry<Long,Instructor> entry : stringInstMap.entrySet()) {
+            for (Map.Entry<Long, Instructor> entry : iId2Instructor.entrySet()) {
                 Instructor ins = entry.getValue();
-                ret += Math.abs(ins.getFinalValue() - instrMeanFairValue);
+                ret += Math.abs(ins.getFinalValue() - iInstrMeanFairValue);
             }
             return ret;
         }
 
-
         /**
-         * fairness value with squared P and avg.P 
-         * 
-         * @return
+         * Fairness value based on pdev (pdev sec. part) of instructors
+         * @param instructors
+         * @return Objective value of instructors 
          */
-        
-        public double getDiffAllInstrValueSquared(){
+        public double getObjectiveValue(Collection<InstructorConstraint> instructors) {
             double ret = 0.0;
-            for(Map.Entry<Long,Instructor> entry : stringInstMap.entrySet()) {
-                Instructor ins = entry.getValue();
-                ret += Math.sqrt(Math.abs(ins.getFinalValue()*ins.getFinalValue() - instrMeanFairValue*instrMeanFairValue));
+            for (InstructorConstraint ic : instructors) {
+                Instructor ins = iId2Instructor.get(ic.getResourceId());
+                if (ins != null)
+                    ret += Math.abs(ins.getFinalValue() - iInstrMeanFairValue);
             }
             return ret;
         }
 
+        /**
+         * fairness value with squared P and avg.P
+         * 
+         * @return fairness value with squared P and avg.P
+         */
+
+        public double getDiffAllInstrValueSquared() {
+            double ret = 0.0;
+            for (Map.Entry<Long, Instructor> entry : iId2Instructor.entrySet()) {
+                Instructor ins = entry.getValue();
+                ret += Math.sqrt(Math.abs(ins.getFinalValue() * ins.getFinalValue() - iInstrMeanFairValue * iInstrMeanFairValue));
+            }
+            return ret;
+        }
 
         /**
-         * refresh of all instructors in stringInstMap
+         * refresh of all instructors in iId2Instructor
          *
          */
-                
-        public void refreshInstructors(){
-            for(Map.Entry<Long,Instructor> entry : stringInstMap.entrySet()) {
+
+        public void refreshInstructors() {
+            for (Map.Entry<Long, Instructor> entry : iId2Instructor.entrySet()) {
                 Instructor ins = entry.getValue();
                 ins.refresh();
             }
         }
 
         /**
-         * Metod count and return time preferences in placement
+         * Metod count and return time (and room) preferences in placement
          *
-         * @param assignment
-         * @param placement
-         * @return
+         * @param assignment 
+         * @param placement 
+         * @return time (and room) preferences in placement
          */
-        
-        public double fairnessDouble(Assignment<Lecture, Placement> assignment, Placement placement){
+
+        public double fairnessDouble(Assignment<Lecture, Placement> assignment, Placement placement) {
             double critValue = 0.0;
-                //critValue += variable().getModel().getCriterion(RoomPreferences.class).getWeightedValue(assignment,placement ,null);
-                critValue += placement.variable().getModel().getCriterion(TimePreferences.class).getWeightedValue(assignment,placement ,null);
+            // critValue += getModel().getCriterion(RoomPreferences.class).getWeightedValue(assignment,placement,null);
+            critValue += getModel().getCriterion(TimePreferences.class).getWeightedValue(assignment, placement, null);
             return critValue;
         }
 
         /**
-         *  Method for whole evaluation of fairness criteria
+         * Method for whole evaluation of fairness criteria
          * 
          * @param assignment
-         * @return String[] with informations about solution [0-Avarage instructor penalty,
-         *   1-Sum of squared penalities, 2-Pmax, 3-Pdev, 4-Perror, 5-Pss, 6-Jain,
-         *   7-worst instructor fairness value,8-Instructors fairness value]
+         * @return String[] with informations about solution [0-Avarage
+         *         instructor penalty, 1-Sum of squared penalities, 2-Pmax,
+         *         3-Pdev, 4-Perror, 5-Pss, 6-Jain, 7-worst instructor fairness
+         *         value,8-Instructors fairness value]
          */
-        
-        public String[] testFairness(Assignment<Lecture, Placement> assignment){
-            String[] DataForEval = new String[9]; 
+
+        public String[] testFairness(Assignment<Lecture, Placement> assignment) {
+            String[] dataForEval = new String[9];
             Collection<Lecture> assignedLectures = assignment.assignedVariables();
             refreshInstructors();
-            for (Lecture lec:assignedLectures){
-                if (lec.getInstructorConstraints() !=null){
+            for (Lecture lec : assignedLectures) {
+                if (lec.getInstructorConstraints() != null) {
                     List<InstructorConstraint> insConstraints = lec.getInstructorConstraints();
-                    double critValue = 0.0;
-
-                    //critValue += lec.getModel().getCriterion(RoomPreferences.class).getWeightedValue(assignment, lec.getAssignment(assignment),null);
-                    critValue += lec.getModel().getCriterion(TimePreferences.class).getWeightedValue(assignment, lec.getAssignment(assignment),null);
-
-                    for(InstructorConstraint ic:insConstraints){
+                    double critValue = fairnessDouble(assignment, lec.getAssignment(assignment));
+                    for (InstructorConstraint ic : insConstraints) {
                         addInstructorValue(ic.getResourceId(), critValue);
                     }
                 }
             }
             countInstrMeanFairValue();
-            DataForEval[8] = df.format(getObjectiveValue());
+            dataForEval[8] = sDoubleFormat.format(getObjectiveValue());
 
-            instructorsValue = new double[stringInstMap.values().size()];
+            double[] instructorsValue = new double[iId2Instructor.values().size()];
             int counter = 0;
             double sumOfSquaredPen = 0.0;
             double min = 100000;
@@ -600,9 +487,7 @@ public class InstructorFairness extends TimetablingCriterion implements Solution
             double pdevSecPart = 0.0;
             double pssSecPart = 0.0;
 
-            for (Map.Entry<Long, Instructor> entry : stringInstMap.entrySet()) {
-                Long insID = entry.getKey();
-                Instructor s = entry.getValue();
+            for (Instructor s : iId2Instructor.values()) {
                 instructorsValue[counter] = s.getFinalValue();
                 sumOfSquaredPen = sumOfSquaredPen + (s.getFinalValue() * s.getFinalValue());
                 if (min > s.getFinalValue()) {
@@ -611,154 +496,182 @@ public class InstructorFairness extends TimetablingCriterion implements Solution
                 if (max < s.getFinalValue()) {
                     max = s.getFinalValue();
                 }
-                sum += s.getFinalValue();            
+                sum += s.getFinalValue();
                 counter++;
             }
             Arrays.sort(instructorsValue);
 
             for (double d : instructorsValue) {
-                pdevSecPart = pdevSecPart + Math.abs(d - sum / instructorsValue.length);
-                pssSecPart = pssSecPart + d * d;
+                pdevSecPart += Math.abs(d - sum / instructorsValue.length);
+                pssSecPart += d * d;
             }
 
             // Worst instructor penalty:
-            DataForEval[7] = df.format(max);
+            dataForEval[7] = sDoubleFormat.format(max);
             // "Avarage instructor penalty:
-            DataForEval[0] = df.format(sum / instructorsValue.length);
+            dataForEval[0] = sDoubleFormat.format(sum / instructorsValue.length);
             // Sum of squared penalities:
-            DataForEval[1] = df.format(sumOfSquaredPen);
+            dataForEval[1] = sDoubleFormat.format(Math.sqrt(sumOfSquaredPen));
             // Fairness W1:
             // Pmax
-            DataForEval[2] = df.format(getBestSolution().getModel().getTotalValue(getBestSolution().getAssignment())- pdevSecPart*weight + (instructorsValue.length) * max);
+            dataForEval[2] = sDoubleFormat.format(iBest - pdevSecPart * iWeight + (instructorsValue.length) * max);
             // Pdev
-            DataForEval[3] = df.format(getBestSolution().getModel().getTotalValue(getBestSolution().getAssignment()));
+            dataForEval[3] = sDoubleFormat.format(iBest);
             // PError
-            DataForEval[4] = df.format(getBestSolution().getModel().getTotalValue(getBestSolution().getAssignment())- pdevSecPart*weight + sum + ((instructorsValue.length) * (max - min)));
-            //  Pss: 
-            DataForEval[5] = df.format(Math.sqrt(((getBestSolution().getModel().getTotalValue(getBestSolution().getAssignment())-pdevSecPart*weight) * (getBestSolution().getModel().getTotalValue(getBestSolution().getAssignment()))-pdevSecPart*weight) + pssSecPart));
+            dataForEval[4] = sDoubleFormat.format(iBest - pdevSecPart * iWeight + sum + ((instructorsValue.length) * (max - min)));
+            // Pss:
+            dataForEval[5] = sDoubleFormat.format(Math.sqrt(((iBest - pdevSecPart * iWeight) * iBest - pdevSecPart * iWeight) + pssSecPart));
 
             if (sumOfSquaredPen != 0.0) {
-            //  Jain's index:
-                DataForEval[6] = df.format((sum * sum) / ((instructorsValue.length) * sumOfSquaredPen));
+                // Jain's index:
+                dataForEval[6] = sDoubleFormat.format((sum * sum) / ((instructorsValue.length) * sumOfSquaredPen));
             } else {
-                DataForEval[6] = df.format(1);
+                dataForEval[6] = sDoubleFormat.format(1);
             }
-        return DataForEval;
+            return dataForEval;
         }
 
         /**
-         * Class representing instructor 
+         * Class representing instructor
          * 
          */
         public class Instructor {
+            private Long iId;
+            private double iValue = 0.0;
+            private double iBestValue = 0.0;
+            private int iNumOfClasses = 0;
 
-            private Long insID;
-            private Double value = 0.0;
-            private Double bestValue = 0.0;
-            private int numOfClasses = 0;
-
-            //could be used to change how important instructors requiremets are
+            // could be used to change how important instructors requiremets are
             private double coef = 1;
 
             /**
-             *
-             * @param insID
+             * Create instructor with ID(instructorId)
+             * @param instructorId instructor ID
              */
-            public Instructor(Long insID) {
-                this.insID = insID;
+            public Instructor(Long instructorId) {
+                iId = instructorId;
             }
 
             /**
-             * reprezentation how well instructors requirements are met
+             * representation how well instructors requirements are met
              * 
-             * @return
+             * @return Instructor final value
              */
-            
-            public Double getFinalValue() {
-                if (numOfClasses == 0){
-                    return 0.0;
-                }
-                return ((value - bestValue) / numOfClasses)*coef;
+
+            public double getFinalValue() {
+                if (iNumOfClasses == 0) return 0.0;
+                return ((iValue - iBestValue) / iNumOfClasses) * coef;
             }
 
-            public Long getInsResId() {
-                return insID;
+            /**
+             *
+             * @return iId - instructor ID
+             */
+            public Long getId() {
+                return iId;
             }
 
-            public void setInsResId(Long insID) {
-                this.insID = insID;
+            /**
+             * 
+             * @return iValue - instructor value
+             */
+            public double getValue() {
+                return iValue;
             }
 
-            public Double getValue() {
-                return value;
+            /**
+             * Add value to instructor value
+             * @param value value that should be added to instructor value
+             */
+            public void addValue(double value) {
+                iValue += value;
             }
 
-            public void addValue(Double value) {
-                this.value += value;
+            /**
+             * Subtract value from instructor value
+             * @param value value that should be subtracted from instructor value
+             */
+            public void removeValue(double value) {
+                iValue -= value;
             }
 
-            public void removeValue(Double value) {
-                this.value -= value;
+            /**
+             *
+             * @return iBestValue - instructor best value
+             */
+            public double getBestValue() {
+                return iBestValue;
             }
 
-            public Double getBestValue() {
-                return bestValue;
+            /**
+             * Add value to instructor best value
+             * @param bestValue value that should be added to instructor best value
+             */
+            public void addBestValue(double bestValue) {
+                iBestValue += bestValue;
             }
 
-            public void addBestValue(Double bestValue) {
-                this.bestValue += bestValue;
-            }
-
+            /**
+             * 
+             * @return iNumOfClasses - number of instructor classes
+             */
             public int getNumOfClasses() {
-                return numOfClasses;
+                return iNumOfClasses;
             }
 
+            /**
+             * Increase number of classes by 1
+             */
             public void incNumOfClasses() {
-                this.numOfClasses += 1;
+                this.iNumOfClasses += 1;
             }
 
+            /**
+             * Decrease number of instructor classes by 1
+             */
             public void decNumOfClasses() {
-                this.numOfClasses -= 1;
+                this.iNumOfClasses -= 1;
             }
 
+            /**
+             * 
+             * @return coef - coefficient of instructor
+             */
             public double getCoef() {
                 return coef;
             }
 
+            /**
+             * Set instructor coefficient to double value
+             * @param coef coefficient of instructor
+             */
             public void setCoef(double coef) {
                 this.coef = coef;
             }
 
+            /**
+             * Set instructor value and number of classes to 0
+             */
             public void refresh() {
-                value = 0.0;
-                numOfClasses = 0;
+                iValue = 0.0;
+                iNumOfClasses = 0;
             }
 
             @Override
             public int hashCode() {
-                int hash = 3;
-                hash = 71 * hash + (this.insID != null ? this.insID.hashCode() : 0);
-                return hash;
+                return iId.hashCode();
             }
-
 
             @Override
             public boolean equals(Object obj) {
-                if (obj == null) {
-                    return false;
-                }
-                if (getClass() != obj.getClass()) {
-                    return false;
-                }
-                final Instructor other = (Instructor) obj;
-                return !((this.insID == null) ? (other.insID != null) : !this.insID.equals(other.insID));
+                if (obj == null || !(obj instanceof Instructor)) return false;
+                return iId.equals(((Instructor) obj).iId);
             }
-
         }
     }
-    
+
     @Override
     public ValueContext createAssignmentContext(Assignment<Lecture, Placement> assignment) {
-        return new InstructorFairnessContext(assignment,getWeight());
+        return new InstructorFairnessContext(assignment);
     }
 }
