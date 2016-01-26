@@ -144,25 +144,40 @@ public class TimetableXMLLoader extends TimetableLoader {
     public void load() throws Exception {
         load(null);
     }
-
+    
     public void load(Solution<Lecture, Placement> currentSolution) throws Exception {
         sLogger.debug("Reading XML data from " + iInputFile);
         iProgress.setPhase("Reading " + iInputFile.getName() + " ...");
 
         Document document = (new SAXReader()).read(iInputFile);
         Element root = document.getRootElement();
+
         sLogger.debug("Root element: " + root.getName());
         if (!"llrt".equals(root.getName()) && !"timetable".equals(root.getName())) {
-            sLogger.error("Given XML file is not large lecture room timetabling problem.");
-            return;
+            throw new IllegalArgumentException("Given XML file is not large lecture room timetabling problem.");
         }
-
-        iProgress.load(root, true);
-        iProgress.message(Progress.MSGLEVEL_STAGE, "Restoring from backup ...");
 
         if (root.element("input") != null)
             root = root.element("input");
 
+        iProgress.load(root, true);
+        iProgress.message(Progress.MSGLEVEL_STAGE, "Restoring from backup ...");
+
+        doLoad(currentSolution, root);
+
+        try {
+            getSolver().getClass().getMethod("load", new Class[] { Element.class }).invoke(getSolver(), new Object[] { root });
+        } catch (Exception e) {
+        }
+
+        iProgress.setPhase("Done", 1);
+        iProgress.incProgress();
+
+        sLogger.debug("Model successfully loaded.");
+        iProgress.info("Model successfully loaded.");
+    }
+    
+    protected void doLoad(Solution<Lecture, Placement> currentSolution, Element root) throws Exception {
         if (root.attributeValue("term") != null)
             getModel().getProperties().setProperty("Data.Term", root.attributeValue("term"));
         if (root.attributeValue("year") != null)
@@ -913,17 +928,6 @@ public class TimetableXMLLoader extends TimetableLoader {
                 ((MinimizeNumberOfUsedGroupsOfTime) c).setEnabled(true);
         }
          */
-        
-        try {
-            getSolver().getClass().getMethod("load", new Class[] { Element.class }).invoke(getSolver(), new Object[] { root });
-        } catch (Exception e) {
-        }
-        
-        iProgress.setPhase("Done", 1);
-        iProgress.incProgress();
-
-        sLogger.debug("Model successfully loaded.");
-        iProgress.info("Model successfully loaded.");
     }
 
     public static Date getDate(int year, int dayOfYear) {

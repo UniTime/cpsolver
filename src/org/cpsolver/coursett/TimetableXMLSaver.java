@@ -199,6 +199,39 @@ public class TimetableXMLSaver extends TimetableSaver {
         }
 
         Element root = document.addElement("timetable");
+
+        doSave(root);
+
+        if (iShowNames) {
+            Progress.getInstance(getModel()).save(root);
+
+            try {
+                getSolver().getClass().getMethod("save", new Class[] { Element.class }).invoke(getSolver(),
+                        new Object[] { root });
+            } catch (Exception e) {
+            }
+        }
+
+        FileOutputStream fos = null;
+        try {
+            fos = new FileOutputStream(outFile);
+            (new XMLWriter(fos, OutputFormat.createPrettyPrint())).write(document);
+            fos.flush();
+            fos.close();
+            fos = null;
+        } finally {
+            try {
+                if (fos != null)
+                    fos.close();
+            } catch (IOException e) {
+            }
+        }
+
+        if (iConvertIds)
+            iIdConvertor.save();
+    }
+    
+    protected void doSave(Element root) throws Exception {
         root.addAttribute("version", "2.5");
         root.addAttribute("initiative", getModel().getProperties().getProperty("Data.Initiative"));
         root.addAttribute("term", getModel().getProperties().getProperty("Data.Term"));
@@ -611,33 +644,5 @@ public class TimetableXMLSaver extends TimetableSaver {
         }
         if (departmentsEl.elements().isEmpty())
             root.remove(departmentsEl);
-
-        if (iShowNames) {
-            Progress.getInstance(getModel()).save(root);
-
-            try {
-                getSolver().getClass().getMethod("save", new Class[] { Element.class }).invoke(getSolver(),
-                        new Object[] { root });
-            } catch (Exception e) {
-            }
-        }
-
-        FileOutputStream fos = null;
-        try {
-            fos = new FileOutputStream(outFile);
-            (new XMLWriter(fos, OutputFormat.createPrettyPrint())).write(document);
-            fos.flush();
-            fos.close();
-            fos = null;
-        } finally {
-            try {
-                if (fos != null)
-                    fos.close();
-            } catch (IOException e) {
-            }
-        }
-
-        if (iConvertIds)
-            iIdConvertor.save();
     }
 }
