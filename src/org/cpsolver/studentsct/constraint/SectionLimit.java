@@ -176,6 +176,8 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
                     for (Enrollment e : section.getEnrollments(assignment)) {
                         if (e.getRequest().equals(enrollment.getRequest()))
                             continue;
+                        if (e.getReservation() != null && e.getReservation().canBatchAssignOverLimit())
+                            continue;
                         if (hasSectionReservation(e, section))
                             continue;
                         if (conflicts.contains(e))

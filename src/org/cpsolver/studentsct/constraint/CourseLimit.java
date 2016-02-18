@@ -141,6 +141,8 @@ public class CourseLimit extends GlobalConstraint<Request, Enrollment> {
         for (Enrollment e : course.getEnrollments(assignment)) {
             if (e.getRequest().equals(enrollment.getRequest()))
                 continue;
+            if (e.getReservation() != null && e.getReservation().canBatchAssignOverLimit())
+                continue;
             if (conflicts.contains(e))
                 enrlWeight -= e.getRequest().getWeight();
             else
