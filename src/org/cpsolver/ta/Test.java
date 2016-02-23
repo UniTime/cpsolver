@@ -30,7 +30,7 @@ public class Test {
             TAModel model = new TAModel(config);
             model.load(new File(config.getProperty("input", "input")));
 
-            int nrSolvers = config.getPropertyInt("Parallel.NrSolvers", 4);
+            int nrSolvers = config.getPropertyInt("Parallel.NrSolvers", 1);
             Solver<TeachingRequest, TeachingAssignment> solver = (nrSolvers == 1 ? new Solver<TeachingRequest, TeachingAssignment>(config) : new ParallelSolver<TeachingRequest, TeachingAssignment>(config));
             solver.setInitalSolution(model);
 

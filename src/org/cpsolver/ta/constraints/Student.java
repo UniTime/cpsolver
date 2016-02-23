@@ -14,7 +14,9 @@ import org.cpsolver.ifs.criteria.Criterion;
 import org.cpsolver.ifs.util.ToolBox;
 import org.cpsolver.ta.criteria.BackToBack;
 import org.cpsolver.ta.criteria.DiffLink;
+import org.cpsolver.ta.criteria.TimeOverlaps;
 import org.cpsolver.ta.model.TeachingRequest;
+import org.cpsolver.ta.model.Section;
 import org.cpsolver.ta.model.TAModel;
 import org.cpsolver.ta.model.TeachingAssignment;
 
@@ -51,17 +53,34 @@ public class Student extends ConstraintWithContext<TeachingRequest, TeachingAssi
     }
 
     public boolean isAvaible(TeachingRequest request) {
-        if (request.getDayCode() == 0)
-            return true;
-        for (int i = 0; i < 5; i++)
-            if ((Constants.DAY_CODES[i] & request.getDayCode()) != 0) {
-                int start = (request.getStartSlot() - 90) / 12;
-                int end = (request.getStartSlot() + request.getLength() - 91) / 12;
-                for (int time = start; time <= end; time++)
-                    if (time >= 0 && time < 10 && !iAvailable[10 * i + time])
-                        return false;
-            }
+        for (Section section: request.getSections()) {
+            if (!section.hasTime() || section.isAllowOverlap()) continue;
+            for (int i = 0; i < 5; i++)
+                if ((Constants.DAY_CODES[i] & section.getTime().getDayCode()) != 0) {
+                    int start = (section.getTime().getStartSlot() - 90) / 12;
+                    int end = (section.getTime().getStartSlot() + section.getTime().getLength() - 91) / 12;
+                    for (int time = start; time <= end; time++)
+                        if (time >= 0 && time < 10 && !iAvailable[10 * i + time])
+                            return false;
+                }
+        }
         return true;
+    }
+    
+    public int  share(TeachingRequest request) {
+        int share = 0;
+        for (Section section: request.getSections()) {
+            if (!section.hasTime() || !section.isAllowOverlap()) continue;
+            for (int i = 0; i < 5; i++)
+                if ((Constants.DAY_CODES[i] & section.getTime().getDayCode()) != 0) {
+                    int start = (section.getTime().getStartSlot() - 90) / 12;
+                    int end = (section.getTime().getStartSlot() + section.getTime().getLength() - 91) / 12;
+                    for (int time = start; time <= end; time++)
+                        if (time >= 0 && time < 10 && !iAvailable[10 * i + time])
+                            share += 6;
+                }
+        }
+        return share;
     }
 
     public String getAvailable() {
@@ -199,6 +218,19 @@ public class Student extends ConstraintWithContext<TeachingRequest, TeachingAssi
         }
         return b2b;
     }
+    
+    public int share(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value) {
+        int share = 0;
+        if (value.getStudent().equals(this)) {
+            for (TeachingAssignment other : value.getStudent().getContext(assignment).getAssignments()) {
+                if (other.variable().equals(value.variable()))
+                    continue;
+                share += value.variable().share(other.variable());
+            }
+            share += share(value.variable());
+        }
+        return share;
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -218,7 +250,7 @@ public class Student extends ConstraintWithContext<TeachingRequest, TeachingAssi
 
     public class Context implements AssignmentConstraintContext<TeachingRequest, TeachingAssignment> {
         private HashSet<TeachingAssignment> iAssignments = new HashSet<TeachingAssignment>();
-        private int iDiffLinks = 0, iBackToBacks = 0;
+        private int iDiffLinks = 0, iBackToBacks = 0, iTimeOverlaps = 0;
         
         public Context(Assignment<TeachingRequest, TeachingAssignment> assignment) {
             for (TeachingRequest request: variables()) {
@@ -262,6 +294,14 @@ public class Student extends ConstraintWithContext<TeachingRequest, TeachingAssi
                 iDiffLinks = countDiffLinks();
                 diffLink.inc(assignment, iDiffLinks);
             }
+            
+            // update time overlaps
+            Criterion<TeachingRequest, TeachingAssignment> overlaps = getModel().getCriterion(TimeOverlaps.class);
+            if (overlaps != null) {
+                overlaps.inc(assignment, -iTimeOverlaps);
+                iTimeOverlaps = countTimeOverlaps();
+                overlaps.inc(assignment, iTimeOverlaps);
+            }
         }
         
         public Set<TeachingAssignment> getAssignments() { return iAssignments; }
@@ -303,12 +343,26 @@ public class Student extends ConstraintWithContext<TeachingRequest, TeachingAssi
             }
             return b2b;
         }
+        
+        public int countTimeOverlaps() {
+            int share = 0;
+            for (TeachingAssignment a1 : iAssignments) {
+                for (TeachingAssignment a2 : iAssignments) {
+                    if (a1.getId() < a2.getId())
+                        share += a1.variable().share(a2.variable());
+                }
+                share += share(a1.variable());
+            }
+            return share;
+        }
 
         public int countAssignmentsWithTime() {
             int ret = 0;
-            for (TeachingAssignment a1 : iAssignments) {
-                if (a1.variable().getDayCode() != 0)
-                    ret++;
+            a1: for (TeachingAssignment a1 : iAssignments) {
+                for (Section s1: a1.variable().getSections())
+                    if (s1.hasTime()) {
+                        ret++; continue a1;
+                    }
             }
             return ret;
         }
@@ -346,7 +400,7 @@ public class Student extends ConstraintWithContext<TeachingRequest, TeachingAssi
                     + (iAssignments.isEmpty() ? "" : new DecimalFormat("0.0").format(100.0 * preference / iAssignments.size())) + ","
                     + (countAssignmentsWithTime() <= 1 ? "" : isBackToBackPreferred() ? new DecimalFormat("0.0").format(100.0 * countBackToBacks() / (countAssignmentsWithTime() - 1))
                             : isBackToBackDiscouraged() ? new DecimalFormat("0.0").format(100.0 - 100.0 * countBackToBacks() / (countAssignmentsWithTime() - 1)) : "")
-                    + "," + (countDiffLinks() > 0 ? countDiffLinks() : "") + ass;
+                    + "," + (countDiffLinks() > 0 ? countDiffLinks() : "") + "," + (countTimeOverlaps() > 0 ? countTimeOverlaps() : "") + ass;
         }
     }
 }

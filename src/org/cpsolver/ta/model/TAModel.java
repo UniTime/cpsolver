@@ -19,12 +19,7 @@ import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.criteria.Criterion;
 import org.cpsolver.ifs.model.Constraint;
 import org.cpsolver.ifs.model.Model;
-import org.cpsolver.ifs.solution.Solution;
-import org.cpsolver.ifs.solution.SolutionListener;
-import org.cpsolver.ifs.solver.ParallelSolver;
-import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
-import org.cpsolver.ifs.util.ToolBox;
 import org.cpsolver.ta.constraints.SameAssignment;
 import org.cpsolver.ta.constraints.Student;
 import org.cpsolver.ta.criteria.BackToBack;
@@ -32,6 +27,7 @@ import org.cpsolver.ta.criteria.DiffLink;
 import org.cpsolver.ta.criteria.Graduate;
 import org.cpsolver.ta.criteria.LevelCode;
 import org.cpsolver.ta.criteria.Preference;
+import org.cpsolver.ta.criteria.TimeOverlaps;
 
 public class TAModel extends Model<TeachingRequest, TeachingAssignment> {
     public static String[] sDayCodes = new String[] { "M", "T", "W", "R", "F" };
@@ -45,6 +41,7 @@ public class TAModel extends Model<TeachingRequest, TeachingAssignment> {
         addCriterion(new BackToBack());
         addCriterion(new LevelCode());
         addCriterion(new DiffLink());
+        addCriterion(new TimeOverlaps());
     }
 
     public DataProperties getProperties() {
@@ -334,7 +331,7 @@ public class TAModel extends Model<TeachingRequest, TeachingAssignment> {
         out.close();
 
         out = new PrintWriter(new File(dir, "solution-students.csv"));
-        out.println("Student,Availability,1st Preference,2nd Preference,3rd Preference,Graduate,Back-To-Back,Level,Assigned Load,Avg Level,Avg Preference,Back-To-Back,Diff Links,1st Assignment,2nd Assignment, 3rd Assignment");
+        out.println("Student,Availability,1st Preference,2nd Preference,3rd Preference,Graduate,Back-To-Back,Level,Assigned Load,Avg Level,Avg Preference,Back-To-Back,Diff Links,Time Overlaps,1st Assignment,2nd Assignment, 3rd Assignment");
         for (Constraint<TeachingRequest, TeachingAssignment> constraint : constraints()) {
             if (constraint instanceof Student) {
                 Student s = (Student) constraint;
