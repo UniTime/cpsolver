@@ -99,12 +99,6 @@ public class Test {
             fos.flush();
             fos.close();
 
-            /*
-             * for (Extension<Clazz, Assignment> ex: solver.getExtensions()) {
-             * if (ex instanceof ConflictStatistics) { ConflictStatistics<Clazz,
-             * Assignment> stat = (ConflictStatistics<Clazz, Assignment>)ex;
-             * System.out.println(stat); } }
-             */
         } catch (Exception e) {
             e.printStackTrace();
         }

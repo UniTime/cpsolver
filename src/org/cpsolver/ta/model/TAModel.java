@@ -217,7 +217,24 @@ public class TAModel extends Model<TeachingRequest, TeachingAssignment> {
             if (maxLoad == 0)
                 maxLoad = getProperties().getPropertyDouble("TA.DefaultMaxLoad", 20.0);
             String level = (idx < fields.length ? fields[idx++] : null);
-            Student student = new Student(id, av, prefs, grad, b2b, maxLoad, level);
+            Student student = new Student(id, prefs, grad, b2b, maxLoad, level);
+            for (int d = 0; d < 5; d++) {
+                int f = -1;
+                for (int t = 0; t < 10; t++) {
+                    if (!av[10 * d + t]) {
+                        if (f < 0) f = t;
+                    } else {
+                        if (f >= 0) {
+                            student.setNotAvailable(new TimeLocation(Constants.DAY_CODES[d], 90 + 12 * f, (t - f) * 12, 0, 0.0, null, "", null, 0));
+                            f = -1;
+                        }
+                    }
+                }
+                if (f >= 0) {
+                    student.setNotAvailable(new TimeLocation(Constants.DAY_CODES[d], 90 + 12 * f, (10 - f) * 12, 0, 0.0, null, "", null, 0));
+                    f = -1;
+                }
+            }
             for (TeachingRequest clazz : variables()) {
                 if (student.canTeach(clazz))
                     student.addVariable(clazz);
@@ -424,7 +441,7 @@ public class TAModel extends Model<TeachingRequest, TeachingAssignment> {
                             timeEl.addAttribute("datePatternName", tl.getDatePatternName());
                         timeEl.addAttribute("dates", bitset2string(tl.getWeekCode()));
                     }
-                    timeEl.setText(tl.getLongName(true));
+                    timeEl.setText(tl.getLongName(false));
                 }
                 if (section.hasRoom()) sectionEl.addAttribute("room", section.getRoom());
                 if (section.isAllowOverlap()) sectionEl.addAttribute("canOverlap", "true");
@@ -487,7 +504,7 @@ public class TAModel extends Model<TeachingRequest, TeachingAssignment> {
                             timeEl.addAttribute("datePatternName", tl.getDatePatternName());
                         timeEl.addAttribute("dates", bitset2string(tl.getWeekCode()));
                     }
-                    timeEl.setText(tl.getLongName(true));
+                    timeEl.setText(tl.getLongName(false));
                 }
             }
         }

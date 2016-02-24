@@ -2,6 +2,7 @@ package org.cpsolver.ta.constraints;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -18,27 +19,72 @@ import org.cpsolver.ta.criteria.DiffLink;
 import org.cpsolver.ta.criteria.TimeOverlaps;
 import org.cpsolver.ta.model.TeachingRequest;
 import org.cpsolver.ta.model.Section;
-import org.cpsolver.ta.model.TAModel;
 import org.cpsolver.ta.model.TeachingAssignment;
 
 public class Student extends ConstraintWithContext<TeachingRequest, TeachingAssignment, Student.Context> {
     private String iStudentId;
-    private boolean[] iAvailable;
+    private List<TimeLocation>[] iAvailable = null;
     private List<String> iPrefs;
     private boolean iGrad;
     private int iB2B;
     private double iMaxLoad;
     private String iLevel;
    
-    public Student(String id, boolean[] available, List<String> preference, boolean grad, int b2b, double maxLoad, String level) {
+    public Student(String id, List<String> preference, boolean grad, int b2b, double maxLoad, String level) {
         super();
         iStudentId = id;
-        iAvailable = available;
         iPrefs = preference;
         iGrad = grad;
         iB2B = b2b;
         iMaxLoad = maxLoad;
         iLevel = (level == null || level.trim().isEmpty() ? null : level.trim());
+    }
+    
+    @SuppressWarnings("unchecked")
+    public void setNotAvailable(TimeLocation time) {
+        if (iAvailable == null) {
+            iAvailable = new List[Constants.SLOTS_PER_DAY * Constants.NR_DAYS];
+            for (int i = 0; i < iAvailable.length; i++)
+                iAvailable[i] = null;
+        }
+        for (Enumeration<Integer> e = time.getSlots(); e.hasMoreElements();) {
+            int slot = e.nextElement();
+            if (iAvailable[slot] == null)
+                iAvailable[slot] = new ArrayList<TimeLocation>(1);
+            iAvailable[slot].add(time);
+        }
+    }
+
+    public boolean isAvailable(int slot) {
+        if (iAvailable != null && iAvailable[slot] != null && !iAvailable[slot].isEmpty())
+            return false;
+        return true;
+    }
+
+    public boolean isAvailable(TimeLocation time) {
+        if (iAvailable != null) {
+            for (Enumeration<Integer> e = time.getSlots(); e.hasMoreElements();) {
+                int slot = e.nextElement();
+                if (iAvailable[slot] != null) {
+                    for (TimeLocation p : iAvailable[slot]) {
+                        if (time.shareWeeks(p))
+                            return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+    
+    public boolean isAvaible(TeachingRequest request) {
+        for (Section section: request.getSections()) {
+            if (section.hasTime() && !section.isAllowOverlap() && !isAvailable(section.getTime())) return false;
+        }
+        return true;
+    }
+
+    public List<TimeLocation>[] getAvailableArray() {
+        return iAvailable;
     }
     
     public List<String> getPreferences() {
@@ -62,85 +108,42 @@ public class Student extends ConstraintWithContext<TeachingRequest, TeachingAssi
         return -1;
     }
 
-    public boolean isAvaible(TeachingRequest request) {
-        for (Section section: request.getSections()) {
-            if (!section.hasTime() || section.isAllowOverlap()) continue;
-            for (int i = 0; i < 5; i++)
-                if ((Constants.DAY_CODES[i] & section.getTime().getDayCode()) != 0) {
-                    int start = (section.getTime().getStartSlot() - 90) / 12;
-                    int end = (section.getTime().getStartSlot() + section.getTime().getLength() - 91) / 12;
-                    for (int time = start; time <= end; time++)
-                        if (time >= 0 && time < 10 && !iAvailable[10 * i + time])
-                            return false;
+    public int share(TeachingRequest request) {
+        if (iAvailable != null) {
+            int share = 0;
+            for (Section section: request.getSections()) {
+                if (!section.hasTime() || !section.isAllowOverlap()) continue;
+                for (Enumeration<Integer> e = section.getTime().getSlots(); e.hasMoreElements();) {
+                    int slot = e.nextElement();
+                    if (iAvailable[slot] != null) {
+                        for (TimeLocation p : iAvailable[slot]) {
+                            if (section.getTime().shareWeeks(p))
+                                share ++;
+                        }
+                    }
                 }
+            }
+            return share;
         }
-        return true;
-    }
-    
-    public int  share(TeachingRequest request) {
-        int share = 0;
-        for (Section section: request.getSections()) {
-            if (!section.hasTime() || !section.isAllowOverlap()) continue;
-            for (int i = 0; i < 5; i++)
-                if ((Constants.DAY_CODES[i] & section.getTime().getDayCode()) != 0) {
-                    int start = (section.getTime().getStartSlot() - 90) / 12;
-                    int end = (section.getTime().getStartSlot() + section.getTime().getLength() - 91) / 12;
-                    for (int time = start; time <= end; time++)
-                        if (time >= 0 && time < 10 && !iAvailable[10 * i + time])
-                            share += 6;
-                }
-        }
-        return share;
+        return 0;
     }
 
     public String getAvailable() {
         String ret = "";
-        for (int d = 0; d < 5; d++) {
-            int f = -1;
-            for (int t = 0; t < 10; t++) {
-                if (iAvailable[10 * d + t]) {
-                    if (f < 0)
-                        f = t;
-                } else {
-                    if (f >= 0) {
-                        if (!ret.isEmpty())
-                            ret += ", ";
-                        ret += TAModel.sDayCodes[d] + (7 + f) + "30-" + (7 + t) + "20";
-                        f = -1;
-                    }
-                }
-            }
-            if (f >= 0) {
-                if (!ret.isEmpty())
-                    ret += ", ";
-                ret += TAModel.sDayCodes[d] + (f == 0 ? "" : (7 + f) + "30-1720");
-                f = -1;
-            }
+        for (TimeLocation tl: getUnavailability()) {
+            if (!ret.isEmpty()) ret += ", ";
+            ret += tl.getLongName(false);
         }
         return ret.isEmpty() ? "-" : "[" + ret + "]";
     }
     
-    public List<TimeLocation> getUnavailability() {
-        List<TimeLocation> ret = new ArrayList<TimeLocation>();
-        for (int d = 0; d < 5; d++) {
-            int f = -1;
-            for (int t = 0; t < 10; t++) {
-                if (!iAvailable[10 * d + t]) {
-                    if (f < 0)
-                        f = t;
-                } else {
-                    if (f >= 0) {
-                        ret.add(new TimeLocation(Constants.DAY_CODES[d], 90 + 12 * f, (t - f) * 12, 0, 0.0, null, "", null, 0));
-                        f = -1;
-                    }
-                }
-            }
-            if (f >= 0) {
-                ret.add(new TimeLocation(Constants.DAY_CODES[d], 90 + 12 * f, (10 - f) * 12, 0, 0.0, null, "", null, 0));
-                f = -1;
-            }
+    public Set<TimeLocation> getUnavailability() {
+        Set<TimeLocation> set = new HashSet<TimeLocation>();
+        if (iAvailable != null) {
+            for (List<TimeLocation> tl: iAvailable)
+                if (tl != null) set.addAll(tl);
         }
-        return ret;
+        return set;
     }
 
     public String getStudentId() {
