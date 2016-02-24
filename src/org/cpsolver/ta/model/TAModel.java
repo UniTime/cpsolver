@@ -5,8 +5,11 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -15,6 +18,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.cpsolver.coursett.Constants;
+import org.cpsolver.coursett.model.TimeLocation;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.criteria.Criterion;
 import org.cpsolver.ifs.model.Constraint;
@@ -28,6 +32,9 @@ import org.cpsolver.ta.criteria.Graduate;
 import org.cpsolver.ta.criteria.LevelCode;
 import org.cpsolver.ta.criteria.Preference;
 import org.cpsolver.ta.criteria.TimeOverlaps;
+import org.dom4j.Document;
+import org.dom4j.DocumentHelper;
+import org.dom4j.Element;
 
 public class TAModel extends Model<TeachingRequest, TeachingAssignment> {
     public static String[] sDayCodes = new String[] { "M", "T", "W", "R", "F" };
@@ -57,7 +64,8 @@ public class TAModel extends Model<TeachingRequest, TeachingAssignment> {
                 continue;
             String[] fields = line.split(",");
             Long id = Long.valueOf(fields[0]);
-            String name = fields[1] + " " + fields[2];
+            String course = fields[1];
+            String section = fields[2];
             int idx = 3;
             int dayCode = 0;
             idx: while (idx < fields.length && (idx == 3 || fields[idx].length() == 1)) {
@@ -105,7 +113,7 @@ public class TAModel extends Model<TeachingRequest, TeachingAssignment> {
                 else if (length == 15)
                     length = 18;
             }
-            TeachingRequest clazz = new TeachingRequest(id, name, dayCode, startSlot, length, room, link);
+            TeachingRequest clazz = new TeachingRequest(id, course, section, dayCode, startSlot, length, room, link);
             addVariable(clazz);
             List<TeachingRequest> classes = id2classes.get(id);
             if (classes == null) {
@@ -323,7 +331,7 @@ public class TAModel extends Model<TeachingRequest, TeachingAssignment> {
 
     public void save(Assignment<TeachingRequest, TeachingAssignment> assignment, File dir) throws IOException {
         PrintWriter out = new PrintWriter(new File(dir, "solution-assignments.csv"));
-        out.println("Assignment Id,Course (IType),Time,Room,Link,Level,Load,Student");
+        out.println("Assignment Id,Course,Section,Time,Room,Link,Level,Load,Student");
         for (TeachingRequest v : variables()) {
             out.println(v.toString() + "," + (assignment.getValue(v) == null ? "" : assignment.getValue(v).getStudent().getStudentId()));
         }
@@ -341,5 +349,156 @@ public class TAModel extends Model<TeachingRequest, TeachingAssignment> {
         out.flush();
         out.close();
     }
-
+    
+    public Document save(Assignment<TeachingRequest, TeachingAssignment> assignment) {
+        DecimalFormat sDF7 = new DecimalFormat("0000000");
+        boolean saveInitial = getProperties().getPropertyBoolean("Xml.SaveInitial", false);
+        boolean saveBest = getProperties().getPropertyBoolean("Xml.SaveBest", false);
+        boolean saveSolution = getProperties().getPropertyBoolean("Xml.SaveSolution", true);
+        Document document = DocumentHelper.createDocument();
+        if (assignment != null && assignment.nrAssignedVariables() > 0) {
+            StringBuffer comments = new StringBuffer("Solution Info:\n");
+            Map<String, String> solutionInfo = (getProperties().getPropertyBoolean("Xml.ExtendedInfo", true) ? getExtendedInfo(assignment) : getInfo(assignment));
+            for (String key : new TreeSet<String>(solutionInfo.keySet())) {
+                String value = solutionInfo.get(key);
+                comments.append("    " + key + ": " + value + "\n");
+            }
+            document.addComment(comments.toString());
+        }
+        Element root = document.addElement("ta");
+        root.addAttribute("version", "1.0");
+        root.addAttribute("created", String.valueOf(new Date()));
+        Map<String, Double> course2load = new HashMap<String, Double>();
+        Map<String, Map<String, Integer>> course2levels = new HashMap<String, Map<String, Integer>>();
+        for (TeachingRequest request: variables()) {
+            Double load = course2load.get(request.getCourseName());
+            if (load == null) {
+                course2load.put(request.getCourseName(), request.getLoad());
+                course2levels.put(request.getCourseName(), request.getLevels());
+            }
+        }
+        Element coursesEl = root.addElement("courses");
+        for (String course: new TreeSet<String>(course2load.keySet())) {
+            Double load = course2load.get(course);
+            Element courseEl = coursesEl.addElement("course");
+            courseEl.addAttribute("name", course);
+            if (load != null)
+                courseEl.addAttribute("load", sDoubleFormat.format(load));
+            Map<String, Integer> levels = course2levels.get(course);
+            if (levels != null)
+                for (String level: new TreeSet<String>(levels.keySet())) {
+                    courseEl.addElement("skill").addAttribute("level", level).addAttribute("preference", levels.get(level).toString());
+                }
+        }
+        Element assignmentsEl = root.addElement("assignments");
+        for (TeachingRequest request: variables()) {
+            Double load = course2load.get(request.getCourseName());
+            Map<String, Integer> levels = course2levels.get(request.getCourseName());
+            Element assignmentEl = assignmentsEl.addElement("assignment");
+            if (request.getAssignmentId() != null) assignmentEl.addAttribute("id", String.valueOf(request.getAssignmentId()));
+            if (request.getCourseName() != null && !request.getCourseName().isEmpty()) assignmentEl.addAttribute("course", request.getCourseName());
+            if (load == null || !load.equals(request.getLoad()))
+                assignmentEl.addAttribute("load", sDoubleFormat.format(request.getLoad()));
+            if (request.getLink() != null) assignmentEl.addAttribute("link", request.getLink());
+            if (levels == null || !levels.equals(request.getLevels()))
+                for (String level: new TreeSet<String>(request.getLevels().keySet())) {
+                    assignmentEl.addElement("skill").addAttribute("level", level).addAttribute("preference", request.getLevels().get(level).toString());
+                }
+            for (Section section: request.getSections()) {
+                Element sectionEl = assignmentEl.addElement("section");
+                if (section.getSectionId() != null) sectionEl.addAttribute("id", String.valueOf(section.getSectionId()));
+                if (section.getSectionName() != null && !section.getSectionName().isEmpty()) sectionEl.addAttribute("name", section.getSectionName());
+                if (section.hasTime()) {
+                    TimeLocation tl = section.getTime();
+                    Element timeEl = sectionEl.addElement("time");
+                    timeEl.addAttribute("days", sDF7.format(Long.parseLong(Integer.toBinaryString(tl.getDayCode()))));
+                    timeEl.addAttribute("start", String.valueOf(tl.getStartSlot()));
+                    timeEl.addAttribute("length", String.valueOf(tl.getLength()));
+                    if (tl.getBreakTime() != 0)
+                        timeEl.addAttribute("breakTime", String.valueOf(tl.getBreakTime()));
+                    if (tl.getTimePatternId() != null)
+                        timeEl.addAttribute("pattern", tl.getTimePatternId().toString());
+                    if (tl.getDatePatternId() != null) {
+                        timeEl.addAttribute("datePattern", tl.getDatePatternId().toString());
+                        if (tl.getDatePatternName() != null && !tl.getDatePatternName().isEmpty())
+                            timeEl.addAttribute("datePatternName", tl.getDatePatternName());
+                        timeEl.addAttribute("dates", bitset2string(tl.getWeekCode()));
+                    }
+                    timeEl.setText(tl.getLongName(true));
+                }
+                if (section.hasRoom()) sectionEl.addAttribute("room", section.getRoom());
+                if (section.isAllowOverlap()) sectionEl.addAttribute("canOverlap", "true");
+            }
+            if (saveBest && request.getBestAssignment() != null)
+                assignmentEl.addElement("best").addAttribute("student", request.getBestAssignment().getStudent().getStudentId());
+            if (saveInitial && request.getInitialAssignment() != null)
+                assignmentEl.addElement("initial").addAttribute("student", request.getInitialAssignment().getStudent().getStudentId());
+            if (saveSolution) {
+                TeachingAssignment ta = assignment.getValue(request);
+                if (ta != null) {
+                    Element solutionEl = assignmentEl.addElement("solution");
+                    solutionEl.addAttribute("student", ta.getStudent().getStudentId());
+                    Integer level = request.getLevels().get(ta.getStudent().getLevel());
+                    if (level != null)
+                        solutionEl.addAttribute("level", String.valueOf(level));
+                    int pref = ta.getStudent().getPreference(request);
+                    if (pref >= 0)
+                        solutionEl.addAttribute("preference", String.valueOf(1 + pref));
+                    int btb = ta.getStudent().backToBack(assignment, ta);
+                    if (btb != 0)
+                        solutionEl.addAttribute("btb", String.valueOf(btb));
+                    int share = ta.getStudent().share(assignment, ta);
+                    if (share != 0)
+                        solutionEl.addAttribute("share", String.valueOf(share));
+                    int dl = ta.getStudent().diffLinks(assignment, ta);
+                    if (dl != 0)
+                        solutionEl.addAttribute("link", String.valueOf(dl));
+                }
+            }
+        }
+        Element studentsEl = root.addElement("students");
+        for (Constraint<TeachingRequest, TeachingAssignment> c: constraints()) {
+            if (c instanceof Student) {
+                Student student = (Student)c;
+                Element studentEl = studentsEl.addElement("student");
+                studentEl.addAttribute("id", student.getStudentId());
+                studentEl.addAttribute("grad", student.isGrad() ? "true" : "false");
+                if (student.isBackToBackPreferred())
+                    studentEl.addAttribute("btb", "-1");
+                else if (student.isBackToBackDiscouraged())
+                    studentEl.addAttribute("btb", "1");
+                if (student.getLevel() != null && !student.getLevel().isEmpty())
+                    studentEl.addAttribute("level", student.getLevel());
+                studentEl.addAttribute("maxload", sDoubleFormat.format(student.getMaxLoad()));
+                for (String pref: student.getPreferences())
+                    studentEl.addElement("preference").addAttribute("value", pref);
+                for (TimeLocation tl: student.getUnavailability()) {
+                    Element timeEl = studentEl.addElement("unavailable");
+                    timeEl.addAttribute("days", sDF7.format(Long.parseLong(Integer.toBinaryString(tl.getDayCode()))));
+                    timeEl.addAttribute("start", String.valueOf(tl.getStartSlot()));
+                    timeEl.addAttribute("length", String.valueOf(tl.getLength()));
+                    if (tl.getBreakTime() != 0)
+                        timeEl.addAttribute("breakTime", String.valueOf(tl.getBreakTime()));
+                    if (tl.getTimePatternId() != null)
+                        timeEl.addAttribute("pattern", tl.getTimePatternId().toString());
+                    if (tl.getDatePatternId() != null) {
+                        timeEl.addAttribute("datePattern", tl.getDatePatternId().toString());
+                        if (tl.getDatePatternName() != null && !tl.getDatePatternName().isEmpty())
+                            timeEl.addAttribute("datePatternName", tl.getDatePatternName());
+                        timeEl.addAttribute("dates", bitset2string(tl.getWeekCode()));
+                    }
+                    timeEl.setText(tl.getLongName(true));
+                }
+            }
+        }
+        return document;
+    }
+    
+    /** Convert bitset to a bit string */
+    private static String bitset2string(BitSet b) {
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < b.length(); i++)
+            sb.append(b.get(i) ? "1" : "0");
+        return sb.toString();
+    }
 }

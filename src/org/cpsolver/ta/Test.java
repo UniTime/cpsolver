@@ -1,6 +1,7 @@
 package org.cpsolver.ta;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.util.Collection;
 import java.util.Map;
 
@@ -17,6 +18,8 @@ import org.cpsolver.ta.constraints.Student;
 import org.cpsolver.ta.model.TAModel;
 import org.cpsolver.ta.model.TeachingAssignment;
 import org.cpsolver.ta.model.TeachingRequest;
+import org.dom4j.io.OutputFormat;
+import org.dom4j.io.XMLWriter;
 
 public class Test {
 
@@ -90,6 +93,11 @@ public class Test {
             System.out.println("Info: " + ToolBox.dict2string(solution.getExtendedInfo(), 2));
 
             model.save(solution.getAssignment(), new File(config.getProperty("output", "output")));
+            File outFile = new File(new File(config.getProperty("output", "output")), "solution.xml");
+            FileOutputStream fos = new FileOutputStream(outFile);
+            (new XMLWriter(fos, OutputFormat.createPrettyPrint())).write(model.save(solution.getAssignment()));
+            fos.flush();
+            fos.close();
 
             /*
              * for (Extension<Clazz, Assignment> ex: solver.getExtensions()) {

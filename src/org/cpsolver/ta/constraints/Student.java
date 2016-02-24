@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.cpsolver.coursett.Constants;
+import org.cpsolver.coursett.model.TimeLocation;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
 import org.cpsolver.ifs.assignment.context.ConstraintWithContext;
@@ -39,11 +40,20 @@ public class Student extends ConstraintWithContext<TeachingRequest, TeachingAssi
         iMaxLoad = maxLoad;
         iLevel = (level == null || level.trim().isEmpty() ? null : level.trim());
     }
+    
+    public List<String> getPreferences() {
+        return iPrefs;
+    }
 
     public int getPreference(TeachingRequest request) {
         for (int i = 0; i < iPrefs.size(); i++) {
-            if (request.getClassName().equals(iPrefs.get(i)))
+            if (request.getCourseName().equals(iPrefs.get(i))) {
                 return i;
+            } else if (iPrefs.get(i).startsWith(request.getCourseName())) {
+                for (Section section: request.getSections())
+                    if (iPrefs.get(i).equals(request.getCourseName() + " " + section.getSectionName()))
+                        return i;
+            }
             if ("Grading".equals(iPrefs.get(i)) && request.getName().equals("Grade"))
                 return i;
             if ("Proctoring".equals(iPrefs.get(i)) && request.getName().equals("Proctor"))
@@ -108,6 +118,29 @@ public class Student extends ConstraintWithContext<TeachingRequest, TeachingAssi
             }
         }
         return ret.isEmpty() ? "-" : "[" + ret + "]";
+    }
+    
+    public List<TimeLocation> getUnavailability() {
+        List<TimeLocation> ret = new ArrayList<TimeLocation>();
+        for (int d = 0; d < 5; d++) {
+            int f = -1;
+            for (int t = 0; t < 10; t++) {
+                if (!iAvailable[10 * d + t]) {
+                    if (f < 0)
+                        f = t;
+                } else {
+                    if (f >= 0) {
+                        ret.add(new TimeLocation(Constants.DAY_CODES[d], 90 + 12 * f, (t - f) * 12, 0, 0.0, null, "", null, 0));
+                        f = -1;
+                    }
+                }
+            }
+            if (f >= 0) {
+                ret.add(new TimeLocation(Constants.DAY_CODES[d], 90 + 12 * f, (10 - f) * 12, 0, 0.0, null, "", null, 0));
+                f = -1;
+            }
+        }
+        return ret;
     }
 
     public String getStudentId() {
@@ -230,6 +263,18 @@ public class Student extends ConstraintWithContext<TeachingRequest, TeachingAssi
             share += share(value.variable());
         }
         return share;
+    }
+    
+    public int diffLinks(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value) {
+        int diff = 0;
+        if (value.getStudent().equals(this) && value.variable().getLink() != null && value.variable().getAssignmentId() >= 0 ) {
+            String link = value.variable().getLink();
+            for (TeachingAssignment other : value.getStudent().getContext(assignment).getAssignments()) {
+                if (!other.variable().equals(value.variable()) && other.variable().getLink() != null && other.variable().getAssignmentId() >= 0 && !link.equals(other.variable().getLink()))
+                    diff ++;
+            }
+        }
+        return diff;
     }
 
     @Override

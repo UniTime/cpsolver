@@ -22,11 +22,11 @@ public class TeachingRequest extends Variable<TeachingRequest, TeachingAssignmen
     private String iLink = null;
     private List<Section> iSections = new ArrayList<Section>();
 
-    public TeachingRequest(long id, String name, int dayCode, int start, int length, String room, String link) {
+    public TeachingRequest(long id, String course, String section, int dayCode, int start, int length, String room, String link) {
         super();
         iAssignmentId = id;
-        iName = name;
-        iSections.add(new Section(id, name, new TimeLocation(dayCode, start, length, 0, 0.0, 0, null, "", null, 0), room, false));
+        iName = course;
+        iSections.add(new Section(id, section, new TimeLocation(dayCode, start, length, 0, 0.0, 0, null, "", null, (length == 18 ? 15 : 10)), room, false));
         iLink = (link == null || link.isEmpty() ? null : link);
     }
     
@@ -59,7 +59,7 @@ public class TeachingRequest extends Variable<TeachingRequest, TeachingAssignmen
         return values;
     }
 
-    public String getClassName() {
+    public String getCourseName() {
         return iName;
     }
 
@@ -88,7 +88,14 @@ public class TeachingRequest extends Variable<TeachingRequest, TeachingAssignmen
 
     @Override
     public String toString() {
-        String ret = getAssignmentId() + "," + getClassName() + ",";
+        String ret = getAssignmentId() + "," + getCourseName() + ",";
+        for (Iterator<Section> i = getSections().iterator(); i.hasNext(); ) {
+            Section section = i.next();
+            if (section.getSectionName() != null)
+                ret += section.getSectionName();
+            if (i.hasNext()) ret += "-";
+        }
+        ret += ",";
         for (Iterator<Section> i = getSections().iterator(); i.hasNext(); ) {
             Section section = i.next();
             if (section.hasTime()) ret += section.getTime().getName(true);

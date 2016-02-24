@@ -25,6 +25,8 @@ public class DiffLink extends AbstractCriterion<TeachingRequest, TeachingAssignm
 
     @Override
     public double getValue(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value, Set<TeachingAssignment> conflicts) {
+        return value.getStudent().diffLinks(assignment, value);
+        /*
         if (value.variable().getAssignmentId() < 0 || value.variable().getLink() == null)
             return 0;
         int links = 0;
@@ -36,6 +38,7 @@ public class DiffLink extends AbstractCriterion<TeachingRequest, TeachingAssignm
                 links++;
         }
         return links;
+        */
     }
 
     @Override
