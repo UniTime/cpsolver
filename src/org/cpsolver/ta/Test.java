@@ -6,6 +6,8 @@ import java.util.Collection;
 import java.util.Map;
 
 import org.cpsolver.ifs.assignment.Assignment;
+import org.cpsolver.ifs.assignment.DefaultParallelAssignment;
+import org.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import org.cpsolver.ifs.model.Constraint;
 import org.cpsolver.ifs.model.Model;
 import org.cpsolver.ifs.solution.Solution;
@@ -18,7 +20,9 @@ import org.cpsolver.ta.constraints.Student;
 import org.cpsolver.ta.model.TAModel;
 import org.cpsolver.ta.model.TeachingAssignment;
 import org.cpsolver.ta.model.TeachingRequest;
+import org.dom4j.Document;
 import org.dom4j.io.OutputFormat;
+import org.dom4j.io.SAXReader;
 import org.dom4j.io.XMLWriter;
 
 public class Test {
@@ -30,12 +34,21 @@ public class Test {
             config.putAll(System.getProperties());
             ToolBox.configureLogging(config.getProperty("output", "output"), config, false, true);
 
-            TAModel model = new TAModel(config);
-            model.load(new File(config.getProperty("input", "input")));
-
             int nrSolvers = config.getPropertyInt("Parallel.NrSolvers", 1);
             Solver<TeachingRequest, TeachingAssignment> solver = (nrSolvers == 1 ? new Solver<TeachingRequest, TeachingAssignment>(config) : new ParallelSolver<TeachingRequest, TeachingAssignment>(config));
-            solver.setInitalSolution(model);
+
+            TAModel model = new TAModel(config);
+            File inputDir = new File(config.getProperty("input", "input"));
+            File inputSolution = new File(inputDir, "solution.xml");
+            if (inputSolution.exists()) {
+                Document document = (new SAXReader()).read(inputSolution);
+                Assignment<TeachingRequest, TeachingAssignment> assignment = (nrSolvers <= 1 ? new DefaultSingleAssignment<TeachingRequest, TeachingAssignment>() : new DefaultParallelAssignment<TeachingRequest, TeachingAssignment>());
+                model.load(document, assignment);
+                solver.setInitalSolution(new Solution<TeachingRequest, TeachingAssignment>(model, assignment));
+            } else {
+                model.load(inputDir);
+                solver.setInitalSolution(model);
+            }
 
             solver.currentSolution().addSolutionListener(new SolutionListener<TeachingRequest, TeachingAssignment>() {
                 @Override

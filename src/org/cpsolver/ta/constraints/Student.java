@@ -132,7 +132,7 @@ public class Student extends ConstraintWithContext<TeachingRequest, TeachingAssi
         String ret = "";
         for (TimeLocation tl: getUnavailability()) {
             if (!ret.isEmpty()) ret += ", ";
-            ret += tl.getLongName(false);
+            ret += tl.getLongName(false).trim();
         }
         return ret.isEmpty() ? "-" : "[" + ret + "]";
     }
@@ -236,9 +236,24 @@ public class Student extends ConstraintWithContext<TeachingRequest, TeachingAssi
     public boolean isBackToBackDiscouraged() {
         return iB2B == -1;
     }
+    
+    public int getBackToBackPreference() {
+        return iB2B;
+    }
 
     public String toString(Assignment<TeachingRequest, TeachingAssignment> assignment) {
         return getContext(assignment).toString();
+    }
+    
+    @Override
+    public String toString() {
+        String pref = "";
+        for (int i = 0; i < 3; i++) {
+            pref += (i > 0 ? "," : "") + (i < iPrefs.size() ? iPrefs.get(i) : "");
+        }
+        return getStudentId() + ",\"" + getAvailable() + "\"," + pref + "," + (isGrad() ? "Yes" : "No") + ","
+                + (isBackToBackPreferred() ? "Yes" : isBackToBackDiscouraged() ? "No" : "") + ","
+                + (getLevel() == null ? "" : getLevel());
     }
 
     public int backToBack(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value) {

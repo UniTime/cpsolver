@@ -12,11 +12,13 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.log4j.Logger;
 import org.cpsolver.coursett.Constants;
 import org.cpsolver.coursett.model.TimeLocation;
 import org.cpsolver.ifs.assignment.Assignment;
@@ -24,6 +26,7 @@ import org.cpsolver.ifs.criteria.Criterion;
 import org.cpsolver.ifs.model.Constraint;
 import org.cpsolver.ifs.model.Model;
 import org.cpsolver.ifs.util.DataProperties;
+import org.cpsolver.ifs.util.ToolBox;
 import org.cpsolver.ta.constraints.SameAssignment;
 import org.cpsolver.ta.constraints.Student;
 import org.cpsolver.ta.criteria.BackToBack;
@@ -37,6 +40,7 @@ import org.dom4j.DocumentHelper;
 import org.dom4j.Element;
 
 public class TAModel extends Model<TeachingRequest, TeachingAssignment> {
+    private static Logger sLog = Logger.getLogger(TAModel.class);
     public static String[] sDayCodes = new String[] { "M", "T", "W", "R", "F" };
     private DataProperties iProperties;
 
@@ -173,13 +177,13 @@ public class TAModel extends Model<TeachingRequest, TeachingAssignment> {
          */
 
         for (TeachingRequest clazz : variables()) {
-            System.out.println("Added class " + clazz);
+            sLog.info("Added class " + clazz);
             if (clazz.getAssignmentId() >= 0 && clazz.getLevels().isEmpty()) {
-                System.err.println("No level: " + clazz);
+                sLog.error("No level: " + clazz);
                 clazz.getLevels().put(getProperties().getProperty("TA.DefaultLevelCode", "XXX"), 1);
             }
             if (clazz.getAssignmentId() >= 0 && clazz.getLoad() == 0.0) {
-                System.err.println("No load: " + clazz);
+                sLog.error("No load: " + clazz);
                 clazz.setLoad(getProperties().getPropertyDouble("TA.DefaultLoad", 10.0));
             }
         }
@@ -196,15 +200,14 @@ public class TAModel extends Model<TeachingRequest, TeachingAssignment> {
             int idx = 0;
             String id = fields[idx++];
             if (!studentIds.add(id)) {
-                System.err.println("Student " + id + " is two or more times in the file.");
+                sLog.error("Student " + id + " is two or more times in the file.");
             }
             boolean[] av = new boolean[50];
             for (int i = 0; i < 50; i++)
                 av[i] = "1".equals(fields[idx++]);
             List<String> prefs = new ArrayList<String>();
             for (int i = 0; i < 3; i++) {
-                String p = fields[idx++].replace("Large lecture", "LEC").replace("Lecture", "LEC").replace("Recitation",
-                        "REC");
+                String p = fields[idx++].replace("Large lecture", "LEC").replace("Lecture", "LEC").replace("Recitation", "REC");
                 if (p.startsWith("MA "))
                     p = p.substring(3);
                 if ("I have no preference".equals(p))
@@ -241,31 +244,31 @@ public class TAModel extends Model<TeachingRequest, TeachingAssignment> {
             }
             if (student.getMaxLoad() > 0 && !student.variables().isEmpty()) {
                 addConstraint(student);
-                System.out.println("Added student " + student);
+                sLog.info("Added student " + student.toString());
                 int nrClasses = 0;
                 for (TeachingRequest c : student.variables()) {
                     if (c.getId() >= 0) {
-                        System.out.println("  -- " + c);
+                        sLog.info("  -- " + c);
                         nrClasses++;
                     }
                 }
                 if (nrClasses == 0) {
-                    System.out.println("  -- no courses available");
+                    sLog.info("  -- no courses available");
                 }
                 studentMaxLoad += student.getMaxLoad();
             } else {
-                System.out.println("Ignoring student " + student);
+                sLog.info("Ignoring student " + student);
                 if (student.getMaxLoad() == 0)
-                    System.out.println("  -- zero max load");
+                    sLog.info("  -- zero max load");
                 else
-                    System.out.println("  -- no courses available");
+                    sLog.info("  -- no courses available");
             }
         }
 
         double totalLoad = 0.0;
         for (TeachingRequest clazz : variables()) {
             if (clazz.values(getEmptyAssignment()).isEmpty())
-                System.err.println("No values: " + clazz);
+                sLog.error("No values: " + clazz);
             totalLoad += clazz.getLoad();
         }
 
@@ -278,10 +281,10 @@ public class TAModel extends Model<TeachingRequest, TeachingAssignment> {
                 studentLevel2load.put(level, s.getMaxLoad() + (load == null ? 0.0 : load));
             }
         }
-        System.out.println("Student max loads: (total: " + sDoubleFormat.format(studentMaxLoad) + ")");
+        sLog.info("Student max loads: (total: " + sDoubleFormat.format(studentMaxLoad) + ")");
         for (String level : new TreeSet<String>(studentLevel2load.keySet())) {
             Double load = studentLevel2load.get(level);
-            System.out.println("  " + level + ": " + sDoubleFormat.format(load));
+            sLog.info("  " + level + ": " + sDoubleFormat.format(load));
         }
         Map<String, Double> clazzLevel2load = new HashMap<String, Double>();
         for (TeachingRequest clazz : variables()) {
@@ -296,10 +299,10 @@ public class TAModel extends Model<TeachingRequest, TeachingAssignment> {
             Double load = clazzLevel2load.get(level);
             clazzLevel2load.put(level, clazz.getLoad() + (load == null ? 0.0 : load));
         }
-        System.out.println("Class loads: (total: " + sDoubleFormat.format(totalLoad) + ")");
+        sLog.info("Class loads: (total: " + sDoubleFormat.format(totalLoad) + ")");
         for (String level : new TreeSet<String>(clazzLevel2load.keySet())) {
             Double load = clazzLevel2load.get(level);
-            System.out.println("  " + level + ": " + sDoubleFormat.format(load));
+            sLog.info("  " + level + ": " + sDoubleFormat.format(load));
         }
     }
 
@@ -480,13 +483,11 @@ public class TAModel extends Model<TeachingRequest, TeachingAssignment> {
                 Element studentEl = studentsEl.addElement("student");
                 studentEl.addAttribute("id", student.getStudentId());
                 studentEl.addAttribute("grad", student.isGrad() ? "true" : "false");
-                if (student.isBackToBackPreferred())
-                    studentEl.addAttribute("btb", "-1");
-                else if (student.isBackToBackDiscouraged())
-                    studentEl.addAttribute("btb", "1");
+                if (student.getBackToBackPreference() != 0)
+                    studentEl.addAttribute("btb", String.valueOf(student.getBackToBackPreference()));
                 if (student.getLevel() != null && !student.getLevel().isEmpty())
                     studentEl.addAttribute("level", student.getLevel());
-                studentEl.addAttribute("maxload", sDoubleFormat.format(student.getMaxLoad()));
+                studentEl.addAttribute("maxLoad", sDoubleFormat.format(student.getMaxLoad()));
                 for (String pref: student.getPreferences())
                     studentEl.addElement("preference").addAttribute("value", pref);
                 for (TimeLocation tl: student.getUnavailability()) {
@@ -511,11 +512,263 @@ public class TAModel extends Model<TeachingRequest, TeachingAssignment> {
         return document;
     }
     
+    public boolean load(Document document, Assignment<TeachingRequest, TeachingAssignment> assignment) {
+        boolean loadInitial = getProperties().getPropertyBoolean("Xml.LoadInitial", true);
+        boolean loadBest = getProperties().getPropertyBoolean("Xml.LoadBest", true);
+        boolean loadSolution = getProperties().getPropertyBoolean("Xml.LoadSolution", true);
+        Element root = document.getRootElement();
+        if (!"ta".equals(root.getName()))
+            return false;
+        Map<String, Double> course2load = new HashMap<String, Double>();
+        Map<String, Map<String, Integer>> course2levels = new HashMap<String, Map<String, Integer>>();
+        if (root.element("courses") != null) {
+            for (Iterator<?> i = root.element("courses").elementIterator("course"); i.hasNext();) {
+                Element e = (Element) i.next();
+                String course = e.attributeValue("name");
+                String load = e.attributeValue("load"); 
+                if (load != null)
+                    course2load.put(course, Double.parseDouble(load));
+                Map<String, Integer> levels = new HashMap<String, Integer>();
+                for (Iterator<?> j = e.elementIterator("skill"); j.hasNext();) {
+                    Element f = (Element) j.next();
+                    levels.put(f.attributeValue("level"), Integer.parseInt(f.attributeValue("preference")));
+                }
+                course2levels.put(course, levels);
+            }
+        }
+
+        Map<String, Student> students = new HashMap<String, Student>();
+        double studentMaxLoad = 0.0;
+        for (Iterator<?> i = root.element("students").elementIterator("student"); i.hasNext();) {
+            Element e = (Element) i.next();
+            List<String> preferences = new ArrayList<String>();
+            for (Iterator<?> j = e.elementIterator("preference"); j.hasNext();) {
+                Element f = (Element) j.next();
+                preferences.add(f.attributeValue("value"));
+            }
+            Student student = new Student(e.attributeValue("id"), preferences,
+                    "true".equalsIgnoreCase(e.attributeValue("grad", "true")),
+                    Integer.valueOf(e.attributeValue("btb", "0")),
+                    Double.valueOf(e.attributeValue("maxLoad", "20")),
+                    e.attributeValue("level"));
+            for (Iterator<?> j = e.elementIterator("unavailable"); j.hasNext();) {
+                Element f = (Element) j.next();
+                TimeLocation time = new TimeLocation(
+                        Integer.parseInt(f.attributeValue("days"), 2),
+                        Integer.parseInt(f.attributeValue("start")),
+                        Integer.parseInt(f.attributeValue("length")), 0, 0,
+                        f.attributeValue("datePattern") == null ? null : Long.valueOf(f.attributeValue("datePattern")),
+                        f.attributeValue("datePatternName", ""),
+                        createBitSet(f.attributeValue("dates")),
+                        Integer.parseInt(f.attributeValue("breakTime", "0")));
+                if (f.attributeValue("pattern") != null)
+                    time.setTimePatternId(Long.valueOf(f.attributeValue("pattern")));
+                student.setNotAvailable(time);
+            }
+            addConstraint(student);
+            students.put(student.getStudentId(), student);
+            studentMaxLoad += student.getMaxLoad();
+        }
+
+        Map<Long, List<TeachingRequest>> id2classes = new HashMap<Long, List<TeachingRequest>>();
+        Map<TeachingRequest, Student> best = new HashMap<TeachingRequest, Student>();
+        Map<TeachingRequest, Student> initial = new HashMap<TeachingRequest, Student>();
+        Map<TeachingRequest, Student> current = new HashMap<TeachingRequest, Student>();
+        for (Iterator<?> i = root.element("assignments").elementIterator("assignment"); i.hasNext();) {
+            Element e = (Element) i.next();
+            List<Section> sections = new ArrayList<Section>();
+            for (Iterator<?> j = e.elementIterator("section"); j.hasNext();) {
+                Element f = (Element) j.next();
+                TimeLocation time = null;
+                Element timeEl = f.element("time");
+                if (timeEl != null) {
+                    time = new TimeLocation(
+                            Integer.parseInt(timeEl.attributeValue("days"), 2),
+                            Integer.parseInt(timeEl.attributeValue("start")),
+                            Integer.parseInt(timeEl.attributeValue("length")), 0, 0,
+                            timeEl.attributeValue("datePattern") == null ? null : Long.valueOf(timeEl.attributeValue("datePattern")),
+                            timeEl.attributeValue("datePatternName", ""),
+                            createBitSet(timeEl.attributeValue("dates")),
+                            Integer.parseInt(timeEl.attributeValue("breakTime", "0")));
+                    if (timeEl.attributeValue("pattern") != null)
+                        time.setTimePatternId(Long.valueOf(timeEl.attributeValue("pattern")));
+                }
+                Section section = new Section(
+                        (f.attributeValue("id") == null ? null : Long.valueOf(f.attributeValue("id"))),
+                        f.attributeValue("name"),
+                        time,
+                        f.attributeValue("room"),
+                        "true".contentEquals(f.attributeValue("canOverlap", "false")));
+                sections.add(section);
+            }
+            TeachingRequest tr = new TeachingRequest(
+                    (e.attributeValue("id") == null ? null : Long.valueOf(e.attributeValue("id"))),
+                    e.attributeValue("course"),
+                    sections,
+                    e.attributeValue("link"));
+            Double load = course2load.get(tr.getCourseName());
+            if (e.attributeValue("load") != null)
+                load = Double.parseDouble(e.attributeValue("load"));
+            if (load != null)
+                tr.setLoad(load);
+            Map<String, Integer> levels = null;
+            for (Iterator<?> j = e.elementIterator("skill"); j.hasNext();) {
+                Element f = (Element) j.next();
+                if (levels == null)
+                    levels = new HashMap<String, Integer>();
+                levels.put(f.attributeValue("level"), Integer.parseInt(f.attributeValue("preference")));
+            }
+            if (levels == null)
+                levels = course2levels.get(tr.getCourseName());
+            if (levels != null)
+                tr.getLevels().putAll(levels);
+            if (loadBest && e.element("best") != null)
+                best.put(tr, students.get(e.element("best").attributeValue("student")));
+            if (loadInitial && e.element("initial") != null)
+                initial.put(tr, students.get(e.element("initial").attributeValue("student")));
+            if (loadSolution && e.element("solution") != null)
+                current.put(tr, students.get(e.element("solution").attributeValue("student")));
+            addVariable(tr);
+            if (tr.getAssignmentId() != null) {
+                List<TeachingRequest> classes = id2classes.get(tr.getAssignmentId());
+                if (classes == null) {
+                    classes = new ArrayList<TeachingRequest>();
+                    id2classes.put(tr.getAssignmentId(), classes);
+                }
+                classes.add(tr);
+            }
+        }
+
+        for (Map.Entry<Long, List<TeachingRequest>> e : id2classes.entrySet()) {
+            Long id = e.getKey();
+            List<TeachingRequest> classes = e.getValue();
+            if (classes.size() > 1) {
+                SameAssignment sa = new SameAssignment(id);
+                for (TeachingRequest c : classes)
+                    sa.addVariable(c);
+                addConstraint(sa);
+            }
+        }
+
+        for (TeachingRequest clazz : variables()) {
+            sLog.info("Added class " + clazz);
+            if (clazz.getAssignmentId() >= 0 && clazz.getLevels().isEmpty()) {
+                sLog.error("No level: " + clazz);
+                clazz.getLevels().put(getProperties().getProperty("TA.DefaultLevelCode", "XXX"), 1);
+            }
+            if (clazz.getAssignmentId() >= 0 && clazz.getLoad() == 0.0) {
+                sLog.error("No load: " + clazz);
+                clazz.setLoad(getProperties().getPropertyDouble("TA.DefaultLoad", 10.0));
+            }
+        }
+        
+        for (Constraint<TeachingRequest, TeachingAssignment> constraint: constraints()) {
+            if (constraint instanceof Student) {
+                Student student = (Student)constraint;
+                for (TeachingRequest request : variables()) {
+                    if (student.canTeach(request))
+                        student.addVariable(request);
+                }
+                if (student.getMaxLoad() > 0 && !student.variables().isEmpty()) {
+                    sLog.info("Added student " + student.getContext(assignment).toString());
+                    int nrClasses = 0;
+                    for (TeachingRequest c : student.variables()) {
+                        if (c.getId() >= 0) {
+                            sLog.info("  -- " + c);
+                            nrClasses++;
+                        }
+                    }
+                    if (nrClasses == 0) {
+                        sLog.info("  -- no courses available");
+                    }
+                } else {
+                    sLog.info("Ignoring student " + student);
+                    if (student.getMaxLoad() == 0)
+                        sLog.info("  -- zero max load");
+                    else
+                        sLog.info("  -- no courses available");
+                }
+            }
+        }
+        
+        for (Map.Entry<TeachingRequest, Student> entry: best.entrySet())
+            entry.getKey().setBestAssignment(new TeachingAssignment(entry.getKey(), entry.getValue()), 0l);
+
+        for (Map.Entry<TeachingRequest, Student> entry: initial.entrySet())
+            entry.getKey().setInitialAssignment(new TeachingAssignment(entry.getKey(), entry.getValue()));
+        
+        if (!current.isEmpty()) {
+            for (Map.Entry<TeachingRequest, Student> entry: current.entrySet()) {
+                TeachingRequest request = entry.getKey();
+                TeachingAssignment ta = new TeachingAssignment(request, entry.getValue());
+                Set<TeachingAssignment> conf = conflictValues(assignment, ta);
+                if (conf.isEmpty()) {
+                    assignment.assign(0, ta);
+                } else {
+                    sLog.error("Unable to assign " + ta.getName() + " to " + request.getName());
+                    sLog.error("Conflicts:" + ToolBox.dict2string(conflictConstraints(assignment, ta), 2));
+                }
+            }
+        }
+
+        double totalLoad = 0.0;
+        for (TeachingRequest clazz : variables()) {
+            if (clazz.values(getEmptyAssignment()).isEmpty())
+                sLog.error("No values: " + clazz);
+            totalLoad += clazz.getLoad();
+        }
+
+        Map<String, Double> studentLevel2load = new HashMap<String, Double>();
+        for (Constraint<TeachingRequest, TeachingAssignment> c : constraints()) {
+            if (c instanceof Student) {
+                Student s = (Student) c;
+                String level = (s.getLevel() == null ? "null" : s.getLevel());
+                Double load = studentLevel2load.get(level);
+                studentLevel2load.put(level, s.getMaxLoad() + (load == null ? 0.0 : load));
+            }
+        }
+        sLog.info("Student max loads: (total: " + sDoubleFormat.format(studentMaxLoad) + ")");
+        for (String level : new TreeSet<String>(studentLevel2load.keySet())) {
+            Double load = studentLevel2load.get(level);
+            sLog.info("  " + level + ": " + sDoubleFormat.format(load));
+        }
+        Map<String, Double> clazzLevel2load = new HashMap<String, Double>();
+        for (TeachingRequest clazz : variables()) {
+            String level = null;
+            for (String l : new TreeSet<String>(clazz.getLevels().keySet())) {
+                level = (level == null ? "" : level + ",") + l;
+            }
+            if (level == null)
+                level = "null";
+            if (clazz.getId() < 0)
+                level = clazz.getName();
+            Double load = clazzLevel2load.get(level);
+            clazzLevel2load.put(level, clazz.getLoad() + (load == null ? 0.0 : load));
+        }
+        sLog.info("Class loads: (total: " + sDoubleFormat.format(totalLoad) + ")");
+        for (String level : new TreeSet<String>(clazzLevel2load.keySet())) {
+            Double load = clazzLevel2load.get(level);
+            sLog.info("  " + level + ": " + sDoubleFormat.format(load));
+        }
+        
+        return true;
+    }
+    
     /** Convert bitset to a bit string */
     private static String bitset2string(BitSet b) {
         StringBuffer sb = new StringBuffer();
         for (int i = 0; i < b.length(); i++)
             sb.append(b.get(i) ? "1" : "0");
         return sb.toString();
+    }
+
+    /** Create BitSet from a bit string */
+    private static BitSet createBitSet(String bitString) {
+        if (bitString == null) return null;
+        BitSet ret = new BitSet(bitString.length());
+        for (int i = 0; i < bitString.length(); i++)
+            if (bitString.charAt(i) == '1')
+                ret.set(i);
+        return ret;
     }
 }
