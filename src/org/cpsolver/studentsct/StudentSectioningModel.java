@@ -887,6 +887,15 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         
     @Override
     public String toString(Assignment<Request, Enrollment> assignment) {
+        double groupSpread = 0.0; double groupCount = 0;
+        for (Offering offering: iOfferings) {
+            for (Course course: offering.getCourses()) {
+                for (RequestGroup group: course.getRequestGroups()) {
+                    groupSpread += group.getAverageSpread(assignment) * group.getEnrollmentWeight(assignment, null);
+                    groupCount += group.getEnrollmentWeight(assignment, null);
+                }
+            }
+        }
         return   (getNrRealStudents(false) > 0 ? "RRq:" + getNrAssignedRealRequests(assignment, false) + "/" + getNrRealRequests(false) + ", " : "")
                 + (getNrLastLikeStudents(false) > 0 ? "DRq:" + getNrAssignedLastLikeRequests(assignment, false) + "/" + getNrLastLikeRequests(false) + ", " : "")
                 + (getNrRealStudents(false) > 0 ? "RS:" + getNrCompleteRealStudents(assignment, false) + "/" + getNrRealStudents(false) + ", " : "")
@@ -898,7 +907,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 + (iMPP ? ", IS:" + sDecimalFormat.format(100.0 * getContext(assignment).iAssignedSameSectionWeight / iTotalMPPCRWeight) + "%" : "")
                 + (iMPP ? ", IT:" + sDecimalFormat.format(100.0 * getContext(assignment).iAssignedSameTimeWeight / iTotalMPPCRWeight) + "%" : "")
                 + ", %:" + sDecimalFormat.format(-100.0 * getTotalValue(assignment) / (getStudents().size() - iNrDummyStudents + 
-                        (iProjectedStudentWeight < 0.0 ? iNrDummyStudents * (iTotalDummyWeight / iNrDummyRequests) :iProjectedStudentWeight * iTotalDummyWeight)));
+                        (iProjectedStudentWeight < 0.0 ? iNrDummyStudents * (iTotalDummyWeight / iNrDummyRequests) :iProjectedStudentWeight * iTotalDummyWeight)))
+                + (groupCount > 0 ? ", SG:" + sDecimalFormat.format(100.0 * groupSpread / groupCount) + "%" : "");
 
     }
     
@@ -985,7 +995,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         @Override
         public void unassigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
             Student student = enrollment.getStudent();
-            if (iCompleteStudents.contains(student) && !student.isComplete(assignment)) {
+            if (iCompleteStudents.contains(student)) {
                 iCompleteStudents.remove(student);
                 if (student.isDummy())
                     iNrCompleteDummyStudents--;
