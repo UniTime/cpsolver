@@ -1,11 +1,15 @@
 package org.cpsolver.studentsct.heuristics;
 
-import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.heuristics.BacktrackNeighbourSelection;
 import org.cpsolver.ifs.util.DataProperties;
+import org.cpsolver.studentsct.StudentSectioningModel;
 import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
@@ -78,9 +82,34 @@ public class RandomizedBacktrackNeighbourSelection extends BacktrackNeighbourSel
      */
     @Override
     protected Iterator<Enrollment> values(BacktrackNeighbourSelection<Request, Enrollment>.BacktrackNeighbourSelectionContext context, Request variable) {
-        if (iMaxValues > 0 && variable instanceof CourseRequest) {
-            return new ArrayList<Enrollment>(((CourseRequest) variable).computeRandomEnrollments(context.getAssignment(), iMaxValues)).iterator();
+        if (variable instanceof CourseRequest) {
+            final CourseRequest request = (CourseRequest)variable;
+            final StudentSectioningModel model = (StudentSectioningModel)context.getModel();
+            final Assignment<Request, Enrollment> assignment = context.getAssignment();
+            List<Enrollment> values = (iMaxValues > 0 ? request.computeRandomEnrollments(assignment, iMaxValues) : request.computeEnrollments(assignment));
+            Collections.sort(values, new Comparator<Enrollment>() {
+                private HashMap<Enrollment, Double> iValues = new HashMap<Enrollment, Double>();
+                private Double value(Enrollment e) {
+                    Double value = iValues.get(e);
+                    if (value == null) {
+                        value = model.getStudentWeights().getWeight(assignment, e,
+                                (model.getDistanceConflict() == null ? null : model.getDistanceConflict().conflicts(e)),
+                                (model.getTimeOverlaps() == null ? null : model.getTimeOverlaps().freeTimeConflicts(e)));
+                        iValues.put(e, value);
+                    }
+                    return value;
+                }
+                @Override
+                public int compare(Enrollment e1, Enrollment e2) {
+                    if (e1.equals(assignment.getValue(request))) return -1;
+                    if (e2.equals(assignment.getValue(request))) return 1;
+                    Double v1 = value(e1), v2 = value(e2);
+                    return v1.equals(v2) ? e1.compareTo(assignment, e2) : v2.compareTo(v1);
+                }
+            });
+            return values.iterator();
+        } else {
+            return variable.computeEnrollments(context.getAssignment()).iterator();
         }
-        return variable.computeEnrollments(context.getAssignment()).iterator();
     }
 }
