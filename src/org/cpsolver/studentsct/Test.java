@@ -71,6 +71,7 @@ import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.Student;
 import org.cpsolver.studentsct.report.CourseConflictTable;
 import org.cpsolver.studentsct.report.DistanceConflictTable;
+import org.cpsolver.studentsct.report.RequestGroupTable;
 import org.cpsolver.studentsct.report.SectionConflictTable;
 import org.cpsolver.studentsct.report.TimeOverlapConflictTable;
 import org.cpsolver.studentsct.report.UnbalancedSectionsTable;
@@ -562,6 +563,9 @@ public class Test {
                     TimeOverlapConflictTable toc = new TimeOverlapConflictTable((StudentSectioningModel) solution.getModel());
                     toc.createTable(solution.getAssignment(), true, false, true).save(new File(outDir, "time-overlaps-lastlike.csv"));
                     toc.createTable(solution.getAssignment(), false, true, true).save(new File(outDir, "time-overlaps-real.csv"));
+                    
+                    RequestGroupTable rqt = new RequestGroupTable((StudentSectioningModel) solution.getModel());
+                    rqt.create(solution.getAssignment(), model.getProperties()).save(new File(outDir, "request-groups.csv"));
                 } catch (IOException e) {
                     sLog.error(e.getMessage(), e);
                 }
