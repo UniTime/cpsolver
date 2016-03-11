@@ -47,14 +47,16 @@ import org.cpsolver.studentsct.model.Request;
 public class BacktrackSelection implements NeighbourSelection<Request, Enrollment> {
     private RandomizedBacktrackNeighbourSelection iRBtNSel = null;
     protected Queue<Request> iRequests = null;
+    protected boolean iIncludeAssignedRequests = false;
 
     public BacktrackSelection(DataProperties properties) {
+        iIncludeAssignedRequests = properties.getPropertyBoolean("Neighbour.IncludeAssignedRequests", iIncludeAssignedRequests);
     }
 
     public void init(Solver<Request, Enrollment> solver, String name) {
-        List<Request> unassigned = new ArrayList<Request>(solver.currentSolution().getModel().unassignedVariables(solver.currentSolution().getAssignment()));
-        Collections.shuffle(unassigned);
-        iRequests = new LinkedList<Request>(unassigned);
+        List<Request> variables = new ArrayList<Request>(iIncludeAssignedRequests ? solver.currentSolution().getModel().variables() : solver.currentSolution().getModel().unassignedVariables(solver.currentSolution().getAssignment()));
+        Collections.shuffle(variables);
+        iRequests = new LinkedList<Request>(variables);
         if (iRBtNSel == null) {
             try {
                 iRBtNSel = new RandomizedBacktrackNeighbourSelection(solver.getProperties());
@@ -63,7 +65,7 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
                 throw new RuntimeException(e.getMessage(), e);
             }
         }
-        Progress.getInstance(solver.currentSolution().getModel()).setPhase(name, unassigned.size());
+        Progress.getInstance(solver.currentSolution().getModel()).setPhase(name, variables.size());
     }
 
     @Override
