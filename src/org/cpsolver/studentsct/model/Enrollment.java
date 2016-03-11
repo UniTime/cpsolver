@@ -401,8 +401,10 @@ public class Enrollment extends Value<Request, Enrollment> {
         if (getRequest() instanceof CourseRequest) {
             double sameGroup = 0.0; int groupCount = 0;
             for (RequestGroup g: ((CourseRequest)getRequest()).getRequestGroups()) {
-                sameGroup += g.getEnrollmentSpread(a, this);
-                groupCount ++;
+                if (g.getCourse().equals(getCourse())) {
+                    sameGroup += g.getEnrollmentSpread(a, this);
+                    groupCount ++;
+                }
             }
             if (groupCount > 0)
                 ret += "/g:" + sDF.format(sameGroup / groupCount);

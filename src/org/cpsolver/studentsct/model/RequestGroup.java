@@ -10,6 +10,7 @@ import org.cpsolver.ifs.assignment.context.AbstractClassWithContext;
 import org.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
 import org.cpsolver.ifs.assignment.context.CanInheritContext;
 import org.cpsolver.ifs.model.Model;
+import org.cpsolver.studentsct.reservation.Reservation;
 
 /**
  * Representation of a group of students requesting the same course that
@@ -296,7 +297,26 @@ public class RequestGroup extends AbstractClassWithContext<Request, Enrollment, 
         }
         
         /**
-         * Return how much is the given enrollment similar to other enrollments of this group.
+         * Return space available in the given section
+         * @param assignment current assignment
+         * @param section section to check
+         * @param enrollment enrollment in question
+         * @return check section reservations, if present; use unreserved space otherwise
+         */
+        private double getAvailableSpace(Assignment<Request, Enrollment> assignment, Section section, Enrollment enrollment) {
+            Reservation reservation = enrollment.getReservation();
+            Set<Section> sections = (reservation == null ? null : reservation.getSections(section.getSubpart()));
+            if (reservation != null && sections != null && sections.contains(section) && !reservation.isExpired()) {
+                double sectionAvailable = (section.getLimit() < 0 ? Double.MAX_VALUE : section.getLimit() - section.getEnrollmentWeight(assignment, enrollment.getRequest()));
+                double reservationAvailable = reservation.getReservedAvailableSpace(assignment, enrollment.getRequest());
+                return Math.min(sectionAvailable, reservationAvailable) + (reservation.mustBeUsed() ? 0.0 : section.getUnreservedSpace(assignment, enrollment.getRequest()));
+            } else {
+                return section.getUnreservedSpace(assignment, enrollment.getRequest());
+            }
+        }
+        
+        /**
+         * Return how much is the given enrollment (which is not part of the request group) creating an issue for this request group
          * @param assignment current assignment 
          * @param enrollment enrollment in question
          * @return 1.0 if all enrollments have the same sections as the given one, 0.0 if there is no match at all 
@@ -312,7 +332,7 @@ public class RequestGroup extends AbstractClassWithContext<Request, Enrollment, 
             Enrollment e = assignment.getValue(enrollment.getRequest());
             double enrollmentPairs = 0.0, bestPairs = 0.0;
             for (Section section: enrollment.getSections()) {
-                double potential = Math.max(Math.min(totalRemaining, section.getUnreservedSpace(assignment, enrollment.getRequest())), enrollment.getRequest().getWeight());
+                double potential = Math.max(Math.min(totalRemaining, getAvailableSpace(assignment, section, enrollment)), enrollment.getRequest().getWeight());
                 Double enrolled = iSectionWeight.get(section.getId());
                 if (enrolled != null) {
                     if (e != null && e.getSections().contains(section))
@@ -320,10 +340,8 @@ public class RequestGroup extends AbstractClassWithContext<Request, Enrollment, 
                     potential += enrolled;
                     enrollmentPairs += enrolled * (enrolled + 1.0);  
                 }
-                if (potential > 1.0)
-                    bestPairs += 0.1 * potential * (potential - 1.0);
+                bestPairs += potential * (potential - 1.0);
             }
-            
             double pEnrl = (totalEnrolled < 1.0 ? 0.0 : (enrollmentPairs / enrollment.getSections().size()) / (totalEnrolled * (totalEnrolled + 1.0)));
             double pBest = (bestPairs / enrollment.getSections().size()) / (iTotalWeight * (iTotalWeight - 1.0));
             
