@@ -277,7 +277,7 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
             if (current == null)
                 context.getAssignment().unassign(0, variable);
             else
-                context.getAssignment().assign(0, value);
+                context.getAssignment().assign(0, current);
             for (Iterator<T> i = conflicts.iterator(); i.hasNext();) {
                 T conflict = i.next();
                 context.getAssignment().assign(0, conflict); 
