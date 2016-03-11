@@ -115,6 +115,7 @@ public class RoundRobinNeighbourSelection<V extends Variable<V, T>, T extends Va
             if (newSelectionIndex <= iSelectionIdx) return; // already changed
             iSelectionIdx = newSelectionIndex;
             sLogger.info("Phase changed to " + ((newSelectionIndex % iSelections.size()) + 1));
+            sLogger.info(iSolver.currentSolution().toString());
             if (iSolver.currentSolution().getBestInfo() == null || iSolver.getSolutionComparator().isBetterThanBestSolution(iSolver.currentSolution()))
                 iSolver.currentSolution().saveBest();
             iSelections.get(iSelectionIdx % iSelections.size()).init(iSolver);
