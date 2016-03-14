@@ -77,6 +77,8 @@ public class PriorityStudentWeights implements StudentWeights {
     protected double iSameChoiceWeight = 0.900;
     protected double iSameTimeWeight = 0.700;
     protected double iGroupFactor = 0.100;
+    protected double iGroupBestRatio = 0.95;
+    protected double iGroupFillRatio = 0.05;
     
     public PriorityStudentWeights(DataProperties config) {
         iPriorityFactor = config.getPropertyDouble("StudentWeights.Priority", iPriorityFactor);
@@ -94,6 +96,8 @@ public class PriorityStudentWeights implements StudentWeights {
         iSameChoiceWeight = config.getPropertyDouble("StudentWeights.SameChoice", iSameChoiceWeight);
         iSameTimeWeight = config.getPropertyDouble("StudentWeights.SameTime", iSameTimeWeight);
         iGroupFactor = config.getPropertyDouble("StudentWeights.SameGroup", iGroupFactor);
+        iGroupBestRatio = config.getPropertyDouble("StudentWeights.GroupBestRatio", iGroupBestRatio);
+        iGroupFillRatio = config.getPropertyDouble("StudentWeights.GroupFillRatio", iGroupFillRatio);
     }
         
     public double getWeight(Request request) {
@@ -244,7 +248,7 @@ public class PriorityStudentWeights implements StudentWeights {
             double sameGroup = 0.0; int groupCount = 0;
             for (RequestGroup g: ((CourseRequest)enrollment.getRequest()).getRequestGroups()) {
                 if (g.getCourse().equals(enrollment.getCourse())) {
-                    sameGroup += g.getEnrollmentSpread(assignment, enrollment);
+                    sameGroup += g.getEnrollmentSpread(assignment, enrollment, iGroupBestRatio, iGroupFillRatio);
                     groupCount ++;
                 }
             }

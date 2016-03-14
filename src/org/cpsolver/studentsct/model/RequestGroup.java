@@ -166,10 +166,14 @@ public class RequestGroup extends AbstractClassWithContext<Request, Enrollment, 
      * Return how much is the given enrollment similar to other enrollments of this group.
      * @param assignment current assignment 
      * @param enrollment enrollment in question
+     * @param bestRatio how much of the weight should be used on estimation of the enrollment potential
+     *        (considering that students of this group that are not yet enrolled can take the same enrollment)
+     * @param fillRatio how much of the weight should be used in estimation how well are the sections of this enrollments going to be filled
+     *        (bestRatio + fillRatio <= 1.0)
      * @return 1.0 if all enrollments have the same sections as the given one, 0.0 if there is no match at all 
      */
-    public double getEnrollmentSpread(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
-        return getContext(assignment).getEnrollmentSpread(assignment, enrollment);
+    public double getEnrollmentSpread(Assignment<Request, Enrollment> assignment, Enrollment enrollment, double bestRatio, double fillRatio) {
+        return getContext(assignment).getEnrollmentSpread(assignment, enrollment, bestRatio, fillRatio);
     }
     
     /**
@@ -319,9 +323,13 @@ public class RequestGroup extends AbstractClassWithContext<Request, Enrollment, 
          * Return how much is the given enrollment (which is not part of the request group) creating an issue for this request group
          * @param assignment current assignment 
          * @param enrollment enrollment in question
+         * @param bestRatio how much of the weight should be used on estimation of the enrollment potential
+         *      (considering that students of this group that are not yet enrolled can take the same enrollment) 
+         * @param fillRatio how much of the weight should be used in estimation how well are the sections of this enrollments going to be filled 
+         *      (bestRatio + fillRatio <= 1.0)
          * @return 1.0 if all enrollments have the same sections as the given one, 0.0 if there is no match at all 
          */
-        public double getEnrollmentSpread(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+        public double getEnrollmentSpread(Assignment<Request, Enrollment> assignment, Enrollment enrollment, double bestRatio, double fillRatio) {
             if (iTotalWeight <= 1.0) return 1.0;
             
             // enrollment weight (excluding the given enrollment)
@@ -330,7 +338,7 @@ public class RequestGroup extends AbstractClassWithContext<Request, Enrollment, 
             
             // section weight (also excluding the given enrollment)
             Enrollment e = assignment.getValue(enrollment.getRequest());
-            double enrollmentPairs = 0.0, bestPairs = 0.0;
+            double enrollmentPairs = 0.0, bestPairs = 0.0, fill = 0.0;
             for (Section section: enrollment.getSections()) {
                 double potential = Math.max(Math.min(totalRemaining, getAvailableSpace(assignment, section, enrollment)), enrollment.getRequest().getWeight());
                 Double enrolled = iSectionWeight.get(section.getId());
@@ -341,11 +349,17 @@ public class RequestGroup extends AbstractClassWithContext<Request, Enrollment, 
                     enrollmentPairs += enrolled * (enrolled + 1.0);  
                 }
                 bestPairs += potential * (potential - 1.0);
+                if (section.getLimit() > potential) {
+                    fill += potential / section.getLimit();
+                } else {
+                    fill += 1.0;
+                }
             }
             double pEnrl = (totalEnrolled < 1.0 ? 0.0 : (enrollmentPairs / enrollment.getSections().size()) / (totalEnrolled * (totalEnrolled + 1.0)));
             double pBest = (bestPairs / enrollment.getSections().size()) / (iTotalWeight * (iTotalWeight - 1.0));
+            double pFill = fill / enrollment.getSections().size();
             
-            return 0.9 * pEnrl + 0.1 * pBest;
+            return (1.0 - bestRatio - fillRatio) * pEnrl + bestRatio * pBest + fillRatio * pFill;
         }
         
         /**

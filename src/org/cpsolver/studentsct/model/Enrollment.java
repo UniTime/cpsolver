@@ -402,7 +402,7 @@ public class Enrollment extends Value<Request, Enrollment> {
             double sameGroup = 0.0; int groupCount = 0;
             for (RequestGroup g: ((CourseRequest)getRequest()).getRequestGroups()) {
                 if (g.getCourse().equals(getCourse())) {
-                    sameGroup += g.getEnrollmentSpread(a, this);
+                    sameGroup += g.getEnrollmentSpread(a, this, 1.0, 0.0);
                     groupCount ++;
                 }
             }
