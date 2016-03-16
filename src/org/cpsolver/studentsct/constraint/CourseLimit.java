@@ -224,7 +224,7 @@ public class CourseLimit extends GlobalConstraint<Request, Enrollment> {
         double enrlWeight = getEnrollmentWeight(assignment, course, enrollment.getRequest());
         
         // above limit -> conflict
-        return (enrlWeight > course.getLimit() + sNominalWeight);
+        return (enrlWeight > course.getLimit());
     }
     
     @Override
