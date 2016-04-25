@@ -16,6 +16,7 @@ import org.cpsolver.ifs.criteria.Criterion;
 import org.cpsolver.ifs.util.ToolBox;
 import org.cpsolver.ta.criteria.BackToBack;
 import org.cpsolver.ta.criteria.DiffLink;
+import org.cpsolver.ta.criteria.SameSections;
 import org.cpsolver.ta.criteria.TimeOverlaps;
 import org.cpsolver.ta.model.TeachingRequest;
 import org.cpsolver.ta.model.Section;
@@ -23,6 +24,7 @@ import org.cpsolver.ta.model.TeachingAssignment;
 
 public class Student extends ConstraintWithContext<TeachingRequest, TeachingAssignment, Student.Context> {
     private String iStudentId;
+    private String iName;
     private List<TimeLocation>[] iAvailable = null;
     private List<String> iPrefs;
     private boolean iGrad;
@@ -30,15 +32,18 @@ public class Student extends ConstraintWithContext<TeachingRequest, TeachingAssi
     private double iMaxLoad;
     private String iLevel;
    
-    public Student(String id, List<String> preference, boolean grad, int b2b, double maxLoad, String level) {
+    public Student(String id, String name, List<String> preference, boolean grad, int b2b, double maxLoad, String level) {
         super();
         iStudentId = id;
+        iName = name;
         iPrefs = preference;
         iGrad = grad;
         iB2B = b2b;
         iMaxLoad = maxLoad;
         iLevel = (level == null || level.trim().isEmpty() ? null : level.trim());
     }
+    
+    public String getStudentName() { return iName; }
     
     @SuppressWarnings("unchecked")
     public void setNotAvailable(TimeLocation time) {
@@ -132,9 +137,9 @@ public class Student extends ConstraintWithContext<TeachingRequest, TeachingAssi
         String ret = "";
         for (TimeLocation tl: getUnavailability()) {
             if (!ret.isEmpty()) ret += ", ";
-            ret += tl.getLongName(false).trim();
+            ret += tl.getLongName(true).trim();
         }
-        return ret.isEmpty() ? "-" : "[" + ret + "]";
+        return ret.isEmpty() ? "" : ret;
     }
     
     public Set<TimeLocation> getUnavailability() {
@@ -260,11 +265,11 @@ public class Student extends ConstraintWithContext<TeachingRequest, TeachingAssi
         int b2b = 0;
         if (value.getStudent().equals(this) && (isBackToBackPreferred() || isBackToBackDiscouraged())) {
             for (TeachingRequest other : value.getStudent().assignedVariables(assignment)) {
-                if (other.equals(value.variable()))
-                    continue;
-                if (assignment.getValue(other).getStudent().equals(value.getStudent()) && value.variable().isBackToBack(other)) {
-                    b2b += (isBackToBackPreferred() ? value.variable().isBackToBackSameRoom(other) ? -4 : -1 : 1);
-                }
+                if (other.equals(value.variable())) continue;
+                if (!assignment.getValue(other).getStudent().equals(value.getStudent())) continue;
+                int btb = value.variable().isBackToBack(other);
+                if (btb > 0)
+                    b2b += (isBackToBackPreferred() ? value.variable().isBackToBackSameRoom(other) ? -2 * btb : -btb : 1);
             }
         }
         return b2b;
@@ -294,6 +299,17 @@ public class Student extends ConstraintWithContext<TeachingRequest, TeachingAssi
         }
         return diff;
     }
+    
+    public int sameSections(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value) {
+        int same = 0;
+        if (value.getStudent().equals(this) && value.variable().getAssignmentId() >= 0 ) {
+            for (TeachingAssignment other : value.getStudent().getContext(assignment).getAssignments()) {
+                if (!other.variable().equals(value.variable()) && other.variable().getAssignmentId() >= 0)
+                    same += other.variable().sameSections(value.variable());
+            }
+        }
+        return same;
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -313,7 +329,7 @@ public class Student extends ConstraintWithContext<TeachingRequest, TeachingAssi
 
     public class Context implements AssignmentConstraintContext<TeachingRequest, TeachingAssignment> {
         private HashSet<TeachingAssignment> iAssignments = new HashSet<TeachingAssignment>();
-        private int iDiffLinks = 0, iBackToBacks = 0, iTimeOverlaps = 0;
+        private int iDiffLinks = 0, iBackToBacks = 0, iTimeOverlaps = 0, iSameSections = 0;
         
         public Context(Assignment<TeachingRequest, TeachingAssignment> assignment) {
             for (TeachingRequest request: variables()) {
@@ -365,6 +381,14 @@ public class Student extends ConstraintWithContext<TeachingRequest, TeachingAssi
                 iTimeOverlaps = countTimeOverlaps();
                 overlaps.inc(assignment, iTimeOverlaps);
             }
+            
+            // update same sections
+            Criterion<TeachingRequest, TeachingAssignment> sameSection = getModel().getCriterion(SameSections.class);
+            if (sameSection != null) {
+                sameSection.inc(assignment, iSameSections);
+                iSameSections = countSameSections();
+                sameSection.inc(assignment, - iSameSections);
+            }
         }
         
         public Set<TeachingAssignment> getAssignments() { return iAssignments; }
@@ -381,8 +405,12 @@ public class Student extends ConstraintWithContext<TeachingRequest, TeachingAssi
             if (isBackToBackPreferred() || isBackToBackDiscouraged())
                 for (TeachingAssignment a1 : iAssignments) {
                     for (TeachingAssignment a2 : iAssignments) {
-                        if (a1.getId() < a2.getId() && a1.variable().isBackToBack(a2.variable()))
-                            b2b += (isBackToBackPreferred() ? a1.variable().isBackToBackSameRoom(a1.variable()) ? -4 : -1 : 1);
+                        if (a1.getId() < a2.getId()) {
+                            int btb = a1.variable().isBackToBack(a2.variable());
+                            if (btb > 0) {
+                                b2b += (isBackToBackPreferred() ? a1.variable().isBackToBackSameRoom(a1.variable()) ? -2 * btb : -btb : 1);
+                            }
+                        }
                     }
                 }
             return b2b;
@@ -396,12 +424,21 @@ public class Student extends ConstraintWithContext<TeachingRequest, TeachingAssi
             return Math.max(0, links.size() - 1);
         }
         
+        public int countSameSections() {
+            Set<Section> sections = new HashSet<Section>();
+            int same = 0;
+            for (TeachingAssignment assignment : iAssignments)
+                for (Section section: assignment.variable().getSections())
+                    if (!sections.add(section)) same ++;
+            return same;
+        }
+        
         public int countBackToBacks() {
             int b2b = 0;
             for (TeachingAssignment a1 : iAssignments) {
                 for (TeachingAssignment a2 : iAssignments) {
-                    if (a1.getId() < a2.getId() && a1.variable().isBackToBack(a2.variable()))
-                        b2b++;
+                    if (a1.getId() < a2.getId())
+                        b2b += a1.variable().isBackToBack(a2.variable());
                 }
             }
             return b2b;
@@ -439,7 +476,7 @@ public class Student extends ConstraintWithContext<TeachingRequest, TeachingAssi
             String ass = "";
             double level = 0.0, preference = 0.0;
             for (TeachingAssignment ta : iAssignments) {
-                ass += "," + ta.toString();
+                ass += ",\"" + ta.toString() + "\"";
                 Integer l = ta.variable().getLevels().get(getLevel());
                 if (l != null)
                     level += l;
@@ -450,20 +487,20 @@ public class Student extends ConstraintWithContext<TeachingRequest, TeachingAssi
                     case 1:
                         preference += 0.8;
                         break;
-                    case 3:
+                    case 2:
                         preference += 0.5;
                         break;
                 }
             }
-            return getStudentId() + ",\"" + getAvailable() + "\"," + pref + "," + (isGrad() ? "Yes" : "No") + ","
+            return getStudentId() + ",\"" + getStudentName() + "\",\"" + getAvailable() + "\"," + pref + "," + (isGrad() ? "Yes" : "No") + ","
                     + (isBackToBackPreferred() ? "Yes" : isBackToBackDiscouraged() ? "No" : "") + ","
                     + (getLevel() == null ? "" : getLevel()) + ","
-                    + new DecimalFormat("0.00").format(getLoad()) + ","
+                    + new DecimalFormat("0.00").format(getLoad()) + " / " + new DecimalFormat("0.00").format(getMaxLoad()) + ","
                     + (iAssignments.isEmpty() ? "" : new DecimalFormat("0.0").format(level / iAssignments.size())) + ","
                     + (iAssignments.isEmpty() ? "" : new DecimalFormat("0.0").format(100.0 * preference / iAssignments.size())) + ","
-                    + (countAssignmentsWithTime() <= 1 ? "" : isBackToBackPreferred() ? new DecimalFormat("0.0").format(100.0 * countBackToBacks() / (countAssignmentsWithTime() - 1))
-                            : isBackToBackDiscouraged() ? new DecimalFormat("0.0").format(100.0 - 100.0 * countBackToBacks() / (countAssignmentsWithTime() - 1)) : "")
-                    + "," + (countDiffLinks() > 0 ? countDiffLinks() : "") + "," + (countTimeOverlaps() > 0 ? countTimeOverlaps() : "") + ass;
+                    + ((isBackToBackPreferred() || isBackToBackDiscouraged()) && countAssignmentsWithTime() > 1 ? countBackToBacks() : "")
+                    + "," + (countDiffLinks() > 0 ? countDiffLinks() : "") + "," + (countTimeOverlaps() > 0 ? countTimeOverlaps() : "") 
+                    + "," + (iAssignments.size() <= 1 ? "" : countSameSections() == 0 ? "No" : "Yes") + ass;
         }
     }
 }

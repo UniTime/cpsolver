@@ -2,12 +2,16 @@ package org.cpsolver.ta;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.Map;
 
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.DefaultParallelAssignment;
 import org.cpsolver.ifs.assignment.DefaultSingleAssignment;
+import org.cpsolver.ifs.extension.ConflictStatistics;
+import org.cpsolver.ifs.extension.Extension;
 import org.cpsolver.ifs.model.Constraint;
 import org.cpsolver.ifs.model.Model;
 import org.cpsolver.ifs.solution.Solution;
@@ -111,6 +115,20 @@ public class Test {
             (new XMLWriter(fos, OutputFormat.createPrettyPrint())).write(model.save(solution.getAssignment()));
             fos.flush();
             fos.close();
+            
+            ConflictStatistics<TeachingRequest, TeachingAssignment> cbs = null;
+            for (Extension<TeachingRequest, TeachingAssignment> extension : solver.getExtensions()) {
+                if (ConflictStatistics.class.isInstance(extension)) {
+                    cbs = (ConflictStatistics<TeachingRequest, TeachingAssignment>) extension;
+                }
+            }
+            
+            if (cbs != null) {
+                PrintWriter out = new PrintWriter(new FileWriter(new File(new File(config.getProperty("output", "output")), "cbs.txt")));
+                out.println(cbs.toString());
+                out.flush(); out.close();
+            }
+
 
         } catch (Exception e) {
             e.printStackTrace();

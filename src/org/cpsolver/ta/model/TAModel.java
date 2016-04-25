@@ -34,6 +34,7 @@ import org.cpsolver.ta.criteria.DiffLink;
 import org.cpsolver.ta.criteria.Graduate;
 import org.cpsolver.ta.criteria.LevelCode;
 import org.cpsolver.ta.criteria.Preference;
+import org.cpsolver.ta.criteria.SameSections;
 import org.cpsolver.ta.criteria.TimeOverlaps;
 import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
@@ -53,6 +54,7 @@ public class TAModel extends Model<TeachingRequest, TeachingAssignment> {
         addCriterion(new LevelCode());
         addCriterion(new DiffLink());
         addCriterion(new TimeOverlaps());
+        addCriterion(new SameSections());
     }
 
     public DataProperties getProperties() {
@@ -220,7 +222,7 @@ public class TAModel extends Model<TeachingRequest, TeachingAssignment> {
             if (maxLoad == 0)
                 maxLoad = getProperties().getPropertyDouble("TA.DefaultMaxLoad", 20.0);
             String level = (idx < fields.length ? fields[idx++] : null);
-            Student student = new Student(id, prefs, grad, b2b, maxLoad, level);
+            Student student = new Student(id, id, prefs, grad, b2b, maxLoad, level);
             for (int d = 0; d < 5; d++) {
                 int f = -1;
                 for (int t = 0; t < 10; t++) {
@@ -351,15 +353,16 @@ public class TAModel extends Model<TeachingRequest, TeachingAssignment> {
 
     public void save(Assignment<TeachingRequest, TeachingAssignment> assignment, File dir) throws IOException {
         PrintWriter out = new PrintWriter(new File(dir, "solution-assignments.csv"));
-        out.println("Assignment Id,Course,Section,Time,Room,Link,Level,Load,Student");
+        out.println("Assignment Id,Course,Section,Time,Room,Link,Level,Load,Student Id,Name");
         for (TeachingRequest v : variables()) {
-            out.println(v.toString() + "," + (assignment.getValue(v) == null ? "" : assignment.getValue(v).getStudent().getStudentId()));
+            out.println(v.toString() + "," + (assignment.getValue(v) == null ? "" : assignment.getValue(v).getStudent().getStudentId()) +
+                    ",\"" + (assignment.getValue(v) == null ? "" : assignment.getValue(v).getStudent().getStudentName()) + "\"");
         }
         out.flush();
         out.close();
 
         out = new PrintWriter(new File(dir, "solution-students.csv"));
-        out.println("Student,Availability,1st Preference,2nd Preference,3rd Preference,Graduate,Back-To-Back,Level,Assigned Load,Avg Level,Avg Preference,Back-To-Back,Diff Links,Time Overlaps,1st Assignment,2nd Assignment, 3rd Assignment");
+        out.println("Student Id,Name,Not Available,1st Preference,2nd Preference,3rd Preference,Graduate,Back-To-Back,Level,Assigned Load,Avg Level,Avg Preference,Back-To-Back,Diff Links,Time Overlaps,Same Sections,1st Assignment,2nd Assignment, 3rd Assignment");
         for (Constraint<TeachingRequest, TeachingAssignment> constraint : constraints()) {
             if (constraint instanceof Student) {
                 Student s = (Student) constraint;
@@ -482,6 +485,7 @@ public class TAModel extends Model<TeachingRequest, TeachingAssignment> {
                 Student student = (Student)c;
                 Element studentEl = studentsEl.addElement("student");
                 studentEl.addAttribute("id", student.getStudentId());
+                studentEl.addAttribute("name", student.getStudentName());
                 studentEl.addAttribute("grad", student.isGrad() ? "true" : "false");
                 if (student.getBackToBackPreference() != 0)
                     studentEl.addAttribute("btb", String.valueOf(student.getBackToBackPreference()));
@@ -546,9 +550,9 @@ public class TAModel extends Model<TeachingRequest, TeachingAssignment> {
                 Element f = (Element) j.next();
                 preferences.add(f.attributeValue("value"));
             }
-            Student student = new Student(e.attributeValue("id"), preferences,
+            Student student = new Student(e.attributeValue("id"), e.attributeValue("name"), preferences,
                     "true".equalsIgnoreCase(e.attributeValue("grad", "true")),
-                    Integer.valueOf(e.attributeValue("btb", "0")),
+                    Integer.valueOf(e.attributeValue("btb", "1")),
                     Double.valueOf(e.attributeValue("maxLoad", "20")),
                     e.attributeValue("level"));
             for (Iterator<?> j = e.elementIterator("unavailable"); j.hasNext();) {

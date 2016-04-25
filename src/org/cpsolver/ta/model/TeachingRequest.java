@@ -88,31 +88,31 @@ public class TeachingRequest extends Variable<TeachingRequest, TeachingAssignmen
 
     @Override
     public String toString() {
-        String ret = getAssignmentId() + "," + getCourseName() + ",";
+        String ret = getAssignmentId() + "," + getCourseName() + ",\"";
         for (Iterator<Section> i = getSections().iterator(); i.hasNext(); ) {
             Section section = i.next();
             if (section.getSectionName() != null)
-                ret += section.getSectionName();
-            if (i.hasNext()) ret += "-";
+                ret += section.getSectionName() + " " + section.getSectionId();
+            if (i.hasNext()) ret += ", ";
         }
-        ret += ",";
+        ret += "\",\"";
         for (Iterator<Section> i = getSections().iterator(); i.hasNext(); ) {
             Section section = i.next();
             if (section.hasTime()) ret += section.getTime().getName(true);
-            if (i.hasNext()) ret += "-";
+            if (i.hasNext()) ret += ", ";
         }
-        ret += ",";
+        ret += "\",\"";
         for (Iterator<Section> i = getSections().iterator(); i.hasNext(); ) {
             Section section = i.next();
             if (section.hasRoom()) ret += section.getRoom();
-            if (i.hasNext()) ret += "-";
+            if (i.hasNext()) ret += ", ";
         }
-        ret += "," + (getLink() == null ? "" : getLink()) + ",\"" + (getLevels().isEmpty() ? "-" : getLevels()) + "\"," + new DecimalFormat("0.##").format(getLoad());
+        ret += "\"," + (getLink() == null ? "" : getLink()) + ",\"" + (getLevels().isEmpty() ? "-" : getLevels()) + "\"," + new DecimalFormat("0.##").format(getLoad());
         return ret;
     }
 
     public boolean sameCourse(TeachingRequest request) {
-        return iName.split(" ")[0].equals(request.iName.split(" ")[0]);
+        return iName.split(" ")[0].equals(request.iName.split(" ")[0]) && sameSections(request) > 0;
     }
 
     public boolean overlaps(TeachingRequest request) {
@@ -128,15 +128,23 @@ public class TeachingRequest extends Variable<TeachingRequest, TeachingAssignmen
         return ret;
     }
 
-    public boolean isBackToBack(TeachingRequest request) {
+    public int isBackToBack(TeachingRequest request) {
+        int btb = 0;
         for (Section section: getSections())
-            if (section.isBackToBack(request.getSections())) return true;
-        return false;
+            btb += section.isBackToBack(request.getSections());
+        return btb;
     }
 
     public boolean isBackToBackSameRoom(TeachingRequest request) {
         for (Section section: getSections())
             if (section.isBackToBackSameRoom(request.getSections())) return true;
         return false;
+    }
+    
+    public int sameSections(TeachingRequest request) {
+        int same = 0;
+        for (Section section: getSections())
+            if (request.getSections().contains(section)) same ++;
+        return same;
     }
 }

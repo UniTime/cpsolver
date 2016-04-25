@@ -36,6 +36,7 @@ public class Section {
     public boolean isOverlapping(Collection<Section> sections) {
         if (isAllowOverlap()) return false;
         if (getTime() == null) return false;
+        if (sections.contains(this)) return false;
         for (Section section : sections) {
             if (section.isAllowOverlap()) continue;
             if (section.getTime() == null) continue;
@@ -50,10 +51,11 @@ public class Section {
                 (getTime().getStartSlot() + getTime().getLength() == section.getTime().getStartSlot() || section.getTime().getStartSlot() + section.getTime().getLength() == getTime().getStartSlot());
     }
     
-    public boolean isBackToBack(Collection<Section> sections) {
+    public int isBackToBack(Collection<Section> sections) {
+        int btb = 0;
         for (Section section : sections)
-            if (isBackToBack(section)) return true;
-        return false;
+            if (isBackToBack(section)) btb++;
+        return btb;
     }
     
     public boolean isSameRoom(Section section) {
@@ -93,8 +95,19 @@ public class Section {
     
     @Override
     public String toString() {
-        return ((getSectionName() == null ? "" : getSectionName() + " ") +
-                (hasTime() ? getTime().getDayHeader() + " " + getTime().getStartTimeHeader(true) + " - " + getTime().getEndTimeHeader(true) + " " : "") +
-                (hasRoom() ? getRoom() : "")).trim();
+        return ((getSectionName() == null ? "" : getSectionName() + " ") + getSectionId() + " " +
+                (hasTime() ? getTime().getDayHeader() + " " + getTime().getStartTimeHeader(true) + "-" + getTime().getEndTimeHeader(true) : "")).trim();
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || !(o instanceof Section)) return false;
+        Section s = (Section)o;
+        return getSectionId() == null ? getSectionName().equals(s.getSectionName()) : getSectionId().equals(s.getSectionId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getSectionId() == null ? getSectionName().hashCode() : getSectionId().hashCode();
     }
 }
