@@ -621,11 +621,11 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
                         iProgress.setPhase("Improving found solution ...");
                     }
                 }
-                sLogger.info("Initial solution:" + ToolBox.dict2string(iCurrentSolution.getInfo(), 1));
+                sLogger.info("Initial solution:" + ToolBox.dict2string(iCurrentSolution.getExtendedInfo(), 1));
                 if ((iSaveBestUnassigned < 0 || iSaveBestUnassigned >= iCurrentSolution.getAssignment().nrUnassignedVariables(iCurrentSolution.getModel()))
                         && (iCurrentSolution.getBestInfo() == null || getSolutionComparator().isBetterThanBestSolution(iCurrentSolution))) {
                     if (iCurrentSolution.getModel().variables().size() == iCurrentSolution.getAssignment().nrAssignedVariables())
-                        sLogger.info("Complete solution " + ToolBox.dict2string(iCurrentSolution.getInfo(), 1) + " was found.");
+                        sLogger.info("Complete solution " + ToolBox.dict2string(iCurrentSolution.getExtendedInfo(), 1) + " was found.");
                     iCurrentSolution.saveBest();
                 }
 

@@ -18,13 +18,45 @@ import org.cpsolver.instructor.model.Section;
 import org.cpsolver.instructor.model.TeachingAssignment;
 import org.cpsolver.instructor.model.TeachingRequest;
 
+/**
+ * Instructor Constraint. This is the main constraint of the problem, ensuring that an instructor gets a consistent list of 
+ * assignments. It checks for instructor availability, maximal load, time conflicts, and whether the given assignments are of the same
+ * course (if desired).
+ * 
+ * @version IFS 1.3 (Instructor Sectioning)<br>
+ *          Copyright (C) 2016 Tomas Muller<br>
+ *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
+ *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>
+ * <br>
+ *          This library is free software; you can redistribute it and/or modify
+ *          it under the terms of the GNU Lesser General Public License as
+ *          published by the Free Software Foundation; either version 3 of the
+ *          License, or (at your option) any later version. <br>
+ * <br>
+ *          This library is distributed in the hope that it will be useful, but
+ *          WITHOUT ANY WARRANTY; without even the implied warranty of
+ *          MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ *          Lesser General Public License for more details. <br>
+ * <br>
+ *          You should have received a copy of the GNU Lesser General Public
+ *          License along with this library; if not see
+ *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ */
 public class InstructorConstraint extends ConstraintWithContext<TeachingRequest, TeachingAssignment, InstructorConstraint.Context> {
     private Instructor iInstructor;
     
+    /**
+     * Constructor
+     * @param instructor instructor for which the constraint is created
+     */
     public InstructorConstraint(Instructor instructor) {
         iInstructor = instructor;
     }
     
+    /**
+     * Instructor of the constraint
+     * @return instructor for which the constraint is created
+     */
     public Instructor getInstructor() { return iInstructor; }
     
     @Override
@@ -108,12 +140,19 @@ public class InstructorConstraint extends ConstraintWithContext<TeachingRequest,
         return new Context(assignment);
     }
 
+    /**
+     * Instructor Constraint Context. It keeps the list of current assignments of an instructor.
+     */
     public class Context implements AssignmentConstraintContext<TeachingRequest, TeachingAssignment> {
         private HashSet<TeachingAssignment> iAssignments = new HashSet<TeachingAssignment>();
         private int iTimeOverlaps;
         private double iBackToBacks;
         private double iDifferentLectures;
         
+        /**
+         * Constructor
+         * @param assignment current assignment
+         */
         public Context(Assignment<TeachingRequest, TeachingAssignment> assignment) {
             for (TeachingRequest request: variables()) {
                 TeachingAssignment value = assignment.getValue(request);
@@ -140,6 +179,10 @@ public class InstructorConstraint extends ConstraintWithContext<TeachingRequest,
             }
         }
         
+        /**
+         * Update optimization criteria
+         * @param assignment current assignment
+         */
         private void updateCriteria(Assignment<TeachingRequest, TeachingAssignment> assignment) {
             // update back-to-backs
             BackToBack b2b = (BackToBack)getModel().getCriterion(BackToBack.class);
@@ -167,8 +210,16 @@ public class InstructorConstraint extends ConstraintWithContext<TeachingRequest,
 
         }
         
+        /**
+         * Current assignments of this instructor
+         * @return current teaching assignments
+         */
         public Set<TeachingAssignment> getAssignments() { return iAssignments; }
         
+        /**
+         * Current load of this instructor
+         * @return current load
+         */
         public float getLoad() {
             float load = 0;
             for (TeachingAssignment assignment : iAssignments)
@@ -176,6 +227,10 @@ public class InstructorConstraint extends ConstraintWithContext<TeachingRequest,
             return load;
         }
         
+        /**
+         * If there are classes that allow for overlap, the number of such overlapping slots of this instructor
+         * @return current time overlaps (number of overlapping slots)
+         */
         public int countTimeOverlaps() {
             int share = 0;
             for (TeachingAssignment a1 : iAssignments) {
@@ -188,6 +243,10 @@ public class InstructorConstraint extends ConstraintWithContext<TeachingRequest,
             return share;
         }
 
+        /**
+         * Number of teaching assignments that have a time assignment of this instructor
+         * @return current number of teaching assignments that have a time
+         */
         public int countAssignmentsWithTime() {
             int ret = 0;
             a1: for (TeachingAssignment a1 : iAssignments) {
@@ -199,6 +258,10 @@ public class InstructorConstraint extends ConstraintWithContext<TeachingRequest,
             return ret;
         }
         
+        /**
+         * Percentage of common sections that are not same for the instructor (using {@link TeachingRequest#nrSameLectures(TeachingRequest)})
+         * @return percentage of pairs of common sections that are not the same
+         */
         public double countDifferentLectures() {
             double same = 0;
             int pairs = 0;
@@ -213,6 +276,12 @@ public class InstructorConstraint extends ConstraintWithContext<TeachingRequest,
             return (pairs == 0 ? 0.0 : (pairs - same) / pairs);
         }
         
+        /**
+         * Current back-to-back preference of the instructor (using {@link TeachingRequest#countBackToBacks(TeachingRequest, double, double)})
+         * @param diffRoomWeight different room weight
+         * @param diffTypeWeight different instructional type weight
+         * @return current back-to-back preference
+         */
         public double countBackToBackPreference(double diffRoomWeight, double diffTypeWeight) {
             double b2b = 0;
             if (getInstructor().isBackToBackPreferred() || getInstructor().isBackToBackDiscouraged())
@@ -229,6 +298,10 @@ public class InstructorConstraint extends ConstraintWithContext<TeachingRequest,
             return b2b;
         }
         
+        /**
+         * Current back-to-back percentage for this instructor
+         * @return percentage of assignments that are back-to-back
+         */
         public double countBackToBackPercentage() {
             BackToBack c = (BackToBack)getModel().getCriterion(BackToBack.class);
             if (c == null) return 0.0;

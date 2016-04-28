@@ -38,14 +38,47 @@ import org.dom4j.Document;
 import org.dom4j.io.OutputFormat;
 import org.dom4j.io.SAXReader;
 import org.dom4j.io.XMLWriter;
-
+/**
+ * A main class for running of the instructor scheduling solver from command line. <br>
+ * Instructor scheduling is a process of assigning instructors (typically teaching assistants) to classes
+ * after the course timetabling and student scheduling is done.
+ * 
+ * @version IFS 1.3 (Instructor Sectioning)<br>
+ *          Copyright (C) 2016 Tomas Muller<br>
+ *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
+ *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>
+ * <br>
+ *          This library is free software; you can redistribute it and/or modify
+ *          it under the terms of the GNU Lesser General Public License as
+ *          published by the Free Software Foundation; either version 3 of the
+ *          License, or (at your option) any later version. <br>
+ * <br>
+ *          This library is distributed in the hope that it will be useful, but
+ *          WITHOUT ANY WARRANTY; without even the implied warranty of
+ *          MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ *          Lesser General Public License for more details. <br>
+ * <br>
+ *          You should have received a copy of the GNU Lesser General Public
+ *          License along with this library; if not see
+ *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ */
 public class Test extends InstructorSchedulingModel {
     private static Logger sLog = Logger.getLogger(Test.class);
     
+    /**
+     * Constructor
+     * @param properties data properties
+     */
     public Test(DataProperties properties) {
         super(properties);
     }
 
+    /**
+     * Load input problem
+     * @param inputFile input file (or folder)
+     * @param assignment current assignments
+     * @return true if the problem was successfully loaded in
+     */
     protected boolean load(File inputFile, Assignment<TeachingRequest, TeachingAssignment> assignment) {
         try {
             Document document = (new SAXReader()).read(inputFile);
@@ -56,6 +89,12 @@ public class Test extends InstructorSchedulingModel {
         }
     }
     
+    /**
+     * Generate a few reports
+     * @param outputDir output directory
+     * @param assignment current assignments
+     * @throws IOException
+     */
     protected void generateReports(File outputDir, Assignment<TeachingRequest, TeachingAssignment> assignment) throws IOException {
         PrintWriter out = new PrintWriter(new File(outputDir, "solution-assignments.csv"));
         out.println("Course,Section,Time,Room,Load,Student,Name,Instructor Pref,Course Pref,Attribute Pref,Time Pref,Back-To-Back,Different Lecture,Overlap [h]");
@@ -142,6 +181,11 @@ public class Test extends InstructorSchedulingModel {
         out.close();
     }
     
+    /**
+     * Save the problem and the resutling assignment
+     * @param outputDir output directory
+     * @param assignment final assignment
+     */
     protected void save(File outputDir, Assignment<TeachingRequest, TeachingAssignment> assignment) {
         try {
             File outFile = new File(outputDir, "solution.xml");
@@ -157,6 +201,9 @@ public class Test extends InstructorSchedulingModel {
         }
     }
     
+    /**
+     * Run the problem
+     */
     public void execute() {
         int nrSolvers = getProperties().getPropertyInt("Parallel.NrSolvers", 1);
         Solver<TeachingRequest, TeachingAssignment> solver = (nrSolvers == 1 ? new Solver<TeachingRequest, TeachingAssignment>(getProperties()) : new ParallelSolver<TeachingRequest, TeachingAssignment>(getProperties()));

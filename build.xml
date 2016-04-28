@@ -211,6 +211,7 @@
    	   	<group title="University Course Timetabling" packages="org.cpsolver.coursett*"/>
        	<group title="Student Sectioning" packages="org.cpsolver.studentsct*"/>
     	<group title="Examination Timetabling" packages="org.cpsolver.exam*"/>
+    	<group title="Instructor Scheduling" packages="org.cpsolver.instructor*"/>
  	   	<link href="http://docs.oracle.com/javase/6/docs/api/"/>
  	   	<link href="http://logging.apache.org/log4j/1.2/apidocs/"/>
     	<link href="http://dom4j.sourceforge.net/dom4j-1.6.1/apidocs/"/>

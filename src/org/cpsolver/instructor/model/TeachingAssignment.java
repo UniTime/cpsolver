@@ -5,11 +5,40 @@ import org.cpsolver.ifs.criteria.Criterion;
 import org.cpsolver.ifs.model.Value;
 import org.cpsolver.instructor.constraints.InstructorConstraint;
 
+/**
+ * Teaching assignment. An assignment of an instructor to a teaching request (a set of sections of a course).
+ * A teaching assignment also contains the value of attribute, instructor, course, and time preferences. 
+ * 
+ * @version IFS 1.3 (Instructor Sectioning)<br>
+ *          Copyright (C) 2016 Tomas Muller<br>
+ *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
+ *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>
+ * <br>
+ *          This library is free software; you can redistribute it and/or modify
+ *          it under the terms of the GNU Lesser General Public License as
+ *          published by the Free Software Foundation; either version 3 of the
+ *          License, or (at your option) any later version. <br>
+ * <br>
+ *          This library is distributed in the hope that it will be useful, but
+ *          WITHOUT ANY WARRANTY; without even the implied warranty of
+ *          MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ *          Lesser General Public License for more details. <br>
+ * <br>
+ *          You should have received a copy of the GNU Lesser General Public
+ *          License along with this library; if not see
+ *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ */
 public class TeachingAssignment extends Value<TeachingRequest, TeachingAssignment> {
     private Instructor iInstructor;
     private int iHashCode;
     private int iAttributePreference, iInstructorPreference, iCoursePreference, iTimePreference;
 
+    /**
+     * Constructor
+     * @param request teaching request
+     * @param instructor instructor (it is expected that {@link Instructor#canTeach(TeachingRequest)} is true and that {@link TeachingRequest#getAttributePreference(Instructor)} is not prohibited)
+     * @param attributePreference attribute preference (value of {@link TeachingRequest#getAttributePreference(Instructor)})
+     */
     public TeachingAssignment(TeachingRequest request, Instructor instructor, int attributePreference) {
         super(request, 0.0);
         iInstructor = instructor;
@@ -20,13 +49,27 @@ public class TeachingAssignment extends Value<TeachingRequest, TeachingAssignmen
         iAttributePreference = attributePreference;
     }
     
+    /**
+     * Constructor
+     * @param request teaching request
+     * @param instructor instructor (it is expected that {@link Instructor#canTeach(TeachingRequest)} is true and that {@link TeachingRequest#getAttributePreference(Instructor)} is not prohibited)
+     */
     public TeachingAssignment(TeachingRequest request, Instructor instructor) {
         this(request, instructor, request.getAttributePreference(instructor).getPreferenceInt());
     }
 
+    /**
+     * Assigned instructor
+     * @return assigned instructor
+     */
     public Instructor getInstructor() {
         return iInstructor;
     }
+    
+    /**
+     * The appropriate instructor constraint
+     * @return {@link Instructor#getConstraint()}
+     */
     public InstructorConstraint getInstructorConstraint() {
         return getInstructor().getConstraint();
     }
@@ -47,18 +90,34 @@ public class TeachingAssignment extends Value<TeachingRequest, TeachingAssignmen
         return variable().equals(a.variable()) && getInstructor().equals(a.getInstructor());
     }
     
+    /**
+     * Attribute preference
+     * @return {@link TeachingRequest#getAttributePreference(Instructor)}
+     */
     public int getAttributePreference() {
         return iAttributePreference;
     }
     
+    /**
+     * Time preference
+     * @return {@link Instructor#getTimePreference(TeachingRequest)}
+     */
     public int getTimePreference() {
         return iTimePreference;
     }
     
+    /**
+     * Instructor preference
+     * @return {@link TeachingRequest#getInstructorPreference(Instructor) }
+     */
     public int getInstructorPreference() {
         return iInstructorPreference;
     }
     
+    /**
+     * Course preference
+     * @return {@link Instructor#getCoursePreference(Course)} for {@link TeachingRequest#getCourse()}
+     */
     public int getCoursePreference() {
         return iCoursePreference;
     }

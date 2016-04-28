@@ -12,12 +12,43 @@ import org.cpsolver.instructor.model.Instructor;
 import org.cpsolver.instructor.model.TeachingAssignment;
 import org.cpsolver.instructor.model.TeachingRequest;
 
+/**
+ * Same Link Constraint. Much like the {@link SameInstructorConstraint}, but it is possible to assign multiple instructors
+ * to the teaching requests of the same link. It is, however, prohibited (or discouraged) for an instructor to teach
+ * have teaching requests than the ones of the link. In prohibited / discouraged variant, each request must / should get
+ * a different instructor. 
+ * 
+ * @version IFS 1.3 (Instructor Sectioning)<br>
+ *          Copyright (C) 2016 Tomas Muller<br>
+ *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
+ *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>
+ * <br>
+ *          This library is free software; you can redistribute it and/or modify
+ *          it under the terms of the GNU Lesser General Public License as
+ *          published by the Free Software Foundation; either version 3 of the
+ *          License, or (at your option) any later version. <br>
+ * <br>
+ *          This library is distributed in the hope that it will be useful, but
+ *          WITHOUT ANY WARRANTY; without even the implied warranty of
+ *          MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ *          Lesser General Public License for more details. <br>
+ * <br>
+ *          You should have received a copy of the GNU Lesser General Public
+ *          License along with this library; if not see
+ *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ */
 public class SameLinkConstraint extends ConstraintWithContext<TeachingRequest, TeachingAssignment, SameLinkConstraint.Context> {
     private Long iId;
     private String iName;
     private int iPreference = 0;
     private boolean iRequired = false, iProhibited = false;
     
+    /**
+     * Constructor
+     * @param id constraint id
+     * @param name link name
+     * @param preference constraint preference (R for required, etc.)
+     */
     public SameLinkConstraint(Long id, String name, String preference) {
         iId = id;
         iName = name;
@@ -29,15 +60,31 @@ public class SameLinkConstraint extends ConstraintWithContext<TeachingRequest, T
         }
     }
     
+    /**
+     * Constraint id that was given in the constructor.
+     * @return constraint id
+     */
     public Long getConstraintId() { return iId; }
     
     @Override
     public String getName() { return iName; }
     
+    /**
+     * Is required?
+     * @return true if the constraint is required
+     */
     public boolean isRequired() { return iRequired; }
     
+    /**
+     * Is prohibited?
+     * @return true if the constraint is prohibited
+     */
     public boolean isProhibited() { return iProhibited; }
     
+    /**
+     * Constraint preference that was provided in the constructor
+     * @return constraint preference
+     */
     public int getPreference() { return iPreference; }
     
     @Override
@@ -60,6 +107,12 @@ public class SameLinkConstraint extends ConstraintWithContext<TeachingRequest, T
         }
     }
     
+    /**
+     * Current constraint preference (if soft)
+     * @param assignment current assignment
+     * @param value proposed change
+     * @return change in the current preference value of this constraint
+     */
     public int getCurrentPreference(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value) {
         if (isHard()) return 0; // no preference
         TeachingAssignment current = assignment.getValue(value.variable());
@@ -94,6 +147,12 @@ public class SameLinkConstraint extends ConstraintWithContext<TeachingRequest, T
         return ret;
     }
     
+    /**
+     * Current constraint preference (if soft)
+     * @param assignment current assignment
+     * @return that is number of requests that are not of this link assigned to the instructors that have at least one request of this link if preferred;
+     * number of additional requests of this link given to the same instructor if discouraged
+     */
     public int getCurrentPreference(Assignment<TeachingRequest, TeachingAssignment> assignment) {
         if (isHard()) return 0; // no preference
         if (getPreference() < 0) { // preferred
@@ -134,6 +193,9 @@ public class SameLinkConstraint extends ConstraintWithContext<TeachingRequest, T
         return new Context(assignment);
     }
 
+    /**
+     * Same Link Constraint Context. This context keeps the last preference value and updates the {@link SameLink} criterion.
+     */
     public class Context implements AssignmentConstraintContext<TeachingRequest, TeachingAssignment> {
         private int iLastPreference = 0;
         
@@ -151,6 +213,10 @@ public class SameLinkConstraint extends ConstraintWithContext<TeachingRequest, T
             updateCriterion(assignment);
         }
         
+        /**
+         * Update the current preference value
+         * @param assignment current assignment
+         */
         private void updateCriterion(Assignment<TeachingRequest, TeachingAssignment> assignment) {
             if (!isHard()) {
                 getModel().getCriterion(SameLink.class).inc(assignment, -iLastPreference);
@@ -159,6 +225,10 @@ public class SameLinkConstraint extends ConstraintWithContext<TeachingRequest, T
             }
         }
         
+        /**
+         * Current preference value (see {@link SameLinkConstraint#getCurrentPreference(Assignment)})
+         * @return current preference value
+         */
         public int getPreference() { return iLastPreference; }
     }
 }

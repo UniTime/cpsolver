@@ -1,16 +1,10 @@
-package org.cpsolver.instructor.criteria;
-
-import java.util.Set;
-
-import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.criteria.AbstractCriterion;
-import org.cpsolver.ifs.util.DataProperties;
-import org.cpsolver.instructor.model.TeachingAssignment;
-import org.cpsolver.instructor.model.TeachingRequest;
-
 /**
- * Attribute Preferences. This criterion counts how well are the attribute preferences that are set on a {@link TeachingRequest} met
- * (counting {@link TeachingAssignment#getAttributePreference()}).
+ * Instructor Scheduling: Model.
+ * 
+ * Instructor Scheduling problem model. The model is implemented by {@link org.cpsolver.instructor.model.InstructorSchedulingModel}.
+ * Variables are {@link org.cpsolver.instructor.model.TeachingRequest}, values are {@link org.cpsolver.instructor.model.TeachingAssignment}.
+ * Each teaching request has a course (see {@link org.cpsolver.instructor.model.Course}) and one or more sections (see {link {@link org.cpsolver.instructor.model.Section}}).
+ * Each assignment assigns one instructor (see {@link org.cpsolver.instructor.model.Instructor}) to a single teaching request.
  * 
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
@@ -31,20 +25,4 @@ import org.cpsolver.instructor.model.TeachingRequest;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class AttributePreferences extends AbstractCriterion<TeachingRequest, TeachingAssignment> {
-
-    @Override
-    public double getWeightDefault(DataProperties config) {
-        return 1000.0;
-    }
-
-    @Override
-    public double getValue(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value, Set<TeachingAssignment> conflicts) {
-        return value.getAttributePreference();
-    }
-
-    @Override
-    public String getAbbreviation() {
-        return "A";
-    }
-}
+package org.cpsolver.instructor.model;

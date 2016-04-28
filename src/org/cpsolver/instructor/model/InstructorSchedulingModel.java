@@ -39,11 +39,39 @@ import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
 import org.dom4j.Element;
 
+/**
+ * Instructor Scheduling Model. Variables are {@link org.cpsolver.instructor.model.TeachingRequest}, values are {@link org.cpsolver.instructor.model.TeachingAssignment}.
+ * Each teaching request has a course (see {@link org.cpsolver.instructor.model.Course}) and one or more sections (see {link {@link org.cpsolver.instructor.model.Section}}).
+ * Each assignment assigns one instructor (see {@link org.cpsolver.instructor.model.Instructor}) to a single teaching request.
+ * 
+ * @version IFS 1.3 (Instructor Sectioning)<br>
+ *          Copyright (C) 2016 Tomas Muller<br>
+ *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
+ *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>
+ * <br>
+ *          This library is free software; you can redistribute it and/or modify
+ *          it under the terms of the GNU Lesser General Public License as
+ *          published by the Free Software Foundation; either version 3 of the
+ *          License, or (at your option) any later version. <br>
+ * <br>
+ *          This library is distributed in the hope that it will be useful, but
+ *          WITHOUT ANY WARRANTY; without even the implied warranty of
+ *          MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ *          Lesser General Public License for more details. <br>
+ * <br>
+ *          You should have received a copy of the GNU Lesser General Public
+ *          License along with this library; if not see
+ *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ */
 public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAssignment> {
     private static Logger sLog = Logger.getLogger(InstructorSchedulingModel.class);
     private DataProperties iProperties;
     private Set<Attribute.Type> iTypes = new HashSet<Attribute.Type>();
 
+    /**
+     * Constructor
+     * @param properties data properties
+     */
     public InstructorSchedulingModel(DataProperties properties) {
         super();
         iProperties = properties;
@@ -59,6 +87,10 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
         addCriterion(new SameLink());
     }
     
+    /**
+     * Return solver configuration
+     * @return data properties given in the constructor
+     */
     public DataProperties getProperties() {
         return iProperties;
     }
@@ -73,7 +105,16 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
         }
     }
     
+    /**
+     * Return registered attribute types
+     * @return attribute types in the problem
+     */
     public Set<Attribute.Type> getAttributeTypes() { return iTypes; }
+    
+    /**
+     * Register an attribute type
+     * @param type attribute type
+     */
     public void addAttributeType(Attribute.Type type) { iTypes.add(type); }
 
     @Override
@@ -108,6 +149,11 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
         return ret;
     }
     
+    /**
+     * Store the problem (together with its solution) in an XML format
+     * @param assignment current assignment
+     * @return XML document with the problem
+     */
     public Document save(Assignment<TeachingRequest, TeachingAssignment> assignment) {
         DecimalFormat sDF7 = new DecimalFormat("0000000");
         boolean saveInitial = getProperties().getPropertyBoolean("Xml.SaveInitial", false);
@@ -337,6 +383,12 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
         return document;
     }
     
+    /**
+     * Load the problem (and its solution) from an XML format
+     * @param document XML document
+     * @param assignment current assignment
+     * @return true, if the problem was successfully loaded in
+     */
     public boolean load(Document document, Assignment<TeachingRequest, TeachingAssignment> assignment) {
         boolean loadInitial = getProperties().getPropertyBoolean("Xml.LoadInitial", true);
         boolean loadBest = getProperties().getPropertyBoolean("Xml.LoadBest", true);
@@ -600,6 +652,7 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
         return ret;
     }
     
+    /** Convert preference string to a preference value */
     protected static int string2preference(String pref) {
         if (pref == null || pref.isEmpty()) return 0;
         if (Constants.sPreferenceRequired.equals(pref))
