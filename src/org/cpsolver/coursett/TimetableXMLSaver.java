@@ -178,6 +178,27 @@ public class TimetableXMLSaver extends TimetableSaver {
     public void save() throws Exception {
         save(null);
     }
+    
+    public Document saveDocument() {
+        Document document = DocumentHelper.createDocument();
+        document.addComment("University Course Timetabling");
+
+        if (iSaveCurrent && getAssignment().nrAssignedVariables() != 0) {
+            StringBuffer comments = new StringBuffer("Solution Info:\n");
+            Map<String, String> solutionInfo = (getSolution() == null ? getModel().getExtendedInfo(getAssignment()) : getSolution().getExtendedInfo());
+            for (String key : new TreeSet<String>(solutionInfo.keySet())) {
+                String value = solutionInfo.get(key);
+                comments.append("    " + key + ": " + value + "\n");
+            }
+            document.addComment(comments.toString());
+        }
+
+        Element root = document.addElement("timetable");
+
+        doSave(root);
+
+        return document;
+    }
 
     public void save(File outFile) throws Exception {
         if (outFile == null)
@@ -207,7 +228,7 @@ public class TimetableXMLSaver extends TimetableSaver {
 
             try {
                 getSolver().getClass().getMethod("save", new Class[] { Element.class }).invoke(getSolver(),
-                        new Object[] { root });
+                		new Object[] { root });
             } catch (Exception e) {
             }
         }
@@ -231,7 +252,7 @@ public class TimetableXMLSaver extends TimetableSaver {
             iIdConvertor.save();
     }
     
-    protected void doSave(Element root) throws Exception {
+    protected void doSave(Element root) {
         root.addAttribute("version", "2.5");
         root.addAttribute("initiative", getModel().getProperties().getProperty("Data.Initiative"));
         root.addAttribute("term", getModel().getProperties().getProperty("Data.Term"));

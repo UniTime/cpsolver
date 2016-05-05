@@ -1,11 +1,10 @@
 package org.cpsolver.coursett;
 
-import org.apache.log4j.Logger;
 import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
 import org.cpsolver.coursett.model.TimetableModel;
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.util.Callback;
+import org.cpsolver.ifs.util.ProblemLoader;
 
 
 /**
@@ -31,10 +30,7 @@ import org.cpsolver.ifs.util.Callback;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public abstract class TimetableLoader implements Runnable {
-    private TimetableModel iModel = null;
-    private Assignment<Lecture, Placement> iAssignment = null;
-    private Callback iCallback = null;
+public abstract class TimetableLoader extends ProblemLoader<Lecture, Placement, TimetableModel> {
 
     /**
      * Constructor
@@ -44,54 +40,6 @@ public abstract class TimetableLoader implements Runnable {
      * @param assignment current assignment
      */
     public TimetableLoader(TimetableModel model, Assignment<Lecture, Placement> assignment) {
-        iModel = model;
-        iAssignment = assignment;
+        super(model, assignment);
     }
-
-    /**
-     * Returns provided model.
-     * 
-     * @return provided model
-     */
-    protected TimetableModel getModel() {
-        return iModel;
-    }
-    
-    /**
-     * Returns provided assignment
-     * @return provided assignment
-     */
-    protected Assignment<Lecture, Placement> getAssignment() {
-        return iAssignment;
-    }
-
-    /**
-     * Load the model.
-     * @throws Exception thrown when the load fails
-     */
-    public abstract void load() throws Exception;
-
-    /**
-     * Sets callback class
-     * 
-     * @param callback
-     *            method {@link Callback#execute()} is executed when load is
-     *            done
-     */
-    public void setCallback(Callback callback) {
-        iCallback = callback;
-    }
-
-    @Override
-    public void run() {
-        try {
-            load();
-        } catch (Exception e) {
-            Logger.getLogger(this.getClass()).error(e.getMessage(), e);
-        } finally {
-            if (iCallback != null)
-                iCallback.execute();
-        }
-    }
-
 }

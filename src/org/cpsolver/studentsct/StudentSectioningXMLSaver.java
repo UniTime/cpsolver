@@ -237,6 +237,15 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         if (iConvertIds)
             IdConvertor.getInstance().save();
     }
+    
+    public Document saveDocument() {
+        Document document = DocumentHelper.createDocument();
+        document.addComment("Student Sectioning");
+        
+        populate(document);
+
+        return document;
+    }
 
     /**
      * Fill in all the data into the given document

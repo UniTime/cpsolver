@@ -177,7 +177,31 @@ public class TimetableXMLLoader extends TimetableLoader {
         iProgress.info("Model successfully loaded.");
     }
     
-    protected void doLoad(Solution<Lecture, Placement> currentSolution, Element root) throws Exception {
+    public void load(Solution<Lecture, Placement> currentSolution, Document document) {
+        iProgress.setPhase("Reading solution file ...");
+
+        Element root = document.getRootElement();
+
+        sLogger.debug("Root element: " + root.getName());
+        if (!"llrt".equals(root.getName()) && !"timetable".equals(root.getName())) {
+            throw new IllegalArgumentException("Given XML file is not large lecture room timetabling problem.");
+        }
+
+        if (root.element("input") != null)
+            root = root.element("input");
+
+        iProgress.load(root, true);
+        iProgress.message(Progress.MSGLEVEL_STAGE, "Restoring from backup ...");
+
+        doLoad(currentSolution, root);
+
+        iProgress.setPhase("Done", 1);
+        iProgress.incProgress();
+
+        iProgress.info("Model successfully loaded.");
+    }
+    
+    protected void doLoad(Solution<Lecture, Placement> currentSolution, Element root) {
         if (root.attributeValue("term") != null)
             getModel().getProperties().setProperty("Data.Term", root.attributeValue("term"));
         if (root.attributeValue("year") != null)

@@ -1,13 +1,10 @@
 package org.cpsolver.coursett;
 
-import org.apache.log4j.Logger;
 import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
 import org.cpsolver.coursett.model.TimetableModel;
-import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
-import org.cpsolver.ifs.util.Callback;
+import org.cpsolver.ifs.util.ProblemSaver;
 
 
 /**
@@ -33,71 +30,13 @@ import org.cpsolver.ifs.util.Callback;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public abstract class TimetableSaver implements Runnable {
-    private Solver<Lecture, Placement> iSolver = null;
-    private Callback iCallback = null;
+public abstract class TimetableSaver extends ProblemSaver<Lecture, Placement, TimetableModel> {
 
     /**
      * Constructor
      * @param solver current solver
      */
     public TimetableSaver(Solver<Lecture, Placement> solver) {
-        iSolver = solver;
-    }
-
-    /** Solver 
-     * @return current solver
-     **/
-    public Solver<Lecture, Placement> getSolver() {
-        return iSolver;
-    }
-    
-    /** Solution to be saved 
-     * @return current solution
-     **/
-    protected Solution<Lecture, Placement> getSolution() {
-        return iSolver.currentSolution();
-    }
-
-    /** Model of the solution 
-     * @return problem model
-     **/
-    protected TimetableModel getModel() {
-        return (TimetableModel) iSolver.currentSolution().getModel();
-    }
-
-    /** Current assignment 
-     * @return current assignment
-     **/
-    public Assignment<Lecture, Placement> getAssignment() {
-        return getSolution().getAssignment();
-    }
-
-    /** Save the solution 
-     * @throws Exception thrown when save fails
-     **/
-    public abstract void save() throws Exception;
-
-    /**
-     * Sets callback class
-     * 
-     * @param callback
-     *            method {@link Callback#execute()} is executed when save is
-     *            done
-     */
-    public void setCallback(Callback callback) {
-        iCallback = callback;
-    }
-
-    @Override
-    public void run() {
-        try {
-            save();
-        } catch (Exception e) {
-            Logger.getLogger(this.getClass()).error(e.getMessage(), e);
-        } finally {
-            if (iCallback != null)
-                iCallback.execute();
-        }
+        super(solver);
     }
 }

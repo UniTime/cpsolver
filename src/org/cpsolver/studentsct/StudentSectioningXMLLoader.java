@@ -211,6 +211,30 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         load(root);
     }
     
+    public void load(Document document) {
+        Element root = document.getRootElement();
+        
+        if (getModel().getDistanceConflict() != null && root.element("travel-times") != null)
+            loadTravelTimes(root.element("travel-times"), getModel().getDistanceConflict().getDistanceMetric());
+        
+        Progress.getInstance(getModel()).load(root, true);
+        Progress.getInstance(getModel()).message(Progress.MSGLEVEL_STAGE, "Restoring from backup ...");
+
+        Map<Long, Offering> offeringTable = new HashMap<Long, Offering>();
+        Map<Long, Course> courseTable = new HashMap<Long, Course>();
+
+        if (root.element("offerings") != null) {
+            loadOfferings(root.element("offerings"), offeringTable, courseTable, null);
+        }
+        
+        if (root.element("students") != null) {
+            loadStudents(root.element("students"), offeringTable, courseTable);
+        }
+        
+        if (root.element("constraints") != null) 
+            loadLinkedSections(root.element("constraints"), offeringTable);
+    }
+    
     /**
      * Load data from the given XML root
      * @param root document root
@@ -267,7 +291,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         }
         
         if (iLoadOfferings && root.element("constraints") != null) 
-            loadLinkedSectiond(root.element("constraints"), offeringTable);
+            loadLinkedSections(root.element("constraints"), offeringTable);
         
         sLogger.debug("Model successfully loaded.");
     }
@@ -610,7 +634,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
      * @param constraintsEl constraints element
      * @param offeringTable offering table
      */
-    protected void loadLinkedSectiond(Element constraintsEl, Map<Long, Offering> offeringTable) {
+    protected void loadLinkedSections(Element constraintsEl, Map<Long, Offering> offeringTable) {
         for (Iterator<?> i = constraintsEl.elementIterator("linked-sections"); i.hasNext();) {
             Element linkedEl = (Element) i.next();
             List<Section> sections = new ArrayList<Section>();

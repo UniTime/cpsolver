@@ -1,8 +1,7 @@
 package org.cpsolver.studentsct;
 
-import org.apache.log4j.Logger;
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.util.Callback;
+import org.cpsolver.ifs.util.ProblemLoader;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
 
@@ -30,11 +29,7 @@ import org.cpsolver.studentsct.model.Request;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public abstract class StudentSectioningLoader implements Runnable {
-    private StudentSectioningModel iModel = null;
-    private Assignment<Request, Enrollment> iAssignment = null;
-    private Callback iCallback = null;
-
+public abstract class StudentSectioningLoader extends ProblemLoader<Request, Enrollment, StudentSectioningModel> {
     /**
      * Constructor
      * 
@@ -43,55 +38,6 @@ public abstract class StudentSectioningLoader implements Runnable {
      * @param assignment an empty assignment to be populated
      */
     public StudentSectioningLoader(StudentSectioningModel model, Assignment<Request, Enrollment> assignment) {
-        iModel = model;
-        iAssignment = assignment;
+        super(model, assignment);
     }
-
-    /**
-     * Returns provided model.
-     * 
-     * @return provided model
-     */
-    protected StudentSectioningModel getModel() {
-        return iModel;
-    }
-    
-    /**
-     * Returns provided assignment.
-     * 
-     * @return provided assignment
-     */
-    protected Assignment<Request, Enrollment> getAssignment() {
-        return iAssignment;
-    }
-
-    /**
-     * Load the model.
-     * @throws Exception thrown when the load fails
-     */
-    public abstract void load() throws Exception;
-
-    /**
-     * Sets callback class
-     * 
-     * @param callback
-     *            method {@link Callback#execute()} is executed when load is
-     *            done
-     */
-    public void setCallback(Callback callback) {
-        iCallback = callback;
-    }
-
-    @Override
-    public void run() {
-        try {
-            load();
-        } catch (Exception e) {
-            Logger.getLogger(this.getClass()).error(e.getMessage(), e);
-        } finally {
-            if (iCallback != null)
-                iCallback.execute();
-        }
-    }
-
 }
