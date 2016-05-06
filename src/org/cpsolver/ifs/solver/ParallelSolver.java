@@ -92,7 +92,7 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
     @Override
     public void setInitalSolution(Model<V, T> model) {
         int nrSolvers = Math.min(Math.abs(getProperties().getPropertyInt("Parallel.NrSolvers", 4)), CanHoldContext.sMaxSize - 1);
-        boolean updateMasterSolution = getProperties().getPropertyBoolean("Parallel.UpdateMasterSolution", false);
+        boolean updateMasterSolution = getProperties().getPropertyBoolean("Parallel.UpdateMasterSolution", true);
         setInitalSolution(new Solution<V, T>(model, nrSolvers > 1 ? new DefaultParallelAssignment<V, T>(updateMasterSolution ? 1 : 0) : new DefaultSingleAssignment<V, T>(), 0, 0));
     }
     
