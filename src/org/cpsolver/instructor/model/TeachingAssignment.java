@@ -134,6 +134,6 @@ public class TeachingAssignment extends Value<TeachingRequest, TeachingAssignmen
 
     @Override
     public String getName() {
-        return getInstructor().getExternalId();
+        return (getInstructor().hasName() ? getInstructor().getName() + (getInstructor().hasExternalId() ? " (" + getInstructor().getExternalId() + ")" : "") : getInstructor().getName());
     }
 }

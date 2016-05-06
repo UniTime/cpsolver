@@ -212,6 +212,8 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
         for (TeachingRequest request: variables()) {
             Element requestEl = requestsEl.addElement("request");
             requestEl.addAttribute("id", String.valueOf(request.getRequestId()));
+            if (request.getInstructorIndex() != 0)
+                requestEl.addAttribute("index", String.valueOf(request.getInstructorIndex()));
             Course course = request.getCourse();
             if (courses.add(course)) {
                 Element courseEl = coursesEl.addElement("course");
@@ -365,6 +367,8 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
                 for (TeachingRequest request: c.variables()) {
                     Element assignmentEl = sameInstEl.addElement("request");
                     assignmentEl.addAttribute("id", String.valueOf(request.getRequestId()));
+                    if (request.getInstructorIndex() != 0)
+                        assignmentEl.addAttribute("index", String.valueOf(request.getInstructorIndex()));
                 }
             } else if (c instanceof SameLinkConstraint) {
                 SameLinkConstraint si = (SameLinkConstraint) c;
@@ -377,6 +381,8 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
                 for (TeachingRequest request: c.variables()) {
                     Element assignmentEl = sameInstEl.addElement("request");
                     assignmentEl.addAttribute("id", String.valueOf(request.getRequestId()));
+                    if (request.getInstructorIndex() != 0)
+                        assignmentEl.addAttribute("index", String.valueOf(request.getInstructorIndex()));
                 }
             }
         }
@@ -493,7 +499,7 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
             addConstraint(instructor.getConstraint());
             instructors.put(instructor.getInstructorId(), instructor);
         }
-        Map<Long, TeachingRequest> requests = new HashMap<Long, TeachingRequest>();
+        Map<Long, Map<Integer, TeachingRequest>> requests = new HashMap<Long, Map<Integer, TeachingRequest>>();
         Map<TeachingRequest, Instructor> current = new HashMap<TeachingRequest, Instructor>();
         Map<TeachingRequest, Instructor> best = new HashMap<TeachingRequest, Instructor>();
         Map<TeachingRequest, Instructor> initial = new HashMap<TeachingRequest, Instructor>();
@@ -542,11 +548,17 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
                 sections.add(section);
             }
             TeachingRequest request = new TeachingRequest(
-                    Long.valueOf(requestEl.attributeValue("id")),
+                    Long.parseLong(requestEl.attributeValue("id")),
+                    Integer.parseInt(requestEl.attributeValue("index", "0")),
                     course,
                     Float.valueOf(requestEl.attributeValue("load", "0")),
                     sections);
-            requests.put(request.getRequestId(), request);
+            Map<Integer, TeachingRequest> requestsSameId = requests.get(request.getRequestId());
+            if (requestsSameId == null) {
+                requestsSameId = new HashMap<Integer, TeachingRequest>();
+                requests.put(request.getRequestId(), requestsSameId);
+            }
+            requestsSameId.put(request.getInstructorIndex(), request);
             for (Iterator<?> j = requestEl.elementIterator("attribute"); j.hasNext();) {
                 Element f = (Element) j.next();
                 Long attributeId = Long.valueOf(f.attributeValue("id"));
@@ -597,9 +609,12 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
                 if (constraint != null) {
                     for (Iterator<?> j = constraintEl.elementIterator("request"); j.hasNext();) {
                         Element f = (Element) j.next();
-                        TeachingRequest request = requests.get(Long.valueOf(f.attributeValue("id")));
-                        if (request != null)
-                            constraint.addVariable(request);
+                        Map<Integer, TeachingRequest> requestsSameId = requests.get(Long.valueOf(f.attributeValue("id")));
+                        if (requestsSameId != null) {
+                            TeachingRequest request = requestsSameId.get(Integer.valueOf(f.attributeValue("index", "0")));
+                            if (request != null)
+                                constraint.addVariable(request);
+                        }
                     }
                     addConstraint(constraint);
                 }

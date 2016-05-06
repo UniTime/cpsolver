@@ -39,7 +39,8 @@ import org.cpsolver.instructor.constraints.InstructorConstraint;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class TeachingRequest extends Variable<TeachingRequest, TeachingAssignment> {
-    private Long iRequestId;
+    private long iRequestId;
+    private int iIndex;
     private Course iCourse;
     private float iLoad;
     private List<Section> iSections = new ArrayList<Section>();
@@ -49,13 +50,16 @@ public class TeachingRequest extends Variable<TeachingRequest, TeachingAssignmen
     /**
      * 
      * @param requestId teaching request id
+     * @param index instructor index (if a class can be taught by multiple instructors, the index identifies the particular request)
      * @param course course
      * @param load teaching load
      * @param sections list of sections
      */
-    public TeachingRequest(long requestId, Course course, float load, Collection<Section> sections) {
+    public TeachingRequest(long requestId, int index, Course course, float load, Collection<Section> sections) {
         super();
+        iId = (requestId << 8) + index;
         iRequestId = requestId;
+        iIndex = index;
         iCourse = course;
         iLoad = load;
         iSections.addAll(sections);
@@ -65,8 +69,16 @@ public class TeachingRequest extends Variable<TeachingRequest, TeachingAssignmen
      * Teaching request id that was provided in the constructor
      * @return request id
      */
-    public Long getRequestId() {
+    public long getRequestId() {
         return iRequestId;
+    }
+    
+    /**
+     * Instructor index that was provided in the constructor
+     * @return instructor index
+     */
+    public int getInstructorIndex() {
+        return iIndex;
     }
 
     @Override
@@ -302,5 +314,17 @@ public class TeachingRequest extends Variable<TeachingRequest, TeachingAssignmen
             }
         }
         return (count == 0 ? 0.0 : b2b / count);
+    }
+    
+    @Override
+    public int hashCode() {
+        return new Long(iRequestId << 8 + iIndex).hashCode();
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || !(o instanceof TeachingRequest)) return false;
+        TeachingRequest tr = (TeachingRequest)o;
+        return getRequestId() == tr.getRequestId() && getInstructorIndex() == tr.getInstructorIndex();
     }
 }
