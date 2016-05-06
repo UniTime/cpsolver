@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -64,10 +66,24 @@ public class MathTest extends Test {
         removeCriterion(DifferentLecture.class);
     }
     
+    public String getLevel(Instructor instructor) {
+        for (Attribute attribute: instructor.getAttributes())
+            if (attribute.getType().getTypeName().equals("Level")) return attribute.getAttributeName();
+        return null;
+    }
+    
     public String toString(Instructor instructor) {
         StringBuffer sb = new StringBuffer();
         sb.append(instructor.getExternalId());
         sb.append(",\"" + instructor.getAvailable() + "\"");
+        Collections.sort(instructor.getCoursePreferences(), new Comparator<Preference<Course>>() {
+            @Override
+            public int compare(Preference<Course> p1, Preference<Course> p2) {
+                if (p1.getPreference() == p2.getPreference())
+                    return p1.getTarget().getCourseName().compareTo(p2.getTarget().getCourseName());
+                return p1.getPreference() < p2.getPreference() ? -1 : 1;
+            }
+        });
         for (int i = 0; i < 3; i++) {
             Preference<Course> p = (i < instructor.getCoursePreferences().size() ? instructor.getCoursePreferences().get(i) : null);
             sb.append("," + (p == null ? "" : p.getTarget().getCourseName()));
@@ -75,7 +91,8 @@ public class MathTest extends Test {
         sb.append("," + (instructor.getPreference() == 0 ? "Yes" : "No"));
         sb.append("," + (instructor.isBackToBackPreferred() ? "1" : instructor.isBackToBackDiscouraged() ? "-1" : "0"));
         sb.append("," + new DecimalFormat("0.0").format(instructor.getMaxLoad()));
-        sb.append("," + (instructor.getAttributes().isEmpty() ? "" : instructor.getAttributes().get(0).getAttributeName())); 
+        String level = getLevel(instructor);
+        sb.append("," + (level == null ? "" : level)); 
         return sb.toString();
     }
     
@@ -113,7 +130,7 @@ public class MathTest extends Test {
         Section section = request.getSections().get(0);
         sb.append("," + section.getSectionName());
         sb.append("," + section.getTimeName(true));
-        sb.append("," + (section.hasRoom() ? section.getRoom() : ""));
+        sb.append(",\"" + (section.hasRoom() ? section.getRoom() : "") + "\"");
         String link = getLink(request);
         sb.append("," + (link == null ? "" : link));
         Map<String, Integer> levels = new HashMap<String, Integer>();
@@ -197,7 +214,7 @@ public class MathTest extends Test {
                     c = new Course(courses.size(), course, true, false);
                     courses.put(course, c);
                 }
-                TeachingRequest clazz = new TeachingRequest(reqId++, c, 0f, sections);
+                TeachingRequest clazz = new TeachingRequest(reqId++, 0, c, 0f, sections);
                 addVariable(clazz);
                 List<TeachingRequest> classes = id2classes.get(id);
                 if (classes == null) {
@@ -452,19 +469,20 @@ public class MathTest extends Test {
             Section section = request.getSections().get(0);
             out.print("," + section.getSectionType());
             out.print("," + section.getTimeName(true));
-            out.print("," + (section.hasRoom() ? section.getRoom() : ""));
+            out.print(",\"" + (section.hasRoom() ? section.getRoom() : "") + "\"");
             String link = getLink(request);
             out.print("," + (link == null ? "" : link));
             Map<String, Integer> levels = new HashMap<String, Integer>();
             for (Preference<Attribute> p: request.getAttributePreferences())
-                levels.put(p.getTarget().getAttributeName(), - p.getPreference());
+                if (p.getTarget().getType().getTypeName().equals("Level"))
+                    levels.put(p.getTarget().getAttributeName(), - p.getPreference());
             out.print(",\"" + levels + "\"");
             out.print("," + new DecimalFormat("0.0").format(request.getLoad()));
             TeachingAssignment value = assignment.getValue(request);
             if (value != null) {
                 out.print("," + toString(value.getInstructor()));
                 out.print("," + (-value.getAttributePreference()));
-                out.print("," + (value.getCoursePreference() == -10 ? "1" : value.getCoursePreference() == -8 ? "2" : value.getCoursePreference() == -5 ? "3" : ""));
+                out.print("," + (value.getCoursePreference() == -10 ? "1" : value.getCoursePreference() == -8 ? "2" : value.getCoursePreference() == -5 ? "3" : value.getCoursePreference()));
             }
             out.println();
         }
@@ -486,17 +504,18 @@ public class MathTest extends Test {
                 out.print("," + (instructor.getPreference() == 0 ? "Yes" : "No"));
                 out.print("," + (instructor.isBackToBackPreferred() ? "1" : instructor.isBackToBackDiscouraged() ? "-1" : "0"));
                 out.print("," + new DecimalFormat("0.0").format(instructor.getMaxLoad()));
-                out.print("," + (instructor.getAttributes().isEmpty() ? "" : instructor.getAttributes().get(0).getAttributeName())); 
+                String level = getLevel(instructor);
+                out.print("," + (level == null ? "" : level)); 
                 InstructorConstraint.Context context = ic.getContext(assignment);
                 out.print("," + new DecimalFormat("0.0").format(context.getLoad()));
-                double level = 0.0, pref = 0.0;
+                double att = 0.0, pref = 0.0;
                 for (TeachingAssignment ta : context.getAssignments()) {
-                    level += Math.abs(ta.getAttributePreference());
-                    pref += (ta.getCoursePreference() == -10 ? 1 : ta.getCoursePreference() == -8 ? 2 : ta.getCoursePreference() == -5 ? 3 : 0);
+                    att += Math.abs(ta.getAttributePreference());
+                    pref += (ta.getCoursePreference() == -10 ? 1 : ta.getCoursePreference() == -8 ? 2 : ta.getCoursePreference() == -5 ? 3 : ta.getCoursePreference());
                 }
                 int diffLinks = countDiffLinks(context.getAssignments());
-                out.print("," + (context.getAssignments().isEmpty() ? "" : new DecimalFormat("0.0").format(level / context.getAssignments().size())));
-                out.print("," + (context.getAssignments().isEmpty() || pref <= 0.0 ? "" : new DecimalFormat("0.0").format(pref / context.getAssignments().size())));
+                out.print("," + (context.getAssignments().isEmpty() ? "" : new DecimalFormat("0.0").format(att / context.getAssignments().size())));
+                out.print("," + (context.getAssignments().isEmpty() || pref == 0.0 ? "" : new DecimalFormat("0.0").format(pref / context.getAssignments().size())));
                 out.print("," + new DecimalFormat("0.0").format(100.0 * context.countBackToBackPercentage()));
                 out.print("," + (diffLinks <= 0 ? "" : diffLinks));
                 for (TeachingAssignment ta : context.getAssignments()) {
@@ -505,6 +524,32 @@ public class MathTest extends Test {
                 }
                 out.println();
             }
+        }
+        out.flush();
+        out.close();
+        
+        out = new PrintWriter(new File(dir, "input-courses.csv"));
+        Set<String> levels = new TreeSet<String>();
+        for (TeachingRequest request : variables()) {
+            for (Preference<Attribute> p: request.getAttributePreferences())
+                levels.add(p.getTarget().getAttributeName());
+        }
+        out.print("Course,Type,Load");
+        for (String level: levels)
+            out.print("," + level);
+        out.println();
+        Set<String> courses = new HashSet<String>();
+        for (TeachingRequest request : variables()) {
+            if (courses.add(request.getCourse() + "," + request.getSections().get(0).getSectionType())) {
+                out.print(request.getCourse().getCourseName() + "," + request.getSections().get(0).getSectionType() + "," + request.getLoad());
+            }
+            for (String level: levels) {
+                int pref = 0;
+                for (Preference<Attribute> p: request.getAttributePreferences())
+                    if (p.getTarget().getAttributeName().equals(level)) pref = p.getPreference();
+                out.print("," + (pref == 0 ? "" : -pref));
+            }
+            out.println();
         }
         out.flush();
         out.close();
