@@ -10,9 +10,7 @@ import org.cpsolver.coursett.model.TimeLocation;
 import org.cpsolver.coursett.preference.PreferenceCombination;
 import org.cpsolver.coursett.preference.SumPreferenceCombination;
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.model.Constraint;
 import org.cpsolver.ifs.model.Variable;
-import org.cpsolver.instructor.constraints.InstructorConstraint;
 
 /**
  * Teaching request. A set of sections of a course to be assigned to an instructor.
@@ -86,15 +84,11 @@ public class TeachingRequest extends Variable<TeachingRequest, TeachingAssignmen
         List<TeachingAssignment> values = super.values(assignment);
         if (values == null) {
             values = new ArrayList<TeachingAssignment>();
-            for (Constraint<TeachingRequest, TeachingAssignment> constraint: getModel().constraints()) {
-                if (constraint instanceof InstructorConstraint) {
-                    InstructorConstraint ic = (InstructorConstraint) constraint;
-                    Instructor instructor = ic.getInstructor();
-                    if (instructor.canTeach(this)) {
-                        PreferenceCombination attributePref = getAttributePreference(instructor);
-                        if (attributePref.isProhibited()) continue;
-                        values.add(new TeachingAssignment(this, instructor, attributePref.getPreferenceInt()));
-                    }
+            for (Instructor instructor: ((InstructorSchedulingModel)getModel()).getInstructors()) {
+                if (instructor.canTeach(this)) {
+                    PreferenceCombination attributePref = getAttributePreference(instructor);
+                    if (attributePref.isProhibited()) continue;
+                    values.add(new TeachingAssignment(this, instructor, attributePref.getPreferenceInt()));
                 }
             }
             setValues(values);
@@ -120,7 +114,7 @@ public class TeachingRequest extends Variable<TeachingRequest, TeachingAssignmen
      * @param type an attribute type
      * @return combined preference using {@link Attribute.Type#isConjunctive()} and {@link Attribute.Type#isRequired()} properties
      */
-    protected int getAttributePreference(Instructor instructor, Attribute.Type type) {
+    public int getAttributePreference(Instructor instructor, Attribute.Type type) {
         Set<Attribute> attributes = instructor.getAttributes(type);
         boolean hasReq = false, hasPref = false, needReq = false;
         PreferenceCombination ret = new SumPreferenceCombination();
@@ -326,5 +320,17 @@ public class TeachingRequest extends Variable<TeachingRequest, TeachingAssignmen
         if (o == null || !(o instanceof TeachingRequest)) return false;
         TeachingRequest tr = (TeachingRequest)o;
         return getRequestId() == tr.getRequestId() && getInstructorIndex() == tr.getInstructorIndex();
+    }
+    
+    @Override
+    public void variableAssigned(Assignment<TeachingRequest, TeachingAssignment> assignment, long iteration, TeachingAssignment ta) {
+        super.variableAssigned(assignment, iteration, ta);
+        ta.getInstructor().getContext(assignment).assigned(assignment, ta);
+    }
+
+    @Override
+    public void variableUnassigned(Assignment<TeachingRequest, TeachingAssignment> assignment, long iteration, TeachingAssignment ta) {
+        super.variableUnassigned(assignment, iteration, ta);
+        ta.getInstructor().getContext(assignment).unassigned(assignment, ta);
     }
 }

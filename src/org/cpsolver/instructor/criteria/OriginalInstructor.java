@@ -5,15 +5,14 @@ import java.util.Map;
 import java.util.Set;
 
 import org.cpsolver.ifs.assignment.Assignment;
+import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
-import org.cpsolver.instructor.model.Instructor;
-import org.cpsolver.instructor.model.InstructorSchedulingModel;
 import org.cpsolver.instructor.model.TeachingAssignment;
 import org.cpsolver.instructor.model.TeachingRequest;
 
 /**
- * Different Lecture. If an instructor is teaching two or more assignments of the same course, this criterion counts cases when these
- * assignments do not share a common part (e.g., have a different lecture, counting {@link Instructor#differentLectures(Assignment, TeachingAssignment)}).
+ * Original Instructor. This criterion penalizes teaching assignments that are not given
+ * to the initial instructor (i.e., {@link TeachingRequest} is not assigned to {@link TeachingRequest#getInitialAssignment()}).
  * 
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
@@ -34,44 +33,36 @@ import org.cpsolver.instructor.model.TeachingRequest;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class DifferentLecture extends InstructorSchedulingCriterion {
+public class OriginalInstructor extends InstructorSchedulingCriterion {
+    private boolean iMPP = false;
 
-    public DifferentLecture() {
-        setValueUpdateType(ValueUpdateType.NoUpdate);
+    public OriginalInstructor() {
+    }
+    
+    @Override
+    public boolean init(Solver<TeachingRequest, TeachingAssignment> solver) {
+        boolean ret = super.init(solver);
+        iMPP = solver.getProperties().getPropertyBoolean("General.MPP", iMPP);
+        return ret;
     }
 
     @Override
     public double getWeightDefault(DataProperties config) {
-        return 1000.0;
+        return 100.0;
     }
 
     @Override
     public double getValue(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value, Set<TeachingAssignment> conflicts) {
-        return value.getInstructor().differentLectures(assignment, value);
-    }
-
-    @Override
-    public double getValue(Assignment<TeachingRequest, TeachingAssignment> assignment, Collection<TeachingRequest> variables) {
-        double value = 0.0;
-        for (Instructor instructor: getInstructors(assignment, variables)) {
-            value += instructor.getContext(assignment).countDifferentLectures();
+        if (iMPP && value.variable().getInitialAssignment() != null) {
+            return (value.getInstructor().equals(value.variable().getInitialAssignment().getInstructor()) ? 0.0 : 1.0);
+        } else {
+            return 0.0;
         }
-        return value;
-    }
-    
-    @Override
-    protected double[] computeBounds(Assignment<TeachingRequest, TeachingAssignment> assignment) {
-        return new double[] { 0.0, ((InstructorSchedulingModel)getModel()).getInstructors().size() };
-    }
-    
-    @Override
-    public double[] getBounds(Assignment<TeachingRequest, TeachingAssignment> assignment, Collection<TeachingRequest> variables) {
-        return new double[] { 0.0, getInstructors(assignment, variables).size() };
     }
     
     @Override
     public String getAbbreviation() {
-        return "DiffLecture";
+        return "Original";
     }
     
     @Override
@@ -79,7 +70,7 @@ public class DifferentLecture extends InstructorSchedulingCriterion {
         double val = getValue(assignment);
         double[] bounds = getBounds(assignment);
         if (bounds[0] <= val && val <= bounds[1] && bounds[0] < bounds[1])
-            info.put("Same Lecture", getPerc(val, bounds[0], bounds[1]) + "% (" + sDoubleFormat.format(bounds[1] - val) + ")");
+            info.put(getName(), getPerc(val, bounds[0], bounds[1]) + "% (" + sDoubleFormat.format(bounds[1] - val) + ")");
     }
     
     @Override
@@ -87,6 +78,6 @@ public class DifferentLecture extends InstructorSchedulingCriterion {
         double val = getValue(assignment, variables);
         double[] bounds = getBounds(assignment, variables);
         if (bounds[0] <= val && val <= bounds[1] && bounds[0] < bounds[1])
-            info.put("Same Lecture", getPerc(val, bounds[0], bounds[1]) + "% (" + sDoubleFormat.format(bounds[1] - val) + ")");
+            info.put(getName(), getPerc(val, bounds[0], bounds[1]) + "% (" + sDoubleFormat.format(bounds[1] - val) + ")");
     }
 }

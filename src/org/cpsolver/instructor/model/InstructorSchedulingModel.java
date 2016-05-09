@@ -31,6 +31,7 @@ import org.cpsolver.instructor.criteria.CoursePreferences;
 import org.cpsolver.instructor.criteria.InstructorPreferences;
 import org.cpsolver.instructor.criteria.SameInstructor;
 import org.cpsolver.instructor.criteria.DifferentLecture;
+import org.cpsolver.instructor.criteria.OriginalInstructor;
 import org.cpsolver.instructor.criteria.SameLink;
 import org.cpsolver.instructor.criteria.TeachingPreferences;
 import org.cpsolver.instructor.criteria.TimeOverlaps;
@@ -67,6 +68,7 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
     private static Logger sLog = Logger.getLogger(InstructorSchedulingModel.class);
     private DataProperties iProperties;
     private Set<Attribute.Type> iTypes = new HashSet<Attribute.Type>();
+    private List<Instructor> iInstructors = new ArrayList<Instructor>();
 
     /**
      * Constructor
@@ -85,6 +87,8 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
         addCriterion(new TimeOverlaps());
         addCriterion(new DifferentLecture());
         addCriterion(new SameLink());
+        addCriterion(new OriginalInstructor());
+        addGlobalConstraint(new InstructorConstraint());
     }
     
     /**
@@ -95,14 +99,23 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
         return iProperties;
     }
     
-    @Override
-    public void addConstraint(Constraint<TeachingRequest, TeachingAssignment> constraint) {
-        super.addConstraint(constraint);
-        if (constraint instanceof InstructorConstraint) {
-            InstructorConstraint ic = (InstructorConstraint) constraint;
-            for (Attribute attribute: ic.getInstructor().getAttributes())
-                addAttributeType(attribute.getType());
-        }
+    /**
+     * Add instructor
+     * @param instructor
+     */
+    public void addInstructor(Instructor instructor) {
+        instructor.setModel(this);
+        iInstructors.add(instructor);
+        for (Attribute attribute: instructor.getAttributes())
+            addAttributeType(attribute.getType());
+    }
+    
+    /**
+     * All instructors
+     * @return all instructors in the model
+     */
+    public List<Instructor> getInstructors() {
+        return iInstructors;
     }
     
     /**
@@ -128,7 +141,7 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
             if (assignment.getValue(clazz) != null)
                 assignedLoad += clazz.getLoad();
         }
-        info.put("Assigned load", getPerc(assignedLoad, totalLoad, 0) + "% (" + sDoubleFormat.format(assignedLoad) + " / " + sDoubleFormat.format(totalLoad) + ")");
+        info.put("Assigned Load", getPerc(assignedLoad, totalLoad, 0) + "% (" + sDoubleFormat.format(assignedLoad) + " / " + sDoubleFormat.format(totalLoad) + ")");
 
         return info;
     }
@@ -191,16 +204,13 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
                         attributeEl.addAttribute("name", attribute.getAttributeName());
                     }
                 }
-                for (Constraint<TeachingRequest, TeachingAssignment> c: constraints()) {
-                    if (c instanceof InstructorConstraint) {
-                        Instructor instructor = ((InstructorConstraint)c).getInstructor();
-                        for (Attribute attribute: instructor.getAttributes()) {
-                            if (type.equals(attribute.getType()) && attributes.add(attribute)) {
-                                Element attributeEl = typeEl.addElement("attribute");
-                                if (attribute.getAttributeId() != null)
-                                    attributeEl.addAttribute("id", String.valueOf(attribute.getAttributeId()));
-                                attributeEl.addAttribute("name", attribute.getAttributeName());
-                            }
+                for (Instructor instructor: getInstructors()) {
+                    for (Attribute attribute: instructor.getAttributes()) {
+                        if (type.equals(attribute.getType()) && attributes.add(attribute)) {
+                            Element attributeEl = typeEl.addElement("attribute");
+                            if (attribute.getAttributeId() != null)
+                                attributeEl.addAttribute("id", String.valueOf(attribute.getAttributeId()));
+                            attributeEl.addAttribute("name", attribute.getAttributeName());
                         }
                     }
                 }
@@ -305,58 +315,57 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
             }
         }
         Element instructorsEl = root.addElement("instructors");
+        for (Instructor instructor: getInstructors()) {
+            Element instructorEl = instructorsEl.addElement("instructor");
+            instructorEl.addAttribute("id", String.valueOf(instructor.getInstructorId()));
+            if (instructor.hasExternalId())
+                instructorEl.addAttribute("externalId", instructor.getExternalId());
+            if (instructor.hasName())
+                instructorEl.addAttribute("name", instructor.getName());
+            if (instructor.getPreference() != 0)
+                instructorEl.addAttribute("preference", String.valueOf(instructor.getPreference()));
+            if (instructor.getBackToBackPreference() != 0)
+                instructorEl.addAttribute("btb", String.valueOf(instructor.getBackToBackPreference()));
+            for (Attribute attribute: instructor.getAttributes()) {
+                Element attributeEl = instructorEl.addElement("attribute");
+                if (attribute.getAttributeId() != null)
+                    attributeEl.addAttribute("id", String.valueOf(attribute.getAttributeId()));
+                attributeEl.addAttribute("name", attribute.getAttributeName());
+                attributeEl.addAttribute("type", attribute.getType().getTypeName());
+            }
+            instructorEl.addAttribute("maxLoad", sDoubleFormat.format(instructor.getMaxLoad()));
+            for (Preference<TimeLocation> tp: instructor.getTimePreferences()) {
+                Element timeEl = instructorEl.addElement("time");
+                TimeLocation tl = tp.getTarget();
+                timeEl.addAttribute("days", sDF7.format(Long.parseLong(Integer.toBinaryString(tl.getDayCode()))));
+                timeEl.addAttribute("start", String.valueOf(tl.getStartSlot()));
+                timeEl.addAttribute("length", String.valueOf(tl.getLength()));
+                if (tl.getBreakTime() != 0)
+                    timeEl.addAttribute("breakTime", String.valueOf(tl.getBreakTime()));
+                if (tl.getTimePatternId() != null)
+                    timeEl.addAttribute("pattern", tl.getTimePatternId().toString());
+                if (tl.getDatePatternId() != null)
+                    timeEl.addAttribute("datePattern", tl.getDatePatternId().toString());
+                if (tl.getDatePatternName() != null && !tl.getDatePatternName().isEmpty())
+                    timeEl.addAttribute("datePatternName", tl.getDatePatternName());
+                if (tl.getWeekCode() != null)
+                    timeEl.addAttribute("dates", bitset2string(tl.getWeekCode()));
+                timeEl.addAttribute("preference", tp.isProhibited() ? "P" : tp.isRequired() ? "R" : String.valueOf(tp.getPreference()));
+                timeEl.setText(tl.getLongName(false));
+            }
+            for (Preference<Course> cp: instructor.getCoursePreferences()) {
+                Element courseEl = instructorEl.addElement("course");
+                Course course = cp.getTarget();
+                if (course.getCourseId() != null)
+                    courseEl.addAttribute("id", String.valueOf(course.getCourseId()));
+                if (course.getCourseName() != null)
+                    courseEl.addAttribute("name", String.valueOf(course.getCourseName()));
+                courseEl.addAttribute("preference", cp.isProhibited() ? "P" : cp.isRequired() ? "R" : String.valueOf(cp.getPreference()));
+            }
+        }
         Element constraintsEl = root.addElement("constraints");
         for (Constraint<TeachingRequest, TeachingAssignment> c: constraints()) {
-            if (c instanceof InstructorConstraint) {
-                InstructorConstraint ic = (InstructorConstraint)c;
-                Instructor instructor = ic.getInstructor();
-                Element instructorEl = instructorsEl.addElement("instructor");
-                instructorEl.addAttribute("id", String.valueOf(instructor.getInstructorId()));
-                if (instructor.hasExternalId())
-                    instructorEl.addAttribute("externalId", instructor.getExternalId());
-                if (instructor.hasName())
-                    instructorEl.addAttribute("name", instructor.getName());
-                if (instructor.getPreference() != 0)
-                    instructorEl.addAttribute("preference", String.valueOf(instructor.getPreference()));
-                if (instructor.getBackToBackPreference() != 0)
-                    instructorEl.addAttribute("btb", String.valueOf(instructor.getBackToBackPreference()));
-                for (Attribute attribute: instructor.getAttributes()) {
-                    Element attributeEl = instructorEl.addElement("attribute");
-                    if (attribute.getAttributeId() != null)
-                        attributeEl.addAttribute("id", String.valueOf(attribute.getAttributeId()));
-                    attributeEl.addAttribute("name", attribute.getAttributeName());
-                    attributeEl.addAttribute("type", attribute.getType().getTypeName());
-                }
-                instructorEl.addAttribute("maxLoad", sDoubleFormat.format(instructor.getMaxLoad()));
-                for (Preference<TimeLocation> tp: instructor.getTimePreferences()) {
-                    Element timeEl = instructorEl.addElement("time");
-                    TimeLocation tl = tp.getTarget();
-                    timeEl.addAttribute("days", sDF7.format(Long.parseLong(Integer.toBinaryString(tl.getDayCode()))));
-                    timeEl.addAttribute("start", String.valueOf(tl.getStartSlot()));
-                    timeEl.addAttribute("length", String.valueOf(tl.getLength()));
-                    if (tl.getBreakTime() != 0)
-                        timeEl.addAttribute("breakTime", String.valueOf(tl.getBreakTime()));
-                    if (tl.getTimePatternId() != null)
-                        timeEl.addAttribute("pattern", tl.getTimePatternId().toString());
-                    if (tl.getDatePatternId() != null)
-                        timeEl.addAttribute("datePattern", tl.getDatePatternId().toString());
-                    if (tl.getDatePatternName() != null && !tl.getDatePatternName().isEmpty())
-                        timeEl.addAttribute("datePatternName", tl.getDatePatternName());
-                    if (tl.getWeekCode() != null)
-                        timeEl.addAttribute("dates", bitset2string(tl.getWeekCode()));
-                    timeEl.addAttribute("preference", tp.isProhibited() ? "P" : tp.isRequired() ? "R" : String.valueOf(tp.getPreference()));
-                    timeEl.setText(tl.getLongName(false));
-                }
-                for (Preference<Course> cp: instructor.getCoursePreferences()) {
-                    Element courseEl = instructorEl.addElement("course");
-                    Course course = cp.getTarget();
-                    if (course.getCourseId() != null)
-                        courseEl.addAttribute("id", String.valueOf(course.getCourseId()));
-                    if (course.getCourseName() != null)
-                        courseEl.addAttribute("name", String.valueOf(course.getCourseName()));
-                    courseEl.addAttribute("preference", cp.isProhibited() ? "P" : cp.isRequired() ? "R" : String.valueOf(cp.getPreference()));
-                }
-            } else if (c instanceof SameInstructorConstraint) {
+            if (c instanceof SameInstructorConstraint) {
                 SameInstructorConstraint si = (SameInstructorConstraint) c;
                 Element sameInstEl = constraintsEl.addElement("same-instructor");
                 if (si.getConstraintId() != null)
@@ -496,7 +505,7 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
                 }
                 instructor.addCoursePreference(new Preference<Course>(course, string2preference(f.attributeValue("preference"))));
             }
-            addConstraint(instructor.getConstraint());
+            addInstructor(instructor);
             instructors.put(instructor.getInstructorId(), instructor);
         }
         Map<Long, Map<Integer, TeachingRequest>> requests = new HashMap<Long, Map<Integer, TeachingRequest>>();
@@ -619,12 +628,6 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
                     addConstraint(constraint);
                 }
             }            
-        }
-        for (Instructor instructor: instructors.values()) {
-            for (TeachingRequest clazz : variables()) {
-                if (instructor.canTeach(clazz) && !clazz.getAttributePreference(instructor).isProhibited())
-                    instructor.getConstraint().addVariable(clazz);
-            }
         }
         for (Map.Entry<TeachingRequest, Instructor> entry: best.entrySet())
             entry.getKey().setBestAssignment(new TeachingAssignment(entry.getKey(), entry.getValue()), 0l);

@@ -1,14 +1,11 @@
 package org.cpsolver.instructor.criteria;
 
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.criteria.AbstractCriterion;
-import org.cpsolver.ifs.model.Constraint;
 import org.cpsolver.ifs.util.DataProperties;
-import org.cpsolver.instructor.constraints.InstructorConstraint;
 import org.cpsolver.instructor.model.Instructor;
 import org.cpsolver.instructor.model.Section;
 import org.cpsolver.instructor.model.TeachingAssignment;
@@ -37,7 +34,7 @@ import org.cpsolver.instructor.model.TeachingRequest;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class TimeOverlaps extends AbstractCriterion<TeachingRequest, TeachingAssignment> {
+public class TimeOverlaps extends InstructorSchedulingCriterion {
 
     public TimeOverlaps() {
         setValueUpdateType(ValueUpdateType.NoUpdate);
@@ -56,20 +53,28 @@ public class TimeOverlaps extends AbstractCriterion<TeachingRequest, TeachingAss
     @Override
     public double getValue(Assignment<TeachingRequest, TeachingAssignment> assignment, Collection<TeachingRequest> variables) {
         double value = 0.0;
-        Set<Instructor> instructors = new HashSet<Instructor>();
-        for (Constraint<TeachingRequest, TeachingAssignment> c : getModel().constraints()) {
-            if (c instanceof InstructorConstraint) {
-                InstructorConstraint ic = (InstructorConstraint)c;
-                if (instructors.add(ic.getInstructor())) {
-                    value += ic.getContext(assignment).countTimeOverlaps();
-                }
-            }
+        for (Instructor instructor: getInstructors(assignment, variables)) {
+            value += instructor.getContext(assignment).countTimeOverlaps();
         }
         return value;
     }
     
     @Override
     public String getAbbreviation() {
-        return "O";
+        return "Overlaps";
+    }
+    
+    @Override
+    public void getInfo(Assignment<TeachingRequest, TeachingAssignment> assignment, Map<String, String> info) {
+        double val = getValue(assignment);
+        if (val != 0)
+            info.put(getName(), sDoubleFormat.format(val / 12.0) + " h");
+    }
+
+    @Override
+    public void getInfo(Assignment<TeachingRequest, TeachingAssignment> assignment, Map<String, String> info, Collection<TeachingRequest> variables) {
+        double val = getValue(assignment, variables);
+        if (val != 0)
+            info.put(getName(), sDoubleFormat.format(val / 12.0) + " h");
     }
 }

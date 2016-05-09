@@ -24,7 +24,6 @@ import org.cpsolver.ifs.model.Constraint;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.ToolBox;
 import org.cpsolver.instructor.Test;
-import org.cpsolver.instructor.constraints.InstructorConstraint;
 import org.cpsolver.instructor.constraints.SameInstructorConstraint;
 import org.cpsolver.instructor.constraints.SameLinkConstraint;
 import org.cpsolver.instructor.criteria.DifferentLecture;
@@ -381,17 +380,13 @@ public class MathTest extends Test {
                         f = -1;
                     }
                 }
-                for (TeachingRequest clazz : variables()) {
-                    if (instructor.canTeach(clazz) && !clazz.getAttributePreference(instructor).isProhibited())
-                        instructor.getConstraint().addVariable(clazz);
-                }
-                if (instructor.getMaxLoad() > 0 && !instructor.getConstraint().variables().isEmpty()) {
-                    addConstraint(instructor.getConstraint());
+                if (instructor.getMaxLoad() > 0) {
+                    addInstructor(instructor);
                     sLog.info("Added student " + toString(instructor));
                     int nrClasses = 0;
-                    for (TeachingRequest c : instructor.getConstraint().variables()) {
-                        if (c.getId() >= 0) {
-                            sLog.info("  -- " + toString(c) + "," + (-c.getAttributePreference(instructor).getPreferenceInt()) + "," + (-instructor.getCoursePreference(c.getCourse()).getPreference()));
+                    for (TeachingRequest req : variables()) {
+                        if (instructor.canTeach(req) && !req.getAttributePreference(instructor).isProhibited()) {
+                            sLog.info("  -- " + toString(req) + "," + (-req.getAttributePreference(instructor).getPreferenceInt()) + "," + (-instructor.getCoursePreference(req.getCourse()).getPreference()));
                             nrClasses++;
                         }
                     }
@@ -416,14 +411,11 @@ public class MathTest extends Test {
             }
 
             Map<String, Double> studentLevel2load = new HashMap<String, Double>();
-            for (Constraint<TeachingRequest, TeachingAssignment> c : constraints()) {
-                if (c instanceof InstructorConstraint) {
-                    InstructorConstraint ic = (InstructorConstraint) c;
-                    Set<Attribute> levels = ic.getInstructor().getAttributes(level);
-                    String studentLevel = (levels.isEmpty() ? "null" : levels.iterator().next().getAttributeName());
-                    Double load = studentLevel2load.get(studentLevel);
-                    studentLevel2load.put(studentLevel, ic.getInstructor().getMaxLoad() + (load == null ? 0.0 : load));
-                }
+            for (Instructor instructor: getInstructors()) {
+                Set<Attribute> levels = instructor.getAttributes(level);
+                String studentLevel = (levels.isEmpty() ? "null" : levels.iterator().next().getAttributeName());
+                Double load = studentLevel2load.get(studentLevel);
+                studentLevel2load.put(studentLevel, instructor.getMaxLoad() + (load == null ? 0.0 : load));
             }
             sLog.info("Student max loads: (total: " + sDoubleFormat.format(studentMaxLoad) + ")");
             for (String studentLevel : new TreeSet<String>(studentLevel2load.keySet())) {
@@ -491,39 +483,35 @@ public class MathTest extends Test {
 
         out = new PrintWriter(new File(dir, "solution-students.csv"));
         out.println("Student,Availability,1st Preference,2nd Preference,3rd Preference,Graduate,Back-To-Back,Max Load,Level,Assigned Load,Avg Level,Avg Preference,Back-To-Back,Diff Links,1st Assignment,2nd Assignment, 3rd Assignment");
-        for (Constraint<TeachingRequest, TeachingAssignment> constraint : constraints()) {
-            if (constraint instanceof InstructorConstraint) {
-                InstructorConstraint ic = (InstructorConstraint) constraint;
-                Instructor instructor = ic.getInstructor();
-                out.print(instructor.getExternalId());
-                out.print(",\"" + instructor.getAvailable() + "\"");
-                for (int i = 0; i < 3; i++) {
-                    Preference<Course> p = (i < instructor.getCoursePreferences().size() ? instructor.getCoursePreferences().get(i) : null);
-                    out.print("," + (p == null ? "" : p.getTarget().getCourseName()));
-                }
-                out.print("," + (instructor.getPreference() == 0 ? "Yes" : "No"));
-                out.print("," + (instructor.isBackToBackPreferred() ? "1" : instructor.isBackToBackDiscouraged() ? "-1" : "0"));
-                out.print("," + new DecimalFormat("0.0").format(instructor.getMaxLoad()));
-                String level = getLevel(instructor);
-                out.print("," + (level == null ? "" : level)); 
-                InstructorConstraint.Context context = ic.getContext(assignment);
-                out.print("," + new DecimalFormat("0.0").format(context.getLoad()));
-                double att = 0.0, pref = 0.0;
-                for (TeachingAssignment ta : context.getAssignments()) {
-                    att += Math.abs(ta.getAttributePreference());
-                    pref += (ta.getCoursePreference() == -10 ? 1 : ta.getCoursePreference() == -8 ? 2 : ta.getCoursePreference() == -5 ? 3 : ta.getCoursePreference());
-                }
-                int diffLinks = countDiffLinks(context.getAssignments());
-                out.print("," + (context.getAssignments().isEmpty() ? "" : new DecimalFormat("0.0").format(att / context.getAssignments().size())));
-                out.print("," + (context.getAssignments().isEmpty() || pref == 0.0 ? "" : new DecimalFormat("0.0").format(pref / context.getAssignments().size())));
-                out.print("," + new DecimalFormat("0.0").format(100.0 * context.countBackToBackPercentage()));
-                out.print("," + (diffLinks <= 0 ? "" : diffLinks));
-                for (TeachingAssignment ta : context.getAssignments()) {
-                    String link = getLink(ta.variable());
-                    out.print("," + ta.variable().getCourse() + " " + ta.variable().getSections().get(0).getSectionType() + " " + ta.variable().getSections().get(0).getTime().getName(true) + (link == null ? "" : " " + link));
-                }
-                out.println();
+        for (Instructor instructor: getInstructors()) {
+            out.print(instructor.getExternalId());
+            out.print(",\"" + instructor.getAvailable() + "\"");
+            for (int i = 0; i < 3; i++) {
+                Preference<Course> p = (i < instructor.getCoursePreferences().size() ? instructor.getCoursePreferences().get(i) : null);
+                out.print("," + (p == null ? "" : p.getTarget().getCourseName()));
             }
+            out.print("," + (instructor.getPreference() == 0 ? "Yes" : "No"));
+            out.print("," + (instructor.isBackToBackPreferred() ? "1" : instructor.isBackToBackDiscouraged() ? "-1" : "0"));
+            out.print("," + new DecimalFormat("0.0").format(instructor.getMaxLoad()));
+            String level = getLevel(instructor);
+            out.print("," + (level == null ? "" : level)); 
+            Instructor.Context context = instructor.getContext(assignment);
+            out.print("," + new DecimalFormat("0.0").format(context.getLoad()));
+            double att = 0.0, pref = 0.0;
+            for (TeachingAssignment ta : context.getAssignments()) {
+                att += Math.abs(ta.getAttributePreference());
+                pref += (ta.getCoursePreference() == -10 ? 1 : ta.getCoursePreference() == -8 ? 2 : ta.getCoursePreference() == -5 ? 3 : ta.getCoursePreference());
+            }
+            int diffLinks = countDiffLinks(context.getAssignments());
+            out.print("," + (context.getAssignments().isEmpty() ? "" : new DecimalFormat("0.0").format(att / context.getAssignments().size())));
+            out.print("," + (context.getAssignments().isEmpty() || pref == 0.0 ? "" : new DecimalFormat("0.0").format(pref / context.getAssignments().size())));
+            out.print("," + new DecimalFormat("0.0").format(100.0 * context.countBackToBackPercentage()));
+            out.print("," + (diffLinks <= 0 ? "" : diffLinks));
+            for (TeachingAssignment ta : context.getAssignments()) {
+                String link = getLink(ta.variable());
+                out.print("," + ta.variable().getCourse() + " " + ta.variable().getSections().get(0).getSectionType() + " " + ta.variable().getSections().get(0).getTime().getName(true) + (link == null ? "" : " " + link));
+            }
+            out.println();
         }
         out.flush();
         out.close();

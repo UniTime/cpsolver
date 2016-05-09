@@ -66,6 +66,9 @@ public class SameInstructorConstraint extends ConstraintWithContext<TeachingRequ
     @Override
     public String getName() { return iName; }
     
+    @Override
+    public String toString() { return "Same Instructor " + getName(); }
+    
     /**
      * Is required?
      * @return true if the constraint is required

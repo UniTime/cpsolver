@@ -5,12 +5,10 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.criteria.AbstractCriterion;
-import org.cpsolver.ifs.model.Constraint;
 import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
-import org.cpsolver.instructor.constraints.InstructorConstraint;
 import org.cpsolver.instructor.model.Instructor;
+import org.cpsolver.instructor.model.InstructorSchedulingModel;
 import org.cpsolver.instructor.model.TeachingAssignment;
 import org.cpsolver.instructor.model.TeachingRequest;
 
@@ -37,7 +35,7 @@ import org.cpsolver.instructor.model.TeachingRequest;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class BackToBack extends AbstractCriterion<TeachingRequest, TeachingAssignment> {
+public class BackToBack extends InstructorSchedulingCriterion {
     private double iDiffRoomWeight = 0.8, iDiffTypeWeight = 0.5;
 
     public BackToBack() {
@@ -76,10 +74,8 @@ public class BackToBack extends AbstractCriterion<TeachingRequest, TeachingAssig
     @Override
     protected double[] computeBounds(Assignment<TeachingRequest, TeachingAssignment> assignment) {
         double[] bounds = new double[] { 0.0, 0.0 };
-        for (Constraint<TeachingRequest, TeachingAssignment> c: getModel().constraints()) {
-            if (c instanceof InstructorConstraint) {
-                bounds[1] += Math.abs(((InstructorConstraint) c).getInstructor().getBackToBackPreference());
-            }
+        for (Instructor instructor: ((InstructorSchedulingModel)getModel()).getInstructors()) {
+            bounds[1] += Math.abs(instructor.getBackToBackPreference());
         }
         return bounds;
     }
@@ -87,12 +83,8 @@ public class BackToBack extends AbstractCriterion<TeachingRequest, TeachingAssig
     @Override
     public double[] getBounds(Assignment<TeachingRequest, TeachingAssignment> assignment, Collection<TeachingRequest> variables) {
         double[] bounds = new double[] { 0.0, 0.0 };
-        Set<Constraint<TeachingRequest, TeachingAssignment>> constraints = new HashSet<Constraint<TeachingRequest, TeachingAssignment>>();
-        for (TeachingRequest req: variables) {
-            for (Constraint<TeachingRequest, TeachingAssignment> c : req.constraints()) {
-                if (c instanceof InstructorConstraint && constraints.add(c))
-                    bounds[1] += Math.abs(((InstructorConstraint) c).getInstructor().getBackToBackPreference());
-            }
+        for (Instructor instructor: getInstructors(assignment, variables)) {
+            bounds[1] += Math.abs(instructor.getBackToBackPreference());
         }
         return bounds;
     }
@@ -101,12 +93,9 @@ public class BackToBack extends AbstractCriterion<TeachingRequest, TeachingAssig
     public double getValue(Assignment<TeachingRequest, TeachingAssignment> assignment, Collection<TeachingRequest> variables) {
         double value = 0.0;
         Set<Instructor> instructors = new HashSet<Instructor>();
-        for (Constraint<TeachingRequest, TeachingAssignment> c : getModel().constraints()) {
-            if (c instanceof InstructorConstraint) {
-                InstructorConstraint ic = (InstructorConstraint) c;
-                if (instructors.add(ic.getInstructor())) {
-                    value += ic.getContext(assignment).countBackToBackPreference(iDiffRoomWeight, iDiffTypeWeight);
-                }
+        for (Instructor instructor: ((InstructorSchedulingModel)getModel()).getInstructors()) {
+            if (instructors.add(instructor)) {
+                value += instructor.getContext(assignment).countBackToBackPreference(iDiffRoomWeight, iDiffTypeWeight);
             }
         }
         return value;
@@ -114,6 +103,6 @@ public class BackToBack extends AbstractCriterion<TeachingRequest, TeachingAssig
 
     @Override
     public String getAbbreviation() {
-        return "B2B";
+        return "Back2Back";
     }
 }

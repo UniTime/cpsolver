@@ -5,7 +5,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.criteria.AbstractCriterion;
 import org.cpsolver.ifs.model.Constraint;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.instructor.constraints.SameInstructorConstraint;
@@ -34,7 +33,7 @@ import org.cpsolver.instructor.model.TeachingRequest;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class SameInstructor extends AbstractCriterion<TeachingRequest, TeachingAssignment> {
+public class SameInstructor extends InstructorSchedulingCriterion {
 
     public SameInstructor() {
         setValueUpdateType(ValueUpdateType.NoUpdate);
@@ -92,6 +91,6 @@ public class SameInstructor extends AbstractCriterion<TeachingRequest, TeachingA
 
     @Override
     public String getAbbreviation() {
-        return "Same";
+        return "SameInstructor";
     }
 }

@@ -18,7 +18,6 @@ import org.cpsolver.ifs.assignment.DefaultParallelAssignment;
 import org.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import org.cpsolver.ifs.extension.ConflictStatistics;
 import org.cpsolver.ifs.extension.Extension;
-import org.cpsolver.ifs.model.Constraint;
 import org.cpsolver.ifs.model.Model;
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solution.SolutionListener;
@@ -26,7 +25,6 @@ import org.cpsolver.ifs.solver.ParallelSolver;
 import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.ToolBox;
-import org.cpsolver.instructor.constraints.InstructorConstraint;
 import org.cpsolver.instructor.model.Course;
 import org.cpsolver.instructor.model.Instructor;
 import org.cpsolver.instructor.model.InstructorSchedulingModel;
@@ -135,54 +133,50 @@ public class Test extends InstructorSchedulingModel {
 
         out = new PrintWriter(new File(outputDir, "solution-students.csv"));
         out.println("Student,Name,Preference,Not Available,Time Pref,Course Pref,Back-to-Back,Max Load,Assigned Load,Back-To-Back,Different Lecture,Overlap [h],1st Assignment,2nd Assignment, 3rd Assignment");
-        for (Constraint<TeachingRequest, TeachingAssignment> constraint : constraints()) {
-            if (constraint instanceof InstructorConstraint) {
-                InstructorConstraint ic = (InstructorConstraint) constraint;
-                Instructor instructor = ic.getInstructor();
-                out.print(instructor.getExternalId());
-                out.print(",\"" + instructor.getName() + "\"");
-                out.print("," + (instructor.getPreference() == 0 ? "" : instructor.getPreference()));
-                out.print(",\"" + instructor.getAvailable() + "\"");
-                String timePref = "";
-                for (Preference<TimeLocation> p: instructor.getTimePreferences()) {
-                    if (!p.isProhibited()) {
-                        if (!timePref.isEmpty()) timePref += ", ";
-                        timePref += p.getTarget().getLongName(true).trim() + ": " + (p.isRequired() ? "R" : p.isProhibited() ? "P" : p.getPreference());
-                    }
+        for (Instructor instructor: getInstructors()) {
+            out.print(instructor.getExternalId());
+            out.print(",\"" + instructor.getName() + "\"");
+            out.print("," + (instructor.getPreference() == 0 ? "" : instructor.getPreference()));
+            out.print(",\"" + instructor.getAvailable() + "\"");
+            String timePref = "";
+            for (Preference<TimeLocation> p: instructor.getTimePreferences()) {
+                if (!p.isProhibited()) {
+                    if (!timePref.isEmpty()) timePref += ", ";
+                    timePref += p.getTarget().getLongName(true).trim() + ": " + (p.isRequired() ? "R" : p.isProhibited() ? "P" : p.getPreference());
                 }
-                out.print(",\"" + timePref + "\"");
-                String coursePref = "";
-                for (Preference<Course> p: instructor.getCoursePreferences()) {
-                    if (!coursePref.isEmpty()) coursePref += ", ";
-                    coursePref += p.getTarget().getCourseName() + ": " + (p.isRequired() ? "R" : p.isProhibited() ? "P" : p.getPreference());
-                }
-                out.print(",\"" + coursePref + "\"");
-                out.print("," + (instructor.getBackToBackPreference() == 0 ? "" : instructor.getBackToBackPreference()));
-                out.print("," + new DecimalFormat("0.0").format(instructor.getMaxLoad()));
-                
-                InstructorConstraint.Context context = ic.getContext(assignment);
-                out.print("," + new DecimalFormat("0.0").format(context.getLoad()));
-                out.print("," + (context.countBackToBackPercentage() == 0.0 ? "" : new DecimalFormat("0.0").format(100.0 * context.countBackToBackPercentage())));
-                out.print("," + (context.countDifferentLectures() == 0.0 ? "" : new DecimalFormat("0.0").format(100.0 * context.countDifferentLectures())));
-                out.print("," + (context.countTimeOverlaps() == 0.0 ? "" : new DecimalFormat("0.0").format(context.countTimeOverlaps() / 12.0)));
-                for (TeachingAssignment ta : context.getAssignments()) {
-                    String sect = "";
-                    for (Iterator<Section> i = ta.variable().getSections().iterator(); i.hasNext(); ) {
-                        Section section = i.next();
-                        sect += section.getSectionName() + (section.getTime() == null ? "" : " " + section.getTime().getDayHeader() + " " + section.getTime().getStartTimeHeader(true));
-                        if (i.hasNext()) sect += ", ";
-                    }
-                    out.print(",\"" + ta.variable().getCourse() + " " + sect + "\"");
-                }
-                out.println();
             }
+            out.print(",\"" + timePref + "\"");
+            String coursePref = "";
+            for (Preference<Course> p: instructor.getCoursePreferences()) {
+                if (!coursePref.isEmpty()) coursePref += ", ";
+                coursePref += p.getTarget().getCourseName() + ": " + (p.isRequired() ? "R" : p.isProhibited() ? "P" : p.getPreference());
+            }
+            out.print(",\"" + coursePref + "\"");
+            out.print("," + (instructor.getBackToBackPreference() == 0 ? "" : instructor.getBackToBackPreference()));
+            out.print("," + new DecimalFormat("0.0").format(instructor.getMaxLoad()));
+            
+            Instructor.Context context = instructor.getContext(assignment);
+            out.print("," + new DecimalFormat("0.0").format(context.getLoad()));
+            out.print("," + (context.countBackToBackPercentage() == 0.0 ? "" : new DecimalFormat("0.0").format(100.0 * context.countBackToBackPercentage())));
+            out.print("," + (context.countDifferentLectures() == 0.0 ? "" : new DecimalFormat("0.0").format(100.0 * context.countDifferentLectures())));
+            out.print("," + (context.countTimeOverlaps() == 0.0 ? "" : new DecimalFormat("0.0").format(context.countTimeOverlaps() / 12.0)));
+            for (TeachingAssignment ta : context.getAssignments()) {
+                String sect = "";
+                for (Iterator<Section> i = ta.variable().getSections().iterator(); i.hasNext(); ) {
+                    Section section = i.next();
+                    sect += section.getSectionName() + (section.getTime() == null ? "" : " " + section.getTime().getDayHeader() + " " + section.getTime().getStartTimeHeader(true));
+                    if (i.hasNext()) sect += ", ";
+                }
+                out.print(",\"" + ta.variable().getCourse() + " " + sect + "\"");
+            }
+            out.println();
         }
         out.flush();
         out.close();
     }
     
     /**
-     * Save the problem and the resutling assignment
+     * Save the problem and the resulting assignment
      * @param outputDir output directory
      * @param assignment final assignment
      */

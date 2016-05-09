@@ -69,6 +69,9 @@ public class SameLinkConstraint extends ConstraintWithContext<TeachingRequest, T
     @Override
     public String getName() { return iName; }
     
+    @Override
+    public String toString() { return "Same Link " + getName(); }
+    
     /**
      * Is required?
      * @return true if the constraint is required
@@ -95,7 +98,7 @@ public class SameLinkConstraint extends ConstraintWithContext<TeachingRequest, T
     @Override
     public void computeConflicts(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value, Set<TeachingAssignment> conflicts) {
         if (isHard()) {
-            InstructorConstraint.Context context = value.getInstructor().getConstraint().getContext(assignment);
+            Instructor.Context context = value.getInstructor().getContext(assignment);
             for (TeachingAssignment ta : context.getAssignments()) {
                 if (ta.variable().equals(value.variable()) || conflicts.contains(ta))
                     continue;
@@ -119,25 +122,25 @@ public class SameLinkConstraint extends ConstraintWithContext<TeachingRequest, T
         if (current != null && current.getInstructor().equals(value.getInstructor())) return 0;
         int ret = 0;
         if (getPreference() < 0) { // preferred
-            for (TeachingAssignment other : value.getInstructor().getConstraint().getContext(assignment).getAssignments()) {
+            for (TeachingAssignment other : value.getInstructor().getContext(assignment).getAssignments()) {
                 if (!variables().equals(value.variable()) && !variables().contains(other.variable())) {
                     ret++;
                 }
             }
             if (current != null) {
-                for (TeachingAssignment other : current.getInstructor().getConstraint().getContext(assignment).getAssignments()) {
+                for (TeachingAssignment other : current.getInstructor().getContext(assignment).getAssignments()) {
                     if (!variables().equals(value.variable()) && !variables().contains(other.variable())) {
                         ret--;
                     }
                 }
             }
         } else if (getPreference() > 0) {
-            for (TeachingAssignment other : value.getInstructor().getConstraint().getContext(assignment).getAssignments()) {
+            for (TeachingAssignment other : value.getInstructor().getContext(assignment).getAssignments()) {
                 if (!variables().equals(value.variable()) && variables().contains(other.variable()))
                     ret++;
             }
             if (current != null) {
-                for (TeachingAssignment other : current.getInstructor().getConstraint().getContext(assignment).getAssignments()) {
+                for (TeachingAssignment other : current.getInstructor().getContext(assignment).getAssignments()) {
                     if (!variables().equals(value.variable()) && variables().contains(other.variable())) {
                         ret--;
                     }
@@ -161,7 +164,7 @@ public class SameLinkConstraint extends ConstraintWithContext<TeachingRequest, T
             for (TeachingRequest tr: variables()) {
                 TeachingAssignment ta = assignment.getValue(tr);
                 if (ta == null || !checked.add(ta.getInstructor())) continue;
-                InstructorConstraint.Context context = ta.getInstructor().getConstraint().getContext(assignment);
+                Instructor.Context context = ta.getInstructor().getContext(assignment);
                 for (TeachingAssignment other : context.getAssignments()) {
                     if (!variables().contains(other.variable())) {
                         ret++;
@@ -175,7 +178,7 @@ public class SameLinkConstraint extends ConstraintWithContext<TeachingRequest, T
             for (TeachingRequest tr: variables()) {
                 TeachingAssignment ta = assignment.getValue(tr);
                 if (ta == null || !checked.add(ta.getInstructor())) continue;
-                InstructorConstraint.Context context = ta.getInstructor().getConstraint().getContext(assignment);
+                Instructor.Context context = ta.getInstructor().getContext(assignment);
                 for (TeachingAssignment other : context.getAssignments()) {
                     if (!variables().equals(tr) && variables().contains(other.variable())) {
                         ret++;

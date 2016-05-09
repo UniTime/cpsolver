@@ -10,7 +10,13 @@ import org.cpsolver.coursett.model.TimeLocation;
 import org.cpsolver.coursett.preference.MinMaxPreferenceCombination;
 import org.cpsolver.coursett.preference.PreferenceCombination;
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.instructor.constraints.InstructorConstraint;
+import org.cpsolver.ifs.assignment.context.AbstractClassWithContext;
+import org.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import org.cpsolver.ifs.assignment.context.CanInheritContext;
+import org.cpsolver.ifs.criteria.Criterion;
+import org.cpsolver.instructor.criteria.BackToBack;
+import org.cpsolver.instructor.criteria.DifferentLecture;
+import org.cpsolver.instructor.criteria.TimeOverlaps;
 
 /**
  * Instructor. An instructor has an id, a name, a teaching preference, a maximal teaching load, a back-to-back preference.
@@ -35,12 +41,12 @@ import org.cpsolver.instructor.constraints.InstructorConstraint;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class Instructor {
-    private InstructorConstraint iConstraint;
+public class Instructor extends AbstractClassWithContext<TeachingRequest, TeachingAssignment, Instructor.Context> implements CanInheritContext<TeachingRequest, TeachingAssignment, Instructor.Context> {
     private List<Attribute> iAttributes = new ArrayList<Attribute>();
     private List<Preference<TimeLocation>> iTimePreferences = new ArrayList<Preference<TimeLocation>>();
     private List<Preference<Course>> iCoursePreferences = new ArrayList<Preference<Course>>();
-    private Long iInstructorId;
+    private InstructorSchedulingModel iModel;
+    private long iInstructorId;
     private String iExternalId;
     private String iName;
     private int iPreference;
@@ -57,20 +63,22 @@ public class Instructor {
      */
     public Instructor(long id, String externalId, String name, int preference, float maxLoad) {
         iInstructorId = id; iExternalId = externalId; iName = name; iPreference = preference; iMaxLoad = maxLoad;
-        iConstraint = new InstructorConstraint(this);
     }
     
+    @Override
+    public InstructorSchedulingModel getModel() { return iModel; }
+    
     /**
-     * Instructor constraint associated with this instructor
-     * @return instructor constraint
+     * Set current model
+     * @param model instructional scheduling model
      */
-    public InstructorConstraint getConstraint() { return iConstraint; }
+    public void setModel(InstructorSchedulingModel model) { iModel = model; }
     
     /**
      * Instructor unique id that was provided in the constructor
      * @return instructor unique id
      */
-    public Long getInstructorId() { return iInstructorId; }
+    public long getInstructorId() { return iInstructorId; }
     
     /**
      * Has instructor external id?
@@ -270,14 +278,14 @@ public class Instructor {
     
     @Override
     public int hashCode() {
-        return (getInstructorId() == null ? getName().hashCode() : getInstructorId().hashCode());
+        return new Long(iInstructorId).hashCode();
     }
     
     @Override
     public boolean equals(Object o) {
         if (o == null || !(o instanceof Instructor)) return false;
         Instructor i = (Instructor)o;
-        return getInstructorId() != null ? getInstructorId().equals(i.getInstructorId()) : getExternalId() != null ? getExternalId().equals(i.getExternalId()) : getName().equals(i.getName());
+        return getInstructorId() == i.getInstructorId();
     }
     
     /**
@@ -305,7 +313,7 @@ public class Instructor {
     public int share(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value) {
         int share = 0;
         if (value.getInstructor().equals(this)) {
-            for (TeachingAssignment other : value.getInstructor().getConstraint().getContext(assignment).getAssignments()) {
+            for (TeachingAssignment other : value.getInstructor().getContext(assignment).getAssignments()) {
                 if (other.variable().equals(value.variable()))
                     continue;
                 share += value.variable().share(other.variable());
@@ -324,7 +332,7 @@ public class Instructor {
     public double differentLectures(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value) {
         double same = 0; int count = 0;
         if (value.getInstructor().equals(this)) {
-            for (TeachingAssignment other : value.getInstructor().getConstraint().getContext(assignment).getAssignments()) {
+            for (TeachingAssignment other : value.getInstructor().getContext(assignment).getAssignments()) {
                 if (other.variable().equals(value.variable()))
                     continue;
                 same += value.variable().nrSameLectures(other.variable());
@@ -345,15 +353,13 @@ public class Instructor {
     public double countBackToBacks(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value, double diffRoomWeight, double diffTypeWeight) {
         double b2b = 0.0;
         if (value.getInstructor().equals(this) && getBackToBackPreference() != 0) {
-            for (TeachingRequest other : value.getInstructorConstraint().assignedVariables(assignment)) {
-                if (other.equals(value.variable()))
+            for (TeachingAssignment other : value.getInstructor().getContext(assignment).getAssignments()) {
+                if (other.variable().equals(value.variable()))
                     continue;
-                if (assignment.getValue(other).getInstructor().equals(value.getInstructor())) {
-                    if (getBackToBackPreference() < 0) { // preferred
-                        b2b += (value.variable().countBackToBacks(other, diffRoomWeight, diffTypeWeight) - 1.0) * getBackToBackPreference();
-                    } else {
-                        b2b += value.variable().countBackToBacks(other, diffRoomWeight, diffTypeWeight) * getBackToBackPreference();
-                    }
+                if (getBackToBackPreference() < 0) { // preferred
+                    b2b += (value.variable().countBackToBacks(other.variable(), diffRoomWeight, diffTypeWeight) - 1.0) * getBackToBackPreference();
+                } else {
+                    b2b += value.variable().countBackToBacks(other.variable(), diffRoomWeight, diffTypeWeight) * getBackToBackPreference();
                 }
             }
         }
@@ -363,5 +369,212 @@ public class Instructor {
     @Override
     public String toString() {
         return getName();
+    }
+    
+    @Override
+    public Context createAssignmentContext(Assignment<TeachingRequest, TeachingAssignment> assignment) {
+        return new Context(assignment);
+    }
+    
+
+    @Override
+    public Context inheritAssignmentContext(Assignment<TeachingRequest, TeachingAssignment> assignment, Context parentContext) {
+        return new Context(assignment, parentContext);
+    }
+
+    
+    /**
+     * Instructor Constraint Context. It keeps the list of current assignments of an instructor.
+     */
+    public class Context implements AssignmentConstraintContext<TeachingRequest, TeachingAssignment> {
+        private HashSet<TeachingAssignment> iAssignments = new HashSet<TeachingAssignment>();
+        private int iTimeOverlaps;
+        private double iBackToBacks;
+        private double iDifferentLectures;
+        
+        /**
+         * Constructor
+         * @param assignment current assignment
+         */
+        public Context(Assignment<TeachingRequest, TeachingAssignment> assignment) {
+            for (TeachingRequest request: getModel().variables()) {
+                TeachingAssignment value = assignment.getValue(request);
+                if (value != null && value.getInstructor().equals(getInstructor()))
+                    iAssignments.add(value);
+            }
+            if (!iAssignments.isEmpty())
+                updateCriteria(assignment);
+        }
+        
+        /**
+         * Constructor
+         * @param assignment current assignment
+         * @param parentContext parent context
+         */
+        public Context(Assignment<TeachingRequest, TeachingAssignment> assignment, Context parentContext) {
+            iAssignments = new HashSet<TeachingAssignment>(parentContext.getAssignments());
+            if (!iAssignments.isEmpty())
+                updateCriteria(assignment);
+        }
+        
+        /**
+         * Instructor
+         * @return instructor of this context
+         */
+        public Instructor getInstructor() { return Instructor.this; }
+
+        @Override
+        public void assigned(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value) {
+            if (value.getInstructor().equals(getInstructor())) {
+                iAssignments.add(value);
+                updateCriteria(assignment);
+            }
+        }
+        
+        @Override
+        public void unassigned(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value) {
+            if (value.getInstructor().equals(getInstructor())) {
+                iAssignments.remove(value);
+                updateCriteria(assignment);
+            }
+        }
+        
+        /**
+         * Update optimization criteria
+         * @param assignment current assignment
+         */
+        private void updateCriteria(Assignment<TeachingRequest, TeachingAssignment> assignment) {
+            // update back-to-backs
+            BackToBack b2b = (BackToBack)getModel().getCriterion(BackToBack.class);
+            if (b2b != null) {
+                b2b.inc(assignment, -iBackToBacks);
+                iBackToBacks = countBackToBackPreference(b2b.getDifferentRoomWeight(), b2b.getDifferentTypeWeight());
+                b2b.inc(assignment, iBackToBacks);
+            }
+            
+            // update time overlaps
+            Criterion<TeachingRequest, TeachingAssignment> overlaps = getModel().getCriterion(TimeOverlaps.class);
+            if (overlaps != null) {
+                overlaps.inc(assignment, -iTimeOverlaps);
+                iTimeOverlaps = countTimeOverlaps();
+                overlaps.inc(assignment, iTimeOverlaps);
+            }
+            
+            // update same lectures
+            Criterion<TeachingRequest, TeachingAssignment> diff = getModel().getCriterion(DifferentLecture.class);
+            if (diff != null) {
+                diff.inc(assignment, -iDifferentLectures);
+                iDifferentLectures = countDifferentLectures();
+                diff.inc(assignment, iDifferentLectures);
+            }
+
+        }
+        
+        /**
+         * Current assignments of this instructor
+         * @return current teaching assignments
+         */
+        public Set<TeachingAssignment> getAssignments() { return iAssignments; }
+        
+        /**
+         * Current load of this instructor
+         * @return current load
+         */
+        public float getLoad() {
+            float load = 0;
+            for (TeachingAssignment assignment : iAssignments)
+                load += assignment.variable().getLoad();
+            return load;
+        }
+        
+        /**
+         * If there are classes that allow for overlap, the number of such overlapping slots of this instructor
+         * @return current time overlaps (number of overlapping slots)
+         */
+        public int countTimeOverlaps() {
+            int share = 0;
+            for (TeachingAssignment a1 : iAssignments) {
+                for (TeachingAssignment a2 : iAssignments) {
+                    if (a1.getId() < a2.getId())
+                        share += a1.variable().share(a2.variable());
+                }
+                share += getInstructor().share(a1.variable());
+            }
+            return share;
+        }
+
+        /**
+         * Number of teaching assignments that have a time assignment of this instructor
+         * @return current number of teaching assignments that have a time
+         */
+        public int countAssignmentsWithTime() {
+            int ret = 0;
+            a1: for (TeachingAssignment a1 : iAssignments) {
+                for (Section s1: a1.variable().getSections())
+                    if (s1.hasTime()) {
+                        ret++; continue a1;
+                    }
+            }
+            return ret;
+        }
+        
+        /**
+         * Percentage of common sections that are not same for the instructor (using {@link TeachingRequest#nrSameLectures(TeachingRequest)})
+         * @return percentage of pairs of common sections that are not the same
+         */
+        public double countDifferentLectures() {
+            double same = 0;
+            int pairs = 0;
+            for (TeachingAssignment a1 : iAssignments) {
+                for (TeachingAssignment a2 : iAssignments) {
+                    if (a1.getId() < a2.getId()) {
+                        same += a1.variable().nrSameLectures(a2.variable());
+                        pairs++;
+                    }
+                }
+            }
+            return (pairs == 0 ? 0.0 : (pairs - same) / pairs);
+        }
+        
+        /**
+         * Current back-to-back preference of the instructor (using {@link TeachingRequest#countBackToBacks(TeachingRequest, double, double)})
+         * @param diffRoomWeight different room weight
+         * @param diffTypeWeight different instructional type weight
+         * @return current back-to-back preference
+         */
+        public double countBackToBackPreference(double diffRoomWeight, double diffTypeWeight) {
+            double b2b = 0;
+            if (getInstructor().isBackToBackPreferred() || getInstructor().isBackToBackDiscouraged())
+                for (TeachingAssignment a1 : iAssignments) {
+                    for (TeachingAssignment a2 : iAssignments) {
+                        if (a1.getId() >= a2.getId()) continue;
+                        if (getInstructor().getBackToBackPreference() < 0) { // preferred
+                            b2b += (a1.variable().countBackToBacks(a2.variable(), diffRoomWeight, diffTypeWeight) - 1.0) * getInstructor().getBackToBackPreference();
+                        } else {
+                            b2b += a1.variable().countBackToBacks(a2.variable(), diffRoomWeight, diffTypeWeight) * getInstructor().getBackToBackPreference();
+                        }
+                    }
+                }
+            return b2b;
+        }
+        
+        /**
+         * Current back-to-back percentage for this instructor
+         * @return percentage of assignments that are back-to-back
+         */
+        public double countBackToBackPercentage() {
+            BackToBack c = (BackToBack)getModel().getCriterion(BackToBack.class);
+            if (c == null) return 0.0;
+            double b2b = 0.0;
+            int pairs = 0;
+            for (TeachingAssignment a1 : iAssignments) {
+                for (TeachingAssignment a2 : iAssignments) {
+                    if (a1.getId() >= a2.getId()) continue;
+                    b2b += a1.variable().countBackToBacks(a2.variable(), c.getDifferentRoomWeight(), c.getDifferentTypeWeight());
+                    pairs ++;
+                }
+            }
+            return (pairs == 0 ? 0.0 : b2b / pairs);
+        }
     }
 }

@@ -3,7 +3,6 @@ package org.cpsolver.instructor.criteria;
 import java.util.Set;
 
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.criteria.AbstractCriterion;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.instructor.model.Instructor;
 import org.cpsolver.instructor.model.TeachingAssignment;
@@ -32,7 +31,7 @@ import org.cpsolver.instructor.model.TeachingRequest;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class TeachingPreferences extends AbstractCriterion<TeachingRequest, TeachingAssignment> {
+public class TeachingPreferences extends InstructorSchedulingCriterion {
 
     @Override
     public double getWeightDefault(DataProperties config) {
@@ -46,6 +45,6 @@ public class TeachingPreferences extends AbstractCriterion<TeachingRequest, Teac
 
     @Override
     public String getAbbreviation() {
-        return "Teach";
+        return "TeachingPref";
     }
 }

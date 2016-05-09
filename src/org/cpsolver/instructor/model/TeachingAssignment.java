@@ -3,7 +3,6 @@ package org.cpsolver.instructor.model;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.criteria.Criterion;
 import org.cpsolver.ifs.model.Value;
-import org.cpsolver.instructor.constraints.InstructorConstraint;
 
 /**
  * Teaching assignment. An assignment of an instructor to a teaching request (a set of sections of a course).
@@ -66,14 +65,6 @@ public class TeachingAssignment extends Value<TeachingRequest, TeachingAssignmen
         return iInstructor;
     }
     
-    /**
-     * The appropriate instructor constraint
-     * @return {@link Instructor#getConstraint()}
-     */
-    public InstructorConstraint getInstructorConstraint() {
-        return getInstructor().getConstraint();
-    }
-
     @Override
     public double toDouble(Assignment<TeachingRequest, TeachingAssignment> assignment) {
         double ret = 0.0;
