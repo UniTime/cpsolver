@@ -585,6 +585,11 @@ public class Progress {
                 ret.append("<BR>&nbsp;&nbsp;&nbsp;&nbsp;at " + iStakTrace[i]);
             return ret.toString();
         }
+        
+        /** Tracelog */
+        public String[] getTrace() {
+            return iStakTrace;
+        }
 
         /**
          * String representation of the message (null if the message level is
