@@ -665,7 +665,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
                 TimeLocation t1 = plc1.getTimeLocation(), t2 = plc2.getTimeLocation();
                 if (t1 == null || t2 == null || !t1.shareDays(t2) || !t1.shareWeeks(t2)) return true;
-                return Math.max(t1.getStartSlot() + t1.getNrMeetings(), t2.getStartSlot() + t2.getNrMeetings()) - Math.min(t1.getStartSlot(), t2.getStartSlot()) < gc.getType().getMax();
+                return Math.max(t1.getStartSlot() + t1.getLength(), t2.getStartSlot() + t2.getLength()) - Math.min(t1.getStartSlot(), t2.getStartSlot()) <= gc.getType().getMax();
             }
             @Override
             public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) { return true; }
