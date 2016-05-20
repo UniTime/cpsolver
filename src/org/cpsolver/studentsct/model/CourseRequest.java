@@ -18,6 +18,7 @@ import org.cpsolver.ifs.util.ToolBox;
 import org.cpsolver.studentsct.StudentSectioningModel;
 import org.cpsolver.studentsct.constraint.ConfigLimit;
 import org.cpsolver.studentsct.constraint.CourseLimit;
+import org.cpsolver.studentsct.constraint.LinkedSections;
 import org.cpsolver.studentsct.constraint.SectionLimit;
 import org.cpsolver.studentsct.reservation.Reservation;
 
@@ -404,7 +405,8 @@ public class CourseRequest extends Request {
                             continue;
                     }
                 }
-                if (skipSameTime && section.getTime() != null && !hasChildren && !times.add(section.getTime()) && !isSelected(section) && !isWaitlisted(section))
+                if (skipSameTime && section.getTime() != null && !hasChildren && !times.add(section.getTime()) && !isSelected(section) && !isWaitlisted(section) && 
+                        (section.getIgnoreConflictWithSectionIds() == null || section.getIgnoreConflictWithSectionIds().isEmpty()))
                     continue;
                 matchingSectionsThisSubpart.add(section);
             }
@@ -479,8 +481,11 @@ public class CourseRequest extends Request {
             ret.add(getInitialAssignment());
         int idx = 0;
         for (Course course : iCourses) {
+            boolean skipSameTime = true;
+            for (LinkedSections link: getStudent().getLinkedSections())
+                if (link.getOfferings().contains(course.getOffering())) { skipSameTime = false; break; }
             for (Config config : course.getOffering().getConfigs()) {
-                computeEnrollments(assignment, ret, idx, 0, course, config, new HashSet<Section>(), 0, true, true, false, false,
+                computeEnrollments(assignment, ret, idx, 0, course, config, new HashSet<Section>(), 0, true, skipSameTime, false, false,
                         getMaxDomainSize() <= 0 ? -1 : ret.size() + getMaxDomainSize());
             }
             idx++;
@@ -500,7 +505,10 @@ public class CourseRequest extends Request {
         int idx = 0;
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
-                computeEnrollments(assignment, ret, idx, 0, course, config, new HashSet<Section>(), 0, false, true, false, false,
+                boolean skipSameTime = true;
+                for (LinkedSections link: getStudent().getLinkedSections())
+                    if (link.getOfferings().contains(course.getOffering())) { skipSameTime = false; break; }
+                computeEnrollments(assignment, ret, idx, 0, course, config, new HashSet<Section>(), 0, false, skipSameTime, false, false,
                         getMaxDomainSize() <= 0 ? -1 : ret.size() + getMaxDomainSize());
             }
             idx++;
