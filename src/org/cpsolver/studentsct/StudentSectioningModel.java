@@ -314,22 +314,44 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     
     /**
      * Link sections using {@link LinkedSections}
+     * @param mustBeUsed if true,  a pair of linked sections must be used when a student requests both courses 
      * @param sections a linked section constraint to be added into the problem
      */
-    public void addLinkedSections(Section... sections) {
+    public void addLinkedSections(boolean mustBeUsed, Section... sections) {
         LinkedSections constraint = new LinkedSections(sections);
+        constraint.setMustBeUsed(mustBeUsed);
         iLinkedSections.add(constraint);
         constraint.createConstraints();
     }
-
+    
     /**
      * Link sections using {@link LinkedSections}
      * @param sections a linked section constraint to be added into the problem
      */
-    public void addLinkedSections(Collection<Section> sections) {
+    @Deprecated
+    public void addLinkedSections(Section... sections) {
+        addLinkedSections(false, sections);
+    }
+
+    /**
+     * Link sections using {@link LinkedSections}
+     * @param mustBeUsed if true,  a pair of linked sections must be used when a student requests both courses 
+     * @param sections a linked section constraint to be added into the problem
+     */
+    public void addLinkedSections(boolean mustBeUsed, Collection<Section> sections) {
         LinkedSections constraint = new LinkedSections(sections);
+        constraint.setMustBeUsed(mustBeUsed);
         iLinkedSections.add(constraint);
         constraint.createConstraints();
+    }
+    
+    /**
+     * Link sections using {@link LinkedSections}
+     * @param sections a linked section constraint to be added into the problem
+     */
+    @Deprecated
+    public void addLinkedSections(Collection<Section> sections) {
+        addLinkedSections(false, sections);
     }
 
     /**

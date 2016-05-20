@@ -643,7 +643,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                 Offering offering = offeringTable.get(Long.valueOf(sectionEl.attributeValue("offering")));
                 sections.add(offering.getSection(Long.valueOf(sectionEl.attributeValue("id"))));
             }
-            getModel().addLinkedSections(sections);
+            getModel().addLinkedSections("true".equals(linkedEl.attributeValue("mustBeUsed", "false")), sections);
         }
     }
     

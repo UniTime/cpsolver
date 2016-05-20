@@ -438,7 +438,7 @@ public class Test {
                             sections.add(x);
                     }
             if (sections.size() >= 2)
-                model.addLinkedSections(sections);
+                model.addLinkedSections(link.isMustBeUsed(), sections);
         }
         OnlineSectioningSelection selection = null;
         if (model.getProperties().getPropertyBoolean("StudentWeights.MultiCriteria", true)) {

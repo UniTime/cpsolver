@@ -691,6 +691,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         Element constrainstEl = root.addElement("constraints");
         for (LinkedSections linkedSections: getModel().getLinkedSections()) {
             Element linkEl = constrainstEl.addElement("linked-sections");
+            linkEl.addAttribute("mustBeUsed", linkedSections.isMustBeUsed() ? "true" : "false");
             for (Offering offering: linkedSections.getOfferings())
                 for (Subpart subpart: linkedSections.getSubparts(offering))
                     for (Section section: linkedSections.getSections(subpart))

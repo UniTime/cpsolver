@@ -48,6 +48,7 @@ import org.cpsolver.studentsct.model.Subpart;
  */
 public class LinkedSections {
     private Map<Offering, Map<Subpart, Set<Section>>> iSections = new HashMap<Offering, Map<Subpart,Set<Section>>>();
+    private boolean iMustBeUsed;
     
     /**
      * Constructor
@@ -180,6 +181,17 @@ public class LinkedSections {
             if (sections != null && sections.contains(section))
                 match.add(section);
         }
+        if (isMustBeUsed()) {
+            if (match.size() < subparts.size()) { // partial or no match -> conflict if there is no other linked section constraint with a full match
+                // check if there is some other constraint taking care of this case
+                boolean hasOtherMatch = false;
+                for (LinkedSections other: enrollment.getStudent().getLinkedSections()) {
+                    if (other.hasFullMatch(enrollment) && nrSharedOfferings(other) > 1) { hasOtherMatch = true; break; }
+                }
+                // no other match -> problem
+                if (!hasOtherMatch && !conflicts.onConflict(enrollment)) return;
+            }
+        }
         if (match.size() == subparts.size()) { // full match -> check other enrollments
             for (int i = 0; i < enrollment.getStudent().getRequests().size(); i++) {
                 Request request = enrollment.getStudent().getRequests().get(i);
@@ -215,6 +227,36 @@ public class LinkedSections {
                 if (otherMatch.size() == otherSubparts.size() && !conflicts.onConflict(otherEnrollment)) return;
             }
         }
+    }
+    
+    /**
+     * Check if the given enrollment fully matches this constraint
+     * @param enrollment an enrollment
+     * @return true, if there is a full match
+     */
+    protected boolean hasFullMatch(Enrollment enrollment) {
+        if (enrollment == null || enrollment.getCourse() == null) return false;
+        Map<Subpart, Set<Section>> subparts = iSections.get(enrollment.getCourse().getOffering());
+        if (subparts == null || subparts.isEmpty()) return false;
+        int match = 0;
+        for (Section section: enrollment.getSections()) {
+            Set<Section> sections = subparts.get(section.getSubpart());
+            if (sections != null && sections.contains(section))
+                match ++;
+        }
+        return match == subparts.size();
+    }
+    
+    /**
+     * Number of offerings that are shared with some other linked sections constraint
+     * @param other the other constraint
+     * @return number of offerings in common
+     */
+    protected int nrSharedOfferings(LinkedSections other) {
+        int shared = 0;
+        for (Offering offering: other.getOfferings())
+            if (iSections.containsKey(offering)) shared ++;
+        return shared;
     }
     
     /**
@@ -296,6 +338,18 @@ public class LinkedSections {
             return iAssignment.getValue(request);
         }
     }
+    
+    /**
+     * Return whether this constraint must be used
+     * @return if true, a pair of linked sections must be used when a student requests both courses
+     */
+    public boolean isMustBeUsed() { return iMustBeUsed; }
+
+    /**
+     * Set whether this constraint must be used
+     * @param mustBeUsed if true,  a pair of linked sections must be used when a student requests both courses
+     */
+    public void setMustBeUsed(boolean mustBeUsed) { iMustBeUsed = mustBeUsed; }
     
     @Override
     public String toString() {
