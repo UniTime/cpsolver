@@ -318,7 +318,9 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
         int cmp = Double.compare(getPenalty(), s.getPenalty());
         if (cmp != 0)
             return cmp;
-        cmp = Double.compare(getLimit() - getContext(assignment).getEnrollmentWeight(assignment, null), s.getLimit() - s.getContext(assignment).getEnrollmentWeight(assignment, null));
+        cmp = Double.compare(
+                getLimit() < 0 ? getContext(assignment).getEnrollmentWeight(assignment, null) : getContext(assignment).getEnrollmentWeight(assignment, null) - getLimit(),
+                s.getLimit() < 0 ? s.getContext(assignment).getEnrollmentWeight(assignment, null) : s.getContext(assignment).getEnrollmentWeight(assignment, null) - s.getLimit());
         if (cmp != 0)
             return cmp;
         return Double.compare(getId(), s.getId());
