@@ -97,13 +97,14 @@ public class MacRevised<V extends Variable<V, T>, T extends Value<V, T>> extends
             return;
         sLogger.debug("Before assign " + value.variable().getName() + " = " + value.getName());
         iIteration = iteration;
-        while (!isGood(assignment, value) && !noGood(assignment, value).isEmpty()) {
+        NoGood context = getContext(assignment);
+        while (!context.isGood(value) && !context.noGood(value).isEmpty()) {
             if (iDbt)
-                sLogger.warn("Going to assign a no-good value " + value + " (noGood:" + noGood(assignment, value) + ").");
-            T noGoodValue = noGood(assignment, value).iterator().next();
+                sLogger.warn("Going to assign a no-good value " + value + " (noGood:" + context.noGood(value) + ").");
+            T noGoodValue = context.noGood(value).iterator().next();
             assignment.unassign(iteration, noGoodValue.variable());
         }
-        if (!isGood(assignment, value)) {
+        if (!context.isGood(value)) {
             sLogger.warn("Going to assign a bad value " + value + " with empty no-good.");
         }
     }
@@ -117,9 +118,10 @@ public class MacRevised<V extends Variable<V, T>, T extends Value<V, T>> extends
     public void afterAssigned(Assignment<V, T> assignment, long iteration, T value) {
         sLogger.debug("After assign " + value.variable().getName() + " = " + value.getName());
         iIteration = iteration;
-        if (!isGood(assignment, value)) {
-            sLogger.warn(value.variable().getName() + " = " + value.getName() + " -- not good value assigned (noGood:" + noGood(assignment, value) + ")");
-            setGood(assignment, value);
+        NoGood context = getContext(assignment);
+        if (!context.isGood(value)) {
+            sLogger.warn(value.variable().getName() + " = " + value.getName() + " -- not good value assigned (noGood:" + context.noGood(value) + ")");
+            context.setGood(value);
         }
 
         Set<T> noGood = new HashSet<T>(1);
@@ -127,12 +129,12 @@ public class MacRevised<V extends Variable<V, T>, T extends Value<V, T>> extends
         List<T> queue = new ArrayList<T>();
         for (Iterator<T> i = value.variable().values(assignment).iterator(); i.hasNext();) {
             T anotherValue = i.next();
-            if (anotherValue.equals(value) || !isGood(assignment, anotherValue))
+            if (anotherValue.equals(value) || !context.isGood(anotherValue))
                 continue;
-            setNoGood(assignment, anotherValue, noGood);
+            context.setNoGood(anotherValue, noGood);
             queue.add(anotherValue);
         }
-        propagate(assignment, queue);
+        context.propagate(assignment, queue);
     }
 
     /**
@@ -144,127 +146,28 @@ public class MacRevised<V extends Variable<V, T>, T extends Value<V, T>> extends
     public void afterUnassigned(Assignment<V, T> assignment, long iteration, T value) {
         sLogger.debug("After unassign " + value.variable().getName() + " = " + value.getName());
         iIteration = iteration;
-        if (!isGood(assignment, value))
-            sLogger.error(value.variable().getName() + " = " + value.getName()
-                    + " -- not good value unassigned (noGood:" + noGood(assignment, value) + ")");
+        NoGood context = getContext(assignment);
+        if (!context.isGood(value))
+            sLogger.error(value.variable().getName() + " = " + value.getName() + " -- not good value unassigned (noGood:" + context.noGood(value) + ")");
 
-        List<T> back = new ArrayList<T>(supportValues(assignment, value.variable()));
+        List<T> back = new ArrayList<T>(context.supportValues(value.variable()));
         for (T aValue : back) {
             T current = assignment.getValue(aValue.variable());
             if (current != null) {
                 Set<T> noGood = new HashSet<T>(1);
                 noGood.add(current);
-                setNoGood(assignment, aValue, noGood);
+                context.setNoGood(aValue, noGood);
             } else
-                setGood(assignment, aValue);
+                context.setGood(aValue);
         }
 
         List<T> queue = new ArrayList<T>();
         for (T aValue : back) {
-            if (!isGood(assignment, aValue) || revise(assignment, aValue))
+            if (!context.isGood(aValue) || context.revise(assignment, aValue))
                 queue.add(aValue);
         }
 
-        propagate(assignment, queue);
-    }
-
-    public void propagate(Assignment<V, T> assignment, List<T> queue) {
-        int idx = 0;
-        while (queue.size() > idx) {
-            T value = queue.get(idx++);
-            sLogger.debug("  -- propagate " + value.variable().getName() + " = " + value.getName() + " (noGood:"
-                    + noGood(assignment, value) + ")");
-            if (goodValues(assignment, value.variable()).isEmpty()) {
-                sLogger.info("Empty domain detected for variable " + value.variable().getName());
-                continue;
-            }
-            for (Constraint<V, T> constraint : value.variable().hardConstraints()) {
-                if (!contains(constraint))
-                    continue;
-                propagate(assignment, constraint, value, queue);
-            }
-        }
-    }
-
-    public void propagate(Assignment<V, T> assignment, Constraint<V, T> constraint, T noGoodValue, List<T> queue) {
-        for (V aVariable : constraint.variables()) {
-            if (aVariable.equals(noGoodValue.variable()))
-                continue;
-            for (Iterator<T> j = aVariable.values(assignment).iterator(); j.hasNext();) {
-                T aValue = j.next();
-                if (isGood(assignment, aValue) && constraint.isConsistent(noGoodValue, aValue)
-                        && !hasSupport(assignment, constraint, aValue, noGoodValue.variable())) {
-                    setNoGood(assignment, aValue, explanation(assignment, constraint, aValue, noGoodValue.variable()));
-                    queue.add(aValue);
-                }
-            }
-        }
-    }
-
-    public boolean revise(Assignment<V, T> assignment, T value) {
-        sLogger.debug("  -- revise " + value.variable().getName() + " = " + value.getName());
-        for (Constraint<V, T> constraint : value.variable().hardConstraints()) {
-            if (!contains(constraint))
-                continue;
-            if (revise(assignment, constraint, value))
-                return true;
-        }
-        return false;
-    }
-
-    public boolean revise(Assignment<V, T> assignment, Constraint<V, T> constraint, T value) {
-        for (V aVariable : constraint.variables()) {
-            if (aVariable.equals(value.variable()))
-                continue;
-            if (!hasSupport(assignment, constraint, value, aVariable)) {
-                setNoGood(assignment, value, explanation(assignment, constraint, value, aVariable));
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public Set<T> explanation(Assignment<V, T> assignment, Constraint<V, T> constraint, T value, V variable) {
-        Set<T> expl = new HashSet<T>();
-        for (T aValue : variable.values(assignment)) {
-            if (constraint.isConsistent(aValue, value)) {
-                expl.addAll(noGood(assignment, aValue));
-            }
-        }
-        return expl;
-    }
-
-    public Set<T> supports(Assignment<V, T> assignment, Constraint<V, T> constraint, T value, V variable) {
-        Set<T> sup = new HashSet<T>();
-        for (T aValue : variable.values(assignment)) {
-            if (!isGood(assignment, aValue))
-                continue;
-            if (!constraint.isConsistent(aValue, value))
-                continue;
-            sup.add(aValue);
-        }
-        return sup;
-    }
-
-    public boolean hasSupport(Assignment<V, T> assignment, Constraint<V, T> constraint, T value, V variable) {
-        for (T aValue : variable.values(assignment)) {
-            if (isGood(assignment, aValue) && constraint.isConsistent(aValue, value)) {
-                // sLogger.debug("    -- "+variable.getName()+" = "+aValue.getName()+" supports "
-                // +
-                // value.variable().getName()+" = "+value.getName()+" (constraint:"+constraint.getName()+")");
-                return true;
-            }
-        }
-        // sLogger.debug("    -- value "+value.variable().getName()+" = " +
-        // value.getName()+" has no support from values of variable "+variable.getName()+" (constraint:"+constraint.getName()+")");
-        /*
-         * for (Enumeration e=variable.values().elements();e.hasMoreElements();)
-         * { T aValue = (T)e.nextElement(); if
-         * (constraint.isConsistent(aValue,value)) {
-         * //sLogger.debug("      -- support "
-         * +aValue.getName()+" is not good: "+expl2str(noGood(aValue))); } }
-         */
-        return false;
+        context.propagate(assignment, queue);
     }
 
     /**
@@ -274,88 +177,6 @@ public class MacRevised<V extends Variable<V, T>, T extends Value<V, T>> extends
     @Override
     public boolean init(Solver<V, T> solver) {
         return true;
-    }
-
-    /** support values of a variable */
-    @SuppressWarnings("unchecked")
-    private Set<T> supportValues(Assignment<V, T> assignment, V variable) {
-        Set<T>[] ret = getContext(assignment).getNoGood(variable);
-        if (ret == null) {
-            ret = new Set[] { new HashSet<T>(1000), new HashSet<T>() };
-            getContext(assignment).setNoGood(variable, ret);
-        }
-        return ret[0];
-    }
-
-    /** good values of a variable (values not removed from variables domain) 
-     * @param assignment current assignment 
-     * @param variable given variable
-     * @return good values for the variable (i.e., values from the domain of the variable that have no no-good set)
-     **/
-    @SuppressWarnings("unchecked")
-    public Set<T> goodValues(Assignment<V, T> assignment, V variable) {
-        Set<T>[] ret = getContext(assignment).getNoGood(variable);
-        if (ret == null) {
-            ret = new Set[] { new HashSet<T>(1000), new HashSet<T>() };
-            getContext(assignment).setNoGood(variable, ret);
-        }
-        return ret[1];
-    }
-
-    /** notification that a no-good value becomes good or vice versa */
-    private void goodnessChanged(Assignment<V, T> assignment, T value) {
-        if (isGood(assignment, value)) {
-            goodValues(assignment, value.variable()).add(value);
-        } else {
-            goodValues(assignment, value.variable()).remove(value);
-        }
-    }
-
-    /** removes support of a variable */
-    private void removeSupport(Assignment<V, T> assignment, V variable, T value) {
-        supportValues(assignment, variable).remove(value);
-    }
-
-    /** adds support of a variable */
-    private void addSupport(Assignment<V, T> assignment, V variable, T value) {
-        supportValues(assignment, variable).add(value);
-    }
-
-    /** variables explanation 
-     * @param assignment current assignment
-     * @param value given value
-     * @return no-good set for the value 
-     **/
-    public Set<T> noGood(Assignment<V, T> assignment, T value) {
-        return getContext(assignment).getNoGood(value);
-    }
-
-    /** is variable good 
-     * @param assignment current assignment
-     * @param value given value
-     * @return true if good, i.e., the value has no no-good set 
-     **/
-    public boolean isGood(Assignment<V, T> assignment, T value) {
-        return (getContext(assignment).getNoGood(value) == null);
-    }
-
-    /** sets value to be good 
-     * @param assignment current assignment
-     * @param value given value
-     **/
-    protected void setGood(Assignment<V, T> assignment, T value) {
-        sLogger.debug("    -- set good " + value.variable().getName() + " = " + value.getName());
-        Set<T> noGood = noGood(assignment, value);
-        if (noGood != null)
-            for (T v : noGood)
-                removeSupport(assignment, v.variable(), value);
-        getContext(assignment).setNoGood(value, null);
-        goodnessChanged(assignment, value);
-    }
-
-    /** sets values explanation (initialization) */
-    private void initNoGood(Assignment<V, T> assignment, T value, Set<T> reason) {
-        getContext(assignment).setNoGood(value, reason);
     }
 
     private String expl2str(Set<T> expl) {
@@ -394,33 +215,6 @@ public class MacRevised<V extends Variable<V, T>, T extends Value<V, T>> extends
         }
     }
 
-    /** sets value's explanation 
-     * @param assignment current assignment
-     * @param value a value
-     * @param reason no-good set for the value
-     **/
-    public void setNoGood(Assignment<V, T> assignment, T value, Set<T> reason) {
-        sLogger.debug("    -- set nogood " + value.variable().getName() + " = " + value.getName() + "(expl:" + expl2str(reason) + ")");
-        if (value.equals(assignment.getValue(value.variable()))) {
-            try {
-                throw new Exception("An assigned value " + value.variable().getName() + " = " + value.getName() + " become no good (noGood:" + reason + ")!!");
-            } catch (Exception e) {
-                sLogger.warn(e.getMessage(), e);
-            }
-            checkExpl(assignment, reason);
-            printAssignments(assignment);
-        }
-        Set<T> noGood = noGood(assignment, value);
-        if (noGood != null)
-            for (T v : noGood)
-                removeSupport(assignment, v.variable(), value);
-        getContext(assignment).setNoGood(value, reason);
-        for (T aValue : reason) {
-            addSupport(assignment, aValue.variable(), value);
-        }
-        goodnessChanged(assignment, value);
-    }
-    
     @Override
     public NoGood createAssignmentContext(Assignment<V, T> assignment) {
         return new NoGood(assignment);
@@ -439,23 +233,23 @@ public class MacRevised<V extends Variable<V, T>, T extends Value<V, T>> extends
             iProgress.setPhase("Initializing propagation:", getModel().variables().size());
             for (Iterator<V> i = getModel().variables().iterator(); i.hasNext();) {
                 V aVariable = i.next();
-                supportValues(assignment, aVariable).clear();
-                goodValues(assignment, aVariable).clear();
+                supportValues(aVariable).clear();
+                goodValues(aVariable).clear();
             }
             List<T> queue = new ArrayList<T>();
             for (Iterator<V> i = getModel().variables().iterator(); i.hasNext();) {
                 V aVariable = i.next();
                 for (Iterator<T> j = aVariable.values(assignment).iterator(); j.hasNext();) {
                     T aValue = j.next();
-                    initNoGood(assignment, aValue, null);
-                    goodValues(assignment, aVariable).add(aValue);
+                    initNoGood(aValue, null);
+                    goodValues(aVariable).add(aValue);
                     T current = assignment.getValue(aVariable);
                     if (revise(assignment, aValue)) {
                         queue.add(aValue);
                     } else if (current != null && !aValue.equals(current)) {
                         Set<T> noGood = new HashSet<T>();
                         noGood.add(current);
-                        MacRevised.this.setNoGood(assignment, aValue, noGood);
+                        setNoGood(aValue, noGood);
                         queue.add(aValue);
                     }
                 }
@@ -492,6 +286,210 @@ public class MacRevised<V extends Variable<V, T>, T extends Value<V, T>> extends
                 ng.remove(value);
             else
                 ng.put(value, noGood);
+        }
+        
+        /** support values of a variable */
+        @SuppressWarnings("unchecked")
+        private Set<T> supportValues(V variable) {
+            Set<T>[] ret = getNoGood(variable);
+            if (ret == null) {
+                ret = new Set[] { new HashSet<T>(1000), new HashSet<T>() };
+                setNoGood(variable, ret);
+            }
+            return ret[0];
+        }
+
+        /** good values of a variable (values not removed from variables domain) 
+         * @param variable given variable
+         * @return good values for the variable (i.e., values from the domain of the variable that have no no-good set)
+         **/
+        @SuppressWarnings("unchecked")
+        public Set<T> goodValues(V variable) {
+            Set<T>[] ret = getNoGood(variable);
+            if (ret == null) {
+                ret = new Set[] { new HashSet<T>(1000), new HashSet<T>() };
+                setNoGood(variable, ret);
+            }
+            return ret[1];
+        }
+
+        /** notification that a no-good value becomes good or vice versa */
+        private void goodnessChanged(T value) {
+            if (isGood(value)) {
+                goodValues(value.variable()).add(value);
+            } else {
+                goodValues(value.variable()).remove(value);
+            }
+        }
+
+        /** removes support of a variable */
+        private void removeSupport(V variable, T value) {
+            supportValues(variable).remove(value);
+        }
+
+        /** adds support of a variable */
+        private void addSupport(V variable, T value) {
+            supportValues(variable).add(value);
+        }
+
+        /** variables explanation 
+         * @param value given value
+         * @return no-good set for the value 
+         **/
+        public Set<T> noGood(T value) {
+            return getNoGood(value);
+        }
+
+        /** is variable good 
+         * @param value given value
+         * @return true if good, i.e., the value has no no-good set 
+         **/
+        public boolean isGood(T value) {
+            return (getNoGood(value) == null);
+        }
+
+        /** sets value to be good 
+         * @param assignment current assignment
+         * @param value given value
+         **/
+        protected void setGood(T value) {
+            sLogger.debug("    -- set good " + value.variable().getName() + " = " + value.getName());
+            Set<T> noGood = noGood(value);
+            if (noGood != null)
+                for (T v : noGood)
+                    removeSupport(v.variable(), value);
+            setNoGood(value, null);
+            goodnessChanged(value);
+        }
+
+        /** sets values explanation (initialization) */
+        private void initNoGood(T value, Set<T> reason) {
+            setNoGood(value, reason);
+        }
+        
+        public void propagate(Assignment<V, T> assignment, List<T> queue) {
+            int idx = 0;
+            while (queue.size() > idx) {
+                T value = queue.get(idx++);
+                sLogger.debug("  -- propagate " + value.variable().getName() + " = " + value.getName() + " (noGood:" + noGood(value) + ")");
+                if (goodValues(value.variable()).isEmpty()) {
+                    sLogger.info("Empty domain detected for variable " + value.variable().getName());
+                    continue;
+                }
+                for (Constraint<V, T> constraint : value.variable().hardConstraints()) {
+                    if (!contains(constraint))
+                        continue;
+                    propagate(assignment, constraint, value, queue);
+                }
+            }
+        }
+
+        public void propagate(Assignment<V, T> assignment, Constraint<V, T> constraint, T noGoodValue, List<T> queue) {
+            for (V aVariable : constraint.variables()) {
+                if (aVariable.equals(noGoodValue.variable()))
+                    continue;
+                for (Iterator<T> j = aVariable.values(assignment).iterator(); j.hasNext();) {
+                    T aValue = j.next();
+                    if (isGood(aValue) && constraint.isConsistent(noGoodValue, aValue)
+                            && !hasSupport(assignment, constraint, aValue, noGoodValue.variable())) {
+                        setNoGood(aValue, explanation(assignment, constraint, aValue, noGoodValue.variable()));
+                        queue.add(aValue);
+                    }
+                }
+            }
+        }
+
+        public boolean revise(Assignment<V, T> assignment, T value) {
+            sLogger.debug("  -- revise " + value.variable().getName() + " = " + value.getName());
+            for (Constraint<V, T> constraint : value.variable().hardConstraints()) {
+                if (!contains(constraint))
+                    continue;
+                if (revise(assignment, constraint, value))
+                    return true;
+            }
+            return false;
+        }
+
+        public boolean revise(Assignment<V, T> assignment, Constraint<V, T> constraint, T value) {
+            for (V aVariable : constraint.variables()) {
+                if (aVariable.equals(value.variable()))
+                    continue;
+                if (!hasSupport(assignment, constraint, value, aVariable)) {
+                    setNoGood(value, explanation(assignment, constraint, value, aVariable));
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public Set<T> explanation(Assignment<V, T> assignment, Constraint<V, T> constraint, T value, V variable) {
+            Set<T> expl = new HashSet<T>();
+            for (T aValue : variable.values(assignment)) {
+                if (constraint.isConsistent(aValue, value)) {
+                    expl.addAll(noGood(aValue));
+                }
+            }
+            return expl;
+        }
+
+        public Set<T> supports(Assignment<V, T> assignment, Constraint<V, T> constraint, T value, V variable) {
+            Set<T> sup = new HashSet<T>();
+            for (T aValue : variable.values(assignment)) {
+                if (!isGood(aValue))
+                    continue;
+                if (!constraint.isConsistent(aValue, value))
+                    continue;
+                sup.add(aValue);
+            }
+            return sup;
+        }
+
+        public boolean hasSupport(Assignment<V, T> assignment, Constraint<V, T> constraint, T value, V variable) {
+            for (T aValue : variable.values(assignment)) {
+                if (isGood(aValue) && constraint.isConsistent(aValue, value)) {
+                    // sLogger.debug("    -- "+variable.getName()+" = "+aValue.getName()+" supports "
+                    // +
+                    // value.variable().getName()+" = "+value.getName()+" (constraint:"+constraint.getName()+")");
+                    return true;
+                }
+            }
+            // sLogger.debug("    -- value "+value.variable().getName()+" = " +
+            // value.getName()+" has no support from values of variable "+variable.getName()+" (constraint:"+constraint.getName()+")");
+            /*
+             * for (Enumeration e=variable.values().elements();e.hasMoreElements();)
+             * { T aValue = (T)e.nextElement(); if
+             * (constraint.isConsistent(aValue,value)) {
+             * //sLogger.debug("      -- support "
+             * +aValue.getName()+" is not good: "+expl2str(noGood(aValue))); } }
+             */
+            return false;
+        }
+        
+        /** sets value's explanation 
+         * @param assignment current assignment
+         * @param value a value
+         * @param reason no-good set for the value
+         **/
+        public void setNoGood(Assignment<V, T> assignment, T value, Set<T> reason) {
+            sLogger.debug("    -- set nogood " + value.variable().getName() + " = " + value.getName() + "(expl:" + expl2str(reason) + ")");
+            if (value.equals(assignment.getValue(value.variable()))) {
+                try {
+                    throw new Exception("An assigned value " + value.variable().getName() + " = " + value.getName() + " become no good (noGood:" + reason + ")!!");
+                } catch (Exception e) {
+                    sLogger.warn(e.getMessage(), e);
+                }
+                checkExpl(assignment, reason);
+                printAssignments(assignment);
+            }
+            Set<T> noGood = noGood(value);
+            if (noGood != null)
+                for (T v : noGood)
+                    removeSupport(v.variable(), value);
+            setNoGood(value, reason);
+            for (T aValue : reason) {
+                addSupport(aValue.variable(), value);
+            }
+            goodnessChanged(value);
         }
     }
 }

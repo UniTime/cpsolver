@@ -185,7 +185,7 @@ public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
                 continue;
             setNoGood(assignment, anotherValue, noGood);
         }
-        propagate(assignment, value.variable());
+        getContext(assignment).propagate(assignment, value.variable());
     }
 
     /**
@@ -209,140 +209,7 @@ public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
                     setNoGood(assignment, anotherValue, noGood);
             }
         }
-        undoPropagate(assignment, value.variable());
-    }
-
-    /**
-     * Initialization. Enforce arc-consistency over the current (initial)
-     * solution. AC3 algorithm is used.
-     */
-
-    /** Propagation over the given variable. 
-     * @param assignment current assignment
-     * @param variable given variable
-     **/
-    protected void propagate(Assignment<V, T> assignment, V variable) {
-        Queue<V> queue = new LinkedList<V>();
-        if (assignment.getValue(variable) != null) {
-            for (Constraint<V, T> constraint : variable.hardConstraints()) {
-                if (contains(constraint))
-                    propagate(assignment, constraint, assignment.getValue(variable), queue);
-            }
-        } else {
-            for (Constraint<V, T> constraint : variable.hardConstraints()) {
-                if (contains(constraint))
-                    propagate(assignment, constraint, variable, queue);
-            }
-        }
-        if (!iJustForwardCheck && !queue.isEmpty())
-            propagate(assignment, queue);
-    }
-
-    /** Propagation over the queue of variables.
-     * @param assignment current assignment
-     * @param queue variable queue
-     **/
-    protected void propagate(Assignment<V, T> assignment, Queue<V> queue) {
-        while (!queue.isEmpty()) {
-            V aVariable = queue.poll();
-            for (Constraint<V, T> constraint : aVariable.hardConstraints()) {
-                if (contains(constraint))
-                    propagate(assignment, constraint, aVariable, queue);
-            }
-        }
-    }
-
-    /**
-     * Propagation undo over the given variable. All values having given
-     * variable in thair explanations needs to be recomputed. This is done in
-     * two phases: 1) values that contain this variable in explanation are
-     * returned back to domains (marked as good) 2) propagation over variables
-     * which contains a value that was marked as good takes place
-     * @param assignment current assignment
-     * @param variable given variable
-     */
-    public void undoPropagate(Assignment<V, T> assignment, V variable) {
-        Map<V, List<T>> undoVars = new HashMap<V, List<T>>();
-        while (!supportValues(assignment, variable).isEmpty()) {
-            T value = supportValues(assignment, variable).iterator().next();
-            Set<T> noGood = value.conflicts(assignment);
-            if (noGood == null) {
-                setGood(assignment, value);
-                List<T> values = undoVars.get(value.variable());
-                if (values == null) {
-                    values = new ArrayList<T>();
-                    undoVars.put(value.variable(), values);
-                }
-                values.add(value);
-            } else {
-                setNoGood(assignment, value, noGood);
-                if (noGood.isEmpty())
-                    (value.variable()).removeValue(iIteration, value);
-            }
-        }
-
-        Queue<V> queue = new LinkedList<V>();
-        for (V aVariable : undoVars.keySet()) {
-            List<T> values = undoVars.get(aVariable);
-            boolean add = false;
-            for (V x : aVariable.constraintVariables().keySet()) {
-                if (propagate(assignment, x, aVariable, values))
-                    add = true;
-            }
-            if (add)
-                queue.add(aVariable);
-        }
-        for (V x : variable.constraintVariables().keySet()) {
-            if (propagate(assignment, x, variable) && !queue.contains(variable))
-                queue.add(variable);
-        }
-        if (!iJustForwardCheck)
-            propagate(assignment, queue);
-    }
-
-    protected boolean propagate(Assignment<V, T> assignment, V aVariable, V anotherVariable, List<T> adepts) {
-        if (goodValues(assignment, aVariable).isEmpty())
-            return false;
-        boolean ret = false;
-        List<T> conflicts = null;
-        for (Constraint<V, T> constraint : anotherVariable.constraintVariables().get(aVariable)) {
-            for (T aValue : goodValues(assignment, aVariable)) {
-                if (conflicts == null)
-                    conflicts = conflictValues(constraint, aValue, adepts);
-                else
-                    conflicts = conflictValues(constraint, aValue, conflicts);
-                if (conflicts == null || conflicts.isEmpty())
-                    break;
-            }
-            if (conflicts != null && !conflicts.isEmpty())
-                for (T conflictValue : conflicts) {
-                    Set<T> reason = reason(assignment, constraint, aVariable, conflictValue);
-                    // sLogger.debug("  "+conflictValue+" become nogood (c:"+constraint.getName()+", r:"+reason+")");
-                    setNoGood(assignment, conflictValue, reason);
-                    adepts.remove(conflictValue);
-                    if (reason.isEmpty())
-                        (conflictValue.variable()).removeValue(iIteration, conflictValue);
-                    ret = true;
-                }
-        }
-        return ret;
-    }
-
-    protected boolean propagate(Assignment<V, T> assignment, V aVariable, V anotherVariable) {
-        if (goodValues(assignment, anotherVariable).isEmpty())
-            return false;
-        return propagate(assignment, aVariable, anotherVariable, new ArrayList<T>(goodValues(assignment, anotherVariable)));
-    }
-
-    /** support values of a variable */
-    @SuppressWarnings("unchecked")
-    private Set<T> supportValues(Assignment<V, T> assignment, V variable) {
-        Set<T>[] ret = getContext(assignment).getNoGood(variable);
-        if (ret == null) {
-            ret = new Set[] { new HashSet<T>(1000), new HashSet<T>() };
-            getContext(assignment).setNoGood(variable, ret);
-        }
-        return ret[0];
+        getContext(assignment).undoPropagate(assignment, value.variable());
     }
 
     /** good values of a variable (values not removed from variables domain) 
@@ -350,14 +217,8 @@ public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
      * @param variable given variable
      * @return set of good values 
      **/
-    @SuppressWarnings("unchecked")
     public Set<T> goodValues(Assignment<V, T> assignment, V variable) {
-        Set<T>[] ret = getContext(assignment).getNoGood(variable);
-        if (ret == null) {
-            ret = new Set[] { new HashSet<T>(1000), new HashSet<T>() };
-            getContext(assignment).setNoGood(variable, ret);
-        }
-        return ret[1];
+        return getContext(assignment).goodValues(variable);
     }
 
     /** notification that a nogood value becomes good or vice versa */
@@ -371,12 +232,12 @@ public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
 
     /** removes support of a variable */
     private void removeSupport(Assignment<V, T> assignment, V variable, T value) {
-        supportValues(assignment, variable).remove(value);
+        getContext(assignment).supportValues(variable).remove(value);
     }
 
     /** adds support of a variable */
     private void addSupport(Assignment<V, T> assignment, V variable, T value) {
-        supportValues(assignment, variable).add(value);
+        getContext(assignment).supportValues(variable).add(value);
     }
 
     /** variables explanation 
@@ -410,11 +271,6 @@ public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
         goodnessChanged(assignment, value);
     }
 
-    /** sets values explanation (initialization) */
-    private void initNoGood(Assignment<V, T> assignment, T value, Set<T> reason) {
-        getContext(assignment).setNoGood(value, reason);
-    }
-
     /** sets value's explanation 
      * @param assignment current assignment
      * @param value given value
@@ -429,76 +285,6 @@ public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
         for (T aValue : reason)
             addSupport(assignment, aValue.variable(), value);
         goodnessChanged(assignment, value);
-    }
-
-    /** propagation over a constraint */
-    private void propagate(Assignment<V, T> assignment, Constraint<V, T> constraint, T anAssignedValue, Queue<V> queue) {
-        Set<T> reason = new HashSet<T>(1);
-        reason.add(anAssignedValue);
-        Collection<T> conflicts = conflictValues(assignment, constraint, anAssignedValue);
-        if (conflicts != null && !conflicts.isEmpty())
-            for (T conflictValue : conflicts) {
-                // sLogger.debug("  "+conflictValue+" become nogood (c:"+constraint.getName()+", r:"+reason+")");
-                setNoGood(assignment, conflictValue, reason);
-                if (!queue.contains(conflictValue.variable()))
-                    queue.add(conflictValue.variable());
-            }
-    }
-
-    /** propagation over a constraint */
-    private void propagate(Assignment<V, T> assignment, Constraint<V, T> constraint, V aVariable, Queue<V> queue) {
-        if (goodValues(assignment, aVariable).isEmpty())
-            return;
-        List<T> conflicts = conflictValues(assignment, constraint, aVariable);
-
-        if (conflicts != null && !conflicts.isEmpty()) {
-            for (T conflictValue : conflicts) {
-                if (!queue.contains(conflictValue.variable()))
-                    queue.add(conflictValue.variable());
-                Set<T> reason = reason(assignment, constraint, aVariable, conflictValue);
-                // sLogger.debug("  "+conflictValue+" become nogood (c:"+constraint.getName()+", r:"+reason+")");
-                setNoGood(assignment, conflictValue, reason);
-                if (reason.isEmpty())
-                    (conflictValue.variable()).removeValue(iIteration, conflictValue);
-            }
-        }
-    }
-
-    private List<T> conflictValues(Assignment<V, T> assignment, Constraint<V, T> constraint, T aValue) {
-        List<T> ret = new ArrayList<T>();
-
-        for (V variable : constraint.variables()) {
-            if (variable.equals(aValue.variable()))
-                continue;
-            if (assignment.getValue(variable) != null)
-                continue;
-
-            for (T value : goodValues(assignment, variable))
-                if (!constraint.isConsistent(aValue, value))
-                    ret.add(value);
-        }
-        return ret;
-    }
-
-    private List<T> conflictValues(Constraint<V, T> constraint, T aValue, List<T> values) {
-        List<T> ret = new ArrayList<T>(values.size());
-        for (T value : values)
-            if (!constraint.isConsistent(aValue, value))
-                ret.add(value);
-        return ret;
-    }
-
-    private List<T> conflictValues(Assignment<V, T> assignment, Constraint<V, T> constraint, V aVariable) {
-        List<T> conflicts = null;
-        for (T aValue : goodValues(assignment, aVariable)) {
-            if (conflicts == null)
-                conflicts = conflictValues(assignment, constraint, aValue);
-            else
-                conflicts = conflictValues(constraint, aValue, conflicts);
-            if (conflicts == null || conflicts.isEmpty())
-                return null;
-        }
-        return conflicts;
     }
 
     private Set<T> reason(Assignment<V, T> assignment, Constraint<V, T> constraint, V aVariable, T aValue) {
@@ -520,6 +306,27 @@ public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
     public NoGood createAssignmentContext(Assignment<V, T> assignment) {
         return new NoGood(assignment);
     }
+    
+    /** Propagation over the given variable. 
+     * @param assignment current assignment
+     * @param variable given variable
+     **/
+    protected void propagate(Assignment<V, T> assignment, V variable) {
+        getContext(assignment).propagate(assignment, variable);
+    }
+    
+    /**
+     * Propagation undo over the given variable. All values having given
+     * variable in their explanations needs to be recomputed. This is done in
+     * two phases: 1) values that contain this variable in explanation are
+     * returned back to domains (marked as good) 2) propagation over variables
+     * which contains a value that was marked as good takes place
+     * @param assignment current assignment
+     * @param variable given variable
+     */
+    public void undoPropagate(Assignment<V, T> assignment, V variable) {
+        getContext(assignment).undoPropagate(assignment, variable);
+    }
 
     /**
      * Assignment context
@@ -528,23 +335,27 @@ public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
         private Map<V, Set<T>[]> iNoGood = new HashMap<V, Set<T>[]>();
         private Map<V, Map<T, Set<T>>> iNoGoodVal = new HashMap<V, Map<T, Set<T>>>();
         
+        /**
+         * Initialization. Enforce arc-consistency over the current (initial)
+         * solution. AC3 algorithm is used.
+         */
         public NoGood(Assignment<V, T> assignment) {
             iProgress = Progress.getInstance(getModel());
             iProgress.save();
             iProgress.setPhase("Initializing propagation:", 3 * getModel().variables().size());
             for (Iterator<V> i = getModel().variables().iterator(); i.hasNext();) {
                 V aVariable = i.next();
-                supportValues(assignment, aVariable).clear();
-                goodValues(assignment, aVariable).clear();
+                supportValues(aVariable).clear();
+                goodValues(aVariable).clear();
             }
             for (Iterator<V> i = getModel().variables().iterator(); i.hasNext();) {
                 V aVariable = i.next();
                 for (Iterator<T> j = aVariable.values(assignment).iterator(); j.hasNext();) {
                     T aValue = j.next();
                     Set<T> noGood = aValue.conflicts(assignment);
-                    initNoGood(assignment, aValue, noGood);
+                    setNoGood(aValue, noGood);
                     if (noGood == null) {
-                        goodValues(assignment, aVariable).add(aValue);
+                        goodValues(aVariable).add(aValue);
                     } else {
                     }
                 }
@@ -565,7 +376,7 @@ public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
                 List<T> values2delete = new ArrayList<T>();
                 for (Iterator<T> j = aVariable.values(assignment).iterator(); j.hasNext();) {
                     T aValue = j.next();
-                    if (!isGood(assignment, aValue) && noGood(assignment, aValue).isEmpty()) {
+                    if (getNoGood(aValue) != null && getNoGood(aValue).isEmpty()) {
                         values2delete.add(aValue);
                     }
                 }
@@ -608,6 +419,218 @@ public class MacPropagation<V extends Variable<V, T>, T extends Value<V, T>> ext
                 ng.put(value, noGood);
         }
         
+        /** support values of a variable */
+        @SuppressWarnings("unchecked")
+        private Set<T> supportValues(V variable) {
+            Set<T>[] ret = getNoGood(variable);
+            if (ret == null) {
+                ret = new Set[] { new HashSet<T>(1000), new HashSet<T>() };
+                setNoGood(variable, ret);
+            }
+            return ret[0];
+        }
+        
+        /** good values of a variable (values not removed from variables domain) 
+         * @param variable given variable
+         * @return set of good values 
+         **/
+        @SuppressWarnings("unchecked")
+        private Set<T> goodValues(V variable) {
+            Set<T>[] ret = getNoGood(variable);
+            if (ret == null) {
+                ret = new Set[] { new HashSet<T>(1000), new HashSet<T>() };
+                setNoGood(variable, ret);
+            }
+            return ret[1];
+        }
+        
+        /** propagation over a constraint */
+        private void propagate(Assignment<V, T> assignment, Constraint<V, T> constraint, V aVariable, Queue<V> queue) {
+            if (goodValues(aVariable).isEmpty())
+                return;
+            List<T> conflicts = conflictValues(assignment, constraint, aVariable);
+
+            if (conflicts != null && !conflicts.isEmpty()) {
+                for (T conflictValue : conflicts) {
+                    if (!queue.contains(conflictValue.variable()))
+                        queue.add(conflictValue.variable());
+                    Set<T> reason = reason(assignment, constraint, aVariable, conflictValue);
+                    // sLogger.debug("  "+conflictValue+" become nogood (c:"+constraint.getName()+", r:"+reason+")");
+                    setNoGood(conflictValue, reason);
+                    if (reason.isEmpty())
+                        (conflictValue.variable()).removeValue(iIteration, conflictValue);
+                }
+            }
+        }
+        
+        protected boolean propagate(Assignment<V, T> assignment, V aVariable, V anotherVariable, List<T> adepts) {
+            if (goodValues(aVariable).isEmpty())
+                return false;
+            boolean ret = false;
+            List<T> conflicts = null;
+            for (Constraint<V, T> constraint : anotherVariable.constraintVariables().get(aVariable)) {
+                for (T aValue : goodValues(aVariable)) {
+                    if (conflicts == null)
+                        conflicts = conflictValues(constraint, aValue, adepts);
+                    else
+                        conflicts = conflictValues(constraint, aValue, conflicts);
+                    if (conflicts == null || conflicts.isEmpty())
+                        break;
+                }
+                if (conflicts != null && !conflicts.isEmpty())
+                    for (T conflictValue : conflicts) {
+                        Set<T> reason = reason(assignment, constraint, aVariable, conflictValue);
+                        // sLogger.debug("  "+conflictValue+" become nogood (c:"+constraint.getName()+", r:"+reason+")");
+                        setNoGood(conflictValue, reason);
+                        adepts.remove(conflictValue);
+                        if (reason.isEmpty())
+                            (conflictValue.variable()).removeValue(iIteration, conflictValue);
+                        ret = true;
+                    }
+            }
+            return ret;
+        }
+
+        protected boolean propagate(Assignment<V, T> assignment, V aVariable, V anotherVariable) {
+            if (goodValues(anotherVariable).isEmpty())
+                return false;
+            return propagate(assignment, aVariable, anotherVariable, new ArrayList<T>(goodValues(anotherVariable)));
+        }
+
+        /** Propagation over the given variable. 
+         * @param assignment current assignment
+         * @param variable given variable
+         **/
+        protected void propagate(Assignment<V, T> assignment, V variable) {
+            Queue<V> queue = new LinkedList<V>();
+            if (assignment.getValue(variable) != null) {
+                for (Constraint<V, T> constraint : variable.hardConstraints()) {
+                    if (contains(constraint))
+                        propagate(assignment, constraint, assignment.getValue(variable), queue);
+                }
+            } else {
+                for (Constraint<V, T> constraint : variable.hardConstraints()) {
+                    if (contains(constraint))
+                        propagate(assignment, constraint, variable, queue);
+                }
+            }
+            if (!iJustForwardCheck && !queue.isEmpty())
+                propagate(assignment, queue);
+        }
+
+        /** Propagation over the queue of variables.
+         * @param assignment current assignment
+         * @param queue variable queue
+         **/
+        protected void propagate(Assignment<V, T> assignment, Queue<V> queue) {
+            while (!queue.isEmpty()) {
+                V aVariable = queue.poll();
+                for (Constraint<V, T> constraint : aVariable.hardConstraints()) {
+                    if (contains(constraint))
+                        propagate(assignment, constraint, aVariable, queue);
+                }
+            }
+        }
+        
+        /** propagation over a constraint */
+        private void propagate(Assignment<V, T> assignment, Constraint<V, T> constraint, T anAssignedValue, Queue<V> queue) {
+            Set<T> reason = new HashSet<T>(1);
+            reason.add(anAssignedValue);
+            Collection<T> conflicts = conflictValues(assignment, constraint, anAssignedValue);
+            if (conflicts != null && !conflicts.isEmpty())
+                for (T conflictValue : conflicts) {
+                    // sLogger.debug("  "+conflictValue+" become nogood (c:"+constraint.getName()+", r:"+reason+")");
+                    setNoGood(conflictValue, reason);
+                    if (!queue.contains(conflictValue.variable()))
+                        queue.add(conflictValue.variable());
+                }
+        }
+        
+        /**
+         * Propagation undo over the given variable. All values having given
+         * variable in thair explanations needs to be recomputed. This is done in
+         * two phases: 1) values that contain this variable in explanation are
+         * returned back to domains (marked as good) 2) propagation over variables
+         * which contains a value that was marked as good takes place
+         * @param assignment current assignment
+         * @param variable given variable
+         */
+        public void undoPropagate(Assignment<V, T> assignment, V variable) {
+            Map<V, List<T>> undoVars = new HashMap<V, List<T>>();
+            NoGood context = getContext(assignment);
+            while (!context.supportValues(variable).isEmpty()) {
+                T value = context.supportValues(variable).iterator().next();
+                Set<T> noGood = value.conflicts(assignment);
+                if (noGood == null) {
+                    setGood(assignment, value);
+                    List<T> values = undoVars.get(value.variable());
+                    if (values == null) {
+                        values = new ArrayList<T>();
+                        undoVars.put(value.variable(), values);
+                    }
+                    values.add(value);
+                } else {
+                    setNoGood(value, noGood);
+                    if (noGood.isEmpty())
+                        (value.variable()).removeValue(iIteration, value);
+                }
+            }
+
+            Queue<V> queue = new LinkedList<V>();
+            for (V aVariable : undoVars.keySet()) {
+                List<T> values = undoVars.get(aVariable);
+                boolean add = false;
+                for (V x : aVariable.constraintVariables().keySet()) {
+                    if (propagate(assignment, x, aVariable, values))
+                        add = true;
+                }
+                if (add)
+                    queue.add(aVariable);
+            }
+            for (V x : variable.constraintVariables().keySet()) {
+                if (propagate(assignment, x, variable) && !queue.contains(variable))
+                    queue.add(variable);
+            }
+            if (!iJustForwardCheck)
+                propagate(assignment, queue);
+        }
+        
+        private List<T> conflictValues(Assignment<V, T> assignment, Constraint<V, T> constraint, T aValue) {
+            List<T> ret = new ArrayList<T>();
+
+            for (V variable : constraint.variables()) {
+                if (variable.equals(aValue.variable()))
+                    continue;
+                if (assignment.getValue(variable) != null)
+                    continue;
+
+                for (T value : goodValues(variable))
+                    if (!constraint.isConsistent(aValue, value))
+                        ret.add(value);
+            }
+            return ret;
+        }
+
+        private List<T> conflictValues(Constraint<V, T> constraint, T aValue, List<T> values) {
+            List<T> ret = new ArrayList<T>(values.size());
+            for (T value : values)
+                if (!constraint.isConsistent(aValue, value))
+                    ret.add(value);
+            return ret;
+        }
+
+        private List<T> conflictValues(Assignment<V, T> assignment, Constraint<V, T> constraint, V aVariable) {
+            List<T> conflicts = null;
+            for (T aValue : goodValues(aVariable)) {
+                if (conflicts == null)
+                    conflicts = conflictValues(assignment, constraint, aValue);
+                else
+                    conflicts = conflictValues(constraint, aValue, conflicts);
+                if (conflicts == null || conflicts.isEmpty())
+                    return null;
+            }
+            return conflicts;
+        }        
     }
 
 }
