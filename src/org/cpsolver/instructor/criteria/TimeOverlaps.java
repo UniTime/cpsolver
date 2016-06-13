@@ -46,12 +46,12 @@ public class TimeOverlaps extends InstructorSchedulingCriterion {
     }
 
     @Override
-    public double getValue(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value, Set<TeachingAssignment> conflicts) {
+    public double getValue(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, TeachingAssignment value, Set<TeachingAssignment> conflicts) {
         return value.getInstructor().share(assignment, value);
     }
 
     @Override
-    public double getValue(Assignment<TeachingRequest, TeachingAssignment> assignment, Collection<TeachingRequest> variables) {
+    public double getValue(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, Collection<TeachingRequest.Variable> variables) {
         double value = 0.0;
         for (Instructor instructor: getInstructors(assignment, variables)) {
             value += instructor.getContext(assignment).countTimeOverlaps();
@@ -65,14 +65,14 @@ public class TimeOverlaps extends InstructorSchedulingCriterion {
     }
     
     @Override
-    public void getInfo(Assignment<TeachingRequest, TeachingAssignment> assignment, Map<String, String> info) {
+    public void getInfo(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, Map<String, String> info) {
         double val = getValue(assignment);
         if (val != 0)
             info.put(getName(), sDoubleFormat.format(val / 12.0) + " h");
     }
 
     @Override
-    public void getInfo(Assignment<TeachingRequest, TeachingAssignment> assignment, Map<String, String> info, Collection<TeachingRequest> variables) {
+    public void getInfo(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, Map<String, String> info, Collection<TeachingRequest.Variable> variables) {
         double val = getValue(assignment, variables);
         if (val != 0)
             info.put(getName(), sDoubleFormat.format(val / 12.0) + " h");

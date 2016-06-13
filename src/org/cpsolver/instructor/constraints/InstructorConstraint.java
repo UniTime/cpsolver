@@ -35,7 +35,7 @@ import org.cpsolver.instructor.model.TeachingRequest;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class InstructorConstraint extends GlobalConstraint<TeachingRequest, TeachingAssignment> {
+public class InstructorConstraint extends GlobalConstraint<TeachingRequest.Variable, TeachingAssignment> {
     
     /**
      * Constructor
@@ -43,11 +43,11 @@ public class InstructorConstraint extends GlobalConstraint<TeachingRequest, Teac
     public InstructorConstraint() {}
     
     @Override
-    public void computeConflicts(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value, Set<TeachingAssignment> conflicts) {
+    public void computeConflicts(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, TeachingAssignment value, Set<TeachingAssignment> conflicts) {
         Context context = value.getInstructor().getContext(assignment);
 
         // Check availability
-        if (context.getInstructor().getTimePreference(value.variable()).isProhibited()) {
+        if (context.getInstructor().getTimePreference(value.variable().getRequest()).isProhibited()) {
             conflicts.add(value);
             return;
         }
@@ -57,7 +57,7 @@ public class InstructorConstraint extends GlobalConstraint<TeachingRequest, Teac
             if (ta.variable().equals(value.variable()) || conflicts.contains(ta))
                 continue;
 
-            if (ta.variable().overlaps(value.variable()))
+            if (ta.variable().getRequest().overlaps(value.variable().getRequest()))
                 conflicts.add(ta);
         }
 
@@ -68,27 +68,27 @@ public class InstructorConstraint extends GlobalConstraint<TeachingRequest, Teac
                 if (ta.variable().equals(value.variable()) || conflicts.contains(ta))
                     continue;
 
-                if (!ta.variable().sameCourse(value.variable()) || (sameCommon && !ta.variable().sameCommon(value.variable())))
+                if (!ta.variable().getRequest().sameCourse(value.variable().getRequest()) || (sameCommon && !ta.variable().getRequest().sameCommon(value.variable().getRequest())))
                     conflicts.add(ta);
             }
         } else if (value.variable().getCourse().isSameCommon()) {
             for (TeachingAssignment ta : context.getAssignments()) {
                 if (ta.variable().equals(value.variable()) || conflicts.contains(ta))
                     continue;
-                if (ta.variable().sameCourse(value.variable()) && !ta.variable().sameCommon(value.variable()))
+                if (ta.variable().getRequest().sameCourse(value.variable().getRequest()) && !ta.variable().getRequest().sameCommon(value.variable().getRequest()))
                     conflicts.add(ta);
             }
         }
         
         // Check load
-        float load = value.variable().getLoad();
+        float load = value.variable().getRequest().getLoad();
         List<TeachingAssignment> adepts = new ArrayList<TeachingAssignment>();
         for (TeachingAssignment ta : context.getAssignments()) {
             if (ta.variable().equals(value.variable()) || conflicts.contains(ta))
                 continue;
 
             adepts.add(ta);
-            load += ta.variable().getLoad();
+            load += ta.variable().getRequest().getLoad();
         }
         while (load > context.getInstructor().getMaxLoad()) {
             if (adepts.isEmpty()) {
@@ -96,7 +96,7 @@ public class InstructorConstraint extends GlobalConstraint<TeachingRequest, Teac
                 break;
             }
             TeachingAssignment conflict = ToolBox.random(adepts);
-            load -= conflict.variable().getLoad();
+            load -= conflict.variable().getRequest().getLoad();
             adepts.remove(conflict);
             conflicts.add(conflict);
         }

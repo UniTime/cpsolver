@@ -35,10 +35,10 @@ import org.cpsolver.instructor.model.TeachingRequest;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public abstract class InstructorSchedulingCriterion extends AbstractCriterion<TeachingRequest, TeachingAssignment> {
+public abstract class InstructorSchedulingCriterion extends AbstractCriterion<TeachingRequest.Variable, TeachingAssignment> {
 
     @Override
-    public void getInfo(Assignment<TeachingRequest, TeachingAssignment> assignment, Map<String, String> info) {
+    public void getInfo(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, Map<String, String> info) {
         double val = getValue(assignment);
         double[] bounds = getBounds(assignment);
         if (bounds[0] <= val && val <= bounds[1] && bounds[0] < bounds[1])
@@ -50,7 +50,7 @@ public abstract class InstructorSchedulingCriterion extends AbstractCriterion<Te
     }
     
     @Override
-    public void getInfo(Assignment<TeachingRequest, TeachingAssignment> assignment, Map<String, String> info, Collection<TeachingRequest> variables) {
+    public void getInfo(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, Map<String, String> info, Collection<TeachingRequest.Variable> variables) {
         double val = getValue(assignment, variables);
         double[] bounds = getBounds(assignment, variables);
         if (bounds[0] <= val && val <= bounds[1] && bounds[0] < bounds[1])
@@ -67,9 +67,9 @@ public abstract class InstructorSchedulingCriterion extends AbstractCriterion<Te
      * @param variables sub-problem
      * @return instructors that can be used by the given teaching requests
      */
-    public Set<Instructor> getInstructors(Assignment<TeachingRequest, TeachingAssignment> assignment, Collection<TeachingRequest> variables) {
+    public Set<Instructor> getInstructors(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, Collection<TeachingRequest.Variable> variables) {
         Set<Instructor> instructors = new HashSet<Instructor>();
-        for (TeachingRequest req: variables)
+        for (TeachingRequest.Variable req: variables)
             for (TeachingAssignment ta: req.values(assignment))
                 instructors.add(ta.getInstructor());
         return instructors;

@@ -39,7 +39,7 @@ public class CoursePreferences extends InstructorSchedulingCriterion {
     }
 
     @Override
-    public double getValue(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value, Set<TeachingAssignment> conflicts) {
+    public double getValue(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, TeachingAssignment value, Set<TeachingAssignment> conflicts) {
         return value.getCoursePreference();
     }
 

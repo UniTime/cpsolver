@@ -41,7 +41,7 @@ import org.cpsolver.instructor.criteria.TimeOverlaps;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class Instructor extends AbstractClassWithContext<TeachingRequest, TeachingAssignment, Instructor.Context> implements CanInheritContext<TeachingRequest, TeachingAssignment, Instructor.Context> {
+public class Instructor extends AbstractClassWithContext<TeachingRequest.Variable, TeachingAssignment, Instructor.Context> implements CanInheritContext<TeachingRequest.Variable, TeachingAssignment, Instructor.Context> {
     private List<Attribute> iAttributes = new ArrayList<Attribute>();
     private List<Preference<TimeLocation>> iTimePreferences = new ArrayList<Preference<TimeLocation>>();
     private List<Preference<Course>> iCoursePreferences = new ArrayList<Preference<Course>>();
@@ -310,15 +310,15 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest, Teachi
      * @param value teaching assignment that is being considered
      * @return number of overlapping time slots (of the requested assignment) during which the overlaps are allowed
      */
-    public int share(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value) {
+    public int share(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, TeachingAssignment value) {
         int share = 0;
         if (value.getInstructor().equals(this)) {
             for (TeachingAssignment other : value.getInstructor().getContext(assignment).getAssignments()) {
                 if (other.variable().equals(value.variable()))
                     continue;
-                share += value.variable().share(other.variable());
+                share += value.variable().getRequest().share(other.variable().getRequest());
             }
-            share += share(value.variable());
+            share += share(value.variable().getRequest());
         }
         return share;
     }
@@ -329,13 +329,13 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest, Teachi
      * @param value teaching assignment that is being considered
      * @return average {@link TeachingRequest#nrSameLectures(TeachingRequest)} between the given and the other existing assignments of the instructor
      */
-    public double differentLectures(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value) {
+    public double differentLectures(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, TeachingAssignment value) {
         double same = 0; int count = 0;
         if (value.getInstructor().equals(this)) {
             for (TeachingAssignment other : value.getInstructor().getContext(assignment).getAssignments()) {
                 if (other.variable().equals(value.variable()))
                     continue;
-                same += value.variable().nrSameLectures(other.variable());
+                same += value.variable().getRequest().nrSameLectures(other.variable().getRequest());
                 count ++;
             }
         }
@@ -350,16 +350,16 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest, Teachi
      * @param diffTypeWeight different instructional type penalty
      * @return weighted back-to-back preference, using {@link TeachingRequest#countBackToBacks(TeachingRequest, double, double)}
      */
-    public double countBackToBacks(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value, double diffRoomWeight, double diffTypeWeight) {
+    public double countBackToBacks(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, TeachingAssignment value, double diffRoomWeight, double diffTypeWeight) {
         double b2b = 0.0;
         if (value.getInstructor().equals(this) && getBackToBackPreference() != 0) {
             for (TeachingAssignment other : value.getInstructor().getContext(assignment).getAssignments()) {
                 if (other.variable().equals(value.variable()))
                     continue;
                 if (getBackToBackPreference() < 0) { // preferred
-                    b2b += (value.variable().countBackToBacks(other.variable(), diffRoomWeight, diffTypeWeight) - 1.0) * getBackToBackPreference();
+                    b2b += (value.variable().getRequest().countBackToBacks(other.variable().getRequest(), diffRoomWeight, diffTypeWeight) - 1.0) * getBackToBackPreference();
                 } else {
-                    b2b += value.variable().countBackToBacks(other.variable(), diffRoomWeight, diffTypeWeight) * getBackToBackPreference();
+                    b2b += value.variable().getRequest().countBackToBacks(other.variable().getRequest(), diffRoomWeight, diffTypeWeight) * getBackToBackPreference();
                 }
             }
         }
@@ -372,13 +372,13 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest, Teachi
     }
     
     @Override
-    public Context createAssignmentContext(Assignment<TeachingRequest, TeachingAssignment> assignment) {
+    public Context createAssignmentContext(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) {
         return new Context(assignment);
     }
     
 
     @Override
-    public Context inheritAssignmentContext(Assignment<TeachingRequest, TeachingAssignment> assignment, Context parentContext) {
+    public Context inheritAssignmentContext(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, Context parentContext) {
         return new Context(assignment, parentContext);
     }
 
@@ -386,7 +386,7 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest, Teachi
     /**
      * Instructor Constraint Context. It keeps the list of current assignments of an instructor.
      */
-    public class Context implements AssignmentConstraintContext<TeachingRequest, TeachingAssignment> {
+    public class Context implements AssignmentConstraintContext<TeachingRequest.Variable, TeachingAssignment> {
         private HashSet<TeachingAssignment> iAssignments = new HashSet<TeachingAssignment>();
         private int iTimeOverlaps;
         private double iBackToBacks;
@@ -396,8 +396,8 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest, Teachi
          * Constructor
          * @param assignment current assignment
          */
-        public Context(Assignment<TeachingRequest, TeachingAssignment> assignment) {
-            for (TeachingRequest request: getModel().variables()) {
+        public Context(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) {
+            for (TeachingRequest.Variable request: getModel().variables()) {
                 TeachingAssignment value = assignment.getValue(request);
                 if (value != null && value.getInstructor().equals(getInstructor()))
                     iAssignments.add(value);
@@ -411,7 +411,7 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest, Teachi
          * @param assignment current assignment
          * @param parentContext parent context
          */
-        public Context(Assignment<TeachingRequest, TeachingAssignment> assignment, Context parentContext) {
+        public Context(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, Context parentContext) {
             iAssignments = new HashSet<TeachingAssignment>(parentContext.getAssignments());
             if (!iAssignments.isEmpty())
                 updateCriteria(assignment);
@@ -424,7 +424,7 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest, Teachi
         public Instructor getInstructor() { return Instructor.this; }
 
         @Override
-        public void assigned(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value) {
+        public void assigned(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, TeachingAssignment value) {
             if (value.getInstructor().equals(getInstructor())) {
                 iAssignments.add(value);
                 updateCriteria(assignment);
@@ -432,7 +432,7 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest, Teachi
         }
         
         @Override
-        public void unassigned(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value) {
+        public void unassigned(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, TeachingAssignment value) {
             if (value.getInstructor().equals(getInstructor())) {
                 iAssignments.remove(value);
                 updateCriteria(assignment);
@@ -443,7 +443,7 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest, Teachi
          * Update optimization criteria
          * @param assignment current assignment
          */
-        private void updateCriteria(Assignment<TeachingRequest, TeachingAssignment> assignment) {
+        private void updateCriteria(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) {
             // update back-to-backs
             BackToBack b2b = (BackToBack)getModel().getCriterion(BackToBack.class);
             if (b2b != null) {
@@ -453,7 +453,7 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest, Teachi
             }
             
             // update time overlaps
-            Criterion<TeachingRequest, TeachingAssignment> overlaps = getModel().getCriterion(TimeOverlaps.class);
+            Criterion<TeachingRequest.Variable, TeachingAssignment> overlaps = getModel().getCriterion(TimeOverlaps.class);
             if (overlaps != null) {
                 overlaps.inc(assignment, -iTimeOverlaps);
                 iTimeOverlaps = countTimeOverlaps();
@@ -461,7 +461,7 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest, Teachi
             }
             
             // update same lectures
-            Criterion<TeachingRequest, TeachingAssignment> diff = getModel().getCriterion(DifferentLecture.class);
+            Criterion<TeachingRequest.Variable, TeachingAssignment> diff = getModel().getCriterion(DifferentLecture.class);
             if (diff != null) {
                 diff.inc(assignment, -iDifferentLectures);
                 iDifferentLectures = countDifferentLectures();
@@ -483,7 +483,7 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest, Teachi
         public float getLoad() {
             float load = 0;
             for (TeachingAssignment assignment : iAssignments)
-                load += assignment.variable().getLoad();
+                load += assignment.variable().getRequest().getLoad();
             return load;
         }
         
@@ -496,9 +496,9 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest, Teachi
             for (TeachingAssignment a1 : iAssignments) {
                 for (TeachingAssignment a2 : iAssignments) {
                     if (a1.getId() < a2.getId())
-                        share += a1.variable().share(a2.variable());
+                        share += a1.variable().getRequest().share(a2.variable().getRequest());
                 }
-                share += getInstructor().share(a1.variable());
+                share += getInstructor().share(a1.variable().getRequest());
             }
             return share;
         }
@@ -528,7 +528,7 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest, Teachi
             for (TeachingAssignment a1 : iAssignments) {
                 for (TeachingAssignment a2 : iAssignments) {
                     if (a1.getId() < a2.getId()) {
-                        same += a1.variable().nrSameLectures(a2.variable());
+                        same += a1.variable().getRequest().nrSameLectures(a2.variable().getRequest());
                         pairs++;
                     }
                 }
@@ -549,9 +549,9 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest, Teachi
                     for (TeachingAssignment a2 : iAssignments) {
                         if (a1.getId() >= a2.getId()) continue;
                         if (getInstructor().getBackToBackPreference() < 0) { // preferred
-                            b2b += (a1.variable().countBackToBacks(a2.variable(), diffRoomWeight, diffTypeWeight) - 1.0) * getInstructor().getBackToBackPreference();
+                            b2b += (a1.variable().getRequest().countBackToBacks(a2.variable().getRequest(), diffRoomWeight, diffTypeWeight) - 1.0) * getInstructor().getBackToBackPreference();
                         } else {
-                            b2b += a1.variable().countBackToBacks(a2.variable(), diffRoomWeight, diffTypeWeight) * getInstructor().getBackToBackPreference();
+                            b2b += a1.variable().getRequest().countBackToBacks(a2.variable().getRequest(), diffRoomWeight, diffTypeWeight) * getInstructor().getBackToBackPreference();
                         }
                     }
                 }
@@ -570,7 +570,7 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest, Teachi
             for (TeachingAssignment a1 : iAssignments) {
                 for (TeachingAssignment a2 : iAssignments) {
                     if (a1.getId() >= a2.getId()) continue;
-                    b2b += a1.variable().countBackToBacks(a2.variable(), c.getDifferentRoomWeight(), c.getDifferentTypeWeight());
+                    b2b += a1.variable().getRequest().countBackToBacks(a2.variable().getRequest(), c.getDifferentRoomWeight(), c.getDifferentTypeWeight());
                     pairs ++;
                 }
             }

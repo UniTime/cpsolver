@@ -46,12 +46,12 @@ public class DifferentLecture extends InstructorSchedulingCriterion {
     }
 
     @Override
-    public double getValue(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value, Set<TeachingAssignment> conflicts) {
+    public double getValue(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, TeachingAssignment value, Set<TeachingAssignment> conflicts) {
         return value.getInstructor().differentLectures(assignment, value);
     }
 
     @Override
-    public double getValue(Assignment<TeachingRequest, TeachingAssignment> assignment, Collection<TeachingRequest> variables) {
+    public double getValue(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, Collection<TeachingRequest.Variable> variables) {
         double value = 0.0;
         for (Instructor instructor: getInstructors(assignment, variables)) {
             value += instructor.getContext(assignment).countDifferentLectures();
@@ -60,12 +60,12 @@ public class DifferentLecture extends InstructorSchedulingCriterion {
     }
     
     @Override
-    protected double[] computeBounds(Assignment<TeachingRequest, TeachingAssignment> assignment) {
+    protected double[] computeBounds(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) {
         return new double[] { 0.0, ((InstructorSchedulingModel)getModel()).getInstructors().size() };
     }
     
     @Override
-    public double[] getBounds(Assignment<TeachingRequest, TeachingAssignment> assignment, Collection<TeachingRequest> variables) {
+    public double[] getBounds(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, Collection<TeachingRequest.Variable> variables) {
         return new double[] { 0.0, getInstructors(assignment, variables).size() };
     }
     
@@ -75,7 +75,7 @@ public class DifferentLecture extends InstructorSchedulingCriterion {
     }
     
     @Override
-    public void getInfo(Assignment<TeachingRequest, TeachingAssignment> assignment, Map<String, String> info) {
+    public void getInfo(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, Map<String, String> info) {
         double val = getValue(assignment);
         double[] bounds = getBounds(assignment);
         if (bounds[0] <= val && val <= bounds[1] && bounds[0] < bounds[1])
@@ -83,7 +83,7 @@ public class DifferentLecture extends InstructorSchedulingCriterion {
     }
     
     @Override
-    public void getInfo(Assignment<TeachingRequest, TeachingAssignment> assignment, Map<String, String> info, Collection<TeachingRequest> variables) {
+    public void getInfo(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, Map<String, String> info, Collection<TeachingRequest.Variable> variables) {
         double val = getValue(assignment, variables);
         double[] bounds = getBounds(assignment, variables);
         if (bounds[0] <= val && val <= bounds[1] && bounds[0] < bounds[1])

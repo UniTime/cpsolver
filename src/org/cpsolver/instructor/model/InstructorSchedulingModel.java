@@ -64,11 +64,12 @@ import org.dom4j.Element;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAssignment> {
+public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, TeachingAssignment> {
     private static Logger sLog = Logger.getLogger(InstructorSchedulingModel.class);
     private DataProperties iProperties;
     private Set<Attribute.Type> iTypes = new HashSet<Attribute.Type>();
     private List<Instructor> iInstructors = new ArrayList<Instructor>();
+    private List<TeachingRequest> iRequests = new ArrayList<TeachingRequest>();
 
     /**
      * Constructor
@@ -117,6 +118,25 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
     public List<Instructor> getInstructors() {
         return iInstructors;
     }
+
+    /**
+     * Add teaching request and the related variables
+     * @param request teaching request
+     */
+    public void addRequest(TeachingRequest request) {
+        iRequests.add(request);
+        for (TeachingRequest.Variable variable: request.getVariables())
+            addVariable(variable);
+    }
+    
+    /**
+     * All teaching requests
+     * @return all teaching requests in the model
+     */
+    public List<TeachingRequest> getRequests() {
+        return iRequests;
+    }
+
     
     /**
      * Return registered attribute types
@@ -131,15 +151,15 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
     public void addAttributeType(Attribute.Type type) { iTypes.add(type); }
 
     @Override
-    public Map<String, String> getInfo(Assignment<TeachingRequest, TeachingAssignment> assignment) {
+    public Map<String, String> getInfo(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) {
         Map<String, String> info = super.getInfo(assignment);
 
         double totalLoad = 0.0;
         double assignedLoad = 0.0;
-        for (TeachingRequest clazz : variables()) {
-            totalLoad += clazz.getLoad();
+        for (TeachingRequest.Variable clazz : variables()) {
+            totalLoad += clazz.getRequest().getLoad();
             if (assignment.getValue(clazz) != null)
-                assignedLoad += clazz.getLoad();
+                assignedLoad += clazz.getRequest().getLoad();
         }
         info.put("Assigned Load", getPerc(assignedLoad, totalLoad, 0) + "% (" + sDoubleFormat.format(assignedLoad) + " / " + sDoubleFormat.format(totalLoad) + ")");
 
@@ -147,17 +167,17 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
     }
 
     @Override
-    public double getTotalValue(Assignment<TeachingRequest, TeachingAssignment> assignment) {
+    public double getTotalValue(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) {
         double ret = 0;
-        for (Criterion<TeachingRequest, TeachingAssignment> criterion : getCriteria())
+        for (Criterion<TeachingRequest.Variable, TeachingAssignment> criterion : getCriteria())
             ret += criterion.getWeightedValue(assignment);
         return ret;
     }
 
     @Override
-    public double getTotalValue(Assignment<TeachingRequest, TeachingAssignment> assignment, Collection<TeachingRequest> variables) {
+    public double getTotalValue(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, Collection<TeachingRequest.Variable> variables) {
         double ret = 0;
-        for (Criterion<TeachingRequest, TeachingAssignment> criterion : getCriteria())
+        for (Criterion<TeachingRequest.Variable, TeachingAssignment> criterion : getCriteria())
             ret += criterion.getWeightedValue(assignment, variables);
         return ret;
     }
@@ -167,7 +187,7 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
      * @param assignment current assignment
      * @return XML document with the problem
      */
-    public Document save(Assignment<TeachingRequest, TeachingAssignment> assignment) {
+    public Document save(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) {
         DecimalFormat sDF7 = new DecimalFormat("0000000");
         boolean saveInitial = getProperties().getPropertyBoolean("Xml.SaveInitial", false);
         boolean saveBest = getProperties().getPropertyBoolean("Xml.SaveBest", false);
@@ -194,7 +214,7 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
             typeEl.addAttribute("conjunctive", type.isConjunctive() ? "true" : "false");
             typeEl.addAttribute("required", type.isRequired() ? "true": "false");
             Set<Attribute> attributes = new HashSet<Attribute>();
-            for (TeachingRequest request: variables()) {
+            for (TeachingRequest request: getRequests()) {
                 for (Preference<Attribute> pref: request.getAttributePreferences()) {
                     Attribute attribute = pref.getTarget();
                     if (type.equals(attribute.getType()) && attributes.add(attribute)) {
@@ -219,11 +239,11 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
         Set<Course> courses = new HashSet<Course>();
         Element coursesEl = root.addElement("courses");
         Element requestsEl = root.addElement("teaching-requests");
-        for (TeachingRequest request: variables()) {
+        for (TeachingRequest request: getRequests()) {
             Element requestEl = requestsEl.addElement("request");
             requestEl.addAttribute("id", String.valueOf(request.getRequestId()));
-            if (request.getInstructorIndex() != 0)
-                requestEl.addAttribute("index", String.valueOf(request.getInstructorIndex()));
+            if (request.getNrInstructors() != 1)
+                requestEl.addAttribute("nrInstructors", String.valueOf(request.getNrInstructors()));
             Course course = request.getCourse();
             if (courses.add(course)) {
                 Element courseEl = coursesEl.addElement("course");
@@ -283,36 +303,49 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
                     instructorEl.addAttribute("name", pref.getTarget().getName());
                 instructorEl.addAttribute("preference", (pref.isRequired() ? "R" : pref.isProhibited() ? "P" : String.valueOf(pref.getPreference())));
             }
-            if (saveBest && request.getBestAssignment() != null) {
-                Instructor instructor = request.getBestAssignment().getInstructor();
-                Element instructorEl = requestEl.addElement("best-instructor");
-                instructorEl.addAttribute("id", String.valueOf(instructor.getInstructorId()));
-                if (instructor.hasExternalId())
-                    instructorEl.addAttribute("externalId", instructor.getExternalId());
-                if (instructor.hasName())
-                    instructorEl.addAttribute("name", instructor.getName());
-            }
-            if (saveInitial && request.getInitialAssignment() != null) {
-                Instructor instructor = request.getInitialAssignment().getInstructor();
-                Element instructorEl = requestEl.addElement("initial-instructor");
-                instructorEl.addAttribute("id", String.valueOf(instructor.getInstructorId()));
-                if (instructor.hasExternalId())
-                    instructorEl.addAttribute("externalId", instructor.getExternalId());
-                if (instructor.hasName())
-                    instructorEl.addAttribute("name", instructor.getName());
-            }
-            if (saveSolution) {
-                TeachingAssignment ta = assignment.getValue(request);
-                if (ta != null) {
-                    Instructor instructor = ta.getInstructor();
-                    Element instructorEl = requestEl.addElement("assigned-instructor");
-                    instructorEl.addAttribute("id", String.valueOf(instructor.getInstructorId()));
-                    if (instructor.hasExternalId())
-                        instructorEl.addAttribute("externalId", instructor.getExternalId());
-                    if (instructor.hasName())
-                        instructorEl.addAttribute("name", instructor.getName());
+            if (saveBest)
+                for (TeachingRequest.Variable variable: request.getVariables()) {
+                    if (variable.getBestAssignment() != null) {
+                        Instructor instructor = variable.getBestAssignment().getInstructor();
+                        Element instructorEl = requestEl.addElement("best-instructor");
+                        instructorEl.addAttribute("id", String.valueOf(instructor.getInstructorId()));
+                        if (request.getNrInstructors() != 1)
+                            instructorEl.addAttribute("index", String.valueOf(variable.getInstructorIndex()));
+                        if (instructor.hasExternalId())
+                            instructorEl.addAttribute("externalId", instructor.getExternalId());
+                        if (instructor.hasName())
+                            instructorEl.addAttribute("name", instructor.getName());
+                    }                    
                 }
-            }
+            if (saveInitial)
+                for (TeachingRequest.Variable variable: request.getVariables()) {
+                    if (variable.getInitialAssignment() != null) {
+                        Instructor instructor = variable.getInitialAssignment().getInstructor();
+                        Element instructorEl = requestEl.addElement("initial-instructor");
+                        instructorEl.addAttribute("id", String.valueOf(instructor.getInstructorId()));
+                        if (request.getNrInstructors() != 1)
+                            instructorEl.addAttribute("index", String.valueOf(variable.getInstructorIndex()));
+                        if (instructor.hasExternalId())
+                            instructorEl.addAttribute("externalId", instructor.getExternalId());
+                        if (instructor.hasName())
+                            instructorEl.addAttribute("name", instructor.getName());
+                    }
+                }
+            if (saveSolution)
+                for (TeachingRequest.Variable variable: request.getVariables()) {
+                    TeachingAssignment ta = assignment.getValue(variable);
+                    if (ta != null) {
+                        Instructor instructor = ta.getInstructor();
+                        Element instructorEl = requestEl.addElement("assigned-instructor");
+                        instructorEl.addAttribute("id", String.valueOf(instructor.getInstructorId()));
+                        if (request.getNrInstructors() != 1)
+                            instructorEl.addAttribute("index", String.valueOf(variable.getInstructorIndex()));
+                        if (instructor.hasExternalId())
+                            instructorEl.addAttribute("externalId", instructor.getExternalId());
+                        if (instructor.hasName())
+                            instructorEl.addAttribute("name", instructor.getName());
+                    }
+                }
         }
         Element instructorsEl = root.addElement("instructors");
         for (Instructor instructor: getInstructors()) {
@@ -364,7 +397,7 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
             }
         }
         Element constraintsEl = root.addElement("constraints");
-        for (Constraint<TeachingRequest, TeachingAssignment> c: constraints()) {
+        for (Constraint<TeachingRequest.Variable, TeachingAssignment> c: constraints()) {
             if (c instanceof SameInstructorConstraint) {
                 SameInstructorConstraint si = (SameInstructorConstraint) c;
                 Element sameInstEl = constraintsEl.addElement("same-instructor");
@@ -373,10 +406,10 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
                 if (si.getName() != null)
                     sameInstEl.addAttribute("name", si.getName());
                 sameInstEl.addAttribute("preference", Constants.preferenceLevel2preference(si.getPreference()));
-                for (TeachingRequest request: c.variables()) {
+                for (TeachingRequest.Variable request: c.variables()) {
                     Element assignmentEl = sameInstEl.addElement("request");
-                    assignmentEl.addAttribute("id", String.valueOf(request.getRequestId()));
-                    if (request.getInstructorIndex() != 0)
+                    assignmentEl.addAttribute("id", String.valueOf(request.getRequest().getRequestId()));
+                    if (request.getRequest().getNrInstructors() != 1)
                         assignmentEl.addAttribute("index", String.valueOf(request.getInstructorIndex()));
                 }
             } else if (c instanceof SameLinkConstraint) {
@@ -387,10 +420,10 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
                 if (si.getName() != null)
                     sameInstEl.addAttribute("name", si.getName());
                 sameInstEl.addAttribute("preference", Constants.preferenceLevel2preference(si.getPreference()));
-                for (TeachingRequest request: c.variables()) {
+                for (TeachingRequest.Variable request: c.variables()) {
                     Element assignmentEl = sameInstEl.addElement("request");
-                    assignmentEl.addAttribute("id", String.valueOf(request.getRequestId()));
-                    if (request.getInstructorIndex() != 0)
+                    assignmentEl.addAttribute("id", String.valueOf(request.getRequest().getRequestId()));
+                    if (request.getRequest().getNrInstructors() != 1)
                         assignmentEl.addAttribute("index", String.valueOf(request.getInstructorIndex()));
                 }
             }
@@ -404,7 +437,7 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
      * @param assignment current assignment
      * @return true, if the problem was successfully loaded in
      */
-    public boolean load(Document document, Assignment<TeachingRequest, TeachingAssignment> assignment) {
+    public boolean load(Document document, Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) {
         boolean loadInitial = getProperties().getPropertyBoolean("Xml.LoadInitial", true);
         boolean loadBest = getProperties().getPropertyBoolean("Xml.LoadBest", true);
         boolean loadSolution = getProperties().getPropertyBoolean("Xml.LoadSolution", true);
@@ -508,10 +541,10 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
             addInstructor(instructor);
             instructors.put(instructor.getInstructorId(), instructor);
         }
-        Map<Long, Map<Integer, TeachingRequest>> requests = new HashMap<Long, Map<Integer, TeachingRequest>>();
-        Map<TeachingRequest, Instructor> current = new HashMap<TeachingRequest, Instructor>();
-        Map<TeachingRequest, Instructor> best = new HashMap<TeachingRequest, Instructor>();
-        Map<TeachingRequest, Instructor> initial = new HashMap<TeachingRequest, Instructor>();
+        Map<Long, TeachingRequest> requests = new HashMap<Long, TeachingRequest>();
+        Map<TeachingRequest, Map<Integer, Instructor>> current = new HashMap<TeachingRequest, Map<Integer, Instructor>>();
+        Map<TeachingRequest, Map<Integer, Instructor>> best = new HashMap<TeachingRequest, Map<Integer, Instructor>>();
+        Map<TeachingRequest, Map<Integer, Instructor>> initial = new HashMap<TeachingRequest, Map<Integer, Instructor>>();
         for (Iterator<?> i = root.element("teaching-requests").elementIterator("request"); i.hasNext();) {
             Element requestEl = (Element) i.next();
             Element courseEl = requestEl.element("course");
@@ -558,16 +591,11 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
             }
             TeachingRequest request = new TeachingRequest(
                     Long.parseLong(requestEl.attributeValue("id")),
-                    Integer.parseInt(requestEl.attributeValue("index", "0")),
+                    Integer.parseInt(requestEl.attributeValue("nrInstructors", "1")),
                     course,
                     Float.valueOf(requestEl.attributeValue("load", "0")),
                     sections);
-            Map<Integer, TeachingRequest> requestsSameId = requests.get(request.getRequestId());
-            if (requestsSameId == null) {
-                requestsSameId = new HashMap<Integer, TeachingRequest>();
-                requests.put(request.getRequestId(), requestsSameId);
-            }
-            requestsSameId.put(request.getInstructorIndex(), request);
+            requests.put(request.getRequestId(), request);
             for (Iterator<?> j = requestEl.elementIterator("attribute"); j.hasNext();) {
                 Element f = (Element) j.next();
                 Long attributeId = Long.valueOf(f.attributeValue("id"));
@@ -592,18 +620,54 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
                 if (instructor != null)
                     request.addInstructorPreference(new Preference<Instructor>(instructor, string2preference(f.attributeValue("preference"))));
             }
-            if (loadBest && requestEl.element("best-instructor") != null)
-                best.put(request, instructors.get(Long.valueOf(requestEl.element("best-instructor").attributeValue("id"))));
-            if (loadInitial && requestEl.element("initial-instructor") != null)
-                initial.put(request, instructors.get(Long.valueOf(requestEl.element("initial-instructor").attributeValue("id"))));
-            if (loadSolution && requestEl.element("assigned-instructor") != null)
-                current.put(request, instructors.get(Long.valueOf(requestEl.element("assigned-instructor").attributeValue("id"))));
-            addVariable(request);
+            if (loadBest) {
+                for (Iterator<?> j = requestEl.elementIterator("best-instructor"); j.hasNext();) {
+                    Element f = (Element) j.next();
+                    Map<Integer, Instructor> idx2inst = best.get(request);
+                    if (idx2inst == null) {
+                        idx2inst = new HashMap<Integer, Instructor>();
+                        best.put(request, idx2inst);
+                    }
+                    int index = 1 + Integer.parseInt(f.attributeValue("index", String.valueOf(idx2inst.size())));
+                    Instructor instructor = instructors.get(Long.valueOf(f.attributeValue("id")));
+                    if (instructor != null)
+                        idx2inst.put(index, instructor);
+                }
+            }
+            if (loadInitial) {
+                for (Iterator<?> j = requestEl.elementIterator("initial-instructor"); j.hasNext();) {
+                    Element f = (Element) j.next();
+                    Map<Integer, Instructor> idx2inst = initial.get(request);
+                    if (idx2inst == null) {
+                        idx2inst = new HashMap<Integer, Instructor>();
+                        initial.put(request, idx2inst);
+                    }
+                    int index = 1 + Integer.parseInt(f.attributeValue("index", String.valueOf(idx2inst.size())));
+                    Instructor instructor = instructors.get(Long.valueOf(f.attributeValue("id")));
+                    if (instructor != null)
+                        idx2inst.put(index, instructor);
+                }
+            }
+            if (loadSolution) {
+                for (Iterator<?> j = requestEl.elementIterator("assigned-instructor"); j.hasNext();) {
+                    Element f = (Element) j.next();
+                    Map<Integer, Instructor> idx2inst = current.get(request);
+                    if (idx2inst == null) {
+                        idx2inst = new HashMap<Integer, Instructor>();
+                        current.put(request, idx2inst);
+                    }
+                    int index = Integer.parseInt(f.attributeValue("index", String.valueOf(idx2inst.size())));
+                    Instructor instructor = instructors.get(Long.valueOf(f.attributeValue("id")));
+                    if (instructor != null)
+                        idx2inst.put(index, instructor);
+                }
+            }
+            addRequest(request);
         }
         if (root.element("constraints") != null) {
             for (Iterator<?> i = root.element("constraints").elementIterator(); i.hasNext();) {
                 Element constraintEl = (Element) i.next();
-                Constraint<TeachingRequest, TeachingAssignment> constraint = null;
+                Constraint<TeachingRequest.Variable, TeachingAssignment> constraint = null;
                 if ("same-link".equals(constraintEl.getName())) {
                     constraint = new SameLinkConstraint(
                             (constraintEl.attributeValue("id") == null ? null : Long.valueOf(constraintEl.attributeValue("id"))),
@@ -618,35 +682,45 @@ public class InstructorSchedulingModel extends Model<TeachingRequest, TeachingAs
                 if (constraint != null) {
                     for (Iterator<?> j = constraintEl.elementIterator("request"); j.hasNext();) {
                         Element f = (Element) j.next();
-                        Map<Integer, TeachingRequest> requestsSameId = requests.get(Long.valueOf(f.attributeValue("id")));
-                        if (requestsSameId != null) {
-                            TeachingRequest request = requestsSameId.get(Integer.valueOf(f.attributeValue("index", "0")));
-                            if (request != null)
-                                constraint.addVariable(request);
+                        TeachingRequest request = requests.get(Long.valueOf(f.attributeValue("id")));
+                        if (request != null) {
+                            int index = Integer.valueOf(f.attributeValue("index", "0"));
+                            if (index >= 0 && index < request.getNrInstructors())
+                                constraint.addVariable(request.getVariables()[index]);
                         }
                     }
                     addConstraint(constraint);
                 }
             }            
         }
-        for (Map.Entry<TeachingRequest, Instructor> entry: best.entrySet())
-            entry.getKey().setBestAssignment(new TeachingAssignment(entry.getKey(), entry.getValue()), 0l);
+        for (Map.Entry<TeachingRequest, Map<Integer, Instructor>> e1: best.entrySet())
+            for (Map.Entry<Integer, Instructor> e2: e1.getValue().entrySet())
+                if (e2.getKey() >= 0 && e2.getKey() < e1.getKey().getNrInstructors()) {
+                    TeachingRequest.Variable variable = e1.getKey().getVariables()[e2.getKey()];
+                    variable.setBestAssignment(new TeachingAssignment(variable, e2.getValue()), 0l);
+                }
 
-        for (Map.Entry<TeachingRequest, Instructor> entry: initial.entrySet())
-            entry.getKey().setInitialAssignment(new TeachingAssignment(entry.getKey(), entry.getValue()));
+        for (Map.Entry<TeachingRequest, Map<Integer, Instructor>> e1: initial.entrySet())
+            for (Map.Entry<Integer, Instructor> e2: e1.getValue().entrySet())
+                if (e2.getKey() >= 0 && e2.getKey() < e1.getKey().getNrInstructors()) {
+                    TeachingRequest.Variable variable = e1.getKey().getVariables()[e2.getKey()];
+                    variable.setInitialAssignment(new TeachingAssignment(variable, e2.getValue()));
+                }
         
         if (!current.isEmpty()) {
-            for (Map.Entry<TeachingRequest, Instructor> entry: current.entrySet()) {
-                TeachingRequest request = entry.getKey();
-                TeachingAssignment ta = new TeachingAssignment(request, entry.getValue());
-                Set<TeachingAssignment> conf = conflictValues(assignment, ta);
-                if (conf.isEmpty()) {
-                    assignment.assign(0, ta);
-                } else {
-                    sLog.error("Unable to assign " + ta.getName() + " to " + request.getName());
-                    sLog.error("Conflicts:" + ToolBox.dict2string(conflictConstraints(assignment, ta), 2));
-                }
-            }
+            for (Map.Entry<TeachingRequest, Map<Integer, Instructor>> e1: current.entrySet())
+                for (Map.Entry<Integer, Instructor> e2: e1.getValue().entrySet())
+                    if (e2.getKey() >= 0 && e2.getKey() < e1.getKey().getNrInstructors()) {
+                        TeachingRequest.Variable variable = e1.getKey().getVariables()[e2.getKey()];
+                        TeachingAssignment ta = new TeachingAssignment(variable, e2.getValue());
+                        Set<TeachingAssignment> conf = conflictValues(assignment, ta);
+                        if (conf.isEmpty()) {
+                            assignment.assign(0, ta);
+                        } else {
+                            sLog.error("Unable to assign " + ta.getName() + " to " + variable.getName());
+                            sLog.error("Conflicts:" + ToolBox.dict2string(conflictConstraints(assignment, ta), 2));
+                        }
+                    }
         }
         
         return true;

@@ -34,7 +34,7 @@ import org.cpsolver.instructor.model.TeachingRequest;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class SameInstructorConstraint extends ConstraintWithContext<TeachingRequest, TeachingAssignment, SameInstructorConstraint.Context> {
+public class SameInstructorConstraint extends ConstraintWithContext<TeachingRequest.Variable, TeachingAssignment, SameInstructorConstraint.Context> {
     private Long iId;
     private String iName;
     private int iPreference = 0;
@@ -99,7 +99,7 @@ public class SameInstructorConstraint extends ConstraintWithContext<TeachingRequ
      * @param a2 second teaching assignment
      * @return True if the two assignments (of this constraint) have the same instructor (prohibited/preferred case) or a different instructor (prohibited/discouraged case).
      */
-    public boolean isSatisfiedPair(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment a1, TeachingAssignment a2) {
+    public boolean isSatisfiedPair(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, TeachingAssignment a1, TeachingAssignment a2) {
         if (isRequired() || (!isProhibited() && getPreference() <= 0))
             return a1.getInstructor().equals(a2.getInstructor());
         else if (isProhibited() || (!isRequired() && getPreference() > 0))
@@ -108,9 +108,9 @@ public class SameInstructorConstraint extends ConstraintWithContext<TeachingRequ
     }
 
     @Override
-    public void computeConflicts(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value, Set<TeachingAssignment> conflicts) {
+    public void computeConflicts(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, TeachingAssignment value, Set<TeachingAssignment> conflicts) {
         if (isHard()) {
-            for (TeachingRequest request: variables()) {
+            for (TeachingRequest.Variable request: variables()) {
                 if (request.equals(value.variable())) continue;
                 
                 TeachingAssignment conflict = assignment.getValue(request);
@@ -128,13 +128,13 @@ public class SameInstructorConstraint extends ConstraintWithContext<TeachingRequ
      * @param value proposed change
      * @return change in the current preference value of this constraint
      */
-    public int getCurrentPreference(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value) {
+    public int getCurrentPreference(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, TeachingAssignment value) {
         if (isHard()) return 0; // no preference
         if (countAssignedVariables(assignment) + (assignment.getValue(value.variable()) == null ? 1 : 0) < 2) return 0; // not enough variables
         int nrViolatedPairsAfter = 0;
         int nrViolatedPairsBefore = 0;
-        for (TeachingRequest v1 : variables()) {
-            for (TeachingRequest v2 : variables()) {
+        for (TeachingRequest.Variable v1 : variables()) {
+            for (TeachingRequest.Variable v2 : variables()) {
                 if (v1.getId() >= v2.getId()) continue;
                 TeachingAssignment p1 = (v1.equals(value.variable()) ? null : assignment.getValue(v1));
                 TeachingAssignment p2 = (v2.equals(value.variable()) ? null : assignment.getValue(v2));
@@ -154,14 +154,14 @@ public class SameInstructorConstraint extends ConstraintWithContext<TeachingRequ
      * @param assignment current assignment
      * @return number of violated pairs weighted by the absolute value of the preference
      */
-    public int getCurrentPreference(Assignment<TeachingRequest, TeachingAssignment> assignment) {
+    public int getCurrentPreference(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) {
         if (isHard()) return 0; // no preference
         if (countAssignedVariables(assignment) < 2) return 0; // not enough variable
         int nrViolatedPairs = 0;
-        for (TeachingRequest v1 : variables()) {
+        for (TeachingRequest.Variable v1 : variables()) {
             TeachingAssignment p1 = assignment.getValue(v1);
             if (p1 == null) continue;
-            for (TeachingRequest v2 : variables()) {
+            for (TeachingRequest.Variable v2 : variables()) {
                 TeachingAssignment p2 = assignment.getValue(v2);
                 if (p2 == null || v1.getId() >= v2.getId()) continue;
                 if (!isSatisfiedPair(assignment, p1, p2)) nrViolatedPairs++;
@@ -171,7 +171,7 @@ public class SameInstructorConstraint extends ConstraintWithContext<TeachingRequ
     }
     
     @Override
-    public Context createAssignmentContext(Assignment<TeachingRequest, TeachingAssignment> assignment) {
+    public Context createAssignmentContext(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) {
         return new Context(assignment);
     }
 
@@ -179,20 +179,20 @@ public class SameInstructorConstraint extends ConstraintWithContext<TeachingRequ
      * Same Instructor Constraint Context. This context keeps the last preference value and updates the {@link SameInstructor} criterion.
      *
      */
-    public class Context implements AssignmentConstraintContext<TeachingRequest, TeachingAssignment> {
+    public class Context implements AssignmentConstraintContext<TeachingRequest.Variable, TeachingAssignment> {
         private int iLastPreference = 0;
         
-        public Context(Assignment<TeachingRequest, TeachingAssignment> assignment) {
+        public Context(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) {
             updateCriterion(assignment);
         }
 
         @Override
-        public void assigned(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value) {
+        public void assigned(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, TeachingAssignment value) {
             updateCriterion(assignment);
         }
 
         @Override
-        public void unassigned(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value) {
+        public void unassigned(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, TeachingAssignment value) {
             updateCriterion(assignment);
         }
         
@@ -200,7 +200,7 @@ public class SameInstructorConstraint extends ConstraintWithContext<TeachingRequ
          * Update the current preference value
          * @param assignment current assignment
          */
-        private void updateCriterion(Assignment<TeachingRequest, TeachingAssignment> assignment) {
+        private void updateCriterion(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) {
             if (!isHard()) {
                 getModel().getCriterion(SameInstructor.class).inc(assignment, -iLastPreference);
                 iLastPreference = getCurrentPreference(assignment);

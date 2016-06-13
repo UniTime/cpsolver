@@ -10,7 +10,6 @@ import org.cpsolver.coursett.model.TimeLocation;
 import org.cpsolver.coursett.preference.PreferenceCombination;
 import org.cpsolver.coursett.preference.SumPreferenceCombination;
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.model.Variable;
 
 /**
  * Teaching request. A set of sections of a course to be assigned to an instructor.
@@ -36,31 +35,32 @@ import org.cpsolver.ifs.model.Variable;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class TeachingRequest extends Variable<TeachingRequest, TeachingAssignment> {
+public class TeachingRequest {
     private long iRequestId;
-    private int iIndex;
     private Course iCourse;
     private float iLoad;
     private List<Section> iSections = new ArrayList<Section>();
     private List<Preference<Attribute>> iAttributePreferences = new ArrayList<Preference<Attribute>>();
     private List<Preference<Instructor>> iInstructorPreferences = new ArrayList<Preference<Instructor>>();
+    private Variable[] iVariables;
 
     /**
-     * 
+     * Constructor
      * @param requestId teaching request id
-     * @param index instructor index (if a class can be taught by multiple instructors, the index identifies the particular request)
+     * @param nrVariables number of instructors for this teaching request
      * @param course course
      * @param load teaching load
      * @param sections list of sections
      */
-    public TeachingRequest(long requestId, int index, Course course, float load, Collection<Section> sections) {
+    public TeachingRequest(long requestId, int nrVariables, Course course, float load, Collection<Section> sections) {
         super();
-        iId = (requestId << 8) + index;
         iRequestId = requestId;
-        iIndex = index;
         iCourse = course;
         iLoad = load;
         iSections.addAll(sections);
+        iVariables = new Variable[nrVariables];
+        for (int i = 0; i < nrVariables; i++)
+            iVariables[i] = new Variable(i);
     }
 
     /**
@@ -72,30 +72,30 @@ public class TeachingRequest extends Variable<TeachingRequest, TeachingAssignmen
     }
     
     /**
-     * Instructor index that was provided in the constructor
-     * @return instructor index
+     * Get single instructor assignment variables
+     * @return variables for this request
      */
-    public int getInstructorIndex() {
-        return iIndex;
-    }
-
-    @Override
-    public List<TeachingAssignment> values(Assignment<TeachingRequest, TeachingAssignment> assignment) {
-        List<TeachingAssignment> values = super.values(assignment);
-        if (values == null) {
-            values = new ArrayList<TeachingAssignment>();
-            for (Instructor instructor: ((InstructorSchedulingModel)getModel()).getInstructors()) {
-                if (instructor.canTeach(this)) {
-                    PreferenceCombination attributePref = getAttributePreference(instructor);
-                    if (attributePref.isProhibited()) continue;
-                    values.add(new TeachingAssignment(this, instructor, attributePref.getPreferenceInt()));
-                }
-            }
-            setValues(values);
-        }
-        return values;
+    public Variable[] getVariables() {
+        return iVariables;
     }
     
+    /**
+     * Get single instructor assignment variable
+     * @param index index of the variable
+     * @return variable for the index-th instructor assignment
+     */
+    public Variable getVariable(int index) {
+        return iVariables[index];
+    }
+    
+    /**
+     * Get number of instructors needed
+     * @return number of variables for this request
+     */
+    public int getNrInstructors() {
+        return iVariables.length;
+    }
+
     /**
      * Return attribute preferences for this request
      * @return attribute preferences
@@ -142,7 +142,7 @@ public class TeachingRequest extends Variable<TeachingRequest, TeachingAssignmen
      */
     public PreferenceCombination getAttributePreference(Instructor instructor) {
         PreferenceCombination preference = new SumPreferenceCombination();
-        for (Attribute.Type type: ((InstructorSchedulingModel)getModel()).getAttributeTypes())
+        for (Attribute.Type type: ((InstructorSchedulingModel)getVariables()[0].getModel()).getAttributeTypes())
             preference.addPreferenceInt(getAttributePreference(instructor, type));
         return preference;
     }
@@ -186,11 +186,6 @@ public class TeachingRequest extends Variable<TeachingRequest, TeachingAssignmen
         return iCourse;
     }
 
-    @Override
-    public String getName() {
-        return iCourse.getCourseName() + " " + getSections();
-    }
-    
     /**
      * Sections of the request that was provided in the constructor
      * @return sections of the request
@@ -211,7 +206,7 @@ public class TeachingRequest extends Variable<TeachingRequest, TeachingAssignmen
 
     @Override
     public String toString() {
-        return getName();
+        return iCourse.getCourseName() + " " + getSections();
     }
     
     /**
@@ -312,25 +307,105 @@ public class TeachingRequest extends Variable<TeachingRequest, TeachingAssignmen
     
     @Override
     public int hashCode() {
-        return new Long(iRequestId << 8 + iIndex).hashCode();
+        return (int)(iRequestId ^ (iRequestId >>> 32));
     }
     
     @Override
     public boolean equals(Object o) {
         if (o == null || !(o instanceof TeachingRequest)) return false;
         TeachingRequest tr = (TeachingRequest)o;
-        return getRequestId() == tr.getRequestId() && getInstructorIndex() == tr.getInstructorIndex();
+        return getRequestId() == tr.getRequestId();
     }
     
-    @Override
-    public void variableAssigned(Assignment<TeachingRequest, TeachingAssignment> assignment, long iteration, TeachingAssignment ta) {
-        super.variableAssigned(assignment, iteration, ta);
-        ta.getInstructor().getContext(assignment).assigned(assignment, ta);
-    }
+    /**
+     * Single instructor assignment to this teaching request
+     */
+    public class Variable extends org.cpsolver.ifs.model.Variable<TeachingRequest.Variable, TeachingAssignment> {
+        private int iIndex;
+        
+        /**
+         * Constructor 
+         * @param index instructor index (if a class can be taught by multiple instructors, the index identifies the particular request)
+         */
+        public Variable(int index) {
+            iId = (iRequestId << 8) + index;
+            iIndex = index;
+        }
 
-    @Override
-    public void variableUnassigned(Assignment<TeachingRequest, TeachingAssignment> assignment, long iteration, TeachingAssignment ta) {
-        super.variableUnassigned(assignment, iteration, ta);
-        ta.getInstructor().getContext(assignment).unassigned(assignment, ta);
+        /**
+         * Instructor index that was provided in the constructor
+         * @return instructor index
+         */
+        public int getInstructorIndex() {
+            return iIndex;
+        }
+        
+        /**
+         * Teaching request for this variable
+         * @return teaching request
+         */
+        public TeachingRequest getRequest() {
+            return TeachingRequest.this;
+        }
+        
+        /**
+         * Course of the request that was provided in the constructor
+         * @return course of the request
+         */
+        public Course getCourse() {
+            return iCourse;
+        }
+        
+        /**
+         * Sections of the request that was provided in the constructor
+         * @return sections of the request
+         */
+        public List<Section> getSections() { return iSections; }
+        
+        @Override
+        public List<TeachingAssignment> values(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) {
+            List<TeachingAssignment> values = super.values(assignment);
+            if (values == null) {
+                values = new ArrayList<TeachingAssignment>();
+                for (Instructor instructor: ((InstructorSchedulingModel)getModel()).getInstructors()) {
+                    if (instructor.canTeach(getRequest())) {
+                        PreferenceCombination attributePref = getAttributePreference(instructor);
+                        if (attributePref.isProhibited()) continue;
+                        values.add(new TeachingAssignment(this, instructor, attributePref.getPreferenceInt()));
+                    }
+                }
+                setValues(values);
+            }
+            return values;
+        }
+        
+        @Override
+        public void variableAssigned(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, long iteration, TeachingAssignment ta) {
+            super.variableAssigned(assignment, iteration, ta);
+            ta.getInstructor().getContext(assignment).assigned(assignment, ta);
+        }
+
+        @Override
+        public void variableUnassigned(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, long iteration, TeachingAssignment ta) {
+            super.variableUnassigned(assignment, iteration, ta);
+            ta.getInstructor().getContext(assignment).unassigned(assignment, ta);
+        }
+        
+        @Override
+        public int hashCode() {
+            return new Long(iRequestId << 8 + iIndex).hashCode();
+        }
+        
+        @Override
+        public boolean equals(Object o) {
+            if (o == null || !(o instanceof Variable)) return false;
+            Variable tr = (Variable)o;
+            return getRequest().getRequestId() == tr.getRequest().getRequestId() && getInstructorIndex() == tr.getInstructorIndex();
+        }
+        
+        @Override
+        public String getName() {
+            return iCourse.getCourseName() + (getNrInstructors() > 1 ? "[" + getInstructorIndex() + "]" : "") + " " + getSections();
+        }
     }
 }

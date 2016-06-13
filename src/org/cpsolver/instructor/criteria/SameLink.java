@@ -45,20 +45,20 @@ public class SameLink extends InstructorSchedulingCriterion {
     }
 
     @Override
-    public double getValue(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value, Set<TeachingAssignment> conflicts) {
+    public double getValue(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, TeachingAssignment value, Set<TeachingAssignment> conflicts) {
         double ret = 0.0;
-        for (Constraint<TeachingRequest, TeachingAssignment> c : value.variable().constraints())
+        for (Constraint<TeachingRequest.Variable, TeachingAssignment> c : value.variable().constraints())
             if (c instanceof SameLinkConstraint)
                 ret += ((SameLinkConstraint)c).getCurrentPreference(assignment, value);
         return ret;
     }
 
     @Override
-    public double getValue(Assignment<TeachingRequest, TeachingAssignment> assignment, Collection<TeachingRequest> variables) {
+    public double getValue(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, Collection<TeachingRequest.Variable> variables) {
         double ret = 0;
-        Set<Constraint<TeachingRequest, TeachingAssignment>> constraints = new HashSet<Constraint<TeachingRequest, TeachingAssignment>>();
-        for (TeachingRequest req: variables) {
-            for (Constraint<TeachingRequest, TeachingAssignment> c : req.constraints()) {
+        Set<Constraint<TeachingRequest.Variable, TeachingAssignment>> constraints = new HashSet<Constraint<TeachingRequest.Variable, TeachingAssignment>>();
+        for (TeachingRequest.Variable req: variables) {
+            for (Constraint<TeachingRequest.Variable, TeachingAssignment> c : req.constraints()) {
                 if (c instanceof SameLinkConstraint && constraints.add(c))
                     ret += ((SameLinkConstraint)c).getContext(assignment).getPreference();
             }
@@ -67,9 +67,9 @@ public class SameLink extends InstructorSchedulingCriterion {
     }
     
     @Override
-    protected double[] computeBounds(Assignment<TeachingRequest, TeachingAssignment> assignment) {
+    protected double[] computeBounds(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) {
         double[] bounds = new double[] { 0.0, 0.0 };
-        for (Constraint<TeachingRequest, TeachingAssignment> c: getModel().constraints()) {
+        for (Constraint<TeachingRequest.Variable, TeachingAssignment> c: getModel().constraints()) {
             if (c instanceof SameLinkConstraint && !c.isHard())
                 bounds[1] += Math.abs(((SameLinkConstraint)c).getPreference()) * (c.variables().size() - 1);
         }
@@ -77,11 +77,11 @@ public class SameLink extends InstructorSchedulingCriterion {
     }
     
     @Override
-    public double[] getBounds(Assignment<TeachingRequest, TeachingAssignment> assignment, Collection<TeachingRequest> variables) {
+    public double[] getBounds(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, Collection<TeachingRequest.Variable> variables) {
         double[] bounds = new double[] { 0.0, 0.0 };
-        Set<Constraint<TeachingRequest, TeachingAssignment>> constraints = new HashSet<Constraint<TeachingRequest, TeachingAssignment>>();
-        for (TeachingRequest req: variables) {
-            for (Constraint<TeachingRequest, TeachingAssignment> c : req.constraints()) {
+        Set<Constraint<TeachingRequest.Variable, TeachingAssignment>> constraints = new HashSet<Constraint<TeachingRequest.Variable, TeachingAssignment>>();
+        for (TeachingRequest.Variable req: variables) {
+            for (Constraint<TeachingRequest.Variable, TeachingAssignment> c : req.constraints()) {
                 if (c instanceof SameLinkConstraint && !c.isHard() && constraints.add(c))
                     bounds[1] += Math.abs(((SameLinkConstraint)c).getPreference()) * (c.variables().size() - 1);
             }

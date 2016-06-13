@@ -95,16 +95,16 @@ public class MathTest extends Test {
         return sb.toString();
     }
     
-    public String getLink(TeachingRequest request) {
-        for (Constraint<TeachingRequest, TeachingAssignment> c: request.constraints()) {
+    public String getLink(TeachingRequest.Variable request) {
+        for (Constraint<TeachingRequest.Variable, TeachingAssignment> c: request.constraints()) {
             if (c instanceof SameLinkConstraint)
                 return c.getName().substring(c.getName().indexOf('-') + 1);
         }
         return null;
     }
     
-    public Long getAssignmentId(TeachingRequest request) {
-        for (Constraint<TeachingRequest, TeachingAssignment> c: request.constraints()) {
+    public Long getAssignmentId(TeachingRequest.Variable request) {
+        for (Constraint<TeachingRequest.Variable, TeachingAssignment> c: request.constraints()) {
             if (c instanceof SameInstructorConstraint && ((SameInstructorConstraint) c).getConstraintId() != null)
                 return ((SameInstructorConstraint) c).getConstraintId();
         }
@@ -121,7 +121,7 @@ public class MathTest extends Test {
         return Math.max(0, links.size() - 1);
     }
     
-    public String toString(TeachingRequest request) {
+    public String toString(TeachingRequest.Variable request) {
         StringBuffer sb = new StringBuffer();
         Long assId = getAssignmentId(request);
         sb.append(assId == null ? "" : assId);
@@ -133,15 +133,15 @@ public class MathTest extends Test {
         String link = getLink(request);
         sb.append("," + (link == null ? "" : link));
         Map<String, Integer> levels = new HashMap<String, Integer>();
-        for (Preference<Attribute> p: request.getAttributePreferences())
+        for (Preference<Attribute> p: request.getRequest().getAttributePreferences())
             levels.put(p.getTarget().getAttributeName(), - p.getPreference());
         sb.append(",\"" + levels + "\"");
-        sb.append("," + new DecimalFormat("0.0").format(request.getLoad()));
+        sb.append("," + new DecimalFormat("0.0").format(request.getRequest().getLoad()));
         return sb.toString();
     }
     
     @Override
-    protected boolean load(File dir, Assignment<TeachingRequest, TeachingAssignment> assignment) {
+    protected boolean load(File dir, Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) {
         if (!dir.isDirectory())
             return super.load(dir, assignment);
         try {
@@ -213,8 +213,8 @@ public class MathTest extends Test {
                     c = new Course(courses.size(), course, true, false);
                     courses.put(course, c);
                 }
-                TeachingRequest clazz = new TeachingRequest(reqId++, 0, c, 0f, sections);
-                addVariable(clazz);
+                TeachingRequest clazz = new TeachingRequest(reqId++, 1, c, 0f, sections);
+                addRequest(clazz);
                 List<TeachingRequest> classes = id2classes.get(id);
                 if (classes == null) {
                     classes = new ArrayList<TeachingRequest>();
@@ -237,7 +237,7 @@ public class MathTest extends Test {
                 if (classes.size() > 1) {
                     SameInstructorConstraint sa = new SameInstructorConstraint(id, "A" + id.toString(), Constants.sPreferenceRequired);
                     for (TeachingRequest c : classes)
-                        sa.addVariable(c);
+                        sa.addVariable(c.getVariables()[0]);
                     addConstraint(sa);
                 }
             }
@@ -247,7 +247,7 @@ public class MathTest extends Test {
                 if (classes.size() > 1) {
                     SameLinkConstraint sa = new SameLinkConstraint(null, link, Constants.sPreferencePreferred);
                     for (TeachingRequest c : classes)
-                        sa.addVariable(c);
+                        sa.addVariable(c.getVariables()[0]);
                     addConstraint(sa);
                 }
             }
@@ -273,8 +273,8 @@ public class MathTest extends Test {
                 for (int i = 1; i < codes.length; i++) {
                     int pref = Integer.parseInt(fields[i]);
                     if (pref > 0)
-                        for (TeachingRequest clazz : variables()) {
-                            if (clazz.getName().contains(codes[i]))
+                        for (TeachingRequest clazz : getRequests()) {
+                            if (clazz.getCourse().getCourseName().contains(codes[i]))
                                 clazz.addAttributePreference(new Preference<Attribute>(attribute, -pref));
                         }
                 }
@@ -284,8 +284,8 @@ public class MathTest extends Test {
                 if (line.trim().isEmpty())
                     continue;
                 String[] fields = line.split(",");
-                for (TeachingRequest clazz : variables()) {
-                    if (clazz.getName().contains(fields[0]))
+                for (TeachingRequest clazz : getRequests()) {
+                    if (clazz.getCourse().getCourseName().contains(fields[0]))
                         clazz.setLoad(Float.parseFloat(fields[1]));
                 }
             }
@@ -296,15 +296,15 @@ public class MathTest extends Test {
                 defaultAttribute = new Attribute(code2attribute.size(), defaultCode, level);
                 code2attribute.put(defaultCode, defaultAttribute);
             }
-            for (TeachingRequest clazz : variables()) {
+            for (TeachingRequest.Variable clazz : variables()) {
                 sLog.info("Added class " + toString(clazz));
-                if (clazz.getAttributePreferences().isEmpty()) {
+                if (clazz.getRequest().getAttributePreferences().isEmpty()) {
                     sLog.error("No level: " + toString(clazz));
-                    clazz.addAttributePreference(new Preference<Attribute>(defaultAttribute, -1));
+                    clazz.getRequest().addAttributePreference(new Preference<Attribute>(defaultAttribute, -1));
                 }
-                if (clazz.getLoad() == 0.0) {
+                if (clazz.getRequest().getLoad() == 0.0) {
                     sLog.error("No load: " + toString(clazz));
-                    clazz.setLoad(getProperties().getPropertyFloat("TA.DefaultLoad", 10f));
+                    clazz.getRequest().setLoad(getProperties().getPropertyFloat("TA.DefaultLoad", 10f));
                 }
             }
 
@@ -384,9 +384,9 @@ public class MathTest extends Test {
                     addInstructor(instructor);
                     sLog.info("Added student " + toString(instructor));
                     int nrClasses = 0;
-                    for (TeachingRequest req : variables()) {
-                        if (instructor.canTeach(req) && !req.getAttributePreference(instructor).isProhibited()) {
-                            sLog.info("  -- " + toString(req) + "," + (-req.getAttributePreference(instructor).getPreferenceInt()) + "," + (-instructor.getCoursePreference(req.getCourse()).getPreference()));
+                    for (TeachingRequest.Variable req : variables()) {
+                        if (instructor.canTeach(req.getRequest()) && !req.getRequest().getAttributePreference(instructor).isProhibited()) {
+                            sLog.info("  -- " + toString(req) + "," + (-req.getRequest().getAttributePreference(instructor).getPreferenceInt()) + "," + (-instructor.getCoursePreference(req.getCourse()).getPreference()));
                             nrClasses++;
                         }
                     }
@@ -404,10 +404,10 @@ public class MathTest extends Test {
             }
 
             double totalLoad = 0.0;
-            for (TeachingRequest clazz : variables()) {
+            for (TeachingRequest.Variable clazz : variables()) {
                 if (clazz.values(getEmptyAssignment()).isEmpty())
                     sLog.error("No values: " + toString(clazz));
-                totalLoad += clazz.getLoad();
+                totalLoad += clazz.getRequest().getLoad();
             }
 
             Map<String, Double> studentLevel2load = new HashMap<String, Double>();
@@ -423,10 +423,10 @@ public class MathTest extends Test {
                 sLog.info("  " + studentLevel + ": " + sDoubleFormat.format(load));
             }
             Map<String, Double> clazzLevel2load = new HashMap<String, Double>();
-            for (TeachingRequest clazz : variables()) {
+            for (TeachingRequest.Variable clazz : variables()) {
                 String classLevel = null;
                 TreeSet<String> levels = new TreeSet<String>();
-                for (Preference<Attribute> ap: clazz.getAttributePreferences())
+                for (Preference<Attribute> ap: clazz.getRequest().getAttributePreferences())
                     levels.add(ap.getTarget().getAttributeName());
                 for (String l : levels) {
                     classLevel = (classLevel == null ? "" : classLevel + ",") + l;
@@ -436,7 +436,7 @@ public class MathTest extends Test {
                 if (clazz.getId() < 0)
                     classLevel = clazz.getName();
                 Double load = clazzLevel2load.get(level);
-                clazzLevel2load.put(classLevel, clazz.getLoad() + (load == null ? 0.0 : load));
+                clazzLevel2load.put(classLevel, clazz.getRequest().getLoad() + (load == null ? 0.0 : load));
             }
             sLog.info("Class loads: (total: " + sDoubleFormat.format(totalLoad) + ")");
             for (String classLevel : new TreeSet<String>(clazzLevel2load.keySet())) {
@@ -451,10 +451,10 @@ public class MathTest extends Test {
     }
     
     @Override
-    protected void generateReports(File dir, Assignment<TeachingRequest, TeachingAssignment> assignment) throws IOException {
+    protected void generateReports(File dir, Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) throws IOException {
         PrintWriter out = new PrintWriter(new File(dir, "solution-assignments.csv"));
         out.println("Assignment Id,Course,Section,Time,Room,Link,Level,Load,Student,Availability,1st Preference,2nd Preference,3rd Preference,Graduate,Back-To-Back,Max Load,Level,Level,Preference");
-        for (TeachingRequest request : variables()) {
+        for (TeachingRequest.Variable request : variables()) {
             Long assId = getAssignmentId(request);
             out.print(assId == null ? "" : assId);
             out.print("," + request.getCourse().getCourseName());
@@ -465,11 +465,11 @@ public class MathTest extends Test {
             String link = getLink(request);
             out.print("," + (link == null ? "" : link));
             Map<String, Integer> levels = new HashMap<String, Integer>();
-            for (Preference<Attribute> p: request.getAttributePreferences())
+            for (Preference<Attribute> p: request.getRequest().getAttributePreferences())
                 if (p.getTarget().getType().getTypeName().equals("Level"))
                     levels.put(p.getTarget().getAttributeName(), - p.getPreference());
             out.print(",\"" + levels + "\"");
-            out.print("," + new DecimalFormat("0.0").format(request.getLoad()));
+            out.print("," + new DecimalFormat("0.0").format(request.getRequest().getLoad()));
             TeachingAssignment value = assignment.getValue(request);
             if (value != null) {
                 out.print("," + toString(value.getInstructor()));
@@ -518,8 +518,8 @@ public class MathTest extends Test {
         
         out = new PrintWriter(new File(dir, "input-courses.csv"));
         Set<String> levels = new TreeSet<String>();
-        for (TeachingRequest request : variables()) {
-            for (Preference<Attribute> p: request.getAttributePreferences())
+        for (TeachingRequest.Variable request : variables()) {
+            for (Preference<Attribute> p: request.getRequest().getAttributePreferences())
                 levels.add(p.getTarget().getAttributeName());
         }
         out.print("Course,Type,Load");
@@ -527,17 +527,17 @@ public class MathTest extends Test {
             out.print("," + level);
         out.println();
         Set<String> courses = new HashSet<String>();
-        for (TeachingRequest request : variables()) {
+        for (TeachingRequest.Variable request : variables()) {
             if (courses.add(request.getCourse() + "," + request.getSections().get(0).getSectionType())) {
-                out.print(request.getCourse().getCourseName() + "," + request.getSections().get(0).getSectionType() + "," + request.getLoad());
+                out.print(request.getCourse().getCourseName() + "," + request.getSections().get(0).getSectionType() + "," + request.getRequest().getLoad());
+                for (String level: levels) {
+                    int pref = 0;
+                    for (Preference<Attribute> p: request.getRequest().getAttributePreferences())
+                        if (p.getTarget().getAttributeName().equals(level)) pref = p.getPreference();
+                    out.print("," + (pref == 0 ? "" : -pref));
+                }
+                out.println();
             }
-            for (String level: levels) {
-                int pref = 0;
-                for (Preference<Attribute> p: request.getAttributePreferences())
-                    if (p.getTarget().getAttributeName().equals(level)) pref = p.getPreference();
-                out.print("," + (pref == 0 ? "" : -pref));
-            }
-            out.println();
         }
         out.flush();
         out.close();

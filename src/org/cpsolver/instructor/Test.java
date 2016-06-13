@@ -77,7 +77,7 @@ public class Test extends InstructorSchedulingModel {
      * @param assignment current assignments
      * @return true if the problem was successfully loaded in
      */
-    protected boolean load(File inputFile, Assignment<TeachingRequest, TeachingAssignment> assignment) {
+    protected boolean load(File inputFile, Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) {
         try {
             Document document = (new SAXReader()).read(inputFile);
             return load(document, assignment);
@@ -93,12 +93,12 @@ public class Test extends InstructorSchedulingModel {
      * @param assignment current assignments
      * @throws IOException
      */
-    protected void generateReports(File outputDir, Assignment<TeachingRequest, TeachingAssignment> assignment) throws IOException {
+    protected void generateReports(File outputDir, Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) throws IOException {
         PrintWriter out = new PrintWriter(new File(outputDir, "solution-assignments.csv"));
         out.println("Course,Section,Time,Room,Load,Student,Name,Instructor Pref,Course Pref,Attribute Pref,Time Pref,Back-To-Back,Different Lecture,Overlap [h]");
         double diffRoomWeight = getProperties().getPropertyDouble("BackToBack.DifferentRoomWeight", 0.8);
         double diffTypeWeight = getProperties().getPropertyDouble("BackToBack.DifferentTypeWeight", 0.5);
-        for (TeachingRequest request : variables()) {
+        for (TeachingRequest.Variable request : variables()) {
             out.print(request.getCourse().getCourseName());
             String sect = "", time = "", room = "";
             for (Iterator<Section> i = request.getSections().iterator(); i.hasNext(); ) {
@@ -109,7 +109,7 @@ public class Test extends InstructorSchedulingModel {
                 if (i.hasNext()) { sect += ", "; time += ", "; room += ", "; }
             }
             out.print(",\"" + sect + "\",\"" + time + "\",\"" + room + "\"");
-            out.print("," + new DecimalFormat("0.0").format(request.getLoad()));
+            out.print("," + new DecimalFormat("0.0").format(request.getRequest().getLoad()));
             TeachingAssignment ta = assignment.getValue(request);
             if (ta != null) {
                 Instructor instructor = ta.getInstructor();
@@ -180,7 +180,7 @@ public class Test extends InstructorSchedulingModel {
      * @param outputDir output directory
      * @param assignment final assignment
      */
-    protected void save(File outputDir, Assignment<TeachingRequest, TeachingAssignment> assignment) {
+    protected void save(File outputDir, Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) {
         try {
             File outFile = new File(outputDir, "solution.xml");
             FileOutputStream fos = new FileOutputStream(outFile);
@@ -200,41 +200,40 @@ public class Test extends InstructorSchedulingModel {
      */
     public void execute() {
         int nrSolvers = getProperties().getPropertyInt("Parallel.NrSolvers", 1);
-        Solver<TeachingRequest, TeachingAssignment> solver = (nrSolvers == 1 ? new Solver<TeachingRequest, TeachingAssignment>(getProperties()) : new ParallelSolver<TeachingRequest, TeachingAssignment>(getProperties()));
+        Solver<TeachingRequest.Variable, TeachingAssignment> solver = (nrSolvers == 1 ? new Solver<TeachingRequest.Variable, TeachingAssignment>(getProperties()) : new ParallelSolver<TeachingRequest.Variable, TeachingAssignment>(getProperties()));
         
-        Assignment<TeachingRequest, TeachingAssignment> assignment = (nrSolvers <= 1 ? new DefaultSingleAssignment<TeachingRequest, TeachingAssignment>() : new DefaultParallelAssignment<TeachingRequest, TeachingAssignment>());
+        Assignment<TeachingRequest.Variable, TeachingAssignment> assignment = (nrSolvers <= 1 ? new DefaultSingleAssignment<TeachingRequest.Variable, TeachingAssignment>() : new DefaultParallelAssignment<TeachingRequest.Variable, TeachingAssignment>());
         if (!load(new File(getProperties().getProperty("input", "input/solution.xml")), assignment))
             return;
         
-        solver.setInitalSolution(new Solution<TeachingRequest, TeachingAssignment>(this, assignment));
+        solver.setInitalSolution(new Solution<TeachingRequest.Variable, TeachingAssignment>(this, assignment));
 
-        solver.currentSolution().addSolutionListener(new SolutionListener<TeachingRequest, TeachingAssignment>() {
+        solver.currentSolution().addSolutionListener(new SolutionListener<TeachingRequest.Variable, TeachingAssignment>() {
             @Override
-            public void solutionUpdated(Solution<TeachingRequest, TeachingAssignment> solution) {
+            public void solutionUpdated(Solution<TeachingRequest.Variable, TeachingAssignment> solution) {
             }
 
             @Override
-            public void getInfo(Solution<TeachingRequest, TeachingAssignment> solution, Map<String, String> info) {
+            public void getInfo(Solution<TeachingRequest.Variable, TeachingAssignment> solution, Map<String, String> info) {
             }
 
             @Override
-            public void getInfo(Solution<TeachingRequest, TeachingAssignment> solution, Map<String, String> info,
-                    Collection<TeachingRequest> variables) {
+            public void getInfo(Solution<TeachingRequest.Variable, TeachingAssignment> solution, Map<String, String> info, Collection<TeachingRequest.Variable> variables) {
             }
 
             @Override
-            public void bestCleared(Solution<TeachingRequest, TeachingAssignment> solution) {
+            public void bestCleared(Solution<TeachingRequest.Variable, TeachingAssignment> solution) {
             }
 
             @Override
-            public void bestSaved(Solution<TeachingRequest, TeachingAssignment> solution) {
-                Model<TeachingRequest, TeachingAssignment> m = solution.getModel();
-                Assignment<TeachingRequest, TeachingAssignment> a = solution.getAssignment();
+            public void bestSaved(Solution<TeachingRequest.Variable, TeachingAssignment> solution) {
+                Model<TeachingRequest.Variable, TeachingAssignment> m = solution.getModel();
+                Assignment<TeachingRequest.Variable, TeachingAssignment> a = solution.getAssignment();
                 System.out.println("**BEST[" + solution.getIteration() + "]** " + m.toString(a));
             }
 
             @Override
-            public void bestRestored(Solution<TeachingRequest, TeachingAssignment> solution) {
+            public void bestRestored(Solution<TeachingRequest.Variable, TeachingAssignment> solution) {
             }
         });
 
@@ -244,7 +243,7 @@ public class Test extends InstructorSchedulingModel {
         } catch (InterruptedException e) {
         }
         
-        Solution<TeachingRequest, TeachingAssignment> solution = solver.lastSolution();
+        Solution<TeachingRequest.Variable, TeachingAssignment> solution = solver.lastSolution();
         solution.restoreBest();
 
         sLog.info("Best solution found after " + solution.getBestTime() + " seconds (" + solution.getBestIteration() + " iterations).");
@@ -264,10 +263,10 @@ public class Test extends InstructorSchedulingModel {
             sLog.error("Failed to write reports: " + e.getMessage(), e);
         }
         
-        ConflictStatistics<TeachingRequest, TeachingAssignment> cbs = null;
-        for (Extension<TeachingRequest, TeachingAssignment> extension : solver.getExtensions()) {
+        ConflictStatistics<TeachingRequest.Variable, TeachingAssignment> cbs = null;
+        for (Extension<TeachingRequest.Variable, TeachingAssignment> extension : solver.getExtensions()) {
             if (ConflictStatistics.class.isInstance(extension)) {
-                cbs = (ConflictStatistics<TeachingRequest, TeachingAssignment>) extension;
+                cbs = (ConflictStatistics<TeachingRequest.Variable, TeachingAssignment>) extension;
             }
         }
         

@@ -37,7 +37,7 @@ import org.cpsolver.instructor.model.TeachingRequest;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class SameLinkConstraint extends ConstraintWithContext<TeachingRequest, TeachingAssignment, SameLinkConstraint.Context> {
+public class SameLinkConstraint extends ConstraintWithContext<TeachingRequest.Variable, TeachingAssignment, SameLinkConstraint.Context> {
     private Long iId;
     private String iName;
     private int iPreference = 0;
@@ -96,7 +96,7 @@ public class SameLinkConstraint extends ConstraintWithContext<TeachingRequest, T
     }
     
     @Override
-    public void computeConflicts(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value, Set<TeachingAssignment> conflicts) {
+    public void computeConflicts(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, TeachingAssignment value, Set<TeachingAssignment> conflicts) {
         if (isHard()) {
             Instructor.Context context = value.getInstructor().getContext(assignment);
             for (TeachingAssignment ta : context.getAssignments()) {
@@ -116,7 +116,7 @@ public class SameLinkConstraint extends ConstraintWithContext<TeachingRequest, T
      * @param value proposed change
      * @return change in the current preference value of this constraint
      */
-    public int getCurrentPreference(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value) {
+    public int getCurrentPreference(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, TeachingAssignment value) {
         if (isHard()) return 0; // no preference
         TeachingAssignment current = assignment.getValue(value.variable());
         if (current != null && current.getInstructor().equals(value.getInstructor())) return 0;
@@ -156,12 +156,12 @@ public class SameLinkConstraint extends ConstraintWithContext<TeachingRequest, T
      * @return that is number of requests that are not of this link assigned to the instructors that have at least one request of this link if preferred;
      * number of additional requests of this link given to the same instructor if discouraged
      */
-    public int getCurrentPreference(Assignment<TeachingRequest, TeachingAssignment> assignment) {
+    public int getCurrentPreference(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) {
         if (isHard()) return 0; // no preference
         if (getPreference() < 0) { // preferred
             int ret = 0;
             Set<Instructor> checked = new HashSet<Instructor>();
-            for (TeachingRequest tr: variables()) {
+            for (TeachingRequest.Variable tr: variables()) {
                 TeachingAssignment ta = assignment.getValue(tr);
                 if (ta == null || !checked.add(ta.getInstructor())) continue;
                 Instructor.Context context = ta.getInstructor().getContext(assignment);
@@ -175,7 +175,7 @@ public class SameLinkConstraint extends ConstraintWithContext<TeachingRequest, T
         } else if (getPreference() > 0) {
             int ret = 0;
             Set<Instructor> checked = new HashSet<Instructor>();
-            for (TeachingRequest tr: variables()) {
+            for (TeachingRequest.Variable tr: variables()) {
                 TeachingAssignment ta = assignment.getValue(tr);
                 if (ta == null || !checked.add(ta.getInstructor())) continue;
                 Instructor.Context context = ta.getInstructor().getContext(assignment);
@@ -192,27 +192,27 @@ public class SameLinkConstraint extends ConstraintWithContext<TeachingRequest, T
     }
     
     @Override
-    public Context createAssignmentContext(Assignment<TeachingRequest, TeachingAssignment> assignment) {
+    public Context createAssignmentContext(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) {
         return new Context(assignment);
     }
 
     /**
      * Same Link Constraint Context. This context keeps the last preference value and updates the {@link SameLink} criterion.
      */
-    public class Context implements AssignmentConstraintContext<TeachingRequest, TeachingAssignment> {
+    public class Context implements AssignmentConstraintContext<TeachingRequest.Variable, TeachingAssignment> {
         private int iLastPreference = 0;
         
-        public Context(Assignment<TeachingRequest, TeachingAssignment> assignment) {
+        public Context(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) {
             updateCriterion(assignment);
         }
 
         @Override
-        public void assigned(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value) {
+        public void assigned(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, TeachingAssignment value) {
             updateCriterion(assignment);
         }
 
         @Override
-        public void unassigned(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value) {
+        public void unassigned(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, TeachingAssignment value) {
             updateCriterion(assignment);
         }
         
@@ -220,7 +220,7 @@ public class SameLinkConstraint extends ConstraintWithContext<TeachingRequest, T
          * Update the current preference value
          * @param assignment current assignment
          */
-        private void updateCriterion(Assignment<TeachingRequest, TeachingAssignment> assignment) {
+        private void updateCriterion(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) {
             if (!isHard()) {
                 getModel().getCriterion(SameLink.class).inc(assignment, -iLastPreference);
                 iLastPreference = getCurrentPreference(assignment);

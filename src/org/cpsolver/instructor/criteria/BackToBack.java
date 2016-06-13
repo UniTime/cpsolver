@@ -43,7 +43,7 @@ public class BackToBack extends InstructorSchedulingCriterion {
     }
     
     @Override
-    public boolean init(Solver<TeachingRequest, TeachingAssignment> solver) {
+    public boolean init(Solver<TeachingRequest.Variable, TeachingAssignment> solver) {
         iDiffRoomWeight = solver.getProperties().getPropertyDouble("BackToBack.DifferentRoomWeight", 0.8);
         iDiffTypeWeight = solver.getProperties().getPropertyDouble("BackToBack.DifferentTypeWeight", 0.5);
         return super.init(solver);
@@ -67,12 +67,12 @@ public class BackToBack extends InstructorSchedulingCriterion {
     public double getDifferentTypeWeight() { return iDiffTypeWeight; }
 
     @Override
-    public double getValue(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value, Set<TeachingAssignment> conflicts) {
+    public double getValue(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, TeachingAssignment value, Set<TeachingAssignment> conflicts) {
         return value.getInstructor().countBackToBacks(assignment, value, iDiffRoomWeight, iDiffTypeWeight);
     }
     
     @Override
-    protected double[] computeBounds(Assignment<TeachingRequest, TeachingAssignment> assignment) {
+    protected double[] computeBounds(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) {
         double[] bounds = new double[] { 0.0, 0.0 };
         for (Instructor instructor: ((InstructorSchedulingModel)getModel()).getInstructors()) {
             bounds[1] += Math.abs(instructor.getBackToBackPreference());
@@ -81,7 +81,7 @@ public class BackToBack extends InstructorSchedulingCriterion {
     }
     
     @Override
-    public double[] getBounds(Assignment<TeachingRequest, TeachingAssignment> assignment, Collection<TeachingRequest> variables) {
+    public double[] getBounds(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, Collection<TeachingRequest.Variable> variables) {
         double[] bounds = new double[] { 0.0, 0.0 };
         for (Instructor instructor: getInstructors(assignment, variables)) {
             bounds[1] += Math.abs(instructor.getBackToBackPreference());
@@ -90,7 +90,7 @@ public class BackToBack extends InstructorSchedulingCriterion {
     }
 
     @Override
-    public double getValue(Assignment<TeachingRequest, TeachingAssignment> assignment, Collection<TeachingRequest> variables) {
+    public double getValue(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, Collection<TeachingRequest.Variable> variables) {
         double value = 0.0;
         Set<Instructor> instructors = new HashSet<Instructor>();
         for (Instructor instructor: ((InstructorSchedulingModel)getModel()).getInstructors()) {

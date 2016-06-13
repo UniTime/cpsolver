@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.cpsolver.ifs.assignment.Assignment;
+import org.cpsolver.ifs.model.Variable;
 import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.instructor.model.TeachingAssignment;
@@ -12,7 +13,7 @@ import org.cpsolver.instructor.model.TeachingRequest;
 
 /**
  * Original Instructor. This criterion penalizes teaching assignments that are not given
- * to the initial instructor (i.e., {@link TeachingRequest} is not assigned to {@link TeachingRequest#getInitialAssignment()}).
+ * to the initial instructor (i.e., {@link TeachingRequest} is not assigned to {@link Variable#getInitialAssignment()}).
  * 
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
@@ -40,7 +41,7 @@ public class OriginalInstructor extends InstructorSchedulingCriterion {
     }
     
     @Override
-    public boolean init(Solver<TeachingRequest, TeachingAssignment> solver) {
+    public boolean init(Solver<TeachingRequest.Variable, TeachingAssignment> solver) {
         boolean ret = super.init(solver);
         iMPP = solver.getProperties().getPropertyBoolean("General.MPP", iMPP);
         return ret;
@@ -52,7 +53,7 @@ public class OriginalInstructor extends InstructorSchedulingCriterion {
     }
 
     @Override
-    public double getValue(Assignment<TeachingRequest, TeachingAssignment> assignment, TeachingAssignment value, Set<TeachingAssignment> conflicts) {
+    public double getValue(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, TeachingAssignment value, Set<TeachingAssignment> conflicts) {
         if (iMPP && value.variable().getInitialAssignment() != null) {
             return (value.getInstructor().equals(value.variable().getInitialAssignment().getInstructor()) ? 0.0 : 1.0);
         } else {
@@ -66,7 +67,7 @@ public class OriginalInstructor extends InstructorSchedulingCriterion {
     }
     
     @Override
-    public void getInfo(Assignment<TeachingRequest, TeachingAssignment> assignment, Map<String, String> info) {
+    public void getInfo(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, Map<String, String> info) {
         double val = getValue(assignment);
         double[] bounds = getBounds(assignment);
         if (bounds[0] <= val && val <= bounds[1] && bounds[0] < bounds[1])
@@ -74,7 +75,7 @@ public class OriginalInstructor extends InstructorSchedulingCriterion {
     }
     
     @Override
-    public void getInfo(Assignment<TeachingRequest, TeachingAssignment> assignment, Map<String, String> info, Collection<TeachingRequest> variables) {
+    public void getInfo(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, Map<String, String> info, Collection<TeachingRequest.Variable> variables) {
         double val = getValue(assignment, variables);
         double[] bounds = getBounds(assignment, variables);
         if (bounds[0] <= val && val <= bounds[1] && bounds[0] < bounds[1])

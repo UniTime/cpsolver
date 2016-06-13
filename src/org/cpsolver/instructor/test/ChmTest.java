@@ -45,10 +45,10 @@ public class ChmTest extends Test {
     }
     
     @Override
-    protected void generateReports(File dir, Assignment<TeachingRequest, TeachingAssignment> assignment) throws IOException {
+    protected void generateReports(File dir, Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) throws IOException {
         PrintWriter out = new PrintWriter(new File(dir, "solution-assignments.csv"));
         out.println("Course,Section,Time,Room,Load,Student,Name,Not Available,Preference (Avoid),Max Load");
-        for (TeachingRequest request : variables()) {
+        for (TeachingRequest.Variable request : variables()) {
             out.print(request.getCourse().getCourseName());
             String sect = "", time = "", room = "";
             for (Iterator<Section> i = request.getSections().iterator(); i.hasNext(); ) {
@@ -59,7 +59,7 @@ public class ChmTest extends Test {
                 if (i.hasNext()) { sect += ", "; time += ", "; room += ", "; }
             }
             out.print(",\"" + sect + "\",\"" + time + "\",\"" + room + "\"");
-            out.print("," + new DecimalFormat("0.0").format(request.getLoad()));
+            out.print("," + new DecimalFormat("0.0").format(request.getRequest().getLoad()));
             TeachingAssignment ta = assignment.getValue(request);
             if (ta != null) {
                 Instructor instructor = ta.getInstructor();
@@ -104,7 +104,7 @@ public class ChmTest extends Test {
             for (TeachingAssignment ta : context.getAssignments()) {
                 for (Preference<TimeLocation> p: instructor.getTimePreferences()) {
                     if (!p.isProhibited())
-                        share += ta.variable().share(p.getTarget());
+                        share += ta.variable().getRequest().share(p.getTarget());
                 }
             }
             out.print("," + (share == 0 ? "" : new DecimalFormat("0.#").format(share / 12.0)));

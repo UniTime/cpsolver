@@ -27,34 +27,34 @@ import org.cpsolver.ifs.model.Value;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class TeachingAssignment extends Value<TeachingRequest, TeachingAssignment> {
+public class TeachingAssignment extends Value<TeachingRequest.Variable, TeachingAssignment> {
     private Instructor iInstructor;
     private int iHashCode;
     private int iAttributePreference, iInstructorPreference, iCoursePreference, iTimePreference;
 
     /**
      * Constructor
-     * @param request teaching request
+     * @param variable teaching request variable
      * @param instructor instructor (it is expected that {@link Instructor#canTeach(TeachingRequest)} is true and that {@link TeachingRequest#getAttributePreference(Instructor)} is not prohibited)
      * @param attributePreference attribute preference (value of {@link TeachingRequest#getAttributePreference(Instructor)})
      */
-    public TeachingAssignment(TeachingRequest request, Instructor instructor, int attributePreference) {
-        super(request, 0.0);
+    public TeachingAssignment(TeachingRequest.Variable variable, Instructor instructor, int attributePreference) {
+        super(variable, 0.0);
         iInstructor = instructor;
-        iHashCode = request.hashCode() ^ instructor.hashCode();
-        iTimePreference = instructor.getTimePreference(request).getPreferenceInt();
-        iCoursePreference = instructor.getCoursePreference(request.getCourse()).getPreference();
-        iInstructorPreference = request.getInstructorPreference(instructor).getPreference();
+        iHashCode = variable.hashCode() ^ instructor.hashCode();
+        iTimePreference = instructor.getTimePreference(variable.getRequest()).getPreferenceInt();
+        iCoursePreference = instructor.getCoursePreference(variable.getCourse()).getPreference();
+        iInstructorPreference = variable.getRequest().getInstructorPreference(instructor).getPreference();
         iAttributePreference = attributePreference;
     }
     
     /**
      * Constructor
-     * @param request teaching request
+     * @param variable teaching request variable
      * @param instructor instructor (it is expected that {@link Instructor#canTeach(TeachingRequest)} is true and that {@link TeachingRequest#getAttributePreference(Instructor)} is not prohibited)
      */
-    public TeachingAssignment(TeachingRequest request, Instructor instructor) {
-        this(request, instructor, request.getAttributePreference(instructor).getPreferenceInt());
+    public TeachingAssignment(TeachingRequest.Variable variable, Instructor instructor) {
+        this(variable, instructor, variable.getRequest().getAttributePreference(instructor).getPreferenceInt());
     }
 
     /**
@@ -66,9 +66,9 @@ public class TeachingAssignment extends Value<TeachingRequest, TeachingAssignmen
     }
     
     @Override
-    public double toDouble(Assignment<TeachingRequest, TeachingAssignment> assignment) {
+    public double toDouble(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) {
         double ret = 0.0;
-        for (Criterion<TeachingRequest, TeachingAssignment> criterion : variable().getModel().getCriteria())
+        for (Criterion<TeachingRequest.Variable, TeachingAssignment> criterion : variable().getModel().getCriteria())
             ret += criterion.getWeightedValue(assignment, this, null);
         return ret;
     }
