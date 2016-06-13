@@ -239,7 +239,7 @@ public class TeachingRequest extends Variable<TeachingRequest, TeachingAssignmen
                 common ++;
                 if (request.getSections().contains(section)) same++;
             }
-        return (common == 0 ? 0.0 : same / common);
+        return (common == 0 ? 1.0 : same / common);
     }
 
     /**
