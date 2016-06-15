@@ -279,5 +279,13 @@
 			</exec>
 	</target>
 	
+	<target name="changelog">
+		<taskdef resource="org/unitime/commons/ant/ant-tasks.properties"/>
+		<loadproperties srcFile="build.release"/>
+		<loadproperties srcFile="build.number"/>
+		<git-log src="${src.dir}" since="${release.hash}" output="changelog.xml"
+			title="CP Solver v1.3 build ${build.number} change log (since the last release, build ${release.build} on ${release.date})"/>
+	</target>
+	
 	<target name="dist-deploy" depends="dist,deploy"/>
 </project>
