@@ -175,14 +175,19 @@ public class LinkedSections {
         if (enrollment == null || enrollment.getCourse() == null) return;
         Map<Subpart, Set<Section>> subparts = iSections.get(enrollment.getCourse().getOffering());
         if (subparts == null || subparts.isEmpty()) return;
-        List<Section> match = new ArrayList<Section>();
+        boolean match = false, partial = false;
         for (Section section: enrollment.getSections()) {
             Set<Section> sections = subparts.get(section.getSubpart());
-            if (sections != null && sections.contains(section))
-                match.add(section);
+            if (sections != null) {
+                if (sections.contains(section))
+                    match = true;
+                else
+                    partial = true;
+            }
         }
+        boolean full = match && !partial;
         if (isMustBeUsed()) {
-            if (match.size() < subparts.size()) { // partial or no match -> conflict if there is no other linked section constraint with a full match
+            if (!full) { // not full match -> conflict if there is no other linked section constraint with a full match
                 // check if there is some other constraint taking care of this case
                 boolean hasOtherMatch = false;
                 for (LinkedSections other: enrollment.getStudent().getLinkedSections()) {
@@ -192,7 +197,7 @@ public class LinkedSections {
                 if (!hasOtherMatch && !conflicts.onConflict(enrollment)) return;
             }
         }
-        if (match.size() == subparts.size()) { // full match -> check other enrollments
+        if (full) { // full match -> check other enrollments
             for (int i = 0; i < enrollment.getStudent().getRequests().size(); i++) {
                 Request request = enrollment.getStudent().getRequests().get(i);
                 if (request.equals(enrollment.getRequest())) continue; // given enrollment
@@ -200,14 +205,19 @@ public class LinkedSections {
                 if (otherEnrollment == null || otherEnrollment.getCourse() == null) continue; // not assigned or not course request
                 Map<Subpart, Set<Section>> otherSubparts = iSections.get(otherEnrollment.getCourse().getOffering());
                 if (otherSubparts == null || otherSubparts.isEmpty()) continue; // offering is not in the link
-                List<Section> otherMatch = new ArrayList<Section>();
+                boolean otherMatch = false, otherPartial = false;
                 for (Section section: otherEnrollment.getSections()) {
                     Set<Section> otherSections = otherSubparts.get(section.getSubpart());
-                    if (otherSections != null && otherSections.contains(section))
-                        otherMatch.add(section);
+                    if (otherSections != null) {
+                        if (otherSections.contains(section))
+                            otherMatch = true;
+                        else
+                            otherPartial = true;
+                    }
                 }
-                // no or partial patch -> conflict
-                if (otherMatch.size() != otherSubparts.size() && !conflicts.onConflict(otherEnrollment)) return;
+                boolean otherFull = otherMatch && !otherPartial;
+                // not full match -> conflict
+                if (!otherFull && !conflicts.onConflict(otherEnrollment)) return;
             }
         } else { // no or only partial match -> there should be no match in other offerings too
             for (int i = 0; i < enrollment.getStudent().getRequests().size(); i++) {
@@ -217,14 +227,19 @@ public class LinkedSections {
                 if (otherEnrollment == null || otherEnrollment.getCourse() == null) continue; // not assigned or not course request
                 Map<Subpart, Set<Section>> otherSubparts = iSections.get(otherEnrollment.getCourse().getOffering());
                 if (otherSubparts == null || otherSubparts.isEmpty()) continue; // offering is not in the link
-                List<Section> otherMatch = new ArrayList<Section>();
+                boolean otherMatch = false, otherPartial = false;
                 for (Section section: otherEnrollment.getSections()) {
                     Set<Section> otherSections = otherSubparts.get(section.getSubpart());
-                    if (otherSections != null && otherSections.contains(section))
-                        otherMatch.add(section);
+                    if (otherSections != null) {
+                        if (otherSections.contains(section))
+                            otherMatch = true;
+                        else
+                            otherPartial = true;
+                    }
                 }
-                // full patch -> conflict
-                if (otherMatch.size() == otherSubparts.size() && !conflicts.onConflict(otherEnrollment)) return;
+                boolean otherFull = otherMatch && !otherPartial;
+                // full match -> conflict
+                if (otherFull && !conflicts.onConflict(otherEnrollment)) return;
             }
         }
     }
@@ -235,16 +250,20 @@ public class LinkedSections {
      * @return true, if there is a full match
      */
     protected boolean hasFullMatch(Enrollment enrollment) {
-        if (enrollment == null || enrollment.getCourse() == null) return false;
+        if (enrollment == null || enrollment.getCourse() == null) return false; // not assigned or not course request
         Map<Subpart, Set<Section>> subparts = iSections.get(enrollment.getCourse().getOffering());
-        if (subparts == null || subparts.isEmpty()) return false;
-        int match = 0;
+        if (subparts == null || subparts.isEmpty()) return false; // offering is not in the link
+        boolean match = false, partial = false;
         for (Section section: enrollment.getSections()) {
             Set<Section> sections = subparts.get(section.getSubpart());
-            if (sections != null && sections.contains(section))
-                match ++;
+            if (sections != null) {
+                if (sections.contains(section))
+                    match = true;
+                else
+                    partial = true;
+            }
         }
-        return match == subparts.size();
+        return match && !partial;
     }
     
     /**
