@@ -87,7 +87,8 @@ public abstract class GlobalConstraint<V extends Variable<V, T>, T extends Value
                 listener.constraintBeforeAssigned(assignment, iteration, this, value, conf);
         if (conf != null) {
             for (T conflictValue : conf) {
-                assignment.unassign(iteration, conflictValue.variable());
+                if (!conflictValue.equals(value))
+                   assignment.unassign(iteration, conflictValue.variable());
             }
         }
         if (constraintListeners() != null)
