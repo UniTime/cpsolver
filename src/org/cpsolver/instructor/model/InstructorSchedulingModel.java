@@ -368,6 +368,7 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
             }
             instructorEl.addAttribute("maxLoad", sDoubleFormat.format(instructor.getMaxLoad()));
             for (Preference<TimeLocation> tp: instructor.getTimePreferences()) {
+                
                 Element timeEl = instructorEl.addElement("time");
                 TimeLocation tl = tp.getTarget();
                 timeEl.addAttribute("days", sDF7.format(Long.parseLong(Integer.toBinaryString(tl.getDayCode()))));
@@ -384,7 +385,24 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
                 if (tl.getWeekCode() != null)
                     timeEl.addAttribute("dates", bitset2string(tl.getWeekCode()));
                 timeEl.addAttribute("preference", tp.isProhibited() ? "P" : tp.isRequired() ? "R" : String.valueOf(tp.getPreference()));
-                timeEl.setText(tl.getLongName(false));
+                if (tp.getTarget() instanceof EnrolledClass) {
+                    Element classEl = timeEl.addElement("section");
+                    Element courseEl = null;
+                    EnrolledClass ec = (EnrolledClass)tp.getTarget();
+                    if (ec.getCourseId() != null || ec.getCourse() != null) {
+                        courseEl = timeEl.addElement("course");
+                        if (ec.getCourseId() != null) courseEl.addAttribute("id", String.valueOf(ec.getCourseId()));
+                        if (ec.getCourse() != null) courseEl.addAttribute("name", ec.getCourse());
+                    }
+                    if (ec.getClassId() != null) classEl.addAttribute("id", String.valueOf(ec.getClassId()));
+                    if (ec.getType() != null) classEl.addAttribute("type", ec.getType());
+                    if (ec.getSection() != null) classEl.addAttribute("name", ec.getSection());
+                    if (ec.getExternalId() != null) classEl.addAttribute("externalId", ec.getExternalId());
+                    if (ec.getRoom() != null) classEl.addAttribute("room", ec.getRoom());
+                    classEl.addAttribute("role", ec.isInstructor() ? "instructor" : "student");
+                } else {
+                    timeEl.setText(tl.getLongName(false));
+                }
             }
             for (Preference<Course> cp: instructor.getCoursePreferences()) {
                 Element courseEl = instructorEl.addElement("course");
@@ -513,14 +531,36 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
             }
             for (Iterator<?> j = instructorEl.elementIterator("time"); j.hasNext();) {
                 Element f = (Element) j.next();
-                TimeLocation time = new TimeLocation(
-                        Integer.parseInt(f.attributeValue("days"), 2),
-                        Integer.parseInt(f.attributeValue("start")),
-                        Integer.parseInt(f.attributeValue("length")), 0, 0,
-                        f.attributeValue("datePattern") == null ? null : Long.valueOf(f.attributeValue("datePattern")),
-                        f.attributeValue("datePatternName", ""),
-                        createBitSet(f.attributeValue("dates")),
-                        Integer.parseInt(f.attributeValue("breakTime", "0")));
+                Element classEl = f.element("section");
+                Element courseEl = f.element("course");
+                TimeLocation time = null;
+                if (classEl != null) {
+                    time = new EnrolledClass(
+                            courseEl == null || courseEl.attributeValue("id") == null ? null : Long.valueOf(courseEl.attributeValue("id")),
+                            classEl.attributeValue("id") == null ? null : Long.valueOf(classEl.attributeValue("id")),
+                            courseEl == null ? null : courseEl.attributeValue("name"),
+                            classEl.attributeValue("type"),
+                            classEl.attributeValue("name"),
+                            classEl.attributeValue("externalId"),
+                            Integer.parseInt(f.attributeValue("days"), 2),
+                            Integer.parseInt(f.attributeValue("start")),
+                            Integer.parseInt(f.attributeValue("length")),
+                            f.attributeValue("datePattern") == null ? null : Long.valueOf(f.attributeValue("datePattern")),
+                            f.attributeValue("datePatternName", ""),
+                            createBitSet(f.attributeValue("dates")),
+                            Integer.parseInt(f.attributeValue("breakTime", "0")),
+                            classEl.attributeValue("room"),
+                            "instructor".equalsIgnoreCase(classEl.attributeValue("role", "instructor")));
+                } else {
+                    time = new TimeLocation(
+                            Integer.parseInt(f.attributeValue("days"), 2),
+                            Integer.parseInt(f.attributeValue("start")),
+                            Integer.parseInt(f.attributeValue("length")), 0, 0,
+                            f.attributeValue("datePattern") == null ? null : Long.valueOf(f.attributeValue("datePattern")),
+                            f.attributeValue("datePatternName", ""),
+                            createBitSet(f.attributeValue("dates")),
+                            Integer.parseInt(f.attributeValue("breakTime", "0")));
+                }
                 if (f.attributeValue("pattern") != null)
                     time.setTimePatternId(Long.valueOf(f.attributeValue("pattern")));
                 instructor.addTimePreference(new Preference<TimeLocation>(time, string2preference(f.attributeValue("preference"))));
