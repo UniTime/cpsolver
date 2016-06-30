@@ -116,10 +116,11 @@ public class TeachingRequest {
      */
     public int getAttributePreference(Instructor instructor, Attribute.Type type) {
         Set<Attribute> attributes = instructor.getAttributes(type);
-        boolean hasReq = false, hasPref = false, needReq = false;
+        boolean hasReq = false, hasPref = false, needReq = false, hasType = false;
         PreferenceCombination ret = new SumPreferenceCombination();
         for (Preference<Attribute> pref: iAttributePreferences) {
             if (!type.equals(pref.getTarget().getType())) continue;
+            hasType = true;
             if (pref.isRequired()) needReq = true;
             if (attributes.contains(pref.getTarget())) {
                 if (pref.isProhibited()) return Constants.sPreferenceLevelProhibited;
@@ -131,7 +132,7 @@ public class TeachingRequest {
             }
         }
         if (needReq && !hasReq) return Constants.sPreferenceLevelProhibited;
-        if (type.isRequired() && !hasPref) return Constants.sPreferenceLevelProhibited;
+        if (type.isRequired() && hasType && !hasPref) return Constants.sPreferenceLevelProhibited;
         return ret.getPreferenceInt();
     }
     
