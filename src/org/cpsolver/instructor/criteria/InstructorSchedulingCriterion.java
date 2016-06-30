@@ -74,4 +74,20 @@ public abstract class InstructorSchedulingCriterion extends AbstractCriterion<Te
                 instructors.add(ta.getInstructor());
         return instructors;
     }
+    
+    /**
+     * Assigned instructors of a sub-problem
+     * @param assignment current instructors
+     * @param variables sub-problem
+     * @return instructors that can be used by the given teaching requests
+     */
+    public Set<Instructor> getAssignedInstructors(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, Collection<TeachingRequest.Variable> variables) {
+        Set<Instructor> instructors = new HashSet<Instructor>();
+        for (TeachingRequest.Variable req: variables) {
+            TeachingAssignment ta = assignment.getValue(req);
+            if (ta != null)
+                instructors.add(ta.getInstructor());
+        }
+        return instructors;
+    }
 }

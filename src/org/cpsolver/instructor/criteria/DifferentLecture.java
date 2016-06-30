@@ -53,7 +53,7 @@ public class DifferentLecture extends InstructorSchedulingCriterion {
     @Override
     public double getValue(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, Collection<TeachingRequest.Variable> variables) {
         double value = 0.0;
-        for (Instructor instructor: getInstructors(assignment, variables)) {
+        for (Instructor instructor: getAssignedInstructors(assignment, variables)) {
             value += instructor.getContext(assignment).countDifferentLectures();
         }
         return value;

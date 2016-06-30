@@ -1,7 +1,6 @@
 package org.cpsolver.instructor.criteria;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Set;
 
 import org.cpsolver.ifs.assignment.Assignment;
@@ -92,12 +91,8 @@ public class BackToBack extends InstructorSchedulingCriterion {
     @Override
     public double getValue(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, Collection<TeachingRequest.Variable> variables) {
         double value = 0.0;
-        Set<Instructor> instructors = new HashSet<Instructor>();
-        for (Instructor instructor: ((InstructorSchedulingModel)getModel()).getInstructors()) {
-            if (instructors.add(instructor)) {
-                value += instructor.getContext(assignment).countBackToBackPreference(iDiffRoomWeight, iDiffTypeWeight);
-            }
-        }
+        for (Instructor instructor: getAssignedInstructors(assignment, variables))
+            value += instructor.getContext(assignment).countBackToBackPreference(iDiffRoomWeight, iDiffTypeWeight);
         return value;
     }
 
