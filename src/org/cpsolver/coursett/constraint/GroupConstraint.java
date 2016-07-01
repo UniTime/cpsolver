@@ -1674,7 +1674,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             Placement p = res[i];
             while (p == null)
                 p = res[++i];
-            i += res[i].getTimeLocation().getLength();
+            i = res[i].getTimeLocation().getStartSlot() + res[i].getTimeLocation().getLength();
             nrLectures--;
             while (nrLectures > 0) {
                 int gap = 0;
@@ -1687,7 +1687,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                 if (!canFill(gap, gapMin, gapMax, lengths))
                     return false;
                 p = res[i];
-                i += res[i].getTimeLocation().getLength();
+                i = res[i].getTimeLocation().getStartSlot() + res[i].getTimeLocation().getLength();
                 nrLectures--;
             }
         } else if (iIsProhibited || (!iIsRequired && iPreference > 0)) {
@@ -1695,7 +1695,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             Placement p = res[i];
             while (p == null)
                 p = res[++i];
-            i += res[i].getTimeLocation().getLength();
+            i = res[i].getTimeLocation().getStartSlot() + res[i].getTimeLocation().getLength();
             nrLectures--;
             while (nrLectures > 0) {
                 int gap = 0;
@@ -1711,7 +1711,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                     return false;
                 }
                 p = res[i];
-                i += res[i].getTimeLocation().getLength();
+                i = res[i].getTimeLocation().getStartSlot() + res[i].getTimeLocation().getLength();
                 nrLectures--;
             }
         }
