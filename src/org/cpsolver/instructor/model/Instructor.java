@@ -17,6 +17,7 @@ import org.cpsolver.ifs.criteria.Criterion;
 import org.cpsolver.instructor.criteria.BackToBack;
 import org.cpsolver.instructor.criteria.DifferentLecture;
 import org.cpsolver.instructor.criteria.TimeOverlaps;
+import org.cpsolver.instructor.criteria.UnusedInstructorLoad;
 
 /**
  * Instructor. An instructor has an id, a name, a teaching preference, a maximal teaching load, a back-to-back preference.
@@ -251,6 +252,12 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest.Variabl
     public int getPreference() { return iPreference; }
     
     /**
+     * Set teaching preference
+     * @param preference teaching preference of this instructor
+     */
+    public void setPreference(int preference) { iPreference = preference; }
+    
+    /**
      * Maximal load
      * @return maximal load of this instructor
      */
@@ -391,6 +398,7 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest.Variabl
         private int iTimeOverlaps;
         private double iBackToBacks;
         private double iDifferentLectures;
+        private double iUnusedLoad;
         
         /**
          * Constructor
@@ -468,6 +476,13 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest.Variabl
                 diff.inc(assignment, iDifferentLectures);
             }
 
+            // update unused instructor load
+            Criterion<TeachingRequest.Variable, TeachingAssignment> unused = getModel().getCriterion(UnusedInstructorLoad.class);
+            if (unused != null) {
+                unused.inc(assignment, -iUnusedLoad);
+                iUnusedLoad = getUnusedLoad();
+                unused.inc(assignment, iUnusedLoad);
+            }
         }
         
         /**
@@ -485,6 +500,14 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest.Variabl
             for (TeachingAssignment assignment : iAssignments)
                 load += assignment.variable().getRequest().getLoad();
             return load;
+        }
+        
+        /**
+         * Current unused load of this instructor
+         * @return zero if the instructor is not being used, difference between {@link Instructor#getMaxLoad()} and {@link Context#getLoad()} otherwise
+         */
+        public float getUnusedLoad() {
+            return (iAssignments.isEmpty() ? 0f : getInstructor().getMaxLoad() - getLoad());
         }
         
         /**

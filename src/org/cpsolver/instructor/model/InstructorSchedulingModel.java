@@ -25,6 +25,7 @@ import org.cpsolver.ifs.util.ToolBox;
 import org.cpsolver.instructor.constraints.InstructorConstraint;
 import org.cpsolver.instructor.constraints.SameInstructorConstraint;
 import org.cpsolver.instructor.constraints.SameLinkConstraint;
+import org.cpsolver.instructor.criteria.UnusedInstructorLoad;
 import org.cpsolver.instructor.criteria.AttributePreferences;
 import org.cpsolver.instructor.criteria.BackToBack;
 import org.cpsolver.instructor.criteria.CoursePreferences;
@@ -89,6 +90,7 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
         addCriterion(new DifferentLecture());
         addCriterion(new SameLink());
         addCriterion(new OriginalInstructor());
+        addCriterion(new UnusedInstructorLoad());
         addGlobalConstraint(new InstructorConstraint());
     }
     
