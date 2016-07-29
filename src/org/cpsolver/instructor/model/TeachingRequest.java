@@ -133,6 +133,7 @@ public class TeachingRequest {
         }
         if (needReq && !hasReq) return Constants.sPreferenceLevelProhibited;
         if (type.isRequired() && hasType && !hasPref) return Constants.sPreferenceLevelProhibited;
+        if (!type.isRequired() && hasType && !hasPref) return 16;
         return ret.getPreferenceInt();
     }
     
