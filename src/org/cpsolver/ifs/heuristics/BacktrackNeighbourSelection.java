@@ -127,7 +127,11 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
             return null;
 
         BacktrackNeighbourSelectionContext context = new BacktrackNeighbourSelectionContext(solution);
-        
+        selectNeighbour(solution, variable, context);
+        return context.getBackTrackNeighbour();
+    }
+    
+    protected void selectNeighbour(Solution<V, T> solution, V variable, BacktrackNeighbourSelectionContext context) {
         Lock lock = solution.getLock().writeLock();
         lock.lock();
         try {
@@ -146,7 +150,6 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
 
         if (sLog.isDebugEnabled())
             sLog.debug("-- selected neighbour: " + context.getBackTrackNeighbour());
-        return context.getBackTrackNeighbour();
     }
 
     private boolean containsConstantValues(Collection<T> values) {
