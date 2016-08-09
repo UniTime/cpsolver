@@ -55,6 +55,25 @@ public class RouletteWheelSelection<E> implements Enumeration<E> {
         iPoints.add(points);
         iTotalPoints += points;
     }
+    
+    /**
+     * Add an adept to the selection. Only increase points when the adept already exist in the selection.
+     * 
+     * @param adept
+     *            an object
+     * @param points
+     *            object weight (more points, better chance to be selected)
+     */
+    public void addExisting(E adept, double points) {
+        int idx = iAdepts.indexOf(adept);
+        if (idx < 0) {
+            iAdepts.add(adept);
+            iPoints.add(points);
+        } else {
+            iPoints.set(idx, iPoints.get(idx) + points);
+        }
+        iTotalPoints += points;
+    }
 
     private void swap(int idx1, int idx2) {
         E a1 = iAdepts.get(idx1);
