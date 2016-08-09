@@ -404,6 +404,19 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 info.put("Time overlapping conflicts", String.valueOf(getTimeOverlaps().getTotalNrConflicts(assignment)));
         }
         context.getInfo(assignment, info);
+        
+        
+        double groupSpread = 0.0; double groupCount = 0;
+        for (Offering offering: iOfferings) {
+            for (Course course: offering.getCourses()) {
+                for (RequestGroup group: course.getRequestGroups()) {
+                    groupSpread += group.getAverageSpread(assignment) * group.getEnrollmentWeight(assignment, null);
+                    groupCount += group.getEnrollmentWeight(assignment, null);
+                }
+            }
+        }
+        if (groupCount > 0)
+            info.put("Same group", sDecimalFormat.format(100.0 * groupSpread / groupCount) + "%");
 
         return info;
     }
@@ -872,18 +885,6 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             }
             info.put("Sections disbalanced by 10% or more", disb10Sections + " (" + sDecimalFormat.format(disbSections == 0 ? 0.0 : 100.0 * disb10Sections / disbSections) + "%)" + list);
         }
-        
-        double groupSpread = 0.0; double groupCount = 0;
-        for (Offering offering: iOfferings) {
-            for (Course course: offering.getCourses()) {
-                for (RequestGroup group: course.getRequestGroups()) {
-                    groupSpread += group.getAverageSpread(assignment) * group.getEnrollmentWeight(assignment, null);
-                    groupCount += group.getEnrollmentWeight(assignment, null);
-                }
-            }
-        }
-        if (groupCount > 0)
-            info.put("Same group", sDecimalFormat.format(100.0 * groupSpread / groupCount) + "%");
         
         return info;
     }
