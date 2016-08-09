@@ -15,6 +15,7 @@ import org.cpsolver.studentsct.heuristics.selection.RandomUnassignmentSelection;
 import org.cpsolver.studentsct.heuristics.selection.ResectionIncompleteStudentsSelection;
 import org.cpsolver.studentsct.heuristics.selection.ResectionUnassignedStudentsSelection;
 import org.cpsolver.studentsct.heuristics.selection.RndUnProblStudSelection;
+import org.cpsolver.studentsct.heuristics.selection.ShuffleStudentsSelection;
 import org.cpsolver.studentsct.heuristics.selection.StandardSelection;
 import org.cpsolver.studentsct.heuristics.selection.SwapStudentSelection;
 import org.cpsolver.studentsct.model.Enrollment;
@@ -79,11 +80,13 @@ import org.cpsolver.studentsct.model.Request;
 public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<Request, Enrollment> implements SolverListener<Request, Enrollment> {
     private boolean iUseConstruction = false;
     private boolean iMPP = false;
+    private boolean iShuffleStudentsSelection = false;
 
     public StudentSctNeighbourSelection(DataProperties properties) throws Exception {
         super(properties);
         iUseConstruction = properties.getPropertyBoolean("Sectioning.UsePriorityConstruction", iUseConstruction);
         iMPP = properties.getPropertyBoolean("General.MPP", false);
+        iShuffleStudentsSelection = properties.getPropertyBoolean("Shuffle.Enabled", true) && properties.getPropertyBoolean("Load.RequestGroups", false);
     }
 
     @Override
@@ -141,8 +144,16 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
 
         // Phase 12: use backtrack neighbour selection
         registerSelection(new BacktrackSelection(solver.getProperties()));
-
-        // Phase 13: random unassignment of some students
+        
+        if (iShuffleStudentsSelection) {
+            // Phase 13: try shuffling students around request groups
+            registerSelection(new ShuffleStudentsSelection(solver.getProperties()));
+            
+            // Phase 14: use backtrack neighbour selection to fix unassignments from the previous phase
+            registerSelection(new BacktrackSelection(solver.getProperties()));
+        }
+        
+        // Phase 15: random unassignment of some students
         registerSelection(new RandomUnassignmentSelection(solver.getProperties()));
     }
 
