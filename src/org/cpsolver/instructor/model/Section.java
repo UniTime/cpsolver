@@ -124,7 +124,7 @@ public class Section {
     
     /**
      * Is common part of the course (e.g., a lecture)? It is possible to either require all assignments of a course that are given to the same instructor to have
-     * to share the common part (when {@link Course#isSameCommon()} is true) or to minimize the different sections that are not shared among all the assignments
+     * to share the common part (when {@link TeachingRequest#getSameCommonPreference()} is true) or to minimize the different sections that are not shared among all the assignments
      * (using {@link DifferentLecture} criterion and {@link TeachingRequest#nrSameLectures(TeachingRequest)}). 
      * @return true if this section forms a common part of the course
      */

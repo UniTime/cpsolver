@@ -43,6 +43,7 @@ public class TeachingRequest {
     private List<Preference<Attribute>> iAttributePreferences = new ArrayList<Preference<Attribute>>();
     private List<Preference<Instructor>> iInstructorPreferences = new ArrayList<Preference<Instructor>>();
     private Variable[] iVariables;
+    private int iSameCoursePreference, iSameCommonPreference;
 
     /**
      * Constructor
@@ -51,8 +52,10 @@ public class TeachingRequest {
      * @param course course
      * @param load teaching load
      * @param sections list of sections
+     * @param sameCoursePreference same course preference
+     * @param sameCommonPreference same common preference (two requests of the same course share the common part)
      */
-    public TeachingRequest(long requestId, int nrVariables, Course course, float load, Collection<Section> sections) {
+    public TeachingRequest(long requestId, int nrVariables, Course course, float load, Collection<Section> sections, int sameCoursePreference, int sameCommonPreference) {
         super();
         iRequestId = requestId;
         iCourse = course;
@@ -61,6 +64,8 @@ public class TeachingRequest {
         iVariables = new Variable[nrVariables];
         for (int i = 0; i < nrVariables; i++)
             iVariables[i] = new Variable(i);
+        iSameCoursePreference = sameCoursePreference;
+        iSameCommonPreference = sameCommonPreference;
     }
 
     /**
@@ -69,6 +74,52 @@ public class TeachingRequest {
      */
     public long getRequestId() {
         return iRequestId;
+    }
+    
+    
+    /**
+     * Preference of an instructor taking this request together with some other request of the same / different course. 
+     * @return same course preference
+     */
+    public int getSameCoursePreference() { return iSameCoursePreference; }
+    
+    /**
+     * Is same course required?
+     * @return same course preference is required
+     */
+    public boolean isSameCourseRequired() {
+        return Constants.sPreferenceRequired.equals(Constants.preferenceLevel2preference(iSameCoursePreference));
+    }
+    
+    /**
+     * Is same course prohibited?
+     * @return same course preference is prohibited
+     */
+    public boolean isSameCourseProhibited() {
+        return Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(iSameCoursePreference));
+    }
+
+    /**
+     * Whether to ensure that multiple assignments given to the same instructor share the common part. If required, all assignments of this
+     * course that are given to the same student must share the sections that are marked as common (see {@link Section#isCommon()}).
+     * @return same common preference 
+     */
+    public int getSameCommonPreference() { return iSameCommonPreference; }
+    
+    /**
+     * Is same common required?
+     * @return same common preference is required
+     */
+    public boolean isSameCommonRequired() {
+        return Constants.sPreferenceRequired.equals(Constants.preferenceLevel2preference(iSameCommonPreference));
+    }
+    
+    /**
+     * Is same common prohibited?
+     * @return same common preference is prohibited
+     */
+    public boolean isSameCommonProhibited() {
+        return Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(iSameCommonPreference));
     }
     
     /**
@@ -220,7 +271,38 @@ public class TeachingRequest {
         for (Section section: getSections())
             if (section.isCommon() && !request.getSections().contains(section))
                 return false;
+        for (Section section: request.getSections())
+            if (section.isCommon() && !getSections().contains(section))
+                return false;
         return true;
+    }
+    
+    /**
+     * Check if this request and the given one can be assigned to the same instructor without violating the same common constraint
+     * @param request the other teaching request
+     * @return same common constraint is violated
+     */
+    public boolean isSameCommonViolated(TeachingRequest request) {
+        if (!sameCourse(request)) return false;
+        if (sameCommon(request)) {
+            return isSameCommonProhibited() || request.isSameCommonProhibited();
+        } else {
+            return isSameCommonRequired() || request.isSameCommonRequired();
+        }
+    }
+    
+    /**
+     * Return same common penalty of this request and the given request being assigned to the same instructor
+     * @param request the other teaching request
+     * @return same common penalty between the two teaching requests
+     */
+    public double getSameCommonPenalty(TeachingRequest request) {
+        if (!sameCourse(request)) return 0; // not applicable
+        if (sameCommon(request)) {
+            return (getSameCommonPreference() > 0 ? getSameCommonPreference() : 0) + (request.getSameCommonPreference() > 0 ? request.getSameCommonPreference() : 0); 
+        } else {
+            return (getSameCommonPreference() < 0 ? - getSameCommonPreference() : 0) + (request.getSameCommonPreference() < 0 ? - request.getSameCommonPreference() : 0);
+        }
     }
     
     /**
@@ -246,6 +328,32 @@ public class TeachingRequest {
      */
     public boolean sameCourse(TeachingRequest request) {
         return getCourse().equals(request.getCourse());
+    }
+    
+    /**
+     * Check if this request and the given one can be assigned to the same instructor without violating the same course constraint
+     * @param request the other teaching request
+     * @return same course constraint is violated
+     */
+    public boolean isSameCourseViolated(TeachingRequest request) {
+        if (sameCourse(request)) { // same course
+            return isSameCourseProhibited() || request.isSameCourseProhibited();
+        } else { // not same course
+            return isSameCourseRequired() || request.isSameCourseRequired();
+        }
+    }
+    
+    /**
+     * Return same course penalty of this request and the given request being assigned to the same instructor
+     * @param request the other teaching request
+     * @return same course penalty between the two teaching requests
+     */
+    public double getSameCoursePenalty(TeachingRequest request) {
+        if (sameCourse(request)) {
+            return (getSameCoursePreference() > 0 ? getSameCoursePreference() : 0) + (request.getSameCoursePreference() > 0 ? request.getSameCoursePreference() : 0);
+        } else {
+            return (getSameCoursePreference() < 0 ? - getSameCoursePreference() : 0) + (request.getSameCoursePreference() < 0 ? - request.getSameCoursePreference() : 0);
+        }
     }
 
     /**

@@ -210,10 +210,10 @@ public class MathTest extends Test {
                 sections.add(new Section(assId++, id.toString(), section, course + " " + section + " " + time.getName(true) + (room == null ? "" : " " + room), time, room, false, false));
                 Course c = courses.get(course);
                 if (c == null) {
-                    c = new Course(courses.size(), course, true, false);
+                    c = new Course(courses.size(), course);
                     courses.put(course, c);
                 }
-                TeachingRequest clazz = new TeachingRequest(reqId++, 1, c, 0f, sections);
+                TeachingRequest clazz = new TeachingRequest(reqId++, 1, c, 0f, sections, Constants.sPreferenceLevelRequired, Constants.sPreferenceLevelNeutral);
                 addRequest(clazz);
                 List<TeachingRequest> classes = id2classes.get(id);
                 if (classes == null) {
@@ -346,7 +346,7 @@ public class MathTest extends Test {
                     if (pref.indexOf(' ') > 0) pref = pref.substring(0, pref.indexOf(' '));
                     Course c = courses.get(pref);
                     if (c == null) {
-                        c = new Course(courses.size(), pref, true, false);
+                        c = new Course(courses.size(), pref);
                         courses.put(pref, c);
                     }
                     instructor.addCoursePreference(new Preference<Course>(c, i == 0 ? -10 : i == 1 ? -8 : -5));

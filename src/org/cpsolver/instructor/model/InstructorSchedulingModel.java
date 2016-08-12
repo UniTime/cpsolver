@@ -33,6 +33,8 @@ import org.cpsolver.instructor.criteria.InstructorPreferences;
 import org.cpsolver.instructor.criteria.SameInstructor;
 import org.cpsolver.instructor.criteria.DifferentLecture;
 import org.cpsolver.instructor.criteria.OriginalInstructor;
+import org.cpsolver.instructor.criteria.SameCommon;
+import org.cpsolver.instructor.criteria.SameCourse;
 import org.cpsolver.instructor.criteria.SameLink;
 import org.cpsolver.instructor.criteria.TeachingPreferences;
 import org.cpsolver.instructor.criteria.TimeOverlaps;
@@ -91,6 +93,8 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
         addCriterion(new SameLink());
         addCriterion(new OriginalInstructor());
         addCriterion(new UnusedInstructorLoad());
+        addCriterion(new SameCourse());
+        addCriterion(new SameCommon());
         addGlobalConstraint(new InstructorConstraint());
     }
     
@@ -238,8 +242,6 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
                 }
             }
         }
-        Set<Course> courses = new HashSet<Course>();
-        Element coursesEl = root.addElement("courses");
         Element requestsEl = root.addElement("teaching-requests");
         for (TeachingRequest request: getRequests()) {
             Element requestEl = requestsEl.addElement("request");
@@ -247,18 +249,11 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
             if (request.getNrInstructors() != 1)
                 requestEl.addAttribute("nrInstructors", String.valueOf(request.getNrInstructors()));
             Course course = request.getCourse();
-            if (courses.add(course)) {
-                Element courseEl = coursesEl.addElement("course");
-                if (course.getCourseId() != null)
-                    courseEl.addAttribute("id", String.valueOf(course.getCourseId()));
-                if (course.getCourseName() != null)
-                    courseEl.addAttribute("name", String.valueOf(course.getCourseName()));
-                if (course.isExclusive())
-                    courseEl.addAttribute("exclusive", "true");
-                if (course.isSameCommon())
-                    courseEl.addAttribute("common", "true");                
-            }
-            requestEl.addAttribute("course", String.valueOf(request.getCourse().getCourseId()));
+            Element courseEl = requestEl.addElement("course");
+            if (course.getCourseId() != null)
+                courseEl.addAttribute("id", String.valueOf(course.getCourseId()));
+            if (course.getCourseName() != null)
+                courseEl.addAttribute("name", String.valueOf(course.getCourseName()));
             for (Section section: request.getSections()) {
                 Element sectionEl = requestEl.addElement("section");
                 sectionEl.addAttribute("id", String.valueOf(section.getSectionId()));
@@ -288,6 +283,8 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
                 if (section.isCommon()) sectionEl.addAttribute("common", "true");
             }
             requestEl.addAttribute("load", sDoubleFormat.format(request.getLoad()));
+            requestEl.addAttribute("sameCourse", Constants.preferenceLevel2preference(request.getSameCoursePreference()));
+            requestEl.addAttribute("sameCommon", Constants.preferenceLevel2preference(request.getSameCommonPreference()));
             for (Preference<Attribute> pref: request.getAttributePreferences()) {
                 Element attributeEl = requestEl.addElement("attribute");
                 if (pref.getTarget().getAttributeId() != null)
@@ -464,8 +461,8 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
         String defaultBtb = getProperties().getProperty("Defaults.BackToBack", "0");
         String defaultConjunctive = getProperties().getProperty("Defaults.Conjunctive", "false");
         String defaultRequired = getProperties().getProperty("Defaults.Required", "false");
-        String defaultExclusive = getProperties().getProperty("Defaults.Exclusive", "false");
-        String defaultCommon = getProperties().getProperty("Defaults.SameCommon", "false");
+        String defaultSameCourse = getProperties().getProperty("Defaults.SameCourse", "R");
+        String defaultSameCommon = getProperties().getProperty("Defaults.SameCommon", "R");
         Element root = document.getRootElement();
         if (!"instructor-schedule".equals(root.getName()))
             return false;
@@ -498,9 +495,7 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
                 Element courseEl = (Element) i.next();
                 Course course = new Course(
                         Long.parseLong(courseEl.attributeValue("id")),
-                        courseEl.attributeValue("name"),
-                        "true".equalsIgnoreCase(courseEl.attributeValue("exclusive", defaultExclusive)),
-                        "true".equalsIgnoreCase(courseEl.attributeValue("common", defaultCommon)));
+                        courseEl.attributeValue("name"));
                 courses.put(course.getCourseId(), course);
             }
         }
@@ -569,16 +564,7 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
             }
             for (Iterator<?> j = instructorEl.elementIterator("course"); j.hasNext();) {
                 Element f = (Element) j.next();
-                Long courseId = Long.parseLong(f.attributeValue("id"));
-                Course course = courses.get(courseId);
-                if (course == null) {
-                    course = new Course(courseId,
-                            f.attributeValue("name"),
-                            "true".equalsIgnoreCase(f.attributeValue("exclusive", defaultExclusive)),
-                            "true".equalsIgnoreCase(f.attributeValue("common", defaultCommon)));
-                    courses.put(course.getCourseId(), course);
-                }
-                instructor.addCoursePreference(new Preference<Course>(course, string2preference(f.attributeValue("preference"))));
+                instructor.addCoursePreference(new Preference<Course>(new Course(Long.parseLong(f.attributeValue("id")), f.attributeValue("name")), string2preference(f.attributeValue("preference"))));
             }
             addInstructor(instructor);
             instructors.put(instructor.getInstructorId(), instructor);
@@ -595,10 +581,7 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
                 Long courseId = Long.valueOf(courseEl.attributeValue("id"));
                 course = courses.get(courseId);
                 if (course == null) {
-                    course = new Course(courseId,
-                            courseEl.attributeValue("name"),
-                            "true".equalsIgnoreCase(courseEl.attributeValue("exclusive", defaultExclusive)),
-                            "true".equalsIgnoreCase(courseEl.attributeValue("common", defaultCommon)));
+                    course = new Course(courseId, courseEl.attributeValue("name"));
                 }
             } else {
                 course = courses.get(Long.valueOf(requestEl.attributeValue("course")));
@@ -636,7 +619,9 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
                     Integer.parseInt(requestEl.attributeValue("nrInstructors", "1")),
                     course,
                     Float.valueOf(requestEl.attributeValue("load", "0")),
-                    sections);
+                    sections,
+                    Constants.preference2preferenceLevel(requestEl.attributeValue("sameCourse", defaultSameCourse)),
+                    Constants.preference2preferenceLevel(requestEl.attributeValue("sameCommon", defaultSameCommon)));
             requests.put(request.getRequestId(), request);
             for (Iterator<?> j = requestEl.elementIterator("attribute"); j.hasNext();) {
                 Element f = (Element) j.next();

@@ -27,19 +27,14 @@ package org.cpsolver.instructor.model;
 public class Course {
     private Long iCourseId;
     private String iCourseName;
-    private boolean iExclusive;
-    private boolean iCommon;
     
     /**
      * Constructor
      * @param courseId course id
      * @param courseName course name
-     * @param exclusive exclusivity of the course
-     * @param sameCommon ensure that multiple assignments given to the same instructor share the common part
      */
-    public Course(long courseId, String courseName, boolean exclusive, boolean sameCommon) {
+    public Course(long courseId, String courseName) {
         iCourseId = courseId; iCourseName = courseName;
-        iExclusive = exclusive; iCommon = sameCommon;
     }
     
     /**
@@ -53,20 +48,6 @@ public class Course {
      * @return course name
      */
     public String getCourseName() { return iCourseName == null ? "C" + iCourseId : iCourseName; }
-    
-    /**
-     * If a course is marked as exclusive, all assignments of an instructor must have
-     * the same course.
-     * @return true if this course is exclusive
-     */
-    public boolean isExclusive() { return iExclusive; }
-    
-    /**
-     * Whether to ensure that multiple assignments given to the same instructor share the common part. If enabled, all assignments of this
-     * course that are given to the same student must share the sections that are marked as common (see {@link Section#isCommon()}).
-     * @return true means that an instructor cannot be given two assignments of this course that do NOT share the common part 
-     */
-    public boolean isSameCommon() { return iCommon; }
     
     @Override
     public int hashCode() {

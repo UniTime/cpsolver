@@ -16,6 +16,8 @@ import org.cpsolver.ifs.assignment.context.CanInheritContext;
 import org.cpsolver.ifs.criteria.Criterion;
 import org.cpsolver.instructor.criteria.BackToBack;
 import org.cpsolver.instructor.criteria.DifferentLecture;
+import org.cpsolver.instructor.criteria.SameCommon;
+import org.cpsolver.instructor.criteria.SameCourse;
 import org.cpsolver.instructor.criteria.TimeOverlaps;
 import org.cpsolver.instructor.criteria.UnusedInstructorLoad;
 
@@ -399,6 +401,7 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest.Variabl
         private double iBackToBacks;
         private double iDifferentLectures;
         private double iUnusedLoad;
+        private double iSameCoursePenalty, iSameCommonPenalty;
         
         /**
          * Constructor
@@ -482,6 +485,22 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest.Variabl
                 unused.inc(assignment, -iUnusedLoad);
                 iUnusedLoad = getUnusedLoad();
                 unused.inc(assignment, iUnusedLoad);
+            }
+            
+            // same course penalty
+            Criterion<TeachingRequest.Variable, TeachingAssignment> sameCourse = getModel().getCriterion(SameCourse.class);
+            if (sameCourse != null) {
+                sameCourse.inc(assignment, -iSameCoursePenalty);
+                iSameCoursePenalty = countSameCoursePenalty();
+                sameCourse.inc(assignment, iSameCoursePenalty);
+            }
+            
+            // same common penalty
+            Criterion<TeachingRequest.Variable, TeachingAssignment> sameCommon = getModel().getCriterion(SameCommon.class);
+            if (sameCommon != null) {
+                sameCommon.inc(assignment, -iSameCommonPenalty);
+                iSameCommonPenalty = countSameCommonPenalty();
+                sameCommon.inc(assignment, iSameCommonPenalty);
             }
         }
         
@@ -598,6 +617,38 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest.Variabl
                 }
             }
             return (pairs == 0 ? 0.0 : b2b / pairs);
+        }
+        
+        /**
+         * Compute same course penalty between all requests of this instructor
+         * @return same course penalty
+         */
+        public double countSameCoursePenalty() {
+            if (iAssignments.size() <= 1) return 0.0;
+            double penalty = 0.0;
+            for (TeachingAssignment a1 : iAssignments) {
+                for (TeachingAssignment a2 : iAssignments) {
+                    if (a1.getId() >= a2.getId()) continue;
+                    penalty += a1.variable().getRequest().getSameCoursePenalty(a2.variable().getRequest());
+                }
+            }
+            return penalty / (iAssignments.size() - 1);
+        }
+        
+        /**
+         * Compute same common penalty between all requests of this instructor
+         * @return same common penalty
+         */
+        public double countSameCommonPenalty() {
+            if (iAssignments.size() <= 1) return 0.0;
+            double penalty = 0.0;
+            for (TeachingAssignment a1 : iAssignments) {
+                for (TeachingAssignment a2 : iAssignments) {
+                    if (a1.getId() >= a2.getId()) continue;
+                    penalty += a1.variable().getRequest().getSameCommonPenalty(a2.variable().getRequest());
+                }
+            }
+            return penalty / (iAssignments.size() - 1);
         }
     }
 }

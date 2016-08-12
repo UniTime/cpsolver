@@ -62,22 +62,11 @@ public class InstructorConstraint extends GlobalConstraint<TeachingRequest.Varia
         }
 
         // Same course and/or common
-        if (value.variable().getCourse().isExclusive()) {
-            boolean sameCommon = value.variable().getCourse().isSameCommon();
-            for (TeachingAssignment ta : context.getAssignments()) {
-                if (ta.variable().equals(value.variable()) || conflicts.contains(ta))
-                    continue;
-
-                if (!ta.variable().getRequest().sameCourse(value.variable().getRequest()) || (sameCommon && !ta.variable().getRequest().sameCommon(value.variable().getRequest())))
-                    conflicts.add(ta);
-            }
-        } else if (value.variable().getCourse().isSameCommon()) {
-            for (TeachingAssignment ta : context.getAssignments()) {
-                if (ta.variable().equals(value.variable()) || conflicts.contains(ta))
-                    continue;
-                if (ta.variable().getRequest().sameCourse(value.variable().getRequest()) && !ta.variable().getRequest().sameCommon(value.variable().getRequest()))
-                    conflicts.add(ta);
-            }
+        for (TeachingAssignment ta : context.getAssignments()) {
+            if (ta.variable().equals(value.variable()) || conflicts.contains(ta))
+                continue;
+            if (ta.variable().getRequest().isSameCourseViolated(value.variable().getRequest()) || ta.variable().getRequest().isSameCommonViolated(value.variable().getRequest()))
+                conflicts.add(ta);
         }
         
         // Check load
