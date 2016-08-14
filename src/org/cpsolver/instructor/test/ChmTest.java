@@ -95,12 +95,11 @@ public class ChmTest extends Test {
     public String getCoursePreference(TeachingRequest req, Instructor instructor) {
         Preference<Course> p = instructor.getCoursePreference(req.getCourse());
         if (p.getPreference() == 0) return "";
-        switch (Constants.preferenceLevel2preference(p.getPreference())) {
-            case "R": return "Yes (SUPER)";
-            case "-2": return "Yes";
-            case "-1": return "Organic Lab";
-            default: return Constants.preferenceLevel2preference(p.getPreference());
-        }
+        String pref = Constants.preferenceLevel2preference(p.getPreference());
+        if ("R".equals(pref)) return "Yes (SUPER)";
+        if ("-2".equals(pref)) return "Yes";
+        if ("-1".equals(pref)) return "Organic Lab";
+        return pref;
     }
     
     public String getAttributes(TeachingRequest req, Instructor instructor, String type) {
