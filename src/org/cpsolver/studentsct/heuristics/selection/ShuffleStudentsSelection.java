@@ -251,7 +251,7 @@ public class ShuffleStudentsSelection implements NeighbourSelection<Request, Enr
         }
         
         /**
-         * List of values of the given variable that will be considered (filtered using {@link Shuffle#matchFilter(Enrollment)} if applicable).
+         * List of values of the given variable that will be considered (filtered using {@link ShuffleStudentsSelection.Shuffle#matchFilter(Enrollment)} if applicable).
          * @param context assignment context
          * @param variable given variable
          * @return values of the given variable that will be considered

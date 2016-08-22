@@ -349,7 +349,6 @@ public class MacRevised<V extends Variable<V, T>, T extends Value<V, T>> extends
         }
 
         /** sets value to be good 
-         * @param assignment current assignment
          * @param value given value
          **/
         protected void setGood(T value) {
