@@ -62,7 +62,11 @@ public class SameCourse extends InstructorSchedulingCriterion {
         double[] bounds = new double[] { 0.0, 0.0 };
         for (TeachingRequest.Variable req: variables) {
             if (!req.getRequest().isSameCourseProhibited() && !req.getRequest().isSameCourseRequired())
-            bounds[1] += Math.abs(req.getRequest().getSameCoursePreference());
+                if (req.getRequest().getSameCoursePreference() < 0) {
+                    bounds[0] += req.getRequest().getSameCoursePreference();
+                } else {
+                    bounds[1] += req.getRequest().getSameCoursePreference();
+                }
         }
         return bounds;
     }

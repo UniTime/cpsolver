@@ -62,7 +62,11 @@ public class SameCommon extends InstructorSchedulingCriterion {
         double[] bounds = new double[] { 0.0, 0.0 };
         for (TeachingRequest.Variable req: variables) {
             if (!req.getRequest().isSameCommonProhibited() && !req.getRequest().isSameCommonRequired())
-            bounds[1] += Math.abs(req.getRequest().getSameCommonPreference());
+                if (req.getRequest().getSameCommonPreference() < 0) {
+                    bounds[0] += req.getRequest().getSameCommonPreference();
+                } else {
+                    bounds[1] += req.getRequest().getSameCommonPreference();
+                }
         }
         return bounds;
     }

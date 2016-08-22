@@ -278,17 +278,32 @@ public class TeachingRequest {
     }
     
     /**
+     * Check if the given request (partially) share the common sections with this request  
+     * @param request the other teaching request
+     * @return true, if there is at least one common section of this request that is also present in the other request
+     */
+    public boolean shareCommon(TeachingRequest request) {
+        for (Section section: getSections())
+            if (section.isCommon() && request.getSections().contains(section))
+                return true;
+        for (Section section: request.getSections())
+            if (section.isCommon() && getSections().contains(section))
+                return true;
+        return false;
+    }
+    
+    /**
      * Check if this request and the given one can be assigned to the same instructor without violating the same common constraint
      * @param request the other teaching request
      * @return same common constraint is violated
      */
     public boolean isSameCommonViolated(TeachingRequest request) {
         if (!sameCourse(request)) return false;
-        if (sameCommon(request)) {
-            return isSameCommonProhibited() || request.isSameCommonProhibited();
-        } else {
-            return isSameCommonRequired() || request.isSameCommonRequired();
-        }
+        if ((isSameCommonRequired() || request.isSameCommonRequired()) && !sameCommon(request))
+            return true;
+        if ((isSameCommonProhibited() || request.isSameCommonProhibited()) && shareCommon(request))
+            return true;
+        return false;
     }
     
     /**
@@ -298,11 +313,17 @@ public class TeachingRequest {
      */
     public double getSameCommonPenalty(TeachingRequest request) {
         if (!sameCourse(request)) return 0; // not applicable
-        if (sameCommon(request)) {
-            return (getSameCommonPreference() > 0 ? getSameCommonPreference() : 0) + (request.getSameCommonPreference() > 0 ? request.getSameCommonPreference() : 0); 
-        } else {
-            return (getSameCommonPreference() < 0 ? - getSameCommonPreference() : 0) + (request.getSameCommonPreference() < 0 ? - request.getSameCommonPreference() : 0);
+        int penalty = 0;
+        // preferred and same
+        if ((getSameCommonPreference() < 0 || request.getSameCommonPreference() < 0) && sameCommon(request)) {
+            penalty += (!isSameCommonRequired() && getSameCommonPreference() < 0 ? getSameCommonPreference() : 0)
+                    + (!request.isSameCommonRequired() && request.getSameCommonPreference() < 0 ? request.getSameCommonPreference() : 0);
         }
+        // discouraged and sharing common
+        if ((getSameCommonPreference() > 0 || request.getSameCommonPreference() > 0) && shareCommon(request)) {
+            penalty += (getSameCommonPreference() > 0 ? getSameCommonPreference() : 0) + (request.getSameCommonPreference() > 0 ? request.getSameCommonPreference() : 0);
+        }
+        return penalty;
     }
     
     /**
@@ -349,11 +370,8 @@ public class TeachingRequest {
      * @return same course penalty between the two teaching requests
      */
     public double getSameCoursePenalty(TeachingRequest request) {
-        if (sameCourse(request)) {
-            return (getSameCoursePreference() > 0 ? getSameCoursePreference() : 0) + (request.getSameCoursePreference() > 0 ? request.getSameCoursePreference() : 0);
-        } else {
-            return (getSameCoursePreference() < 0 ? - getSameCoursePreference() : 0) + (request.getSameCoursePreference() < 0 ? - request.getSameCoursePreference() : 0);
-        }
+        if (!sameCourse(request)) return 0;
+        return (isSameCourseRequired() ? 0 : getSameCoursePreference()) + (request.isSameCourseRequired() ? 0 : request.getSameCoursePreference());
     }
 
     /**
