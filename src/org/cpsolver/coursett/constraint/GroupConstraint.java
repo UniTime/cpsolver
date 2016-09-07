@@ -985,7 +985,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                         if (nrSlotsADay(assignment, dayCode, week, assignments, conflicts) > getType().getMax()) {
                             List<Placement> adepts = new ArrayList<Placement>();
                             for (Lecture l: variables()) {
-                                if (l.equals(value.variable())) continue;
+                                if (l.equals(value.variable()) || l.isConstant()) continue;
                                 Placement p = assignment.getValue(l);
                                 if (p == null || conflicts.contains(p) || p.getTimeLocation() == null) continue;
                                 if ((p.getTimeLocation().getDayCode() & dayCode) == 0 || !p.getTimeLocation().shareWeeks(week)) continue;
@@ -996,13 +996,14 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                                 adepts.remove(conflict);
                                 conflicts.add(conflict);
                             } while (!adepts.isEmpty() && nrSlotsADay(assignment, dayCode, week, assignments, conflicts) > getType().getMax());
+                            if (adepts.isEmpty() && nrSlotsADay(assignment, dayCode, week, assignments, conflicts) > getType().getMax()) conflicts.add(value);
                         }
                     }
                 } else {
                     if (nrSlotsADay(assignment, dayCode, null, assignments, conflicts) > getType().getMax()) {
                         List<Placement> adepts = new ArrayList<Placement>();
                         for (Lecture l: variables()) {
-                            if (l.equals(value.variable())) continue;
+                            if (l.equals(value.variable()) || l.isConstant()) continue;
                             Placement p = assignment.getValue(l);
                             if (p == null || conflicts.contains(p) || p.getTimeLocation() == null) continue;
                             if ((p.getTimeLocation().getDayCode() & dayCode) == 0) continue;
@@ -1013,6 +1014,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                             adepts.remove(conflict);
                             conflicts.add(conflict);
                         } while (!adepts.isEmpty() && nrSlotsADay(assignment, dayCode, null, assignments, conflicts) > getType().getMax());
+                        if (adepts.isEmpty() && nrSlotsADay(assignment, dayCode, null, assignments, conflicts) > getType().getMax()) conflicts.add(value);
                     }
                 }
             }
