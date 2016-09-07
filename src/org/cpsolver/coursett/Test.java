@@ -220,8 +220,14 @@ public class Test implements SolutionListener<Lecture, Placement> {
             Progress.getInstance(model).addProgressListener(new ProgressWriter(System.out));
             Solver<Lecture, Placement> solver = (nrSolvers == 1 ? new Solver<Lecture, Placement>(properties) : new ParallelSolver<Lecture, Placement>(properties));
 
-            TimetableLoader loader = (TimetableLoader) Class.forName(getTimetableLoaderClass(properties))
-                    .getConstructor(new Class[] { TimetableModel.class, Assignment.class }).newInstance(new Object[] { model, assignment });
+            TimetableLoader loader = null;
+            try {
+                loader = (TimetableLoader) Class.forName(getTimetableLoaderClass(properties))
+                        .getConstructor(new Class[] { TimetableModel.class, Assignment.class }).newInstance(new Object[] { model, assignment });
+            } catch (ClassNotFoundException e) {
+                System.err.println(e.getClass().getSimpleName() + ": " + e.getMessage());
+                loader = new TimetableXMLLoader(model, assignment);
+            }
             loader.load();
 
             solver.setInitalSolution(new Solution<Lecture, Placement>(model, assignment));
@@ -1120,8 +1126,14 @@ public class Test implements SolutionListener<Lecture, Placement> {
                     printSomeStuff(bestSolution);
 
                     if (properties.getPropertyBoolean("General.Save", true)) {
-                        TimetableSaver saver = (TimetableSaver) Class.forName(getTimetableSaverClass(properties))
+                        TimetableSaver saver = null;
+                        try {
+                            saver = (TimetableSaver) Class.forName(getTimetableSaverClass(properties))
                                 .getConstructor(new Class[] { Solver.class }).newInstance(new Object[] { iSolver });
+                        } catch (ClassNotFoundException e) {
+                            System.err.println(e.getClass().getSimpleName() + ": " + e.getMessage());
+                            saver = new TimetableXMLSaver(iSolver);
+                        }
                         if ((saver instanceof TimetableXMLSaver) && properties.getProperty("General.SolutionFile") != null)
                             ((TimetableXMLSaver) saver).save(new File(properties.getProperty("General.SolutionFile")));
                         else
