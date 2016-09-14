@@ -992,11 +992,11 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                                 adepts.add(p);
                             }
                             do {
+                                if (adepts.isEmpty()) { conflicts.add(value); break; }
                                 Placement conflict = ToolBox.random(adepts);
                                 adepts.remove(conflict);
                                 conflicts.add(conflict);
-                            } while (!adepts.isEmpty() && nrSlotsADay(assignment, dayCode, week, assignments, conflicts) > getType().getMax());
-                            if (adepts.isEmpty() && nrSlotsADay(assignment, dayCode, week, assignments, conflicts) > getType().getMax()) conflicts.add(value);
+                            } while (nrSlotsADay(assignment, dayCode, week, assignments, conflicts) > getType().getMax());
                         }
                     }
                 } else {
@@ -1010,11 +1010,11 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                             adepts.add(p);
                         }
                         do {
+                            if (adepts.isEmpty()) { conflicts.add(value); break; }
                             Placement conflict = ToolBox.random(adepts);
                             adepts.remove(conflict);
                             conflicts.add(conflict);
-                        } while (!adepts.isEmpty() && nrSlotsADay(assignment, dayCode, null, assignments, conflicts) > getType().getMax());
-                        if (adepts.isEmpty() && nrSlotsADay(assignment, dayCode, null, assignments, conflicts) > getType().getMax()) conflicts.add(value);
+                        } while (nrSlotsADay(assignment, dayCode, null, assignments, conflicts) > getType().getMax());
                     }
                 }
             }
