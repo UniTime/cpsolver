@@ -51,6 +51,8 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
     private Offering iOffering = null;
     private int iLimit = -1;
     private List<Subpart> iSubparts = new ArrayList<Subpart>();
+    private Long iInstrMethodId;
+    private String iInstrMethodName;
 
     /**
      * Constructor
@@ -118,6 +120,30 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
     public List<Subpart> getSubparts() {
         return iSubparts;
     }
+    
+    /**
+     * Return instructional method id
+     * @return instructional method id
+     */
+    public Long getInstructionalMethodId() { return iInstrMethodId; }
+    
+    /**
+     * Set instructional method id
+     * @param instrMethodId instructional method id
+     */
+    public void setInstructionalMethodId(Long instrMethodId) { iInstrMethodId = instrMethodId; }
+    
+    /**
+     * Return instructional method name
+     * @return instructional method name
+     */
+    public String getInstructionalMethodName() { return iInstrMethodName; }
+    
+    /**
+     * Set instructional method name
+     * @param instrMethodName instructional method name
+     */
+    public void setInstructionalMethodName(String instrMethodName) { iInstrMethodName = instrMethodName; }
 
     @Override
     public String toString() {

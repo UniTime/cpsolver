@@ -367,6 +367,11 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                 Integer.parseInt(configEl.attributeValue("limit", "-1")),
                 configEl.attributeValue("name", "G" + configEl.attributeValue("id")),
                 offering);
+        Element imEl = configEl.element("instructional-method");
+        if (imEl != null) {
+            config.setInstructionalMethodId(Long.parseLong(imEl.attributeValue("id")));
+            config.setInstructionalMethodName(imEl.attributeValue("name", "M" + imEl.attributeValue("id")));
+        }
         for (Iterator<?> k = configEl.elementIterator("subpart"); k.hasNext();) {
             Element subpartEl = (Element) k.next();
             Subpart subpart = loadSubpart(subpartEl, config, subpartTable, sectionTable, timetable);

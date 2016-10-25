@@ -349,6 +349,12 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
             Element subpartEl = configEl.addElement("subpart");
             saveSubpart(subpartEl, subpart);
         }
+        if (config.getInstructionalMethodId() != null) {
+            Element imEl = configEl.addElement("instructional-method");
+            imEl.addAttribute("id", getId("instructional-method", config.getInstructionalMethodId()));
+            if (iShowNames && config.getInstructionalMethodName() != null)
+                imEl.addAttribute("name", config.getInstructionalMethodName());
+        }
     }
     
     /**
