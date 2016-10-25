@@ -289,8 +289,7 @@ public class Test {
                                 }
                     }
                     OnlineSection clonedSection = new OnlineSection(section.getId(), limit,
-                            section.getName(course .getId()), clonedSubpart, section.getPlacement(), section.getChoice().getInstructorIds(),
-                            section.getChoice().getInstructorNames(), (section.getParent() == null ? null : sections.get(section.getParent())));
+                            section.getName(course .getId()), clonedSubpart, section.getPlacement(), section.getInstructors(), (section.getParent() == null ? null : sections.get(section.getParent())));
                     clonedSection.setName(-1l, section.getName(-1l));
                     clonedSection.setNote(section.getNote());
                     clonedSection.setSpaceExpected(section.getSpaceExpected());

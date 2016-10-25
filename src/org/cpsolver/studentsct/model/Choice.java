@@ -1,7 +1,10 @@
 package org.cpsolver.studentsct.model;
 
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.StringTokenizer;
 
@@ -42,8 +45,7 @@ public class Choice {
     private Offering iOffering = null;
     private String iInstructionalType = null;
     private TimeLocation iTime = null;
-    private String iInstructorIds = null;
-    private String iInstructorNames = null;
+    private List<Instructor> iInstructors = null;
     private int iHashCode;
 
     /**
@@ -56,19 +58,28 @@ public class Choice {
      *            Recitation or Laboratory)
      * @param time
      *            time assignment
-     * @param instructorIds
-     *            instructor(s) id
-     * @param instructorNames
-     *            instructor(s) name
+     * @param instructors
+     *            instructor(s)
      */
-    public Choice(Offering offering, String instructionalType, TimeLocation time, String instructorIds,
-            String instructorNames) {
+    public Choice(Offering offering, String instructionalType, TimeLocation time, List<Instructor> instructors) {
         iOffering = offering;
         iInstructionalType = instructionalType;
         iTime = time;
-        iInstructorIds = instructorIds;
-        iInstructorNames = instructorNames;
+        iInstructors = instructors;
         iHashCode = getId().hashCode();
+    }
+    
+    @Deprecated
+    public Choice(Offering offering, String instructionalType, TimeLocation time, String instructorIds, String instructorNames) {
+        this(offering, instructionalType, time, Instructor.toInstructors(instructorIds, instructorNames));
+    }
+    
+    /**
+     * Constructor
+     * @param section section to base the choice on
+     */
+    public Choice(Section section) {
+        this(section.getSubpart().getConfig().getOffering(), section.getSubpart().getInstructionalType(), section.getTime(), section.getInstructors());
     }
 
     /**
@@ -89,7 +100,12 @@ public class Choice {
             timeId = choiceId;
         } else {
             timeId = choiceId.substring(0, choiceId.indexOf('|'));
-            iInstructorIds = choiceId.substring(choiceId.indexOf('|') + 1);
+            String instructorIds = choiceId.substring(choiceId.indexOf('|') + 1);
+            if (!instructorIds.isEmpty()) {
+                iInstructors = new ArrayList<Instructor>();
+                for (String id: instructorIds.split(":"))
+                    if (!id.isEmpty()) iInstructors.add(new Instructor(Long.parseLong(id)));
+            }
         }
         if (timeId != null && timeId.length() > 0) {
             StringTokenizer s = new StringTokenizer(timeId, ":");
@@ -139,8 +155,18 @@ public class Choice {
      * instructor assigned
      * @return selected instructors
      */
+    @Deprecated
     public String getInstructorIds() {
-        return iInstructorIds;
+        if (hasInstructors()) {
+            StringBuffer sb = new StringBuffer();
+            for (Iterator<Instructor> i = getInstructors().iterator(); i.hasNext(); ) {
+                Instructor instructor = i.next();
+                sb.append(instructor.getId());
+                if (i.hasNext()) sb.append(":");
+            }
+            return sb.toString();
+        }
+        return null;
     }
 
     /**
@@ -148,21 +174,39 @@ public class Choice {
      * instructor assigned
      * @return selected instructors
      */
+    @Deprecated
     public String getInstructorNames() {
-        return iInstructorNames;
+        if (hasInstructors()) {
+            StringBuffer sb = new StringBuffer();
+            for (Iterator<Instructor> i = getInstructors().iterator(); i.hasNext(); ) {
+                Instructor instructor = i.next();
+                if (instructor.getName() != null)
+                    sb.append(instructor.getName());
+                else if (instructor.getExternalId() != null)
+                    sb.append(instructor.getExternalId());
+                if (i.hasNext()) sb.append(":");
+            }
+            return sb.toString();
+        }
+        return null;
     }
     
     /**
-     * Set instructor(s) id and name of the choice, can be null if the section has no
-     * instructor assigned
-     * @param instructorIds selected instructor ids
-     * @param instructorNames selected instructor names
+     * Instructor names
+     * @param delim delimiter
+     * @return instructor names
      */
-    public void setInstructor(String instructorIds, String instructorNames) {
-        iInstructorIds = instructorIds;
-        iInstructorNames = instructorNames;
+    public String getInstructorNames(String delim) {
+        if (iInstructors == null || iInstructors.isEmpty()) return "";
+        StringBuffer sb = new StringBuffer();
+        for (Iterator<Instructor> i = iInstructors.iterator(); i.hasNext(); ) {
+            Instructor instructor = i.next();
+            sb.append(instructor.getName() != null ? instructor.getName() : instructor.getExternalId() != null ? instructor.getExternalId() : "I" + instructor.getId());
+            if (i.hasNext()) sb.append(delim);
+        }
+        return sb.toString();
     }
-
+    
     /**
      * Choice id combined from instructionalType, time and instructorIds in the
      * following format: instructionalType|time|instructorIds where time is of
@@ -172,9 +216,8 @@ public class Choice {
     public String getId() {
         String ret = getInstructionalType() + "|";
         if (getTime() != null)
-            ret += getTime().getDayCode() + ":" + getTime().getStartSlot() + ":" + getTime().getLength()
-                    + (getTime().getDatePatternId() == null ? "" : ":" + getTime().getDatePatternId());
-        if (getInstructorIds() != null)
+            ret += getTime().getDayCode() + ":" + getTime().getStartSlot() + ":" + getTime().getLength() + (getTime().getDatePatternId() == null ? "" : ":" + getTime().getDatePatternId());
+        if (hasInstructors())
             ret += "|" + getInstructorIds();
         return ret;
     }
@@ -206,7 +249,7 @@ public class Choice {
                 if (!subpart.getInstructionalType().equals(getInstructionalType()))
                     continue;
                 for (Section section : subpart.getSections()) {
-                    if (section.getChoice().equals(this))
+                    if (this.sameChoice(section))
                         sections.add(section);
                 }
             }
@@ -229,7 +272,7 @@ public class Choice {
                 if (subpart.getParent() == null)
                     continue;
                 for (Section section : subpart.getSections()) {
-                    if (section.getChoice().equals(this) && section.getParent() != null)
+                    if (this.sameChoice(section) && section.getParent() != null)
                         parentSections.add(section.getParent());
                 }
             }
@@ -246,12 +289,54 @@ public class Choice {
         return (getOffering().getSubparts(getInstructionalType()).iterator().next()).getName()
                 + " "
                 + (getTime() == null ? "" : getTime().getLongName(true))
-                + (getInstructorIds() == null ? "" : getInstructorNames() != null ? " " + getInstructorNames() : " "
-                        + getInstructorIds());
+                + (hasInstructors() ? " " + getInstructorNames(",") : "");
+    }
+    
+    /** True if the instructional type is the same */
+    public boolean sameInstructionalType(Section section) {
+        return getInstructionalType().equals(section.getSubpart().getInstructionalType());
+    }
+
+    /** True if the time assignment is the same */
+    public boolean sameTime(Section section) {
+        return getTime() == null ? section.getTime() == null : getTime().equals(section.getTime());
+    }
+    
+    /** True if the section contains all instructors of this choice */
+    public boolean sameInstructors(Section section) {
+        return !hasInstructors() || (section.hasInstructors() && section.getInstructors().containsAll(getInstructors()));
+    }
+    
+    /** True if the time assignment as well as the instructor(s) are the same */
+    public boolean sameChoice(Section section) {
+        return sameInstructionalType(section) && sameTime(section) && sameInstructors(section);
     }
 
     @Override
     public String toString() {
         return getName();
+    }
+    
+    /** Instructors of this choice 
+     * @return list of instructors
+     **/
+    public List<Instructor> getInstructors() {
+        return iInstructors;
+    }
+    
+    /**
+     * Has any instructors
+     * @return return true if there is at least one instructor in this choice
+     */
+    public boolean hasInstructors() {
+        return iInstructors != null && !iInstructors.isEmpty();
+    }
+    
+    /**
+     * Return number of instructors of this choice
+     * @return number of instructors of this choice
+     */
+    public int nrInstructors() {
+        return iInstructors == null ? 0 : iInstructors.size();
     }
 }

@@ -25,6 +25,7 @@ import org.cpsolver.studentsct.model.Course;
 import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.FreeTimeRequest;
+import org.cpsolver.studentsct.model.Instructor;
 import org.cpsolver.studentsct.model.Offering;
 import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.RequestGroup;
@@ -455,12 +456,16 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             placement = (time == null ? null : new Placement(null, time, rooms));
         }
         
+        List<Instructor> instructors = new ArrayList<Instructor>();
+        for (Iterator<?> m = sectionEl.elementIterator("instructor"); m.hasNext(); ) {
+            Element instructorEl = (Element)m.next();
+            instructors.add(new Instructor(Long.parseLong(instructorEl.attributeValue("id")), instructorEl.attributeValue("externalId"), instructorEl.attributeValue("name"), instructorEl.attributeValue("email")));
+        }
         Section section = new Section(
                 Long.parseLong(sectionEl.attributeValue("id")),
                 Integer.parseInt(sectionEl.attributeValue("limit")),
                 sectionEl.attributeValue("name", "S" + sectionEl.attributeValue("id")),
-                subpart, placement, sectionEl.attributeValue("instructorIds"),
-                sectionEl.attributeValue("instructorNames"), parentSection);
+                subpart, placement, instructors, parentSection);
         
         section.setSpaceHeld(Double.parseDouble(sectionEl.attributeValue("hold", "0.0")));
         section.setSpaceExpected(Double.parseDouble(sectionEl.attributeValue("expect", "0.0")));

@@ -21,6 +21,7 @@ import org.cpsolver.studentsct.model.Config;
 import org.cpsolver.studentsct.model.Course;
 import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
+import org.cpsolver.studentsct.model.Instructor;
 import org.cpsolver.studentsct.model.Offering;
 import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.RequestGroup;
@@ -153,7 +154,7 @@ public class PriorityStudentWeights implements StudentWeights {
                         if (section.getSubpart().equals(initial.getSubpart())) {
                             if (section.equals(initial)) {
                                 similarSections += 1.0;
-                            } else if (section.getChoice().equals(initial.getChoice())) {
+                            } else if (section.sameChoice(initial)) {
                                 similarSections += iSameChoiceWeight;
                             } else if (section.sameTime(initial)) {
                                 similarSections += iSameTimeWeight;
@@ -166,10 +167,10 @@ public class PriorityStudentWeights implements StudentWeights {
                 // different configurations -- compare sections of matching itype
                 for (Section section: enrollment.getSections()) {
                     for (Section initial: other.getSections()) {
-                        if (section.getChoice().equals(initial.getChoice())) {
+                        if (section.sameChoice(initial)) {
                             similarSections += iSameChoiceWeight;
                             break;
-                        } else if (section.getChoice().sameTime(initial.getChoice())) {
+                        } else if (section.sameInstructionalType(initial) && section.sameTime(initial)) {
                             similarSections += iSameTimeWeight;
                             break;
                         }
@@ -183,10 +184,10 @@ public class PriorityStudentWeights implements StudentWeights {
                 double similarSections = 0.0;
                 for (Section section: enrollment.getSections()) {
                     for (Choice ch: cr.getSelectedChoices()) {
-                        if (ch.equals(section.getChoice())) {
+                        if (ch.sameChoice(section)) {
                             similarSections += iSameChoiceWeight;
                             break;
-                        } else if (ch.sameTime(section.getChoice())) {
+                        } else if (ch.sameInstructionalType(section) && ch.sameTime(section)) {
                             similarSections += iSameTimeWeight;
                             break;
                         }
@@ -355,7 +356,7 @@ public class PriorityStudentWeights implements StudentWeights {
             for (int i = 0; i < cr.getCourses().size(); i++) {
                 Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
                 Set<SctAssignment> sections = new HashSet<SctAssignment>();
-                sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
+                sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null));
                 Enrollment e = new Enrollment(cr, i, cfg, sections, assignment);
                 w[i] = pw.getWeight(assignment, e, null, null);
             }
@@ -369,7 +370,7 @@ public class PriorityStudentWeights implements StudentWeights {
             for (int i = 0; i < cr.getCourses().size(); i++) {
                 Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
                 Set<SctAssignment> sections = new HashSet<SctAssignment>();
-                sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
+                sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null));
                 Enrollment e = new Enrollment(cr, i, cfg, sections, assignment);
                 Set<DistanceConflict.Conflict> dc = new HashSet<DistanceConflict.Conflict>();
                 dc.add(new DistanceConflict.Conflict(s, e, (Section)sections.iterator().next(), e, (Section)sections.iterator().next()));
@@ -385,12 +386,12 @@ public class PriorityStudentWeights implements StudentWeights {
             for (int i = 0; i < cr.getCourses().size(); i++) {
                 Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
                 Set<SctAssignment> sections = new HashSet<SctAssignment>();
-                sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
+                sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null));
                 Enrollment e = new Enrollment(cr, i, cfg, sections, assignment);
                 Set<DistanceConflict.Conflict> dc = new HashSet<DistanceConflict.Conflict>();
                 dc.add(new DistanceConflict.Conflict(s, e, (Section)sections.iterator().next(), e, (Section)sections.iterator().next()));
                 dc.add(new DistanceConflict.Conflict(s, e, (Section)sections.iterator().next(), e,
-                        new Section(1, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null)));
+                        new Section(1, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null)));
                 w[i] = pw.getWeight(assignment, e, dc, null);
             }
             System.out.println(cr + ": " + df.format(w[0]) + "  " + df.format(w[1]) + "  " + df.format(w[2]));
@@ -403,7 +404,7 @@ public class PriorityStudentWeights implements StudentWeights {
             for (int i = 0; i < cr.getCourses().size(); i++) {
                 Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
                 Set<SctAssignment> sections = new HashSet<SctAssignment>();
-                sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
+                sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null));
                 Enrollment e = new Enrollment(cr, i, cfg, sections, assignment);
                 Set<TimeOverlapsCounter.Conflict> toc = new HashSet<TimeOverlapsCounter.Conflict>();
                 toc.add(new TimeOverlapsCounter.Conflict(s, 3, e, sections.iterator().next(), e, sections.iterator().next()));
@@ -420,8 +421,8 @@ public class PriorityStudentWeights implements StudentWeights {
                 Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
                 Set<SctAssignment> sections = new HashSet<SctAssignment>();
                 Subpart x = new Subpart(0, "Lec", "Lec", cfg, null);
-                Section a = new Section(0, 10, "x", x, p, null, null, null);
-                new Section(1, 10, "y", x, p, null, null, null);
+                Section a = new Section(0, 10, "x", x, p, null);
+                new Section(1, 10, "y", x, p, null);
                 sections.add(a);
                 a.assigned(assignment, new Enrollment(s.getRequests().get(0), i, cfg, sections, assignment));
                 a.assigned(assignment, new Enrollment(s.getRequests().get(0), i, cfg, sections, assignment));
@@ -441,10 +442,10 @@ public class PriorityStudentWeights implements StudentWeights {
             for (int i = 0; i < cr.getCourses().size(); i++) {
                 Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
                 Set<SctAssignment> sections = new HashSet<SctAssignment>();
-                sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
+                sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null));
                 Enrollment e = new Enrollment(cr, i, cfg, sections, assignment);
                 Set<SctAssignment> other = new HashSet<SctAssignment>();
-                other.add(new Section(1, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
+                other.add(new Section(1, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null));
                 cr.setInitialAssignment(new Enrollment(cr, i, cfg, other, assignment));
                 w[i] = pw.getWeight(assignment, e, null, null);
             }
@@ -458,10 +459,10 @@ public class PriorityStudentWeights implements StudentWeights {
             for (int i = 0; i < cr.getCourses().size(); i++) {
                 Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
                 Set<SctAssignment> sections = new HashSet<SctAssignment>();
-                sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
+                sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null));
                 Enrollment e = new Enrollment(cr, i, cfg, sections, assignment);
                 Set<SctAssignment> other = new HashSet<SctAssignment>();
-                other.add(new Section(1, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, "1", "Josef Novak", null));
+                other.add(new Section(1, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, new Instructor(1l, null, "Josef Novak", null)));
                 cr.setInitialAssignment(new Enrollment(cr, i, cfg, other, assignment));
                 w[i] = pw.getWeight(assignment, e, null, null);
             }
@@ -476,10 +477,10 @@ public class PriorityStudentWeights implements StudentWeights {
             for (int i = 0; i < cr.getCourses().size(); i++) {
                 Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
                 Set<SctAssignment> sections = new HashSet<SctAssignment>();
-                sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
+                sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null));
                 Enrollment e = new Enrollment(cr, i, cfg, sections, assignment);
                 Set<SctAssignment> other = new HashSet<SctAssignment>();
-                other.add(new Section(1, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), q, null, null, null));
+                other.add(new Section(1, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), q, null));
                 cr.setInitialAssignment(new Enrollment(cr, i, cfg, other, assignment));
                 w[i] = pw.getWeight(assignment, e, null, null);
             }
@@ -493,12 +494,12 @@ public class PriorityStudentWeights implements StudentWeights {
             for (int i = 0; i < cr.getCourses().size(); i++) {
                 Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
                 Set<SctAssignment> sections = new HashSet<SctAssignment>();
-                sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
-                sections.add(new Section(1, 1, "y", new Subpart(1, "Rec", "Rec", cfg, null), p, null, null, null));
+                sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null));
+                sections.add(new Section(1, 1, "y", new Subpart(1, "Rec", "Rec", cfg, null), p, null));
                 Enrollment e = new Enrollment(cr, i, cfg, sections, assignment);
                 Set<SctAssignment> other = new HashSet<SctAssignment>();
-                other.add(new Section(2, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, null, null));
-                other.add(new Section(3, 1, "y", new Subpart(1, "Rec", "Rec", cfg, null), p, "1", "Josef Novak", null));
+                other.add(new Section(2, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null));
+                other.add(new Section(3, 1, "y", new Subpart(1, "Rec", "Rec", cfg, null), p, null, new Instructor(1l, null, "Josef Novak", null)));
                 cr.setInitialAssignment(new Enrollment(cr, i, cfg, other, assignment));
                 w[i] = pw.getWeight(assignment, e, null, null);
             }

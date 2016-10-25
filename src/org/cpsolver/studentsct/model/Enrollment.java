@@ -261,7 +261,7 @@ public class Enrollment extends Value<Request, Enrollment> {
             int nrInitial = 0;
             sections: for (Section section : getSections()) {
                 for (Section initial: ie.getSections()) {
-                    if (section.getSubpart().getInstructionalType().equals(initial.getSubpart().getInstructionalType()) && section.sameTime(initial)) {
+                    if (section.sameInstructionalType(initial) && section.sameTime(initial)) {
                         nrInitial ++;
                         continue sections;
                     }
@@ -274,7 +274,7 @@ public class Enrollment extends Value<Request, Enrollment> {
             int nrInitial = 0;
             sections: for (Section section : getSections()) {
                 for (Choice choice: selected) {
-                    if (section.getChoice().sameTime(choice)) {
+                    if (choice.sameInstructionalType(section) && choice.sameTime(section)) {
                         nrInitial ++;
                         continue sections;
                     }

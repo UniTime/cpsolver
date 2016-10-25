@@ -90,7 +90,7 @@ public class ResectioningWeights extends StudentSchedulingAssistantWeights {
             CourseRequest cr = (CourseRequest) enrollment.getRequest();
             if (sameChoice == 0 && !cr.getSelectedChoices().isEmpty()) {
                 for (Section section : enrollment.getSections()) {
-                    if (cr.getSelectedChoices().contains(section.getChoice())) {
+                    if (cr.isSelected(section)) {
                         sameChoice++;
                         continue;
                     }
@@ -111,24 +111,12 @@ public class ResectioningWeights extends StudentSchedulingAssistantWeights {
         return weight;
     }
 
-    public static boolean sameChoice(Section s, Choice ch) {
-        return sameChoice(s, ch == null ? null : ch.getId());
-    }
-
-    public static boolean sameChoice(Section s, String ch) {
-        if (s.getChoice() == null && ch == null)
-            return true;
-        if (s.getChoice() == null || ch == null)
-            return false;
-        return s.getChoice().getId().equals(ch);
-    }
-
     public static boolean isSame(Enrollment e1, Enrollment e2) {
         if (e1.getSections().size() != e2.getSections().size())
             return false;
         s1: for (Section s1 : e1.getSections()) {
             for (Section s2 : e2.getSections())
-                if (sameChoice(s1, s2.getChoice()))
+                if (s1.sameChoice(s2))
                     continue s1;
             return false;
         }
@@ -155,6 +143,10 @@ public class ResectioningWeights extends StudentSchedulingAssistantWeights {
 
     public static boolean sameName(Long courseId, Section s1, Section s2) {
         return s1.getName(courseId).equals(s2.getName(courseId));
+    }
+    
+    public static boolean sameChoice(Section section, Choice choice) {
+        return choice.sameChoice(section);
     }
 
     /**

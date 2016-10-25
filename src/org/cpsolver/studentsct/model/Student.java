@@ -290,7 +290,7 @@ public class Student implements Comparable<Student> {
     public String getExternalId() { return iExternalId; }
     /**
      * Set student external id
-     * @param externalId a free time request
+     * @param externalId student external id
      */
     public void setExternalId(String externalId) { iExternalId = externalId; }
 

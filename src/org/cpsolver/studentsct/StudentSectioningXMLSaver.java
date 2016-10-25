@@ -26,6 +26,7 @@ import org.cpsolver.studentsct.model.Course;
 import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.FreeTimeRequest;
+import org.cpsolver.studentsct.model.Instructor;
 import org.cpsolver.studentsct.model.Offering;
 import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.RequestGroup;
@@ -388,10 +389,18 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                 sectionEl.addElement("cname").addAttribute("id", entry.getKey().toString()).setText(entry.getValue());
         if (section.getParent() != null)
             sectionEl.addAttribute("parent", getId("section", section.getParent().getId()));
-        if (iShowNames && section.getChoice().getInstructorIds() != null)
-            sectionEl.addAttribute("instructorIds", section.getChoice().getInstructorIds());
-        if (iShowNames && section.getChoice().getInstructorNames() != null)
-            sectionEl.addAttribute("instructorNames", section.getChoice().getInstructorNames());
+        if (section.hasInstructors()) {
+            for (Instructor instructor: section.getInstructors()) {
+                Element instructorEl = sectionEl.addElement("instructor");
+                instructorEl.addAttribute("id", getId("instructor", instructor.getId()));
+                if (iShowNames && instructor.getName() != null)
+                    instructorEl.addAttribute("name", instructor.getName());
+                if (iShowNames && instructor.getExternalId() != null)
+                    instructorEl.addAttribute("externalId", instructor.getExternalId());
+                if (iShowNames && instructor.getEmail() != null)
+                    instructorEl.addAttribute("email", instructor.getExternalId());
+            }
+        }
         if (iShowNames)
             sectionEl.addAttribute("name", section.getName());
         if (section.getPlacement() != null) {
@@ -679,7 +688,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                 sectionEl.setText(section.getName() + " " +
                         (section.getTime() == null ? " Arr Hrs" : " " + section.getTime().getLongName(true)) +
                         (section.getNrRooms() == 0 ? "" : " " + section.getPlacement().getRoomName(",")) +
-                        (section.getChoice().getInstructorNames() == null ? "" : " " + section.getChoice().getInstructorNames()));
+                        (section.hasInstructors() ? " " + section.getInstructorNames(",") : ""));
         }
     }
     

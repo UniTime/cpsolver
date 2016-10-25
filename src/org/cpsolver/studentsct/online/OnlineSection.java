@@ -1,6 +1,9 @@
 package org.cpsolver.studentsct.online;
 
+import java.util.List;
+
 import org.cpsolver.coursett.model.Placement;
+import org.cpsolver.studentsct.model.Instructor;
 import org.cpsolver.studentsct.model.Section;
 import org.cpsolver.studentsct.model.Subpart;
 
@@ -30,8 +33,13 @@ import org.cpsolver.studentsct.model.Subpart;
 public class OnlineSection extends Section {
     private int iEnrollment = 0;
 
+    public OnlineSection(long id, int limit, String name, Subpart subpart, Placement placement, List<Instructor> instructors, Section parent) {
+        super(id, limit, name, subpart, placement, instructors, parent);
+    }
+ 
+    @Deprecated
     public OnlineSection(long id, int limit, String name, Subpart subpart, Placement placement, String instructorIds, String instructorNames, Section parent) {
-            super(id, limit, name, subpart, placement, instructorIds, instructorNames, parent);
+        super(id, limit, name, subpart, placement, instructorIds, instructorNames, parent);
     }
     
     /**

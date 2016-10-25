@@ -2,8 +2,10 @@ package org.cpsolver.studentsct.model;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -62,7 +64,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     private Section iParent = null;
     private Placement iPlacement = null;
     private int iLimit = 0;
-    private Choice iChoice = null;
+    private List<Instructor> iInstructors = null;
     private double iPenalty = 0.0;
     private double iSpaceExpected = 0.0;
     private double iSpaceHeld = 0.0;
@@ -84,10 +86,8 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
      *            subpart of this section
      * @param placement
      *            time/room placement
-     * @param instructorIds
-     *            instructor(s) id -- needed for {@link Section#getChoice()}
-     * @param instructorNames
-     *            instructor(s) name -- needed for {@link Section#getChoice()}
+     * @param instructors
+     *            assigned instructor(s)
      * @param parent
      *            parent section -- if there is a parent section defined, a
      *            student that is enrolled in this section has to be enrolled in
@@ -95,8 +95,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
      *            be defined between subpart of this section and the subpart of
      *            the parent section
      */
-    public Section(long id, int limit, String name, Subpart subpart, Placement placement, String instructorIds,
-            String instructorNames, Section parent) {
+    public Section(long id, int limit, String name, Subpart subpart, Placement placement, List<Instructor> instructors, Section parent) {
         iId = id;
         iLimit = limit;
         iName = name;
@@ -104,8 +103,39 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
         iSubpart.getSections().add(this);
         iPlacement = placement;
         iParent = parent;
-        iChoice = new Choice(getSubpart().getConfig().getOffering(), getSubpart().getInstructionalType(), getTime(),
-                instructorIds, instructorNames);
+        iInstructors = instructors;
+    }
+    
+    /**
+     * Constructor
+     * 
+     * @param id
+     *            section unique id
+     * @param limit
+     *            section limit, i.e., the maximal number of students that can
+     *            be enrolled in this section at the same time
+     * @param name
+     *            section name
+     * @param subpart
+     *            subpart of this section
+     * @param placement
+     *            time/room placement
+     * @param instructors
+     *            assigned instructor(s)
+     * @param parent
+     *            parent section -- if there is a parent section defined, a
+     *            student that is enrolled in this section has to be enrolled in
+     *            the parent section as well. Also, the same relation needs to
+     *            be defined between subpart of this section and the subpart of
+     *            the parent section
+     */
+    public Section(long id, int limit, String name, Subpart subpart, Placement placement, Section parent, Instructor... instructors) {
+        this(id, limit, name, subpart, placement, Arrays.asList(instructors), parent);
+    }
+    
+    @Deprecated
+    public Section(long id, int limit, String name, Subpart subpart, Placement placement, String instructorIds, String instructorNames, Section parent) {
+        this(id, limit, name, subpart, placement, Instructor.toInstructors(instructorIds, instructorNames), parent);
     }
 
     /** Section id */
@@ -187,10 +217,26 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     public TimeLocation getTime() {
         return (iPlacement == null ? null : iPlacement.getTimeLocation());
     }
+    
+    /** True if the instructional type is the same */
+    public boolean sameInstructionalType(Section section) {
+        return getSubpart().getInstructionalType().equals(section.getSubpart().getInstructionalType());
+    }
 
     /** True if the time assignment is the same */
     public boolean sameTime(Section section) {
         return getTime() == null ? section.getTime() == null : getTime().equals(section.getTime());
+    }
+    
+    /** True if the instructor(s) are the same */
+    public boolean sameInstructors(Section section) {
+        if (nrInstructors() != section.nrInstructors()) return false;
+        return !hasInstructors() || getInstructors().containsAll(section.getInstructors());
+    }
+    
+    /** True if the time assignment as well as the instructor(s) are the same */
+    public boolean sameChoice(Section section) {
+        return sameInstructionalType(section) && sameTime(section) && sameInstructors(section);
     }
 
     /** Number of rooms in which the section meet. */
@@ -268,7 +314,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     public String getLongName(boolean useAmPm) {
         return getSubpart().getName() + " " + getName() + " " + (getTime() == null ? "" : " " + getTime().getLongName(useAmPm))
                 + (getNrRooms() == 0 ? "" : " " + getPlacement().getRoomName(","))
-                + (getChoice().getInstructorNames() == null ? "" : " " + getChoice().getInstructorNames());
+                + (hasInstructors() ? " " + getInstructorNames(",") : "");
     }
     
     @Deprecated
@@ -281,16 +327,48 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
         return getSubpart().getConfig().getOffering().getName() + " " + getSubpart().getName() + " " + getName()
                 + (getTime() == null ? "" : " " + getTime().getLongName(true))
                 + (getNrRooms() == 0 ? "" : " " + getPlacement().getRoomName(","))
-                + (getChoice().getInstructorNames() == null ? "" : " " + getChoice().getInstructorNames()) + " (L:"
+                + (hasInstructors() ? " " + getInstructorNames(",") : "") + " (L:"
                 + (getLimit() < 0 ? "unlimited" : "" + getLimit())
                 + (getPenalty() == 0.0 ? "" : ",P:" + sDF.format(getPenalty())) + ")";
     }
 
-    /** A (student) choice representing this section. 
-     * @return choice for this class
+    /** Instructors assigned to this section 
+     * @return list of instructors
      **/
-    public Choice getChoice() {
-        return iChoice;
+    public List<Instructor> getInstructors() {
+        return iInstructors;
+    }
+    
+    /**
+     * Has any instructors assigned
+     * @return return true if there is at least one instructor assigned
+     */
+    public boolean hasInstructors() {
+        return iInstructors != null && !iInstructors.isEmpty();
+    }
+    
+    /**
+     * Return number of instructors of this section
+     * @return number of assigned instructors
+     */
+    public int nrInstructors() {
+        return iInstructors == null ? 0 : iInstructors.size();
+    }
+    
+    /**
+     * Instructor names
+     * @param delim delimiter
+     * @return instructor names
+     */
+    public String getInstructorNames(String delim) {
+        if (iInstructors == null || iInstructors.isEmpty()) return "";
+        StringBuffer sb = new StringBuffer();
+        for (Iterator<Instructor> i = iInstructors.iterator(); i.hasNext(); ) {
+            Instructor instructor = i.next();
+            sb.append(instructor.getName() != null ? instructor.getName() : instructor.getExternalId() != null ? instructor.getExternalId() : "I" + instructor.getId());
+            if (i.hasNext()) sb.append(delim);
+        }
+        return sb.toString();
     }
 
     /**
@@ -800,5 +878,13 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
         public double getMinEnrollmentWeight() {
             return iMinEnrollmentWeight;
         }
+    }
+    
+    /**
+     * Choice matching this section
+     * @return choice matching this section
+     */
+    public Choice getChoice() {
+        return new Choice(this);
     }
 }

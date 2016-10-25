@@ -530,7 +530,9 @@ public class CourseRequest extends Request {
      * @return true if the given section matches the wait-listed choices
      */
     public boolean isWaitlisted(Section section) {
-        return iWaitlistedChoices.contains(section.getChoice());
+        for (Choice choice: iWaitlistedChoices)
+            if (choice.sameChoice(section)) return true;
+        return false;
     }
 
     /** Selected choices 
@@ -547,7 +549,9 @@ public class CourseRequest extends Request {
      * @return true if the given section matches the selected choices
      */
     public boolean isSelected(Section section) {
-        return iSelectedChoices.contains(section.getChoice());
+        for (Choice choice: iSelectedChoices)
+            if (choice.sameChoice(section)) return true;
+        return false;
     }
 
     /**

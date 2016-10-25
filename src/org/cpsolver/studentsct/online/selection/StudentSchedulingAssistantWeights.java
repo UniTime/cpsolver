@@ -124,7 +124,7 @@ public class StudentSchedulingAssistantWeights implements StudentWeights {
                             continue;
                         if (section.getTime() != null)
                             hasTime = true;
-                        if (!cr.getSelectedChoices().isEmpty() && cr.getSelectedChoices().contains(section.getChoice()))
+                        if (!cr.getSelectedChoices().isEmpty() && cr.isSelected(section))
                             hasSelection = true;
                         if (sectionPenalty == null || sectionPenalty > section.getPenalty())
                             sectionPenalty = section.getPenalty();
@@ -192,7 +192,7 @@ public class StudentSchedulingAssistantWeights implements StudentWeights {
         int nrSelected = 0;
         if (!cr.getSelectedChoices().isEmpty()) {
             for (Section section : enrollment.getSections())
-                if (cr.getSelectedChoices().contains(section.getChoice()))
+                if (cr.isSelected(section))
                     nrSelected++;
         }
         double unselectedFraction = best[3] - (nrSelected / size);

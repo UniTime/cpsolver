@@ -151,7 +151,7 @@ public class Subpart implements Comparable<Subpart> {
     public Set<Choice> getChoices() {
         Set<Choice> choices = new HashSet<Choice>();
         for (Section section : getSections()) {
-            choices.add(section.getChoice());
+            choices.add(new Choice(section));
         }
         return choices;
     }
