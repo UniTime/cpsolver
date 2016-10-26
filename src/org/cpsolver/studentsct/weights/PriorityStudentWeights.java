@@ -75,8 +75,10 @@ public class PriorityStudentWeights implements StudentWeights {
     protected double iProjectedStudentWeight = 0.0100;
     protected boolean iMPP = false;
     protected double iPerturbationFactor = 0.100;
+    protected double iSelectionFactor = 0.100;
     protected double iSameChoiceWeight = 0.900;
     protected double iSameTimeWeight = 0.700;
+    protected double iSameConfigWeight = 0.500;
     protected double iGroupFactor = 0.100;
     protected double iGroupBestRatio = 0.95;
     protected double iGroupFillRatio = 0.05;
@@ -94,8 +96,10 @@ public class PriorityStudentWeights implements StudentWeights {
         iProjectedStudentWeight = config.getPropertyDouble("StudentWeights.ProjectedStudentWeight", iProjectedStudentWeight);
         iMPP = config.getPropertyBoolean("General.MPP", false);
         iPerturbationFactor = config.getPropertyDouble("StudentWeights.Perturbation", iPerturbationFactor);
+        iSelectionFactor = config.getPropertyDouble("StudentWeights.Selection", iSelectionFactor);
         iSameChoiceWeight = config.getPropertyDouble("StudentWeights.SameChoice", iSameChoiceWeight);
         iSameTimeWeight = config.getPropertyDouble("StudentWeights.SameTime", iSameTimeWeight);
+        iSameConfigWeight = config.getPropertyDouble("StudentWeights.SameConfig", iSameConfigWeight);
         iGroupFactor = config.getPropertyDouble("StudentWeights.SameGroup", iGroupFactor);
         iGroupBestRatio = config.getPropertyDouble("StudentWeights.GroupBestRatio", iGroupBestRatio);
         iGroupFillRatio = config.getPropertyDouble("StudentWeights.GroupFillRatio", iGroupFillRatio);
@@ -143,7 +147,7 @@ public class PriorityStudentWeights implements StudentWeights {
      * @return 0.0 when all the sections are the same, 1.0 when all the section are different (including different times)
      */
     protected double getDifference(Enrollment enrollment) {
-        if (!enrollment.getRequest().isMPP()) return 1.0;
+        if (enrollment.getStudent().isDummy()) return 1.0;
         Enrollment other = enrollment.getRequest().getInitialAssignment();
         if (other != null) {
             double similarSections = 0.0;
@@ -178,20 +182,35 @@ public class PriorityStudentWeights implements StudentWeights {
                 }
             }
             return 1.0 - similarSections / enrollment.getAssignments().size();
-        } else if (enrollment.isCourseRequest()) {
+        }
+        return 1.0;
+    }
+    
+    /**
+     * Return how much the given enrollment is different from the selection (if any)
+     * @param enrollment given enrollment
+     * @return 0.0 when all the sections are the same, 1.0 when all the section are different (including different times)
+     */
+    public double getSelection(Enrollment enrollment) {
+        if (enrollment.getStudent().isDummy()) return 1.0;
+        if (enrollment.isCourseRequest()) {
             CourseRequest cr = (CourseRequest)enrollment.getRequest();
             if (!cr.getSelectedChoices().isEmpty()) {
                 double similarSections = 0.0;
                 for (Section section: enrollment.getSections()) {
+                    double bestChoice = 0.0;
                     for (Choice ch: cr.getSelectedChoices()) {
-                        if (ch.sameChoice(section)) {
-                            similarSections += iSameChoiceWeight;
-                            break;
-                        } else if (ch.sameInstructionalType(section) && ch.sameTime(section)) {
-                            similarSections += iSameTimeWeight;
-                            break;
+                        if (bestChoice < 1.0 && ch.sameSection(section)) {
+                            bestChoice = 1.0;
+                        } else if (bestChoice < iSameChoiceWeight && ch.sameChoice(section)) {
+                            bestChoice = iSameChoiceWeight;
+                        } else if (bestChoice < iSameTimeWeight && ch.sameInstructionalType(section) && ch.sameTime(section)) {
+                            bestChoice = iSameTimeWeight;
+                        } else if (bestChoice < iSameConfigWeight && ch.sameConfiguration(section)) {
+                            bestChoice = iSameConfigWeight;
                         }
                     }
+                    similarSections += bestChoice;
                 }
                 return 1.0 - similarSections / enrollment.getAssignments().size();
             } else {
@@ -201,6 +220,7 @@ public class PriorityStudentWeights implements StudentWeights {
             return 1.0;
         }
     }
+    
 
     @Override
     public double getBound(Request request) {
@@ -244,6 +264,11 @@ public class PriorityStudentWeights implements StudentWeights {
             double difference = getDifference(enrollment);
             if (difference > 0.0)
                 weight *= (1.0 - difference * iPerturbationFactor);
+        }
+        if (iSelectionFactor != 0.0) {
+            double selection = getSelection(enrollment);
+            if (selection > 0.0)
+                weight *= (1.0 - selection * iSelectionFactor);
         }
         if (enrollment.isCourseRequest() && iGroupFactor != 0.0) {
             double sameGroup = 0.0; int groupCount = 0;

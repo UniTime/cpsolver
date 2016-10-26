@@ -153,7 +153,23 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
             return -1;
         if (bestSelected > currentSelected)
             return 1;
-
+        
+        // 3.5 maximize preferences
+        double bestSelectedConfigs = 0, currentSelectedConfigs = 0;
+        double bestSelectedSections = 0, currentSelectedSections = 0;
+        for (int idx = 0; idx < current.length; idx++) {
+            if (best[idx] != null && best[idx].getAssignments() != null && best[idx].isCourseRequest()) {
+                bestSelectedSections += best[idx].percentSelectedSameSection();
+                bestSelectedConfigs += best[idx].percentSelectedSameConfig();
+            }
+            if (current[idx] != null && current[idx].getAssignments() != null && current[idx].isCourseRequest()) {
+                currentSelectedSections += current[idx].percentSelectedSameSection();
+                currentSelectedConfigs += current[idx].percentSelectedSameConfig();
+            }
+        }
+        if (0.3 * currentSelectedConfigs + 0.7 * currentSelectedSections > 0.3 * bestSelectedConfigs + 0.7 * bestSelectedSections) return -1;
+        if (0.3 * bestSelectedConfigs + 0.7 * bestSelectedSections > 0.3 * currentSelectedConfigs + 0.7 * currentSelectedSections) return 1;
+        
         // 4. avoid time overlaps
         if (getModel().getTimeOverlaps() != null) {
             int bestTimeOverlaps = 0, currentTimeOverlaps = 0;
@@ -418,7 +434,27 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
             return true;
         if (bestSelected > currentSelected)
             return false;
-
+        
+        // 3.5 maximize preferences
+        double bestSelectedConfigs = 0, currentSelectedConfigs = 0;
+        double bestSelectedSections = 0, currentSelectedSections = 0;
+        for (int idx = 0; idx < current.length; idx++) {
+            if (best[idx] != null && best[idx].getAssignments() != null && best[idx].isCourseRequest()) {
+                bestSelectedSections += best[idx].percentSelectedSameSection();
+                bestSelectedConfigs += best[idx].percentSelectedSameConfig();
+                if (idx >= maxIdx) {
+                    bestSelectedSections -= 1.0;
+                    bestSelectedConfigs -= 1.0;
+                }
+            }
+            if (current[idx] != null && idx < maxIdx && current[idx].getAssignments() != null && current[idx].isCourseRequest()) {
+                currentSelectedSections += current[idx].percentSelectedSameSection();
+                currentSelectedConfigs += current[idx].percentSelectedSameConfig();
+            }
+        }
+        if (0.3 * currentSelectedConfigs + 0.7 * currentSelectedSections > 0.3 * bestSelectedConfigs + 0.7 * bestSelectedSections) return true;
+        if (0.3 * bestSelectedConfigs + 0.7 * bestSelectedSections > 0.3 * currentSelectedConfigs + 0.7 * currentSelectedSections) return false;
+        
         // 4. avoid time overlaps
         if (getModel().getTimeOverlaps() != null) {
             int bestTimeOverlaps = 0, currentTimeOverlaps = 0;

@@ -232,6 +232,41 @@ public class Enrollment extends Value<Request, Enrollment> {
         }
         return ((double) nrSelected) / getAssignments().size();
     }
+    
+    /** Percent of sections that are selected 
+     * @return percent of sections that are selected
+     **/
+    public double percentSelectedSameSection() {
+        if (!isCourseRequest() || getStudent().isDummy()) return (getRequest().hasSelection() ? 1.0 : 0.0);
+        CourseRequest courseRequest = (CourseRequest) getRequest();
+        int nrSelected = 0;
+        Set<Long> nrMatching = new HashSet<Long>();
+        sections: for (Section section : getSections()) {
+            for (Choice choice: courseRequest.getSelectedChoices()) {
+                if (choice.getSubpartId() != null) nrMatching.add(choice.getSubpartId());
+                if (choice.sameSection(section)) {
+                    nrSelected ++; continue sections;
+                }
+            }
+        }
+        return (nrMatching.isEmpty() ? 1.0 : ((double) nrSelected) / nrMatching.size());
+    }
+    
+    /** Percent of sections that have the same configuration 
+     * @return percent of sections that are selected
+     **/
+    public double percentSelectedSameConfig() {
+        if (!isCourseRequest() || getStudent().isDummy() || getConfig() == null) return (getRequest().hasSelection() ? 1.0 : 0.0);
+        CourseRequest courseRequest = (CourseRequest) getRequest();
+        boolean hasConfigSelection = false;
+        for (Choice choice: courseRequest.getSelectedChoices()) {
+            if (choice.getConfigId() != null) {
+                hasConfigSelection = true;
+                if (choice.getConfigId().equals(getConfig().getId())) return 1.0;
+            }
+        }
+        return (hasConfigSelection ? 0.0 : 1.0);
+    }
 
     /** Percent of sections that are initial 
      * @return percent of sections that of the initial enrollment

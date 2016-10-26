@@ -550,7 +550,7 @@ public class CourseRequest extends Request {
      */
     public boolean isSelected(Section section) {
         for (Choice choice: iSelectedChoices)
-            if (choice.sameChoice(section)) return true;
+            if (choice.sameChoice(section) || choice.sameConfiguration(section)) return true;
         return false;
     }
 
@@ -800,6 +800,18 @@ public class CourseRequest extends Request {
         StudentSectioningModel model = (StudentSectioningModel) getModel();
         if (model == null || !model.isMPP()) return false;
         return !getStudent().isDummy() && (getInitialAssignment() != null || !getSelectedChoices().isEmpty()); 
+    }
+    
+    /**
+     * Return true if this request has any selection
+     * @return true if the request is course request and has some selected choices.
+     */
+    @Override
+    public boolean hasSelection() {
+        if (getStudent().isDummy() || getSelectedChoices().isEmpty()) return false;
+        for (Choice choice: getSelectedChoices())
+            if (choice.getSectionId() != null || choice.getConfigId() != null) return true;
+        return false;
     }
     
     /**

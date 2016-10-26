@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.StringTokenizer;
 
 import org.cpsolver.coursett.model.TimeLocation;
 
@@ -42,6 +41,9 @@ import org.cpsolver.coursett.model.TimeLocation;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class Choice {
+    private Long iSectionId = null;
+    private Long iSubpartId = null;
+    private Long iConfigId = null;
     private Offering iOffering = null;
     private String iInstructionalType = null;
     private TimeLocation iTime = null;
@@ -80,6 +82,18 @@ public class Choice {
      */
     public Choice(Section section) {
         this(section.getSubpart().getConfig().getOffering(), section.getSubpart().getInstructionalType(), section.getTime(), section.getInstructors());
+        iSectionId = section.getId();
+        iSubpartId = section.getSubpart().getId();
+        // iConfigId = section.getSubpart().getConfig().getId();
+    }
+    
+    /**
+     * Constructor
+     * @param config configuration to base the choice on
+     */
+    public Choice(Config config) {
+        this(config.getOffering(), "N/A", null, null);
+        iConfigId = config.getId();
     }
 
     /**
@@ -93,27 +107,26 @@ public class Choice {
      */
     public Choice(Offering offering, String choiceId) {
         iOffering = offering;
-        iInstructionalType = choiceId.substring(0, choiceId.indexOf('|'));
-        choiceId = choiceId.substring(choiceId.indexOf('|') + 1);
-        String timeId = null;
-        if (choiceId.indexOf('|') < 0) {
-            timeId = choiceId;
-        } else {
-            timeId = choiceId.substring(0, choiceId.indexOf('|'));
-            String instructorIds = choiceId.substring(choiceId.indexOf('|') + 1);
-            if (!instructorIds.isEmpty()) {
-                iInstructors = new ArrayList<Instructor>();
-                for (String id: instructorIds.split(":"))
-                    if (!id.isEmpty()) iInstructors.add(new Instructor(Long.parseLong(id)));
-            }
-        }
-        if (timeId != null && timeId.length() > 0) {
-            StringTokenizer s = new StringTokenizer(timeId, ":");
-            int dayCode = Integer.parseInt(s.nextToken());
-            int startSlot = Integer.parseInt(s.nextToken());
-            int length = Integer.parseInt(s.nextToken());
-            Long datePatternId = (s.hasMoreElements() ? Long.valueOf(s.nextToken()) : null);
+        String[] choices = choiceId.split("|");
+        iInstructionalType = choices[0];
+        if (choices.length > 1 && !choices[1].isEmpty()) {
+            String[] times = choices[1].split(":");
+            int dayCode = Integer.parseInt(times[0]);
+            int startSlot = Integer.parseInt(times[1]);
+            int length = Integer.parseInt(times[2]);
+            Long datePatternId = (times.length > 3 ? Long.valueOf(times[3]) : null);
             iTime = new TimeLocation(dayCode, startSlot, length, 0, 0, datePatternId, "N/A", new BitSet(), 0);
+        }
+        if (choices.length > 2 && !choices[2].isEmpty()) {
+            iInstructors = new ArrayList<Instructor>();
+            for (String id: choices[2].split(":"))
+                iInstructors.add(new Instructor(Long.parseLong(id)));
+        }
+        if (choices.length > 3 && !choices[3].isEmpty()) {
+            String[] ids = choices[3].split(":"); 
+            iSectionId = (ids[0].isEmpty() ? null : Long.valueOf(ids[0]));
+            iSubpartId = (ids[1].isEmpty() ? null : Long.valueOf(ids[1]));
+            iConfigId = (ids[2].isEmpty() ? null : Long.valueOf(ids[2]));
         }
         iHashCode = getId().hashCode();
     }
@@ -217,8 +230,8 @@ public class Choice {
         String ret = getInstructionalType() + "|";
         if (getTime() != null)
             ret += getTime().getDayCode() + ":" + getTime().getStartSlot() + ":" + getTime().getLength() + (getTime().getDatePatternId() == null ? "" : ":" + getTime().getDatePatternId());
-        if (hasInstructors())
-            ret += "|" + getInstructorIds();
+        ret += "|" + (hasInstructors() ? getInstructorIds() : "");
+        ret += "|" + (iSectionId == null ? "" : iSectionId) + ":" + (iSubpartId == null ? "" : iSubpartId) + ":" + (iConfigId == null ? "" : iConfigId);
         return ret;
     }
 
@@ -311,6 +324,41 @@ public class Choice {
     public boolean sameChoice(Section section) {
         return sameInstructionalType(section) && sameTime(section) && sameInstructors(section);
     }
+    
+    /** True if the section is the very same */
+    public boolean sameSection(Section section) {
+        return iSectionId != null && iSectionId.equals(section.getId());
+    }
+    
+    /** True if the subpart is the very same */
+    public boolean sameSubart(Section section) {
+        return iSubpartId != null && iSubpartId.equals(section.getSubpart().getId());
+    }
+    
+    /** True if the configuration is the very same */
+    public boolean sameConfiguration(Section section) {
+        return iConfigId != null && iConfigId.equals(section.getSubpart().getConfig().getId()); 
+    }
+    
+    /** True if the configuration is the very same */
+    public boolean sameConfiguration(Enrollment enrollment) {
+        return iConfigId != null && enrollment.getConfig() != null && iConfigId.equals(enrollment.getConfig().getId()); 
+    }
+    
+    /** True if the configuration is the very same */
+    public boolean sameSection(Enrollment enrollment) {
+        if (iSectionId == null || !enrollment.isCourseRequest()) return false;
+        for (Section section: enrollment.getSections())
+            if (iSectionId.equals(section.getId())) return true;
+        return false; 
+    }
+    
+    /** section id */
+    public Long getSectionId() { return iSectionId; }
+    /** subpart id */
+    public Long getSubpartId() { return iSubpartId; }
+    /** config id */
+    public Long getConfigId() { return iConfigId; }
 
     @Override
     public String toString() {

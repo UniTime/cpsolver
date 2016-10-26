@@ -16,6 +16,7 @@ import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.ToolBox;
 import org.cpsolver.studentsct.extension.DistanceConflict;
 import org.cpsolver.studentsct.extension.TimeOverlapsCounter;
+import org.cpsolver.studentsct.model.Choice;
 import org.cpsolver.studentsct.model.Config;
 import org.cpsolver.studentsct.model.Course;
 import org.cpsolver.studentsct.model.CourseRequest;
@@ -207,6 +208,24 @@ public class EqualStudentWeights extends PriorityStudentWeights {
             System.out.println(cr + ": " + df.format(w[0]) + "  " + df.format(w[1]) + "  " + df.format(w[2]));
         }
         
+        System.out.println("Same sections:");
+        pw.iMPP = true;
+        for (Request r: s.getRequests()) {
+            CourseRequest cr = (CourseRequest)r;
+            double[] w = new double[] {0.0, 0.0, 0.0};
+            double dif = 0;
+            for (int i = 0; i < cr.getCourses().size(); i++) {
+                Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
+                Set<SctAssignment> sections = new HashSet<SctAssignment>();
+                sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null));
+                Enrollment e = new Enrollment(cr, i, cfg, sections, assignment);
+                cr.setInitialAssignment(new Enrollment(cr, i, cfg, sections, assignment));
+                w[i] = pw.getWeight(assignment, e, null, null);
+                dif = pw.getDifference(e);
+            }
+            System.out.println(cr + ": " + df.format(w[0]) + "  " + df.format(w[1]) + "  " + df.format(w[2]) + " (" + df.format(dif) + ")");
+        }
+        
         System.out.println("Same choice sections:");
         pw.iMPP = true;
         for (Request r: s.getRequests()) {
@@ -240,6 +259,24 @@ public class EqualStudentWeights extends PriorityStudentWeights {
                 Set<SctAssignment> other = new HashSet<SctAssignment>();
                 other.add(new Section(1, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null, new Instructor(1, null, "Josef Novak", null)));
                 cr.setInitialAssignment(new Enrollment(cr, i, cfg, other, assignment));
+                w[i] = pw.getWeight(assignment, e, null, null);
+                dif = pw.getDifference(e);
+            }
+            System.out.println(cr + ": " + df.format(w[0]) + "  " + df.format(w[1]) + "  " + df.format(w[2]) + " (" + df.format(dif) + ")");
+        }
+        
+        System.out.println("Same configuration sections:");
+        for (Request r: s.getRequests()) {
+            CourseRequest cr = (CourseRequest)r;
+            double[] w = new double[] {0.0, 0.0, 0.0};
+            double dif = 0;
+            for (int i = 0; i < cr.getCourses().size(); i++) {
+                Config cfg = new Config(0l, -1, "", cr.getCourses().get(i).getOffering());
+                Set<SctAssignment> sections = new HashSet<SctAssignment>();
+                sections.add(new Section(0, 1, "x", new Subpart(0, "Lec", "Lec", cfg, null), p, null));
+                Enrollment e = new Enrollment(cr, i, cfg, sections, assignment);
+                cr.getSelectedChoices().add(new Choice(cfg));
+                cr.setInitialAssignment(null);
                 w[i] = pw.getWeight(assignment, e, null, null);
                 dif = pw.getDifference(e);
             }

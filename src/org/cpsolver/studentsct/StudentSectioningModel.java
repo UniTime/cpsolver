@@ -85,6 +85,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     private double iTotalDummyWeight = 0.0;
     private double iTotalCRWeight = 0.0, iTotalDummyCRWeight = 0.0;
     private double iTotalMPPCRWeight = 0.0;
+    private double iTotalSelCRWeight = 0.0;
     private StudentWeights iStudentWeights = null;
     private boolean iReservationCanAssignOverTheLimit;
     private boolean iMPP;
@@ -240,6 +241,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         }
         if (request.isMPP())
             iTotalMPPCRWeight += request.getWeight();
+        if (request.hasSelection())
+            iTotalSelCRWeight += request.getWeight();
     }
     
     /** 
@@ -290,6 +293,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         }
         if (request.isMPP())
             iTotalMPPCRWeight -= request.getWeight();
+        if (request.hasSelection())
+            iTotalSelCRWeight -= request.getWeight();
         if (request instanceof CourseRequest)
             iTotalCRWeight -= request.getWeight();
     }
@@ -970,6 +975,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         private double iAssignedCRWeight = 0.0, iAssignedDummyCRWeight = 0.0;
         private double iReservedSpace = 0.0, iTotalReservedSpace = 0.0;
         private double iAssignedSameSectionWeight = 0.0, iAssignedSameChoiceWeight = 0.0, iAssignedSameTimeWeight = 0.0;
+        private double iAssignedSelectedSectionWeight = 0.0, iAssignedSelectedConfigWeight = 0.0;
 
         public StudentSectioningModelContext(Assignment<Request, Enrollment> assignment) {
             for (Request request: variables()) {
@@ -997,6 +1003,10 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 iAssignedSameSectionWeight += enrollment.getRequest().getWeight() * enrollment.percentInitial();
                 iAssignedSameChoiceWeight += enrollment.getRequest().getWeight() * enrollment.percentSelected();
                 iAssignedSameTimeWeight += enrollment.getRequest().getWeight() * enrollment.percentSameTime();
+            }
+            if (enrollment.getRequest().hasSelection()) {
+                iAssignedSelectedSectionWeight += enrollment.getRequest().getWeight() * enrollment.percentSelectedSameSection();
+                iAssignedSelectedConfigWeight += enrollment.getRequest().getWeight() * enrollment.percentSelectedSameConfig();
             }
             if (enrollment.getReservation() != null)
                 iReservedSpace += enrollment.getRequest().getWeight();
@@ -1035,6 +1045,10 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 iAssignedSameSectionWeight -= enrollment.getRequest().getWeight() * enrollment.percentInitial();
                 iAssignedSameChoiceWeight -= enrollment.getRequest().getWeight() * enrollment.percentSelected();
                 iAssignedSameTimeWeight -= enrollment.getRequest().getWeight() * enrollment.percentSameTime();
+            }
+            if (enrollment.getRequest().hasSelection()) {
+                iAssignedSelectedSectionWeight -= enrollment.getRequest().getWeight() * enrollment.percentSelectedSameSection();
+                iAssignedSelectedConfigWeight -= enrollment.getRequest().getWeight() * enrollment.percentSelectedSameConfig();
             }
             if (enrollment.getReservation() != null)
                 iReservedSpace -= enrollment.getRequest().getWeight();
@@ -1093,6 +1107,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             iNrDummyRequests = 0; iNrAssignedDummyRequests = 0;
             iTotalReservedSpace = 0.0; iReservedSpace = 0.0;
             iTotalMPPCRWeight = 0.0;
+            iTotalSelCRWeight = 0.0;
             for (Request request: variables()) {
                 boolean cr = (request instanceof CourseRequest);
                 if (cr)
@@ -1105,6 +1120,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 }
                 if (request.isMPP())
                     iTotalMPPCRWeight += request.getWeight();
+                if (request.hasSelection())
+                    iTotalSelCRWeight += request.getWeight();
                 Enrollment e = assignment.getValue(request);
                 if (e != null) {
                     if (cr)
@@ -1113,6 +1130,10 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                         iAssignedSameSectionWeight += request.getWeight() * e.percentInitial();
                         iAssignedSameChoiceWeight += request.getWeight() * e.percentSelected();
                         iAssignedSameTimeWeight += request.getWeight() * e.percentSameTime();
+                    }
+                    if (request.hasSelection()) {
+                        iAssignedSelectedSectionWeight += request.getWeight() * e.percentSelectedSameSection();
+                        iAssignedSelectedConfigWeight += request.getWeight() * e.percentSelectedSameConfig();
                     }
                     if (e.getReservation() != null)
                         iReservedSpace += request.getWeight();
@@ -1172,6 +1193,10 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                     info.put("Perturbations: same choice",sDoubleFormat.format(100.0 * iAssignedSameChoiceWeight / iTotalMPPCRWeight) + "% (" + Math.round(iAssignedSameChoiceWeight) + "/" + Math.round(iTotalMPPCRWeight) + ")");
                 if (iAssignedSameTimeWeight > iAssignedSameChoiceWeight)
                     info.put("Perturbations: same time", sDoubleFormat.format(100.0 * iAssignedSameTimeWeight / iTotalMPPCRWeight) + "% (" + Math.round(iAssignedSameTimeWeight) + "/" + Math.round(iTotalMPPCRWeight) + ")");
+            }
+            if (iTotalSelCRWeight > 0.0) {
+                info.put("Selection",sDoubleFormat.format(100.0 * (0.3 * iAssignedSelectedConfigWeight + 0.7 * iAssignedSelectedSectionWeight) / iTotalSelCRWeight) +
+                        "% (" + Math.round(0.3 * iAssignedSelectedSectionWeight + 0.7 * iAssignedSelectedSectionWeight) + "/" + Math.round(iTotalSelCRWeight) + ")");
             }
         }
 

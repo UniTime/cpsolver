@@ -249,5 +249,13 @@ public abstract class Request extends VariableWithContext<Request, Enrollment, R
     public boolean isMPP() {
         return false;
     }
+    
+    /**
+     * Return true if this request has any selection
+     * @return true if the request is course request and has some selected choices.
+     */
+    public boolean hasSelection() {
+        return false;
+    }
 
 }
