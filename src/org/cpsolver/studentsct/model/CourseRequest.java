@@ -549,9 +549,12 @@ public class CourseRequest extends Request {
      * @return true if the given section matches the selected choices
      */
     public boolean isSelected(Section section) {
-        for (Choice choice: iSelectedChoices)
+        boolean hasMatch = false;
+        for (Choice choice: iSelectedChoices) {
             if (choice.sameChoice(section) || choice.sameConfiguration(section)) return true;
-        return false;
+            if (choice.isMatching(section)) hasMatch = true;
+        }
+        return !iSelectedChoices.isEmpty() && !hasMatch;
     }
 
     /**

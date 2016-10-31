@@ -57,6 +57,7 @@ public class MultiCriteriaBranchAndBoundSelection implements OnlineSectioningSel
     protected Assignment<Request, Enrollment> iAssignment = null;
     protected SelectionCriterion iComparator = null;
     private boolean iPriorityWeighting = true;
+    protected boolean iBranchWhenSelectedHasNoConflict = false;
 
     /** Student */
     protected Student iStudent;
@@ -81,6 +82,7 @@ public class MultiCriteriaBranchAndBoundSelection implements OnlineSectioningSel
     public MultiCriteriaBranchAndBoundSelection(DataProperties config) {
         iTimeout = config.getPropertyInt("Neighbour.BranchAndBoundTimeout", iTimeout);
         iPriorityWeighting = config.getPropertyBoolean("StudentWeights.PriorityWeighting", iPriorityWeighting);
+        iBranchWhenSelectedHasNoConflict = config.getPropertyBoolean("Students.BranchWhenSelectedHasNoConflict", iBranchWhenSelectedHasNoConflict);
     }
 
     @Override
@@ -302,7 +304,7 @@ public class MultiCriteriaBranchAndBoundSelection implements OnlineSectioningSel
                         backTrack(idx + 1);
                         iCurrentAssignment[idx] = null;
                     }
-                    if (hasNoConflictValue)
+                    if (hasNoConflictValue && iBranchWhenSelectedHasNoConflict)
                         return;
                 }
             }

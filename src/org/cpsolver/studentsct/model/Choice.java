@@ -307,7 +307,7 @@ public class Choice {
     
     /** True if the instructional type is the same */
     public boolean sameInstructionalType(Section section) {
-        return getInstructionalType().equals(section.getSubpart().getInstructionalType());
+        return getInstructionalType() != null && getInstructionalType().equals(section.getSubpart().getInstructionalType());
     }
 
     /** True if the time assignment is the same */
@@ -350,6 +350,14 @@ public class Choice {
         if (iSectionId == null || !enrollment.isCourseRequest()) return false;
         for (Section section: enrollment.getSections())
             if (iSectionId.equals(section.getId())) return true;
+        return false; 
+    }
+    
+    /** True if this choice is applicable to the given section (that is, the choice is a config choice or with the same subpart / instructional type) */
+    public boolean isMatching(Section section) {
+        if (iConfigId != null) return true;
+        if (iSubpartId != null && iSubpartId.equals(section.getSubpart().getId())) return true;
+        if (iSubpartId == null && iInstructionalType != null && iInstructionalType.equals(section.getSubpart().getInstructionalType())) return true;
         return false; 
     }
     

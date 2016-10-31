@@ -100,6 +100,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
     protected boolean iMinimizePenalty = false;
     protected StudentOrder iOrder = new StudentGroupsChoiceRealFirstOrder();
     protected double iDistConfWeight = 1.0;
+    protected boolean iBranchWhenSelectedHasNoConflict = false;
 
     /**
      * Constructor
@@ -121,6 +122,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             }
         }
         iDistConfWeight = properties.getPropertyDouble("DistanceConflict.Weight", iDistConfWeight);
+        iBranchWhenSelectedHasNoConflict = properties.getPropertyBoolean("Students.BranchWhenSelectedHasNoConflict", iBranchWhenSelectedHasNoConflict);
     }
 
     /**
@@ -690,7 +692,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                             backTrack(idx + 1);
                             iAssignment[idx] = null;
                         }
-                        if (hasNoConflictValue)
+                        if (hasNoConflictValue && iBranchWhenSelectedHasNoConflict)
                             return;
                     }
                 }
