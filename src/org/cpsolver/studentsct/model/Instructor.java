@@ -126,7 +126,7 @@ public class Instructor {
     
     @Deprecated
     public static List<Instructor> toInstructors(String instructorIds, String instructorNames) {
-        if (instructorIds == null) return null;
+        if (instructorIds == null || instructorIds.isEmpty()) return null;
         String[] names = (instructorNames == null ? new String[] {}: instructorNames.split(":"));
         List<Instructor> instructors = new ArrayList<Instructor>();
         for (String id: instructorIds.split(":")) {
