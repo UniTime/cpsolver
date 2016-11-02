@@ -257,7 +257,7 @@ public class CourseRequest extends Request {
                 if (availableOnly && course.getLimit() >= 0 && CourseLimit.getEnrollmentWeight(assignment, course, this) > course.getLimit())
                     return;
                 if (config.getOffering().hasReservations()) {
-                    boolean hasReservation = false, hasOtherReservation = false, hasConfigReservation = false, reservationMustBeUsed = false;
+                    boolean hasReservation = false, hasConfigReservation = false, reservationMustBeUsed = false;
                     for (Reservation r: getReservations(course)) {
                         if (r.mustBeUsed()) reservationMustBeUsed = true;
                         if (availableOnly && r.getReservedAvailableSpace(assignment, this) < getWeight()) continue;
@@ -266,15 +266,11 @@ public class CourseRequest extends Request {
                         } else if (r.getConfigs().contains(config)) {
                             hasReservation = true;
                             hasConfigReservation = true;
-                        } else {
-                            hasOtherReservation = true;
                         }
                     }
                     if (!hasConfigReservation && config.getTotalUnreservedSpace() < getWeight())
                         return;
                     if (!hasReservation && config.getOffering().getTotalUnreservedSpace() < getWeight())
-                        return;
-                    if (hasOtherReservation && !hasReservation)
                         return;
                     if (availableOnly && !hasReservation && config.getOffering().getUnreservedSpace(assignment, this) < getWeight())
                         return;
@@ -382,7 +378,7 @@ public class CourseRequest extends Request {
                             && SectionLimit.getEnrollmentWeight(assignment, section, this) > section.getLimit())
                         continue;
                     if (config.getOffering().hasReservations()) {
-                        boolean hasReservation = false, hasSectionReservation = false, hasOtherReservation = false, reservationMustBeUsed = false;
+                        boolean hasReservation = false, hasSectionReservation = false, reservationMustBeUsed = false;
                         for (Reservation r: getReservations(course)) {
                             if (r.mustBeUsed()) reservationMustBeUsed = true;
                             if (availableOnly && r.getReservedAvailableSpace(assignment, this) < getWeight()) continue;
@@ -391,13 +387,9 @@ public class CourseRequest extends Request {
                             } else if (r.getSections(subpart).contains(section)) {
                                 hasReservation = true;
                                 hasSectionReservation = true;
-                            } else {
-                                hasOtherReservation = true;
                             }
                         }
                         if (!hasSectionReservation && section.getTotalUnreservedSpace() < getWeight())
-                            continue;
-                        if (hasOtherReservation && !hasReservation)
                             continue;
                         if (availableOnly && !hasSectionReservation && section.getUnreservedSpace(assignment, this) < getWeight())
                             continue;
