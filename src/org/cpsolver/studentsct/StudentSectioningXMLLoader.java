@@ -419,6 +419,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
      * @param timetable provided timetable
      * @return loaded section
      */
+    @SuppressWarnings("deprecation")
     protected Section loadSection(Element sectionEl, Subpart subpart, Map<Long, Section> sectionTable, Map<Long, Placement> timetable) {
         Section parentSection = null;
         if (sectionEl.attributeValue("parent") != null)
@@ -466,6 +467,8 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             Element instructorEl = (Element)m.next();
             instructors.add(new Instructor(Long.parseLong(instructorEl.attributeValue("id")), instructorEl.attributeValue("externalId"), instructorEl.attributeValue("name"), instructorEl.attributeValue("email")));
         }
+        if (instructors.isEmpty() && sectionEl.attributeValue("instructorIds") != null)
+            instructors = Instructor.toInstructors(sectionEl.attributeValue("instructorIds"), sectionEl.attributeValue("instructorNames"));
         Section section = new Section(
                 Long.parseLong(sectionEl.attributeValue("id")),
                 Integer.parseInt(sectionEl.attributeValue("limit")),
