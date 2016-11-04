@@ -107,7 +107,7 @@ public class Choice {
      */
     public Choice(Offering offering, String choiceId) {
         iOffering = offering;
-        String[] choices = choiceId.split("|");
+        String[] choices = choiceId.split("\\|");
         iInstructionalType = choices[0];
         if (choices.length > 1 && !choices[1].isEmpty()) {
             String[] times = choices[1].split(":");
@@ -124,9 +124,9 @@ public class Choice {
         }
         if (choices.length > 3 && !choices[3].isEmpty()) {
             String[] ids = choices[3].split(":"); 
-            iSectionId = (ids[0].isEmpty() ? null : Long.valueOf(ids[0]));
-            iSubpartId = (ids[1].isEmpty() ? null : Long.valueOf(ids[1]));
-            iConfigId = (ids[2].isEmpty() ? null : Long.valueOf(ids[2]));
+            iSectionId = (ids.length < 1 || ids[0].isEmpty() ? null : Long.valueOf(ids[0]));
+            iSubpartId = (ids.length < 2 || ids[1].isEmpty() ? null : Long.valueOf(ids[1]));
+            iConfigId = (ids.length < 3 || ids[2].isEmpty() ? null : Long.valueOf(ids[2]));
         }
         iHashCode = getId().hashCode();
     }
