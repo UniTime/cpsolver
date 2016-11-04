@@ -364,8 +364,16 @@ public class CourseRequest extends Request {
                     continue;
                 if (selectedOnly && !isSelected(section))
                     continue;
-                if (!getStudent().isAvailable(section))
-                    continue;
+                if (!getStudent().isAvailable(section)) {
+                    boolean canOverlap = false;
+                    for (Reservation r: getReservations(course)) {
+                        if (!r.isAllowOverlap()) continue;
+                        if (r.getSections(subpart) != null && !r.getSections(subpart).contains(section)) continue;
+                        if (r.getReservedAvailableSpace(assignment, this) < getWeight()) continue;
+                        canOverlap = true; break;
+                    }
+                    if (!canOverlap) continue;
+                }
                 boolean canOverLimit = false;
                 if (availableOnly) {
                     for (Reservation r: getReservations(course)) {

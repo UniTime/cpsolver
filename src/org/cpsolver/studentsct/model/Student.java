@@ -368,7 +368,7 @@ public class Student implements Comparable<Student> {
      * @return true, if available
      */
     public boolean isAvailable(Enrollment enrollment) {
-        if (enrollment.isCourseRequest())
+        if (enrollment != null && enrollment.isCourseRequest() && !enrollment.isAllowOverlap())
             for (Section section: enrollment.getSections())
                 if (!isAvailable(section)) return false;
         return true;
