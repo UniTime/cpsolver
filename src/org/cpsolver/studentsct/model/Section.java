@@ -71,6 +71,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     private String iNote = null;
     private Set<Long> iIgnoreConflictsWith = null;
     private boolean iCancelled = false;
+    private List<Unavailability> iUnavailabilities = new ArrayList<Unavailability>();
 
     /**
      * Constructor
@@ -100,7 +101,8 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
         iLimit = limit;
         iName = name;
         iSubpart = subpart;
-        iSubpart.getSections().add(this);
+        if (iSubpart != null)
+            iSubpart.getSections().add(this);
         iPlacement = placement;
         iParent = parent;
         iInstructors = instructors;
@@ -887,4 +889,10 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     public Choice getChoice() {
         return new Choice(this);
     }
+    
+    /**
+     * List of student unavailabilities
+     * @return student unavailabilities
+     */
+    public List<Unavailability> getUnavailabilities() { return iUnavailabilities; }
 }

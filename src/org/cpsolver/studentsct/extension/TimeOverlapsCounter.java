@@ -17,6 +17,7 @@ import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.SctAssignment;
 import org.cpsolver.studentsct.model.Section;
 import org.cpsolver.studentsct.model.Student;
+import org.cpsolver.studentsct.model.Unavailability;
 
 
 /**
@@ -188,6 +189,59 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
         }
         return ret;
     }
+    
+    /**
+     * Total sum of all unavailability time conflict of the given enrollment.
+     * @param enrollment given enrollment
+     * @return number of all unavailability time conflicts of the given enrollment
+     */
+    public int nrNotAvailableTimeConflicts(Enrollment enrollment) {
+        if (enrollment.getRequest() instanceof FreeTimeRequest) return 0;
+        int cnt = 0;
+        for (Unavailability unavailability: enrollment.getStudent().getUnavailabilities())
+            for (SctAssignment section: enrollment.getAssignments())
+                cnt += share(section, unavailability);
+        return cnt;
+    }
+    
+    /**
+     * Return a set of unavailability time conflict of the given enrollment.
+     * @param enrollment given enrollment
+     * @return set of all unavailability time conflicts of the given enrollment
+     */
+    public Set<Conflict> notAvailableTimeConflicts(Enrollment enrollment) {
+        Set<Conflict> ret = new HashSet<Conflict>();
+        if (enrollment.getRequest() instanceof FreeTimeRequest) return ret;
+        for (Unavailability unavailability: enrollment.getStudent().getUnavailabilities())
+            for (SctAssignment section: enrollment.getAssignments())
+                if (inConflict(section, unavailability))
+                    ret.add(new Conflict(enrollment.getStudent(), share(section, unavailability), enrollment, section, null, unavailability));
+        return ret;
+    }
+    
+    /**
+     * Return a set of free and unavailability time conflict of the given enrollment.
+     * @param enrollment given enrollment
+     * @return set of all free time conflicts of the given enrollment
+     */
+    public Set<Conflict> conflicts(Enrollment enrollment) {
+        Set<Conflict> ret = new HashSet<Conflict>();
+        if (enrollment.getRequest() instanceof FreeTimeRequest) return ret;
+        for (Request request : enrollment.getStudent().getRequests()) {
+            if (request instanceof FreeTimeRequest) {
+                FreeTimeRequest ft = (FreeTimeRequest)request;
+                for (SctAssignment section: enrollment.getAssignments()) {
+                    if (inConflict(section, ft))
+                        ret.add(new Conflict(enrollment.getStudent(), share(section, ft), enrollment, section, ft.createEnrollment(), ft));
+                }
+            }
+        }
+        for (Unavailability unavailability: enrollment.getStudent().getUnavailabilities())
+            for (SctAssignment section: enrollment.getAssignments())
+                if (inConflict(section, unavailability))
+                    ret.add(new Conflict(enrollment.getStudent(), share(section, unavailability), enrollment, section, unavailability.createEnrollment(), unavailability));
+        return ret;
+    }
 
     /** Actual number of all time overlapping conflicts 
      * @param assignment current assignment
@@ -300,6 +354,20 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
             return iE1.getRequest();
         }
         
+        /** First request weight
+         * @return first request weight
+         **/
+        public double getR1Weight() {
+            return (iE1.getRequest() == null ? 0.0 : iE1.getRequest().getWeight());
+        }
+        
+        /** Second request weight
+         * @return second request weight
+         **/
+        public double getR2Weight() {
+            return (iE2.getRequest() == null ? 0.0 : iE2.getRequest().getWeight());
+        }
+        
         /** Second request
          * @return second request
          **/
@@ -367,6 +435,10 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
                 ret.addAll(conflicts(enrollment, other));
             }
         }
+        for (Unavailability unavailability: enrollment.getStudent().getUnavailabilities())
+            for (SctAssignment section: enrollment.getAssignments())
+                if (inConflict(section, unavailability))
+                    ret.add(new Conflict(enrollment.getStudent(), share(section, unavailability), enrollment, section, unavailability.createEnrollment(), unavailability));
         return ret;
     }
     
@@ -550,6 +622,7 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
                         total += nrConflicts(e1, e2);
                     }
                 }
+                total += nrNotAvailableTimeConflicts(e1);
             }
             return total;
         }
@@ -574,6 +647,10 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
                         ret.addAll(conflicts(e1, e2));
                     }                    
                 }
+                for (Unavailability unavailability: e1.getStudent().getUnavailabilities())
+                    for (SctAssignment section: e1.getAssignments())
+                        if (inConflict(section, unavailability))
+                            ret.add(new Conflict(e1.getStudent(), share(section, unavailability), e1, section, unavailability.createEnrollment(), unavailability));
             }
             return ret;
         }
@@ -598,6 +675,10 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
                     ret.addAll(conflicts(enrollment, assignment.getValue(request)));
                 }
             }
+            for (Unavailability unavailability: enrollment.getStudent().getUnavailabilities())
+                for (SctAssignment section: enrollment.getAssignments())
+                    if (inConflict(section, unavailability))
+                        ret.add(new Conflict(enrollment.getStudent(), share(section, unavailability), enrollment, section, unavailability.createEnrollment(), unavailability));
             return ret;
         }
         
@@ -620,6 +701,7 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
                     cnt += nrConflicts(enrollment, assignment.getValue(request));
                 }
             }
+            cnt += nrNotAvailableTimeConflicts(enrollment);
             return cnt;
         }
     }

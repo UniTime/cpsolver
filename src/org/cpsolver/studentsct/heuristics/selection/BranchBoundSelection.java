@@ -347,6 +347,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                     overlaps.addAll(iTimeOverlaps.conflicts(iAssignment[x], iAssignment[idx]));
                 else if (iStudent.getRequests().get(x) instanceof FreeTimeRequest)
                     overlaps.addAll(iTimeOverlaps.conflicts(((FreeTimeRequest)iStudent.getRequests().get(x)).createEnrollment(), iAssignment[idx]));
+            overlaps.addAll(iTimeOverlaps.notAvailableTimeConflicts(iAssignment[idx]));
             return overlaps;
         }
         
@@ -592,7 +593,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                     if (value == null) {
                         value = iModel.getStudentWeights().getWeight(iCurrentAssignment, e,
                                         (iModel.getDistanceConflict() == null ? null : iModel.getDistanceConflict().conflicts(e)),
-                                        (iModel.getTimeOverlaps() == null ? null : iModel.getTimeOverlaps().freeTimeConflicts(e)));
+                                        (iModel.getTimeOverlaps() == null ? null : iModel.getTimeOverlaps().conflicts(e)));
                         iValues.put(e, value);       
                     }
                     return value;

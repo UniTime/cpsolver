@@ -135,7 +135,7 @@ public class TimeOverlapConflictTable implements StudentSectioningReport {
         for (Conflict conflict : confs) {
             if (conflict.getStudent().isDummy() && !includeLastLikeStudents) continue;
             if (!conflict.getStudent().isDummy() && !includeRealStudents) continue;
-            if (conflict.getR1() instanceof FreeTimeRequest || conflict.getR2() instanceof FreeTimeRequest) continue;
+            if (conflict.getR1() == null || conflict.getR1() instanceof FreeTimeRequest || conflict.getR2() == null || conflict.getR2() instanceof FreeTimeRequest) continue;
             Section s1 = (Section)conflict.getS1(), s2 = (Section)conflict.getS2();
             Request r1 = conflict.getR1();
             Course c1 = assignment.getValue(conflict.getR1()).getCourse();

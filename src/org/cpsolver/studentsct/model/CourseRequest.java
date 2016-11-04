@@ -364,6 +364,8 @@ public class CourseRequest extends Request {
                     continue;
                 if (selectedOnly && !isSelected(section))
                     continue;
+                if (!getStudent().isAvailable(section))
+                    continue;
                 boolean canOverLimit = false;
                 if (availableOnly) {
                     for (Reservation r: getReservations(course)) {

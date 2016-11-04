@@ -48,6 +48,7 @@ public class Student implements Comparable<Student> {
     private List<LinkedSections> iLinkedSections = new ArrayList<LinkedSections>();
     private String iStatus = null;
     private Long iEmailTimeStamp = null;
+    private List<Unavailability> iUnavailabilities = new ArrayList<Unavailability>();
 
     /**
      * Constructor
@@ -341,5 +342,35 @@ public class Student implements Comparable<Student> {
         } else if (s.isDummy()) return -1;
         // then id
         return new Long(getId()).compareTo(s.getId());
+    }
+    
+    /**
+     * List of student unavailabilities
+     * @return student unavailabilities
+     */
+    public List<Unavailability> getUnavailabilities() { return iUnavailabilities; }
+    
+    /**
+     * Check if student is available during the given section
+     * @param section given section
+     * @return true, if available (the section cannot overlap and there is no overlapping unavailability that cannot overlap) 
+     */
+    public boolean isAvailable(Section section) {
+        if (section.isAllowOverlap() || section.getTime() == null) return true;
+        for (Unavailability unavailability: getUnavailabilities())
+            if (unavailability.isOverlapping(section)) return false;
+        return true;
+    }
+    
+    /**
+     * Check if student is available during the given enrollment
+     * @param enrollment given enrollment
+     * @return true, if available
+     */
+    public boolean isAvailable(Enrollment enrollment) {
+        if (enrollment.isCourseRequest())
+            for (Section section: enrollment.getSections())
+                if (!isAvailable(section)) return false;
+        return true;
     }
 }

@@ -31,6 +31,7 @@ import org.cpsolver.studentsct.constraint.RequiredReservation;
 import org.cpsolver.studentsct.constraint.ReservationLimit;
 import org.cpsolver.studentsct.constraint.SectionLimit;
 import org.cpsolver.studentsct.constraint.StudentConflict;
+import org.cpsolver.studentsct.constraint.StudentNotAvailable;
 import org.cpsolver.studentsct.extension.DistanceConflict;
 import org.cpsolver.studentsct.extension.TimeOverlapsCounter;
 import org.cpsolver.studentsct.model.Config;
@@ -150,6 +151,10 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         if (properties.getPropertyBoolean("Sectioning.CancelledSections", true)) {
             CancelledSections cancelledSections = new CancelledSections();
             addGlobalConstraint(cancelledSections);
+        }
+        if (properties.getPropertyBoolean("Sectioning.StudentNotAvailable", true)) {
+            StudentNotAvailable studentNotAvailable = new StudentNotAvailable();
+            addGlobalConstraint(studentNotAvailable);
         }
         if (iMPP && iKeepInitials) {
             addGlobalConstraint(new FixInitialAssignments());
@@ -442,8 +447,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                     total -= avg(c.getR1().getWeight(), c.getR2().getWeight()) * iStudentWeights.getDistanceConflictWeight(assignment, c);
             if (iTimeOverlaps != null)
                 for (TimeOverlapsCounter.Conflict c: iTimeOverlaps.getContext(assignment).computeAllConflicts(assignment)) {
-                    total -= c.getR1().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE1(), c);
-                    total -= c.getR2().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE2(), c);
+                    if (c.getR1() != null) total -= c.getR1Weight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE1(), c);
+                    if (c.getR2() != null) total -= c.getR2Weight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE2(), c);
                 }
             return -total;
         }
@@ -820,8 +825,10 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             Set<TimeOverlapsCounter.Conflict> conf = getTimeOverlaps().getAllConflicts(assignment);
             int share = 0;
             for (TimeOverlapsCounter.Conflict c: conf) {
-                toc += c.getR1().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE1(), c);
-                toc += c.getR2().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE2(), c);
+                if (c.getR1() != null)
+                    toc += c.getR1Weight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE1(), c);
+                if (c.getR2() != null) 
+                    toc += c.getR2Weight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE2(), c);
                 share += c.getShare();
             }
             if (toc != 0.0)
@@ -1070,13 +1077,13 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         }
         
         public void add(Assignment<Request, Enrollment> assignment, TimeOverlapsCounter.Conflict c) {
-            iTotalValue += c.getR1().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE1(), c);
-            iTotalValue += c.getR2().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE2(), c);
+            if (c.getR1() != null) iTotalValue += c.getR1Weight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE1(), c);
+            if (c.getR2() != null) iTotalValue += c.getR2Weight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE2(), c);
         }
 
         public void remove(Assignment<Request, Enrollment> assignment, TimeOverlapsCounter.Conflict c) {
-            iTotalValue -= c.getR1().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE1(), c);
-            iTotalValue -= c.getR2().getWeight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE2(), c);
+            if (c.getR1() != null) iTotalValue -= c.getR1Weight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE1(), c);
+            if (c.getR2() != null) iTotalValue -= c.getR2Weight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE2(), c);
         }
         
         /**

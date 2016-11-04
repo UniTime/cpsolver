@@ -17,6 +17,7 @@ import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.Section;
 import org.cpsolver.studentsct.model.Student;
 import org.cpsolver.studentsct.model.Subpart;
+import org.cpsolver.studentsct.model.Unavailability;
 import org.cpsolver.studentsct.online.OnlineSectioningModel;
 import org.cpsolver.studentsct.online.selection.MultiCriteriaBranchAndBoundSelection.SelectionCriterion;
 import org.cpsolver.studentsct.weights.StudentWeights;
@@ -88,9 +89,11 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
                                     iTimesToAvoid.add(new TimeToAvoid(section.getTime(), penalty, r.getPriority()));
                     }
                 } else if (r instanceof FreeTimeRequest) {
-                    iTimesToAvoid.add(new TimeToAvoid(((FreeTimeRequest) r).getTime(), 1, r.getPriority()));
+                    iTimesToAvoid.add(new TimeToAvoid(((FreeTimeRequest) r).getTime(), 1, Integer.MAX_VALUE));
                 }
             }
+            for (Unavailability unavailability: iStudent.getUnavailabilities())
+                iTimesToAvoid.add(new TimeToAvoid(unavailability.getTime(), 1, Integer.MAX_VALUE));
         }
     }
 
@@ -131,11 +134,12 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
             return null;
         Set<TimeOverlapsCounter.Conflict> overlaps = new HashSet<TimeOverlapsCounter.Conflict>();
         for (int x = 0; x < idx; x++)
-            if (assignment[x] != null)
+            if (assignment[x] != null) {
                 overlaps.addAll(getModel().getTimeOverlaps().conflicts(assignment[x], assignment[idx]));
-            else if (getStudent().getRequests().get(x) instanceof FreeTimeRequest)
+            } else if (getStudent().getRequests().get(x) instanceof FreeTimeRequest)
                 overlaps.addAll(getModel().getTimeOverlaps().conflicts(
                         ((FreeTimeRequest) getStudent().getRequests().get(x)).createEnrollment(), assignment[idx]));
+        overlaps.addAll(getModel().getTimeOverlaps().notAvailableTimeConflicts(assignment[idx]));
         return overlaps;
     }
 
@@ -192,7 +196,7 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
             }
         }
 
-        // 0.5. avoid course time overlaps
+        // 0.5. avoid course time overlaps & unavailabilities
         if (getModel().getTimeOverlaps() != null) {
             int bestTimeOverlaps = 0, currentTimeOverlaps = 0;
             for (int idx = 0; idx < current.length; idx++) {
@@ -208,6 +212,14 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
                         		&& current[x].getRequest() instanceof CourseRequest)
                             currentTimeOverlaps += getModel().getTimeOverlaps().nrConflicts(current[x], current[idx]);
                     }
+                }
+            }
+            for (int idx = 0; idx < current.length; idx++) {
+                if (best[idx] != null && best[idx].getAssignments() != null && best[idx].isCourseRequest()) {
+                    bestTimeOverlaps += getModel().getTimeOverlaps().nrNotAvailableTimeConflicts(best[idx]);
+                }
+                if (current[idx] != null && current[idx].getAssignments() != null && current[idx].isCourseRequest()) {
+                    currentTimeOverlaps += getModel().getTimeOverlaps().nrNotAvailableTimeConflicts(current[idx]);
                 }
             }
             if (currentTimeOverlaps < bestTimeOverlaps)
@@ -304,6 +316,14 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
                                     ((FreeTimeRequest) getStudent().getRequests().get(x)).createEnrollment(),
                                     current[idx]);
                     }
+                }
+            }
+            for (int idx = 0; idx < current.length; idx++) {
+                if (best[idx] != null && best[idx].getAssignments() != null && best[idx].isCourseRequest()) {
+                    bestTimeOverlaps += getModel().getTimeOverlaps().nrNotAvailableTimeConflicts(best[idx]);
+                }
+                if (current[idx] != null && current[idx].getAssignments() != null && current[idx].isCourseRequest()) {
+                    currentTimeOverlaps += getModel().getTimeOverlaps().nrNotAvailableTimeConflicts(current[idx]);
                 }
             }
             if (currentTimeOverlaps < bestTimeOverlaps)
@@ -446,7 +466,7 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
             }
         }
 
-        // 0.5. avoid course time overlaps
+        // 0.5. avoid course time overlaps & unavailability overlaps
         if (getModel().getTimeOverlaps() != null) {
             int bestTimeOverlaps = 0, currentTimeOverlaps = 0;
             for (int idx = 0; idx < current.length; idx++) {
@@ -461,6 +481,14 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
                         if (current[x] != null && current[x].getRequest() instanceof CourseRequest)
                             currentTimeOverlaps += getModel().getTimeOverlaps().nrConflicts(current[x], current[idx]);
                     }
+                }
+            }
+            for (int idx = 0; idx < current.length; idx++) {
+                if (best[idx] != null && best[idx].getAssignments() != null && best[idx].isCourseRequest()) {
+                    bestTimeOverlaps += getModel().getTimeOverlaps().nrNotAvailableTimeConflicts(best[idx]);
+                }
+                if (current[idx] != null && idx < maxIdx && current[idx].getAssignments() != null && current[idx].isCourseRequest()) {
+                    currentTimeOverlaps += getModel().getTimeOverlaps().nrNotAvailableTimeConflicts(current[idx]);
                 }
             }
             if (currentTimeOverlaps < bestTimeOverlaps)
@@ -589,6 +617,14 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
                                     ((FreeTimeRequest) getStudent().getRequests().get(x)).createEnrollment(),
                                     current[idx]);
                     }
+                }
+            }
+            for (int idx = 0; idx < current.length; idx++) {
+                if (best[idx] != null && best[idx].getAssignments() != null && best[idx].isCourseRequest()) {
+                    bestTimeOverlaps += getModel().getTimeOverlaps().nrNotAvailableTimeConflicts(best[idx]);
+                }
+                if (current[idx] != null && idx < maxIdx && current[idx].getAssignments() != null && current[idx].isCourseRequest()) {
+                    currentTimeOverlaps += getModel().getTimeOverlaps().nrNotAvailableTimeConflicts(current[idx]);
                 }
             }
             if (currentTimeOverlaps < bestTimeOverlaps)
@@ -765,8 +801,8 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
         // 4. avoid time overlaps
         if (getTimesToAvoid() == null) {
             if (getModel().getTimeOverlaps() != null) {
-                int o1 = getModel().getTimeOverlaps().nrFreeTimeConflicts(e1);
-                int o2 = getModel().getTimeOverlaps().nrFreeTimeConflicts(e2);
+                int o1 = getModel().getTimeOverlaps().nrFreeTimeConflicts(e1) + getModel().getTimeOverlaps().nrNotAvailableTimeConflicts(e1);
+                int o2 = getModel().getTimeOverlaps().nrFreeTimeConflicts(e2) + getModel().getTimeOverlaps().nrNotAvailableTimeConflicts(e2);
                 if (o1 < o2)
                     return -1;
                 if (o2 < o1)

@@ -33,6 +33,7 @@ import org.cpsolver.studentsct.model.RequestGroup;
 import org.cpsolver.studentsct.model.Section;
 import org.cpsolver.studentsct.model.Student;
 import org.cpsolver.studentsct.model.Subpart;
+import org.cpsolver.studentsct.model.Unavailability;
 import org.cpsolver.studentsct.reservation.CourseReservation;
 import org.cpsolver.studentsct.reservation.CurriculumReservation;
 import org.cpsolver.studentsct.reservation.DummyReservation;
@@ -579,6 +580,12 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                 if (aac.getCode() != null)
                     aacEl.addAttribute("code", aac.getCode());
             }
+        }
+        for (Unavailability unavailability: student.getUnavailabilities()) {
+            Element unavEl = studentEl.addElement("unavailability");
+            unavEl.addAttribute("offering", getId("offering", unavailability.getSection().getSubpart().getConfig().getOffering().getId()));
+            unavEl.addAttribute("section", getId("section", unavailability.getSection().getId()));
+            if (unavailability.isAllowOverlap()) unavEl.addAttribute("allowOverlap", "true");
         }
     }
     

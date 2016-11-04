@@ -94,7 +94,7 @@ public class RandomizedBacktrackNeighbourSelection extends BacktrackNeighbourSel
                     if (value == null) {
                         value = model.getStudentWeights().getWeight(assignment, e,
                                 (model.getDistanceConflict() == null ? null : model.getDistanceConflict().conflicts(e)),
-                                (model.getTimeOverlaps() == null ? null : model.getTimeOverlaps().freeTimeConflicts(e)));
+                                (model.getTimeOverlaps() == null ? null : model.getTimeOverlaps().conflicts(e)));
                         iValues.put(e, value);
                     }
                     return value;

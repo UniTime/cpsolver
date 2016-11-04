@@ -118,7 +118,7 @@ public class SuggestionsBranchAndBound {
                 if (value == null) {
                     value = iModel.getStudentWeights().getWeight(iAssignment, e,
                             (iModel.getDistanceConflict() == null ? null : iModel.getDistanceConflict().conflicts(e)),
-                            (iModel.getTimeOverlaps() == null ? null : iModel.getTimeOverlaps().freeTimeConflicts(e)));
+                            (iModel.getTimeOverlaps() == null ? null : iModel.getTimeOverlaps().conflicts(e)));
                     iValues.put(e, value);
                 }
                 return value;
