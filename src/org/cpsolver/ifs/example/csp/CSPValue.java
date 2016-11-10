@@ -34,7 +34,7 @@ public class CSPValue extends Value<CSPVariable, CSPValue> {
      *            value (an integer between 0 .. number of values - 1 )
      */
     public CSPValue(CSPVariable variable, int value) {
-        super(variable, value);
+        super(variable, new Double(value));
     }
     
     @Override

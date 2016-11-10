@@ -7,6 +7,7 @@ import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.AssignmentComparable;
 import org.cpsolver.ifs.assignment.ValueComparator;
 import org.cpsolver.ifs.assignment.context.ExtensionWithContext;
+import org.cpsolver.ifs.criteria.Criterion;
 import org.cpsolver.ifs.util.IdGenerator;
 
 
@@ -51,7 +52,7 @@ public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements C
     private V iVariable = null;
 
     /** Integer value */
-    protected double iValue = 0;
+    protected Double iValue = null;
     /**
      * Extra information which can be used by an IFS extension (see
      * {@link org.cpsolver.ifs.extension.Extension})
@@ -77,7 +78,7 @@ public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements C
      * @param value
      *            integer value
      */
-    public Value(V variable, double value) {
+    public Value(V variable, Double value) {
         iId = sIdGenerator.newId();
         iVariable = variable;
         iValue = value;
@@ -126,8 +127,14 @@ public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements C
      * @param assignment current assignment
      * @return this value's contribution to the solution value
      */
+    @SuppressWarnings("unchecked")
     public double toDouble(Assignment<V, T> assignment) {
-        return iValue;
+        if (iValue != null)
+            return iValue;
+        double ret = 0.0;
+        for (Criterion<V, T> criterion: variable().getModel().getCriteria())
+            ret += criterion.getWeightedValue(assignment, (T)this, null);
+        return ret;
     }
     
     /**
@@ -139,7 +146,7 @@ public class Value<V extends Variable<V, T>, T extends Value<V, T>> implements C
      */
     @Deprecated
     public double toDouble() {
-        return iValue;
+        return toDouble(variable().getModel().getDefaultAssignment());
     }
 
     @Override
