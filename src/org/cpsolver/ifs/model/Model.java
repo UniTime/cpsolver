@@ -941,8 +941,12 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      */
     public double getTotalValue(Assignment<V, T> assignment) {
         double ret = 0.0;
-        for (T t: assignment.assignedValues())
-            ret += t.toDouble(assignment);
+        if (getCriteria().isEmpty())
+            for (T t: assignment.assignedValues())
+                ret += t.toDouble(assignment);
+        else
+            for (Criterion<V, T> c: getCriteria())
+                ret += c.getWeightedValue(assignment);
         return ret;
     }
 
