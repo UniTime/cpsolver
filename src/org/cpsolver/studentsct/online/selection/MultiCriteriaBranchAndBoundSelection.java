@@ -317,15 +317,17 @@ public class MultiCriteriaBranchAndBoundSelection implements OnlineSectioningSel
             values = request.computeEnrollments(iAssignment);
         }
 
+        boolean hasNoConflictValue = false;
         for (Enrollment enrollment : values) {
             if (inConflict(idx, enrollment))
                 continue;
+            hasNoConflictValue = true;
             iCurrentAssignment[idx] = enrollment;
             backTrack(idx + 1);
             iCurrentAssignment[idx] = null;
         }
 
-        if (canLeaveUnassigned(request))
+        if (canLeaveUnassigned(request) || (!hasNoConflictValue && request instanceof CourseRequest))
             backTrack(idx + 1);
     }
 
