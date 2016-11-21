@@ -18,6 +18,8 @@ import org.cpsolver.instructor.criteria.BackToBack;
 import org.cpsolver.instructor.criteria.DifferentLecture;
 import org.cpsolver.instructor.criteria.SameCommon;
 import org.cpsolver.instructor.criteria.SameCourse;
+import org.cpsolver.instructor.criteria.SameDays;
+import org.cpsolver.instructor.criteria.SameRoom;
 import org.cpsolver.instructor.criteria.TimeOverlaps;
 import org.cpsolver.instructor.criteria.UnusedInstructorLoad;
 
@@ -54,7 +56,7 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest.Variabl
     private String iName;
     private int iPreference;
     private float iMaxLoad;
-    private int iBackToBackPreference;
+    private int iBackToBackPreference, iSameDaysPreference, iSameRoomPreference;
     
     /**
      * Constructor
@@ -130,6 +132,54 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest.Variabl
      * @return true if the back-to-back preference is positive
      */
     public boolean isBackToBackDiscouraged() { return iBackToBackPreference > 0; }
+    
+    /**
+     * Set same-days preference (only soft preference can be set at the moment)
+     * @param sameDaysPreference same-days preference (e.g., -1 for preferred, 1 for discouraged)
+     */
+    public void setSameDaysPreference(int sameDaysPreference) { iSameDaysPreference = sameDaysPreference; }
+    
+    /**
+     * Return same-days preference (only soft preference can be set at the moment)
+     * @return same-days preference (e.g., -1 for preferred, 1 for discouraged)
+     */
+    public int getSameDaysPreference() { return iSameDaysPreference; }
+    
+    /**
+     * Is same-days preferred?
+     * @return true if the same-days preference is negative
+     */
+    public boolean isSameDaysPreferred() { return iSameDaysPreference < 0; }
+    
+    /**
+     * Is same-days discouraged?
+     * @return true if the same-days preference is positive
+     */
+    public boolean isSameDaysDiscouraged() { return iSameDaysPreference > 0; }
+    
+    /**
+     * Set same-room preference (only soft preference can be set at the moment)
+     * @param sameRoomPreference same-room preference (e.g., -1 for preferred, 1 for discouraged)
+     */
+    public void setSameRoomPreference(int sameRoomPreference) { iSameRoomPreference = sameRoomPreference; }
+    
+    /**
+     * Return same-room preference (only soft preference can be set at the moment)
+     * @return same-room preference (e.g., -1 for preferred, 1 for discouraged)
+     */
+    public int getSameRoomPreference() { return iSameRoomPreference; }
+    
+    /**
+     * Is same-room preferred?
+     * @return true if the same-room preference is negative
+     */
+    public boolean isSameRoomPreferred() { return iSameRoomPreference < 0; }
+    
+    /**
+     * Is same-room discouraged?
+     * @return true if the same-room preference is positive
+     */
+    public boolean isSameRoomDiscouraged() { return iSameRoomPreference > 0; }
     
     /**
      * Instructor unavailability string generated from prohibited time preferences
@@ -375,6 +425,53 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest.Variabl
         return b2b;
     }
     
+    /**
+     * Compute number of same days assignments (weighted by the preference) of the given teaching assignment and the other assignments of the instructor 
+     * @param assignment current assignment
+     * @param value teaching assignment that is being considered
+     * @param diffRoomWeight different room penalty
+     * @param diffTypeWeight different instructional type penalty
+     * @return weighted same days preference, using {@link TeachingRequest#countSameDays(TeachingRequest, double, double)}
+     */
+    public double countSameDays(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, TeachingAssignment value, double diffRoomWeight, double diffTypeWeight) {
+        double sd = 0.0;
+        if (value.getInstructor().equals(this) && getSameDaysPreference() != 0) {
+            for (TeachingAssignment other : value.getInstructor().getContext(assignment).getAssignments()) {
+                if (other.variable().equals(value.variable()))
+                    continue;
+                if (getSameDaysPreference() < 0) { // preferred
+                    sd += (value.variable().getRequest().countSameDays(other.variable().getRequest(), diffRoomWeight, diffTypeWeight) - 1.0) * getSameDaysPreference();
+                } else {
+                    sd += value.variable().getRequest().countSameDays(other.variable().getRequest(), diffRoomWeight, diffTypeWeight) * getSameDaysPreference();
+                }
+            }
+        }
+        return sd;
+    }
+    
+    /**
+     * Compute number of same room assignments (weighted by the preference) of the given teaching assignment and the other assignments of the instructor 
+     * @param assignment current assignment
+     * @param value teaching assignment that is being considered
+     * @param diffTypeWeight different instructional type penalty
+     * @return weighted same room preference, using {@link TeachingRequest#countSameRooms(TeachingRequest, double)}
+     */
+    public double countSameRooms(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, TeachingAssignment value, double diffTypeWeight) {
+        double sd = 0.0;
+        if (value.getInstructor().equals(this) && getSameRoomPreference() != 0) {
+            for (TeachingAssignment other : value.getInstructor().getContext(assignment).getAssignments()) {
+                if (other.variable().equals(value.variable()))
+                    continue;
+                if (getSameRoomPreference() < 0) { // preferred
+                    sd += (value.variable().getRequest().countSameRooms(other.variable().getRequest(), diffTypeWeight) - 1.0) * getSameRoomPreference();
+                } else {
+                    sd += value.variable().getRequest().countSameRooms(other.variable().getRequest(), diffTypeWeight) * getSameRoomPreference();
+                }
+            }
+        }
+        return sd;
+    }
+    
     @Override
     public String toString() {
         return getName();
@@ -398,7 +495,7 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest.Variabl
     public class Context implements AssignmentConstraintContext<TeachingRequest.Variable, TeachingAssignment> {
         private HashSet<TeachingAssignment> iAssignments = new HashSet<TeachingAssignment>();
         private int iTimeOverlaps;
-        private double iBackToBacks;
+        private double iBackToBacks, iSameDays, iSameRooms;
         private double iDifferentLectures;
         private double iUnusedLoad;
         private double iSameCoursePenalty, iSameCommonPenalty;
@@ -461,6 +558,22 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest.Variabl
                 b2b.inc(assignment, -iBackToBacks);
                 iBackToBacks = countBackToBackPreference(b2b.getDifferentRoomWeight(), b2b.getDifferentTypeWeight());
                 b2b.inc(assignment, iBackToBacks);
+            }
+            
+            // update same-days
+            SameDays sd = (SameDays)getModel().getCriterion(SameDays.class);
+            if (sd != null) {
+                sd.inc(assignment, -iSameDays);
+                iSameDays = countSameDaysPreference(sd.getDifferentRoomWeight(), sd.getDifferentTypeWeight());
+                sd.inc(assignment, iSameDays);
+            }
+
+            // update same-days
+            SameRoom sr = (SameRoom)getModel().getCriterion(SameRoom.class);
+            if (sr != null) {
+                sr.inc(assignment, -iSameRooms);
+                iSameRooms = countSameRoomPreference(sd.getDifferentTypeWeight());
+                sr.inc(assignment, iSameRooms);
             }
             
             // update time overlaps
@@ -617,6 +730,87 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest.Variabl
                 }
             }
             return (pairs == 0 ? 0.0 : b2b / pairs);
+        }
+        
+        /**
+         * Current same days preference of the instructor (using {@link TeachingRequest#countSameDays(TeachingRequest, double, double)})
+         * @param diffRoomWeight different room weight
+         * @param diffTypeWeight different instructional type weight
+         * @return current same days preference
+         */
+        public double countSameDaysPreference(double diffRoomWeight, double diffTypeWeight) {
+            double sd = 0;
+            if (getInstructor().isSameDaysPreferred() || getInstructor().isSameDaysDiscouraged())
+                for (TeachingAssignment a1 : iAssignments) {
+                    for (TeachingAssignment a2 : iAssignments) {
+                        if (a1.getId() >= a2.getId()) continue;
+                        if (getInstructor().getSameDaysPreference() < 0) { // preferred
+                            sd += (a1.variable().getRequest().countSameDays(a2.variable().getRequest(), diffRoomWeight, diffTypeWeight) - 1.0) * getInstructor().getSameDaysPreference();
+                        } else {
+                            sd += a1.variable().getRequest().countSameDays(a2.variable().getRequest(), diffRoomWeight, diffTypeWeight) * getInstructor().getSameDaysPreference();
+                        }
+                    }
+                }
+            return sd;
+        }
+        
+        /**
+         * Current same days percentage for this instructor
+         * @return percentage of assignments that are back-to-back
+         */
+        public double countSameDaysPercentage() {
+            SameDays c = (SameDays)getModel().getCriterion(SameDays.class);
+            if (c == null) return 0.0;
+            double sd = 0.0;
+            int pairs = 0;
+            for (TeachingAssignment a1 : iAssignments) {
+                for (TeachingAssignment a2 : iAssignments) {
+                    if (a1.getId() >= a2.getId()) continue;
+                    sd += a1.variable().getRequest().countSameDays(a2.variable().getRequest(), c.getDifferentRoomWeight(), c.getDifferentTypeWeight());
+                    pairs ++;
+                }
+            }
+            return (pairs == 0 ? 0.0 : sd / pairs);
+        }
+        
+        /**
+         * Current same room preference of the instructor (using {@link TeachingRequest#countSameRooms(TeachingRequest, double)})
+         * @param diffTypeWeight different instructional type weight
+         * @return current same room preference
+         */
+        public double countSameRoomPreference(double diffTypeWeight) {
+            double sd = 0;
+            if (getInstructor().isSameRoomPreferred() || getInstructor().isSameRoomDiscouraged())
+                for (TeachingAssignment a1 : iAssignments) {
+                    for (TeachingAssignment a2 : iAssignments) {
+                        if (a1.getId() >= a2.getId()) continue;
+                        if (getInstructor().getSameRoomPreference() < 0) { // preferred
+                            sd += (a1.variable().getRequest().countSameRooms(a2.variable().getRequest(), diffTypeWeight) - 1.0) * getInstructor().getSameRoomPreference();
+                        } else {
+                            sd += a1.variable().getRequest().countSameRooms(a2.variable().getRequest(), diffTypeWeight) * getInstructor().getSameRoomPreference();
+                        }
+                    }
+                }
+            return sd;
+        }
+        
+        /**
+         * Current same room percentage for this instructor
+         * @return percentage of assignments that are back-to-back
+         */
+        public double countSameRoomPercentage() {
+            SameRoom c = (SameRoom)getModel().getCriterion(SameDays.class);
+            if (c == null) return 0.0;
+            double sr = 0.0;
+            int pairs = 0;
+            for (TeachingAssignment a1 : iAssignments) {
+                for (TeachingAssignment a2 : iAssignments) {
+                    if (a1.getId() >= a2.getId()) continue;
+                    sr += a1.variable().getRequest().countSameRooms(a2.variable().getRequest(), c.getDifferentTypeWeight());
+                    pairs ++;
+                }
+            }
+            return (pairs == 0 ? 0.0 : sr / pairs);
         }
         
         /**

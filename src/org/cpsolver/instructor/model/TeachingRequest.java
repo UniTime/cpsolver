@@ -433,6 +433,43 @@ public class TeachingRequest {
         return (count == 0 ? 0.0 : b2b / count);
     }
     
+    /**
+     * Average value of the same days between this request and the given one
+     * @param request the other teaching request
+     * @param diffRoomWeight different room penalty
+     * @param diffTypeWeight different instructional type penalty
+     * @return average value of {@link Section#countSameDays(Collection, double, double)} between the two, common sections are ignored
+     */
+    public double countSameDays(TeachingRequest request, double diffRoomWeight, double diffTypeWeight) {
+        double sd = 0.0;
+        int count = 0;
+        for (Section section: getSections()) {
+            if (!section.isCommon() || !sameCourse(request) || !request.getSections().contains(section)) {
+                sd += section.countSameDays(request.getSections(), diffRoomWeight, diffTypeWeight);
+                count ++;
+            }
+        }
+        return (count == 0 ? 0.0 : sd / count);
+    }
+    
+    /**
+     * Average value of the same rooms between this request and the given one
+     * @param request the other teaching request
+     * @param diffTypeWeight different instructional type penalty
+     * @return average value of {@link Section#countSameRooms(Collection, double)} between the two, common sections are ignored
+     */
+    public double countSameRooms(TeachingRequest request, double diffTypeWeight) {
+        double sr = 0.0;
+        int count = 0;
+        for (Section section: getSections()) {
+            if (!section.isCommon() || !sameCourse(request) || !request.getSections().contains(section)) {
+                sr += section.countSameRooms(request.getSections(), diffTypeWeight);
+                count ++;
+            }
+        }
+        return (count == 0 ? 0.0 : sr / count);
+    }
+    
     @Override
     public int hashCode() {
         return (int)(iRequestId ^ (iRequestId >>> 32));

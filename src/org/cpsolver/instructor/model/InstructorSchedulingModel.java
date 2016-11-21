@@ -35,7 +35,9 @@ import org.cpsolver.instructor.criteria.DifferentLecture;
 import org.cpsolver.instructor.criteria.OriginalInstructor;
 import org.cpsolver.instructor.criteria.SameCommon;
 import org.cpsolver.instructor.criteria.SameCourse;
+import org.cpsolver.instructor.criteria.SameDays;
 import org.cpsolver.instructor.criteria.SameLink;
+import org.cpsolver.instructor.criteria.SameRoom;
 import org.cpsolver.instructor.criteria.TeachingPreferences;
 import org.cpsolver.instructor.criteria.TimeOverlaps;
 import org.cpsolver.instructor.criteria.TimePreferences;
@@ -95,6 +97,8 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
         addCriterion(new UnusedInstructorLoad());
         addCriterion(new SameCourse());
         addCriterion(new SameCommon());
+        addCriterion(new SameDays());
+        addCriterion(new SameRoom());
         addGlobalConstraint(new InstructorConstraint());
     }
     
@@ -358,6 +362,10 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
                 instructorEl.addAttribute("preference", String.valueOf(instructor.getPreference()));
             if (instructor.getBackToBackPreference() != 0)
                 instructorEl.addAttribute("btb", String.valueOf(instructor.getBackToBackPreference()));
+            if (instructor.getSameDaysPreference() != 0)
+                instructorEl.addAttribute("same-days", String.valueOf(instructor.getSameDaysPreference()));
+            if (instructor.getSameRoomPreference() != 0)
+                instructorEl.addAttribute("same-room", String.valueOf(instructor.getSameRoomPreference()));
             for (Attribute attribute: instructor.getAttributes()) {
                 Element attributeEl = instructorEl.addElement("attribute");
                 if (attribute.getAttributeId() != null)
@@ -459,6 +467,8 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
         boolean loadBest = getProperties().getPropertyBoolean("Xml.LoadBest", true);
         boolean loadSolution = getProperties().getPropertyBoolean("Xml.LoadSolution", true);
         String defaultBtb = getProperties().getProperty("Defaults.BackToBack", "0");
+        String defaultSameDays = getProperties().getProperty("Defaults.SameDays", "0");
+        String defaultSameRoom = getProperties().getProperty("Defaults.SameRoom", "0");
         String defaultConjunctive = getProperties().getProperty("Defaults.Conjunctive", "false");
         String defaultRequired = getProperties().getProperty("Defaults.Required", "false");
         String defaultSameCourse = getProperties().getProperty("Defaults.SameCourse", "R");
@@ -509,6 +519,8 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
                     string2preference(instructorEl.attributeValue("preference")),
                     Float.parseFloat(instructorEl.attributeValue("maxLoad", "0")));
             instructor.setBackToBackPreference(Integer.valueOf(instructorEl.attributeValue("btb", defaultBtb)));
+            instructor.setSameDaysPreference(Integer.valueOf(instructorEl.attributeValue("same-days", defaultSameDays)));
+            instructor.setSameRoomPreference(Integer.valueOf(instructorEl.attributeValue("same-room", defaultSameRoom)));
             for (Iterator<?> j = instructorEl.elementIterator("attribute"); j.hasNext();) {
                 Element f = (Element) j.next();
                 Long attributeId = Long.valueOf(f.attributeValue("id"));

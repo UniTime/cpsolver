@@ -2,6 +2,7 @@ package org.cpsolver.instructor.model;
 
 import java.util.Collection;
 
+import org.cpsolver.coursett.Constants;
 import org.cpsolver.coursett.model.TimeLocation;
 import org.cpsolver.instructor.criteria.DifferentLecture;
 
@@ -170,6 +171,19 @@ public class Section {
     }
     
     /**
+     * Check if this section has the same days as some other section
+     * @param section the other section
+     * @return 0 if all the days are different, 1 if all the days are the same
+     */
+    public double percSameDays(Section section) {
+        if (getTime() == null || section.getTime() == null) return 0;
+        double ret = 0.0;
+        for (int dayCode: Constants.DAY_CODES)
+            if ((getTime().getDayCode() & dayCode) != 0 && (section.getTime().getDayCode() & dayCode) != 0) ret ++;
+        return ret / Math.min(getTime().getNrMeetings(), section.getTime().getNrMeetings());
+    }
+    
+    /**
      * Check if this section is placed in the same room as the other section
      * @param section the other section
      * @return true, if both sections have no room or if they have the same room
@@ -206,6 +220,46 @@ public class Section {
                 if (w > btb) btb = w;
             }
         return btb;
+    }
+    
+    /**
+     * Check if this section has the same days with some other section in the list
+     * @param sections the other sections
+     * @param diffRoomWeight different room penalty (should be between 1 and 0)
+     * @param diffTypeWeight different instructional type penalty (should be between 1 and 0)
+     * @return 1.0 if there is a section in the list that has the same days and in the same room and with the same type, 0.0 if there is no same days section in the list, etc.
+     * If there are multiple same days sections, the best same days value is returned.
+     */
+    public double countSameDays(Collection<Section> sections, double diffRoomWeight, double diffTypeWeight) {
+        if (sections.contains(this)) return 0.0;
+        double sd = 0;
+        for (Section section : sections) {
+            double w = percSameDays(section);
+            if (!isSameRoom(section)) w *= diffRoomWeight;
+            if (!isSameSectionType(section)) w *= diffTypeWeight;
+            if (w > sd) sd = w;
+        }
+        return sd;
+    }
+    
+    /**
+     * Check if this section has the same room with some other section in the list
+     * @param sections the other sections
+     * @param diffTypeWeight different instructional type penalty (should be between 1 and 0)
+     * @return 1.0 if there is a section in the list that has the same room and with the same type, 0.0 if there is no same room section in the list, etc.
+     * If there are multiple same room sections, the best same room value is returned.
+     */
+    public double countSameRooms(Collection<Section> sections, double diffTypeWeight) {
+        if (sections.contains(this)) return 0.0;
+        double sr = 0;
+        for (Section section : sections) {
+            if (isSameRoom(section)) {
+                double w = 1.0;
+                if (!isSameSectionType(section)) w *= diffTypeWeight;
+                if (w > sr) sr = w;
+            }
+        }
+        return sr;
     }
     
     /**

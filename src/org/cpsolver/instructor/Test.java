@@ -95,9 +95,12 @@ public class Test extends InstructorSchedulingModel {
      */
     protected void generateReports(File outputDir, Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) throws IOException {
         PrintWriter out = new PrintWriter(new File(outputDir, "solution-assignments.csv"));
-        out.println("Course,Section,Time,Room,Load,Student,Name,Instructor Pref,Course Pref,Attribute Pref,Time Pref,Back-To-Back,Different Lecture,Overlap [h]");
+        out.println("Course,Section,Time,Room,Load,Student,Name,Instructor Pref,Course Pref,Attribute Pref,Time Pref,Back-To-Back,Same-Days,Same-Room,Different Lecture,Overlap [h]");
         double diffRoomWeight = getProperties().getPropertyDouble("BackToBack.DifferentRoomWeight", 0.8);
         double diffTypeWeight = getProperties().getPropertyDouble("BackToBack.DifferentTypeWeight", 0.5);
+        double diffRoomWeightSD = getProperties().getPropertyDouble("SameDays.DifferentRoomWeight", 0.8);
+        double diffTypeWeightSD = getProperties().getPropertyDouble("SameDays.DifferentTypeWeight", 0.5);
+        double diffTypeWeightSR = getProperties().getPropertyDouble("SameRoom.DifferentTypeWeight", 0.5);
         for (TeachingRequest.Variable request : variables()) {
             out.print(request.getCourse().getCourseName());
             String sect = "", time = "", room = "";
@@ -121,6 +124,10 @@ public class Test extends InstructorSchedulingModel {
                 out.print("," + (ta.getTimePreference() == 0 ? "" : ta.getTimePreference()));
                 double b2b = instructor.countBackToBacks(assignment, ta, diffRoomWeight, diffTypeWeight);
                 out.print("," + (b2b == 0.0 ? "" : new DecimalFormat("0.0").format(b2b)));
+                double sd = instructor.countSameDays(assignment, ta, diffRoomWeightSD, diffTypeWeightSD);
+                out.print("," + (sd == 0.0 ? "" : new DecimalFormat("0.0").format(sd)));
+                double sr = instructor.countSameRooms(assignment, ta, diffTypeWeightSR);
+                out.print("," + (sr == 0.0 ? "" : new DecimalFormat("0.0").format(sr)));
                 double dl = instructor.differentLectures(assignment, ta);
                 out.print("," + (dl == 0.0 ? "" : new DecimalFormat("0.0").format(dl)));
                 double sh = instructor.share(assignment, ta);
@@ -132,7 +139,7 @@ public class Test extends InstructorSchedulingModel {
         out.close();
 
         out = new PrintWriter(new File(outputDir, "solution-students.csv"));
-        out.println("Student,Name,Preference,Not Available,Time Pref,Course Pref,Back-to-Back,Max Load,Assigned Load,Back-To-Back,Different Lecture,Overlap [h],1st Assignment,2nd Assignment, 3rd Assignment");
+        out.println("Student,Name,Preference,Not Available,Time Pref,Course Pref,Back-to-Back,Same-Days,Same-Room,Max Load,Assigned Load,Back-To-Back,Same-Days,Same-Room,Different Lecture,Overlap [h],1st Assignment,2nd Assignment, 3rd Assignment");
         for (Instructor instructor: getInstructors()) {
             out.print(instructor.getExternalId());
             out.print(",\"" + instructor.getName() + "\"");
@@ -153,11 +160,15 @@ public class Test extends InstructorSchedulingModel {
             }
             out.print(",\"" + coursePref + "\"");
             out.print("," + (instructor.getBackToBackPreference() == 0 ? "" : instructor.getBackToBackPreference()));
+            out.print("," + (instructor.getSameDaysPreference() == 0 ? "" : instructor.getSameDaysPreference()));
+            out.print("," + (instructor.getSameRoomPreference() == 0 ? "" : instructor.getSameRoomPreference()));
             out.print("," + new DecimalFormat("0.0").format(instructor.getMaxLoad()));
             
             Instructor.Context context = instructor.getContext(assignment);
             out.print("," + new DecimalFormat("0.0").format(context.getLoad()));
             out.print("," + (context.countBackToBackPercentage() == 0.0 ? "" : new DecimalFormat("0.0").format(100.0 * context.countBackToBackPercentage())));
+            out.print("," + (context.countSameDaysPercentage() == 0.0 ? "" : new DecimalFormat("0.0").format(100.0 * context.countSameDaysPercentage())));
+            out.print("," + (context.countSameRoomPercentage() == 0.0 ? "" : new DecimalFormat("0.0").format(100.0 * context.countSameRoomPercentage())));
             out.print("," + (context.countDifferentLectures() == 0.0 ? "" : new DecimalFormat("0.0").format(100.0 * context.countDifferentLectures())));
             out.print("," + (context.countTimeOverlaps() == 0.0 ? "" : new DecimalFormat("0.0").format(context.countTimeOverlaps() / 12.0)));
             for (TeachingAssignment ta : context.getAssignments()) {
