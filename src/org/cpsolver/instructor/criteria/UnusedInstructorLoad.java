@@ -49,14 +49,13 @@ public class UnusedInstructorLoad extends InstructorSchedulingCriterion {
     public double getValue(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment, TeachingAssignment value, Set<TeachingAssignment> conflicts) {
         Instructor.Context cx = value.getInstructor().getContext(assignment);
         
-        int nrAssignments = cx.getAssignments().size();
-        if (!cx.getAssignments().contains(assignment)) nrAssignments ++;
+        float load = cx.getLoad();
+        if (!cx.getAssignments().contains(assignment)) load += value.variable().getRequest().getLoad();
+        if (conflicts != null)
+            for (TeachingAssignment ta: conflicts)
+                if (ta.getInstructor().equals(value.getInstructor())) load -= ta.variable().getRequest().getLoad();
         
-        if (nrAssignments == 1) {
-            return value.getInstructor().getMaxLoad() - value.variable().getRequest().getLoad();
-        } else {
-            return -value.variable().getRequest().getLoad();
-        }
+        return Math.max(0, value.getInstructor().getMaxLoad() - load);
     }
     
     @Override
