@@ -694,6 +694,23 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
          * 12 Hour Work Day: Classes are to be placed in a way that there is no more than twelve hours between the start of the first class and the end of the class one on any day.
          */
         WORKDAY_12("WORKDAY(12)", "12 Hour Work Day", 144, WORKDAY_6.check()),
+        /**
+         * Meet Together & Same Weeks: Given classes are meeting together (same as if the given classes require constraints Can Share Room,
+         * Same Room, Same Time, Same Days and Same Weeks all together).
+         */
+        MEET_WITH_WEEKS("MEET_WITH_WEEKS", "Meet Together & Same Weeks", new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return
+                        plc1.sameRooms(plc2) &&
+                        sameHours(plc1.getTimeLocation().getStartSlot(), plc1.getTimeLocation().getLength(), plc2.getTimeLocation().getStartSlot(), plc2.getTimeLocation().getLength()) &&
+                        sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray()) &&
+                        plc1.getTimeLocation().getWeekCode().equals(plc2.getTimeLocation().getWeekCode());
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return true;
+            }}, Flag.CAN_SHARE_ROOM),
         ;
         
         String iReference, iName;
