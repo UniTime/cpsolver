@@ -39,7 +39,7 @@ public class TeachingAssignment extends Value<TeachingRequest.Variable, Teaching
      * @param attributePreference attribute preference (value of {@link TeachingRequest#getAttributePreference(Instructor)})
      */
     public TeachingAssignment(TeachingRequest.Variable variable, Instructor instructor, int attributePreference) {
-        super(variable, 0.0);
+        super(variable);
         iInstructor = instructor;
         iHashCode = variable.hashCode() ^ instructor.hashCode();
         iTimePreference = instructor.getTimePreference(variable.getRequest()).getPreferenceInt();
