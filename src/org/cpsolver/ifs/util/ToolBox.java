@@ -74,8 +74,11 @@ public class ToolBox {
                 if (sRandom.nextBoolean()) i.next();
                 return i.next();
             default:
-                List<E> v = (set instanceof List<?> ? (List<E>) set : new ArrayList<E>(set));
-                return v.get(random(v.size()));
+                int index = random(set.size());
+                if (set instanceof List<?>) return ((List<E>)set).get(index);
+                Iterator<E> it = set.iterator();
+                for (int j = 0; j < index; j++) it.next();
+                return it.next();
         }
     }
 
