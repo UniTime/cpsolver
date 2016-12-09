@@ -1,0 +1,81 @@
+package org.cpsolver.coursett.model;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Student group.
+ * 
+ * @version CourseTT 1.3 (University Course Timetabling)<br>
+ *          Copyright (C) 2006 - 2016 Tomas Muller<br>
+ *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
+ *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>
+ * <br>
+ *          This library is free software; you can redistribute it and/or modify
+ *          it under the terms of the GNU Lesser General Public License as
+ *          published by the Free Software Foundation; either version 3 of the
+ *          License, or (at your option) any later version. <br>
+ * <br>
+ *          This library is distributed in the hope that it will be useful, but
+ *          WITHOUT ANY WARRANTY; without even the implied warranty of
+ *          MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ *          Lesser General Public License for more details. <br>
+ * <br>
+ *          You should have received a copy of the GNU Lesser General Public
+ *          License along with this library; if not see
+ *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ */
+public class StudentGroup {
+    private long iId;
+    private String iName;
+    private double iWeight;
+    private List<Student> iStudents = new ArrayList<Student>();
+    
+    /**
+     * Create a student group
+     * @param id group unique id
+     * @param weight group weight
+     * @param name group name
+     */
+    public StudentGroup(long id, double weight, String name) {
+        iId = id; iName = name; iWeight = weight;
+    }
+    
+    /**
+     * Returns student group id
+     */
+    public long getId() { return iId; }
+    
+    /**
+     * Returns student group name
+     */
+    public String getName() { return iName; }
+    
+    /**
+     * Returns student group weight
+     */
+    public double getWeight() { return iWeight; }
+    
+    /**
+     * Return students of this group
+     */
+    public List<Student> getStudents() {
+        return iStudents;
+    }
+    
+    /**
+     * Add student to this group
+     * @param student a student to add
+     */
+    public void addStudent(Student student) {
+        iStudents.add(student);
+    }
+    
+    @Override
+    public int hashCode() { return (int)(iId ^ (iId >>> 32)); }
+    
+    @Override
+    public boolean equals(Object o) {
+        return (o != null && o instanceof StudentGroup && getId() == ((StudentGroup)o).getId());
+    }
+}

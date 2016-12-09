@@ -45,6 +45,7 @@ public class Student implements Comparable<Student> {
     private String iAcademicArea = null, iAcademicClassification = null, iMajor = null, iCurriculum = null;
     HashMap<Long, Double> iOfferingPriority = new HashMap<Long, Double>();
     private InstructorConstraint iInstructor = null;
+    private Set<StudentGroup> iGroups = new HashSet<StudentGroup>();
 
     public Student(Long studentId) {
         iStudentId = studentId;
@@ -200,11 +201,11 @@ public class Student implements Comparable<Student> {
     }
 
     public void addConfiguration(Configuration config) {
-        iConfigurations.add(config);
+        if (config != null) iConfigurations.add(config);
     }
 
     public void removeConfiguration(Configuration config) {
-        iConfigurations.remove(config);
+        if (config != null) iConfigurations.remove(config);
     }
 
     public Set<Configuration> getConfigurations() {
@@ -218,14 +219,28 @@ public class Student implements Comparable<Student> {
     public double getDistance(Student student) {
         Double dist = (USE_DISTANCE_CACHE && iDistanceCache != null ? iDistanceCache.get(student) : null);
         if (dist == null) {
-            int same = 0;
-            for (Long o : getOfferings()) {
-                if (student.getOfferings().contains(o))
-                    same++;
+            if (!getGroups().isEmpty() || !student.getGroups().isEmpty()) {
+                double total = 0.0f;
+                double same = 0.0;
+                for (StudentGroup g: getGroups()) {
+                    total += g.getWeight();
+                    if (student.hasGroup(g))
+                        same += g.getWeight();
+                }
+                for (StudentGroup g: student.getGroups()) {
+                    total += g.getWeight();
+                }
+                dist = (total - 2*same) / total;
+            } else {
+                int same = 0;
+                for (Long o : getOfferings()) {
+                    if (student.getOfferings().contains(o))
+                        same++;
+                }
+                double all = student.getOfferings().size() + getOfferings().size();
+                double dif = all - 2.0 * same;
+                dist = new Double(dif / all);
             }
-            double all = student.getOfferings().size() + getOfferings().size();
-            double dif = all - 2.0 * same;
-            dist = new Double(dif / all);
             if (USE_DISTANCE_CACHE) {
                 if (iDistanceCache == null)
                     iDistanceCache = new HashMap<Student, Double>();
@@ -335,5 +350,20 @@ public class Student implements Comparable<Student> {
     
     public void setCurriculum(String curriculum) {
         iCurriculum = curriculum;
+    }
+    
+    public void addGroup(StudentGroup group) {
+        iGroups.add(group);
+    }
+    
+    public Set<StudentGroup> getGroups() { return iGroups; }
+    
+    public boolean hasGroup(StudentGroup group) { return iGroups.contains(group); }
+    
+    public double getSameGroupWeight(Student other) {
+        double ret = 0.0;
+        for (StudentGroup group: iGroups)
+            if (other.hasGroup(group) && group.getWeight() > ret) ret = group.getWeight();
+        return ret;
     }
 }

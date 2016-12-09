@@ -35,6 +35,7 @@ import org.cpsolver.coursett.model.Placement;
 import org.cpsolver.coursett.model.RoomLocation;
 import org.cpsolver.coursett.model.RoomSharingModel;
 import org.cpsolver.coursett.model.Student;
+import org.cpsolver.coursett.model.StudentGroup;
 import org.cpsolver.coursett.model.TimeLocation;
 import org.cpsolver.ifs.model.Constraint;
 import org.cpsolver.ifs.solver.Solver;
@@ -587,6 +588,8 @@ public class TimetableXMLSaver extends TimetableSaver {
         }
 
         Element studentsEl = root.addElement("students");
+        Element groupsEl = root.addElement("groups");
+        Map<StudentGroup, Element> groups = new HashMap<StudentGroup, Element>();
         for (Student student: new TreeSet<Student>(students.keySet())) {
             Element stEl = studentsEl.addElement("student").addAttribute("id", getId("student", student.getId()));
             if (iShowNames) {
@@ -635,6 +638,20 @@ public class TimetableXMLSaver extends TimetableSaver {
             
             if (student.getInstructor() != null)
                 stEl.addAttribute("instructor", getId("inst", student.getInstructor().getResourceId()));
+            
+            for (StudentGroup group: student.getGroups()) {
+                Element groupEl = groups.get(group);
+                if (groupEl == null) {
+                    groupEl = groupsEl.addElement("group");
+                    groupEl.addAttribute("id", getId("group", group.getId()));
+                    if (group.getWeight() != 1.0)
+                        groupEl.addAttribute("weight", String.valueOf(group.getWeight()));
+                    if (iShowNames && group.getName() != null)
+                        groupEl.addAttribute("name", group.getName());
+                    groups.put(group, groupEl);
+                }
+                groupEl.addElement("student").addAttribute("id", getId("student", student.getId()));
+            }
         }
 
         if (getModel().getProperties().getPropertyInt("MPP.GenTimePert", 0) > 0) {

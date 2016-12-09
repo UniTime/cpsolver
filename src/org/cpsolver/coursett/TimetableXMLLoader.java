@@ -34,6 +34,7 @@ import org.cpsolver.coursett.model.Placement;
 import org.cpsolver.coursett.model.RoomLocation;
 import org.cpsolver.coursett.model.RoomSharingModel;
 import org.cpsolver.coursett.model.Student;
+import org.cpsolver.coursett.model.StudentGroup;
 import org.cpsolver.coursett.model.TimeLocation;
 import org.cpsolver.coursett.model.TimetableModel;
 import org.cpsolver.ifs.assignment.Assignment;
@@ -772,6 +773,22 @@ public class TimetableXMLLoader extends TimetableLoader {
                 student.setInstructor(instructorConstraints.get(studentEl.attributeValue("instructor")));
 
             iProgress.incProgress();
+        }
+        
+        if (root.element("groups") != null) {
+            iProgress.setPhase("Loading student groups ...", root.element("groups").elements("group").size());
+            for (Iterator<?> i1 = root.element("groups").elementIterator("group"); i1.hasNext();) {
+                Element groupEl = (Element)i1.next();
+                long groupId = Long.parseLong(groupEl.attributeValue("id"));
+                StudentGroup group = new StudentGroup(groupId, Double.parseDouble(groupEl.attributeValue("weight", "1.0")), groupEl.attributeValue("name", "Group-" + groupId));
+                for (Iterator<?> i2 = groupEl.elementIterator("student"); i2.hasNext();) {
+                    Element studentEl = (Element)i2.next();
+                    Student student = students.get(Long.valueOf(studentEl.attributeValue("id")));
+                    if (student != null) {
+                        group.addStudent(student); student.addGroup(group);
+                    }
+                }
+            }
         }
 
         for (List<Lecture> sames: sameLectures.values()) {
