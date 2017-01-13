@@ -8,7 +8,6 @@ import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
 import org.cpsolver.coursett.model.RoomLocation;
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
 
 
@@ -49,10 +48,9 @@ public class RoomSizePenalty extends TimetablingCriterion {
     private double iRoomSizeFactor = 1.0;
 
     @Override
-    public boolean init(Solver<Lecture, Placement> solver) {   
-        super.init(solver);
-        iRoomSizeFactor = solver.getProperties().getPropertyDouble("Comparator.RoomSizeFactor", 1.05);
-        return true; 
+    public void configure(DataProperties properties) {   
+        super.configure(properties);
+        iRoomSizeFactor = properties.getPropertyDouble("Comparator.RoomSizeFactor", 1.05);
     }
     
     @Override

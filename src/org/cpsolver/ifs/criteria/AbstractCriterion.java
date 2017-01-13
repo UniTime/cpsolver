@@ -105,13 +105,16 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
         if (model != null)
             iContextReference = model.createReference(this);
     }
+    
+    @Override
+    public void configure(DataProperties properties) {
+        iWeight = properties.getPropertyDouble(getWeightName(), getWeightDefault(properties));
+        iDebug = properties.getPropertyBoolean("Debug." + getClass().getName().substring(1 + getClass().getName().lastIndexOf('.')), properties.getPropertyBoolean("Debug.Criterion", false));
+    }
 
     @Override
     public boolean init(Solver<V, T> solver) {
-        iWeight = solver.getProperties().getPropertyDouble(getWeightName(), getWeightDefault(solver.getProperties()));
-        iDebug = solver.getProperties().getPropertyBoolean(
-                "Debug." + getClass().getName().substring(1 + getClass().getName().lastIndexOf('.')),
-                solver.getProperties().getPropertyBoolean("Debug.Criterion", false));
+        configure(solver.getProperties());
         return true;
     }
     

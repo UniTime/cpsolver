@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.Set;
 
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.instructor.model.Instructor;
 import org.cpsolver.instructor.model.InstructorSchedulingModel;
@@ -42,9 +41,9 @@ public class SameRoom extends InstructorSchedulingCriterion {
     }
     
     @Override
-    public boolean init(Solver<TeachingRequest.Variable, TeachingAssignment> solver) {
-        iDiffTypeWeight = solver.getProperties().getPropertyDouble("SameRoom.DifferentTypeWeight", 0.5);
-        return super.init(solver);
+    public void configure(DataProperties properties) {   
+        super.configure(properties);
+        iDiffTypeWeight = properties.getPropertyDouble("SameRoom.DifferentTypeWeight", 0.5);
     }
 
     @Override

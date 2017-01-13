@@ -8,7 +8,6 @@ import org.cpsolver.exam.model.Exam;
 import org.cpsolver.exam.model.ExamModel;
 import org.cpsolver.exam.model.ExamPlacement;
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
 
 
@@ -89,11 +88,10 @@ public class LargeExamsPenalty extends ExamCriterion {
     }
     
     @Override
-    public boolean init(Solver<Exam, ExamPlacement> solver) {
-        boolean ret = super.init(solver);
-        iLargeSize = solver.getProperties().getPropertyInt("Exams.LargeSize", iLargeSize);
-        iLargePeriod = solver.getProperties().getPropertyDouble("Exams.LargePeriod", iLargePeriod);
-        return ret;
+    public void configure(DataProperties properties) {   
+        super.configure(properties);
+        iLargeSize = properties.getPropertyInt("Exams.LargeSize", iLargeSize);
+        iLargePeriod = properties.getPropertyDouble("Exams.LargePeriod", iLargePeriod);
     }
     
     /**

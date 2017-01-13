@@ -17,7 +17,7 @@ import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
 import org.cpsolver.coursett.model.TimetableModel;
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.solver.Solver;
+import org.cpsolver.ifs.util.DataProperties;
 
 
 /**
@@ -56,19 +56,17 @@ public class InstructorLunchBreak extends TimetablingCriterion {
     }
 
     @Override
-    public boolean init(Solver<Lecture, Placement> solver) {
-        super.init(solver);
+    public void configure(DataProperties properties) {
+        super.configure(properties);
 
-        iWeight = solver.getProperties().getPropertyDouble("InstructorLunch.Weight", 0.3d);
+        iWeight = properties.getPropertyDouble("InstructorLunch.Weight", 0.3d);
 
         // lunch parameters
-        iLunchStart = solver.getProperties().getPropertyInt("InstructorLunch.StartSlot", (11 * 60) / 5);
-        iLunchEnd = solver.getProperties().getPropertyInt("InstructorLunch.EndSlot", (13 * 60 + 30) / 5);
-        iLunchLength = solver.getProperties().getPropertyInt("InstructorLunch.Length", 30 / 5);
-        iMultiplier = solver.getProperties().getPropertyDouble("InstructorLunch.Multiplier", 1.2d);
-        iFullInfo = solver.getProperties().getPropertyBoolean("InstructorLunch.InfoShowViolations", false);
-
-        return true;
+        iLunchStart = properties.getPropertyInt("InstructorLunch.StartSlot", (11 * 60) / 5);
+        iLunchEnd = properties.getPropertyInt("InstructorLunch.EndSlot", (13 * 60 + 30) / 5);
+        iLunchLength = properties.getPropertyInt("InstructorLunch.Length", 30 / 5);
+        iMultiplier = properties.getPropertyDouble("InstructorLunch.Multiplier", 1.2d);
+        iFullInfo = properties.getPropertyBoolean("InstructorLunch.InfoShowViolations", false);
     }
     
     /**

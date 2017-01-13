@@ -5,7 +5,7 @@ import java.util.Set;
 import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.solver.Solver;
+import org.cpsolver.ifs.util.DataProperties;
 
 
 /**
@@ -37,9 +37,9 @@ public class DeltaTimePreference extends PlacementSelectionCriterion {
     private double iLevel1DefaultWeight = 0.0;
     
     @Override
-    public boolean init(Solver<Lecture, Placement> solver) {
-        iLevel1DefaultWeight = solver.getProperties().getPropertyDouble("Comparator.TimePreferenceWeight", 1.0) / 2.0;
-        return super.init(solver);
+    public void configure(DataProperties properties) {   
+        super.configure(properties);
+        iLevel1DefaultWeight = properties.getPropertyDouble("Comparator.TimePreferenceWeight", 1.0) / 2.0;
     }
 
     @Override

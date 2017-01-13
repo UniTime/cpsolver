@@ -9,7 +9,6 @@ import org.cpsolver.exam.model.ExamPeriod;
 import org.cpsolver.exam.model.ExamPlacement;
 import org.cpsolver.exam.model.ExamStudent;
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
 
 
@@ -52,10 +51,9 @@ public class StudentDistanceBackToBackConflicts extends ExamCriterion {
     private double iBackToBackDistance = -1;
     
     @Override
-    public boolean init(Solver<Exam, ExamPlacement> solver) {
-        boolean ret = super.init(solver);
-        iBackToBackDistance = solver.getProperties().getPropertyDouble("Exams.BackToBackDistance", iBackToBackDistance);
-        return ret;
+    public void configure(DataProperties properties) {   
+        super.configure(properties);
+        iBackToBackDistance = properties.getPropertyDouble("Exams.BackToBackDistance", iBackToBackDistance);
     }
     
     @Override

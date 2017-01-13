@@ -12,7 +12,7 @@ import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
 import org.cpsolver.coursett.model.TimetableModel;
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.solver.Solver;
+import org.cpsolver.ifs.util.DataProperties;
 
 
 /**
@@ -46,12 +46,10 @@ public class FlexibleConstraintCriterion extends TimetablingCriterion  {
     }
 
     @Override
-    public boolean init(Solver<Lecture, Placement> solver) {   
-        super.init(solver);
-        
-        iWeight = solver.getProperties().getPropertyDouble("FlexibleConstraint.Weight", 1.0d); 
-        iDebug = solver.getProperties().getPropertyBoolean("FlexibleConstraint.Debug", true); 
-        return true; 
+    public void configure(DataProperties properties) {   
+        super.configure(properties);
+        iWeight = properties.getPropertyDouble("FlexibleConstraint.Weight", 1.0d); 
+        iDebug = properties.getPropertyBoolean("FlexibleConstraint.Debug", true); 
     }
 
     @Override

@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.Set;
 
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.instructor.model.Instructor;
 import org.cpsolver.instructor.model.InstructorSchedulingModel;
@@ -42,10 +41,10 @@ public class BackToBack extends InstructorSchedulingCriterion {
     }
     
     @Override
-    public boolean init(Solver<TeachingRequest.Variable, TeachingAssignment> solver) {
-        iDiffRoomWeight = solver.getProperties().getPropertyDouble("BackToBack.DifferentRoomWeight", 0.8);
-        iDiffTypeWeight = solver.getProperties().getPropertyDouble("BackToBack.DifferentTypeWeight", 0.5);
-        return super.init(solver);
+    public void configure(DataProperties properties) {   
+        super.configure(properties);
+        iDiffRoomWeight = properties.getPropertyDouble("BackToBack.DifferentRoomWeight", 0.8);
+        iDiffTypeWeight = properties.getPropertyDouble("BackToBack.DifferentTypeWeight", 0.5);
     }
 
     @Override

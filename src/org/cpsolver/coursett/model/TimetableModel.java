@@ -98,6 +98,7 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
     
     private StudentSectioning iStudentSectioning = null;
 
+    @SuppressWarnings("unchecked")
     public TimetableModel(DataProperties properties) {
         super();
         iProperties = properties;
@@ -136,9 +137,10 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
         for (String criterion: criteria.split("\\;")) {
             if (criterion == null || criterion.isEmpty()) continue;
             try {
-                @SuppressWarnings("unchecked")
                 Class<Criterion<Lecture, Placement>> clazz = (Class<Criterion<Lecture, Placement>>)Class.forName(criterion);
-                addCriterion(clazz.newInstance());
+                Criterion<Lecture, Placement> c = clazz.newInstance();
+                c.configure(properties);
+                addCriterion(c);
             } catch (Exception e) {
                 sLogger.error("Unable to use " + criterion + ": " + e.getMessage());
             }

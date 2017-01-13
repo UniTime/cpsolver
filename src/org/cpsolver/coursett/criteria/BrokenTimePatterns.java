@@ -14,7 +14,6 @@ import org.cpsolver.coursett.model.RoomLocation;
 import org.cpsolver.coursett.model.TimeLocation;
 import org.cpsolver.coursett.model.TimetableModel;
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
 
 
@@ -53,12 +52,12 @@ public class BrokenTimePatterns extends TimetablingCriterion {
     }
     
     @Override
-    public boolean init(Solver<Lecture, Placement> solver) {
-        iFirstDaySlot = solver.getProperties().getPropertyInt("General.FirstDaySlot", Constants.DAY_SLOTS_FIRST);
-        iLastDaySlot = solver.getProperties().getPropertyInt("General.LastDaySlot", Constants.DAY_SLOTS_LAST);
-        iFirstWorkDay = solver.getProperties().getPropertyInt("General.FirstWorkDay", 0);
-        iLastWorkDay = solver.getProperties().getPropertyInt("General.LastWorkDay", Constants.NR_DAYS_WEEK - 1);
-        return super.init(solver);
+    public void configure(DataProperties properties) {   
+        super.configure(properties);
+        iFirstDaySlot = properties.getPropertyInt("General.FirstDaySlot", Constants.DAY_SLOTS_FIRST);
+        iLastDaySlot = properties.getPropertyInt("General.LastDaySlot", Constants.DAY_SLOTS_LAST);
+        iFirstWorkDay = properties.getPropertyInt("General.FirstWorkDay", 0);
+        iLastWorkDay = properties.getPropertyInt("General.LastWorkDay", Constants.NR_DAYS_WEEK - 1);
     }
     
     @Override

@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.Set;
 
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.instructor.model.Instructor;
 import org.cpsolver.instructor.model.InstructorSchedulingModel;
@@ -42,10 +41,10 @@ public class SameDays extends InstructorSchedulingCriterion {
     }
     
     @Override
-    public boolean init(Solver<TeachingRequest.Variable, TeachingAssignment> solver) {
-        iDiffRoomWeight = solver.getProperties().getPropertyDouble("SameDays.DifferentRoomWeight", 1.0);
-        iDiffTypeWeight = solver.getProperties().getPropertyDouble("SameDays.DifferentTypeWeight", 0.5);
-        return super.init(solver);
+    public void configure(DataProperties properties) {   
+        super.configure(properties);
+        iDiffRoomWeight = properties.getPropertyDouble("SameDays.DifferentRoomWeight", 1.0);
+        iDiffTypeWeight = properties.getPropertyDouble("SameDays.DifferentTypeWeight", 0.5);
     }
 
     @Override

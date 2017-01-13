@@ -10,7 +10,6 @@ import org.cpsolver.exam.model.ExamRoom;
 import org.cpsolver.exam.model.ExamRoomPlacement;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.model.Model;
-import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
 
 
@@ -55,9 +54,9 @@ public class RoomSizePenalty extends ExamCriterion {
     private double iRoomSizeFactor = 1.0;
     
     @Override
-    public boolean init(Solver<Exam, ExamPlacement> solver) {
-        iRoomSizeFactor = solver.getProperties().getPropertyDouble("Exams.RoomSizeFactor", 1.0);
-        return super.init(solver);
+    public void configure(DataProperties properties) {   
+        super.configure(properties);
+        iRoomSizeFactor = properties.getPropertyDouble("Exams.RoomSizeFactor", 1.0);
     }
     
     @Override

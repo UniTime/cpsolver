@@ -6,7 +6,6 @@ import java.util.Set;
 
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.model.Variable;
-import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.instructor.model.TeachingAssignment;
 import org.cpsolver.instructor.model.TeachingRequest;
@@ -41,10 +40,9 @@ public class OriginalInstructor extends InstructorSchedulingCriterion {
     }
     
     @Override
-    public boolean init(Solver<TeachingRequest.Variable, TeachingAssignment> solver) {
-        boolean ret = super.init(solver);
-        iMPP = solver.getProperties().getPropertyBoolean("General.MPP", iMPP);
-        return ret;
+    public void configure(DataProperties properties) {   
+        super.configure(properties);
+        iMPP = properties.getPropertyBoolean("General.MPP", iMPP);
     }
 
     @Override

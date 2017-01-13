@@ -6,7 +6,6 @@ import java.util.Set;
 import org.cpsolver.exam.model.Exam;
 import org.cpsolver.exam.model.ExamPlacement;
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
 
 
@@ -45,10 +44,9 @@ public class PerturbationPenalty extends ExamCriterion {
     private boolean iMPP = false;
     
     @Override
-    public boolean init(Solver<Exam, ExamPlacement> solver) {
-        boolean ret = super.init(solver);
-        iMPP = solver.getProperties().getPropertyBoolean("General.MPP", iMPP);
-        return ret;
+    public void configure(DataProperties properties) {   
+        super.configure(properties);
+        iMPP = properties.getPropertyBoolean("General.MPP", iMPP);
     }
     
     @Override

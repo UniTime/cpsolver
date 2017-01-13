@@ -4,7 +4,7 @@ import org.cpsolver.coursett.heuristics.PlacementSelection;
 import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
 import org.cpsolver.ifs.criteria.AbstractCriterion;
-import org.cpsolver.ifs.solver.Solver;
+import org.cpsolver.ifs.util.DataProperties;
 
 /**
  * Abstract class for all timetabling criteria. On top of the {@link AbstractCriterion}, it provides
@@ -35,19 +35,17 @@ public abstract class TimetablingCriterion extends AbstractCriterion<Lecture, Pl
     private Double[][] iPlacementSelectionAdjusts = null;
 
     @Override
-    public boolean init(Solver<Lecture, Placement> solver) {
-        super.init(solver);
+    public void configure(DataProperties properties) {
+        super.configure(properties);
         if (getPlacementSelectionWeightName() != null) {
             iPlacementSelectionWeight = new double[] { 0.0, 0.0, 0.0 };
             for (int i = 0; i < 3; i++)
-                iPlacementSelectionWeight[i] = solver.getProperties().getPropertyDouble(getPlacementSelectionWeightName() + (1 + i), getPlacementSelectionWeightDefault(i));
+                iPlacementSelectionWeight[i] = properties.getPropertyDouble(getPlacementSelectionWeightName() + (1 + i), getPlacementSelectionWeightDefault(i));
             iPlacementSelectionAdjusts = new Double[][] { null, null, null};
             for (int i = 0; i < 3; i++) {
-                iPlacementSelectionAdjusts[i] = solver.getProperties().getPropertyDoubleArry(getPlacementSelectionAdjustmentsName() + (1 + i),
-                        solver.getProperties().getPropertyDoubleArry(getPlacementSelectionAdjustmentsName(), null));
+                iPlacementSelectionAdjusts[i] = properties.getPropertyDoubleArry(getPlacementSelectionAdjustmentsName() + (1 + i), properties.getPropertyDoubleArry(getPlacementSelectionAdjustmentsName(), null));
             }
         }
-        return true;
     }
     
     public String getPlacementSelectionWeightName() {

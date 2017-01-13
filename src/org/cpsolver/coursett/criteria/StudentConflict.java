@@ -12,7 +12,7 @@ import org.cpsolver.coursett.model.Student;
 import org.cpsolver.coursett.model.TimeLocation;
 import org.cpsolver.coursett.model.TimetableModel;
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.solver.Solver;
+import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.DistanceMetric;
 
 
@@ -50,9 +50,9 @@ public class StudentConflict extends TimetablingCriterion {
     }
     
     @Override
-    public boolean init(Solver<Lecture, Placement> solver) {
-        iIncludeConflicts = solver.getProperties().getPropertyBoolean("StudentConflict.IncludeConflicts", false);
-        return super.init(solver);
+    public void configure(DataProperties properties) {   
+        super.configure(properties);
+        iIncludeConflicts = properties.getPropertyBoolean("StudentConflict.IncludeConflicts", false);
     }
     
     @Override
