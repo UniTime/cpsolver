@@ -51,6 +51,11 @@ public class ImportantStudentConflict extends StudentConflict {
         return l1 != null && l2 != null && !ignore(l1, l2) && applicable(l1, l2) && important(l1, l2);
     }
     
+    @Override
+    public boolean isApplicable(Student student, Lecture l1, Lecture l2) {
+        return l1 != null && l2 != null && !ignore(l1, l2) && applicable(l1, l2) && student.getConflictingPriorty(l1, l2) != null;
+    }
+    
     public boolean important(Lecture l1, Lecture l2) {
         JenrlConstraint jenrl = (l1 == null || l2 == null ? null : l1.jenrlConstraint(l2));
         return jenrl != null && jenrl.priority() > 0.0; 

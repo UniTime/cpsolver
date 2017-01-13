@@ -118,6 +118,11 @@ public class StudentConflict extends TimetablingCriterion {
     public boolean isApplicable(Lecture l1, Lecture l2) {
         return l1 != null && l2 != null && !ignore(l1, l2) && uncommitted(l1, l2); // exclude committed and outside student conflicts
     }
+    
+    public boolean isApplicable(Student student, Lecture l1, Lecture l2) {
+        return isApplicable(l1, l2);
+    }
+    
     public boolean inConflict(Placement p1, Placement p2) {
         return overlaps(p1, p2) || distance(getMetrics(), p1, p2);
     }

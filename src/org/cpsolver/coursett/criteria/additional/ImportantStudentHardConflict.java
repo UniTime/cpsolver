@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
+import org.cpsolver.coursett.model.Student;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.util.DataProperties;
 
@@ -41,6 +42,11 @@ public class ImportantStudentHardConflict extends ImportantStudentConflict {
     @Override
     public boolean isApplicable(Lecture l1, Lecture l2) {
         return l1 != null && l2 != null && !ignore(l1, l2) && hard(l1, l2) && important(l1, l2);
+    }
+    
+    @Override
+    public boolean isApplicable(Student student, Lecture l1, Lecture l2) {
+        return l1 != null && l2 != null && !ignore(l1, l2) && hard(l1, l2) && student.getConflictingPriorty(l1, l2) != null;
     }
 
     @Override
