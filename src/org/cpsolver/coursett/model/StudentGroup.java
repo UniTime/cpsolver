@@ -64,6 +64,18 @@ public class StudentGroup {
     }
     
     /**
+     * Count students of this group that are requesting the given offering.
+     * @param offeringId offering id
+     * @return students with {@link Student#hasOffering(Long)} true
+     */
+    public int countStudents(Long offeringId) {
+        int ret = 0;
+        for (Student student: iStudents)
+            if (student.hasOffering(offeringId)) ret++;
+        return ret;
+    }
+    
+    /**
      * Add student to this group
      * @param student a student to add
      */
@@ -77,5 +89,10 @@ public class StudentGroup {
     @Override
     public boolean equals(Object o) {
         return (o != null && o instanceof StudentGroup && getId() == ((StudentGroup)o).getId());
+    }
+    
+    @Override
+    public String toString() {
+        return getName();
     }
 }

@@ -1066,6 +1066,10 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     public Set<Long> getChildrenSubpartIds() {
         return (iChildren == null ? null : iChildren.keySet());
     }
+    
+    public Map<Long, List<Lecture>> getChildren() {
+        return iChildren;
+    }
 
     private void addChild(Lecture child) {
         if (iChildren == null)

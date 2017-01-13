@@ -781,6 +781,7 @@ public class TimetableXMLLoader extends TimetableLoader {
                 Element groupEl = (Element)i1.next();
                 long groupId = Long.parseLong(groupEl.attributeValue("id"));
                 StudentGroup group = new StudentGroup(groupId, Double.parseDouble(groupEl.attributeValue("weight", "1.0")), groupEl.attributeValue("name", "Group-" + groupId));
+                getModel().addStudentGroup(group);
                 for (Iterator<?> i2 = groupEl.elementIterator("student"); i2.hasNext();) {
                     Element studentEl = (Element)i2.next();
                     Student student = students.get(Long.valueOf(studentEl.attributeValue("id")));

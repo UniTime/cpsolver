@@ -97,6 +97,7 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
     private DistanceMetric iDistanceMetric = null;
     
     private StudentSectioning iStudentSectioning = null;
+    private List<StudentGroup> iStudentGroups = new ArrayList<StudentGroup>();
 
     @SuppressWarnings("unchecked")
     public TimetableModel(DataProperties properties) {
@@ -529,4 +530,7 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
         }
         return iWeeks;
     }
+    
+    public List<StudentGroup> getStudentGroups() { return iStudentGroups; }
+    public void addStudentGroup(StudentGroup group) { iStudentGroups.add(group); }
 }
