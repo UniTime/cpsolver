@@ -63,7 +63,7 @@ public class ImportantStudentConflict extends StudentConflict {
     
     @Override
     public void incJenrl(Assignment<Lecture, Placement> assignment, JenrlConstraint jenrl, double studentWeight, Double conflictPriority, Student student) {
-        if (isApplicable(jenrl.first(), jenrl.second()) && inConflict(assignment.getValue(jenrl.first()), assignment.getValue(jenrl.second())) && conflictPriority != null)
+        if (isApplicable(student, jenrl.first(), jenrl.second()) && inConflict(assignment.getValue(jenrl.first()), assignment.getValue(jenrl.second())) && conflictPriority != null)
             inc(assignment, studentWeight * conflictPriority);
     }
     
