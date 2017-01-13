@@ -46,6 +46,7 @@ import org.cpsolver.ifs.constant.ConstantModel;
 import org.cpsolver.ifs.criteria.Criterion;
 import org.cpsolver.ifs.model.Constraint;
 import org.cpsolver.ifs.model.GlobalConstraint;
+import org.cpsolver.ifs.model.InfoProvider;
 import org.cpsolver.ifs.model.WeakeningConstraint;
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.util.DataProperties;
@@ -153,6 +154,9 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
         } catch (Exception e) {
             sLogger.error("Failed to load custom student sectioning class: " + e.getMessage());
             iStudentSectioning = new DefaultStudentSectioning(this);
+        }
+        if (iStudentSectioning instanceof InfoProvider<?, ?>) {
+            getInfoProviders().add((InfoProvider<Lecture, Placement>)iStudentSectioning);
         }
     }
 
