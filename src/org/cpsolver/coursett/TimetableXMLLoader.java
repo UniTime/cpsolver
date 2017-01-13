@@ -390,6 +390,7 @@ public class TimetableXMLLoader extends TimetableLoader {
                     config = new Configuration(offeringId, configId, -1);
                     altConfigs.add(config);
                     config.setAltConfigurations(altConfigs);
+                    configs.put(config.getConfigId(), config);
                 }
             }
 
@@ -745,6 +746,7 @@ public class TimetableXMLLoader extends TimetableLoader {
                     if (sectionWholeCourse && (lecture.getParent() != null || lecture.getConfiguration() != null)) {
                         // committed, but with course structure -- sectioning can be used
                         student.addLecture(lecture);
+                        student.addConfiguration(lecture.getConfiguration());
                         lecture.addStudent(getAssignment(), student);
                         lecturesThisStudent.add(lecture);
                         initialSectioning = false;
@@ -754,6 +756,7 @@ public class TimetableXMLLoader extends TimetableLoader {
                     }
                 } else {
                     student.addLecture(lecture);
+                    student.addConfiguration(lecture.getConfiguration());
                     lecture.addStudent(getAssignment(), student);
                     lecturesThisStudent.add(lecture);
                     initialSectioning = false;
@@ -812,6 +815,7 @@ public class TimetableXMLLoader extends TimetableLoader {
                 if (student.getInstructor() != null)
                     for (Lecture lecture: student.getInstructor().variables()) {
                         student.addLecture(lecture);
+                        student.addConfiguration(lecture.getConfiguration());
                         lecture.addStudent(getAssignment(), student);
                     }
             }
