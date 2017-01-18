@@ -6,6 +6,7 @@ import java.util.List;
 import org.cpsolver.coursett.model.InitialSectioning.Group;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.solution.Solution;
+import org.cpsolver.ifs.termination.TerminationCondition;
 import org.cpsolver.ifs.util.Progress;
 
 
@@ -219,8 +220,8 @@ public class DefaultStudentSectioning implements StudentSectioning {
      * class in order to minimize overall number of student conflicts).
      */
     @Override
-    public void switchStudents(Solution<Lecture, Placement> solution) {
-        iFinalSectioning.execute(solution.getAssignment());
+    public void switchStudents(Solution<Lecture, Placement> solution, TerminationCondition<Lecture, Placement> termination) {
+        iFinalSectioning.execute(solution, termination);
     }
     
     /**

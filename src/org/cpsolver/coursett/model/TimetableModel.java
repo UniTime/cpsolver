@@ -49,6 +49,7 @@ import org.cpsolver.ifs.model.GlobalConstraint;
 import org.cpsolver.ifs.model.InfoProvider;
 import org.cpsolver.ifs.model.WeakeningConstraint;
 import org.cpsolver.ifs.solution.Solution;
+import org.cpsolver.ifs.termination.TerminationCondition;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.DistanceMetric;
 
@@ -181,9 +182,19 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
      * Student final sectioning (switching students between sections of the same
      * class in order to minimize overall number of student conflicts)
      * @param assignment current assignment
+     * @param termination optional termination condition
+     */
+    public void switchStudents(Assignment<Lecture, Placement> assignment, TerminationCondition<Lecture, Placement> termination) {
+        getStudentSectioning().switchStudents(new Solution<Lecture, Placement>(this, assignment), termination);
+    }
+    
+    /**
+     * Student final sectioning (switching students between sections of the same
+     * class in order to minimize overall number of student conflicts)
+     * @param assignment current assignment
      */
     public void switchStudents(Assignment<Lecture, Placement> assignment) {
-        getStudentSectioning().switchStudents(new Solution<Lecture, Placement>(this, assignment));
+        getStudentSectioning().switchStudents(new Solution<Lecture, Placement>(this, assignment), null);
     }
 
     public Map<String, String> getBounds(Assignment<Lecture, Placement> assignment) {

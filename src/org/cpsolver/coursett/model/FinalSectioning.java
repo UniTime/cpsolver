@@ -10,6 +10,8 @@ import org.cpsolver.coursett.constraint.JenrlConstraint;
 import org.cpsolver.coursett.criteria.StudentCommittedConflict;
 import org.cpsolver.coursett.criteria.StudentConflict;
 import org.cpsolver.ifs.assignment.Assignment;
+import org.cpsolver.ifs.solution.Solution;
+import org.cpsolver.ifs.termination.TerminationCondition;
 import org.cpsolver.ifs.util.Progress;
 import org.cpsolver.ifs.util.ToolBox;
 
@@ -72,7 +74,7 @@ public class FinalSectioning {
         iWeighStudents = model.getProperties().getPropertyBoolean("General.WeightStudents", iWeighStudents);
     }
     
-    public void execute(Assignment<Lecture, Placement> assignment) {
+    public void execute(Solution<Lecture, Placement> solution, TerminationCondition<Lecture, Placement> termination) {
         Progress p = Progress.getInstance(iModel);
         p.setStatus("Student Sectioning...");
         Collection<Lecture> variables = new ArrayList<Lecture>(iModel.variables());
@@ -82,7 +84,7 @@ public class FinalSectioning {
                 // if (lecture.getParent() != null || (lecture.sameStudentsLectures()!= null && !lecture.sameStudentsLectures().isEmpty()))
                 variables.add(lecture);
             }
-        while (!variables.isEmpty()) {
+        while (!variables.isEmpty() && (termination == null || termination.canContinue(solution))) {
             // sLogger.debug("Shifting students ...");
             p.setPhase("moving students ...", variables.size());
             HashSet<Lecture> lecturesToRecompute = new HashSet<Lecture>(variables.size());
@@ -91,10 +93,10 @@ public class FinalSectioning {
                 if (lecture.getParent() == null) {
                     Configuration cfg = lecture.getConfiguration();
                     if (cfg != null && cfg.getAltConfigurations().size() > 1)
-                        findAndPerformMoves(assignment, cfg, lecturesToRecompute);
+                        findAndPerformMoves(solution.getAssignment(), cfg, lecturesToRecompute);
                 }
                 // sLogger.debug("Shifting students for "+lecture);
-                findAndPerformMoves(assignment, lecture, lecturesToRecompute);
+                findAndPerformMoves(solution.getAssignment(), lecture, lecturesToRecompute);
                 // sLogger.debug("Lectures to recompute: "+lects);
                 p.incProgress();
             }

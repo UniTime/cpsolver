@@ -4,6 +4,7 @@ import java.util.Collection;
 
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.solution.Solution;
+import org.cpsolver.ifs.termination.TerminationCondition;
 
 
 /**
@@ -72,8 +73,9 @@ public interface StudentSectioning {
      * Run student final sectioning (switching students between sections of the same
      * class in order to minimize overall number of student conflicts).
      * @param solution current solution
+     * @param termination termination condition (optional)
      */
-    public void switchStudents(Solution<Lecture, Placement> solution);
+    public void switchStudents(Solution<Lecture, Placement> solution, TerminationCondition<Lecture, Placement> termination);
     
     /**
      * Perform sectioning on the given lecture

@@ -19,6 +19,7 @@ import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.criteria.Criterion;
 import org.cpsolver.ifs.model.InfoProvider;
 import org.cpsolver.ifs.solution.Solution;
+import org.cpsolver.ifs.termination.TerminationCondition;
 
 /**
  * 
@@ -98,7 +99,7 @@ public class SctSectioning extends DefaultStudentSectioning implements InfoProvi
     }
     
     @Override
-    public void switchStudents(Solution<Lecture, Placement> solution) {
+    public void switchStudents(Solution<Lecture, Placement> solution, TerminationCondition<Lecture, Placement> termination) {
         getProgress().setStatus("Student Sectioning...");
         getProgress().info("Student Conflicts: " + sDF2.format(value(solution)) + " (group: " + sDF2.format(StudentSwapSectioning.gp(solution)) + "%)");
 
@@ -108,6 +109,7 @@ public class SctSectioning extends DefaultStudentSectioning implements InfoProvi
             for (Lecture lecture: iModel.variables()) {
                 getProgress().incProgress();
                 if (lecture.students().isEmpty() || lecture.isSingleSection()) continue;
+                if (termination != null && !termination.canContinue(solution)) return;
                 if (offeringIds.add(lecture.getConfiguration().getOfferingId())) {
                     SctModel model = new SctModel(iModel, solution.getAssignment());
                     model.setConfiguration(lecture.getConfiguration());

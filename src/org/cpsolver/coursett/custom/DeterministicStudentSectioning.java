@@ -18,6 +18,7 @@ import org.cpsolver.coursett.model.TimetableModel;
 import org.cpsolver.coursett.model.InitialSectioning.Group;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.solution.Solution;
+import org.cpsolver.ifs.termination.TerminationCondition;
 import org.cpsolver.ifs.util.Progress;
 
 
@@ -87,7 +88,7 @@ public class DeterministicStudentSectioning extends DefaultStudentSectioning {
      * No re-sectioning (final sectioning) during deterministic student sectioning.
      */
     @Override
-    public void switchStudents(Solution<Lecture, Placement> solution) {
+    public void switchStudents(Solution<Lecture, Placement> solution, TerminationCondition<Lecture, Placement> termination) {
     }
 
     /**

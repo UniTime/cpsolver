@@ -20,6 +20,7 @@ import org.cpsolver.ifs.criteria.Criterion;
 import org.cpsolver.ifs.model.InfoProvider;
 import org.cpsolver.ifs.model.Neighbour;
 import org.cpsolver.ifs.solution.Solution;
+import org.cpsolver.ifs.termination.TerminationCondition;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.JProf;
 
@@ -193,7 +194,7 @@ public class StudentSwapSectioning extends DefaultStudentSectioning implements I
     }
 
     @Override
-    public void switchStudents(Solution<Lecture, Placement> solution) {
+    public void switchStudents(Solution<Lecture, Placement> solution, TerminationCondition<Lecture, Placement> termination) {
         long it = 0, lastImp = 0;
         double t0 = JProf.currentTimeMillis();
         DataProperties cfg = ((TimetableModel)solution.getModel()).getProperties(); 
@@ -203,7 +204,7 @@ public class StudentSwapSectioning extends DefaultStudentSectioning implements I
         getProgress().info("Student Conflicts: " + sDF2.format(objective(solution)) + " (group: " + sDF2.format(gp(solution)) + "%)");
         getProgress().setPhase("Swapping students [HC]...", 1000);
         StudentSwapGenerator g = new StudentSwapGenerator();
-        while ((it - lastImp) < maxIdle) {
+        while ((it - lastImp) < maxIdle && (termination == null || termination.canContinue(solution))) {
             it ++;
             if ((it % 1000) == 0) {
                 long prg = Math.round(1000.0 * (it - lastImp) / maxIdle);
@@ -230,7 +231,7 @@ public class StudentSwapSectioning extends DefaultStudentSectioning implements I
         
         it = 0; lastImp = 0; t0 = JProf.currentTimeMillis();
         getProgress().setPhase("Swapping students [GD]...", 1000);
-        while (bound > lb * total && total > 0) {
+        while (bound > lb * total && total > 0 && (termination == null || termination.canContinue(solution))) {
             Neighbour<Lecture, Placement> n = g.selectNeighbour(solution);
             if (n != null) {
                 double value = value(n, solution.getAssignment());
