@@ -5,6 +5,7 @@ import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.model.Model;
 import org.cpsolver.ifs.model.Value;
 import org.cpsolver.ifs.model.Variable;
+import org.cpsolver.ifs.termination.TerminationCondition;
 
 /**
  * Abstract problem loader class.
@@ -32,6 +33,7 @@ public abstract class ProblemLoader<V extends Variable<V, T>, T extends Value<V,
     private M iModel = null;
     private Assignment<V, T> iAssignment = null;
     private Callback iCallback = null;
+    private TerminationCondition<V, T> iTermination = null;
 
     /**
      * Constructor
@@ -77,6 +79,20 @@ public abstract class ProblemLoader<V extends Variable<V, T>, T extends Value<V,
      */
     public void setCallback(Callback callback) {
         iCallback = callback;
+    }
+    
+    /**
+     * Provide termination condition so that the save process can be stopped if needed (optional).
+     */
+    public void setTerminationCondition(TerminationCondition<V, T> termination) {
+        iTermination = termination;
+    }
+    
+    /**
+     * Return termination condition so that the save process can be stopped if needed.
+     */
+    public TerminationCondition<V, T> getTerminationCondition() {
+        return iTermination;
     }
 
     @Override

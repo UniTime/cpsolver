@@ -7,6 +7,7 @@ import org.cpsolver.ifs.model.Value;
 import org.cpsolver.ifs.model.Variable;
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
+import org.cpsolver.ifs.termination.TerminationCondition;
 
 /**
  * Abstract problem saver class.
@@ -33,6 +34,7 @@ import org.cpsolver.ifs.solver.Solver;
 public abstract class ProblemSaver<V extends Variable<V, T>, T extends Value<V, T>, M extends Model<V,T>> implements Runnable {
     private Solver<V, T> iSolver = null;
     private Callback iCallback = null;
+    private TerminationCondition<V, T> iTermination = null;
 
     /**
      * Constructor
@@ -85,6 +87,20 @@ public abstract class ProblemSaver<V extends Variable<V, T>, T extends Value<V, 
      */
     public void setCallback(Callback callback) {
         iCallback = callback;
+    }
+    
+    /**
+     * Provide termination condition so that the save process can be stopped if needed (optional).
+     */
+    public void setTerminationCondition(TerminationCondition<V, T> termination) {
+        iTermination = termination;
+    }
+    
+    /**
+     * Return termination condition so that the save process can be stopped if needed.
+     */
+    public TerminationCondition<V, T> getTerminationCondition() {
+        return iTermination;
     }
 
     @Override
