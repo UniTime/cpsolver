@@ -714,6 +714,17 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     }
     
     /**
+     * Enrollment weight including over the limit enrollments.
+     * That is enrollments that have reservation with {@link Reservation#canBatchAssignOverLimit()} set to true.
+     * @param assignment current assignment
+     * @param excludeRequest course request to ignore, if any
+     * @return enrollment weight
+     */
+    public double getEnrollmentTotalWeight(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
+        return getContext(assignment).getEnrollmentTotalWeight(assignment, excludeRequest);
+    }
+    
+    /**
      * Maximal weight of a single enrollment in the section
      * @param assignment current assignment
      * @return maximal enrollment weight
@@ -761,6 +772,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     public class SectionContext implements AssignmentConstraintContext<Request, Enrollment> {
         private Set<Enrollment> iEnrollments = null;
         private double iEnrollmentWeight = 0.0;
+        private double iEnrollmentTotalWeight = 0.0;
         private double iMaxEnrollmentWeight = 0.0;
         private double iMinEnrollmentWeight = 0.0;
         private boolean iReadOnly = false;
@@ -778,6 +790,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
         
         public SectionContext(SectionContext parent) {
             iEnrollmentWeight = parent.iEnrollmentWeight;
+            iEnrollmentTotalWeight = parent.iEnrollmentTotalWeight;
             iMaxEnrollmentWeight = parent.iMaxEnrollmentWeight;
             iMinEnrollmentWeight = parent.iMinEnrollmentWeight;
             iEnrollments = parent.iEnrollments;
@@ -797,8 +810,11 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
                 iMaxEnrollmentWeight = Math.max(iMaxEnrollmentWeight, enrollment.getRequest().getWeight());
                 iMinEnrollmentWeight = Math.min(iMinEnrollmentWeight, enrollment.getRequest().getWeight());
             }
-            if (iEnrollments.add(enrollment) && (enrollment.getReservation() == null || !enrollment.getReservation().canBatchAssignOverLimit()))
-                iEnrollmentWeight += enrollment.getRequest().getWeight();
+            if (iEnrollments.add(enrollment)) {
+                iEnrollmentTotalWeight += enrollment.getRequest().getWeight();
+                if (enrollment.getReservation() == null || !enrollment.getReservation().canBatchAssignOverLimit())
+                    iEnrollmentWeight += enrollment.getRequest().getWeight();
+            }
         }
 
         /** Called when an enrollment with this section is unassigned from a request */
@@ -808,8 +824,11 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
                 iEnrollments = new HashSet<Enrollment>(iEnrollments);
                 iReadOnly = false;
             }
-            if (iEnrollments.remove(enrollment) && (enrollment.getReservation() == null || !enrollment.getReservation().canBatchAssignOverLimit()))
-                iEnrollmentWeight -= enrollment.getRequest().getWeight();
+            if (iEnrollments.remove(enrollment)) {
+                iEnrollmentTotalWeight -= enrollment.getRequest().getWeight();
+                if (enrollment.getReservation() == null || !enrollment.getReservation().canBatchAssignOverLimit())
+                    iEnrollmentWeight -= enrollment.getRequest().getWeight();
+            }
             if (iEnrollments.isEmpty()) {
                 iMinEnrollmentWeight = iMaxEnrollmentWeight = 0;
             } else if (iMinEnrollmentWeight != iMaxEnrollmentWeight) {
@@ -860,6 +879,23 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
             if (excludeRequest != null) {
                 Enrollment enrollment = assignment.getValue(excludeRequest);
                 if (enrollment!= null && iEnrollments.contains(enrollment) && (enrollment.getReservation() == null || !enrollment.getReservation().canBatchAssignOverLimit()))
+                    weight -= excludeRequest.getWeight();
+            }
+            return weight;
+        }
+        
+        /**
+         * Enrollment weight including over the limit enrollments.
+         *  That is enrollments that have reservation with {@link Reservation#canBatchAssignOverLimit()} set to true.
+         * @param assignment current assignment
+         * @param excludeRequest course request to ignore, if any
+         * @return enrollment weight
+         */
+        public double getEnrollmentTotalWeight(Assignment<Request, Enrollment> assignment, Request excludeRequest) {
+            double weight = iEnrollmentTotalWeight;
+            if (excludeRequest != null) {
+                Enrollment enrollment = assignment.getValue(excludeRequest);
+                if (enrollment!= null && iEnrollments.contains(enrollment))
                     weight -= excludeRequest.getWeight();
             }
             return weight;

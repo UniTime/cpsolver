@@ -239,13 +239,13 @@ public class PriorityStudentWeights implements StudentWeights {
             case 2: weight *= iSecondAlternativeFactor; break;
         }
         if (enrollment.isCourseRequest() && iBalancingFactor != 0.0) {
-            double configUsed = enrollment.getConfig().getEnrollmentWeight(assignment, enrollment.getRequest()) + enrollment.getRequest().getWeight();
+            double configUsed = enrollment.getConfig().getEnrollmentTotalWeight(assignment, enrollment.getRequest()) + enrollment.getRequest().getWeight();
             double disbalanced = 0;
             double total = 0;
             for (Section section: enrollment.getSections()) {
                 Subpart subpart = section.getSubpart();
                 if (subpart.getSections().size() <= 1) continue;
-                double used = section.getEnrollmentWeight(assignment, enrollment.getRequest()) + enrollment.getRequest().getWeight();
+                double used = section.getEnrollmentTotalWeight(assignment, enrollment.getRequest()) + enrollment.getRequest().getWeight();
                 // sections have limits -> desired size is section limit x (total enrollment / total limit)
                 // unlimited sections -> desired size is total enrollment / number of sections
                 double desired = (subpart.getLimit() > 0

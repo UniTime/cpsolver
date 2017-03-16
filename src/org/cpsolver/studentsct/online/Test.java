@@ -193,7 +193,7 @@ public class Test {
         double disb10Sections = 0, nrSections = 0;
         for (Offering offering : model().getOfferings()) {
             for (Config config : offering.getConfigs()) {
-                double enrl = config.getEnrollmentWeight(assignment, null);
+                double enrl = config.getEnrollmentTotalWeight(assignment, null);
                 for (Subpart subpart : config.getSubparts()) {
                     if (subpart.getSections().size() <= 1)
                         continue;
@@ -204,7 +204,7 @@ public class Test {
                         double ratio = enrl / subpart.getLimit();
                         for (Section section : subpart.getSections()) {
                             double desired = ratio * section.getLimit();
-                            if (Math.abs(desired - section.getEnrollmentWeight(assignment, null)) >= Math.max(1.0, perc * section.getLimit()))
+                            if (Math.abs(desired - section.getEnrollmentTotalWeight(assignment, null)) >= Math.max(1.0, perc * section.getLimit()))
                                 disb10Sections++;
                         }
                     } else if (balanceUnlimited) {
@@ -212,7 +212,7 @@ public class Test {
                         // enrollment / number of sections
                         for (Section section : subpart.getSections()) {
                             double desired = enrl / subpart.getSections().size();
-                            if (Math.abs(desired - section.getEnrollmentWeight(assignment, null)) >= Math.max(1.0, perc * desired))
+                            if (Math.abs(desired - section.getEnrollmentTotalWeight(assignment, null)) >= Math.max(1.0, perc * desired))
                                 disb10Sections++;
                         }
                     }

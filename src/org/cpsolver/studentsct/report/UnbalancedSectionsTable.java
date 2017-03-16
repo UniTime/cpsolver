@@ -111,7 +111,6 @@ public class UnbalancedSectionsTable implements StudentSectioningReport {
                     if (!e.getStudent().isDummy() && !includeRealStudents) continue;
                     configEnrl += e.getRequest().getWeight();
                 }
-                config.getEnrollmentWeight(assignment, null);
                 for (Subpart subpart: config.getSubparts()) {
                     if (subpart.getSections().size() <= 1) continue;
                     if (subpart.getLimit() > 0) {

@@ -848,7 +848,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         Set<String> disb10SectionList = (disb10Limit == 0 ? null : new TreeSet<String>()); 
         for (Offering offering: getOfferings()) {
             for (Config config: offering.getConfigs()) {
-                double enrl = config.getEnrollmentWeight(assignment, null);
+                double enrl = config.getEnrollmentTotalWeight(assignment, null);
                 for (Subpart subpart: config.getSubparts()) {
                     if (subpart.getSections().size() <= 1) continue;
                     if (subpart.getLimit() > 0) {
@@ -856,9 +856,9 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                         double ratio = enrl / subpart.getLimit();
                         for (Section section: subpart.getSections()) {
                             double desired = ratio * section.getLimit();
-                            disbWeight += Math.abs(section.getEnrollmentWeight(assignment, null) - desired);
+                            disbWeight += Math.abs(section.getEnrollmentTotalWeight(assignment, null) - desired);
                             disbSections ++;
-                            if (Math.abs(desired - section.getEnrollmentWeight(assignment, null)) >= Math.max(1.0, 0.1 * section.getLimit())) {
+                            if (Math.abs(desired - section.getEnrollmentTotalWeight(assignment, null)) >= Math.max(1.0, 0.1 * section.getLimit())) {
                                 disb10Sections++;
                                 if (disb10SectionList != null)
                                 	disb10SectionList.add(section.getSubpart().getConfig().getOffering().getName() + " " + section.getSubpart().getName() + " " + section.getName()); 
@@ -868,9 +868,9 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                         // unlimited sections -> desired size is total enrollment / number of sections
                         for (Section section: subpart.getSections()) {
                             double desired = enrl / subpart.getSections().size();
-                            disbWeight += Math.abs(section.getEnrollmentWeight(assignment, null) - desired);
+                            disbWeight += Math.abs(section.getEnrollmentTotalWeight(assignment, null) - desired);
                             disbSections ++;
-                            if (Math.abs(desired - section.getEnrollmentWeight(assignment, null)) >= Math.max(1.0, 0.1 * desired)) {
+                            if (Math.abs(desired - section.getEnrollmentTotalWeight(assignment, null)) >= Math.max(1.0, 0.1 * desired)) {
                                 disb10Sections++;
                                 if (disb10SectionList != null)
                                 	disb10SectionList.add(section.getSubpart().getConfig().getOffering().getName() + " " + section.getSubpart().getName() + " " + section.getName());
