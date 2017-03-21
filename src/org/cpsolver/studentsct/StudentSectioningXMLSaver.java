@@ -20,6 +20,7 @@ import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.Progress;
 import org.cpsolver.studentsct.constraint.LinkedSections;
 import org.cpsolver.studentsct.model.AcademicAreaCode;
+import org.cpsolver.studentsct.model.AreaClassificationMajor;
 import org.cpsolver.studentsct.model.Choice;
 import org.cpsolver.studentsct.model.Config;
 import org.cpsolver.studentsct.model.Course;
@@ -579,6 +580,15 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                     aacEl.addAttribute("area", aac.getArea());
                 if (aac.getCode() != null)
                     aacEl.addAttribute("code", aac.getCode());
+            }
+            for (AreaClassificationMajor acm : student.getAreaClassificationMajors()) {
+                Element acmEl = studentEl.addElement("acm");
+                if (acm.getArea() != null)
+                    acmEl.addAttribute("area", acm.getArea());
+                if (acm.getArea() != null)
+                    acmEl.addAttribute("classification", acm.getClassification());
+                if (acm.getArea() != null)
+                    acmEl.addAttribute("major", acm.getMajor());
             }
         }
         for (Unavailability unavailability: student.getUnavailabilities()) {

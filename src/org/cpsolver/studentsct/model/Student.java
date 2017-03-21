@@ -45,6 +45,7 @@ public class Student implements Comparable<Student> {
     private List<AcademicAreaCode> iAcadAreaClassifs = new ArrayList<AcademicAreaCode>();
     private List<AcademicAreaCode> iMajors = new ArrayList<AcademicAreaCode>();
     private List<AcademicAreaCode> iMinors = new ArrayList<AcademicAreaCode>();
+    private List<AreaClassificationMajor> iACM = new ArrayList<AreaClassificationMajor>();
     private List<LinkedSections> iLinkedSections = new ArrayList<LinkedSections>();
     private String iStatus = null;
     private Long iEmailTimeStamp = null;
@@ -230,6 +231,14 @@ public class Student implements Comparable<Student> {
      */
     public List<AcademicAreaCode> getMinors() {
         return iMinors;
+    }
+    
+    /**
+     * List of academic area, classification, and major codes ({@link AreaClassificationMajor}) for the given student
+     * @return list of academic area, classification, and major codes
+     */
+    public List<AreaClassificationMajor> getAreaClassificationMajors() {
+        return iACM;
     }
 
     /**

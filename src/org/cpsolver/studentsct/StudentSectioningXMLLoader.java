@@ -19,6 +19,7 @@ import org.cpsolver.ifs.util.DistanceMetric;
 import org.cpsolver.ifs.util.Progress;
 import org.cpsolver.studentsct.filter.StudentFilter;
 import org.cpsolver.studentsct.model.AcademicAreaCode;
+import org.cpsolver.studentsct.model.AreaClassificationMajor;
 import org.cpsolver.studentsct.model.Choice;
 import org.cpsolver.studentsct.model.Config;
 import org.cpsolver.studentsct.model.Course;
@@ -789,6 +790,9 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                 Section section = (offering == null ? null : offering.getSection(Long.parseLong(requestEl.attributeValue("section"))));
                 if (section != null)
                     new Unavailability(student, section, "true".equals(requestEl.attributeValue("allowOverlap")));
+            } else if ("acm".equals(requestEl.getName())) {
+                student.getAreaClassificationMajors().add(
+                        new AreaClassificationMajor(requestEl.attributeValue("area"), requestEl.attributeValue("classification"), requestEl.attributeValue("major")));
             }
         }
         return student;
