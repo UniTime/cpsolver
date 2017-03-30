@@ -102,7 +102,7 @@ public class DeterministicStudentSectioning extends DefaultStudentSectioning {
      * Assign students to groups in a deterministic way, i.e., first student to first available group etc.
      * @author Tomas Muller
      */
-    public class DeterministicInitialSectioning extends InitialSectioning implements Comparator<Student> {
+    public static class DeterministicInitialSectioning extends InitialSectioning implements Comparator<Student> {
         
         public DeterministicInitialSectioning(Progress progress, Long offeringId, Collection<?> lectureOrConfigurations, Collection<Student> students) {
             super(progress, offeringId, lectureOrConfigurations, students);

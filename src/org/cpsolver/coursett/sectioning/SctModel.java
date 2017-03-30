@@ -3,13 +3,16 @@ package org.cpsolver.coursett.sectioning;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.cpsolver.coursett.constraint.JenrlConstraint;
 import org.cpsolver.coursett.criteria.StudentConflict;
@@ -60,6 +63,7 @@ public class SctModel {
     private Map<Long, Double> iLimits = new HashMap<Long, Double>();
     private Map<Long, Map<Long, Set<Lecture>>> iSubparts = new HashMap<Long, Map<Long, Set<Lecture>>>();
     private boolean iTimeOutReached = false;
+    private boolean iGroupFirst = false;
     
     /**
      * Constructor
@@ -71,6 +75,7 @@ public class SctModel {
         iAssignment = assignment;
         iTimeOut = model.getProperties().getPropertyLong("SctSectioning.TimeOut", 1000);
         iUseCriteria = model.getProperties().getPropertyBoolean("SctSectioning.UseCriteria", true);
+        iGroupFirst = model.getProperties().getPropertyBoolean("SctSectioning.GroupFirst", false);
     }
     
     /**
@@ -183,17 +188,35 @@ public class SctModel {
     /**
      * Increment enrollment of all classes of the given classes
      */
-    private void incEnrollment(SctStudent student, SctEnrollment enrollment, Map<Long, Double> limits) {
+    private void incEnrollment(SctStudent student, SctEnrollment enrollment, Map<Long, Double> limits, Map<Long, Map<Long, Match>> matches) {
         for (Lecture lecture: enrollment.getLectures())
             incEnrollment(lecture, limits, student.getOfferingWeight());
+        for (StudentGroup group: student.getStudent().getGroups()) {
+            Map<Long, Match> match = matches.get(group.getId());
+            if (match == null) { match = new HashMap<Long, Match>(); matches.put(group.getId(), match); }
+            for (Lecture lecture: enrollment.getLectures()) {
+                Match m = match.get(lecture.getSchedulingSubpartId());
+                if (m == null) { m = new Match(group, lecture); match.put(lecture.getSchedulingSubpartId(), m); }
+                m.inc(lecture);
+            }
+        }
     }
 
     /**
      * Decrement enrollment of all classes of the given classes
      */
-    private void decEnrollment(SctStudent student, SctEnrollment enrollment, Map<Long, Double> limits) {
+    private void decEnrollment(SctStudent student, SctEnrollment enrollment, Map<Long, Double> limits, Map<Long, Map<Long, Match>> matches) {
         for (Lecture lecture: enrollment.getLectures())
             incEnrollment(lecture, limits, -student.getOfferingWeight());
+        for (StudentGroup group: student.getStudent().getGroups()) {
+            Map<Long, Match> match = matches.get(group.getId());
+            if (match == null) { match = new HashMap<Long, Match>(); matches.put(group.getId(), match); }
+            for (Lecture lecture: enrollment.getLectures()) {
+                Match m = match.get(lecture.getSchedulingSubpartId());
+                if (m == null) { m = new Match(group, lecture); match.put(lecture.getSchedulingSubpartId(), m); }
+                m.dec(lecture);
+            }
+        }
     }
     
     /**
@@ -229,17 +252,15 @@ public class SctModel {
                 if (match == null) { match = new HashMap<Long, Match>(); matches.put(group.getId(), match); }
                 for (Lecture lecture: enrollment.getLectures()) {
                     Match m = match.get(lecture.getSchedulingSubpartId());
-                    if (m == null) { m = new Match(group); match.put(lecture.getSchedulingSubpartId(), m); }
+                    if (m == null) { m = new Match(group, lecture.getConfiguration()); match.put(lecture.getSchedulingSubpartId(), m); }
                     m.inc(lecture);
                 }
             }
         }
         double ret = 0.0;
         for (Map<Long, Match> match: matches.values()) {
-            double value = 0.0;
             for (Match m: match.values())
-                value += m.value();
-            ret += value / match.size();
+                ret += m.value();
         }
         return ret;
     }
@@ -247,10 +268,17 @@ public class SctModel {
     /**
      * Group weight of the given enrollments (up until the given index, computing bound for students above the index)
      */
-    protected double group(SctEnrollment[] enrollments, int index) {
-        Map<Long, Map<Long, Match>> matches = new HashMap<Long, Map<Long, Match>>();
-        for (int i = 0; i < iStudents.size(); i++) {
+    protected double group(SctEnrollment[] enrollments, int index,  Map<Long, Double> limits, Map<Long, Map<Long, Match>> matches) {
+        // Map<Long, Map<Long, Match>> matches = new HashMap<Long, Map<Long, Match>>();
+        Map<Long, UnMatched> unmatched = new HashMap<Long, UnMatched>();
+        for (int i = index; i < iStudents.size(); i++) {
             SctStudent student = iStudents.get(i);
+            for (StudentGroup group: student.getStudent().getGroups()) {
+                UnMatched m = unmatched.get(group.getId());
+                if (m == null) { m = new UnMatched(group); unmatched.put(group.getId(), m); }
+                m.incBound(student);
+            }
+            /*
             if (i < index) {
                 SctEnrollment enrollment = enrollments[i];
                 if (enrollment == null) continue;
@@ -259,29 +287,42 @@ public class SctModel {
                     if (match == null) { match = new HashMap<Long, Match>(); matches.put(group.getId(), match); }
                     for (Lecture lecture: enrollment.getLectures()) {
                         Match m = match.get(lecture.getSchedulingSubpartId());
-                        if (m == null) { m = new Match(group); match.put(lecture.getSchedulingSubpartId(), m); }
+                        if (m == null) { m = new Match(group, lecture.getConfiguration()); match.put(lecture.getSchedulingSubpartId(), m); }
                         m.inc(lecture);
                     }
                 }
             } else {
                 for (StudentGroup group: student.getStudent().getGroups()) {
                     Map<Long, Match> match = matches.get(group.getId());
-                    if (match != null)
-                        for (Configuration configuration: iConfigurations) {
-                            for (Long subpartId: getSubparts(configuration).keySet()) {
-                                Match m = match.get(subpartId);
-                                if (m != null) m.incBound();
-                            }
+                    if (match == null) {
+                        UnMatched m = unmatched.get(group.getId());
+                        if (m == null) { m = new UnMatched(group); unmatched.put(group.getId(), m); }
+                        m.incBound();
+                        continue;
+                    }
+                    boolean increased = false;
+                    for (Configuration configuration: iConfigurations) {
+                        for (Long subpartId: getSubparts(configuration).keySet()) {
+                            Match m = match.get(subpartId);
+                            if (m != null && m.incBound()) increased = true;
                         }
+                        if (increased) break;
+                    }
+                    if (!increased) {
+                        UnMatched m = unmatched.get(group.getId());
+                        if (m == null) { m = new UnMatched(group); unmatched.put(group.getId(), m); }
+                        m.incBound();
+                    }
                 }
-            }
+            }*/
         }
         double ret = 0.0;
-        for (Map<Long, Match> match: matches.values()) {
-            double value = 0.0;
-            for (Match m: match.values())
-                value += m.value();
-            ret += value / match.size();
+        for (Map.Entry<Long, Map<Long, Match>> match: matches.entrySet()) {
+            for (Match m: match.getValue().values())
+                ret += m.value(unmatched.remove(match.getKey()), limits);
+        }
+        for (UnMatched m: unmatched.values()) {
+            ret += m.value();
         }
         return ret;
     }
@@ -289,20 +330,20 @@ public class SctModel {
     /**
      * Compute best possible enrollment of students into the given offering
      */
-    public void computeSolution(SctSolution solution, int index, SctEnrollment[] enrollments, Map<Long, Double> limits, double totalConflicts, long t0) {
+    public void computeSolution(SctSolution solution, int index, SctEnrollment[] enrollments, Map<Long, Double> limits, Map<Long, Map<Long, Match>> match, double totalConflicts, long t0) {
         if (iTimeOutReached) return;
         if (JProf.currentTimeMillis() - t0 > iTimeOut) {
             iTimeOutReached = true; return;
         }
         if (index < iStudents.size()) {
-            if (!solution.checkBound(index, enrollments, totalConflicts, limits)) return;
+            if (!solution.checkBound(index, enrollments, totalConflicts, limits, match)) return;
             SctStudent student = iStudents.get(index);
-            for (SctEnrollment enrollment: student.getEnrollments()) {
+            for (SctEnrollment enrollment: student.getEnrollments(new SctEnrollmentComparator(limits, match, index))) {
                 if (!isAvailable(student, enrollment, limits)) continue;
                 enrollments[index] = enrollment;
-                incEnrollment(student, enrollment, limits);
-                computeSolution(solution, index + 1, enrollments, limits, totalConflicts + enrollment.getConflictWeight(), t0);
-                decEnrollment(student, enrollment, limits);
+                incEnrollment(student, enrollment, limits, match);
+                computeSolution(solution, index + 1, enrollments, limits, match, totalConflicts + enrollment.getConflictWeight(), t0);
+                decEnrollment(student, enrollment, limits, match);
             }
         } else {
             if (solution.isBetter(enrollments, totalConflicts))
@@ -316,7 +357,7 @@ public class SctModel {
     public SctSolution computeSolution() {
         SctSolution solution = currentSolution();
         iTimeOutReached = false;
-        computeSolution(solution, 0, new SctEnrollment[iStudents.size()], new HashMap<Long, Double>(), 0.0, JProf.currentTimeMillis());
+        computeSolution(solution, 0, new SctEnrollment[iStudents.size()], new HashMap<Long, Double>(), new HashMap<Long, Map<Long, Match>>(), 0.0, JProf.currentTimeMillis());
         return solution;
     }
     
@@ -435,14 +476,25 @@ public class SctModel {
          * Compare two solutions
          */
         public boolean isBetter(SctEnrollment[] solution, double weight) {
-            return iEnrollments == null || weight < iWeight || (weight == iWeight && group(solution) > iGroup);
+            if (iGroupFirst) {
+                if (iEnrollments == null) return true;
+                double gr = group(solution);
+                return gr > iGroup || (gr == iGroup && weight < iWeight);
+            } else {
+                return iEnrollments == null || weight < iWeight || (weight == iWeight && group(solution) > iGroup);
+            }
         }
         
         /**
          * Compare two solutions
          */
         public boolean isBetter(SctSolution other) {
-            return iEnrollments != null && (iWeight < other.getWeight() || (other.getWeight() == iWeight && iGroup > other.getGroup()));
+            if (iGroupFirst) {
+                if (iEnrollments == null) return true;
+                return other.getGroup() < iGroup || (other.getGroup() == iGroup && iWeight < other.getWeight());
+            } else {
+                return iEnrollments != null && (iWeight < other.getWeight() || (other.getWeight() == iWeight && other.getGroup() < iGroup));
+            }
         }
         
         /**
@@ -457,20 +509,39 @@ public class SctModel {
         /**
          * Check bounds (false means no better solution exists by extending the given solution) 
          */
-        public boolean checkBound(int index, SctEnrollment[] solution, double weight, Map<Long, Double> limits) {
+        public boolean checkBound(int index, SctEnrollment[] solution, double weight, Map<Long, Double> limits, Map<Long, Map<Long, Match>> match) {
             if (iEnrollments == null) return true;
-            double guess = weight;
-            for (int i = index; i < iStudents.size(); i++) {
-                SctStudent student = iStudents.get(i);
-                SctEnrollment enrollment = null;
-                for (SctEnrollment e: student.getEnrollments()) {
-                    if (isAvailable(student, e, limits)) { enrollment = e; break; }
+            if (iGroupFirst) {
+                double gr = group(solution, index, limits, match);
+                if (gr == iGroup) {
+                    double guess = weight;
+                    for (int i = index; i < iStudents.size(); i++) {
+                        SctStudent student = iStudents.get(i);
+                        SctEnrollment enrollment = null;
+                        for (SctEnrollment e: student.getEnrollments()) {
+                            if (isAvailable(student, e, limits)) { enrollment = e; break; }
+                        }
+                        if (enrollment == null) return false;
+                        guess += enrollment.getConflictWeight();
+                        if (guess >= iWeight) break;
+                    }
+                    return guess < iWeight;
                 }
-                if (enrollment == null) return false;
-                guess += enrollment.getConflictWeight();
-                if (guess > iWeight) break;
+                return gr > iGroup;
+            } else {
+                double guess = weight;
+                for (int i = index; i < iStudents.size(); i++) {
+                    SctStudent student = iStudents.get(i);
+                    SctEnrollment enrollment = null;
+                    for (SctEnrollment e: student.getEnrollments()) {
+                        if (isAvailable(student, e, limits)) { enrollment = e; break; }
+                    }
+                    if (enrollment == null) return false;
+                    guess += enrollment.getConflictWeight();
+                    if (guess > iWeight) break;
+                }
+                return (guess < iWeight || (guess == iWeight && group(solution, index, limits, match) > iGroup));
             }
-            return (guess < iWeight || (guess == iWeight && group(solution, index) > iGroup));
         }
         
         /**
@@ -497,36 +568,127 @@ public class SctModel {
     private class Match { 
         private int iTotal = 0;
         private Map<Lecture, Integer> iMatch = new HashMap<Lecture, Integer>();
+        private double iFraction = 1.0;
         
         /**
          * Constructor
          * @param group student group
          */
-        Match(StudentGroup group) {
+        Match(StudentGroup group, Lecture lecture) {
+            this(group, lecture.getConfiguration());
+            for (Lecture l: lecture.sameSubpartLectures())
+                iMatch.put(l, 0);
+        }
+        
+        Match(StudentGroup group, Configuration config) {
             iTotal = group.countStudents(getOfferingId());
+            iFraction = 1.0 / getSubparts(config).size();
         }
         
         /**
          * Increment given lecture
          */
         void inc(Lecture lecture) {
-            Integer val = iMatch.get(lecture.getClassId());
+            Integer val = iMatch.get(lecture);
             iMatch.put(lecture, 1 + (val == null ? 0 : val.intValue()));
+        }
+        
+        /**
+         * Decrement given lecture
+         */
+        void dec(Lecture lecture) {
+            Integer val = iMatch.get(lecture);
+            iMatch.put(lecture, (val == null ? 0 : val.intValue()) - 1);
+        }
+        
+        /**
+         * Returns counter for the given lecture
+         */
+        int get(Lecture lecture) {
+            Integer val = iMatch.get(lecture);
+            return val == null ? 0 : val.intValue();
+        }
+        
+        /**
+         * Value (an overall probability of two students being in the same lecture) 
+         */
+        double value(UnMatched u, final Map<Long, Double> limits) {
+            if (iTotal <= 1) return iFraction;
+            if (u == null || u.getNotMatched() == 0) return value();
+            double value = 0.0;
+            int unmatched = u.getNotMatched();
+            double remains = u.getEnrollmentWeight();
+            double avgWeight = remains / unmatched;
+            TreeSet<Map.Entry<Lecture, Integer>> entries = new TreeSet<Map.Entry<Lecture, Integer>>(new Comparator<Map.Entry<Lecture, Integer>>() {
+                @Override
+                public int compare(Entry<Lecture, Integer> e1, Entry<Lecture, Integer> e2) {
+                    if (e1.getValue() > e2.getValue()) return -1;
+                    if (e1.getValue() < e2.getValue()) return 1;
+                    double r1 = getLimit(e1.getKey()) - getEnrollment(e1.getKey(), limits);
+                    double r2 = getLimit(e2.getKey()) - getEnrollment(e2.getKey(), limits);
+                    int cmp = Double.compare(r2, r1);
+                    if (cmp != 0) return cmp;
+                    return e1.getKey().compareTo(e2.getKey());
+                }
+            });
+            entries.addAll(iMatch.entrySet());
+            for (Map.Entry<Lecture, Integer> entry: entries) {
+                Integer m = entry.getValue();
+                if (unmatched > 0) {
+                    double enroll = Math.min(remains, getLimit(entry.getKey()) - getEnrollment(entry.getKey(), limits));
+                    int inc = (int)Math.round(enroll / avgWeight);
+                    if (inc > 0) {
+                        m += inc;
+                        unmatched -= inc;
+                        remains -= enroll;
+                    }
+                }
+                if (m > 1)
+                    value += (m * (m - 1.0)) / (iTotal * (iTotal - 1.0));
+            }
+            if (unmatched > 1)
+                value += (unmatched * (unmatched - 1.0)) / (iTotal * (iTotal - 1.0));
+            return value * iFraction;
+        }
+        
+        double value() {
+            if (iTotal <= 1) return iFraction;
+            double value = 0.0;
+            for (Integer m: iMatch.values())
+                if (m > 1) {
+                    value += (m * (m - 1.0)) / (iTotal * (iTotal - 1.0));
+                }
+            return value * iFraction;
+        }
+        
+        @Override
+        public String toString() {
+            return iTotal + "/" + iMatch + "[" + value() + "]";
+        }
+    }
+    
+    /**
+     * Matching students within a scheduling subpart (for student group weight computation)
+     */
+    private class UnMatched { 
+        private int iTotal = 0;
+        private int iNotMatched = 0;
+        private double iEnrollmentWeight = 0.0;
+        
+        /**
+         * Constructor
+         * @param group student group
+         */
+        UnMatched(StudentGroup group) {
+            iTotal = group.countStudents(getOfferingId());
         }
         
         /**
          * Increment bound (a student gets into the best possible class)
          */
-        void incBound() {
-            Lecture best = null; int bestValue = 0;
-            for (Map.Entry<Lecture, Integer> entry: iMatch.entrySet()) {
-                if (best == null || (entry.getValue() > bestValue && entry.getValue() < getLimit(entry.getKey()))) {
-                    best = entry.getKey(); bestValue = entry.getValue();
-                }
-            }
-            if (best != null) {
-                iMatch.put(best, 1 + bestValue);
-            }
+        void incBound(SctStudent student) {
+            iNotMatched ++;
+            iEnrollmentWeight += student.getStudent().getOfferingWeight(getOfferingId());
         }
         
         /**
@@ -534,16 +696,81 @@ public class SctModel {
          */
         double value() {
             if (iTotal <= 1) return 1.0;
-            double value = 0.0;
-            for (Integer m: iMatch.values())
-                if (m > 1)
-                    value += (m * (m - 1.0)) / (iTotal * (iTotal - 1.0));
-            return value;
+            if (iNotMatched > 1)
+                return (iNotMatched * (iNotMatched - 1.0)) / (iTotal * (iTotal - 1.0));
+            return 0.0;
         }
+        
+        int getNotMatched() { return iNotMatched; }
+        
+        public double getEnrollmentWeight() { return iEnrollmentWeight; }
         
         @Override
         public String toString() {
-            return iTotal + "/" + iMatch;
+            return iTotal + "/" + iNotMatched;
         }
+    }
+    
+    private class SctEnrollmentComparator implements Comparator<SctEnrollment> {
+        private Map<Long, Double> limits;
+        private Map<Long, Map<Long, Match>> matches;
+        private int index;
+        
+        SctEnrollmentComparator(Map<Long, Double> limits, Map<Long, Map<Long, Match>> match, int index) {
+            this.limits = limits; this.matches = match; this.index = index;
+        }
+        
+        public int compareByGroup(SctEnrollment e1, SctEnrollment e2) {
+            double m1 = 0, m2 = 0;
+            for (StudentGroup g: e1.getStudent().getStudent().getGroups()) {
+                int remaining = 0;
+                int total = g.countStudents(getOfferingId());
+                double remainingWeight = 0.0;
+                for (int i = index; i < iStudents.size(); i++) {
+                    SctStudent student = iStudents.get(i);
+                    if (student.getStudent().hasGroup(g)) {
+                        remaining++;
+                        remainingWeight += student.getStudent().getOfferingWeight(getOfferingId());
+                    }
+                }
+                double avgWeight = remainingWeight / remaining;
+                Map<Long, Match> match = matches.get(g.getId());
+                for (Lecture lecture: e1.getLectures()) {
+                    Match m = (match == null ? null : match.get(lecture.getSchedulingSubpartId()));
+                    double fraction = 1.0 / getSubparts(lecture.getConfiguration()).size();
+                    int a = (m == null ? 0 : m.get(lecture));
+                    double enroll = Math.min(remainingWeight, getLimit(lecture) - getEnrollment(lecture, limits));
+                    a += (int)Math.round(enroll / avgWeight);
+                    m1 += fraction * (a * (a - 1)) / ((total * (total - 1))); 
+                }
+                for (Lecture lecture: e2.getLectures()) {
+                    Match m = (match == null ? null : match.get(lecture.getSchedulingSubpartId()));
+                    double fraction = 1.0 / getSubparts(lecture.getConfiguration()).size();
+                    int a = (m == null ? 0 : m.get(lecture));
+                    double enroll = Math.min(remainingWeight, getLimit(lecture) - getEnrollment(lecture, limits));
+                    a += (int)Math.round(enroll / avgWeight);
+                    m2 += fraction * (a * (a - 1)) / ((total * (total - 1))); 
+                }
+            }
+            if (m1 != m2) return m1 > m2 ? -1 : 1;
+            return 0;
+        }
+
+        @Override
+        public int compare(SctEnrollment e1, SctEnrollment e2) {
+            if (iGroupFirst) {
+                int cmp = compareByGroup(e1, e2);
+                if (cmp != 0) return cmp;
+                cmp = Double.compare(e1.getConflictWeight(), e2.getConflictWeight());
+                if (cmp != 0) return cmp;
+            } else {
+                int cmp = Double.compare(e1.getConflictWeight(), e2.getConflictWeight());
+                if (cmp != 0) return cmp;
+                cmp = compareByGroup(e1, e2);
+                if (cmp != 0) return cmp;
+            }
+            return e1.getId().compareTo(e2.getId());
+        }
+        
     }
 }

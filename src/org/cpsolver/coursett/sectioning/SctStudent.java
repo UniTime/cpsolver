@@ -1,13 +1,14 @@
 package org.cpsolver.coursett.sectioning;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.TreeSet;
 
 import org.cpsolver.coursett.constraint.JenrlConstraint;
 import org.cpsolver.coursett.criteria.StudentConflict;
@@ -42,7 +43,7 @@ import org.cpsolver.coursett.model.Student;
 public class SctStudent implements Comparable<SctStudent> {
     private SctModel iModel;
     private Student iStudent;
-    private TreeSet<SctEnrollment> iEnrollments = null;
+    private List<SctEnrollment> iEnrollments = null;
     private double iTotalEnrollmentWeight = 0.0;
     private Double iOfferingWeight = null;
     private List<Lecture> iInstructing = null;
@@ -174,7 +175,7 @@ public class SctStudent implements Comparable<SctStudent> {
      * Compute all possible enrollments
      */
     private void computeEnrollments() {
-        iEnrollments = new TreeSet<SctEnrollment>();
+        iEnrollments = new ArrayList<SctEnrollment>();
         if (isInstructing()) {
             double conflictWeight = 0.0;
             for (Lecture lecture: getInstructingLectures()) {
@@ -190,13 +191,21 @@ public class SctStudent implements Comparable<SctStudent> {
             List<Long> subpartIds = getSubpartIds(configuration);
             computeEnrollments(configuration, subparts, subpartIds, new HashSet<Lecture>(), 0.0);
         }
+        Collections.sort(iEnrollments);
     }
     
     /**
      * Return all possible enrollments of the given student into the given course
      */
-    public TreeSet<SctEnrollment> getEnrollments() {
+    public List<SctEnrollment> getEnrollments() {
         if (iEnrollments == null) computeEnrollments();
+        return iEnrollments;
+    }
+    
+    public List<SctEnrollment> getEnrollments(Comparator<SctEnrollment> cmp) {
+        if (iEnrollments == null) computeEnrollments();
+        if (cmp != null)
+            Collections.sort(iEnrollments, cmp);
         return iEnrollments;
     }
     
@@ -255,7 +264,7 @@ public class SctStudent implements Comparable<SctStudent> {
     
     @Override
     public String toString() {
-        return getStudent() + "{enrls:" + getEnrollments().size() + (getEnrollments().isEmpty() ? "" : ", best:" + getEnrollments().first().getConflictWeight()) + ", avg:" + getAverageConflictWeight() + "}";
+        return getStudent() + "{enrls:" + getEnrollments().size() + (getEnrollments().isEmpty() ? "" : ", best:" + getEnrollments().get(0).getConflictWeight()) + ", avg:" + getAverageConflictWeight() + "}";
     }
 
 }

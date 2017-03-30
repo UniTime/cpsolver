@@ -92,6 +92,8 @@ public class SctEnrollment implements Comparable<SctEnrollment> {
         return Double.compare(iId, o.iId);
     }
     
+    public Integer getId() { return iId; }
+    
     @Override
     public String toString() {
         return iConflictWeight + "/" + iLectures;

@@ -61,6 +61,7 @@ public class InitialSectioning {
     protected Group[] iGroups = null;
     protected Long iOfferingId = null;
     protected Progress iProgress = null;
+    protected static double sNominalWeight = 0.00001;
 
     public InitialSectioning(Progress progress, Long offeringId, Collection<?> lectureOrConfigurations, Collection<Student> students) {
         iOfferingId = offeringId;
@@ -90,6 +91,10 @@ public class InitialSectioning {
         for (idx = 0; idx < iGroups.length; idx++)
             progress.trace("    " + (idx + 1) + ". group can accomodate <" + iGroups[idx].getMinSize() + ","
                     + iGroups[idx].getMaxSize() + "> students");
+    }
+    
+    protected Progress getProgress() {
+        return iProgress;
     }
     
     protected void tweakSizes(double total) {
@@ -128,12 +133,12 @@ public class InitialSectioning {
             for (int x = 0; x < iGroups.length; x++) {
                 if (group.equals(iGroups[x]))
                     continue;
-                if (iGroups[x].size() > iGroups[x].getMaxSize())
+                if (iGroups[x].size(student) > iGroups[x].getMaxSize())
                     continue;
                 if (!iGroups[x].canEnroll(student))
                     continue;
                 double nd = iGroups[x].getDistance(student);
-                if (newGroup == null || newDist - curDist < nd - cd) {
+                if (newGroup == null || newDist - curDist > nd - cd) {
                     newGroup = iGroups[x];
                     movingStudent = student;
                     curDist = cd;
@@ -170,7 +175,7 @@ public class InitialSectioning {
                     continue;
                 double cd = iGroups[x].getDistance(student);
                 double nd = group.getDistance(student);
-                if (oldGroup == null || newDist - curDist < nd - cd) {
+                if (oldGroup == null || newDist - curDist > nd - cd) {
                     oldGroup = iGroups[x];
                     movingStudent = student;
                     curDist = cd;
@@ -191,8 +196,6 @@ public class InitialSectioning {
     }
 
     public Group[] getGroups() {
-        double minDist = 1.0 / iGroups.length;
-
         for (Iterator<Student> i = iStudents.iterator(); i.hasNext();) {
             Student student = i.next();
             Group group = null;
@@ -212,19 +215,18 @@ public class InitialSectioning {
             double studentWeight = student.getOfferingWeight(iOfferingId);
 
             Group group = null;
-            double dist = 0.0;
+            double dist = 0.0; double size = 0.0;
             for (int idx = 0; idx < iGroups.length; idx++) {
                 Group g = iGroups[idx];
                 if (!g.canEnroll(student))
                     continue;
-                if (g.size() + studentWeight > g.getMaxSize())
+                if (g.size(student) > g.getMaxSize())
                     continue;
                 double d = g.getDistance(student);
-                if (group == null || d < dist) {
+                if (group == null || d < dist || (d == dist || size < g.size())) {
                     group = g;
                     dist = d;
-                    if (d < minDist)
-                        break;
+                    size = g.size();
                 }
             }
 
@@ -275,12 +277,12 @@ public class InitialSectioning {
         for (int idx = 0; idx < iGroups.length; idx++) {
             Group group = iGroups[idx];
 
-            while (group.size() > group.getMaxSize()) {
+            while (group.size(null) > group.getMaxSize()) {
                 if (!moveAwayOneStudent(group))
                     break;
             }
 
-            while (group.size() > group.getMaxSize()) {
+            while (group.size(null) > group.getMaxSize()) {
 
                 Group newGroup = null;
                 Student movingStudent = null;
@@ -293,11 +295,11 @@ public class InitialSectioning {
                             continue;
                         if (!iGroups[x].canEnroll(student))
                             continue;
-                        while (iGroups[x].size() + student.getOfferingWeight(iOfferingId) > iGroups[x].getMaxSize()) {
+                        while (iGroups[x].size(student) > iGroups[x].getMaxSize()) {
                             if (!moveAwayOneStudent(iGroups[x]))
                                 break;
                         }
-                        if (iGroups[x].size() + student.getOfferingWeight(iOfferingId) > iGroups[x].getMaxSize())
+                        if (iGroups[x].size(student) > iGroups[x].getMaxSize())
                             continue;
                         newGroup = iGroups[x];
                         movingStudent = student;
@@ -367,6 +369,19 @@ public class InitialSectioning {
         public void setMaxSize(double maxSize) {
             iMaxSize = maxSize;
         }
+        
+        public double getStudentWeight(Student student) {
+            double max = 0.0;
+            for (Student s: iStudents) {
+                double w = s.getOfferingWeight(iOfferingId);
+                if (w > max) max = w;
+            }
+            if (student != null) {
+                double w = student.getOfferingWeight(iOfferingId);
+                if (w > max) max = w;
+            }
+            return (student == null ? 0.0 : student.getOfferingWeight(iOfferingId)) + sNominalWeight - max;
+        }
 
         public double getDistance() {
             if (iDist == null) {
@@ -391,19 +406,17 @@ public class InitialSectioning {
         }
 
         public double getDistance(Student student) {
+            if (iStudents.isEmpty()) return 0.0;
             Double cachedDist = iDistCache.get(student);
             if (cachedDist != null)
                 return cachedDist.doubleValue();
             double dist = 0.0;
-            double prob = 10.0 / iStudents.size();
             int cnt = 0;
             for (Student s : iStudents) {
-                if (prob >= 1.0 || Math.random() < prob) {
-                    dist += s.getDistance(student);
-                    cnt++;
-                }
+                dist += s.getDistance(student);
+                cnt++;
             }
-            iDistCache.put(student, new Double(dist / cnt));
+            iDistCache.put(student, dist / cnt);
             return dist / cnt;
         }
 
@@ -427,6 +440,10 @@ public class InitialSectioning {
 
         public double size() {
             return iSize;
+        }
+        
+        public double size(Student student) {
+            return iSize + getStudentWeight(student);
         }
 
         @Override

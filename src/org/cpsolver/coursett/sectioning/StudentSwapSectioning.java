@@ -2,19 +2,25 @@ package org.cpsolver.coursett.sectioning;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.cpsolver.coursett.constraint.JenrlConstraint;
 import org.cpsolver.coursett.criteria.StudentConflict;
+import org.cpsolver.coursett.model.Configuration;
 import org.cpsolver.coursett.model.DefaultStudentSectioning;
+import org.cpsolver.coursett.model.InitialSectioning.Group;
 import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
 import org.cpsolver.coursett.model.Student;
 import org.cpsolver.coursett.model.StudentGroup;
 import org.cpsolver.coursett.model.TimetableModel;
+import org.cpsolver.coursett.sectioning.SctSectioning.GroupBasedInitialSectioning;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.criteria.Criterion;
 import org.cpsolver.ifs.model.InfoProvider;
@@ -49,7 +55,6 @@ import org.cpsolver.ifs.util.JProf;
  */
 public class StudentSwapSectioning extends DefaultStudentSectioning implements InfoProvider<Lecture, Placement> {
     List<StudentConflict> iStudentConflictCriteria = null;
-    private static java.text.DecimalFormat sDF2 = new java.text.DecimalFormat("0.00", new java.text.DecimalFormatSymbols(Locale.US));
     private static double sEps = 0.0001;
     private double iGroupWeight = 0.1;
     private boolean iUseCriteria = true;
@@ -58,7 +63,7 @@ public class StudentSwapSectioning extends DefaultStudentSectioning implements I
     public StudentSwapSectioning(TimetableModel model) {
         super(model);
         iUseCriteria = model.getProperties().getPropertyBoolean("StudentSwaps.UseCriteria", true);
-        iGroupWeight = model.getProperties().getPropertyDouble("StudentSwaps.GroupWeight", 0.1);
+        iGroupWeight = model.getProperties().getPropertyDouble("StudentSwaps.GroupWeight", 10.0);
         iMaxIdleResection = model.getProperties().getPropertyInt("StudentSwaps.MaxIdleResection", 1000);
     }
     
@@ -132,16 +137,18 @@ public class StudentSwapSectioning extends DefaultStudentSectioning implements I
         double ret = 0;
         for (StudentGroup group: model.getStudentGroups()) {
             Map<Long, Match> match = new HashMap<Long, Match>();
+            Set<Long> offeringIds = new HashSet<Long>();
             for (Student student: group.getStudents())
                 for (Lecture lecture: student.getLectures()) {
+                    offeringIds.add(lecture.getConfiguration().getOfferingId());
                     Match m = match.get(lecture.getSchedulingSubpartId());
-                    if (m == null) { m = new Match(group, lecture.getConfiguration().getOfferingId()); match.put(lecture.getSchedulingSubpartId(), m); }
+                    if (m == null) { m = new Match(group, lecture.getConfiguration()); match.put(lecture.getSchedulingSubpartId(), m); }
                     m.inc(lecture);
                 }
             double value = 0.0;
             for (Match m: match.values())
                 value += m.value();
-            ret += value / match.size();
+            ret += value / offeringIds.size();
         }
         return ret;
     }
@@ -154,18 +161,20 @@ public class StudentSwapSectioning extends DefaultStudentSectioning implements I
         double ret = 0; int count = 0;
         for (StudentGroup group: model.getStudentGroups()) {
             Map<Long, Match> match = new HashMap<Long, Match>();
+            Set<Long> offeringIds = new HashSet<Long>();
             for (Student student: group.getStudents())
                 for (Lecture lecture: student.getLectures()) {
                     if (variables != null && !variables.contains(lecture)) continue;
+                    offeringIds.add(lecture.getConfiguration().getOfferingId());
                     Match m = match.get(lecture.getSchedulingSubpartId());
-                    if (m == null) { m = new Match(group, lecture.getConfiguration().getOfferingId()); match.put(lecture.getSchedulingSubpartId(), m); }
+                    if (m == null) { m = new Match(group, lecture.getConfiguration()); match.put(lecture.getSchedulingSubpartId(), m); }
                     m.inc(lecture);
                 }
             if (match.isEmpty()) continue;
             double value = 0.0;
             for (Match m: match.values())
                 value += m.value();
-            ret += value / match.size();
+            ret += value / offeringIds.size();
             count ++;
         }
         return 100.0 * ret / count;
@@ -190,7 +199,7 @@ public class StudentSwapSectioning extends DefaultStudentSectioning implements I
      * Combined weight of a solution 
      */
     protected double value(Solution<Lecture, Placement> solution) {
-        return objective(solution) - iGroupWeight * group(iModel);
+        return objective(solution) + iGroupWeight * (iModel.getStudentGroups().size() - group(iModel));
     }
 
     @Override
@@ -212,7 +221,7 @@ public class StudentSwapSectioning extends DefaultStudentSectioning implements I
                     getProgress().setProgress(prg);
                 if ((it % 10000) == 0)
                     getProgress().info("Iter=" + (it / 1000)+"k, Idle=" + sDF2.format((it - lastImp)/1000.0)+"k, Speed=" + sDF2.format(1000.0 * it / (JProf.currentTimeMillis() - t0))+" it/s" +
-                            ", Objective=" + sDF2.format(objective(solution)) + ", Group=" + sDF2.format(gp(solution)) + "%");
+                            ", Value=" + sDF2.format(value(solution)) + ", Objective=" + sDF2.format(objective(solution)) + ", Group=" + sDF2.format(gp(solution)) + "%");
             }
             Neighbour<Lecture, Placement> n = g.selectNeighbour(solution);
             if (n == null) continue;
@@ -235,7 +244,7 @@ public class StudentSwapSectioning extends DefaultStudentSectioning implements I
             Neighbour<Lecture, Placement> n = g.selectNeighbour(solution);
             if (n != null) {
                 double value = value(n, solution.getAssignment());
-                if (value < lastImp) { lastImp = it; }
+                if (value < 0) { lastImp = it; }
                 if (value <= 0.0 || total + value < bound) {
                     n.assign(solution.getAssignment(), it);
                     if (total + value < best) {
@@ -281,6 +290,7 @@ public class StudentSwapSectioning extends DefaultStudentSectioning implements I
      */
     private static class Match {
         private int iTotal = 0;
+        private double iFraction = 1.0;
         private Map<Long, Integer> iMatch = new HashMap<Long, Integer>();
         
         /**
@@ -288,8 +298,9 @@ public class StudentSwapSectioning extends DefaultStudentSectioning implements I
          * @param group student group
          * @param offeringId offering id
          */
-        Match(StudentGroup group, Long offeringId) {
-            iTotal = group.countStudents(offeringId);
+        Match(StudentGroup group, Configuration config) {
+            iTotal = group.countStudents(config.getOfferingId());
+            iFraction = 1.0 / config.countSubparts();
         }
         
         /**
@@ -304,12 +315,12 @@ public class StudentSwapSectioning extends DefaultStudentSectioning implements I
          * Value (an overall probability of two students being in the same lecture) 
          */
         double value() {
-            if (iTotal <= 1) return 1.0;
+            if (iTotal <= 1) return iFraction;
             double value = 0.0;
             for (Integer m: iMatch.values())
                 if (m > 1)
                     value += (m * (m - 1.0)) / (iTotal * (iTotal - 1.0));
-            return value;
+            return iFraction * value;
         }
         
         @Override
@@ -317,16 +328,37 @@ public class StudentSwapSectioning extends DefaultStudentSectioning implements I
             return iTotal + "/" + iMatch;
         }
     }
-
-    @Override
-    public void getInfo(Assignment<Lecture, Placement> assignment, Map<String, String> info) {
-        if (!iModel.getStudentGroups().isEmpty())
-            info.put("Student groups", sDF2.format(100.0 * group(iModel) / iModel.getStudentGroups().size()) + "%");
+    
+    protected boolean hasStudentGroups(Collection<Student> students) {
+        for (Student student: students)
+            if (!student.getGroups().isEmpty()) return true;
+        return false;
     }
-
+    
     @Override
-    public void getInfo(Assignment<Lecture, Placement> assignment, Map<String, String> info, Collection<Lecture> variables) {
-        if (!iModel.getStudentGroups().isEmpty())
-            info.put("Student groups", sDF2.format(gp(iModel, variables)) + "%");
+    protected Group[] studentsToConfigurations(Long offeringId, Collection<Student> students, Collection<Configuration> configurations) {
+        if (hasStudentGroups(students)) {
+            GroupBasedInitialSectioning sect = new GroupBasedInitialSectioning(getProgress(), offeringId, configurations, students);
+            return sect.getGroups();
+        } else {
+            return super.studentsToConfigurations(offeringId, students, configurations);
+        }
+    }
+    
+    @Override
+    protected Group[] studentsToLectures(Long offeringId, Collection<Student> students, Collection<Lecture> lectures) {
+        if (hasStudentGroups(students)) {
+            Set<Lecture> sortedLectures = new TreeSet<Lecture>(new Comparator<Lecture>() {
+                @Override
+                public int compare(Lecture l1, Lecture l2) {
+                    return l1.getClassId().compareTo(l2.getClassId());
+                }
+            });
+            sortedLectures.addAll(lectures);
+            GroupBasedInitialSectioning sect = new GroupBasedInitialSectioning(getProgress(), offeringId, sortedLectures, students);
+            return sect.getGroups();
+        } else {
+            return super.studentsToLectures(offeringId, students, lectures);
+        }
     }
 }

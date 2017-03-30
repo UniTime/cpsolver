@@ -194,23 +194,23 @@ public class StudentSwap implements StudentMove {
     }
     
     private double groupValue(StudentGroup group, Student student, Student other, Lecture lecture) {
-        int match = 1;
+        int match = 0;
         for (Student s: lecture.students()) {
             if (s.equals(student) || s.equals(other)) continue;
             if (s.getGroups().contains(group)) match ++;
         }
-        if (match >= 2) {
-            double total = group.getStudents().size();
-            return (2.0 * match - 2.0) / (total * (total - 1.0));
+        if (match > 0) {
+            double total = group.countStudents(lecture.getConfiguration().getOfferingId());
+            return 2.0 * match / (total * (total - 1.0)) / group.countOfferings();
         } else
             return 0.0;
     }
     
-    private double groupValue(Student student, Student other, Set<Lecture> lectures) {
+    private double groupValue(Student student, Student other, Configuration config, Set<Lecture> lectures) {
         double ret = 0.0;
         for (Lecture lecture: lectures)
             ret += groupValue(student, other, lecture);
-        return ret / lectures.size();
+        return ret / config.countSubparts();
     }
     
     @Override
@@ -339,9 +339,14 @@ public class StudentSwap implements StudentMove {
 
     @Override
     public double group(List<StudentConflict> criteria, Assignment<Lecture, Placement> assignment) {
-        double value = groupValue(iFirstStudent, iSecondStudent, iSecondLectures) - groupValue(iFirstStudent, iSecondStudent, iFirstLectures);
+        double value = groupValue(iFirstStudent, iSecondStudent, iSecondConfig, iSecondLectures) - groupValue(iFirstStudent, iSecondStudent, iFirstConfig, iFirstLectures);
         if (iSecondStudent != null)
-            value += groupValue(iSecondStudent, iFirstStudent, iFirstLectures) - groupValue(iSecondStudent, iFirstStudent, iSecondLectures);
+            value += groupValue(iSecondStudent, iFirstStudent, iFirstConfig, iFirstLectures) - groupValue(iSecondStudent, iFirstStudent, iSecondConfig, iSecondLectures);
         return value;
+    }
+    
+    @Override
+    public String toString() {
+        return "StudentSwap{" + iFirstStudent.getId() + " " + iFirstStudent.getGroupNames() + "/" + iFirstLectures + "; " + (iSecondStudent == null ? "NULL" : iSecondStudent.getId() + " " + iSecondStudent.getGroupNames()) + "/" + iSecondLectures + "}"; 
     }
 }

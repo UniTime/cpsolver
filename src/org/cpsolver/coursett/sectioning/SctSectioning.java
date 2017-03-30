@@ -2,17 +2,21 @@ package org.cpsolver.coursett.sectioning;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.cpsolver.coursett.constraint.JenrlConstraint;
 import org.cpsolver.coursett.criteria.StudentConflict;
+import org.cpsolver.coursett.custom.DeterministicStudentSectioning.DeterministicInitialSectioning;
+import org.cpsolver.coursett.model.Configuration;
 import org.cpsolver.coursett.model.DefaultStudentSectioning;
+import org.cpsolver.coursett.model.InitialSectioning.Group;
 import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
+import org.cpsolver.coursett.model.Student;
 import org.cpsolver.coursett.model.TimetableModel;
 import org.cpsolver.coursett.sectioning.SctModel.SctSolution;
 import org.cpsolver.ifs.assignment.Assignment;
@@ -20,6 +24,7 @@ import org.cpsolver.ifs.criteria.Criterion;
 import org.cpsolver.ifs.model.InfoProvider;
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.termination.TerminationCondition;
+import org.cpsolver.ifs.util.Progress;
 
 /**
  * 
@@ -51,7 +56,6 @@ public class SctSectioning extends DefaultStudentSectioning implements InfoProvi
     private boolean iUseCriteria = true;
     private int iNrRounds = 3;
     private List<StudentConflict> iStudentConflictCriteria = null;
-    private static java.text.DecimalFormat sDF2 = new java.text.DecimalFormat("0.00", new java.text.DecimalFormatSymbols(Locale.US));
 
     public SctSectioning(TimetableModel model) {
         super(model);
@@ -140,15 +144,49 @@ public class SctSectioning extends DefaultStudentSectioning implements InfoProvi
         }
     }
     
-    @Override
-    public void getInfo(Assignment<Lecture, Placement> assignment, Map<String, String> info) {
-        if (!iModel.getStudentGroups().isEmpty())
-            info.put("Student groups", sDF2.format(100.0 * StudentSwapSectioning.group(iModel) / iModel.getStudentGroups().size()) + "%");
+    protected boolean hasStudentGroups(Collection<Student> students) {
+        for (Student student: students)
+            if (!student.getGroups().isEmpty()) return true;
+        return false;
     }
-
+    
     @Override
-    public void getInfo(Assignment<Lecture, Placement> assignment, Map<String, String> info, Collection<Lecture> variables) {
-        if (!iModel.getStudentGroups().isEmpty())
-            info.put("Student groups", sDF2.format(StudentSwapSectioning.gp(iModel, variables)) + "%");
+    protected Group[] studentsToConfigurations(Long offeringId, Collection<Student> students, Collection<Configuration> configurations) {
+        if (hasStudentGroups(students)) {
+            GroupBasedInitialSectioning sect = new GroupBasedInitialSectioning(getProgress(), offeringId, configurations, students);
+            return sect.getGroups();
+        } else {
+            return super.studentsToConfigurations(offeringId, students, configurations);
+        }
+    }
+    
+    @Override
+    protected Group[] studentsToLectures(Long offeringId, Collection<Student> students, Collection<Lecture> lectures) {
+        if (hasStudentGroups(students)) {
+            Set<Lecture> sortedLectures = new TreeSet<Lecture>(new Comparator<Lecture>() {
+                @Override
+                public int compare(Lecture l1, Lecture l2) {
+                    return l1.getClassId().compareTo(l2.getClassId());
+                }
+            });
+            sortedLectures.addAll(lectures);
+            GroupBasedInitialSectioning sect = new GroupBasedInitialSectioning(getProgress(), offeringId, sortedLectures, students);
+            return sect.getGroups();
+        } else {
+            return super.studentsToLectures(offeringId, students, lectures);
+        }
+    }
+    
+    protected static class GroupBasedInitialSectioning extends DeterministicInitialSectioning {
+        public GroupBasedInitialSectioning(Progress progress, Long offeringId, Collection<?> lectureOrConfigurations, Collection<Student> students) {
+            super(progress, offeringId, lectureOrConfigurations, students);
+        }
+        
+        @Override
+        public int compare(Student s1, Student s2) {
+            int cmp = s1.getGroupNames().compareToIgnoreCase(s2.getGroupNames());
+            if (cmp != 0) return cmp;
+            return super.compare(s1, s2);
+        }
     }
 }

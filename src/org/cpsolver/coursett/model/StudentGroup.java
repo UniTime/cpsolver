@@ -1,7 +1,9 @@
 package org.cpsolver.coursett.model;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Student group.
@@ -25,7 +27,7 @@ import java.util.List;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class StudentGroup {
+public class StudentGroup implements Comparable<StudentGroup> {
     private long iId;
     private String iName;
     private double iWeight;
@@ -94,5 +96,35 @@ public class StudentGroup {
     @Override
     public String toString() {
         return getName();
+    }
+
+    @Override
+    public int compareTo(StudentGroup g) {
+        int cmp = getName().compareToIgnoreCase(g.getName());
+        if (cmp != 0) return cmp;
+        return (getId() < g.getId() ? -1 : getId() == g.getId() ? 0 : 1);
+    }
+    
+    /**
+     * Average enrollment weight of students of this group in the given offering
+     */
+    public double getAverageEnrollmentWeight(Long offeringId) {
+        double total = 0.0; int count = 0;
+        for (Student student: iStudents)
+            if (student.hasOffering(offeringId)) {
+                total += student.getOfferingWeight(offeringId);
+                count ++;
+            }
+        return count == 0 ? 0.0 : total / count;
+    }
+    
+    /**
+     * Count offerings that students of this group have
+     */
+    public int countOfferings() {
+        Set<Long> offeringIds = new HashSet<Long>();
+        for (Student student: iStudents)
+            offeringIds.addAll(student.getOfferings());
+        return offeringIds.size();
     }
 }

@@ -2,9 +2,11 @@ package org.cpsolver.coursett.model;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 
 import org.cpsolver.coursett.constraint.JenrlConstraint;
@@ -41,6 +43,7 @@ public class Configuration {
     private HashMap<Long, Set<Lecture>> iTopLectures = new HashMap<Long, Set<Lecture>>();
     private List<Configuration> iAltConfigurations = null;
     private int iLimit = -1;
+    private Set<Long> iSubpartIds = null;
 
     public Configuration(Long offeringId, Long configId, int limit) {
         iOfferingId = offeringId;
@@ -63,6 +66,7 @@ public class Configuration {
             iTopLectures.put(lecture.getSchedulingSubpartId(), lectures);
         }
         lectures.add(lecture);
+        iSubpartIds = null;
     }
     
     public Map<Long, Set<Lecture>> getTopLectures() {
@@ -140,5 +144,30 @@ public class Configuration {
         if (o == null || !(o instanceof Configuration))
             return false;
         return getConfigId().equals(((Configuration) o).getConfigId());
+    }
+    
+    public Set<Long> getSubpartIds() {
+        if (iSubpartIds == null) {
+            Set<Long> subparts = new HashSet<Long>();
+            Queue<Lecture> queue = new LinkedList<Lecture>();
+            for (Map.Entry<Long, Set<Lecture>> e: getTopLectures().entrySet()) {
+                subparts.add(e.getKey());
+                queue.addAll(e.getValue());
+            }
+            Lecture lecture = null;
+            while ((lecture = queue.poll()) != null) {
+                if (lecture.getChildren() != null)
+                    for (Map.Entry<Long, List<Lecture>> e: lecture.getChildren().entrySet()) {
+                        subparts.add(e.getKey());
+                        queue.addAll(e.getValue());
+                    }
+            }
+            iSubpartIds = subparts;
+        }
+        return iSubpartIds;
+    }
+    
+    public int countSubparts() {
+        return getSubpartIds().size();
     }
 }

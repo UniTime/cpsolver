@@ -2,9 +2,13 @@ package org.cpsolver.coursett.model;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 import org.cpsolver.coursett.model.InitialSectioning.Group;
+import org.cpsolver.coursett.sectioning.StudentSwapSectioning;
 import org.cpsolver.ifs.assignment.Assignment;
+import org.cpsolver.ifs.model.InfoProvider;
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.termination.TerminationCondition;
 import org.cpsolver.ifs.util.Progress;
@@ -56,11 +60,12 @@ import org.cpsolver.ifs.util.Progress;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class DefaultStudentSectioning implements StudentSectioning {
+public class DefaultStudentSectioning implements StudentSectioning, InfoProvider<Lecture, Placement> {
     protected TimetableModel iModel = null;
     private Progress iProgress = null;
     protected FinalSectioning iFinalSectioning = null;
-    
+    protected static java.text.DecimalFormat sDF2 = new java.text.DecimalFormat("0.00", new java.text.DecimalFormatSymbols(Locale.US));
+
     /**
      * Constructor
      * @param model problem model
@@ -234,5 +239,16 @@ public class DefaultStudentSectioning implements StudentSectioning {
     public void resection(Assignment<Lecture, Placement> assignment, Lecture lecture, boolean recursive, boolean configAsWell) {
         iFinalSectioning.resection(assignment, lecture, recursive, configAsWell);
     }
+    
+    @Override
+    public void getInfo(Assignment<Lecture, Placement> assignment, Map<String, String> info) {
+        if (!iModel.getStudentGroups().isEmpty())
+            info.put("Student groups", sDF2.format(100.0 * StudentSwapSectioning.group(iModel) / iModel.getStudentGroups().size()) + "%");
+    }
 
+    @Override
+    public void getInfo(Assignment<Lecture, Placement> assignment, Map<String, String> info, Collection<Lecture> variables) {
+        if (!iModel.getStudentGroups().isEmpty())
+            info.put("Student groups", sDF2.format(StudentSwapSectioning.gp(iModel, variables)) + "%");
+    }
 }

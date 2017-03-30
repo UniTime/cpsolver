@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.cpsolver.coursett.constraint.InstructorConstraint;
 import org.cpsolver.coursett.constraint.JenrlConstraint;
@@ -359,6 +360,15 @@ public class Student implements Comparable<Student> {
     public Set<StudentGroup> getGroups() { return iGroups; }
     
     public boolean hasGroup(StudentGroup group) { return iGroups.contains(group); }
+    
+    public String getGroupNames() {
+        if (iGroups.isEmpty()) return "";
+        if (iGroups.size() == 1) return iGroups.iterator().next().getName();
+        String ret = "";
+        for (StudentGroup g: new TreeSet<StudentGroup>(iGroups))
+            ret += (ret.isEmpty() ? "" : ", ") + g.getName();
+        return ret;
+    }
     
     public double getSameGroupWeight(Student other) {
         double ret = 0.0;
