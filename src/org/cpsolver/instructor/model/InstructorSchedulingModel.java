@@ -232,6 +232,8 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
                         if (attribute.getAttributeId() != null)
                             attributeEl.addAttribute("id", String.valueOf(attribute.getAttributeId()));
                         attributeEl.addAttribute("name", attribute.getAttributeName());
+                        if (attribute.getParentAttribute() != null && attribute.getParentAttribute().getAttributeId() != null)
+                            attributeEl.addAttribute("parent", String.valueOf(attribute.getParentAttribute().getAttributeId()));
                     }
                 }
                 for (Instructor instructor: getInstructors()) {
@@ -241,6 +243,8 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
                             if (attribute.getAttributeId() != null)
                                 attributeEl.addAttribute("id", String.valueOf(attribute.getAttributeId()));
                             attributeEl.addAttribute("name", attribute.getAttributeName());
+                            if (attribute.getParentAttribute() != null && attribute.getParentAttribute().getAttributeId() != null)
+                                attributeEl.addAttribute("parent", String.valueOf(attribute.getParentAttribute().getAttributeId()));
                         }
                     }
                 }
@@ -296,6 +300,8 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
                 attributeEl.addAttribute("name", pref.getTarget().getAttributeName());
                 attributeEl.addAttribute("type", pref.getTarget().getType().getTypeName());
                 attributeEl.addAttribute("preference", (pref.isRequired() ? "R" : pref.isProhibited() ? "P" : String.valueOf(pref.getPreference())));
+                if (pref.getTarget().getParentAttribute() != null && pref.getTarget().getParentAttribute().getAttributeId() != null)
+                    attributeEl.addAttribute("parent", String.valueOf(pref.getTarget().getParentAttribute().getAttributeId()));
             }
             for (Preference<Instructor> pref: request.getInstructorPreferences()) {
                 Element instructorEl = requestEl.addElement("instructor");
@@ -372,6 +378,8 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
                     attributeEl.addAttribute("id", String.valueOf(attribute.getAttributeId()));
                 attributeEl.addAttribute("name", attribute.getAttributeName());
                 attributeEl.addAttribute("type", attribute.getType().getTypeName());
+                if (attribute.getParentAttribute() != null && attribute.getParentAttribute().getAttributeId() != null)
+                    attributeEl.addAttribute("parent", String.valueOf(attribute.getParentAttribute().getAttributeId()));
             }
             instructorEl.addAttribute("maxLoad", sDoubleFormat.format(instructor.getMaxLoad()));
             for (Preference<TimeLocation> tp: instructor.getTimePreferences()) {
@@ -478,6 +486,7 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
             return false;
         Map<String, Attribute.Type> types = new HashMap<String, Attribute.Type>();
         Map<Long, Attribute> attributes = new HashMap<Long, Attribute>();
+        Map<Long, Long> parents = new HashMap<Long, Long>();
         if (root.element("attributes") != null) {
             for (Iterator<?> i = root.element("attributes").elementIterator("type"); i.hasNext();) {
                 Element typeEl = (Element) i.next();
@@ -496,6 +505,8 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
                             attributeEl.attributeValue("name"),
                             type);
                     attributes.put(attribute.getAttributeId(), attribute);
+                    if (attributeEl.attributeValue("parent") != null)
+                        parents.put(attribute.getAttributeId(), Long.parseLong(attributeEl.attributeValue("parent")));
                 }
             }
         }
@@ -535,6 +546,8 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
                     }
                     attribute = new Attribute(attributeId, f.attributeValue("name"), type);
                     attributes.put(attributeId, attribute);
+                    if (f.attributeValue("parent") != null)
+                        parents.put(attribute.getAttributeId(), Long.parseLong(f.attributeValue("parent")));
                 }
                 instructor.addAttribute(attribute);
             }
@@ -649,6 +662,8 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
                     }
                     attribute = new Attribute(attributeId, f.attributeValue("name"), type);
                     attributes.put(attributeId, attribute);
+                    if (f.attributeValue("parent") != null)
+                        parents.put(attribute.getAttributeId(), Long.parseLong(f.attributeValue("parent")));
                 }
                 request.addAttributePreference(new Preference<Attribute>(attribute, string2preference(f.attributeValue("preference"))));
             }
@@ -732,6 +747,8 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
                 }
             }            
         }
+        for (Map.Entry<Long, Long> e: parents.entrySet())
+            attributes.get(e.getKey()).setParentAttribute(attributes.get(e.getValue()));
         for (Map.Entry<TeachingRequest, Map<Integer, Instructor>> e1: best.entrySet())
             for (Map.Entry<Integer, Instructor> e2: e1.getValue().entrySet())
                 if (e2.getKey() >= 0 && e2.getKey() < e1.getKey().getNrInstructors()) {

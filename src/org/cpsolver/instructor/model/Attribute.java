@@ -27,6 +27,7 @@ public class Attribute {
     private Long iAttributeId;
     private String iAttributeName;
     private Type iType;
+    private Attribute iParentAttribute;
     
     /**
      * Constructor
@@ -57,6 +58,16 @@ public class Attribute {
      * @return attribute type
      */
     public Type getType() { return iType; }
+    
+    /**
+     * Parent attribute
+     */
+    public Attribute getParentAttribute() { return iParentAttribute; }
+    
+    /**
+     * Parent attribute
+     */
+    public void setParentAttribute(Attribute parent) { iParentAttribute = parent; }
     
     @Override
     public int hashCode() {

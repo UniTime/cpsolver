@@ -216,8 +216,14 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest.Variabl
      */
     public Set<Attribute> getAttributes(Attribute.Type type) {
         Set<Attribute> attributes = new HashSet<Attribute>();
-        for (Attribute attribute: iAttributes)
+        for (Attribute attribute: iAttributes) {
             if (type.equals(attribute.getType())) attributes.add(attribute);
+            Attribute parent = attribute.getParentAttribute();
+            while (parent != null) {
+                if (type.equals(parent.getType())) attributes.add(parent);
+                parent = parent.getParentAttribute();
+            }
+        }
         return attributes;
     }
     
