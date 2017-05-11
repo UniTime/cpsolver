@@ -93,6 +93,7 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
     private DataProperties iProperties = null;
     private int iYear = -1;
     private List<BitSet> iWeeks = null;
+    private boolean iOnFlySectioning = false;
 
     private HashSet<Student> iAllStudents = new HashSet<Student>();
     
@@ -106,8 +107,9 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
         super();
         iProperties = properties;
         iDistanceMetric = new DistanceMetric(properties);
-        if (properties.getPropertyBoolean("OnFlySectioning.Enabled", false))
-            addModelListener(new OnFlySectioning(this));
+        if (properties.getPropertyBoolean("OnFlySectioning.Enabled", false)) {
+            addModelListener(new OnFlySectioning(this)); iOnFlySectioning = true;
+        }
         String criteria = properties.getProperty("General.Criteria",
                 // Objectives
                 StudentConflict.class.getName() + ";" +
@@ -548,4 +550,97 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
     
     public List<StudentGroup> getStudentGroups() { return iStudentGroups; }
     public void addStudentGroup(StudentGroup group) { iStudentGroups.add(group); }
+    
+    Map<Student, Set<Lecture>> iBestEnrollment = null;
+    @Override
+    public void saveBest(Assignment<Lecture, Placement> assignment) {
+        super.saveBest(assignment);
+        if (iOnFlySectioning) {
+            if (iBestEnrollment == null)
+                iBestEnrollment = new HashMap<Student, Set<Lecture>>();
+            else
+                iBestEnrollment.clear();
+            for (Student student: getAllStudents())
+                iBestEnrollment.put(student, new HashSet<Lecture>(student.getLectures()));
+        }
+    }
+    
+    /**
+     * Increment {@link JenrlConstraint} between the given two classes by the given student
+     */
+    protected void incJenrl(Assignment<Lecture, Placement> assignment, Student student, Lecture l1, Lecture l2) {
+        if (l1.equals(l2)) return;
+        JenrlConstraint jenrl = l1.jenrlConstraint(l2);
+        if (jenrl == null) {
+            jenrl = new JenrlConstraint();
+            jenrl.addVariable(l1);
+            jenrl.addVariable(l2);
+            addConstraint(jenrl);
+        }
+        jenrl.incJenrl(assignment, student);
+    }
+    
+    /**
+     * Decrement {@link JenrlConstraint} between the given two classes by the given student
+     */
+    protected void decJenrl(Assignment<Lecture, Placement> assignment, Student student, Lecture l1, Lecture l2) {
+        if (l1.equals(l2)) return;
+        JenrlConstraint jenrl = l1.jenrlConstraint(l2);
+        if (jenrl != null) {
+            jenrl.decJenrl(assignment, student);
+        }
+    }
+    
+    @Override
+    public void restoreBest(Assignment<Lecture, Placement> assignment) {
+        if (iOnFlySectioning && iBestEnrollment != null) {
+            
+            // unassign changed classes
+            for (Lecture lecture: variables()) {
+                Placement placement = assignment.getValue(lecture);
+                if (placement != null && !placement.equals(lecture.getBestAssignment()))
+                    assignment.unassign(0, lecture);
+            }
+            
+            for (Map.Entry<Student, Set<Lecture>> entry: iBestEnrollment.entrySet()) {
+                Student student = entry.getKey();
+                Set<Lecture> lectures = entry.getValue();
+                Set<Configuration> configs = new HashSet<Configuration>();
+                for (Lecture lecture: lectures)
+                    if (lecture.getConfiguration() != null) configs.add(lecture.getConfiguration());
+                
+                // drop student from classes that are not in the best enrollment
+                for (Lecture lecture: new ArrayList<Lecture>(student.getLectures())) {
+                    if (lectures.contains(lecture)) continue; // included in best
+                    for (Lecture other: student.getLectures())
+                        decJenrl(assignment, student, lecture, other);
+                    lecture.removeStudent(assignment, student);
+                    student.removeLecture(lecture);
+                    if (lecture.getConfiguration() != null && !configs.contains(lecture.getConfiguration()))
+                        student.removeConfiguration(lecture.getConfiguration());
+                }
+                
+                // add student to classes that are in the best enrollment
+                for (Lecture lecture: lectures) {
+                    if (student.getLectures().contains(lecture)) continue; // already in
+                    for (Lecture other: student.getLectures())
+                        incJenrl(assignment, student, lecture, other);
+                    lecture.addStudent(assignment, student);
+                    student.addLecture(lecture);
+                    student.addConfiguration(lecture.getConfiguration());
+                }
+            }
+            // remove empty joint enrollments
+            for (JenrlConstraint jenrl: new ArrayList<JenrlConstraint>(getJenrlConstraints())) {
+                if (jenrl.getNrStudents() == 0) {
+                    jenrl.getContext(assignment).unassigned(assignment, null);
+                    Object[] vars = jenrl.variables().toArray();
+                    for (int k = 0; k < vars.length; k++)
+                        jenrl.removeVariable((Lecture) vars[k]);
+                    removeConstraint(jenrl);
+                }
+            }
+        }
+        super.restoreBest(assignment);
+    }
 }
