@@ -875,11 +875,11 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     }
 
     public int minRoomUse() {
-        return Math.round(iMinClassLimit * iRoomToLimitRatio);
+        return iNrRooms == 0 ? 0 : Math.round(iMinClassLimit * iRoomToLimitRatio);
     }
 
     public int maxRoomUse() {
-        return Math.round(iMaxClassLimit * iRoomToLimitRatio);
+        return iNrRooms == 0 ? 0 : Math.round(iMaxClassLimit * iRoomToLimitRatio);
     }
 
     @Override
