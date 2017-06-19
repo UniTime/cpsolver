@@ -796,7 +796,7 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
             double s1 = 0.3 * e1.percentSelectedSameConfig() + 0.7 * e1.percentSelectedSameSection();
             double s2 = 0.3 * e2.percentSelectedSameConfig() + 0.7 * e2.percentSelectedSameSection();
             if (s1 > s2) return -1;
-            if (s2 < s1) return 1;
+            if (s2 > s1) return 1;
         }
 
         // 4. avoid time overlaps
