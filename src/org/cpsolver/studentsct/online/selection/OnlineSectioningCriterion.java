@@ -93,7 +93,8 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
                 }
             }
             for (Unavailability unavailability: iStudent.getUnavailabilities())
-                iTimesToAvoid.add(new TimeToAvoid(unavailability.getTime(), 1, Integer.MAX_VALUE));
+                if (unavailability.getTime() != null)
+                    iTimesToAvoid.add(new TimeToAvoid(unavailability.getTime(), 1, Integer.MAX_VALUE));
         }
     }
 
