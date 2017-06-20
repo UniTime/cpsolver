@@ -74,9 +74,9 @@
 	</dependencies>
 	
 	<scm>
-		<connection>scm:git:git://github.com/tomas-muller/cpsolver.git</connection>
-		<developerConnection>scm:git:git@github.com:tomas-muller/cpsolver.git</developerConnection>
-		<url>https://github.com/tomas-muller/cpsolver</url>
+		<connection>scm:git:git://github.com/UniTime/cpsolver.git</connection>
+		<developerConnection>scm:git:git@github.com:UniTime/cpsolver.git</developerConnection>
+		<url>https://github.com/UniTime/cpsolver</url>
 		<tag>cpsolver-1.3</tag>
 	</scm>
 	
