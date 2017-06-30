@@ -140,6 +140,7 @@ public class StudentSwapSectioning extends DefaultStudentSectioning implements I
             Set<Long> offeringIds = new HashSet<Long>();
             for (Student student: group.getStudents())
                 for (Lecture lecture: student.getLectures()) {
+                    if (lecture.getConfiguration() == null) continue;
                     offeringIds.add(lecture.getConfiguration().getOfferingId());
                     Match m = match.get(lecture.getSchedulingSubpartId());
                     if (m == null) { m = new Match(group, lecture.getConfiguration()); match.put(lecture.getSchedulingSubpartId(), m); }
@@ -164,6 +165,7 @@ public class StudentSwapSectioning extends DefaultStudentSectioning implements I
             Set<Long> offeringIds = new HashSet<Long>();
             for (Student student: group.getStudents())
                 for (Lecture lecture: student.getLectures()) {
+                    if (lecture.getConfiguration() == null) continue;
                     if (variables != null && !variables.contains(lecture)) continue;
                     offeringIds.add(lecture.getConfiguration().getOfferingId());
                     Match m = match.get(lecture.getSchedulingSubpartId());
