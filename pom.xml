@@ -88,7 +88,7 @@
 			<resource>
 				<directory />
 				<includes>
-					<include>lgpl.txt</include>
+					<include>LICENSE</include>
 				</includes>
 			</resource>
 			<resource>

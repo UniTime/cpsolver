@@ -89,7 +89,7 @@
                 <include name="org/cpsolver/ifs/**/*.class"/>
             </fileset>
         	<fileset dir="${basedir}">
-        		<include name="lgpl.txt"/>
+        		<include name="LICENSE"/>
         		<include name="cpsolver.version"/>
         	</fileset>
         	<manifest>
@@ -102,7 +102,7 @@
                 <include name="org/cpsolver/coursett/**/*.class"/>
             </fileset>
         	<fileset dir="${basedir}">
-        		<include name="lgpl.txt"/>
+        		<include name="LICENSE"/>
         		<include name="cpsolver.version"/>
         	</fileset>
         	<manifest>
@@ -116,7 +116,7 @@
                 <include name="org/cpsolver/studentsct/**/*.class"/>
             </fileset>
         	<fileset dir="${basedir}">
-        		<include name="lgpl.txt"/>
+        		<include name="LICENSE"/>
         		<include name="cpsolver.version"/>
         	</fileset>
         	<manifest>
@@ -130,7 +130,7 @@
                 <include name="org/cpsolver/exam/**/*.class"/>
             </fileset>
         	<fileset dir="${basedir}">
-        		<include name="lgpl.txt"/>
+        		<include name="LICENSE"/>
         		<include name="cpsolver.version"/>
         	</fileset>
         	<manifest>
@@ -144,7 +144,7 @@
                 <include name="org/cpsolver/**/*.class"/>
             </fileset>
         	<fileset dir="${basedir}">
-        		<include name="lgpl.txt"/>
+        		<include name="LICENSE"/>
         		<include name="cpsolver.version"/>
         	</fileset>
         	<manifest>
@@ -266,7 +266,7 @@
 				<include name="lib/**/*"/>
 			</fileset>
         	<fileset dir="${basedir}">
-        		<include name="lgpl.txt"/>
+        		<include name="LICENSE"/>
         	</fileset>
 		</zip>
 	</target>

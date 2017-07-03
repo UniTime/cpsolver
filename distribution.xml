@@ -31,7 +31,7 @@
 		<fileSet>
 			<directory>${project.basedir}</directory>
 			<includes>
-				<include>lgpl.txt</include>
+				<include>LICENSE</include>
 			</includes>
 			<useDefaultExcludes>true</useDefaultExcludes>
 		</fileSet>
