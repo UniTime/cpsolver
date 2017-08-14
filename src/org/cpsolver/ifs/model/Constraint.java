@@ -232,7 +232,7 @@ public abstract class Constraint<V extends Variable<V, T>, T extends Value<V, T>
         Set<T> conf = null;
         if (isHard()) {
             conf = new HashSet<T>();
-            computeConflicts(assignment, value, conf);
+            computeConflictsNoForwardCheck(assignment, value, conf);
         }
         if (iConstraintListeners != null)
             for (ConstraintListener<V, T> listener : iConstraintListeners)
@@ -246,6 +246,18 @@ public abstract class Constraint<V extends Variable<V, T>, T extends Value<V, T>
         if (iConstraintListeners != null)
             for (ConstraintListener<V, T> listener : iConstraintListeners)
                 listener.constraintAfterAssigned(assignment, iteration, this, value, conf);
+    }
+    
+    /**
+     * Compute conflicts method that does not do any forward checking. This method defaults to {@link Constraint#computeConflicts(Assignment, Value, Set)}
+     * and it is called during assignment (from {@link Constraint#assigned(Assignment, long, Value)}) to check for conflicting variables that need to be
+     * unassigned first.
+     * @param assignment current assignment
+     * @param value value to be assigned to its variable
+     * @param conflicts resultant set of conflicting values
+     */
+    protected void computeConflictsNoForwardCheck(Assignment<V, T> assignment, T value, Set<T> conflicts) {
+        computeConflicts(assignment, value, conflicts);
     }
 
     /**

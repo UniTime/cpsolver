@@ -970,6 +970,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
         computeConflicts(assignment, value, conflicts, true);
     }
     
+    @Override
     public void computeConflictsNoForwardCheck(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
         computeConflicts(assignment, value, conflicts, false);
     }
