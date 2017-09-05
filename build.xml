@@ -11,7 +11,7 @@
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of the GNU Lesser General Public
 	License as published by the Free Software Foundation; either
-	version 2.1 of the License, or (at your option) any later version.
+	version 3 of the License, or (at your option) any later version.
 
 	This library is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -187,14 +187,14 @@
     		CourseTT 1.3 (University Course Timetabling)<br>
     		StudentSct 1.3 (Student Sectioning)<br>
     		ExamTT 1.3 (Examination Timetabling)<br>
-    		Copyright (C) 2006 - 2014 Tomas Muller<br>
+    		Copyright (C) 2006 - 2017 Tomas Muller<br>
     		<a href='mailto:muller@unitime.org'>muller@unitime.org</a><br>
     		<a href='http://muller.unitime.org'>http://muller.unitime.org</a><br>
     		<br>
     		This library is free software; you can redistribute it and/or
     		modify it under the terms of the GNU Lesser General Public
     		License as published by the Free Software Foundation; either
-    		version 2.1 of the License, or (at your option) any later version.
+    		version 3 of the License, or (at your option) any later version.
     		<br><br>
     		This library is distributed in the hope that it will be useful,
     		but WITHOUT ANY WARRANTY; without even the implied warranty of
