@@ -598,7 +598,7 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
             for (ExamPeriodPlacement period : exam.getPeriodPlacements()) {
                 Element pe = ex.addElement("period").addAttribute("id",
                         getId(idconv, "period", String.valueOf(period.getId())));
-                int penalty = period.getPenalty() - period.getPeriod().getPenalty();
+                int penalty = period.getExamPenalty();
                 if (penalty != 0)
                     pe.addAttribute("penalty", String.valueOf(penalty));
             }
