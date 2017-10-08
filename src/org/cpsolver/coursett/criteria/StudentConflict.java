@@ -68,6 +68,10 @@ public class StudentConflict extends TimetablingCriterion {
         return p1 != null && p2 != null && p1.getTimeLocation().hasIntersection(p2.getTimeLocation()) && (!p1.variable().isCommitted() || !p2.variable().isCommitted());
     }
     
+    protected double jointEnrollment(JenrlConstraint jenrl, Placement p1, Placement p2) {
+        return jointEnrollment(jenrl);
+    }
+    
     protected double jointEnrollment(JenrlConstraint jenrl) {
         return jenrl.jenrl();
     }
@@ -137,7 +141,7 @@ public class StudentConflict extends TimetablingCriterion {
             if (another == null) continue;
             if (conflicts != null && conflicts.contains(another)) continue;
             if (inConflict(value, another))
-                ret += jointEnrollment(jenrl);
+                ret += jointEnrollment(jenrl, value, another);
         }
         if (iIncludeConflicts && conflicts != null)
             for (Placement conflict: conflicts) {
@@ -148,7 +152,7 @@ public class StudentConflict extends TimetablingCriterion {
                     if (another == null || another.variable().equals(value.variable())) continue;
                     if (conflicts != null && conflicts.contains(another)) continue;
                     if (inConflict(conflict, another))
-                        ret -= jointEnrollment(jenrl);
+                        ret -= jointEnrollment(jenrl, conflict, another);
                 }
             }
         return ret;
@@ -167,7 +171,7 @@ public class StudentConflict extends TimetablingCriterion {
                 if (!other.isCommitted() && !variables.contains(other)) continue;
                 if (!isApplicable(lect, other)) continue;
                 if (inConflict(plac, assignment.getValue(other)))
-                    ret += jointEnrollment(jenrl);
+                    ret += jointEnrollment(jenrl, plac, assignment.getValue(other));
             }
         }
         return ret;
