@@ -446,6 +446,23 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
             info.put("Number of Students with " + (i == 0 ? "no" : String.valueOf(i)) + (i == 10 ? " or more" : "")
                     + " meeting" + (i != 1 ? "s" : ""), String.valueOf(nbrMtgs[i]));
         }
+        Map<Integer, Integer> penalty2count = new HashMap<Integer, Integer>();
+        for (Exam exam: variables()) {
+                ExamPlacement placement = assignment.getValue(exam);
+                if (placement == null) continue;
+                Integer preference = placement.getPeriodPlacement().getExamPenalty();
+                Integer count = penalty2count.get(preference);
+                penalty2count.put(preference, 1 + (count == null ? 0 : count.intValue())); 
+        }
+        if (!penalty2count.isEmpty()) {
+            String value = null;
+            for (Integer penalty: new TreeSet<Integer>(penalty2count.keySet())) {
+                if (penalty == 0) continue;
+                value = (value == null ? "" : value + ", ") + penalty2count.get(penalty) +  "&times; " + penalty;
+            }
+            if (value != null)
+                info.put("Period Preferences", value);
+        }
         return info;
     }
 
