@@ -87,6 +87,10 @@ public abstract class FlexibleConstraint extends ConstraintWithContext<Lecture, 
          * Minimize free time of an instructor during a day (between the first and the last class).
          */
         MAX_HOLES("_(MaxHoles):([0-9]+)_", MaxHolesFlexibleConstraint.class, "MaxHoles"),
+        /**
+         * Limit number of half-days of a week. 
+         */
+        MAX_HALF_DAYS("_(MaxHalfDays):([0-9]+)_", MaxHalfDaysFlexibleConstraint.class, "MaxHalfDays"),
         ;
         
         private String iPattern;
@@ -98,7 +102,7 @@ public abstract class FlexibleConstraint extends ConstraintWithContext<Lecture, 
         
         public String getPattern() { return iPattern; }
         
-        public String getName() { return iName; }
+        public String getName() { return iName.replaceAll("(?<=[^A-Z])([A-Z])"," $1"); }
 
         public FlexibleConstraint create(Long id, String owner, String preference, String reference) throws IllegalArgumentException {
             try {
