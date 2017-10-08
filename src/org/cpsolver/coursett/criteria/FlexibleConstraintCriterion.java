@@ -65,12 +65,14 @@ public class FlexibleConstraintCriterion extends TimetablingCriterion  {
         for (FlexibleConstraintType type: FlexibleConstraintType.values()) {
             StringBuilder debug = null;
             int violated = 0, constraints = 0;
+            double penalty = 0.0;
 
             for (FlexibleConstraint c : m.getFlexibleConstraints()) {
                 if (type.equals(c.getType())) {
                     constraints ++;
                     if (c.getContext(assignment).getPreference() > 0) {
                         violated++;
+                        penalty += c.getContext(assignment).getPreference();
                         if (iDebug) {
                             if (debug == null)
                                 debug = new StringBuilder(c.getOwner() + " (" + sDoubleFormat.format(c.getNrViolations(assignment, new HashSet<Placement>(), null)) + ")");
@@ -82,7 +84,7 @@ public class FlexibleConstraintCriterion extends TimetablingCriterion  {
             }
             
             if (constraints > 0) {
-                info.put(type.getName() + " Constraints", getPerc(violated, 0, constraints) + "% (" + violated + ")");
+                info.put(type.getName() + " Constraints", getPerc(violated, 0, constraints) + "%" + (violated == 0 ? "" : " (" + (constraints - violated) + "/" + constraints + ", average penalty:" + sDoubleFormat.format(penalty/violated) + ")"));
                 if (iDebug && violated > 0) info.put(type.getName() + " Violations", debug.toString());
             }
         }
@@ -101,10 +103,12 @@ public class FlexibleConstraintCriterion extends TimetablingCriterion  {
             
             if (!constraints.isEmpty()) {
                 int violated = 0;
+                double penalty = 0.0;
                 StringBuilder debug = null;
                 for (FlexibleConstraint c : constraints) {            
                     if (c.getContext(assignment).getPreference() > 0) {
                         violated++;
+                        penalty += c.getContext(assignment).getPreference();
                         if (iDebug) {
                             if (debug == null)
                                 debug = new StringBuilder(c.getOwner());
@@ -113,7 +117,7 @@ public class FlexibleConstraintCriterion extends TimetablingCriterion  {
                         }
                     }        
                 }
-                info.put(type.getName() + " Constraints", getPerc(violated, 0, constraints.size()) + "% (" + violated + ")");
+                info.put(type.getName() + " Constraints", getPerc(violated, 0, constraints.size()) + "%" + (violated == 0 ? "" : " (" + (constraints.size() - violated) + " of " + constraints.size() + ", average penalty:" + sDoubleFormat.format(penalty/violated) + ")"));
                 if (iDebug && violated > 0) info.put(type.getName() + " Violations", debug.toString());
             }
         }

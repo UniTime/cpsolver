@@ -80,9 +80,13 @@ public abstract class FlexibleConstraint extends ConstraintWithContext<Lecture, 
          */
         MAX_WEEKS("_(MaxWeeks):([0-9]+):([0-9]+)_", MaxWeeksFlexibleConstraint.class, "MaxWeeks"),
         /**
-         * 
+         * Limit number of days of a week. 
          */
         MAX_DAYS("_(MaxDays):([0-9]+)_", MaxDaysFlexibleConstraint.class, "MaxDays"),
+        /**
+         * Minimize free time of an instructor during a day (between the first and the last class).
+         */
+        MAX_HOLES("_(MaxHoles):([0-9]+)_", MaxHolesFlexibleConstraint.class, "MaxHoles"),
         ;
         
         private String iPattern;
