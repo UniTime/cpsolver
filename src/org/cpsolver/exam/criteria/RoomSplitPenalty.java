@@ -89,7 +89,7 @@ public class RoomSplitPenalty extends ExamCriterion {
     public boolean isPeriodCriterion() { return false; }
     
     protected class RoomSplitContext extends ValueContext {
-        private int iRoomSplits[] = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        private int iRoomSplits[] = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
         public RoomSplitContext(Assignment<Exam, ExamPlacement> assignment) {
             super(assignment);
