@@ -189,7 +189,7 @@ public class StudentSchedulingAssistantWeights implements StudentWeights {
         double overExpected = oexp - best[1];
         double avgPenalty = (penalty / size) - best[2];
 
-        int nrSelected = 0;
+        double nrSelected = 0;
         if (!cr.getSelectedChoices().isEmpty()) {
             for (Section section : enrollment.getSections())
                 if (cr.isSelected(section))
