@@ -126,7 +126,7 @@ public class MaxHalfDaysFlexibleConstraint extends FlexibleConstraint {
             for (Lecture variable: variables()) {
                 Placement value = assignment.getValue(variable);
                 if (value != null) {
-                    for (int i = 0; i < iHalfDayAssignments.length; i++)
+                    for (int i = 0; i < Constants.DAY_CODES.length; i++)
                         if ((value.getTimeLocation().getDayCode() & Constants.DAY_CODES[i]) != 0)
                             iHalfDayAssignments[i * getNrHalfDays() + getHalfDay(value.getTimeLocation())].add(value.variable());
                 }
