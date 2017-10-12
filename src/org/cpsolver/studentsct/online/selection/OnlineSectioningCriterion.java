@@ -196,6 +196,25 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
                     return -1; // higher priority request assigned
             }
         }
+        
+        // 0.1. allowed, but not available sections
+        int bestNotAvailable = 0, currentNotAvailable = 0;
+        for (int idx = 0; idx < current.length; idx++) {
+            if (best[idx] != null && best[idx].getAssignments() != null && best[idx].getRequest() instanceof CourseRequest && best[idx].getReservation() != null && best[idx].getReservation().canAssignOverLimit()) {
+                for (Section section: best[idx].getSections()) {
+                    if (section.getLimit() == 0)
+                        bestNotAvailable ++;
+                }
+            }
+            if (current[idx] != null && current[idx].getAssignments() != null && current[idx].getRequest() instanceof CourseRequest && current[idx].getReservation() != null && current[idx].getReservation().canAssignOverLimit()) {
+                for (Section section: current[idx].getSections()) {
+                    if (section.getLimit() == 0)
+                        currentNotAvailable ++;
+                }
+            }
+        }
+        if (bestNotAvailable > currentNotAvailable) return -1;
+        if (bestNotAvailable < currentNotAvailable) return 1;
 
         // 0.5. avoid course time overlaps & unavailabilities
         if (getModel().getTimeOverlaps() != null) {
@@ -465,6 +484,26 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
                         return true; // priority can be improved
                 }
             }
+        }
+        
+        // 0.1. allowed, but not available sections
+        int notAvailable = 0;
+        for (int idx = 0; idx < current.length; idx++) {
+            if (best[idx] != null && best[idx].getAssignments() != null && best[idx].getRequest() instanceof CourseRequest && best[idx].getReservation() != null && best[idx].getReservation().canAssignOverLimit()) {
+                for (Section section: best[idx].getSections()) {
+                    if (section.getLimit() == 0)
+                        notAvailable ++;
+                }
+            }
+            if (idx < maxIdx && current[idx] != null && current[idx].getAssignments() != null && current[idx].getRequest() instanceof CourseRequest && current[idx].getReservation() != null && current[idx].getReservation().canAssignOverLimit()) {
+                for (Section section: current[idx].getSections()) {
+                    if (section.getLimit() == 0)
+                        notAvailable --;
+                }
+            }
+        }
+        if (notAvailable > 0) {
+            return true;
         }
 
         // 0.5. avoid course time overlaps & unavailability overlaps
@@ -761,7 +800,16 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
             return -1;
         if (e1.getPriority() > e2.getPriority())
             return 1;
-
+        
+        // 1.5 not available sections
+        int na1 = 0, na2 = 0;
+        for (Section section: e1.getSections())
+            if (section.getLimit() == 0) na1++;
+        for (Section section: e2.getSections())
+            if (section.getLimit() == 0) na2++;
+        if (na1 < na2) return -1;
+        if (na2 > na1) return -1;
+        
         // 2. maximize number of penalties
         double p1 = 0, p2 = 0;
         for (Section section : e1.getSections())
