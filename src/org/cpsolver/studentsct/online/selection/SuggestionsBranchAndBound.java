@@ -678,10 +678,21 @@ public class SuggestionsBranchAndBound {
                 if (cmp != 0)
                     return cmp;
             }
+            
+            if (iSelectedRequest != null && iSelectedRequest instanceof CourseRequest) {
+                int s1 = 0;
+                for (Section s: iSelectedSections)
+                    if (((CourseRequest)iSelectedRequest).isSelected(s)) s1++;
+                int s2 = 0;
+                for (Section s: suggestion.iSelectedSections)
+                    if (((CourseRequest)iSelectedRequest).isSelected(s)) s2++;
+                if (s1 != s2) return (s1 > s2 ? -1 : 1);
+            }
+
             cmp = Double.compare(getNrChanges(), suggestion.getNrChanges());
             if (cmp != 0)
                 return cmp;
-
+                        
             Iterator<Section> i1 = iSelectedSections.iterator();
             Iterator<Section> i2 = suggestion.iSelectedSections.iterator();
             SectionAssignmentComparator c = new SectionAssignmentComparator();
