@@ -44,7 +44,7 @@ public class CourseReservation extends Reservation {
     /**
      * Course reservations can not assign over the limit.
      */
-    public static final boolean DEFAULT_CAN_ASSIGN_OVER_LIMIT = true;
+    public static final boolean DEFAULT_CAN_ASSIGN_OVER_LIMIT = false;
     /**
      * Overlaps are not allowed for course reservations. 
      */
