@@ -327,11 +327,11 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
         for (int idx = 0; idx < current.length; idx++) {
             if (best[idx] != null && best[idx].getAssignments() != null) {
                 for (Section section : best[idx].getSections())
-                    bestPenalty += section.getPenalty();
+                    bestPenalty += section.getPenalty() / best[idx].getSections().size();
             }
             if (current[idx] != null && current[idx].getAssignments() != null) {
                 for (Section section : current[idx].getSections())
-                    currentPenalty += section.getPenalty();
+                    currentPenalty += section.getPenalty() / current[idx].getSections().size();
             }
         }
         if (currentPenalty < bestPenalty)
@@ -648,13 +648,13 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
         for (int idx = 0; idx < current.length; idx++) {
             if (best[idx] != null) {
                 for (Section section : best[idx].getSections())
-                    bestPenalty += section.getPenalty();
+                    bestPenalty += section.getPenalty() / best[idx].getSections().size();
                 if (idx >= maxIdx && best[idx].isCourseRequest())
                     bestPenalty -= ((CourseRequest) best[idx].getRequest()).getMinPenalty();
             }
             if (current[idx] != null && idx < maxIdx) {
                 for (Section section : current[idx].getSections())
-                    currentPenalty += section.getPenalty();
+                    currentPenalty += section.getPenalty() / current[idx].getSections().size();
             }
         }
         if (currentPenalty < bestPenalty)

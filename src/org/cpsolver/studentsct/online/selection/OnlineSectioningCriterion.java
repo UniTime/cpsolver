@@ -436,9 +436,9 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
         for (int idx = 0; idx < current.length; idx++) {
             if (best[idx] != null && best[idx].getAssignments() != null) {
                 for (Section section : best[idx].getSections())
-                    bestPenalty += section.getPenalty();
+                    bestPenalty += section.getPenalty() / best[idx].getSections().size();
                 for (Section section : current[idx].getSections())
-                    currentPenalty += section.getPenalty();
+                    currentPenalty += section.getPenalty() / current[idx].getSections().size();
             }
         }
         if (currentPenalty < bestPenalty)
@@ -763,13 +763,13 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
         for (int idx = 0; idx < current.length; idx++) {
             if (best[idx] != null) {
                 for (Section section : best[idx].getSections())
-                    bestPenalty += section.getPenalty();
+                    bestPenalty += section.getPenalty() / best[idx].getSections().size();
                 if (idx >= maxIdx && best[idx].isCourseRequest())
                     bestPenalty -= ((CourseRequest) best[idx].getRequest()).getMinPenalty();
             }
             if (current[idx] != null && idx < maxIdx) {
                 for (Section section : current[idx].getSections())
-                    currentPenalty += section.getPenalty();
+                    currentPenalty += section.getPenalty() / current[idx].getSections().size();
             }
         }
         if (currentPenalty < bestPenalty)
@@ -941,9 +941,9 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
         // 8. average penalty sections
         double x1 = 0.0, x2 = 0.0;
         for (Section section : e1.getSections())
-            x1 += section.getPenalty();
+            x1 += section.getPenalty() / e1.getSections().size();
         for (Section section : e2.getSections())
-            x2 += section.getPenalty();
+            x2 += section.getPenalty() / e2.getSections().size();
         if (x1 < x2)
             return -1;
         if (x2 < x1)
