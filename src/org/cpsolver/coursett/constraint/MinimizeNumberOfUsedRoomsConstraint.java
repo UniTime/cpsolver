@@ -59,6 +59,7 @@ public class MinimizeNumberOfUsedRoomsConstraint extends ConstraintWithContext<L
         iLastDaySlot = config.getPropertyInt("General.LastDaySlot", Constants.DAY_SLOTS_LAST);
         iFirstWorkDay = config.getPropertyInt("General.FirstWorkDay", 0);
         iLastWorkDay = config.getPropertyInt("General.LastWorkDay", Constants.NR_DAYS_WEEK - 1);
+        if (iLastWorkDay < iFirstWorkDay) iLastWorkDay += 7;
     }
 
     @Override
@@ -135,7 +136,7 @@ public class MinimizeNumberOfUsedRoomsConstraint extends ConstraintWithContext<L
                 for (int i = Math.max(firstSlot, iFirstDaySlot); i <= Math.min(endSlot, iLastDaySlot); i++) {
                     int dayCode = p.getTimeLocation().getDayCode();
                     for (int j = iFirstWorkDay; j <= iLastWorkDay; j++) {
-                        if ((dayCode & Constants.DAY_CODES[j]) != 0) {
+                        if ((dayCode & Constants.DAY_CODES[j%7]) != 0) {
                             histogram[i - iFirstDaySlot][j - iFirstWorkDay] += ((double) lecture.getNrRooms()) / values.size();
                         }
                     }

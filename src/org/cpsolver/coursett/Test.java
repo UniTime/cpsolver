@@ -420,18 +420,19 @@ public class Test implements SolutionListener<Lecture, Placement> {
         int lastDaySlot = model.getProperties().getPropertyInt("General.LastDaySlot", Constants.DAY_SLOTS_LAST);
         int firstWorkDay = model.getProperties().getPropertyInt("General.FirstWorkDay", 0);
         int lastWorkDay = model.getProperties().getPropertyInt("General.LastWorkDay", Constants.NR_DAYS_WEEK - 1);
+        if (lastWorkDay < firstWorkDay) lastWorkDay += 7;
         for (RoomConstraint rc : model.getRoomConstraints()) {
             int used_day = 0;
             int used_total = 0;
             for (int day = firstWorkDay; day <= lastWorkDay; day++) {
                 for (int time = firstDaySlot; time <= lastDaySlot; time++) {
-                    if (!rc.getContext(assignment).getPlacements(day * Constants.SLOTS_PER_DAY + time).isEmpty())
+                    if (!rc.getContext(assignment).getPlacements((day % 7) * Constants.SLOTS_PER_DAY + time).isEmpty())
                         used_day++;
                 }
             }
             for (int day = 0; day < Constants.DAY_CODES.length; day++) {
                 for (int time = 0; time < Constants.SLOTS_PER_DAY; time++) {
-                    if (!rc.getContext(assignment).getPlacements(day * Constants.SLOTS_PER_DAY + time).isEmpty())
+                    if (!rc.getContext(assignment).getPlacements((day % 7) * Constants.SLOTS_PER_DAY + time).isEmpty())
                         used_total++;
                 }
             }
@@ -523,6 +524,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
         int lastDaySlot = model.getProperties().getPropertyInt("General.LastDaySlot", Constants.DAY_SLOTS_LAST);
         int firstWorkDay = model.getProperties().getPropertyInt("General.FirstWorkDay", 0);
         int lastWorkDay = model.getProperties().getPropertyInt("General.LastWorkDay", Constants.NR_DAYS_WEEK - 1);
+        if (lastWorkDay < firstWorkDay) lastWorkDay += 7;
         for (Lecture lect : model.variables()) {
             if (lect.getConfiguration() != null) {
                 offerings.add(lect.getConfiguration().getOfferingId());
@@ -559,7 +561,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
                 }
                 if (hasRoomConstraint && lect.getNrRooms() > 0) {
                     for (int d = firstWorkDay; d <= lastWorkDay; d++) {
-                        if ((time.getDayCode() & Constants.DAY_CODES[d]) == 0)
+                        if ((time.getDayCode() & Constants.DAY_CODES[d % 7]) == 0)
                             continue;
                         for (int t = Math.max(time.getStartSlot(), firstDaySlot); t <= Math.min(time.getStartSlot() + time.getLength() - 1, lastDaySlot); t++) {
                             for (int l = 0; l < sizeLimits.length; l++) {
@@ -764,7 +766,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
             }
             for (int d = firstWorkDay; d <= lastWorkDay; d++) {
                 for (int t = firstDaySlot; t <= lastDaySlot; t++) {
-                    if (rc.isAvailable(d * Constants.SLOTS_PER_DAY + t)) {
+                    if (rc.isAvailable((d % 7) * Constants.SLOTS_PER_DAY + t)) {
                         for (int l = 0; l < sizeLimits.length; l++) {
                             if (sizeLimits[l] <= rc.getCapacity()) {
                                 totalAvailableSlots[l]++;
@@ -853,6 +855,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
             int lastDaySlot = m.getProperties().getPropertyInt("General.LastDaySlot", Constants.DAY_SLOTS_LAST);
             int firstWorkDay = m.getProperties().getPropertyInt("General.FirstWorkDay", 0);
             int lastWorkDay = m.getProperties().getPropertyInt("General.LastWorkDay", Constants.NR_DAYS_WEEK - 1);
+            if (lastWorkDay < firstWorkDay) lastWorkDay += 7;
             Assignment<Lecture, Placement> a = s.getAssignment();
             int idx = 1;
             w.println("000." + dx.format(idx++) + " Assigned variables," + a.nrAssignedVariables());

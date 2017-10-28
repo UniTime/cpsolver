@@ -58,6 +58,7 @@ public class BrokenTimePatterns extends TimetablingCriterion {
         iLastDaySlot = properties.getPropertyInt("General.LastDaySlot", Constants.DAY_SLOTS_LAST);
         iFirstWorkDay = properties.getPropertyInt("General.FirstWorkDay", 0);
         iLastWorkDay = properties.getPropertyInt("General.LastWorkDay", Constants.NR_DAYS_WEEK - 1);
+        if (iLastWorkDay < iFirstWorkDay) iLastWorkDay += 7;
     }
     
     @Override
