@@ -122,6 +122,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
     private int iForwardCheckMaxDepth = 2;
     private int iForwardCheckMaxDomainSize = 1000;
     private int iNrWorkDays = 5;
+    private int iFirstWorkDay = 0;
     
     /**
      * Group constraints that can be checked on pairs of classes (e.g., same room means any two classes are in the same room),
@@ -460,13 +461,13 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
                 return
                     !sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray()) &&
-                    isBackToBackDays(plc1.getTimeLocation(), plc2.getTimeLocation());
+                    gc.isBackToBackDays(plc1.getTimeLocation(), plc2.getTimeLocation());
             }
             @Override
             public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
                 return
                     !sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray()) &&
-                    !isBackToBackDays(plc1.getTimeLocation(), plc2.getTimeLocation());
+                    !gc.isBackToBackDays(plc1.getTimeLocation(), plc2.getTimeLocation());
             }}),
         /**
          * Meet Together: Given classes are meeting together (same as if the given classes require constraints Can Share Room,
@@ -495,13 +496,13 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
                 return
                     !sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray()) &&
-                    isNrDaysBetweenGreaterThanOne(plc1.getTimeLocation(), plc2.getTimeLocation());
+                    gc.isNrDaysBetweenGreaterThanOne(plc1.getTimeLocation(), plc2.getTimeLocation());
             }
             @Override
             public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
                 return
                     !sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray()) &&
-                    !isNrDaysBetweenGreaterThanOne(plc1.getTimeLocation(), plc2.getTimeLocation());
+                    !gc.isNrDaysBetweenGreaterThanOne(plc1.getTimeLocation(), plc2.getTimeLocation());
             }}),
         /**
          * Children Cannot Overlap: If parent classes do not overlap in time, children classes can not overlap in time as well.<BR>
@@ -823,6 +824,9 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             iForwardCheckMaxDomainSize = config.getPropertyInt("ForwardCheck.MaxDomainSize", iForwardCheckMaxDomainSize);
             iMaxNHoursADayConsiderDatePatterns = config.getPropertyBoolean("MaxNHoursADay.ConsiderDatePatterns", iMaxNHoursADayConsiderDatePatterns);
             iNrWorkDays = (config.getPropertyInt("General.LastWorkDay", 4) - config.getPropertyInt("General.FirstWorkDay", 0) + 1);
+            if (iNrWorkDays <= 0) iNrWorkDays += 7;
+            if (iNrWorkDays > 7) iNrWorkDays -= 7;
+            iFirstWorkDay = config.getPropertyInt("General.FirstWorkDay", 0);
         }
     }
 
@@ -1430,18 +1434,29 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                 if (m1 != m2) return m1 < m2;
             }
         }
+        if (iFirstWorkDay != 0) {
+            for (int i = 0; i < Constants.DAY_CODES.length; i++) {
+                int idx = (i + iFirstWorkDay) % 7;
+                boolean a = (t1.getDayCode() & Constants.DAY_CODES[idx]) != 0;
+                boolean b = (t2.getDayCode() & Constants.DAY_CODES[idx]) != 0;
+                if (b && !a) return false; // second start first
+                if (a && !b) return true;  // first start first
+                if (a && b) return t1.getStartSlot() + t1.getLength() <= t2.getStartSlot(); // same day: check times
+            }
+        }
         return t1.getStartSlots().nextElement() + t1.getLength() <= t2.getStartSlots().nextElement();
     }
 
-    private static boolean isBackToBackDays(TimeLocation t1, TimeLocation t2) {
+    private boolean isBackToBackDays(TimeLocation t1, TimeLocation t2) {
         int f1 = -1, f2 = -1, e1 = -1, e2 = -1;
         for (int i = 0; i < Constants.DAY_CODES.length; i++) {
-            if ((t1.getDayCode() & Constants.DAY_CODES[i]) != 0) {
+            int idx = (i + iFirstWorkDay) % 7;
+            if ((t1.getDayCode() & Constants.DAY_CODES[idx]) != 0) {
                 if (f1 < 0)
                     f1 = i;
                 e1 = i;
             }
-            if ((t2.getDayCode() & Constants.DAY_CODES[i]) != 0) {
+            if ((t2.getDayCode() & Constants.DAY_CODES[idx]) != 0) {
                 if (f2 < 0)
                     f2 = i;
                 e2 = i;
@@ -1450,15 +1465,16 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
         return (e1 + 1 == f2) || (e2 + 1 == f1);
     }
     
-    private static boolean isNrDaysBetweenGreaterThanOne(TimeLocation t1, TimeLocation t2) {
+    private boolean isNrDaysBetweenGreaterThanOne(TimeLocation t1, TimeLocation t2) {
         int f1 = -1, f2 = -1, e1 = -1, e2 = -1;
         for (int i = 0; i < Constants.DAY_CODES.length; i++) {
-            if ((t1.getDayCode() & Constants.DAY_CODES[i]) != 0) {
+            int idx = (i + iFirstWorkDay) % 7;
+            if ((t1.getDayCode() & Constants.DAY_CODES[idx]) != 0) {
                 if (f1 < 0)
                     f1 = i;
                 e1 = i;
             }
-            if ((t2.getDayCode() & Constants.DAY_CODES[i]) != 0) {
+            if ((t2.getDayCode() & Constants.DAY_CODES[idx]) != 0) {
                 if (f2 < 0)
                     f2 = i;
                 e2 = i;
@@ -1490,12 +1506,13 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
         }
         int f1 = -1, f2 = -1, e1 = -1;
         for (int i = 0; i < Constants.DAY_CODES.length; i++) {
-            if ((t1.getDayCode() & Constants.DAY_CODES[i]) != 0) {
+            int idx = (i + iFirstWorkDay) % 7;
+            if ((t1.getDayCode() & Constants.DAY_CODES[idx]) != 0) {
                 if (f1 < 0)
                     f1 = i;
                 e1 = i;
             }
-            if ((t2.getDayCode() & Constants.DAY_CODES[i]) != 0) {
+            if ((t2.getDayCode() & Constants.DAY_CODES[idx]) != 0) {
                 if (f2 < 0)
                     f2 = i;
             }
@@ -1526,12 +1543,13 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
         }
         int f1 = -1, f2 = -1, e1 = -1;
         for (int i = 0; i < Constants.DAY_CODES.length; i++) {
-            if ((t1.getDayCode() & Constants.DAY_CODES[i]) != 0) {
+            int idx = (i + iFirstWorkDay) % 7;
+            if ((t1.getDayCode() & Constants.DAY_CODES[idx]) != 0) {
                 if (f1 < 0)
                     f1 = i;
                 e1 = i;
             }
-            if ((t2.getDayCode() & Constants.DAY_CODES[i]) != 0) {
+            if ((t2.getDayCode() & Constants.DAY_CODES[idx]) != 0) {
                 if (f2 < 0)
                     f2 = i;
             }
