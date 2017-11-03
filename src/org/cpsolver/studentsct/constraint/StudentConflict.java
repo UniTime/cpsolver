@@ -4,6 +4,7 @@ import java.util.Set;
 
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.model.Constraint;
+import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.Student;
@@ -81,6 +82,8 @@ public class StudentConflict extends Constraint<Request, Enrollment> {
             for (Request request : variables()) {
                 if (request.equals(enrollment.getRequest()))
                     continue;
+                if (!(request instanceof CourseRequest) || ((CourseRequest)request).isWaitlist())
+                    continue;
                 Enrollment e = assignment.getValue(request);
                 if (e == null)
                     continue;
@@ -91,6 +94,8 @@ public class StudentConflict extends Constraint<Request, Enrollment> {
             }
             if (lowestPriorityEnrollment != null)
                 conflicts.add(lowestPriorityEnrollment);
+            else
+                conflicts.add(enrollment); // there are only alternatives or wait-listed courses
         }
     }
 
