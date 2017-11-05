@@ -47,6 +47,35 @@ public class StudentConflict extends Constraint<Request, Enrollment> {
         for (Request request : student.getRequests())
             addVariable(request);
     }
+    
+    /**
+     * True if the given enrollment can be assigned to the student. A new enrollment
+     * cannot be assigned to a student when the student already has the desired
+     * number of requests assigned (i.e., number of non-alternative course
+     * requests).
+     * @param assignment current assignment
+     * @param enrollment given enrollment
+     * @return true if the given request can be assigned
+     **/
+    public static boolean canAssign(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+        int alt = 0;
+        boolean found = false;
+        for (Request r : enrollment.getStudent().getRequests()) {
+            if (r.equals(enrollment.getRequest()))
+                found = true;
+            boolean assigned = (r.isAssigned(assignment) || r.equals(enrollment.getRequest()));
+            boolean course = (r instanceof CourseRequest);
+            boolean waitlist = (course && ((CourseRequest) r).isWaitlist());
+            if (r.isAlternative()) {
+                if (assigned || (!found && waitlist))
+                    alt--;
+            } else {
+                if (course && !waitlist && !assigned)
+                    alt++;
+            }
+        }
+        return (alt >= 0);
+    }
 
     /**
      * A given enrollment is conflicting when the student is enrolled into
@@ -76,7 +105,7 @@ public class StudentConflict extends Constraint<Request, Enrollment> {
 
         // if this enrollment cannot be assigned (student already has a full
         // schedule) -> unassignd a lowest priority request
-        if (!enrollment.getAssignments().isEmpty() && !enrollment.getStudent().canAssign(assignment, enrollment.getRequest())) {
+        if (!enrollment.getAssignments().isEmpty() && !canAssign(assignment, enrollment)) {
             Enrollment lowestPriorityEnrollment = null;
             int lowestPriority = -1;
             for (Request request : variables()) {
@@ -133,7 +162,7 @@ public class StudentConflict extends Constraint<Request, Enrollment> {
 
         // if this enrollment cannot be assigned (student already has a full
         // schedule) -> conflict
-        if (!enrollment.getStudent().canAssign(assignment, enrollment.getRequest()))
+        if (!canAssign(assignment, enrollment))
             return true;
 
         // nothing above -> no conflict
