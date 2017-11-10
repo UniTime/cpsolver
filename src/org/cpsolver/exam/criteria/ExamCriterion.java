@@ -41,6 +41,7 @@ public abstract class ExamCriterion extends AbstractCriterion<Exam, ExamPlacemen
     
     public ExamCriterion() {
         super();
+        setValueUpdateType(ValueUpdateType.AfterUnassignedAfterAssigned);
     }
     
     public void setWeight(double weight) { iWeight = weight; }
