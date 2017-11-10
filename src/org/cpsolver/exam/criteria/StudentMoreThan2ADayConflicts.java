@@ -1,5 +1,7 @@
 package org.cpsolver.exam.criteria;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -92,6 +94,24 @@ public class StudentMoreThan2ADayConflicts extends ExamCriterion {
     public void getInfo(Assignment<Exam, ExamPlacement> assignment, Map<String, String> info) {
         if (getValue(assignment) != 0.0)
             info.put(getName(), sDoubleFormat.format(getValue(assignment)));
+    }
+    
+    @Override
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, Collection<Exam> variables) {
+        int ret = 0;
+        ExamModel m = (ExamModel)getModel();
+        Set<Integer> days = new HashSet<Integer>();
+        for (ExamPeriod p: m.getPeriods()) {
+            if (days.add(p.getDay())) {
+                Map<ExamStudent, Set<Exam>> students = ((ExamModel)getModel()).getStudentsOfDay(assignment, p);
+                for (Set<Exam> exams: students.values()) {
+                    int nrExams = exams.size();
+                    if (nrExams > 2)
+                        ret += nrExams - 2;
+                }
+            }
+        }
+        return ret;
     }
     
     @Override

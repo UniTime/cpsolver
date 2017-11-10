@@ -1,5 +1,6 @@
 package org.cpsolver.exam.criteria;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
@@ -153,6 +154,11 @@ public class StudentBackToBackConflicts extends ExamCriterion {
         }
         */
         return penalty;
+    }
+    
+    @Override
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, Collection<Exam> variables) {
+        return super.getValue(assignment, variables) / 2.0;
     }
     
     @Override

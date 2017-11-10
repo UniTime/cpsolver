@@ -1,5 +1,6 @@
 package org.cpsolver.exam.criteria;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
@@ -43,7 +44,7 @@ import org.cpsolver.ifs.util.DataProperties;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class StudentDirectConflicts extends ExamCriterion {
-
+    
     @Override
     public String getWeightName() {
         return "Exams.DirectConflictWeight";
@@ -95,6 +96,21 @@ public class StudentDirectConflicts extends ExamCriterion {
         if (getValue(assignment) != 0.0 || (na != null && na.getValue(assignment) != 0.0))
             info.put(getName(), sDoubleFormat.format(getValue(assignment) + (na == null ? 0.0 : na.getValue(assignment))) +
                     (na == null || na.getValue(assignment) == 0.0 ? "" : " (" + sDoubleFormat.format(na.getValue(assignment)) + " N/A)"));
+    }
+    
+    @Override
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, Collection<Exam> variables) {
+        int ret = 0;
+        ExamModel m = (ExamModel)getModel();
+        for (ExamPeriod p: m.getPeriods()) {
+            Map<ExamStudent, Set<Exam>> students = ((ExamModel)getModel()).getStudentsOfPeriod(assignment, p);
+            for (Set<Exam> exams: students.values()) {
+                int nrExams = exams.size();
+                if (nrExams > 1)
+                    ret += nrExams - 1;
+            }
+        }
+        return ret;
     }
 
     @Override

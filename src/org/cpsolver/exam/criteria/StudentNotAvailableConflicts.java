@@ -1,5 +1,6 @@
 package org.cpsolver.exam.criteria;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
@@ -58,6 +59,16 @@ public class StudentNotAvailableConflicts extends StudentDirectConflicts {
     
     @Override
     public void getInfo(Assignment<Exam, ExamPlacement> assignment, Map<String, String> info) {
+    }
+    
+    @Override
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, Collection<Exam> exams) {
+        double ret = 0;
+        for (Exam exam: exams) {
+            ExamPlacement placement = assignment.getValue(exam);
+            if (placement != null) ret += getValue(assignment, placement, null);
+        }
+        return ret;
     }
 
     @Override

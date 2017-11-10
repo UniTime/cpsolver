@@ -1,11 +1,13 @@
 package org.cpsolver.exam.criteria;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
 import org.cpsolver.exam.model.Exam;
 import org.cpsolver.exam.model.ExamInstructor;
 import org.cpsolver.exam.model.ExamModel;
+import org.cpsolver.exam.model.ExamPeriod;
 import org.cpsolver.exam.model.ExamPlacement;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.util.DataProperties;
@@ -79,6 +81,21 @@ public class InstructorDirectConflicts extends StudentDirectConflicts {
         }
         */
         return penalty;
+    }
+    
+    @Override
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, Collection<Exam> variables) {
+        int ret = 0;
+        ExamModel m = (ExamModel)getModel();
+        for (ExamPeriod p: m.getPeriods()) {
+            Map<ExamInstructor, Set<Exam>> instructors = ((ExamModel)getModel()).getInstructorsOfPeriod(assignment, p);
+            for (Set<Exam> exams: instructors.values()) {
+                int nrExams = exams.size();
+                if (nrExams > 1)
+                    ret += nrExams - 1;
+            }
+        }
+        return ret;
     }
 
     @Override

@@ -1,11 +1,14 @@
 package org.cpsolver.exam.criteria;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import org.cpsolver.exam.model.Exam;
 import org.cpsolver.exam.model.ExamInstructor;
 import org.cpsolver.exam.model.ExamModel;
+import org.cpsolver.exam.model.ExamPeriod;
 import org.cpsolver.exam.model.ExamPlacement;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.util.DataProperties;
@@ -79,6 +82,24 @@ public class InstructorMoreThan2ADayConflicts extends StudentMoreThan2ADayConfli
         }
         */
         return penalty;
+    }
+    
+    @Override
+    public double getValue(Assignment<Exam, ExamPlacement> assignment, Collection<Exam> variables) {
+        int ret = 0;
+        ExamModel m = (ExamModel)getModel();
+        Set<Integer> days = new HashSet<Integer>();
+        for (ExamPeriod p: m.getPeriods()) {
+            if (days.add(p.getDay())) {
+                Map<ExamInstructor, Set<Exam>> instructors = ((ExamModel)getModel()).getInstructorsOfDay(assignment, p);
+                for (Set<Exam> exams: instructors.values()) {
+                    int nrExams = exams.size();
+                    if (nrExams > 2)
+                        ret += nrExams - 2;
+                }
+            }
+        }
+        return ret;
     }
 
     @Override
