@@ -808,7 +808,7 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
         for (Section section: e2.getSections())
             if (section.getLimit() == 0) na2++;
         if (na1 < na2) return -1;
-        if (na2 > na1) return -1;
+        if (na1 > na2) return 1;
         
         // 2. maximize number of penalties
         double p1 = 0, p2 = 0;
