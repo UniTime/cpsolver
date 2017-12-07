@@ -696,6 +696,14 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
          */
         WORKDAY_12("WORKDAY(12)", "12 Hour Work Day", 144, WORKDAY_6.check()),
         /**
+         * 4 Hour Work Day: Classes are to be placed in a way that there is no more than four hours between the start of the first class and the end of the class one on any day.
+         */
+        WORKDAY_4("WORKDAY(4)", "4 Hour Work Day", 48, WORKDAY_6.check()),
+        /**
+         * 5 Hour Work Day: Classes are to be placed in a way that there is no more than five hours between the start of the first class and the end of the class one on any day.
+         */
+        WORKDAY_5("WORKDAY(5)", "5 Hour Work Day", 60, WORKDAY_6.check()),
+        /**
          * Meet Together & Same Weeks: Given classes are meeting together (same as if the given classes require constraints Can Share Room,
          * Same Room, Same Time, Same Days and Same Weeks all together).
          */
