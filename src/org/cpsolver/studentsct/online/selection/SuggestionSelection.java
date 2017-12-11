@@ -1,5 +1,6 @@
 package org.cpsolver.studentsct.online.selection;
 
+import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +52,7 @@ public class SuggestionSelection extends BranchBoundSelection implements OnlineS
     protected Hashtable<CourseRequest, Config> iRequiredConfig = null;
     protected Hashtable<CourseRequest, Hashtable<Subpart, Section>> iRequiredSection = null;
     protected Hashtable<CourseRequest, Set<Section>> iPreferredSections = null;
+    protected Set<CourseRequest> iRequiredUnassinged = null;
     /** add up to 50% for preferred sections */
     private double iPreferenceFactor = 0.500;
 
@@ -115,6 +117,7 @@ public class SuggestionSelection extends BranchBoundSelection implements OnlineS
         public boolean isAllowed(int idx, Enrollment enrollment) {
             if (enrollment.isCourseRequest()) {
                 CourseRequest request = (CourseRequest) enrollment.getRequest();
+                if (iRequiredUnassinged != null && iRequiredUnassinged.contains(request)) return false;
                 Config reqConfig = iRequiredConfig.get(request);
                 if (reqConfig != null) {
                     if (!reqConfig.equals(enrollment.getConfig()))
@@ -160,6 +163,8 @@ public class SuggestionSelection extends BranchBoundSelection implements OnlineS
 
         @Override
         protected List<Enrollment> values(final CourseRequest request) {
+            if (iRequiredUnassinged != null && iRequiredUnassinged.contains(request))
+                return new ArrayList<Enrollment>();
             return super.values(request);
         }
 
@@ -192,5 +197,10 @@ public class SuggestionSelection extends BranchBoundSelection implements OnlineS
             return bound;
         }
 
+    }
+
+    @Override
+    public void setRequiredUnassinged(Set<CourseRequest> requiredUnassignedRequests) {
+        iRequiredUnassinged = requiredUnassignedRequests;
     }
 }

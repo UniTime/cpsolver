@@ -1,5 +1,6 @@
 package org.cpsolver.studentsct.online.selection;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -78,6 +79,7 @@ public class MultiCriteriaBranchAndBoundSelection implements OnlineSectioningSel
     private Hashtable<CourseRequest, Set<Section>> iPreferredSections;
     private Hashtable<CourseRequest, Config> iRequiredConfig = new Hashtable<CourseRequest, Config>();
     private Hashtable<CourseRequest, Hashtable<Subpart, Section>> iRequiredSection = new Hashtable<CourseRequest, Hashtable<Subpart, Section>>();
+    private Set<CourseRequest> iRequiredUnassinged = null;
 
     public MultiCriteriaBranchAndBoundSelection(DataProperties config) {
         iTimeout = config.getPropertyInt("Neighbour.BranchAndBoundTimeout", iTimeout);
@@ -226,6 +228,7 @@ public class MultiCriteriaBranchAndBoundSelection implements OnlineSectioningSel
     public boolean isAllowed(int idx, Enrollment enrollment) {
         if (enrollment.isCourseRequest()) {
             CourseRequest request = (CourseRequest) enrollment.getRequest();
+            if (iRequiredUnassinged != null && iRequiredUnassinged.contains(request)) return false;
             Config reqConfig = iRequiredConfig.get(request);
             if (reqConfig != null) {
                 if (!reqConfig.equals(enrollment.getConfig()))
@@ -258,6 +261,8 @@ public class MultiCriteriaBranchAndBoundSelection implements OnlineSectioningSel
 
     /** Returns list of available enrollments for a course request */
     protected List<Enrollment> values(final CourseRequest request) {
+        if (iRequiredUnassinged != null && iRequiredUnassinged.contains(request))
+            return new ArrayList<Enrollment>();
         List<Enrollment> values = request.getAvaiableEnrollments(iAssignment);
         Collections.sort(values, new Comparator<Enrollment>() {
             @Override
@@ -393,5 +398,10 @@ public class MultiCriteriaBranchAndBoundSelection implements OnlineSectioningSel
          * @return solution weight (weighted sum)
          */
         public double getTotalWeight(Assignment<Request, Enrollment> assignment, Enrollment[] enrollments);
+    }
+
+    @Override
+    public void setRequiredUnassinged(Set<CourseRequest> requiredUnassignedRequests) {
+        iRequiredUnassinged = requiredUnassignedRequests;
     }
 }

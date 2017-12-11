@@ -61,6 +61,12 @@ public interface OnlineSectioningSelection {
     public void setRequiredFreeTimes(Set<FreeTimeRequest> requiredFreeTimes);
     
     /**
+     * Set course requests that are to be left unassigned
+     * @param requiredUnassignedRequests course requests that are required to be left unassigned
+     */
+    public void setRequiredUnassinged(Set<CourseRequest> requiredUnassignedRequests);
+    
+    /**
      * Compute student schedule
      * @param assignment current assignment
      * @param student student in question
