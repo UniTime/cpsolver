@@ -167,7 +167,7 @@ public class StudentSwap implements StudentMove {
     public double getJenrConflictWeight(List<StudentConflict> criteria, Student student, Placement p1, Placement p2) {
         if (p1 == null || p2 == null) return 0.0;
         if (criteria == null) {
-            if (JenrlConstraint.isInConflict(p1, p2, iModel.getDistanceMetric()))
+            if (JenrlConstraint.isInConflict(p1, p2, iModel.getDistanceMetric(), iModel.getStudentWorkDayLimit()))
                 return student.getJenrlWeight(p1.variable(), p2.variable());
             return 0.0;
         }

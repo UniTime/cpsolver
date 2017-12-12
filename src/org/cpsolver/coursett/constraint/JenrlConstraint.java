@@ -80,7 +80,7 @@ public class JenrlConstraint extends BinaryConstraintWithContext<Lecture, Placem
         Lecture other = another(value.variable());
         if (other == null) return;
         Placement otherPlacement = assignment.getValue(other);
-        if (otherPlacement != null && !other.isCommitted() && isInConflict(value, otherPlacement, getDistanceMetric()))
+        if (otherPlacement != null && !other.isCommitted() && isInConflict(value, otherPlacement, getDistanceMetric(), getWorkDayLimit()))
             conflicts.add(otherPlacement);
     }
 
@@ -90,7 +90,7 @@ public class JenrlConstraint extends BinaryConstraintWithContext<Lecture, Placem
         Lecture other = another(value.variable());
         if (other == null) return false;
         Placement otherPlacement = assignment.getValue(other);
-        return otherPlacement != null && !other.isCommitted() && isInConflict(value, otherPlacement, getDistanceMetric());
+        return otherPlacement != null && !other.isCommitted() && isInConflict(value, otherPlacement, getDistanceMetric(), getWorkDayLimit());
     }
 
     /**
@@ -99,10 +99,11 @@ public class JenrlConstraint extends BinaryConstraintWithContext<Lecture, Placem
      * @param p1 first placement
      * @param p2 second placement
      * @param m distance metrics
+     * @param workDayLimit limit on the work-day
      * @return true if there is a student conflict between the two placements
      */
-    public static boolean isInConflict(Placement p1, Placement p2, DistanceMetric m) {
-        return p1 != null && p2 != null && !StudentConflict.ignore(p1.variable(), p2.variable()) && (StudentConflict.distance(m, p1, p2) || StudentConflict.overlaps(p1, p2));
+    public static boolean isInConflict(Placement p1, Placement p2, DistanceMetric m, int workDayLimit) {
+        return p1 != null && p2 != null && !StudentConflict.ignore(p1.variable(), p2.variable()) && (StudentConflict.distance(m, p1, p2) || StudentConflict.overlaps(p1, p2) || StudentConflict.workday(workDayLimit, p1, p2));
     }
 
     /**
@@ -116,11 +117,15 @@ public class JenrlConstraint extends BinaryConstraintWithContext<Lecture, Placem
     public long jenrl(Assignment<Lecture, Placement> assignment, Lecture variable, Placement value) {
         Lecture other = (first().equals(variable) ? second() : first());
         Placement otherPlacement = (other == null ? null : assignment.getValue(other));
-        return (otherPlacement != null && isInConflict(value, otherPlacement, getDistanceMetric()) ? Math.round(iJenrl) : 0);
+        return (otherPlacement != null && isInConflict(value, otherPlacement, getDistanceMetric(), getWorkDayLimit()) ? Math.round(iJenrl) : 0);
     }
     
     private DistanceMetric getDistanceMetric() {
         return (getModel() == null ? null : ((TimetableModel)getModel()).getDistanceMetric());
+    }
+    
+    private int getWorkDayLimit() {
+        return (getModel() == null ? null : ((TimetableModel)getModel()).getStudentWorkDayLimit());
     }
 
     /** True if the given two lectures overlap in time 
@@ -243,6 +248,10 @@ public class JenrlConstraint extends BinaryConstraintWithContext<Lecture, Placem
     public boolean areStudentConflictsDistance(Assignment<Lecture, Placement> assignment, Placement value) {
         return StudentConflict.distance(getDistanceMetric(), value, assignment.getValue(another(value.variable())));
     }
+    
+    public boolean areStudentConflictsWorkday(Assignment<Lecture, Placement> assignment, Placement value) {
+        return StudentConflict.workday(getWorkDayLimit(), value, assignment.getValue(another(value.variable())));
+    }
 
     public boolean isOfTheSameProblem() {
         return ToolBox.equals(first().getSolverGroupId(), second().getSolverGroupId());
@@ -279,7 +288,7 @@ public class JenrlConstraint extends BinaryConstraintWithContext<Lecture, Placem
         public JenrlConstraintContext(Assignment<Lecture, Placement> assignment) {
             Placement p1 = assignment.getValue(first());
             Placement p2 = assignment.getValue(second());
-            if (p1 != null && p2 != null && isInConflict(p1, p2, getDistanceMetric())) {
+            if (p1 != null && p2 != null && isInConflict(p1, p2, getDistanceMetric(), getWorkDayLimit())) {
                 iAdded = true;
                 first().addActiveJenrl(assignment, JenrlConstraint.this);
                 second().addActiveJenrl(assignment, JenrlConstraint.this);
@@ -293,7 +302,7 @@ public class JenrlConstraint extends BinaryConstraintWithContext<Lecture, Placem
             Lecture other = another(value.variable());
             if (other == null) return;
             Placement otherValue = assignment.getValue(other);
-            if (!iAdded && otherValue != null && isInConflict(value, otherValue, getDistanceMetric())) {
+            if (!iAdded && otherValue != null && isInConflict(value, otherValue, getDistanceMetric(), getWorkDayLimit())) {
                 iAdded = true;
                 first().addActiveJenrl(assignment, JenrlConstraint.this);
                 second().addActiveJenrl(assignment, JenrlConstraint.this);

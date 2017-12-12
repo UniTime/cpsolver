@@ -114,7 +114,7 @@ public class SctStudent implements Comparable<SctStudent> {
         Placement p2 = getModel().getAssignment().getValue(l2);
         if (p1 == null || p2 == null) return 0.0;
         if (getModel().getStudentConflictCriteria() == null) {
-            if (JenrlConstraint.isInConflict(p1, p2, getModel().getTimetableModel().getDistanceMetric()))
+            if (JenrlConstraint.isInConflict(p1, p2, getModel().getTimetableModel().getDistanceMetric(), getModel().getTimetableModel().getStudentWorkDayLimit()))
                 return getStudent().getJenrlWeight(l1, l2);
             return 0.0;
         }

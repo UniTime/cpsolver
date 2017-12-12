@@ -299,7 +299,8 @@ public class Student implements Comparable<Student> {
                     && lecture.getSchedulingSubpartId().equals(commitedLecture.getSchedulingSubpartId()))
                 continue;
             if (lecture.isToIgnoreStudentConflictsWith(commitedLecture)) continue;
-            if (JenrlConstraint.isInConflict(commitedPlacement, placement, ((TimetableModel)placement.variable().getModel()).getDistanceMetric()))
+            if (JenrlConstraint.isInConflict(commitedPlacement, placement, ((TimetableModel)placement.variable().getModel()).getDistanceMetric(),
+                    ((TimetableModel)placement.variable().getModel()).getStudentWorkDayLimit()))
                 ret.add(commitedPlacement);
         }
         return ret;

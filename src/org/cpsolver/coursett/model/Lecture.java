@@ -644,6 +644,10 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     private DistanceMetric getDistanceMetric() {
         return ((TimetableModel)getModel()).getDistanceMetric();
     }
+    
+    private int getStudentWorkDayLimit() {
+        return ((TimetableModel)getModel()).getStudentWorkDayLimit();
+    }
 
     /**
      * Number of student conflicts caused by the initial assignment of this
@@ -658,7 +662,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         for (JenrlConstraint jenrl : jenrlConstraints()) {
             Lecture another = jenrl.another(this);
             if (another.getInitialAssignment() != null)
-                if (JenrlConstraint.isInConflict(value, another.getInitialAssignment(), getDistanceMetric()))
+                if (JenrlConstraint.isInConflict(value, another.getInitialAssignment(), getDistanceMetric(), getStudentWorkDayLimit()))
                     studentConflictsSum += jenrl.getJenrl();
         }
         return studentConflictsSum;
@@ -677,7 +681,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         for (JenrlConstraint jenrl : jenrlConstraints()) {
             Lecture another = jenrl.another(this);
             if (another.getInitialAssignment() != null)
-                if (JenrlConstraint.isInConflict(value, another.getInitialAssignment(), getDistanceMetric()))
+                if (JenrlConstraint.isInConflict(value, another.getInitialAssignment(), getDistanceMetric(), getStudentWorkDayLimit()))
                     ret.put(another, jenrl.getJenrl());
         }
         return ret;
@@ -696,7 +700,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         for (JenrlConstraint jenrl : jenrlConstraints()) {
             Lecture another = jenrl.another(this);
             if (another.getInitialAssignment() != null)
-                if (JenrlConstraint.isInConflict(value, another.getInitialAssignment(), getDistanceMetric()))
+                if (JenrlConstraint.isInConflict(value, another.getInitialAssignment(), getDistanceMetric(), getStudentWorkDayLimit()))
                     ret.addAll(sameStudents(another));
         }
         return ret;

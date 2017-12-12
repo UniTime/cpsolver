@@ -396,7 +396,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
         SAME_STUDENTS("SAME_STUDENTS", "Same Students", new PairCheck() {
             @Override
             public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
-                return !JenrlConstraint.isInConflict(plc1, plc2, ((TimetableModel)gc.getModel()).getDistanceMetric());
+                return !JenrlConstraint.isInConflict(plc1, plc2, ((TimetableModel)gc.getModel()).getDistanceMetric(), ((TimetableModel)gc.getModel()).getStudentWorkDayLimit());
             }
             @Override
             public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {

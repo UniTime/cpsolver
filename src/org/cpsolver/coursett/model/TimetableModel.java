@@ -33,6 +33,7 @@ import org.cpsolver.coursett.criteria.StudentConflict;
 import org.cpsolver.coursett.criteria.StudentDistanceConflict;
 import org.cpsolver.coursett.criteria.StudentHardConflict;
 import org.cpsolver.coursett.criteria.StudentOverlapConflict;
+import org.cpsolver.coursett.criteria.StudentWorkdayConflict;
 import org.cpsolver.coursett.criteria.TimePreferences;
 import org.cpsolver.coursett.criteria.TimeViolations;
 import org.cpsolver.coursett.criteria.TooBigRooms;
@@ -94,6 +95,7 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
     private int iYear = -1;
     private List<BitSet> iWeeks = null;
     private boolean iOnFlySectioning = false;
+    private int iStudentWorkDayLimit = -1;
 
     private HashSet<Student> iAllStudents = new HashSet<Student>();
     
@@ -110,6 +112,7 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
         if (properties.getPropertyBoolean("OnFlySectioning.Enabled", false)) {
             addModelListener(new OnFlySectioning(this)); iOnFlySectioning = true;
         }
+        iStudentWorkDayLimit = properties.getPropertyInt("StudentConflict.WorkDayLimit", -1);
         String criteria = properties.getProperty("General.Criteria",
                 // Objectives
                 StudentConflict.class.getName() + ";" +
@@ -133,7 +136,9 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
                 HardConflicts.class.getName() + ";" +
                 PotentialHardConflicts.class.getName() + ";" +
                 FlexibleConstraintCriterion.class.getName() + ";" +
-                WeightedHardConflicts.class.getName());                
+                WeightedHardConflicts.class.getName());
+        if (iStudentWorkDayLimit > 0)
+            criteria += ";" + StudentWorkdayConflict.class.getName();
         // Interactive mode -- count time / room violations
         if (properties.getPropertyBoolean("General.InteractiveMode", false))
             criteria += ";" + TimeViolations.class.getName() + ";" + RoomViolations.class.getName();
@@ -165,6 +170,10 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
 
     public DistanceMetric getDistanceMetric() {
         return iDistanceMetric;
+    }
+    
+    public int getStudentWorkDayLimit() {
+        return iStudentWorkDayLimit;
     }
     
     /**

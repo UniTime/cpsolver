@@ -614,7 +614,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
                 } else if (jenrl.first().values(solution.getAssignment()).size() == 1 && jenrl.second().values(solution.getAssignment()).size() == 1) {
                     Placement p1 = jenrl.first().values(solution.getAssignment()).get(0);
                     Placement p2 = jenrl.second().values(solution.getAssignment()).get(0);
-                    if (JenrlConstraint.isInConflict(p1, p2, ((TimetableModel)p1.variable().getModel()).getDistanceMetric())) {
+                    if (JenrlConstraint.isInConflict(p1, p2, ((TimetableModel)p1.variable().getModel()).getDistanceMetric(), ((TimetableModel)p1.variable().getModel()).getStudentWorkDayLimit())) {
                         nrInevitableStudentConflicts += jenrl.getJenrl();
                         pw.println("Inevitable " + jenrl.getJenrl()
                                 + (p1.getTimeLocation().hasIntersection(p2.getTimeLocation()) ? "" : " distance")

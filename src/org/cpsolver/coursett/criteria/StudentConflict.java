@@ -65,7 +65,7 @@ public class StudentConflict extends TimetablingCriterion {
     }
 
     public static boolean overlaps(Placement p1, Placement p2) {
-        return p1 != null && p2 != null && p1.getTimeLocation().hasIntersection(p2.getTimeLocation()) && (!p1.variable().isCommitted() || !p2.variable().isCommitted());
+        return p1 != null && p2 != null && p1.getTimeLocation().hasIntersection(p2.getTimeLocation()) && (!p1.variable().isCommitted() || !p2.variable().isCommitted()) && slots(p1, p2) <= 72;
     }
     
     protected double jointEnrollment(JenrlConstraint jenrl, Placement p1, Placement p2) {
@@ -97,6 +97,18 @@ public class StudentConflict extends TimetablingCriterion {
             }
         }
         return false;
+    }
+    
+    public static int slots(Placement p1, Placement p2) {
+        if (p1 == null || p2 == null) return 0;
+        TimeLocation t1 = p1.getTimeLocation(), t2 = p2.getTimeLocation();
+        if (t1 == null || t2 == null || !t1.shareDays(t2) || !t1.shareWeeks(t2)) return 0;
+        return Math.max(t1.getStartSlot() + t1.getLength(), t2.getStartSlot() + t2.getLength()) - Math.min(t1.getStartSlot(), t2.getStartSlot());
+    }
+    
+    public static boolean workday(int slotsLimit, Placement p1, Placement p2) {
+        if (slotsLimit <= 0) return false;
+        return p1 != null && p2 != null && slots(p1, p2) > slotsLimit;
     }
     
     public static boolean ignore(Lecture l1, Lecture l2) {

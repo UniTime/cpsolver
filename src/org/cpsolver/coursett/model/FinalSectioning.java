@@ -650,7 +650,7 @@ public class FinalSectioning {
                     if (jenrl.isInConflict(assignment))
                         delta += jenrl.getJenrlWeight(firstStudent());
                 } else {
-                    if (JenrlConstraint.isInConflict(assignment.getValue(secondLecture()), assignment.getValue(lecture), iModel.getDistanceMetric()))
+                    if (JenrlConstraint.isInConflict(assignment.getValue(secondLecture()), assignment.getValue(lecture), iModel.getDistanceMetric(), iModel.getStudentWorkDayLimit()))
                         delta += firstStudent().getJenrlWeight(secondLecture(), lecture);
                 }
             }
@@ -663,7 +663,7 @@ public class FinalSectioning {
                         if (jenrl.isInConflict(assignment))
                             delta += jenrl.getJenrlWeight(secondStudent());
                     } else {
-                        if (JenrlConstraint.isInConflict(assignment.getValue(firstLecture()), assignment.getValue(lecture), iModel.getDistanceMetric()))
+                        if (JenrlConstraint.isInConflict(assignment.getValue(firstLecture()), assignment.getValue(lecture), iModel.getDistanceMetric(), iModel.getStudentWorkDayLimit()))
                             delta += secondStudent().getJenrlWeight(firstLecture(), lecture);
                     }
                 }
@@ -770,7 +770,7 @@ public class FinalSectioning {
         for (Lecture x : student.getLectures()) {
             if (assignment.getValue(x) == null)
                 continue;
-            if (JenrlConstraint.isInConflict(assignment.getValue(lecture), assignment.getValue(x), iModel.getDistanceMetric()))
+            if (JenrlConstraint.isInConflict(assignment.getValue(lecture), assignment.getValue(x), iModel.getDistanceMetric(), iModel.getStudentWorkDayLimit()))
                 test++;
         }
         test += student.countConflictPlacements(assignment.getValue(lecture));
@@ -982,7 +982,7 @@ public class FinalSectioning {
                         if (jenrl.isInConflict(assignment))
                             delta += jenrl.getJenrlWeight(firstStudent());
                     } else {
-                        if (JenrlConstraint.isInConflict(assignment.getValue(secondLecture), assignment.getValue(lecture), iModel.getDistanceMetric()))
+                        if (JenrlConstraint.isInConflict(assignment.getValue(secondLecture), assignment.getValue(lecture), iModel.getDistanceMetric(), iModel.getStudentWorkDayLimit()))
                             delta += firstStudent().getJenrlWeight(secondLecture, lecture);
                     }
                 }
@@ -1011,7 +1011,7 @@ public class FinalSectioning {
                             if (jenrl.isInConflict(assignment))
                                 delta += jenrl.getJenrlWeight(secondStudent());
                         } else {
-                            if (JenrlConstraint.isInConflict(assignment.getValue(firstLecture), assignment.getValue(lecture), iModel.getDistanceMetric()))
+                            if (JenrlConstraint.isInConflict(assignment.getValue(firstLecture), assignment.getValue(lecture), iModel.getDistanceMetric(), iModel.getStudentWorkDayLimit()))
                                 delta += secondStudent().getJenrlWeight(firstLecture, lecture);
                         }
                     }
