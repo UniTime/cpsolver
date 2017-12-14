@@ -67,6 +67,7 @@ public class PriorityStudentWeights implements StudentWeights {
     protected double iFirstAlternativeFactor = 0.5010;
     protected double iSecondAlternativeFactor = 0.2510;
     protected double iDistanceConflict = 0.0100;
+    protected double iShortDistanceConflict = 0.1000;
     protected double iTimeOverlapFactor = 0.5000;
     protected double iTimeOverlapMaxLimit = 0.5000;
     protected boolean iLeftoverSpread = false;
@@ -88,6 +89,7 @@ public class PriorityStudentWeights implements StudentWeights {
         iFirstAlternativeFactor = config.getPropertyDouble("StudentWeights.FirstAlternative", iFirstAlternativeFactor);
         iSecondAlternativeFactor = config.getPropertyDouble("StudentWeights.SecondAlternative", iSecondAlternativeFactor);
         iDistanceConflict = config.getPropertyDouble("StudentWeights.DistanceConflict", iDistanceConflict);
+        iShortDistanceConflict = config.getPropertyDouble("StudentWeights.ShortDistanceConflict", iShortDistanceConflict);
         iTimeOverlapFactor = config.getPropertyDouble("StudentWeights.TimeOverlapFactor", iTimeOverlapFactor);
         iTimeOverlapMaxLimit = config.getPropertyDouble("StudentWeights.TimeOverlapMaxLimit", iTimeOverlapMaxLimit);
         iLeftoverSpread = config.getPropertyBoolean("StudentWeights.LeftoverSpread", iLeftoverSpread);
@@ -289,9 +291,9 @@ public class PriorityStudentWeights implements StudentWeights {
     @Override
     public double getDistanceConflictWeight(Assignment<Request, Enrollment> assignment, DistanceConflict.Conflict c) {
         if (c.getR1().getPriority() < c.getR2().getPriority()) {
-            return round(getWeight(assignment, c.getE2()) * iDistanceConflict);
+            return round(getWeight(assignment, c.getE2()) * (c.getStudent().isNeedShortDistances() ? iShortDistanceConflict : iDistanceConflict));
         } else {
-            return round(getWeight(assignment, c.getE1()) * iDistanceConflict);
+            return round(getWeight(assignment, c.getE1()) * (c.getStudent().isNeedShortDistances() ? iShortDistanceConflict : iDistanceConflict));
         }
     }
     
@@ -310,9 +312,9 @@ public class PriorityStudentWeights implements StudentWeights {
             for (DistanceConflict.Conflict c: distanceConflicts) {
                 Enrollment other = (c.getE1().equals(enrollment) ? c.getE2() : c.getE1());
                 if (other.getRequest().getPriority() <= enrollment.getRequest().getPriority())
-                    dc += base * iDistanceConflict;
+                    dc += base * (c.getStudent().isNeedShortDistances() ? iShortDistanceConflict : iDistanceConflict);
                 else
-                    dc += getWeight(assignment, other) * iDistanceConflict;
+                    dc += getWeight(assignment, other) * (c.getStudent().isNeedShortDistances() ? iShortDistanceConflict : iDistanceConflict);
             }
         }
         double toc = 0.0;

@@ -117,6 +117,8 @@ public class DistanceMetric {
     private Map<String, Double> iDistanceCache = new HashMap<String, Double>();
     /** True if distances should be considered between classes that are NOT back-to-back */
     private boolean iComputeDistanceConflictsBetweenNonBTBClasses = false;
+    /** Reference of the accommodation of students that need short distances */
+    private String iShortDistanceAccommodationReference = "SD";
     
     private final ReentrantReadWriteLock iLock = new ReentrantReadWriteLock();
     
@@ -170,6 +172,8 @@ public class DistanceMetric {
         }
         iComputeDistanceConflictsBetweenNonBTBClasses = properties.getPropertyBoolean(
                 "Distances.ComputeDistanceConflictsBetweenNonBTBClasses", iComputeDistanceConflictsBetweenNonBTBClasses);
+        iShortDistanceAccommodationReference = properties.getProperty(
+                "Distances.ShortDistanceAccommodationReference", iShortDistanceAccommodationReference);
         iInstructorLongTravelInMinutes = properties.getPropertyDouble("Instructor.InstructorLongTravelInMinutes", 30.0);
     }
 
@@ -447,6 +451,13 @@ public class DistanceMetric {
      **/
     public boolean doComputeDistanceConflictsBetweenNonBTBClasses() {
         return iComputeDistanceConflictsBetweenNonBTBClasses;
+    }
+    
+    /**
+     * Reference of the accommodation of students that need short distances
+     */
+    public String getShortDistanceAccommodationReference() {
+        return iShortDistanceAccommodationReference;
     }
     
     /** Few tests 

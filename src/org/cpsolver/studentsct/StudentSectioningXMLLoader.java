@@ -771,6 +771,8 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
      */
     protected Student loadStudent(Element studentEl, Map<Long, Offering> offeringTable) {
         Student student = new Student(Long.parseLong(studentEl.attributeValue("id")), "true".equals(studentEl.attributeValue("dummy")));
+        if ("true".equals(studentEl.attributeValue("shortDistances")))
+            student.setNeedShortDistances(true);
         student.setExternalId(studentEl.attributeValue("externalId"));
         student.setName(studentEl.attributeValue("name"));
         student.setStatus(studentEl.attributeValue("status"));

@@ -78,9 +78,13 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
      */
     public DistanceConflict(Solver<Request, Enrollment> solver, DataProperties properties) {
         super(solver, properties);
-        if (solver != null)
-            ((StudentSectioningModel) solver.currentSolution().getModel()).setDistanceConflict(this);
-        iDistanceMetric = new DistanceMetric(properties);
+        if (solver != null) {
+            StudentSectioningModel model = (StudentSectioningModel) solver.currentSolution().getModel(); 
+            iDistanceMetric = model.getDistanceMetric();
+            model.setDistanceConflict(this);
+        }
+        if (iDistanceMetric == null)
+            iDistanceMetric = new DistanceMetric(properties);
     }
     
     /**
@@ -101,8 +105,7 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
     public DistanceMetric getDistanceMetric() {
         return iDistanceMetric;
     }
-    
-    
+        
     private Map<Long, Map<Long, Integer>> iDistanceCache = new HashMap<Long, Map<Long,Integer>>();
     protected synchronized int getDistanceInMinutes(RoomLocation r1, RoomLocation r2) {
         if (r1.getId().compareTo(r2.getId()) > 0) return getDistanceInMinutes(r2, r1);
@@ -162,13 +165,14 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
      * means that the sections are back-to-back and that they are placed in
      * locations that are two far.
      * 
+     * @param student a student
      * @param s1
      *            a section
      * @param s2
      *            a section
      * @return true, if the given sections are in a distance conflict
      */
-    public boolean inConflict(Section s1, Section s2) {
+    public boolean inConflict(Student student, Section s1, Section s2) {
         if (s1.getPlacement() == null || s2.getPlacement() == null)
             return false;
         TimeLocation t1 = s1.getTime();
@@ -176,6 +180,28 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
         if (!t1.shareDays(t2) || !t1.shareWeeks(t2))
             return false;
         int a1 = t1.getStartSlot(), a2 = t2.getStartSlot();
+        if (student.isNeedShortDistances()) {
+            if (getDistanceMetric().doComputeDistanceConflictsBetweenNonBTBClasses()) {
+                if (a1 + t1.getNrSlotsPerMeeting() <= a2) {
+                    int dist = getDistanceInMinutes(s1.getPlacement(), s2.getPlacement());
+                    if (dist > Constants.SLOT_LENGTH_MIN * (a2 - a1 - t1.getLength()))
+                        return true;
+                } else if (a2 + t2.getNrSlotsPerMeeting() <= a1) {
+                    int dist = getDistanceInMinutes(s1.getPlacement(), s2.getPlacement());
+                    if (dist > Constants.SLOT_LENGTH_MIN * (a1 - a2 - t2.getLength()))
+                        return true;
+                }
+            } else {
+                if (a1 + t1.getNrSlotsPerMeeting() == a2) {
+                    int dist = getDistanceInMinutes(s1.getPlacement(), s2.getPlacement());
+                    if (dist > 0) return true;
+                } else if (a2 + t2.getNrSlotsPerMeeting() == a1) {
+                    int dist = getDistanceInMinutes(s1.getPlacement(), s2.getPlacement());
+                    if (dist > 0) return true;
+                }
+            }
+            return false;
+        }
         if (getDistanceMetric().doComputeDistanceConflictsBetweenNonBTBClasses()) {
             if (a1 + t1.getNrSlotsPerMeeting() <= a2) {
                 int dist = getDistanceInMinutes(s1.getPlacement(), s2.getPlacement());
@@ -215,7 +241,7 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
         int cnt = 0;
         for (Section s1 : e1.getSections()) {
             for (Section s2 : e1.getSections()) {
-                if (s1.getId() < s2.getId() && inConflict(s1, s2))
+                if (s1.getId() < s2.getId() && inConflict(e1.getStudent(), s1, s2))
                     cnt ++;
             }
         }
@@ -239,7 +265,7 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
         int cnt = 0;
         for (Section s1 : e1.getSections()) {
             for (Section s2 : e2.getSections()) {
-                if (inConflict(s1, s2))
+                if (inConflict(e1.getStudent(), s1, s2))
                     cnt ++;
             }
         }
@@ -261,7 +287,7 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
             return ret;
         for (Section s1 : e1.getSections()) {
             for (Section s2 : e1.getSections()) {
-                if (s1.getId() < s2.getId() && inConflict(s1, s2))
+                if (s1.getId() < s2.getId() && inConflict(e1.getStudent(), s1, s2))
                     ret.add(new Conflict(e1.getStudent(), e1, s1, e1, s2));
             }
         }
@@ -285,7 +311,7 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
             return ret;
         for (Section s1 : e1.getSections()) {
             for (Section s2 : e2.getSections()) {
-                if (inConflict(s1, s2))
+                if (inConflict(e1.getStudent(), s1, s2))
                     ret.add(new Conflict(e1.getStudent(), e1, s1, e2, s2));
             }
         }
@@ -324,6 +350,14 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
      **/
     public int getTotalNrConflicts(Assignment<Request, Enrollment> assignment) {
         return getContext(assignment).getTotalNrConflicts();
+    }
+    
+    /** Actual number of all distance conflicts of students that need short distances
+     * @param assignment current assignment
+     * @return cached number of all distance conflicts
+     **/
+    public int getTotalNrShortConflicts(Assignment<Request, Enrollment> assignment) {
+        return getContext(assignment).getTotalNrShortConflicts();
     }
 
     /**
@@ -643,6 +677,17 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
         public int getTotalNrConflicts() {
             return iAllConflicts.size();
         }
+        
+        /** Actual number of all distance conflicts of students that need short distances
+         * @return number of all distance conflicts
+         **/
+        public int getTotalNrShortConflicts() {
+            int ret = 0;
+            for (Conflict c: iAllConflicts)
+                if (c.getStudent().isNeedShortDistances()) ret ++;
+            return ret;
+        }
+        
         
         /**
          * Return a set of all distance conflicts ({@link Conflict} objects).

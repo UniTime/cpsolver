@@ -50,6 +50,7 @@ public class Student implements Comparable<Student> {
     private String iStatus = null;
     private Long iEmailTimeStamp = null;
     private List<Unavailability> iUnavailabilities = new ArrayList<Unavailability>();
+    private boolean iNeedShortDistances = false;
 
     /**
      * Constructor
@@ -381,5 +382,21 @@ public class Student implements Comparable<Student> {
             for (Section section: enrollment.getSections())
                 if (!isAvailable(section)) return false;
         return true;
+    }
+    
+    /**
+     * Return true if the student needs short distances. A different distance conflict checking is employed for such students.
+     * @return true if the student needs short distances
+     */
+    public boolean isNeedShortDistances() {
+        return iNeedShortDistances;
+    }
+    
+    /**
+     * Set true if the student needs short distances. A different distance conflict checking is employed for such students.
+     * @param needShortDistances true if the student needs short distances (default is false)
+     */
+    public void setNeedShortDistances(boolean needShortDistances) {
+        iNeedShortDistances = needShortDistances;
     }
 }

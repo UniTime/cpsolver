@@ -22,6 +22,7 @@ import org.cpsolver.ifs.model.InfoProvider;
 import org.cpsolver.ifs.model.Model;
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.util.DataProperties;
+import org.cpsolver.ifs.util.DistanceMetric;
 import org.cpsolver.studentsct.constraint.CancelledSections;
 import org.cpsolver.studentsct.constraint.ConfigLimit;
 import org.cpsolver.studentsct.constraint.CourseLimit;
@@ -381,8 +382,13 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         StudentSectioningModelContext context = getContext(assignment);
         if (!getStudents().isEmpty())
             info.put("Students with complete schedule", sDoubleFormat.format(100.0 * context.nrComplete() / getStudents().size()) + "% (" + context.nrComplete() + "/" + getStudents().size() + ")");
-        if (getDistanceConflict() != null && getDistanceConflict().getTotalNrConflicts(assignment) != 0)
-            info.put("Student distance conflicts", String.valueOf(getDistanceConflict().getTotalNrConflicts(assignment)));
+        if (getDistanceConflict() != null) {
+            int confs = getDistanceConflict().getTotalNrConflicts(assignment);
+            if (confs > 0) {
+                int shortConfs = getDistanceConflict().getTotalNrShortConflicts(assignment);
+                info.put("Student distance conflicts", confs + (shortConfs == 0 ? "" : " (" + getDistanceConflict().getDistanceMetric().getShortDistanceAccommodationReference() + ": " + shortConfs + ")"));
+            }
+        }
         if (getTimeOverlaps() != null && getTimeOverlaps().getTotalNrConflicts(assignment) != 0)
             info.put("Time overlapping conflicts", String.valueOf(getTimeOverlaps().getTotalNrConflicts(assignment)));
         int nrLastLikeStudents = getNrLastLikeStudents(false);
@@ -408,10 +414,6 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             if (nrRealRequests > 0)
                 info.put("Real assigned requests", sDecimalFormat.format(100.0 * nrRealAssignedRequests / nrRealRequests)
                         + "% (" + nrRealAssignedRequests + "/" + nrRealRequests + ")");
-            if (getDistanceConflict() != null && getDistanceConflict().getTotalNrConflicts(assignment) > 0)
-                info.put("Student distance conflicts", String.valueOf(getDistanceConflict().getTotalNrConflicts(assignment)));
-            if (getTimeOverlaps() != null && getTimeOverlaps().getTotalNrConflicts(assignment) > 0)
-                info.put("Time overlapping conflicts", String.valueOf(getTimeOverlaps().getTotalNrConflicts(assignment)));
         }
         context.getInfo(assignment, info);
         
@@ -815,10 +817,13 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         double dc = 0;
         if (getDistanceConflict() != null && getDistanceConflict().getTotalNrConflicts(assignment) != 0) {
             Set<DistanceConflict.Conflict> conf = getDistanceConflict().getAllConflicts(assignment);
-            for (DistanceConflict.Conflict c: conf)
+            int sdc = 0;
+            for (DistanceConflict.Conflict c: conf) {
                 dc += avg(c.getR1().getWeight(), c.getR2().getWeight()) * iStudentWeights.getDistanceConflictWeight(assignment, c);
+                if (c.getStudent().isNeedShortDistances()) sdc ++;
+            }
             if (!conf.isEmpty())
-                info.put("Student distance conflicts", conf.size() + " (weighted: " + sDecimalFormat.format(dc) + ")");
+                info.put("Student distance conflicts", conf.size() + (sdc > 0 ? " (" + getDistanceConflict().getDistanceMetric().getShortDistanceAccommodationReference() + ": " + sdc + ", weighted: " : " (weighted: ") + sDecimalFormat.format(dc) + ")");
         }
         double toc = 0;
         if (getTimeOverlaps() != null && getTimeOverlaps().getTotalNrConflicts(assignment) != 0) {
@@ -1219,6 +1224,10 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     @Override
     public InheritedAssignment<Request, Enrollment> createInheritedAssignment(Solution<Request, Enrollment> solution, int index) {
         return new OptimisticInheritedAssignment<Request, Enrollment>(solution, index);
+    }
+    
+    public DistanceMetric getDistanceMetric() {
+        return (iDistanceConflict != null ? iDistanceConflict.getDistanceMetric() : null);
     }
 
 }

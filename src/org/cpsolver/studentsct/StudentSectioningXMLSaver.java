@@ -559,6 +559,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         }
         if (student.isDummy())
             studentEl.addAttribute("dummy", "true");
+        if (student.isNeedShortDistances())
+            studentEl.addAttribute("shortDistances", "true");
         if (iSaveStudentInfo) {
             for (AcademicAreaCode aac : student.getAcademicAreaClasiffications()) {
                 Element aacEl = studentEl.addElement("classification");
