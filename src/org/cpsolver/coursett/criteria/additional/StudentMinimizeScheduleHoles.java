@@ -121,7 +121,7 @@ public class StudentMinimizeScheduleHoles extends StudentConflict {
             if (!jenrl.isToBeIgnored())
                 total += jenrl.jenrl();
         }
-        info.put("Student class distance", sDoubleFormat.format(getValue(assignment) / total) + " hours");
+        info.put("Student class distance", sDoubleFormat.format(60.0 * getValue(assignment) / total) + " minutes");
     }
     
     @Override
@@ -137,7 +137,7 @@ public class StudentMinimizeScheduleHoles extends StudentConflict {
                     total += jenrl.jenrl();
                 }
         }
-        info.put("Student class distance", sDoubleFormat.format(distance / total) + " hours");
+        info.put("Student class distance", sDoubleFormat.format(60.0 * distance / total) + " minutes");
     }
 
 }
