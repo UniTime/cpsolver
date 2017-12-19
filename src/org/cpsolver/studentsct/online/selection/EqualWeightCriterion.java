@@ -242,12 +242,14 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
             int bestDistanceConf = 0, currentDistanceConf = 0;
             for (int idx = 0; idx < current.length; idx++) {
                 if (best[idx] != null && best[idx].getAssignments() != null) {
+                    bestDistanceConf += getModel().getDistanceConflict().nrConflicts(best[idx]);
                     for (int x = 0; x < idx; x++) {
                         if (best[x] != null && best[x].getAssignments() != null)
                             bestDistanceConf += getModel().getDistanceConflict().nrConflicts(best[x], best[idx]);
                     }
                 }
                 if (current[idx] != null && current[idx].getAssignments() != null) {
+                    currentDistanceConf += getModel().getDistanceConflict().nrConflicts(current[idx]);
                     for (int x = 0; x < idx; x++) {
                         if (current[x] != null && current[x].getAssignments() != null)
                             currentDistanceConf += getModel().getDistanceConflict().nrConflicts(current[x],
@@ -563,12 +565,14 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
             int bestDistanceConf = 0, currentDistanceConf = 0;
             for (int idx = 0; idx < current.length; idx++) {
                 if (best[idx] != null) {
+                    bestDistanceConf += getModel().getDistanceConflict().nrConflicts(best[idx]);
                     for (int x = 0; x < idx; x++) {
                         if (best[x] != null)
                             bestDistanceConf += getModel().getDistanceConflict().nrConflicts(best[x], best[idx]);
                     }
                 }
                 if (current[idx] != null && idx < maxIdx) {
+                    currentDistanceConf += getModel().getDistanceConflict().nrConflicts(current[idx]);
                     for (int x = 0; x < idx; x++) {
                         if (current[x] != null)
                             currentDistanceConf += getModel().getDistanceConflict().nrConflicts(current[x],
