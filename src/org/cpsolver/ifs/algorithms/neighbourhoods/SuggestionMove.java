@@ -73,7 +73,7 @@ public class SuggestionMove<V extends Variable<V, T>, T extends Value<V, T>> ext
     
     @Override
     public Neighbour<V, T> selectNeighbour(Solution<V, T> solution) {
-        Lock lock = solution.getLock().readLock();
+        Lock lock = solution.getLock().writeLock();
         lock.lock();
         try {
             V variable = ToolBox.random(solution.getModel().variables());
