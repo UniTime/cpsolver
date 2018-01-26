@@ -4,6 +4,8 @@ import java.util.Collection;
 import java.util.Map;
 
 import org.cpsolver.ifs.assignment.Assignment;
+import org.cpsolver.ifs.assignment.context.AssignmentContext;
+import org.cpsolver.ifs.assignment.context.ExtensionWithContext;
 import org.cpsolver.ifs.model.Model;
 import org.cpsolver.ifs.model.Value;
 import org.cpsolver.ifs.model.Variable;
@@ -38,22 +40,17 @@ import org.cpsolver.ifs.util.DataProperties;
  * @param <V> Variable
  * @param <T> Value
  */
-public class SearchIntensification<V extends Variable<V, T>, T extends Value<V, T>> extends Extension<V, T> implements SolutionListener<V, T> {
+public class SearchIntensification<V extends Variable<V, T>, T extends Value<V, T>> extends ExtensionWithContext<V, T, SearchIntensification<V, T>.Context> implements SolutionListener<V, T> {
     private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(SearchIntensification.class);
     private long iInitialIterationLimit = 100;
-    private long iIterationLimit = 100;
-    private long iLastReturn = 0;
     private ConflictStatistics<V, T> iCBS = null;
     private int iResetInterval = 5;
-    private int iResetCounter = 0;
     private int iMux = 2;
     private int iMuxInterval = 2;
-    private int iMuxCounter = 0;
 
     public SearchIntensification(Solver<V, T> solver, DataProperties properties) {
         super(solver, properties);
-        iInitialIterationLimit = properties.getPropertyLong("SearchIntensification.IterationLimit",
-                iInitialIterationLimit);
+        iInitialIterationLimit = properties.getPropertyLong("SearchIntensification.IterationLimit", iInitialIterationLimit);
         iResetInterval = properties.getPropertyInt("SearchIntensification.ResetInterval", iResetInterval);
         iMuxInterval = properties.getPropertyInt("SearchIntensification.MultiplyInterval", iMuxInterval);
         iMux = properties.getPropertyInt("SearchIntensification.Multiply", iMux);
@@ -86,38 +83,13 @@ public class SearchIntensification<V extends Variable<V, T>, T extends Value<V, 
 
     @Override
     public void afterAssigned(Assignment<V, T> assignment, long iteration, T value) {
-        if (iIterationLimit > 0 && iteration > 0) {
-            Solution<V, T> solution = getSolver().currentSolution();
-            if (solution.getBestIteration() < 0 || !solution.isBestComplete())
-                return;
-            long bestIt = Math.max(solution.getBestIteration(), iLastReturn);
-            long currIt = solution.getIteration();
-            if (currIt - bestIt > iIterationLimit) {
-                iLastReturn = currIt;
-                iResetCounter++;
-                iMuxCounter++;
-                sLogger.debug("Going back to the best known solution...");
-                solution.restoreBest();
-                sLogger.debug("Reset counter set to " + iResetCounter);
-                if (iMuxInterval > 0 && (iMuxCounter % iMuxInterval) == 0) {
-                    iIterationLimit *= iMux;
-                    sLogger.debug("Iteration limit increased to " + iIterationLimit);
-                }
-                if (iCBS != null && iResetInterval > 0 && (iResetCounter % iResetInterval) == 0) {
-                    sLogger.debug("Reseting CBS...");
-                    iCBS.reset();
-                }
-            }
-        }
+        getContext(assignment).afterAssigned(assignment, iteration, value);
     }
 
     @Override
     public void bestSaved(Solution<V, T> solution) {
-        if (iResetCounter > 0)
-            sLogger.debug("Reset counter set to zero.");
-        iResetCounter = 0;
-        iMuxCounter = 0;
-        iIterationLimit = iInitialIterationLimit;
+        Context context = getContext(solution.getAssignment());
+        context.bestSaved(solution);
     }
 
     @Override
@@ -138,5 +110,58 @@ public class SearchIntensification<V extends Variable<V, T>, T extends Value<V, 
 
     @Override
     public void getInfo(Solution<V, T> solution, Map<String, String> info, Collection<V> variables) {
+    }
+    
+    /**
+     * Assignment context
+     */
+    public class Context implements AssignmentContext {
+        private int iResetCounter = 0;
+        private int iMuxCounter = 0;
+        private long iLastReturn = 0;
+        private long iIterationLimit = 100;
+        
+        public Context(Assignment<V, T> assignment) {
+            iIterationLimit = iInitialIterationLimit;
+        }
+        
+        public void afterAssigned(Assignment<V, T> assignment, long iteration, T value) {
+            if (iIterationLimit > 0 && iteration > 0) {
+                Solution<V, T> solution = getSolver().currentSolution();
+                if (solution.getBestIteration() < 0 || !solution.isBestComplete())
+                    return;
+                long bestIt = Math.max(solution.getBestIteration(), iLastReturn);
+                long currIt = solution.getIteration();
+                if (currIt - bestIt > iIterationLimit) {
+                    iLastReturn = currIt;
+                    iResetCounter++;
+                    iMuxCounter++;
+                    sLogger.debug("Going back to the best known solution...");
+                    solution.restoreBest();
+                    sLogger.debug("Reset counter set to " + iResetCounter);
+                    if (iMuxInterval > 0 && (iMuxCounter % iMuxInterval) == 0) {
+                        iIterationLimit *= iMux;
+                        sLogger.debug("Iteration limit increased to " + iIterationLimit);
+                    }
+                    if (iCBS != null && iResetInterval > 0 && (iResetCounter % iResetInterval) == 0) {
+                        sLogger.debug("Reseting CBS...");
+                        iCBS.reset();
+                    }
+                }
+            }
+        }
+
+        public void bestSaved(Solution<V, T> solution) {
+            if (iResetCounter > 0)
+                sLogger.debug("Reset counter set to zero.");
+            iResetCounter = 0;
+            iMuxCounter = 0;
+            iIterationLimit = iInitialIterationLimit;
+        }
+    }
+
+    @Override
+    public Context createAssignmentContext(Assignment<V, T> assignment) {
+        return new Context(assignment);
     }
 }
