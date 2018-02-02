@@ -40,7 +40,15 @@ import org.cpsolver.ifs.util.DataProperties;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class TooBigRooms extends TimetablingCriterion {
-    
+    private static double iDiscouragedRoomSize, iStronglyDiscouragedRoomSize;
+
+    @Override
+    public void configure(DataProperties properties) {
+        super.configure(properties);
+        iDiscouragedRoomSize = properties.getPropertyDouble("TooBigRooms.DiscouragedRoomSize", 1.25);
+        iStronglyDiscouragedRoomSize = properties.getPropertyDouble("TooBigRooms.StronglyDiscouragedRoomSize", 1.5);
+    }
+
     @Override
     public double getWeightDefault(DataProperties config) {
         return config.getPropertyDouble("Comparator.TooBigRoomWeight", 0.1);
@@ -70,12 +78,12 @@ public class TooBigRooms extends TimetablingCriterion {
         return bounds;
     }
     
-    public static long getDiscouragedRoomSize(Placement value) {
-        return Math.round(1.25 * value.variable().minRoomSize());
+    private static long getDiscouragedRoomSize(Placement value) {
+        return Math.round(iDiscouragedRoomSize * value.variable().minRoomSize());
     }
 
-    public static long getStronglyDiscouragedRoomSize(Placement value) {
-        return Math.round(1.5 * value.variable().minRoomSize());
+    private static long getStronglyDiscouragedRoomSize(Placement value) {
+        return Math.round(iStronglyDiscouragedRoomSize * value.variable().minRoomSize());
     }
     
     public static int getTooBigRoomPreference(Placement value) {
