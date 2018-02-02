@@ -40,7 +40,7 @@ import org.cpsolver.ifs.util.DataProperties;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class TooBigRooms extends TimetablingCriterion {
-    private static double iDiscouragedRoomSize, iStronglyDiscouragedRoomSize;
+    private double iDiscouragedRoomSize, iStronglyDiscouragedRoomSize;
 
     @Override
     public void configure(DataProperties properties) {
@@ -61,10 +61,10 @@ public class TooBigRooms extends TimetablingCriterion {
 
     @Override
     public double getValue(Assignment<Lecture, Placement> assignment, Placement value, Set<Placement> conflicts) {
-        double ret = getTooBigRoomPreference(value);
+        double ret = getPreference(value);
         if (conflicts != null)
             for (Placement conflict: conflicts)
-                ret -= getTooBigRoomPreference(conflict);
+                ret -= getPreference(conflict);
         return ret;
     }
     
@@ -78,15 +78,15 @@ public class TooBigRooms extends TimetablingCriterion {
         return bounds;
     }
     
-    private static long getDiscouragedRoomSize(Placement value) {
+    private long getDiscouragedRoomSize(Placement value) {
         return Math.round(iDiscouragedRoomSize * value.variable().minRoomSize());
     }
 
-    private static long getStronglyDiscouragedRoomSize(Placement value) {
+    private long getStronglyDiscouragedRoomSize(Placement value) {
         return Math.round(iStronglyDiscouragedRoomSize * value.variable().minRoomSize());
     }
     
-    public static int getTooBigRoomPreference(Placement value) {
+    public int getPreference(Placement value) {
         if (value.isMultiRoom()) {
             PreferenceCombination pref = PreferenceCombination.getDefault();
             for (RoomLocation r : value.getRoomLocations()) {
@@ -106,4 +106,25 @@ public class TooBigRooms extends TimetablingCriterion {
         }
     }
     
+    /** Use {@link TooBigRooms#getPreference(Placement)} instead. */
+    @Deprecated
+    public static int getTooBigRoomPreference(Placement value) {
+        if (value.isMultiRoom()) {
+            PreferenceCombination pref = PreferenceCombination.getDefault();
+            for (RoomLocation r : value.getRoomLocations()) {
+                if (r.getRoomSize() > Math.round(1.50 * value.variable().minRoomSize()))
+                    pref.addPreferenceInt(Constants.sPreferenceLevelStronglyDiscouraged);
+                else if (r.getRoomSize() > Math.round(1.25 * value.variable().minRoomSize()))
+                    pref.addPreferenceInt(Constants.sPreferenceLevelDiscouraged);
+            }
+            return pref.getPreferenceInt();
+        } else {
+            if (value.getRoomLocation().getRoomSize() > Math.round(1.50 * value.variable().minRoomSize()))
+                return Constants.sPreferenceLevelStronglyDiscouraged;
+            else if (value.getRoomLocation().getRoomSize() > Math.round(1.25 * value.variable().minRoomSize()))
+                return Constants.sPreferenceLevelDiscouraged;
+            else
+                return Constants.sPreferenceLevelNeutral;
+        }
+    }
 }

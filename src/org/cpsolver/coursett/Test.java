@@ -963,6 +963,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
             w.println("000." + dx.format(bidx++) + " Distribution preferences min," + minGrPref);
             w.println("000." + dx.format(bidx++) + " Distribution preferences max," + maxGrPref);
             w.println("000." + dx.format(bidx++) + " Back-to-back instructor pref max," + worstInstrPref);
+            TooBigRooms tbr = (TooBigRooms)m.getCriterion(TooBigRooms.class);
             for (Long scheduler: new TreeSet<Long>(subs.keySet())) {
                 List<Lecture> vars = subs.get(scheduler);
                 idx = 001;
@@ -1005,7 +1006,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
                     if (placement != null) {
                         roomPref += placement.getRoomPreference();
                         timePref += placement.getTimeLocation().getNormalizedPreference();
-                        tooBigRooms += TooBigRooms.getTooBigRoomPreference(placement);
+                        if (tbr != null) tooBigRooms += tbr.getPreference(placement);
                     }
 
                     for (Constraint<Lecture, Placement> c : lecture.constraints()) {
