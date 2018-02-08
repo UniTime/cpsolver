@@ -65,7 +65,7 @@ public class StudentConflict extends TimetablingCriterion {
     }
 
     public static boolean overlaps(Placement p1, Placement p2) {
-        return p1 != null && p2 != null && p1.getTimeLocation().hasIntersection(p2.getTimeLocation()) && (!p1.variable().isCommitted() || !p2.variable().isCommitted()) && slots(p1, p2) <= 72;
+        return p1 != null && p2 != null && p1.getTimeLocation().hasIntersection(p2.getTimeLocation()) && (!p1.variable().isCommitted() || !p2.variable().isCommitted());
     }
     
     protected double jointEnrollment(JenrlConstraint jenrl, Placement p1, Placement p2) {
