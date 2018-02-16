@@ -237,8 +237,11 @@ public class PriorityStudentWeights implements StudentWeights {
     public double getWeight(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
         double weight = getCachedWeight(enrollment.getRequest());
         switch (enrollment.getPriority()) {
+            case 0: break;
             case 1: weight *= iFirstAlternativeFactor; break;
             case 2: weight *= iSecondAlternativeFactor; break;
+            default:
+                weight *= Math.pow(iFirstAlternativeFactor, enrollment.getPriority());
         }
         if (enrollment.isCourseRequest() && iBalancingFactor != 0.0) {
             double configUsed = enrollment.getConfig().getEnrollmentTotalWeight(assignment, enrollment.getRequest()) + enrollment.getRequest().getWeight();
