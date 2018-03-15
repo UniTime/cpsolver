@@ -143,7 +143,7 @@ public class CourseRequest extends Request {
         StudentSectioningModel model = (StudentSectioningModel) getModel();
         return model == null ? -1 : model.getMaxDomainSize();
     }
-
+    
     /**
      * Return all possible enrollments.
      */
@@ -233,6 +233,8 @@ public class CourseRequest extends Request {
      * @param limit
      *            when above zero, limit the number of selected enrollments to
      *            this limit
+     * @param ignoreDisabled
+     *            are sections that are disabled for student scheduling allowed to be used
      * @param reservations
      *            list of applicable reservations
      */
@@ -306,10 +308,13 @@ public class CourseRequest extends Request {
                 boolean mustHaveReservation = config.getOffering().getTotalUnreservedSpace() < getWeight();
                 boolean mustHaveConfigReservation = config.getTotalUnreservedSpace() < getWeight();
                 boolean mustHaveSectionReservation = false;
+                boolean containDisabledSection = false;
                 for (Section s: sections) {
                     if (s.getTotalUnreservedSpace() < getWeight()) {
                         mustHaveSectionReservation = true;
-                        break;
+                    }
+                    if (!getStudent().isAllowDisabled() && !s.isEnabled()) {
+                        containDisabledSection = true;
                     }
                 }
                 boolean canOverLimit = false;
@@ -317,6 +322,7 @@ public class CourseRequest extends Request {
                     for (Reservation r: getReservations(course)) {
                         if (!r.canBatchAssignOverLimit() || !r.isIncluded(e)) continue;
                         if (r.getReservedAvailableSpace(assignment, this) < getWeight()) continue;
+                        if (containDisabledSection && !r.isAllowDisabled()) continue;
                         enrollments.add(new Enrollment(this, priority, null, config, new HashSet<SctAssignment>(sections), r));
                         canOverLimit = true;
                     }
@@ -331,13 +337,14 @@ public class CourseRequest extends Request {
                         if (mustHaveSectionReservation)
                             for (Section s: sections)
                                 if (r.getSections(s.getSubpart()) == null && s.getTotalUnreservedSpace() < getWeight()) continue reservations;
+                        if (containDisabledSection && !r.isAllowDisabled()) continue;
                         enrollments.add(new Enrollment(this, priority, null, config, new HashSet<SctAssignment>(sections), r));
                         if (availableOnly) return; // only one available reservation suffice (the best matching one)
                     }
                     // a case w/o reservation
                     if (!(mustHaveReservation || mustHaveConfigReservation || mustHaveSectionReservation) &&
                         !(availableOnly && config.getOffering().getUnreservedSpace(assignment, this) < getWeight()) &&
-                        !reservationMustBeUsed) {
+                        !reservationMustBeUsed && !containDisabledSection) {
                         enrollments.add(new Enrollment(this, (getReservations(course).isEmpty() ? 0 : 1) + priority, null, config, new HashSet<SctAssignment>(sections), null));
                     }
                 }
@@ -407,6 +414,16 @@ public class CourseRequest extends Request {
                             continue;
                     }
                 }
+                if (!getStudent().isAllowDisabled() && !section.isEnabled()) {
+                    boolean allowDisabled = false;
+                    for (Reservation r: getReservations(course)) {
+                        if (!r.isAllowDisabled()) continue;
+                        if (r.getSections(subpart) != null && !r.getSections(subpart).contains(section)) continue;
+                        if (!r.getConfigs().isEmpty() && !r.getConfigs().contains(config)) continue;
+                        allowDisabled = true; break;
+                    }
+                    if (!allowDisabled) continue;
+                }
                 if (skipSameTime && section.getTime() != null && !hasChildren && !times.add(section.getTime()) && !isSelected(section) && !isWaitlisted(section) && 
                         (section.getIgnoreConflictWithSectionIds() == null || section.getIgnoreConflictWithSectionIds().isEmpty()))
                     continue;
@@ -421,8 +438,7 @@ public class CourseRequest extends Request {
                 sections.add(section);
                 computeEnrollments(assignment, enrollments, priority, penalty + section.getPenalty(), course, config, sections, idx + 1,
                         availableOnly, skipSameTime, selectedOnly, random,
-                        limit < 0 ? limit : Math.max(1, limit * (1 + i) / matchingSectionsThisSubpart.size())
-                        );
+                        limit < 0 ? limit : Math.max(1, limit * (1 + i) / matchingSectionsThisSubpart.size()));
                 sections.remove(section);
                 i++;
             }

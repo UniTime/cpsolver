@@ -51,6 +51,7 @@ public class Student implements Comparable<Student> {
     private Long iEmailTimeStamp = null;
     private List<Unavailability> iUnavailabilities = new ArrayList<Unavailability>();
     private boolean iNeedShortDistances = false;
+    private boolean iAllowDisabled = false;
 
     /**
      * Constructor
@@ -398,5 +399,21 @@ public class Student implements Comparable<Student> {
      */
     public void setNeedShortDistances(boolean needShortDistances) {
         iNeedShortDistances = needShortDistances;
+    }
+    
+    /**
+     * True if student can be enrolled in disabled sections, regardless if his/her reservations 
+     * @return does this student allow for disabled sections
+     */
+    public boolean isAllowDisabled() {
+        return iAllowDisabled;
+    }
+    
+    /**
+     * Set to true  if student can be enrolled in disabled sections, regardless if his/her reservations
+     * @param allowDisabled does this student allow for disabled sections
+     */
+    public void setAllowDisabled(boolean allowDisabled) {
+        iAllowDisabled = allowDisabled;
     }
 }

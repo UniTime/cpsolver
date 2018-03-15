@@ -70,7 +70,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     private double iSpaceHeld = 0.0;
     private String iNote = null;
     private Set<Long> iIgnoreConflictsWith = null;
-    private boolean iCancelled = false;
+    private boolean iCancelled = false, iEnabled = true;
     private List<Unavailability> iUnavailabilities = new ArrayList<Unavailability>();
 
     /**
@@ -753,6 +753,18 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
      * @param cancelled true if the class is cancelled
      */
     public void setCancelled(boolean cancelled) { iCancelled = cancelled; }
+
+    /**
+     * Return enabled flag of the class.
+     * @return true if the class is enabled for student scheduling
+     */
+    public boolean isEnabled() { return iEnabled; }
+    
+    /**
+     * Set enabled flag of the class.
+     * @param enabled true if the class is enabled for student scheduling
+     */
+    public void setEnabled(boolean enabled) { iEnabled = enabled; }
     
     @Override
     public Model<Request, Enrollment> getModel() {

@@ -26,6 +26,7 @@ import org.cpsolver.ifs.util.DistanceMetric;
 import org.cpsolver.studentsct.constraint.CancelledSections;
 import org.cpsolver.studentsct.constraint.ConfigLimit;
 import org.cpsolver.studentsct.constraint.CourseLimit;
+import org.cpsolver.studentsct.constraint.DisabledSections;
 import org.cpsolver.studentsct.constraint.FixInitialAssignments;
 import org.cpsolver.studentsct.constraint.LinkedSections;
 import org.cpsolver.studentsct.constraint.RequiredReservation;
@@ -156,6 +157,10 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         if (properties.getPropertyBoolean("Sectioning.StudentNotAvailable", true)) {
             StudentNotAvailable studentNotAvailable = new StudentNotAvailable();
             addGlobalConstraint(studentNotAvailable);
+        }
+        if (properties.getPropertyBoolean("Sectioning.DisabledSections", true)) {
+            DisabledSections disabledSections = new DisabledSections();
+            addGlobalConstraint(disabledSections);
         }
         if (iMPP && iKeepInitials) {
             addGlobalConstraint(new FixInitialAssignments());

@@ -480,6 +480,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         section.setSpaceHeld(Double.parseDouble(sectionEl.attributeValue("hold", "0.0")));
         section.setSpaceExpected(Double.parseDouble(sectionEl.attributeValue("expect", "0.0")));
         section.setCancelled("true".equalsIgnoreCase(sectionEl.attributeValue("cancelled", "false")));
+        section.setEnabled("true".equalsIgnoreCase(sectionEl.attributeValue("enabled", "true")));
         for (Iterator<?> m = sectionEl.elementIterator("cname"); m.hasNext(); ) {
             Element cNameEl = (Element)m.next();
             section.setName(Long.parseLong(cNameEl.attributeValue("id")), cNameEl.getText());
@@ -568,6 +569,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         r.setMustBeUsed("true".equals(reservationEl.attributeValue("mustBeUsed", r.mustBeUsed() ? "true" : "false")));
         r.setAllowOverlap("true".equals(reservationEl.attributeValue("allowOverlap", r.isAllowOverlap() ? "true" : "false")));
         r.setCanAssignOverLimit("true".equals(reservationEl.attributeValue("canAssignOverLimit", r.canAssignOverLimit() ? "true" : "false")));
+        r.setAllowDisabled("true".equals(reservationEl.attributeValue("allowDisabled", r.isAllowDisabled() ? "true" : "false")));
         return r;
     }
     
@@ -773,6 +775,8 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         Student student = new Student(Long.parseLong(studentEl.attributeValue("id")), "true".equals(studentEl.attributeValue("dummy")));
         if ("true".equals(studentEl.attributeValue("shortDistances")))
             student.setNeedShortDistances(true);
+        if ("true".equals(studentEl.attributeValue("allowDisabled")))
+            student.setAllowDisabled(true);
         student.setExternalId(studentEl.attributeValue("externalId"));
         student.setName(studentEl.attributeValue("name"));
         student.setStatus(studentEl.attributeValue("status"));

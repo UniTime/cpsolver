@@ -392,6 +392,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         sectionEl.addAttribute("limit", String.valueOf(section.getLimit()));
         if (section.isCancelled())
             sectionEl.addAttribute("cancelled", "true");
+        if (section.isEnabled())
+            sectionEl.addAttribute("enabled", "false");
         if (iShowNames && section.getNameByCourse() != null)
             for (Map.Entry<Long, String> entry: section.getNameByCourse().entrySet())
                 sectionEl.addElement("cname").addAttribute("id", getId("course", entry.getKey())).setText(entry.getValue());
@@ -518,6 +520,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         reservationEl.addAttribute("mustBeUsed", reservation.mustBeUsed() ? "true" : "false");
         reservationEl.addAttribute("allowOverlap", reservation.isAllowOverlap() ? "true" : "false");
         reservationEl.addAttribute("canAssignOverLimit", reservation.canAssignOverLimit() ? "true" : "false");
+        reservationEl.addAttribute("allowDisabled", reservation.isAllowDisabled() ? "true" : "false");
         for (Config config: reservation.getConfigs())
             reservationEl.addElement("config").addAttribute("id", getId("config", config.getId()));
         for (Map.Entry<Subpart, Set<Section>> entry: reservation.getSections().entrySet()) {
@@ -561,6 +564,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
             studentEl.addAttribute("dummy", "true");
         if (student.isNeedShortDistances())
             studentEl.addAttribute("shortDistances", "true");
+        if (student.isAllowDisabled())
+            studentEl.addAttribute("allowDisabled", "true");
         if (iSaveStudentInfo) {
             for (AcademicAreaCode aac : student.getAcademicAreaClasiffications()) {
                 Element aacEl = studentEl.addElement("classification");

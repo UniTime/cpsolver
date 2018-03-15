@@ -82,6 +82,9 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
     /** Does this reservation allow for overlaps */
     private boolean iAllowOverlap = false;
     
+    /** Does this reservation allow for disabled sections */
+    private boolean iAllowDisabled = false;
+    
     /**
      * Constructor
      * @param id reservation unique id
@@ -429,6 +432,22 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
      */
     public void setAllowOverlap(boolean allowOverlap) {
         iAllowOverlap = allowOverlap;
+    }
+    
+    /**
+     * True if holding this reservation allows a student to attend a disabled class. 
+     * @return does this reservation allow for disabled sections
+     */
+    public boolean isAllowDisabled() {
+        return iAllowDisabled;
+    }
+    
+    /**
+     * Set to true if holding this reservation allows a student to attend a disabled class
+     * @param allowDisabled does this reservation allow for disabled sections
+     */
+    public void setAllowDisabled(boolean allowDisabled) {
+        iAllowDisabled = allowDisabled;
     }
     
     /**

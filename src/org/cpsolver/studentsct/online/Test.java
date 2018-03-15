@@ -298,6 +298,7 @@ public class Test {
                     clonedSection.setSpaceHeld(section.getSpaceHeld());
                     clonedSection.setEnrollment(enrl);
                     clonedSection.setCancelled(section.isCancelled());
+                    clonedSection.setEnabled(section.isEnabled());
                     if (section.getIgnoreConflictWithSectionIds() != null)
                         for (Long id : section.getIgnoreConflictWithSectionIds())
                             clonedSection.addIgnoreConflictWith(id);
