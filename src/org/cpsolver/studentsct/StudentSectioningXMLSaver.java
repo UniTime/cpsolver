@@ -392,7 +392,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         sectionEl.addAttribute("limit", String.valueOf(section.getLimit()));
         if (section.isCancelled())
             sectionEl.addAttribute("cancelled", "true");
-        if (section.isEnabled())
+        if (!section.isEnabled())
             sectionEl.addAttribute("enabled", "false");
         if (iShowNames && section.getNameByCourse() != null)
             for (Map.Entry<Long, String> entry: section.getNameByCourse().entrySet())
