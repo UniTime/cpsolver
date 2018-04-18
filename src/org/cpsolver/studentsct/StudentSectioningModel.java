@@ -995,6 +995,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         private double iReservedSpace = 0.0, iTotalReservedSpace = 0.0;
         private double iAssignedSameSectionWeight = 0.0, iAssignedSameChoiceWeight = 0.0, iAssignedSameTimeWeight = 0.0;
         private double iAssignedSelectedSectionWeight = 0.0, iAssignedSelectedConfigWeight = 0.0;
+        private double iAssignedNoTimeSectionWeight = 0.0;
 
         public StudentSectioningModelContext(Assignment<Request, Enrollment> assignment) {
             for (Request request: variables()) {
@@ -1038,6 +1039,13 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 if (student.isComplete(assignment))
                     iNrCompleteDummyStudents++;
             }
+            if (enrollment.isCourseRequest()) {
+                int noTime = 0;
+                for (Section section: enrollment.getSections())
+                    if (section.getTime() == null) noTime ++;
+                if (noTime > 0)
+                    iAssignedNoTimeSectionWeight += enrollment.getRequest().getWeight() * noTime / enrollment.getSections().size();
+            }
         }
 
         /**
@@ -1077,6 +1085,13 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 iNrAssignedDummyRequests--;
                 if (enrollment.isCourseRequest())
                     iAssignedDummyCRWeight -= enrollment.getRequest().getWeight();
+            }
+            if (enrollment.isCourseRequest()) {
+                int noTime = 0;
+                for (Section section: enrollment.getSections())
+                    if (section.getTime() == null) noTime ++;
+                if (noTime > 0)
+                    iAssignedNoTimeSectionWeight -= enrollment.getRequest().getWeight() * noTime / enrollment.getSections().size();
             }
         }
         
@@ -1127,6 +1142,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             iTotalReservedSpace = 0.0; iReservedSpace = 0.0;
             iTotalMPPCRWeight = 0.0;
             iTotalSelCRWeight = 0.0;
+            iAssignedNoTimeSectionWeight = 0.0;
             for (Request request: variables()) {
                 boolean cr = (request instanceof CourseRequest);
                 if (cr)
@@ -1162,6 +1178,13 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                         iNrAssignedDummyRequests ++;
                         if (cr)
                             iAssignedDummyCRWeight += request.getWeight();
+                    }
+                    if (cr) {
+                        int noTime = 0;
+                        for (Section section: e.getSections())
+                            if (section.getTime() == null) noTime ++;
+                        if (noTime > 0)
+                            iAssignedNoTimeSectionWeight += request.getWeight() * noTime / e.getSections().size();
                     }
                 }
             }
@@ -1202,6 +1225,9 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                         info.put("Projected assigned course requests", sDecimalFormat.format(100.0 * iAssignedDummyCRWeight / iTotalDummyCRWeight) + "% (" + (int)Math.round(iAssignedDummyCRWeight) + "/" + (int)Math.round(iTotalDummyCRWeight) + ")");
                     info.put("Real assigned course requests", sDecimalFormat.format(100.0 * (iAssignedCRWeight - iAssignedDummyCRWeight) / (iTotalCRWeight - iTotalDummyCRWeight)) +
                             "% (" + (int)Math.round(iAssignedCRWeight - iAssignedDummyCRWeight) + "/" + (int)Math.round(iTotalCRWeight - iTotalDummyCRWeight) + ")");
+                }
+                if (iAssignedNoTimeSectionWeight > 0.0) {
+                    info.put("Using classes w/o time", sDecimalFormat.format(100.0 * iAssignedNoTimeSectionWeight / iAssignedCRWeight) + "% (" + sDecimalFormat.format(iAssignedNoTimeSectionWeight) + ")"); 
                 }
             }
             if (iTotalReservedSpace > 0.0)

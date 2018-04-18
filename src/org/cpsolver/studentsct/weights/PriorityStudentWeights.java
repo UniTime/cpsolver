@@ -72,6 +72,7 @@ public class PriorityStudentWeights implements StudentWeights {
     protected double iTimeOverlapMaxLimit = 0.5000;
     protected boolean iLeftoverSpread = false;
     protected double iBalancingFactor = 0.0050;
+    protected double iNoTimeFactor = 0.0100;
     protected double iAlternativeRequestFactor = 0.1260;
     protected double iProjectedStudentWeight = 0.0100;
     protected boolean iMPP = false;
@@ -105,6 +106,7 @@ public class PriorityStudentWeights implements StudentWeights {
         iGroupFactor = config.getPropertyDouble("StudentWeights.SameGroup", iGroupFactor);
         iGroupBestRatio = config.getPropertyDouble("StudentWeights.GroupBestRatio", iGroupBestRatio);
         iGroupFillRatio = config.getPropertyDouble("StudentWeights.GroupFillRatio", iGroupFillRatio);
+        iNoTimeFactor = config.getPropertyDouble("StudentWeights.NoTimeFactor", iNoTimeFactor);
     }
         
     public double getWeight(Request request) {
@@ -242,6 +244,15 @@ public class PriorityStudentWeights implements StudentWeights {
             case 2: weight *= iSecondAlternativeFactor; break;
             default:
                 weight *= Math.pow(iFirstAlternativeFactor, enrollment.getPriority());
+        }
+        if (enrollment.isCourseRequest() && iNoTimeFactor != 0.0) {
+            int noTimeSections = 0, total = 0;
+            for (Section section: enrollment.getSections()) {
+                if (section.getTime() == null) noTimeSections ++;
+                total ++;
+            }
+            if (noTimeSections > 0)
+                weight *= (1.0 - iNoTimeFactor * noTimeSections / total);
         }
         if (enrollment.isCourseRequest() && iBalancingFactor != 0.0) {
             double configUsed = enrollment.getConfig().getEnrollmentTotalWeight(assignment, enrollment.getRequest()) + enrollment.getRequest().getWeight();
