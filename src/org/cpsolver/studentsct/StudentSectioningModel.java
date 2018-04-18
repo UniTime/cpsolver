@@ -395,7 +395,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             }
         }
         if (getTimeOverlaps() != null && getTimeOverlaps().getTotalNrConflicts(assignment) != 0)
-            info.put("Time overlapping conflicts", String.valueOf(getTimeOverlaps().getTotalNrConflicts(assignment)));
+            info.put("Time overlapping conflicts", sDoubleFormat.format(getTimeOverlaps().getTotalNrConflicts(assignment) / 12.0) + " hours");
         int nrLastLikeStudents = getNrLastLikeStudents(false);
         if (nrLastLikeStudents != 0 && nrLastLikeStudents != getStudents().size()) {
             int nrRealStudents = getStudents().size() - nrLastLikeStudents;
@@ -832,17 +832,19 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         }
         double toc = 0;
         if (getTimeOverlaps() != null && getTimeOverlaps().getTotalNrConflicts(assignment) != 0) {
-            Set<TimeOverlapsCounter.Conflict> conf = getTimeOverlaps().getAllConflicts(assignment);
-            int share = 0;
+            Set<TimeOverlapsCounter.Conflict> conf = getTimeOverlaps().getContext(assignment).computeAllConflicts(assignment);
+            int share = 0, crShare = 0;
             for (TimeOverlapsCounter.Conflict c: conf) {
                 if (c.getR1() != null)
                     toc += c.getR1Weight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE1(), c);
                 if (c.getR2() != null) 
                     toc += c.getR2Weight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE2(), c);
                 share += c.getShare();
+                if (c.getR1() instanceof CourseRequest && c.getR2() instanceof CourseRequest)
+                    crShare += c.getShare();
             }
             if (toc != 0.0)
-                info.put("Time overlapping conflicts", share + " (average: " + sDecimalFormat.format(5.0 * share / getStudents().size()) + " min, weighted: " + sDoubleFormat.format(toc) + ")");
+                info.put("Time overlapping conflicts", sDoubleFormat.format(share / 12.0) + " hours (" + sDoubleFormat.format(crShare / 12.0) + " hours between courses, weighted: " + sDoubleFormat.format(toc) + ")");
         }
         /*
         info.put("Overall solution value", sDecimalFormat.format(total - dc - toc) + (dc == 0.0 && toc == 0.0 ? "" :
