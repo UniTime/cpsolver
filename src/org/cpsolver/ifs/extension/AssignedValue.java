@@ -163,7 +163,7 @@ public class AssignedValue<T extends Value<?, T>> {
      **/
     public String toString(long iteration, boolean assignment) {
         return (assignment ? getCounter(iteration) + "x " : "") + getValue().variable().getName()
-                + (assignment ? " := " : " != ") + getValue().getName();
+                + (assignment ? " := " : " != ") + getValue().getName() + (getConstraint() != null ? " (" + getConstraint() + ")" : "");
     }
 
     /** Compare two assignments (their counters)

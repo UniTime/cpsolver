@@ -352,39 +352,97 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
     public String toString() {
         iLock.readLock().lock();
         try {
-            StringBuffer sb = new StringBuffer("Statistics{");
-            TreeSet<V> sortedUnassignedVariables = new TreeSet<V>(new Comparator<V>() {
-                @Override
-                public int compare(V v1, V v2) {
-                    int cmp = Double.compare(countAssignments(v1), countAssignments(v2));
-                    if (cmp != 0)
-                        return -cmp;
-                    return v1.compareTo(v2);
-                }
-            });
-            sortedUnassignedVariables.addAll(iUnassignedVariables.keySet());
-            int printedVariables = 0;
-            for (V variable : sortedUnassignedVariables) {
-                sb.append("\n      ").append(countAssignments(variable) + "x ").append(variable.getName()).append(" <= {");
-                TreeSet<AssignedValue<T>> sortedAssignments = new TreeSet<AssignedValue<T>>(
-                        new AssignedValue.AssignmentComparator<T>(0));
-                sortedAssignments.addAll(iUnassignedVariables.get(variable));
-                int printedAssignments = 0;
-                for (AssignedValue<T> x : sortedAssignments) {
-                    sb.append("\n        ").append(x.toString(0, true));
-                    if (++printedAssignments == 20) {
-                        sb.append("\n        ...");
+            if (iPrint) {
+                StringBuffer sb = new StringBuffer("Statistics{");
+                TreeSet<AssignedValue<T>> sortedUnassignments = new TreeSet<AssignedValue<T>>(new Comparator<AssignedValue<T>>() {
+                    @Override
+                    public int compare(AssignedValue<T> x1, AssignedValue<T> x2) {
+                        int c1 = 0, c2 = 0;
+                        for (AssignedValue<T> y: iNoGoods.get(x1))
+                            c1 += y.getCounter(0);
+                        for (AssignedValue<T> y: iNoGoods.get(x2))
+                            c2 += y.getCounter(0);
+                        int cmp = Double.compare(c1, c2);
+                        if (cmp != 0)
+                            return -cmp;
+                        return x1.compareTo(0, x2);
+                    }
+                });
+                sortedUnassignments.addAll(iNoGoods.keySet());
+                int printedUnassignments = 0;
+                for (AssignedValue<T> x : sortedUnassignments) {
+                    int c = 0;
+                    for (AssignedValue<T> y: iNoGoods.get(x))
+                        c += y.getCounter(0);
+                    sb.append("\n    ").append(c + "x ").append(x.toString(0, false)).append(" <= {");
+                    TreeSet<AssignedValue<T>> sortedAssignments = new TreeSet<AssignedValue<T>>(new Comparator<AssignedValue<T>>() {
+                        @Override
+                        public int compare(AssignedValue<T> x1, AssignedValue<T> x2) {
+                            int cmp = Double.compare(x1.getCounter(0), x2.getCounter(0));
+                            if (cmp != 0)
+                                return -cmp;
+                            return x1.compareTo(0, x2);
+                        }
+                    });
+                    sortedAssignments.addAll(iNoGoods.get(x));
+                    int printedAssignments = 0;
+                    for (AssignedValue<T> y : sortedAssignments) {
+                        sb.append("\n        ").append(y.toString(0, true));
+                        if (++printedAssignments == 20) {
+                            sb.append("\n        ...");
+                            break;
+                        }
+                    }
+                    sb.append("\n      }");
+                    if (++printedUnassignments == 100) {
+                        sb.append("\n     ...");
                         break;
                     }
                 }
-                sb.append("\n      }");
-                if (++printedVariables == 100) {
-                    sb.append("\n      ...");
-                    break;
+                sb.append("\n    }");
+                return sb.toString();            
+            } else {
+                StringBuffer sb = new StringBuffer("Statistics{");
+                TreeSet<V> sortedUnassignedVariables = new TreeSet<V>(new Comparator<V>() {
+                    @Override
+                    public int compare(V v1, V v2) {
+                        int cmp = Double.compare(countAssignments(v1), countAssignments(v2));
+                        if (cmp != 0)
+                            return -cmp;
+                        return v1.compareTo(v2);
+                    }
+                });
+                sortedUnassignedVariables.addAll(iUnassignedVariables.keySet());
+                int printedVariables = 0;
+                for (V variable : sortedUnassignedVariables) {
+                    sb.append("\n      ").append(countAssignments(variable) + "x ").append(variable.getName()).append(" <= {");
+                    TreeSet<AssignedValue<T>> sortedAssignments = new TreeSet<AssignedValue<T>>(new Comparator<AssignedValue<T>>() {
+                        @Override
+                        public int compare(AssignedValue<T> x1, AssignedValue<T> x2) {
+                            int cmp = Double.compare(x1.getCounter(0), x2.getCounter(0));
+                            if (cmp != 0)
+                                return -cmp;
+                            return x1.compareTo(0, x2);
+                        }
+                    });
+                    sortedAssignments.addAll(iUnassignedVariables.get(variable));
+                    int printedAssignments = 0;
+                    for (AssignedValue<T> x : sortedAssignments) {
+                        sb.append("\n        ").append(x.toString(0, true));
+                        if (++printedAssignments == 20) {
+                            sb.append("\n        ...");
+                            break;
+                        }
+                    }
+                    sb.append("\n      }");
+                    if (++printedVariables == 100) {
+                        sb.append("\n      ...");
+                        break;
+                    }
                 }
+                sb.append("\n    }");
+                return sb.toString();            
             }
-            sb.append("\n    }");
-            return sb.toString();            
         } finally {
             iLock.readLock().unlock();
         }
