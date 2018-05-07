@@ -51,7 +51,7 @@ public class IdConvertor {
      * this class.
      * @param file file to load / save
      */
-    protected IdConvertor(String file) {
+    public IdConvertor(String file) {
         iFile = file;
         load();
     }
