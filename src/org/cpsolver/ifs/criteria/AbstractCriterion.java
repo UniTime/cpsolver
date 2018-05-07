@@ -334,6 +334,22 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
     public void getInfo(Assignment<V, T> assignment, Map<String, String> info, Collection<V> variables) {
     }
     
+    /**
+     * Return formatted value of this criterion, as percentage when possible 
+     * @param assignment current assignment
+     * @return formatted value
+     */
+    public String getPercentage(Assignment<V, T> assignment) {
+        double val = getValue(assignment);
+        double[] bounds = getBounds(assignment);
+        if (bounds[0] <= val && val <= bounds[1] && bounds[0] < bounds[1])
+            return getPerc(val, bounds[0], bounds[1]) + "%";
+        else if (bounds[1] <= val && val <= bounds[0] && bounds[1] < bounds[0])
+            return getPercRev(val, bounds[1], bounds[0]) + "%";
+        else
+            return sDoubleFormat.format(val);
+    }
+    
     @Override
     public void getExtendedInfo(Assignment<V, T> assignment, Map<String, String> info) {
         if (iDebug) {
