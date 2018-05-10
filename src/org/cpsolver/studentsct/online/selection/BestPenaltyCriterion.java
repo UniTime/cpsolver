@@ -77,9 +77,9 @@ public class BestPenaltyCriterion implements SelectionCriterion {
         for (int idx = 0; idx < current.length; idx++) {
             if (best[idx] != null && best[idx].getAssignments() != null && best[idx].isCourseRequest()) {
                 for (Section section : best[idx].getSections())
-                    bestPenalties += iModel.getOverExpected(assignment, section, best[idx].getRequest());
+                    bestPenalties += iModel.getOverExpected(assignment, best, idx, section, best[idx].getRequest());
                 for (Section section : current[idx].getSections())
-                    currentPenalties += iModel.getOverExpected(assignment, section, current[idx].getRequest());
+                    currentPenalties += iModel.getOverExpected(assignment, current, idx, section, current[idx].getRequest());
             }
         }
         if (currentPenalties < bestPenalties)
@@ -129,11 +129,11 @@ public class BestPenaltyCriterion implements SelectionCriterion {
         for (int idx = 0; idx < current.length; idx++) {
             if (best[idx] != null) {
                 for (Section section : best[idx].getSections())
-                    bestPenalties += iModel.getOverExpected(assignment, section, best[idx].getRequest());
+                    bestPenalties += iModel.getOverExpected(assignment, best, idx, section, best[idx].getRequest());
             }
             if (current[idx] != null && idx < maxIdx) {
                 for (Section section : current[idx].getSections())
-                    currentPenalties += iModel.getOverExpected(assignment, section, current[idx].getRequest());
+                    currentPenalties += iModel.getOverExpected(assignment, current, idx, section, current[idx].getRequest());
             }
         }
         if (currentPenalties < bestPenalties)
