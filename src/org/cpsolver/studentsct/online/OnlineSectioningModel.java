@@ -1,7 +1,11 @@
 package org.cpsolver.studentsct.online;
 
+import java.util.Set;
+
 import org.apache.log4j.Logger;
 import org.cpsolver.ifs.assignment.Assignment;
+import org.cpsolver.ifs.model.Constraint;
+import org.cpsolver.ifs.model.Value;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.studentsct.StudentSectioningModel;
 import org.cpsolver.studentsct.model.Enrollment;
@@ -80,6 +84,43 @@ public class OnlineSectioningModel extends StudentSectioningModel {
      */
     public double getOverExpected(Assignment<Request, Enrollment> assignment, Section section, Request request) {
         return getOverExpectedCriterion().getOverExpected(assignment, section, request);
+    }
+    
+    /**
+     * Expectation penalty, to be minimized
+     * @param assignment current assignment
+     * @param enrollment current enrollment of the student
+     * @param index only use enrollments 0 .. index - 1 from the assignment array
+     * @param section section in question
+     * @param request student course request
+     * @return expectation penalty (typically 1.0 / number of subparts when over-expected, 0.0 otherwise)
+     */
+    public double getOverExpected(Assignment<Request, Enrollment> assignment, Enrollment[] enrollment, int index, Section section, Request request) {
+        if (getOverExpectedCriterion() instanceof OverExpectedCriterion.HasContext)
+            return ((OverExpectedCriterion.HasContext)getOverExpectedCriterion()).getOverExpected(assignment, enrollment, index, section, request);
+        else
+            return getOverExpectedCriterion().getOverExpected(assignment, section, request);
+    }
+    
+    /**
+     * Expectation penalty, to be minimized.
+     * A variant of the {@link OverExpectedCriterion#getOverExpected(Assignment, Section, Request)} method that can be called from {@link Constraint#computeConflicts(Assignment, Value, Set)}.
+     * @param assignment current assignment
+     * @param selection selected enrollment question
+     * @param value an enrollment to be assigned
+     * @param conflicts enrollments that have been already identified as conflicting
+     * @return expectation penalty (typically 1.0 / number of subparts when over-expected, 0.0 otherwise)
+     */
+    public double getOverExpected(Assignment<Request, Enrollment> assignment, Enrollment selection, Enrollment value, Set<Enrollment> conflicts) {
+        if (getOverExpectedCriterion() instanceof OverExpectedCriterion.HasContext)
+            return ((OverExpectedCriterion.HasContext)getOverExpectedCriterion()).getOverExpected(assignment, selection, value, conflicts);
+        else {
+            if (selection == null || !selection.isCourseRequest()) return 0.0;
+            double penalty = 0.0;
+            for (Section section: selection.getSections())
+                penalty += getOverExpectedCriterion().getOverExpected(assignment, section, selection.getRequest());
+            return penalty;
+        }
     }
 
 }

@@ -1,6 +1,10 @@
 package org.cpsolver.studentsct.online.expectations;
 
+import java.util.Set;
+
 import org.cpsolver.ifs.assignment.Assignment;
+import org.cpsolver.ifs.model.Constraint;
+import org.cpsolver.ifs.model.Value;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.Section;
@@ -44,4 +48,28 @@ public interface OverExpectedCriterion {
      * @return expected space to be printed (null if there are no expectations)
      */
     public Integer getExpected(int sectionLimit, double expectedSpace);
+    
+    public static interface HasContext {
+        /**
+         * Expectation penalty, to be minimized.
+         * A variant of the {@link OverExpectedCriterion#getOverExpected(Assignment, Section, Request)} method that can be called from {@link Constraint#computeConflicts(Assignment, Value, Set)}.
+         * @param assignment current assignment
+         * @param selection selected enrollment question
+         * @param value an enrollment to be assigned
+         * @param conflicts enrollments that have been already identified as conflicting
+         * @return expectation penalty (typically 1.0 / number of subparts when over-expected, 0.0 otherwise)
+         */
+        public double getOverExpected(Assignment<Request, Enrollment> assignment, Enrollment selection, Enrollment value, Set<Enrollment> conflicts);
+        
+        /**
+         * Expectation penalty, to be minimized
+         * @param assignment current assignment
+         * @param enrollment current assignment of the student
+         * @param index only use enrollments 0 .. index - 1 from the assignment array
+         * @param section section in question
+         * @param request student course request
+         * @return expectation penalty (typically 1.0 / number of subparts when over-expected, 0.0 otherwise)
+         */
+        public double getOverExpected(Assignment<Request, Enrollment> assignment, Enrollment[] enrollment, int index, Section section, Request request);
+    }
 }
