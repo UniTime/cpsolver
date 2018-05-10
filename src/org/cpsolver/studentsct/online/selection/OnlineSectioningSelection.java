@@ -12,6 +12,7 @@ import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.Section;
 import org.cpsolver.studentsct.model.Student;
 import org.cpsolver.studentsct.online.OnlineSectioningModel;
+import org.cpsolver.studentsct.online.expectations.OverExpectedCriterion;
 
 /**
  * Online student sectioning interface to be implemented by any sectioning algorithm.
@@ -73,4 +74,10 @@ public interface OnlineSectioningSelection {
      * @return student schedule
      */
     public BranchBoundSelection.BranchBoundNeighbour select(Assignment<Request, Enrollment> assignment, Student student);
+    
+    /**
+     * Set hard limit on the {@link OverExpectedCriterion} penalty.
+     * @param maxOverExpected max over-expected limit
+     */
+    public void setMaxOverExpected(double maxOverExpected);
 }

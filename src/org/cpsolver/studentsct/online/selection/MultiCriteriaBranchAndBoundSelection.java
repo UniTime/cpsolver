@@ -59,6 +59,7 @@ public class MultiCriteriaBranchAndBoundSelection implements OnlineSectioningSel
     protected SelectionCriterion iComparator = null;
     private boolean iPriorityWeighting = true;
     protected boolean iBranchWhenSelectedHasNoConflict = false;
+    private double iMaxOverExpected = -1.0;
 
     /** Student */
     protected Student iStudent;
@@ -201,6 +202,18 @@ public class MultiCriteriaBranchAndBoundSelection implements OnlineSectioningSel
         for (int i = 0; i < iCurrentAssignment.length; i++)
             if (iCurrentAssignment[i] != null && i != idx && iCurrentAssignment[i].isOverlapping(enrollment))
                 return true;
+        if (iMaxOverExpected >= 0.0) {
+            double penalty = 0.0;
+            for (int i = 0; i < idx; i++) {
+                if (iCurrentAssignment[i] != null && iCurrentAssignment[i].getAssignments() != null && iCurrentAssignment[i].isCourseRequest())
+                    for (Section section: iCurrentAssignment[i].getSections())
+                        penalty += iModel.getOverExpected(iAssignment, iCurrentAssignment, i, section, iCurrentAssignment[i].getRequest());
+            }
+            if (enrollment.isCourseRequest())
+                for (Section section: enrollment.getSections())
+                    penalty += iModel.getOverExpected(iAssignment, iCurrentAssignment, idx, section, enrollment.getRequest());
+            if (penalty > iMaxOverExpected) return true;
+        }
         return !isAllowed(idx, enrollment);
     }
 
@@ -403,5 +416,10 @@ public class MultiCriteriaBranchAndBoundSelection implements OnlineSectioningSel
     @Override
     public void setRequiredUnassinged(Set<CourseRequest> requiredUnassignedRequests) {
         iRequiredUnassinged = requiredUnassignedRequests;
+    }
+
+    @Override
+    public void setMaxOverExpected(double maxOverExpected) {
+        iMaxOverExpected = maxOverExpected;
     }
 }

@@ -55,6 +55,7 @@ public class SuggestionSelection extends BranchBoundSelection implements OnlineS
     protected Set<CourseRequest> iRequiredUnassinged = null;
     /** add up to 50% for preferred sections */
     private double iPreferenceFactor = 0.500;
+    private double iMaxOverExpected = -1.0;
 
     public SuggestionSelection(DataProperties properties) {
         super(properties);
@@ -140,6 +141,18 @@ public class SuggestionSelection extends BranchBoundSelection implements OnlineS
 
         @Override
         public boolean inConflict(int idx, Enrollment enrollment) {
+            if (iMaxOverExpected >= 0.0 && iModel instanceof OnlineSectioningModel) {
+                double penalty = 0.0;
+                for (int i = 0; i < idx; i++) {
+                    if (iAssignment[i] != null && iAssignment[i].getAssignments() != null && iAssignment[i].isCourseRequest())
+                        for (Section section: iAssignment[i].getSections())
+                            penalty += ((OnlineSectioningModel)iModel).getOverExpected(iCurrentAssignment, iAssignment, i, section, iAssignment[i].getRequest());
+                }
+                if (enrollment.isCourseRequest())
+                    for (Section section: enrollment.getSections())
+                        penalty += ((OnlineSectioningModel)iModel).getOverExpected(iCurrentAssignment, iAssignment, idx, section, enrollment.getRequest());
+                if (penalty > iMaxOverExpected) return true;
+            }
             return super.inConflict(idx, enrollment) || !isAllowed(idx, enrollment);
         }
 
@@ -202,5 +215,10 @@ public class SuggestionSelection extends BranchBoundSelection implements OnlineS
     @Override
     public void setRequiredUnassinged(Set<CourseRequest> requiredUnassignedRequests) {
         iRequiredUnassinged = requiredUnassignedRequests;
+    }
+    
+    @Override
+    public void setMaxOverExpected(double maxOverExpected) {
+        iMaxOverExpected = maxOverExpected;
     }
 }
