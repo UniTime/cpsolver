@@ -231,6 +231,19 @@ public class SuggestionsBranchAndBound {
                         okFreeTimes.add(ft);
                     }
                 }
+                if (e != null && e.isCourseRequest() && e.getSections().isEmpty()) {
+                    Double minPenalty = null;
+                    for (Enrollment other : values(e.getRequest())) {
+                        if (!isAllowed(other)) continue;
+                        if (e.equals(other)) continue;
+                        double penalty = 0.0;
+                        for (Section s: other.getSections())
+                            penalty += iModel.getOverExpected(iAssignment, s, other.getRequest());
+                        if (minPenalty == null || minPenalty > penalty) minPenalty = penalty;
+                        if (minPenalty == 0.0) break;
+                    }
+                    if (minPenalty != null) sectionsWithPenalty += minPenalty;
+                }
             }
             if (iMaxSectionsWithPenalty >= 0 && sectionsWithPenalty > iMaxSectionsWithPenalty)
                 return;
@@ -414,8 +427,7 @@ public class SuggestionsBranchAndBound {
      */
     protected boolean checkBound(ArrayList<Request> requests2resolve, int idx, int depth, Enrollment value,
             Set<Enrollment> conflicts) {
-        if (idx > 0 && !conflicts.isEmpty())
-            return false;
+        if (iMaxSectionsWithPenalty < 0.0 && idx > 0 && !conflicts.isEmpty()) return false;
         int nrUnassigned = requests2resolve.size() - idx;
         if ((nrUnassigned + conflicts.size() > depth)) {
             return false;
@@ -435,8 +447,7 @@ public class SuggestionsBranchAndBound {
                     e = null;
                 }
                 if (e != null && e.isCourseRequest()) {
-                    for (Section s : e.getSections())
-                        sectionsWithPenalty += iModel.getOverExpected(iAssignment, s, r);
+                    sectionsWithPenalty += iModel.getOverExpected(iAssignment, e, value, conflicts);
                 }
             }
             if (sectionsWithPenalty > iMaxSectionsWithPenalty)
