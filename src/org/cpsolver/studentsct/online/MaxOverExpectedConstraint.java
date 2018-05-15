@@ -65,7 +65,7 @@ public class MaxOverExpectedConstraint extends GlobalConstraint<Request, Enrollm
             }
         }
 
-        while (selection.getRemainingPoints() + basePenalty > iMaxOverExpected) {
+        while (selection.getRemainingPoints() + basePenalty > iMaxOverExpected && selection.hasMoreElements()) {
             conflicts.add(selection.nextElement());
         }
     }
