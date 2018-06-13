@@ -463,7 +463,7 @@ public class CourseRequest extends Request {
     }
 
     /**
-     * Return all enrollments that are selected (
+     * Return all enrollments of the first course that are selected (
      * {@link CourseRequest#isSelected(Section)} is true)
      * 
      * @param assignment current assignment
@@ -475,16 +475,15 @@ public class CourseRequest extends Request {
         if (getSelectedChoices().isEmpty())
             return null;
         List<Enrollment> enrollments = new ArrayList<Enrollment>();
-        int idx = 0;
         for (Course course : iCourses) {
             boolean hasChoice = false;
             for (Choice choice: getSelectedChoices())
                 if (course.getOffering().equals(choice.getOffering())) { hasChoice = true; break; }
             if (hasChoice)
                 for (Config config : course.getOffering().getConfigs()) {
-                    computeEnrollments(assignment, enrollments, idx, 0, course, config, new HashSet<Section>(), 0, availableOnly, false, true, false, -1);
+                    computeEnrollments(assignment, enrollments, 0, 0, course, config, new HashSet<Section>(), 0, availableOnly, false, true, false, -1);
                 }
-            idx++;
+            break;
         }
         return enrollments;
     }
