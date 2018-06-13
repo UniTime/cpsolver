@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.cpsolver.coursett.model.TimeLocation;
+import org.cpsolver.ifs.util.ToolBox;
 
 
 /**
@@ -156,11 +157,19 @@ public class Choice {
     
     /**
      * Return true if the given choice has the same instructional type and time
-     * return true if the two choices have the same ime
+     * return true if the two choices have the same time
      */
     public boolean sameTime(Choice choice) {
-        return getInstructionalType().equals(choice.getInstructionalType()) &&
-                (getTime() == null ? choice.getTime() == null : getTime().equals(choice.getTime()));
+        return getInstructionalType().equals(choice.getInstructionalType()) && sameTime(getTime(), choice.getTime());
+    }
+    
+    private static boolean sameTime(TimeLocation t1, TimeLocation t2) {
+        if (t1 == null) return (t2 == null);
+        if (t2 == null) return false;
+        if (t1.getStartSlot() != t2.getStartSlot()) return false;
+        if (t1.getLength() != t2.getLength()) return false;
+        if (t1.getDayCode() != t2.getDayCode()) return false;
+        return ToolBox.equals(t1.getDatePatternId(), t2.getDatePatternId());
     }
 
     /**
@@ -312,7 +321,7 @@ public class Choice {
 
     /** True if the time assignment is the same */
     public boolean sameTime(Section section) {
-        return getTime() == null ? section.getTime() == null : getTime().equals(section.getTime());
+        return sameTime(getTime(), section.getTime());
     }
     
     /** True if the section contains all instructors of this choice */
