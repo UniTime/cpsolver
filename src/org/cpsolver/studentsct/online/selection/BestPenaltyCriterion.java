@@ -66,6 +66,8 @@ public class BestPenaltyCriterion implements SelectionCriterion {
                     return 1; // higher priority request assigned
                 if (best[idx].getPriority() < current[idx].getPriority())
                     return 1; // less alternative request assigned
+                if (best[idx].getPriority() > current[idx].getPriority())
+                    return -1; // more alternative request assigned
             } else {
                 if (current[idx] != null && current[idx].getAssignments() != null)
                     return -1; // higher priority request assigned
@@ -105,6 +107,8 @@ public class BestPenaltyCriterion implements SelectionCriterion {
                         return false; // higher priority request assigned
                     if (best[idx].getPriority() < current[idx].getPriority())
                         return false; // less alternative request assigned
+                    if (best[idx].getPriority() > current[idx].getPriority())
+                        return true; // more alternative request assigned
                     if (request.isAlternative())
                         alt--;
                 } else {
