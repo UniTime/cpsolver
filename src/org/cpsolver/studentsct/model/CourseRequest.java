@@ -474,14 +474,17 @@ public class CourseRequest extends Request {
     public List<Enrollment> getSelectedEnrollments(Assignment<Request, Enrollment> assignment, boolean availableOnly) {
         if (getSelectedChoices().isEmpty())
             return null;
-        Choice firstChoice = getSelectedChoices().iterator().next();
         List<Enrollment> enrollments = new ArrayList<Enrollment>();
+        int idx = 0;
         for (Course course : iCourses) {
-            if (!course.getOffering().equals(firstChoice.getOffering()))
-                continue;
-            for (Config config : course.getOffering().getConfigs()) {
-                computeEnrollments(assignment, enrollments, 0, 0, course, config, new HashSet<Section>(), 0, availableOnly, false, true, false, -1);
-            }
+            boolean hasChoice = false;
+            for (Choice choice: getSelectedChoices())
+                if (course.getOffering().equals(choice.getOffering())) { hasChoice = true; break; }
+            if (hasChoice)
+                for (Config config : course.getOffering().getConfigs()) {
+                    computeEnrollments(assignment, enrollments, idx, 0, course, config, new HashSet<Section>(), 0, availableOnly, false, true, false, -1);
+                }
+            idx++;
         }
         return enrollments;
     }
