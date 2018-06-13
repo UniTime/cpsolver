@@ -385,19 +385,27 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
         
         if (canAssignOverLimit()) return -1; // can assign over limit -> no cap
         
-        // config cap
         double cap = 0;
-        for (Config config: iConfigs)
-            cap = add(cap, config.getLimit());
+        // for each config
+        for (Config config: iConfigs) {
+            // config cap
+            double configCap = config.getLimit();
         
-        for (Set<Section> sections: getSections().values()) {
-            // subpart cap
-            double subpartCap = 0;
-            for (Section section: sections)
-                subpartCap = add(subpartCap, section.getLimit());
+            for (Map.Entry<Subpart, Set<Section>> entry: getSections().entrySet()) {
+                if (!config.equals(entry.getKey().getConfig())) continue;
+                Set<Section> sections = entry.getValue();
+                
+                // subpart cap
+                double subpartCap = 0;
+                for (Section section: sections)
+                    subpartCap = add(subpartCap, section.getLimit());
+        
+                // minimize
+                configCap = min(configCap, subpartCap);
+            }
             
-            // minimize
-            cap = min(cap, subpartCap);
+            // add config cap
+            cap = add(cap, configCap);
         }
         
         return cap;
