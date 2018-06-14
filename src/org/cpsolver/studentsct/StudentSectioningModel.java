@@ -242,12 +242,12 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     @Override
     public void addVariable(Request request) {
         super.addVariable(request);
-        if (request instanceof CourseRequest)
+        if (request instanceof CourseRequest && !request.isAlternative())
             iTotalCRWeight += request.getWeight();
         if (request.getStudent().isDummy()) {
             iNrDummyRequests++;
             iTotalDummyWeight += request.getWeight();
-            if (request instanceof CourseRequest)
+            if (request instanceof CourseRequest && !request.isAlternative())
                 iTotalDummyCRWeight += request.getWeight();
         }
         if (request.isMPP())
@@ -299,14 +299,14 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         if (request.getStudent().isDummy()) {
             iNrDummyRequests--;
             iTotalDummyWeight -= request.getWeight();
-            if (request instanceof CourseRequest)
+            if (request instanceof CourseRequest && !request.isAlternative())
                 iTotalDummyCRWeight -= request.getWeight();
         }
         if (request.isMPP())
             iTotalMPPCRWeight -= request.getWeight();
         if (request.hasSelection())
             iTotalSelCRWeight -= request.getWeight();
-        if (request instanceof CourseRequest)
+        if (request instanceof CourseRequest && !request.isAlternative())
             iTotalCRWeight -= request.getWeight();
     }
 
@@ -1145,12 +1145,12 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             iAssignedNoTimeSectionWeight = 0.0;
             for (Request request: variables()) {
                 boolean cr = (request instanceof CourseRequest);
-                if (cr)
+                if (cr && !request.isAlternative())
                     iTotalCRWeight += request.getWeight();
                 if (request.getStudent().isDummy()) {
                     iTotalDummyWeight += request.getWeight();
                     iNrDummyRequests ++;
-                    if (cr)
+                    if (cr && !request.isAlternative())
                         iTotalDummyCRWeight += request.getWeight();
                 }
                 if (request.isMPP())
