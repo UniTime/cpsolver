@@ -89,6 +89,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     private double iTotalCRWeight = 0.0, iTotalDummyCRWeight = 0.0;
     private double iTotalMPPCRWeight = 0.0;
     private double iTotalSelCRWeight = 0.0;
+    private double iBestAssignedCourseRequestWeight = 0.0;
     private StudentWeights iStudentWeights = null;
     private boolean iReservationCanAssignOverTheLimit;
     private boolean iMPP;
@@ -910,6 +911,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             info.put("Sections disbalanced by 10% or more", disb10Sections + " (" + sDecimalFormat.format(disbSections == 0 ? 0.0 : 100.0 * disb10Sections / disbSections) + "%)" + list);
         }
         
+        info.put("Overall solution value", sDoubleFormat.format(getTotalValue(assignment)) + " [precise: " + sDoubleFormat.format(getTotalValue(assignment, true)) + "]");
+        
         return info;
     }
     
@@ -930,6 +933,22 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 return r1.compareTo(r2);
             }
         });
+        recomputeTotalValue(assignment);
+    }
+    
+    public void recomputeTotalValue(Assignment<Request, Enrollment> assignment) {
+        getContext(assignment).iTotalValue = getTotalValue(assignment, true);
+    }
+    
+    @Override
+    public void saveBest(Assignment<Request, Enrollment> assignment) {
+        recomputeTotalValue(assignment);
+        iBestAssignedCourseRequestWeight = getContext(assignment).getAssignedCourseRequestWeight();
+        super.saveBest(assignment);
+    }
+    
+    public double getBestAssignedCourseRequestWeight() {
+        return iBestAssignedCourseRequestWeight;
     }
         
     @Override

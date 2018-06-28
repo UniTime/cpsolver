@@ -14,6 +14,7 @@ import org.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.ToolBox;
+import org.cpsolver.studentsct.StudentSectioningModel;
 import org.cpsolver.studentsct.extension.DistanceConflict;
 import org.cpsolver.studentsct.extension.TimeOverlapsCounter;
 import org.cpsolver.studentsct.model.Choice;
@@ -84,6 +85,9 @@ public class PriorityStudentWeights implements StudentWeights {
     protected double iGroupFactor = 0.100;
     protected double iGroupBestRatio = 0.95;
     protected double iGroupFillRatio = 0.05;
+    protected boolean iAdditiveWeights = false;
+    protected boolean iMaximizeAssignment = false;
+    protected boolean iPreciseComparison = false;
     
     public PriorityStudentWeights(DataProperties config) {
         iPriorityFactor = config.getPropertyDouble("StudentWeights.Priority", iPriorityFactor);
@@ -107,6 +111,9 @@ public class PriorityStudentWeights implements StudentWeights {
         iGroupBestRatio = config.getPropertyDouble("StudentWeights.GroupBestRatio", iGroupBestRatio);
         iGroupFillRatio = config.getPropertyDouble("StudentWeights.GroupFillRatio", iGroupFillRatio);
         iNoTimeFactor = config.getPropertyDouble("StudentWeights.NoTimeFactor", iNoTimeFactor);
+        iAdditiveWeights = config.getPropertyBoolean("StudentWeights.AdditiveWeights", iAdditiveWeights);
+        iMaximizeAssignment = config.getPropertyBoolean("StudentWeights.MaximizeAssignment", iMaximizeAssignment);
+        iPreciseComparison = config.getPropertyBoolean("StudentWeights.PreciseComparison", iPreciseComparison);
     }
         
     public double getWeight(Request request) {
@@ -235,8 +242,7 @@ public class PriorityStudentWeights implements StudentWeights {
         return Math.ceil(10000.0 * value) / 10000.0;
     }
     
-    @Override
-    public double getWeight(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+    protected double getBaseWeight(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
         double weight = getCachedWeight(enrollment.getRequest());
         switch (enrollment.getPriority()) {
             case 0: break;
@@ -245,6 +251,19 @@ public class PriorityStudentWeights implements StudentWeights {
             default:
                 weight *= Math.pow(iFirstAlternativeFactor, enrollment.getPriority());
         }
+        return weight;
+    }
+    
+    @Override
+    public double getWeight(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+        if (iAdditiveWeights)
+            return getWeightAdditive(assignment, enrollment);
+        else
+            return getWeightMultiplicative(assignment, enrollment);
+    }
+    
+    public double getWeightMultiplicative(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+        double weight = getBaseWeight(assignment, enrollment);
         if (enrollment.isCourseRequest() && iNoTimeFactor != 0.0) {
             int noTimeSections = 0, total = 0;
             for (Section section: enrollment.getSections()) {
@@ -302,12 +321,80 @@ public class PriorityStudentWeights implements StudentWeights {
         return round(weight);
     }
     
+    public double getWeightAdditive(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+        double base = getBaseWeight(assignment, enrollment);
+        double weight = 0.0;
+        if (enrollment.isCourseRequest() && iNoTimeFactor != 0.0) {
+            int noTimeSections = 0, total = 0;
+            for (Section section: enrollment.getSections()) {
+                if (section.getTime() == null) noTimeSections ++;
+                total ++;
+            }
+            if (noTimeSections > 0)
+                weight += iNoTimeFactor * noTimeSections / total;
+        }
+        if (enrollment.isCourseRequest() && iBalancingFactor != 0.0) {
+            double configUsed = enrollment.getConfig().getEnrollmentTotalWeight(assignment, enrollment.getRequest()) + enrollment.getRequest().getWeight();
+            double disbalanced = 0;
+            double total = 0;
+            for (Section section: enrollment.getSections()) {
+                Subpart subpart = section.getSubpart();
+                if (subpart.getSections().size() <= 1) continue;
+                double used = section.getEnrollmentTotalWeight(assignment, enrollment.getRequest()) + enrollment.getRequest().getWeight();
+                // sections have limits -> desired size is section limit x (total enrollment / total limit)
+                // unlimited sections -> desired size is total enrollment / number of sections
+                double desired = (subpart.getLimit() > 0
+                        ? section.getLimit() * (configUsed / subpart.getLimit())
+                        : configUsed / subpart.getSections().size());
+                if (used > desired)
+                    disbalanced += Math.min(enrollment.getRequest().getWeight(), used - desired) / enrollment.getRequest().getWeight();
+                else
+                    disbalanced -= Math.min(enrollment.getRequest().getWeight(), desired - used) / enrollment.getRequest().getWeight();
+                total ++;
+            }
+            if (disbalanced > 0)
+                weight += disbalanced / total * iBalancingFactor;
+        }
+        if (iMPP) {
+            double difference = getDifference(enrollment);
+            if (difference > 0.0)
+                weight += difference * iPerturbationFactor;
+        }
+        if (iSelectionFactor != 0.0) {
+            double selection = getSelection(enrollment);
+            if (selection > 0.0)
+                weight += selection * iSelectionFactor;
+        }
+        if (enrollment.isCourseRequest() && iGroupFactor != 0.0) {
+            double sameGroup = 0.0; int groupCount = 0;
+            for (RequestGroup g: ((CourseRequest)enrollment.getRequest()).getRequestGroups()) {
+                if (g.getCourse().equals(enrollment.getCourse())) {
+                    sameGroup += g.getEnrollmentSpread(assignment, enrollment, iGroupBestRatio, iGroupFillRatio);
+                    groupCount ++;
+                }
+            }
+            if (groupCount > 0) {
+                double difference = 1.0 - sameGroup / groupCount;
+                weight += difference * iGroupFactor;
+            }
+        }
+        return round(base * (1.0 - weight));
+    }
+    
     @Override
     public double getDistanceConflictWeight(Assignment<Request, Enrollment> assignment, DistanceConflict.Conflict c) {
-        if (c.getR1().getPriority() < c.getR2().getPriority()) {
-            return round(getWeight(assignment, c.getE2()) * (c.getStudent().isNeedShortDistances() ? iShortDistanceConflict : iDistanceConflict));
+        if (iAdditiveWeights) {
+            if (c.getR1().getPriority() < c.getR2().getPriority()) {
+                return round(getBaseWeight(assignment, c.getE2()) * (c.getStudent().isNeedShortDistances() ? iShortDistanceConflict : iDistanceConflict));
+            } else {
+                return round(getBaseWeight(assignment, c.getE1()) * (c.getStudent().isNeedShortDistances() ? iShortDistanceConflict : iDistanceConflict));
+            }
         } else {
-            return round(getWeight(assignment, c.getE1()) * (c.getStudent().isNeedShortDistances() ? iShortDistanceConflict : iDistanceConflict));
+            if (c.getR1().getPriority() < c.getR2().getPriority()) {
+                return round(getWeightMultiplicative(assignment, c.getE2()) * (c.getStudent().isNeedShortDistances() ? iShortDistanceConflict : iDistanceConflict));
+            } else {
+                return round(getWeightMultiplicative(assignment, c.getE1()) * (c.getStudent().isNeedShortDistances() ? iShortDistanceConflict : iDistanceConflict));
+            }
         }
     }
     
@@ -315,38 +402,73 @@ public class PriorityStudentWeights implements StudentWeights {
     public double getTimeOverlapConflictWeight(Assignment<Request, Enrollment> assignment, Enrollment e, TimeOverlapsCounter.Conflict c) {
         if (e == null || e.getRequest() == null) return 0.0;
         double toc = Math.min(iTimeOverlapMaxLimit * c.getShare() / e.getNrSlots(), iTimeOverlapMaxLimit);
-        return round(getWeight(assignment, e) * toc);
+        if (iAdditiveWeights) {
+            return round(getBaseWeight(assignment, e) * toc);
+        } else {
+            return round(getWeightMultiplicative(assignment, e) * toc);
+        }
     }
     
     @Override
     public double getWeight(Assignment<Request, Enrollment> assignment, Enrollment enrollment, Set<DistanceConflict.Conflict> distanceConflicts, Set<TimeOverlapsCounter.Conflict> timeOverlappingConflicts) {
-        double base = getWeight(assignment, enrollment);
-        double dc = 0.0;
-        if (distanceConflicts != null) {
-            for (DistanceConflict.Conflict c: distanceConflicts) {
-                Enrollment other = (c.getE1().equals(enrollment) ? c.getE2() : c.getE1());
-                if (other.getRequest().getPriority() <= enrollment.getRequest().getPriority())
-                    dc += base * (c.getStudent().isNeedShortDistances() ? iShortDistanceConflict : iDistanceConflict);
-                else
-                    dc += getWeight(assignment, other) * (c.getStudent().isNeedShortDistances() ? iShortDistanceConflict : iDistanceConflict);
+        if (iAdditiveWeights) {
+            double base = getBaseWeight(assignment, enrollment);
+            double dc = 0.0;
+            if (distanceConflicts != null) {
+                for (DistanceConflict.Conflict c: distanceConflicts) {
+                    Enrollment other = (c.getE1().equals(enrollment) ? c.getE2() : c.getE1());
+                    if (other.getRequest().getPriority() <= enrollment.getRequest().getPriority())
+                        dc += base * (c.getStudent().isNeedShortDistances() ? iShortDistanceConflict : iDistanceConflict);
+                    else
+                        dc += getBaseWeight(assignment, other) * (c.getStudent().isNeedShortDistances() ? iShortDistanceConflict : iDistanceConflict);
+                }
             }
-        }
-        double toc = 0.0;
-        if (timeOverlappingConflicts != null) {
-            for (TimeOverlapsCounter.Conflict c: timeOverlappingConflicts) {
-                toc += base * Math.min(iTimeOverlapFactor * c.getShare() / enrollment.getNrSlots(), iTimeOverlapMaxLimit);
-                Enrollment other = (c.getE1().equals(enrollment) ? c.getE2() : c.getE1());
-                if (other.getRequest() != null)
-                    toc += getWeight(assignment, other) * Math.min(iTimeOverlapFactor * c.getShare() / other.getNrSlots(), iTimeOverlapMaxLimit);
+            double toc = 0.0;
+            if (timeOverlappingConflicts != null) {
+                for (TimeOverlapsCounter.Conflict c: timeOverlappingConflicts) {
+                    toc += base * Math.min(iTimeOverlapFactor * c.getShare() / enrollment.getNrSlots(), iTimeOverlapMaxLimit);
+                    Enrollment other = (c.getE1().equals(enrollment) ? c.getE2() : c.getE1());
+                    if (other.getRequest() != null)
+                        toc += getBaseWeight(assignment, other) * Math.min(iTimeOverlapFactor * c.getShare() / other.getNrSlots(), iTimeOverlapMaxLimit);
+                }
             }
+            return round(getWeight(assignment, enrollment) - dc - toc);
+        } else {
+            double base = getWeightMultiplicative(assignment, enrollment);
+            double dc = 0.0;
+            if (distanceConflicts != null) {
+                for (DistanceConflict.Conflict c: distanceConflicts) {
+                    Enrollment other = (c.getE1().equals(enrollment) ? c.getE2() : c.getE1());
+                    if (other.getRequest().getPriority() <= enrollment.getRequest().getPriority())
+                        dc += base * (c.getStudent().isNeedShortDistances() ? iShortDistanceConflict : iDistanceConflict);
+                    else
+                        dc += getWeightMultiplicative(assignment, other) * (c.getStudent().isNeedShortDistances() ? iShortDistanceConflict : iDistanceConflict);
+                }
+            }
+            double toc = 0.0;
+            if (timeOverlappingConflicts != null) {
+                for (TimeOverlapsCounter.Conflict c: timeOverlappingConflicts) {
+                    toc += base * Math.min(iTimeOverlapFactor * c.getShare() / enrollment.getNrSlots(), iTimeOverlapMaxLimit);
+                    Enrollment other = (c.getE1().equals(enrollment) ? c.getE2() : c.getE1());
+                    if (other.getRequest() != null)
+                        toc += getWeightMultiplicative(assignment, other) * Math.min(iTimeOverlapFactor * c.getShare() / other.getNrSlots(), iTimeOverlapMaxLimit);
+                }
+            }
+            return round(base - dc - toc);
         }
-        return round(base - dc - toc);
     }
     
     
     @Override
     public boolean isBetterThanBestSolution(Solution<Request, Enrollment> currentSolution) {
-        return currentSolution.getBestInfo() == null || currentSolution.getModel().getTotalValue(currentSolution.getAssignment()) < currentSolution.getBestValue();
+        if (currentSolution.getBestInfo() == null) return true;
+        if (iMaximizeAssignment) {
+            long acr = Math.round(((StudentSectioningModel)currentSolution.getModel()).getContext(currentSolution.getAssignment()).getAssignedCourseRequestWeight());
+            long bcr = Math.round(((StudentSectioningModel)currentSolution.getModel()).getBestAssignedCourseRequestWeight());
+            if (acr != bcr)
+                return acr > bcr;
+        }
+        return ((StudentSectioningModel)currentSolution.getModel()).getTotalValue(currentSolution.getAssignment(), iPreciseComparison) < currentSolution.getBestValue();
     }
     
     @Override

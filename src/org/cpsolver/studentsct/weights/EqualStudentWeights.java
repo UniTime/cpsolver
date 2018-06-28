@@ -14,6 +14,7 @@ import org.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.ToolBox;
+import org.cpsolver.studentsct.StudentSectioningModel;
 import org.cpsolver.studentsct.extension.DistanceConflict;
 import org.cpsolver.studentsct.extension.TimeOverlapsCounter;
 import org.cpsolver.studentsct.model.Choice;
@@ -81,7 +82,7 @@ public class EqualStudentWeights extends PriorityStudentWeights {
         int unassigned = currentSolution.getModel().nrUnassignedVariables(currentSolution.getAssignment());
         if (currentSolution.getModel().getBestUnassignedVariables() != unassigned)
             return currentSolution.getModel().getBestUnassignedVariables() > unassigned;
-        return currentSolution.getModel().getTotalValue(currentSolution.getAssignment()) < currentSolution.getBestValue();
+        return ((StudentSectioningModel)currentSolution.getModel()).getTotalValue(currentSolution.getAssignment(), iPreciseComparison) < currentSolution.getBestValue();
     }
     
     @Override
