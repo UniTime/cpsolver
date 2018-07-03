@@ -123,9 +123,9 @@ public class PriorityStudentWeights implements StudentWeights {
                 weight *= iAlternativeRequestFactor;
             return weight;
         }
-        double total = 10000.0;
+        double total = 1000000.0;
         int nrReq = request.getStudent().nrRequests();
-        double remain = (iLeftoverSpread ? Math.floor(10000.0 * Math.pow(iPriorityFactor, nrReq) / nrReq) : 0.0);
+        double remain = (iLeftoverSpread ? Math.floor(1000000.0 * Math.pow(iPriorityFactor, nrReq) / nrReq) : 0.0);
         for (int idx = 0; idx < request.getStudent().getRequests().size(); idx++) {
             Request r = request.getStudent().getRequests().get(idx);
             boolean last = (idx + 1 == request.getStudent().getRequests().size());
@@ -137,7 +137,7 @@ public class PriorityStudentWeights implements StudentWeights {
                 total -= w;
             }
             if (r.equals(request)) {
-                return w / 10000.0;
+                return w / 1000000.0;
             }
         }
         return 0.0;
@@ -239,7 +239,7 @@ public class PriorityStudentWeights implements StudentWeights {
     }
     
     protected double round(double value) {
-        return Math.ceil(10000.0 * value) / 10000.0;
+        return Math.ceil(1000000.0 * value) / 1000000.0;
     }
     
     protected double getBaseWeight(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
@@ -482,7 +482,7 @@ public class PriorityStudentWeights implements StudentWeights {
      */
     public static void main(String[] args) {
         PriorityStudentWeights pw = new PriorityStudentWeights(new DataProperties());
-        DecimalFormat df = new DecimalFormat("0.0000");
+        DecimalFormat df = new DecimalFormat("0.000000");
         Student s = new Student(0l);
         new CourseRequest(1l, 0, false, s, ToolBox.toList(
                 new Course(1, "A", "1", new Offering(0, "A")),
