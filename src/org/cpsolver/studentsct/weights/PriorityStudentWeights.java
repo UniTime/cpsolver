@@ -131,7 +131,7 @@ public class PriorityStudentWeights implements StudentWeights {
             boolean last = (idx + 1 == request.getStudent().getRequests().size());
             boolean lastNotAlt = !r.isAlternative() && (last || request.getStudent().getRequests().get(1 + idx).isAlternative());
             double w = Math.ceil(iPriorityFactor * total) + remain;
-            if (lastNotAlt || last) {
+            if (!iLeftoverSpread && lastNotAlt) {
                 w = total;
             } else {
                 total -= w;
