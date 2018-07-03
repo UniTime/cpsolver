@@ -158,7 +158,7 @@ public class PriorityStudentWeights implements StudentWeights {
      * @return 0.0 when all the sections are the same, 1.0 when all the section are different (including different times)
      */
     protected double getDifference(Enrollment enrollment) {
-        if (enrollment.getStudent().isDummy()) return 1.0;
+        if (enrollment.getStudent().isDummy() || !enrollment.isCourseRequest()) return 1.0;
         Enrollment other = enrollment.getRequest().getInitialAssignment();
         if (other != null) {
             double similarSections = 0.0;
