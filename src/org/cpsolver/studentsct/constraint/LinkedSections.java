@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.model.Constraint;
@@ -372,7 +373,17 @@ public class LinkedSections {
     
     @Override
     public String toString() {
-        return "LinkedSections" + iSections.keySet();
+        String sections = "";
+        for (Map.Entry<Offering, Map<Subpart, Set<Section>>> e: iSections.entrySet()) {
+            sections += (sections.isEmpty() ? "" : "; ") + e.getKey().getName();
+            Set<String> ids = new TreeSet<String>();
+            for (Map.Entry<Subpart, Set<Section>> f: e.getValue().entrySet()) {
+                for (Section s: f.getValue())
+                    ids.add(s.getName());
+                sections += ":" + ids;
+            }
+        }
+        return "LinkedSections{" + sections + "}";
     }
     
     private static class Toggle<T> {
