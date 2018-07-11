@@ -230,12 +230,17 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             loadOfferings(root.element("offerings"), offeringTable, courseTable, null);
         }
         
+        List<Enrollment> bestEnrollments = new ArrayList<Enrollment>();
+        List<Enrollment> currentEnrollments = new ArrayList<Enrollment>();
         if (root.element("students") != null) {
-            loadStudents(root.element("students"), offeringTable, courseTable);
+            loadStudents(root.element("students"), offeringTable, courseTable, bestEnrollments, currentEnrollments);
         }
         
         if (root.element("constraints") != null) 
             loadLinkedSections(root.element("constraints"), offeringTable);
+        
+        if (!bestEnrollments.isEmpty()) assignBest(bestEnrollments);
+        if (!currentEnrollments.isEmpty()) assignCurrent(currentEnrollments);
     }
     
     /**
@@ -289,13 +294,18 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             }
         }
 
+        List<Enrollment> bestEnrollments = new ArrayList<Enrollment>();
+        List<Enrollment> currentEnrollments = new ArrayList<Enrollment>();
         if (iLoadStudents && root.element("students") != null) {
-            loadStudents(root.element("students"), offeringTable, courseTable);
+            loadStudents(root.element("students"), offeringTable, courseTable, bestEnrollments, currentEnrollments);
         }
         
         if (iLoadOfferings && root.element("constraints") != null) 
             loadLinkedSections(root.element("constraints"), offeringTable);
-        
+                
+        if (!bestEnrollments.isEmpty()) assignBest(bestEnrollments);
+        if (!currentEnrollments.isEmpty()) assignCurrent(currentEnrollments);
+
         sLogger.debug("Model successfully loaded.");
     }
     
@@ -670,9 +680,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
      * @param offeringTable offering table
      * @param courseTable course table
      */
-    protected void loadStudents(Element studentsEl, Map<Long, Offering> offeringTable, Map<Long, Course> courseTable) {
-        List<Enrollment> bestEnrollments = new ArrayList<Enrollment>();
-        List<Enrollment> currentEnrollments = new ArrayList<Enrollment>();
+    protected void loadStudents(Element studentsEl, Map<Long, Offering> offeringTable, Map<Long, Course> courseTable, List<Enrollment> bestEnrollments, List<Enrollment> currentEnrollments) {
         for (Iterator<?> i = studentsEl.elementIterator("student"); i.hasNext();) {
             Element studentEl = (Element) i.next();
             Student student = loadStudent(studentEl, offeringTable);
@@ -704,64 +712,72 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             }
             getModel().addStudent(student);
         }
-
-        if (!bestEnrollments.isEmpty()) {
-            // Enrollments with a reservation must go first
-            for (Enrollment enrollment : bestEnrollments) {
-                if (enrollment.getReservation() == null) continue;
-                if (!enrollment.getStudent().isAvailable(enrollment)) {
-                    sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
-                    continue;
-                }
-                Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
-                if (conflicts.isEmpty())
-                    getAssignment().assign(0, enrollment);
-                else
-                    sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
+    }
+    
+    /**
+     * Save best enrollments
+     * @param bestEnrollments best enrollments
+     */
+    protected void assignBest(List<Enrollment> bestEnrollments) {
+        // Enrollments with a reservation must go first
+        for (Enrollment enrollment : bestEnrollments) {
+            if (enrollment.getReservation() == null) continue;
+            if (!enrollment.getStudent().isAvailable(enrollment)) {
+                sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
+                continue;
             }
-            for (Enrollment enrollment : bestEnrollments) {
-                if (enrollment.getReservation() != null) continue;
-                if (!enrollment.getStudent().isAvailable(enrollment)) {
-                    sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
-                    continue;
-                }
-                Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
-                if (conflicts.isEmpty())
-                    getAssignment().assign(0, enrollment);
-                else
-                    sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
-            }
-            getModel().saveBest(getAssignment());
+            Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
+            if (conflicts.isEmpty())
+                getAssignment().assign(0, enrollment);
+            else
+                sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
         }
-
-        if (!currentEnrollments.isEmpty()) {
-            for (Request request : getModel().variables())
-                getAssignment().unassign(0, request);
-            // Enrollments with a reservation must go first
-            for (Enrollment enrollment : currentEnrollments) {
-                if (enrollment.getReservation() == null) continue;
-                if (!enrollment.getStudent().isAvailable(enrollment)) {
-                    sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
-                    continue;
-                }
-                Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
-                if (conflicts.isEmpty())
-                    getAssignment().assign(0, enrollment);
-                else
-                    sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
+        for (Enrollment enrollment : bestEnrollments) {
+            if (enrollment.getReservation() != null) continue;
+            if (!enrollment.getStudent().isAvailable(enrollment)) {
+                sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
+                continue;
             }
-            for (Enrollment enrollment : currentEnrollments) {
-                if (enrollment.getReservation() != null) continue;
-                if (!enrollment.getStudent().isAvailable(enrollment)) {
-                    sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
-                    continue;
-                }
-                Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
-                if (conflicts.isEmpty())
-                    getAssignment().assign(0, enrollment);
-                else
-                    sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
+            Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
+            if (conflicts.isEmpty())
+                getAssignment().assign(0, enrollment);
+            else
+                sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
+        }
+        getModel().saveBest(getAssignment());
+    }
+    
+    /**
+     * Assign current enrollments
+     * @param currentEnrollments current enrollments
+     */
+    protected void assignCurrent(List<Enrollment> currentEnrollments) {
+        for (Request request : getModel().variables())
+            getAssignment().unassign(0, request);
+        // Enrollments with a reservation must go first
+        for (Enrollment enrollment : currentEnrollments) {
+            if (enrollment.getReservation() == null) continue;
+            if (!enrollment.getStudent().isAvailable(enrollment)) {
+                sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
+                continue;
             }
+            Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
+            if (conflicts.isEmpty())
+                getAssignment().assign(0, enrollment);
+            else
+                sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
+        }
+        for (Enrollment enrollment : currentEnrollments) {
+            if (enrollment.getReservation() != null) continue;
+            if (!enrollment.getStudent().isAvailable(enrollment)) {
+                sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
+                continue;
+            }
+            Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
+            if (conflicts.isEmpty())
+                getAssignment().assign(0, enrollment);
+            else
+                sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
         }
     }
     
