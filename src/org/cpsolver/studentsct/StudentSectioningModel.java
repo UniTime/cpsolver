@@ -911,6 +911,42 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             info.put("Sections disbalanced by 10% or more", disb10Sections + " (" + sDecimalFormat.format(disbSections == 0 ? 0.0 : 100.0 * disb10Sections / disbSections) + "%)" + list);
         }
         
+        int assCR = 0, priCR = 0;
+        for (Request r: variables()) {
+            if (r instanceof CourseRequest && !r.getStudent().isDummy()) {
+                CourseRequest cr = (CourseRequest)r;
+                Enrollment e = assignment.getValue(cr);
+                if (e != null) {
+                    assCR ++;
+                    if (!cr.isAlternative() && cr.getCourses().get(0).equals(e.getCourse())) priCR ++;
+                }
+            }
+        }
+        info.put("Assigned priority course requests", sDoubleFormat.format(100.0 * priCR / assCR) + "% (" + priCR + "/" + assCR + ")");
+        int[] missing = new int[] {0, 0, 0, 0, 0};
+        int incomplete = 0;
+        for (Student student: getStudents()) {
+            if (student.isDummy()) continue;
+            int nrRequests = 0;
+            int nrAssignedRequests = 0;
+            for (Request r : student.getRequests()) {
+                if (!(r instanceof CourseRequest)) continue; // ignore free times
+                if (!r.isAlternative()) nrRequests++;
+                if (r.isAssigned(assignment)) nrAssignedRequests++;
+            }
+            if (nrAssignedRequests < nrRequests) {
+                missing[Math.min(nrRequests - nrAssignedRequests, missing.length) - 1] ++;
+                incomplete ++;
+            }
+            if (nrRequests == 0) {
+                sLog.warn("Student " + student.getExternalId() + " has no requests.");
+            }
+        }
+
+        for (int i = 0; i < missing.length; i++)
+            if (missing[i] > 0)
+                info.put("Students missing " + (i == 0 ? "1 course" : i + 1 == missing.length ? (i + 1) + " or more courses" : (i + 1) + " courses"), sDecimalFormat.format(100.0 * missing[i] / incomplete) + "% (" + missing[i] + ")");
+
         info.put("Overall solution value", sDoubleFormat.format(getTotalValue(assignment)) + " [precise: " + sDoubleFormat.format(getTotalValue(assignment, true)) + "]");
         
         return info;
