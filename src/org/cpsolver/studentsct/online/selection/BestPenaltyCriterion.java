@@ -129,7 +129,7 @@ public class BestPenaltyCriterion implements SelectionCriterion {
         }
 
         // 1. maximize number of penalties
-        int bestPenalties = 0, currentPenalties = 0;
+        double bestPenalties = 0, currentPenalties = 0;
         for (int idx = 0; idx < current.length; idx++) {
             if (best[idx] != null) {
                 for (Section section : best[idx].getSections())
