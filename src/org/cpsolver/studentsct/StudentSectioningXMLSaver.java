@@ -334,6 +334,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
             courseEl.addAttribute("projected", String.valueOf(course.getProjected()));
         if (iShowNames && course.getCredit() != null)
             courseEl.addAttribute("credit", course.getCredit());
+        if (course.hasCreditValue())
+            courseEl.addAttribute("credits", course.getCreditValue().toString());
     }
     
     /**
@@ -373,6 +375,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
             subpartEl.addAttribute("name", subpart.getName());
             if (subpart.getCredit() != null)
                 subpartEl.addAttribute("credit", subpart.getCredit());
+            if (subpart.hasCreditValue())
+                subpartEl.addAttribute("credits", subpart.getCreditValue().toString());
         }
         if (subpart.isAllowOverlap())
             subpartEl.addAttribute("allowOverlap", "true");
@@ -566,6 +570,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
             studentEl.addAttribute("shortDistances", "true");
         if (student.isAllowDisabled())
             studentEl.addAttribute("allowDisabled", "true");
+        if (student.hasMaxCredit())
+            studentEl.addAttribute("maxCredit", String.valueOf(student.getMaxCredit()));
         if (iSaveStudentInfo) {
             for (AcademicAreaCode aac : student.getAcademicAreaClasiffications()) {
                 Element aacEl = studentEl.addElement("classification");

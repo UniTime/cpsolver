@@ -522,4 +522,28 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
             return iMinEnrollmentWeight;
         }
     }
+    
+    /**
+     * True if at least one subpart of this config has a credit value set
+     * @return true if a there is a subpart credit
+     */
+    public boolean hasCreditValue() {
+        for (Subpart subpart: getSubparts())
+            if (subpart.hasCreditValue()) return true;
+        return false;
+    }
+    
+    /**
+     * Sum of subpart credit of this config
+     * return config credit value
+     */
+    public Float getCreditValue() {
+        float credit = 0f; boolean hasCredit = false;
+        for (Subpart subpart: getSubparts())
+            if (subpart.hasCreditValue()) {
+                hasCredit = true;
+                credit += subpart.getCreditValue();
+            }
+        return (hasCredit ? new Float(credit) : null);
+    }
 }

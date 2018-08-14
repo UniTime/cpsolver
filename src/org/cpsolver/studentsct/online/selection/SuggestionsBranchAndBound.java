@@ -330,8 +330,17 @@ public class SuggestionsBranchAndBound {
      * @return possible enrollments (meeting the filter etc)
      */
     protected List<Enrollment> values(final Request request) {
-        if (!request.getStudent().canAssign(iAssignment, request))
+        if (!request.equals(iSelectedRequest) && !request.getStudent().canAssign(iAssignment, request)) {
+            if (canLeaveUnassigned(request)) {
+                List<Enrollment> values = new ArrayList<Enrollment>();
+                Config config = null;
+                if (request instanceof CourseRequest)
+                    config = ((CourseRequest) request).getCourses().get(0).getOffering().getConfigs().get(0);
+                values.add(new Enrollment(request, 0, config, new HashSet<Section>(), iAssignment));
+                return values;
+            }
             return new ArrayList<Enrollment>();
+        }
         List<Enrollment> values = iValues.get(request);
         if (values != null)
             return values;

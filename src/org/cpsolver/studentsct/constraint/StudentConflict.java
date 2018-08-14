@@ -57,13 +57,18 @@ public class StudentConflict extends Constraint<Request, Enrollment> {
      * @param enrollment given enrollment
      * @return true if the given request can be assigned
      **/
-    public static boolean canAssign(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
+    public static boolean canAssign(Assignment<Request, Enrollment> assignment, Enrollment enrollment, Set<Enrollment> conflicts) {
         int alt = 0;
+        float credit = 0;
         boolean found = false;
         for (Request r : enrollment.getStudent().getRequests()) {
-            if (r.equals(enrollment.getRequest()))
+            Enrollment e = (r.equals(enrollment.getRequest()) ? enrollment : r.getAssignment(assignment));
+            if (r.equals(enrollment.getRequest())) {
                 found = true;
-            boolean assigned = (r.isAssigned(assignment) || r.equals(enrollment.getRequest()));
+            } else if (e != null && conflicts != null && conflicts.contains(e)) {
+                e = null;
+            }
+            boolean assigned = (e != null || r.equals(enrollment.getRequest()));
             boolean course = (r instanceof CourseRequest);
             boolean waitlist = (course && ((CourseRequest) r).isWaitlist());
             if (r.isAlternative()) {
@@ -73,8 +78,9 @@ public class StudentConflict extends Constraint<Request, Enrollment> {
                 if (course && !waitlist && !assigned)
                     alt++;
             }
+            if (e != null) credit += e.getCredit();
         }
-        return (alt >= 0);
+        return (alt >= 0 && credit <= enrollment.getStudent().getMaxCredit());
     }
 
     /**
@@ -105,7 +111,7 @@ public class StudentConflict extends Constraint<Request, Enrollment> {
 
         // if this enrollment cannot be assigned (student already has a full
         // schedule) -> unassignd a lowest priority request
-        if (!enrollment.getAssignments().isEmpty() && !canAssign(assignment, enrollment)) {
+        while (!enrollment.getAssignments().isEmpty() && !canAssign(assignment, enrollment, conflicts)) {
             Enrollment lowestPriorityEnrollment = null;
             int lowestPriority = -1;
             for (Request request : variables()) {
@@ -114,17 +120,19 @@ public class StudentConflict extends Constraint<Request, Enrollment> {
                 if (!(request instanceof CourseRequest) || ((CourseRequest)request).isWaitlist())
                     continue;
                 Enrollment e = assignment.getValue(request);
-                if (e == null)
+                if (e == null || conflicts.contains(e))
                     continue;
                 if (lowestPriority < request.getPriority()) {
                     lowestPriority = request.getPriority();
                     lowestPriorityEnrollment = e;
                 }
             }
-            if (lowestPriorityEnrollment != null)
+            if (lowestPriorityEnrollment != null) {
                 conflicts.add(lowestPriorityEnrollment);
-            else
+            } else {
                 conflicts.add(enrollment); // there are only alternatives or wait-listed courses
+                break;
+            }
         }
     }
 
@@ -162,7 +170,7 @@ public class StudentConflict extends Constraint<Request, Enrollment> {
 
         // if this enrollment cannot be assigned (student already has a full
         // schedule) -> conflict
-        if (!canAssign(assignment, enrollment))
+        if (!canAssign(assignment, enrollment, null))
             return true;
 
         // nothing above -> no conflict

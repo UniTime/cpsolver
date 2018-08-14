@@ -3,6 +3,8 @@ package org.cpsolver.studentsct.model;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.context.AbstractClassWithContext;
@@ -50,6 +52,7 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
     private String iNote = null;
     private Set<RequestGroup> iRequestGroups = new HashSet<RequestGroup>();
     private String iCredit = null;
+    private Float iCreditValue = null;
 
     /**
      * Constructor
@@ -276,15 +279,47 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
     
     /**
      * Set credit (Online Student Scheduling only)
-     * @param credit scheduling subpart credit
+     * @param credit scheduling course credit
      */
-    public void setCredit(String credit) { iCredit = credit; }
+    public void setCredit(String credit) {
+        iCredit = credit;
+        if (iCreditValue == null && credit != null) {
+            int split = credit.indexOf('|');
+            String abbv = null;
+            if (split >= 0) {
+                abbv = credit.substring(0, split);
+            } else {
+                abbv = credit;
+            }
+            Matcher m = Pattern.compile("(^| )(\\d+\\.?\\d*)([,-]?(\\d+\\.?\\d*))?($| )").matcher(abbv);
+            if (m.find())
+                iCreditValue = Float.parseFloat(m.group(2));
+        }
+    }
     
     /**
      * Get credit (Online Student Scheduling only)
-     * @return scheduling subpart credit
+     * @return scheduling course credit
      */
     public String getCredit() { return iCredit; }
+    
+    /**
+     * True if this course has a credit value defined
+     * @return true if a credit value is set
+     */
+    public boolean hasCreditValue() { return iCreditValue != null; }
+    
+    /**
+     * Set course credit value (null if not set)
+     * @param creditValue course credit value
+     */
+    public void setCreditValue(Float creditValue) { iCreditValue = creditValue; }
+    
+    /**
+     * Get course credit value (null if not set)
+     * return course credit value
+     */
+    public Float getCreditValue() { return iCreditValue; }
 
     @Override
     public CourseContext createAssignmentContext(Assignment<Request, Enrollment> assignment) {

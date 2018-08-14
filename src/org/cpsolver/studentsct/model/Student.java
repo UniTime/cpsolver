@@ -52,6 +52,7 @@ public class Student implements Comparable<Student> {
     private List<Unavailability> iUnavailabilities = new ArrayList<Unavailability>();
     private boolean iNeedShortDistances = false;
     private boolean iAllowDisabled = false;
+    private Float iMaxCredit = null;
 
     /**
      * Constructor
@@ -134,6 +135,7 @@ public class Student implements Comparable<Student> {
         if (request.isAssigned(assignment))
             return true;
         int alt = 0;
+        float credit = 0f;
         boolean found = false;
         for (Request r : getRequests()) {
             if (r.equals(request))
@@ -148,8 +150,14 @@ public class Student implements Comparable<Student> {
                 if (course && !waitlist && !assigned)
                     alt++;
             }
+            if (r.equals(request))
+                credit += r.getMinCredit();
+            else {
+                Enrollment e = r.getAssignment(assignment);
+                if (e != null) credit += e.getCredit();
+            }
         }
-        return (alt >= 0);
+        return (alt >= 0 && credit <= getMaxCredit());
     }
 
     /**
@@ -161,6 +169,8 @@ public class Student implements Comparable<Student> {
     public boolean isComplete(Assignment<Request, Enrollment> assignment) {
         int nrRequests = 0;
         int nrAssignedRequests = 0;
+        float credit = 0f;
+        Float minCredit = null;
         for (Request r : getRequests()) {
             if (!(r instanceof CourseRequest))
                 continue; // ignore free times
@@ -168,8 +178,14 @@ public class Student implements Comparable<Student> {
                 nrRequests++;
             if (r.isAssigned(assignment))
                 nrAssignedRequests++;
+            Enrollment e = r.getAssignment(assignment);
+            if (e != null) {
+                credit += e.getCredit();
+            } else if (r instanceof CourseRequest) {
+                minCredit = (minCredit == null ? r.getMinCredit() : Math.min(minCredit, r.getMinCredit()));
+            }
         }
-        return nrAssignedRequests == nrRequests;
+        return nrAssignedRequests == nrRequests || credit + (minCredit == null ? 0f : minCredit.floatValue()) > getMaxCredit();
     }
 
     /** Number of assigned COURSE requests 
@@ -416,4 +432,22 @@ public class Student implements Comparable<Student> {
     public void setAllowDisabled(boolean allowDisabled) {
         iAllowDisabled = allowDisabled;
     }
+    
+    /**
+     * True if student has max credit defined
+     * @return true if max credit is set
+     */
+    public boolean hasMaxCredit() { return iMaxCredit != null; }
+    
+    /**
+     * Get student max credit ({@link Float#MAX_VALUE} if not set)
+     * return student max credit
+     */
+    public float getMaxCredit() { return (iMaxCredit == null ? Float.MAX_VALUE : iMaxCredit.floatValue()); }
+    
+    /**
+     * Set student max credit (null if not set)
+     * @param maxCredit student max credit
+     */
+    public void setMaxCredit(Float maxCredit) { iMaxCredit = maxCredit; }
 }

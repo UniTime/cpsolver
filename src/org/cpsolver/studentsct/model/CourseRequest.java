@@ -878,4 +878,19 @@ public class CourseRequest extends Request {
             if (g.getCourse().equals(enrollment.getCourse()))
                 g.unassigned(assignment, enrollment);
     }
+
+    @Override
+    public float getMinCredit() {
+        Float credit = null;
+        for (Course course: getCourses()) {
+            if (course.hasCreditValue() && (credit == null || credit > course.getCreditValue()))
+                    credit = course.getCreditValue();
+            for (Config config: course.getOffering().getConfigs()) {
+                Float configCredit = config.getCreditValue();
+                if (configCredit != null && (credit == null || credit > configCredit))
+                        credit = configCredit;
+            }
+        }
+        return (credit == null ? 0 : credit.floatValue());
+    }
 }

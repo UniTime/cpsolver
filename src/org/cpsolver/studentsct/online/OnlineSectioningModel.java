@@ -5,9 +5,11 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.model.Constraint;
+import org.cpsolver.ifs.model.GlobalConstraint;
 import org.cpsolver.ifs.model.Value;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.studentsct.StudentSectioningModel;
+import org.cpsolver.studentsct.constraint.FixInitialAssignments;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.Section;
@@ -46,7 +48,7 @@ public class OnlineSectioningModel extends StudentSectioningModel {
     private OverExpectedCriterion iOverExpectedCriterion;
 
     public OnlineSectioningModel(DataProperties properties) {
-        super(properties);
+        this(properties, null);
         try {
             @SuppressWarnings("unchecked")
             Class<OverExpectedCriterion> overExpectedCriterionClass = (Class<OverExpectedCriterion>)
@@ -61,6 +63,13 @@ public class OnlineSectioningModel extends StudentSectioningModel {
     public OnlineSectioningModel(DataProperties config, OverExpectedCriterion criterion) {
         super(config);
         iOverExpectedCriterion = criterion;
+        if (isMPP() && getKeepInitialAssignments()) {
+            for (GlobalConstraint<Request, Enrollment> c: globalConstraints()) {
+                if (c instanceof FixInitialAssignments) {
+                    removeGlobalConstraint(c); break;
+                }
+            }
+        }
     }
     
     /**

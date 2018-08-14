@@ -361,6 +361,9 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                 offering, Integer.parseInt(courseEl.attributeValue("limit", "-1")),
                 Integer.parseInt(courseEl.attributeValue("projected", "0")));
         course.setCredit(courseEl.attributeValue("credit"));
+        String credits = courseEl.attributeValue("credits");
+        if (credits != null)
+            course.setCreditValue(Float.valueOf(credits));
         return course;
     }
     
@@ -413,6 +416,9 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                 parentSubpart);
         subpart.setAllowOverlap("true".equals(subpartEl.attributeValue("allowOverlap", "false")));
         subpart.setCredit(subpartEl.attributeValue("credit"));
+        String credits = subpartEl.attributeValue("credits");
+        if (credits != null)
+            subpart.setCreditValue(Float.valueOf(credits));
         
         for (Iterator<?> l = subpartEl.elementIterator("section"); l.hasNext();) {
             Element sectionEl = (Element) l.next();
@@ -796,6 +802,9 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         student.setExternalId(studentEl.attributeValue("externalId"));
         student.setName(studentEl.attributeValue("name"));
         student.setStatus(studentEl.attributeValue("status"));
+        String maxCredit = studentEl.attributeValue("maxCredit");
+        if (maxCredit != null)
+            student.setMaxCredit(Float.parseFloat(maxCredit));
         for (Iterator<?> j = studentEl.elementIterator(); j.hasNext();) {
             Element requestEl = (Element) j.next();
             if ("classification".equals(requestEl.getName())) {

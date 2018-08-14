@@ -257,5 +257,9 @@ public abstract class Request extends VariableWithContext<Request, Enrollment, R
     public boolean hasSelection() {
         return false;
     }
-
+    
+    /**
+     * Smallest credit provided by this request
+     */
+    public abstract float getMinCredit();
 }

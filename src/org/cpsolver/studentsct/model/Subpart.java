@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.cpsolver.studentsct.reservation.Reservation;
 
@@ -42,6 +44,7 @@ public class Subpart implements Comparable<Subpart> {
     private Subpart iParent = null;
     private boolean iAllowOverlap = false;
     private String iCredit = null;
+    private Float iCreditValue = null;
 
     /**
      * Constructor
@@ -263,11 +266,43 @@ public class Subpart implements Comparable<Subpart> {
      * Set credit (Online Student Scheduling only)
      * @param credit scheduling subpart credit
      */
-    public void setCredit(String credit) { iCredit = credit; }
+    public void setCredit(String credit) {
+        iCredit = credit;
+        if (iCreditValue == null && credit != null) {
+            int split = credit.indexOf('|');
+            String abbv = null;
+            if (split >= 0) {
+                abbv = credit.substring(0, split);
+            } else {
+                abbv = credit;
+            }
+            Matcher m = Pattern.compile("(^| )(\\d+\\.?\\d*)([,-]?(\\d+\\.?\\d*))?($| )").matcher(abbv);
+            if (m.find())
+                iCreditValue = Float.parseFloat(m.group(2));
+        }
+    }
     
     /**
      * Get credit (Online Student Scheduling only)
      * @return scheduling subpart credit
      */
     public String getCredit() { return iCredit; }
+
+    /**
+     * True if this subpart has a credit value defined
+     * @return true if a credit value is set
+     */
+    public boolean hasCreditValue() { return iCreditValue != null; }
+    
+    /**
+     * Set subpart's credit value (null if not set)
+     * @param creditValue subpart's credit value
+     */
+    public void setCreditValue(Float creditValue) { iCreditValue = creditValue; }
+    
+    /**
+     * Get subpart's credit value (null if not set)
+     * return subpart's credit value
+     */
+    public Float getCreditValue() { return iCreditValue; }
 }

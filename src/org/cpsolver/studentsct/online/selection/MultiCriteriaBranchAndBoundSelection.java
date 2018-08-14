@@ -199,9 +199,14 @@ public class MultiCriteriaBranchAndBoundSelection implements OnlineSectioningSel
             }) != null)
                 return true;
         }
-        for (int i = 0; i < iCurrentAssignment.length; i++)
-            if (iCurrentAssignment[i] != null && i != idx && iCurrentAssignment[i].isOverlapping(enrollment))
-                return true;
+        float credit = enrollment.getCredit();
+        for (int i = 0; i < iCurrentAssignment.length; i++) {
+            if (iCurrentAssignment[i] != null && i != idx) {
+                credit += iCurrentAssignment[i].getCredit();
+                if (credit > iStudent.getMaxCredit() || iCurrentAssignment[i].isOverlapping(enrollment))
+                    return true;
+            }
+        }
         if (iMaxOverExpected >= 0.0) {
             double penalty = 0.0;
             for (int i = 0; i < idx; i++) {
@@ -219,12 +224,17 @@ public class MultiCriteriaBranchAndBoundSelection implements OnlineSectioningSel
 
     /** True if the given request can be assigned */
     public boolean canAssign(Request request, int idx) {
-        if (!request.isAlternative() || iCurrentAssignment[idx] != null)
+        if (iCurrentAssignment[idx] != null)
             return true;
         int alt = 0;
         int i = 0;
+        float credit = 0;
         for (Iterator<Request> e = iStudent.getRequests().iterator(); e.hasNext(); i++) {
             Request r = e.next();
+            if (r.equals(request))
+                credit += r.getMinCredit();
+            else if (iCurrentAssignment[i] != null)
+                credit += iCurrentAssignment[i].getCredit();
             if (r.equals(request))
                 continue;
             if (r.isAlternative()) {
@@ -235,7 +245,7 @@ public class MultiCriteriaBranchAndBoundSelection implements OnlineSectioningSel
                     alt++;
             }
         }
-        return (alt > 0);
+        return (!request.isAlternative() || alt > 0) && (credit <= request.getStudent().getMaxCredit());
     }
 
     public boolean isAllowed(int idx, Enrollment enrollment) {

@@ -123,7 +123,10 @@ public class ConfigLimit extends GlobalConstraint<Request, Enrollment> {
         // exclude free time requests
         if (config == null)
             return;
-        
+
+        // exclude empty enrollmens
+        if (enrollment.getSections() == null || enrollment.getSections().isEmpty())
+            return;
 
         // unlimited config
         if (config.getLimit() < 0)
@@ -231,11 +234,14 @@ public class ConfigLimit extends GlobalConstraint<Request, Enrollment> {
         // exclude free time requests
         if (config == null)
             return false;
+        
+        // exclude empty enrollmens
+        if (enrollment.getSections() == null || enrollment.getSections().isEmpty())
+            return false;
 
         // unlimited config
         if (config.getLimit() < 0)
             return false;
-
 
         // new enrollment weight
         double enrlWeight = getEnrollmentWeight(assignment, config, enrollment.getRequest());

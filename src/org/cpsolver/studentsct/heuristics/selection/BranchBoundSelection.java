@@ -504,9 +504,14 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                     }
                 }) != null) return true;
             }
-            for (int i = 0; i < iAssignment.length; i++)
-                if (iAssignment[i] != null && i != idx && iAssignment[i].isOverlapping(enrollment))
-                    return true;
+            float credit = enrollment.getCredit();
+            for (int i = 0; i < iAssignment.length; i++) {
+                if (iAssignment[i] != null && i != idx) {
+                    credit += iAssignment[i].getCredit();
+                    if (credit > iStudent.getMaxCredit() || iAssignment[i].isOverlapping(enrollment))
+                        return true;
+                }
+            }
             return false;
         }
 
@@ -525,11 +530,13 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                         return conflict;
                 }
             }
+            float credit = enrollment.getCredit();
             for (int i = 0; i < iAssignment.length; i++) {
-                if (iAssignment[i] == null || i == idx)
-                    continue;
-                if (iAssignment[i].isOverlapping(enrollment))
+                if (iAssignment[i] != null && i != idx) {
+                    credit += iAssignment[i].getCredit();
+                    if (credit > iStudent.getMaxCredit() || iAssignment[i].isOverlapping(enrollment))
                     return iAssignment[i];
+                }
             }
             return null;
         }
@@ -540,12 +547,17 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
          * @return true if can be assigned
          **/
         public boolean canAssign(Request request, int idx) {
-            if (!request.isAlternative() || iAssignment[idx] != null)
+            if (iAssignment[idx] != null)
                 return true;
             int alt = 0;
             int i = 0;
+            float credit = 0;
             for (Iterator<Request> e = iStudent.getRequests().iterator(); e.hasNext(); i++) {
                 Request r = e.next();
+                if (r.equals(request))
+                    credit += r.getMinCredit();
+                else if (iAssignment[i] != null)
+                    credit += iAssignment[i].getCredit();
                 if (r.equals(request))
                     continue;
                 if (r.isAlternative()) {
@@ -556,7 +568,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                         alt++;
                 }
             }
-            return (alt > 0);
+            return (!request.isAlternative() || alt > 0) && (credit <= iStudent.getMaxCredit());
         }
 
         /** Number of assigned requests in the current schedule 

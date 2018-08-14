@@ -124,6 +124,10 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
         if (config == null)
             return;
         
+        // exclude empty enrollmens
+        if (enrollment.getSections() == null || enrollment.getSections().isEmpty())
+            return;
+        
         // no reservations
         if (!config.getOffering().hasReservations())
             return;
@@ -369,6 +373,10 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
 
         // exclude free time requests
         if (config == null)
+            return false;
+        
+        // exclude empty enrollmens
+        if (enrollment.getSections() == null || enrollment.getSections().isEmpty())
             return false;
         
         // enrollment's reservation

@@ -240,4 +240,9 @@ public class FreeTimeRequest extends Request implements SctAssignment {
     public RequestContext createAssignmentContext(Assignment<Request, Enrollment> assignment) {
         return new FreeTimeRequestContext(assignment);
     }
+
+    @Override
+    public float getMinCredit() {
+        return 0;
+    }
 }

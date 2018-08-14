@@ -474,12 +474,17 @@ public class InevitableStudentConflicts {
          * @param idx index of the request that is being assigned
          * @return true if the given request can be assigned */
         public boolean canAssign(Request request, int idx) {
-            if (!request.isAlternative() || iAssignment[idx] != null)
+            if (iAssignment[idx] != null)
                 return true;
             int alt = 0;
             int i = 0;
+            float credit = 0f;
             for (Iterator<Request> e = iRequests.iterator(); e.hasNext(); i++) {
                 Request r = e.next();
+                if (r.equals(request))
+                    credit += r.getMinCredit();
+                else if (iAssignment[i] != null)
+                    credit += iAssignment[i].getCredit();
                 if (r.equals(request))
                     continue;
                 if (r.isAlternative()) {
@@ -490,7 +495,7 @@ public class InevitableStudentConflicts {
                         alt++;
                 }
             }
-            return (alt > 0);
+            return (!request.isAlternative() || alt > 0) && (credit <= request.getStudent().getMaxCredit());
         }
 
         /** Number of assigned requests in the current schedule 

@@ -603,4 +603,15 @@ public class Enrollment extends Value<Request, Enrollment> {
         return (limit == null ? -1 : limit);
     }
     
+    public float getCredit() {
+        if (getCourse() == null) return 0f;
+        if (getAssignments().isEmpty()) return 0f;
+        if (getCourse().hasCreditValue()) return getCourse().getCreditValue();
+        float subpartCredit = 0f;
+        for (Subpart subpart: getConfig().getSubparts()) {
+            if (subpart.hasCreditValue()) subpartCredit += subpart.getCreditValue();
+        }
+        return subpartCredit;
+    }
+    
 }

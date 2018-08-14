@@ -122,6 +122,10 @@ public class CourseLimit extends GlobalConstraint<Request, Enrollment> {
         // exclude free time requests
         if (course == null)
             return;
+        
+        // exclude empty enrollmens
+        if (enrollment.getSections() == null || enrollment.getSections().isEmpty())
+            return;
 
         // unlimited course
         if (course.getLimit() < 0)
@@ -213,6 +217,10 @@ public class CourseLimit extends GlobalConstraint<Request, Enrollment> {
 
         // exclude free time requests
         if (course == null)
+            return false;
+        
+        // exclude empty enrollmens
+        if (enrollment.getSections() == null || enrollment.getSections().isEmpty())
             return false;
 
         // unlimited course
