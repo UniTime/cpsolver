@@ -46,7 +46,7 @@ public class MinimizeConflicts implements OverExpectedCriterion, OverExpectedCri
         iParent = parent;
         iTimeConflicts = config.getPropertyBoolean("OverExpected.TimeConflicts", iTimeConflicts);
         iSpaceConflicts = config.getPropertyBoolean("OverExpected.SpaceConflicts", iSpaceConflicts);
-        iParentWeight = config.getPropertyDouble("OverExpected.SpaceConflicts", iParentWeight);
+        iParentWeight = config.getPropertyDouble("OverExpected.ParentWeight", iParentWeight);
     }
 
     @Override
