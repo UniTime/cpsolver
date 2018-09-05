@@ -74,19 +74,19 @@ public class Constants extends org.cpsolver.ifs.Constants {
     public static final String sPreferenceNeutral = "0";
 
     /** Preference level: prohibited */
-    public static final int sPreferenceLevelProhibited = 100;
+    public static int sPreferenceLevelProhibited = 100;
     /** Preference level: required */
-    public static final int sPreferenceLevelRequired = -100;
+    public static int sPreferenceLevelRequired = -100;
     /** Preference level: strongly discouraged */
-    public static final int sPreferenceLevelStronglyDiscouraged = 4;
+    public static int sPreferenceLevelStronglyDiscouraged = 4;
     /** Preference level: discouraged */
-    public static final int sPreferenceLevelDiscouraged = 1;
+    public static int sPreferenceLevelDiscouraged = 1;
     /** Preference level: preferred */
-    public static final int sPreferenceLevelPreferred = -1;
+    public static int sPreferenceLevelPreferred = -1;
     /** Preference level: strongly preferred */
-    public static final int sPreferenceLevelStronglyPreferred = -4;
+    public static int sPreferenceLevelStronglyPreferred = -4;
     /** Preference level: neutral */
-    public static final int sPreferenceLevelNeutral = 0;
+    public static int sPreferenceLevelNeutral = 0;
 
     /** Convert preference to preference level 
      * @param prologPref prolog preference (R for required, P for prohibited, -2 strongly preferred, ... 2 strongly discouraged)
