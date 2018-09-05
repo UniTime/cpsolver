@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.cpsolver.coursett.Constants;
 import org.cpsolver.coursett.criteria.DistributionPreferences;
@@ -109,11 +111,10 @@ import org.cpsolver.ifs.util.ToolBox;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-
 public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, GroupConstraint.GroupConstraintContext> {
     private Long iConstraintId;
     private int iPreference;
-    private ConstraintType iType;
+    private ConstraintTypeInterface iType;
     private boolean iIsRequired;
     private boolean iIsProhibited;
     private int iDayOfWeekOffset = 0;
@@ -173,6 +174,40 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
     }
     
     /**
+     * Group constraints that can have parameters need to implement this interface instead of {@link AssignmentPairCheck} or {@link PairCheck}.
+     */
+    public static interface AssignmentParameterPairCheck<P> {
+        /**
+         * Check whether the constraint is satisfied for the given two assignments (required / preferred case)
+         * @param assignment current assignment
+         * @param parameter constraint dependent parameter(s)
+         * @param gc Calling group constraint 
+         * @param plc1 First placement
+         * @param plc2 Second placement
+         * @return true if constraint is satisfied
+         */
+        public boolean isSatisfied(Assignment<Lecture, Placement> assignment, P parameter, GroupConstraint gc, Placement plc1, Placement plc2);
+        /**
+         * Check whether the constraint is satisfied for the given two assignments (prohibited / discouraged case)
+         * @param assignment current assignment
+         * @param parameter constraint dependent parameter(s)
+         * @param gc Calling group constraint 
+         * @param plc1 First placement
+         * @param plc2 Second placement
+         * @return true if constraint is satisfied
+         */
+        public boolean isViolated(Assignment<Lecture, Placement> assignment, P parameter, GroupConstraint gc, Placement plc1, Placement plc2);
+        
+        /**
+         * Create constraint type with the parameters taken from the provided reference
+         * @param reference constraint reference, including parameter(s)
+         * @param referenceRegExp reference regular expression defined on the constraint type
+         * @return constraint type with the parameter
+         */
+        public ParametrizedConstraintType<P> create(String reference, String referenceRegExp);
+    }
+    
+    /**
      * Group constraint building blocks (individual constraints that need more than {@link PairCheck})
      */
     public static enum Flag {
@@ -189,9 +224,99 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
     }
     
     /**
+     * Constraint type interface
+     */
+    public static interface ConstraintTypeInterface extends AssignmentPairCheck {
+        /** Constraint type
+         * @return constraint type
+         */
+        public ConstraintType type();
+        
+        /** Constraint reference
+         * @return constraint reference
+         **/
+        public String reference();
+        
+        /** Constraint name
+         * @return constraint name
+         **/
+        public String getName();
+        
+        /** Minimum (gap) parameter
+         * @return minimum gap (first constraint parameter)
+         **/
+        public int getMin();
+        
+        /** Maximum (gap, hours a day) parameter 
+         * @return maximum gap (second constraint parameter) 
+         **/
+        public int getMax();
+        
+        /** Flag check (true if contains given flag) 
+         * @param f a flag to check
+         * @return true if present
+         **/
+        public boolean is(Flag f);
+    }
+    
+    /**
+     * Constraint type with a parameter
+     */
+    public static class ParametrizedConstraintType<P> implements ConstraintTypeInterface {
+        private String iReference;
+        private ConstraintType iType;
+        private Integer iMin = null, iMax = null;
+        private String iName = null;
+        private P iParameter;
+        
+        /**
+         * Constructor
+         * @param type constraint type
+         * @param parameter parameter parsed from the reference using {@link AssignmentParameterPairCheck#create(String, String)}
+         * @param reference constraint reference with parameters
+         */
+        public ParametrizedConstraintType(ConstraintType type, P parameter, String reference) {
+            iType = type; iParameter = parameter; iReference = reference;
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public boolean isSatisfied(Assignment<Lecture, Placement> assignment, GroupConstraint gc, Placement plc1, Placement plc2) {
+            return ((AssignmentParameterPairCheck<P>)iType.iAssignmentPairCheck).isSatisfied(assignment, iParameter, gc, plc1, plc2);
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public boolean isViolated(Assignment<Lecture, Placement> assignment, GroupConstraint gc, Placement plc1, Placement plc2) {
+            return ((AssignmentParameterPairCheck<P>)iType.iAssignmentPairCheck).isViolated(assignment, iParameter, gc, plc1, plc2);
+        }
+
+        /**
+         * Return constraint's parameter
+         * @return constraint's parameter
+         */
+        public P getParameter() { return iParameter; }
+        @Override
+        public ConstraintType type() { return iType; }
+        @Override
+        public String reference() { return iReference; }
+        @Override
+        public String getName() { return (iName == null ? iType.getName() : iName); }
+        @Override
+        public int getMin() { return (iMin == null ? iType.getMin() : iMin); }
+        @Override
+        public int getMax() { return (iMax == null ? iType.getMax() : iMax); }
+        @Override
+        public boolean is(Flag f) { return iType.is(f); }
+        public ParametrizedConstraintType<P> setMin(int min) { iMin = min; return this; }
+        public ParametrizedConstraintType<P> setMax(int max) { iMax = max; return this; }
+        public ParametrizedConstraintType<P> setName(String name) { iName = name; return this; }
+    }
+    
+    /**
      * Group constraint type.
      */
-    public static enum ConstraintType {
+    public static enum ConstraintType implements ConstraintTypeInterface {
         /**
          * Same Time: Given classes must be taught at the same time of day (independent of the actual day the classes meet).
          * For the classes of the same length, this is the same constraint as same start. For classes of different length,
@@ -551,37 +676,61 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                 return gc.isEveryOtherDay(plc1, plc2, false);
             }}),
         /**
-          * At Most 3 Hours A Day: Classes are to be placed in a way that there is no more than three hours in any day.
-          */
-        MAX_HRS_DAY_3("MAX_HRS_DAY(3)", "At Most 3 Hours A Day", 36, null, Flag.MAX_HRS_DAY),        
-        /**
-         * At Most 4 Hours A Day: Classes are to be placed in a way that there is no more than four hours in any day.
+         * At Most 3 Hours A Day: Classes are to be placed in a way that there is no more than three hours in any day.
          */
-        MAX_HRS_DAY_4("MAX_HRS_DAY(4)", "At Most 4 Hours A Day", 48, null, Flag.MAX_HRS_DAY),        
-        /**
-          * At Most 5 Hours A Day: Classes are to be placed in a way that there is no more than five hours in any day.
-          */
-        MAX_HRS_DAY_5("MAX_HRS_DAY(5)", "At Most 5 Hours A Day", 60, null, Flag.MAX_HRS_DAY),        
-        /**
-         * At Most 6 Hours A Day: Classes are to be placed in a way that there is no more than six hours in any day.
+       MAX_HRS_DAY_3("MAX_HRS_DAY(3)", "At Most 3 Hours A Day", 36, null, Flag.MAX_HRS_DAY),        
+       /**
+        * At Most 4 Hours A Day: Classes are to be placed in a way that there is no more than four hours in any day.
+        */
+       MAX_HRS_DAY_4("MAX_HRS_DAY(4)", "At Most 4 Hours A Day", 48, null, Flag.MAX_HRS_DAY),        
+       /**
+         * At Most 5 Hours A Day: Classes are to be placed in a way that there is no more than five hours in any day.
          */
-        MAX_HRS_DAY_6("MAX_HRS_DAY(6)", "At Most 6 Hours A Day", 72, null, Flag.MAX_HRS_DAY),
+       MAX_HRS_DAY_5("MAX_HRS_DAY(5)", "At Most 5 Hours A Day", 60, null, Flag.MAX_HRS_DAY),        
+       /**
+        * At Most 6 Hours A Day: Classes are to be placed in a way that there is no more than six hours in any day.
+        */
+       MAX_HRS_DAY_6("MAX_HRS_DAY(6)", "At Most 6 Hours A Day", 72, null, Flag.MAX_HRS_DAY),
+       /**
+        * At Most 7 Hours A Day: Classes are to be placed in a way that there is no more than seven hours in any day.
+        */
+       MAX_HRS_DAY_7("MAX_HRS_DAY(7)", "At Most 7 Hours A Day", 84, null, Flag.MAX_HRS_DAY),
+       /**
+        * At Most 8 Hours A Day: Classes are to be placed in a way that there is no more than eight hours in any day.
+        */
+       MAX_HRS_DAY_8("MAX_HRS_DAY(8)", "At Most 8 Hours A Day", 96, null, Flag.MAX_HRS_DAY),
+       /**
+        * At Most 9 Hours A Day: Classes are to be placed in a way that there is no more than nine hours in any day.
+        */
+       MAX_HRS_DAY_9("MAX_HRS_DAY(9)", "At Most 9 Hours A Day", 108, null, Flag.MAX_HRS_DAY),
+       /**
+        * At Most 10 Hours A Day: Classes are to be placed in a way that there is no more than ten hours in any day.
+        */
+       MAX_HRS_DAY_10("MAX_HRS_DAY(10)", "At Most 10 Hours A Day", 120, null, Flag.MAX_HRS_DAY),
         /**
-         * At Most 7 Hours A Day: Classes are to be placed in a way that there is no more than seven hours in any day.
+         * At Most X Hours A Day: Classes are to be placed in a way that there is no more than given number of hours in any day.
          */
-        MAX_HRS_DAY_7("MAX_HRS_DAY(7)", "At Most 7 Hours A Day", 84, null, Flag.MAX_HRS_DAY),
-        /**
-         * At Most 8 Hours A Day: Classes are to be placed in a way that there is no more than eight hours in any day.
-         */
-        MAX_HRS_DAY_8("MAX_HRS_DAY(8)", "At Most 8 Hours A Day", 96, null, Flag.MAX_HRS_DAY),
-        /**
-         * At Most 9 Hours A Day: Classes are to be placed in a way that there is no more than nine hours in any day.
-         */
-        MAX_HRS_DAY_9("MAX_HRS_DAY(9)", "At Most 9 Hours A Day", 108, null, Flag.MAX_HRS_DAY),
-        /**
-         * At Most 10 Hours A Day: Classes are to be placed in a way that there is no more than ten hours in any day.
-         */
-        MAX_HRS_DAY_10("MAX_HRS_DAY(10)", "At Most 10 Hours A Day", 120, null, Flag.MAX_HRS_DAY),
+        MAX_HRS_DAY("MAX_HRS_DAY\\(([0-9\\.]+)\\)", "At Most N Hours A Day", new AssignmentParameterPairCheck<Integer>() {
+            @Override
+            public boolean isSatisfied(Assignment<Lecture, Placement> assignment, Integer parameter, GroupConstraint gc, Placement plc1, Placement plc2) {
+                return true;
+            }
+            @Override
+            public boolean isViolated(Assignment<Lecture, Placement> assignment, Integer parameter, GroupConstraint gc, Placement plc1, Placement plc2) {
+                return true;
+            }
+            @Override
+            public ParametrizedConstraintType<Integer> create(String reference, String regexp) {
+                Matcher matcher = Pattern.compile(regexp).matcher(reference);
+                if (matcher.find()) {
+                    double hours = Double.parseDouble(matcher.group(1));
+                    int slots = (int)Math.round(12.0 * hours);
+                    return new ParametrizedConstraintType<Integer>(ConstraintType.MAX_HRS_DAY, slots, reference)
+                            .setName("At Most " + matcher.group(1) + " Hours A Day")
+                            .setMin(slots).setMax(slots);
+                }
+                return null;
+            }}, Flag.MAX_HRS_DAY),
         /**
          * Given classes must be taught during the same weeks (i.e., must have the same date pattern).<br>
          * When prohibited or (strongly) discouraged: any two classes must have non overlapping date patterns.
@@ -703,6 +852,31 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
          * 5 Hour Work Day: Classes are to be placed in a way that there is no more than five hours between the start of the first class and the end of the class one on any day.
          */
         WORKDAY_5("WORKDAY(5)", "5 Hour Work Day", 60, WORKDAY_6.check()),
+          /**
+         * Work Day: Classes are to be placed in a way that there is no more than given number of hours between the start of the first class and the end of the class one on any day.
+         */
+        WORKDAY("WORKDAY\\(([0-9\\.]+)\\)", "Work Day", new AssignmentParameterPairCheck<Integer>() {
+            @Override
+            public boolean isSatisfied(Assignment<Lecture, Placement> assignment, Integer parameter, GroupConstraint gc, Placement plc1, Placement plc2) {
+                TimeLocation t1 = plc1.getTimeLocation(), t2 = plc2.getTimeLocation();
+                if (t1 == null || t2 == null || !t1.shareDays(t2) || !t1.shareWeeks(t2)) return true;
+                return Math.max(t1.getStartSlot() + t1.getLength(), t2.getStartSlot() + t2.getLength()) - Math.min(t1.getStartSlot(), t2.getStartSlot()) <= parameter;
+            }
+            @Override
+            public boolean isViolated(Assignment<Lecture, Placement> assignment, Integer parameter, GroupConstraint gc, Placement plc1, Placement plc2) {
+                return true;
+            }
+            @Override
+            public ParametrizedConstraintType<Integer> create(String reference, String regexp) {
+                Matcher matcher = Pattern.compile(regexp).matcher(reference);
+                if (matcher.find()) {
+                    double hours = Double.parseDouble(matcher.group(1));
+                    int slots = (int)Math.round(12.0 * hours);
+                    return new ParametrizedConstraintType<Integer>(ConstraintType.WORKDAY, slots, reference)
+                            .setName(matcher.group(1) + " Hour Work Day").setMin(slots).setMax(slots);
+                }
+                return null;
+            }}),
         /**
          * Meet Together & Same Weeks: Given classes are meeting together (same as if the given classes require constraints Can Share Room,
          * Same Room, Same Time, Same Days and Same Weeks all together).
@@ -720,6 +894,28 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
                 return true;
             }}, Flag.CAN_SHARE_ROOM),
+        MIN_GAP("MIN_GAP\\(([0-9\\.]+)\\)", "Mininal Gap Between Classes", new AssignmentParameterPairCheck<Integer>() {
+            @Override
+            public boolean isSatisfied(Assignment<Lecture, Placement> assignment, Integer parameter, GroupConstraint gc, Placement plc1, Placement plc2) {
+                TimeLocation t1 = plc1.getTimeLocation(), t2 = plc2.getTimeLocation();
+                if (t1 == null || t2 == null || !t1.shareDays(t2) || !t1.shareWeeks(t2)) return true;
+                return t1.getStartSlot() + t1.getLength() + parameter <= t2.getStartSlot() ||
+                        t2.getStartSlot() + t2.getLength() + parameter <= t1.getStartSlot();
+            }
+            @Override
+            public boolean isViolated(Assignment<Lecture, Placement> assignment, Integer parameter, GroupConstraint gc, Placement plc1, Placement plc2) { return true; }
+            @Override
+            public ParametrizedConstraintType<Integer> create(String reference, String regexp) {
+                Matcher matcher = Pattern.compile(regexp).matcher(reference);
+                if (matcher.find()) {
+                    double hours = Double.parseDouble(matcher.group(1));
+                    int slots = (int)Math.round(12.0 * hours);
+                    return new ParametrizedConstraintType<Integer>(ConstraintType.MIN_GAP, slots, reference)
+                            .setName("At Least " + matcher.group(1) + " Hours Between Classes")
+                            .setMin(slots).setMax(slots);
+                }
+                return null;
+            }}),
         ;
         
         String iReference, iName;
@@ -728,6 +924,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
         int iMin = 0, iMax = 0;
         PairCheck iCheck = null;
         AssignmentPairCheck iAssignmentCheck = null;
+        AssignmentParameterPairCheck<?> iAssignmentPairCheck = null;
         ConstraintType(String reference, String name, Flag... flags) {
             iReference = reference;
             iName = name;
@@ -752,34 +949,55 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             iMin = min;
             iMax = max;
         }
+        ConstraintType(String reference, String name, AssignmentParameterPairCheck<?> check, Flag... flags) {
+            this(reference, name, flags);
+            iAssignmentPairCheck = check;
+        }
         
+        /**
+         * Constraint type
+         * @return constraint type
+         */
+        @Override
+        public ConstraintType type() { return this; }
+
         /** Constraint reference
          * @return constraint reference
          **/
+        @Override
         public String reference() { return iReference; }
+        
         /** Constraint name
          * @return constraint name
          **/
+        @Override
         public String getName() { return iName; }
+        
         /** Minimum (gap) parameter
          * @return minimum gap (first constraint parameter)
          **/
+        @Override
         public int getMin() { return iMin; }
+        
         /** Maximum (gap, hours a day) parameter 
          * @return maximum gap (second constraint parameter) 
          **/
+        @Override
         public int getMax() { return iMax; }
         
         /** Flag check (true if contains given flag) 
          * @param f a flag to check
          * @return true if present
          **/
+        @Override
         public boolean is(Flag f) { return (iFlag & f.flag()) != 0; }
 
         /** Constraint type from reference 
          * @param reference constraint reference
          * @return constraint of the reference
+         * @deprecated use {@link GroupConstraint#getConstraintType(String)} instead
          **/
+        @Deprecated
         public static ConstraintType get(String reference) {
             for (ConstraintType t: ConstraintType.values())
                 if (t.reference().equals(reference)) return t;
@@ -793,6 +1011,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
          * @param plc2 second placement
          * @return true if the two placements are consistent with the constraint if preferred or required 
          **/ 
+        @Override
         public boolean isSatisfied(Assignment<Lecture, Placement> assignment, GroupConstraint gc, Placement plc1, Placement plc2) {
             if (iCheck != null && !iCheck.isSatisfied(gc, plc1, plc2))
                 return false;
@@ -800,6 +1019,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                 return false;
             return true;
         }
+        
         /** True if a prohibited or discouraged constraint is satisfied between a pair of placements 
          * @param assignment current assignment
          * @param gc current constraint
@@ -807,6 +1027,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
          * @param plc2 second placement
          * @return true if the two placements are consistent with the constraint if discouraged or prohibited 
          **/ 
+        @Override
         public boolean isViolated(Assignment<Lecture, Placement> assignment, GroupConstraint gc, Placement plc1, Placement plc2) { 
             if (iCheck != null && !iCheck.isViolated(gc, plc1, plc2))
                 return false;
@@ -817,6 +1038,19 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
         /** Pair check */
         private PairCheck check() { return iCheck; }
     }
+    
+    /** Constraint type from reference 
+     * @param reference constraint reference
+     * @return constraint of the reference
+     **/
+    public static ConstraintTypeInterface getConstraintType(String reference) {
+        for (ConstraintType t: ConstraintType.values()) {
+            if (t.reference().equals(reference)) return t;
+            if (t.iAssignmentPairCheck != null && reference.matches(t.reference()))
+                return t.iAssignmentPairCheck.create(reference, t.reference());
+        }
+        return null;
+    }    
 
     public GroupConstraint() {
     }
@@ -881,7 +1115,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
      *            time preference ("R" for required, "P" for prohibited, "-2",
      *            "-1", "1", "2" for soft preference)
      */
-    public GroupConstraint(Long id, ConstraintType type, String preference) {
+    public GroupConstraint(Long id, ConstraintTypeInterface type, String preference) {
         iConstraintId = id;
         iType = type;
         iIsRequired = preference.equals(Constants.sPreferenceRequired);
@@ -911,7 +1145,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
     /** Return constraint type (e.g, {@link ConstraintType#SAME_TIME}) 
      * @return constraint type
      **/
-    public ConstraintType getType() {
+    public ConstraintTypeInterface getType() {
         return iType;
     }
 
@@ -1876,5 +2110,5 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
         }
         
         public int getPreference() { return iLastPreference; }
-    }
+    }    
 }

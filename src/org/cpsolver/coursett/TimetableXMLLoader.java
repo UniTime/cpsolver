@@ -687,7 +687,7 @@ public class TimetableXMLLoader extends TimetableLoader {
                     // type did not match, continue with group constraint types
                     c = new GroupConstraint(
                             Long.valueOf(grConstraintEl.attributeValue("id")),
-                            GroupConstraint.ConstraintType.get(grConstraintEl.attributeValue("type")),
+                            GroupConstraint.getConstraintType(grConstraintEl.attributeValue("type")),
                             grConstraintEl.attributeValue("pref"));
                 }
             }
