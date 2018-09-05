@@ -578,12 +578,12 @@ public class TimetableXMLLoader extends TimetableLoader {
             if (assignedTimeLocation != null && assignedRoomLocations.size() == lecture.getNrRooms()) {
                 assignedPlacements.put(lecture, new Placement(lecture, assignedTimeLocation, assignedRoomLocations));
             } else if (lecture.getInitialAssignment() != null) {
-                assignedPlacements.put(lecture, lecture.getInitialAssignment());
+                // assignedPlacements.put(lecture, lecture.getInitialAssignment());
             }
             if (bestTimeLocation != null && bestRoomLocations.size() == lecture.getNrRooms()) {
                 lecture.setBestAssignment(new Placement(lecture, bestTimeLocation, bestRoomLocations), 0);
             } else if (assignedTimeLocation != null && assignedRoomLocations.size() == lecture.getNrRooms()) {
-                lecture.setBestAssignment(assignedPlacements.get(lecture), 0);
+                // lecture.setBestAssignment(assignedPlacements.get(lecture), 0);
             }
 
             lectures.put(classEl.attributeValue("id"), lecture);
@@ -889,14 +889,14 @@ public class TimetableXMLLoader extends TimetableLoader {
                 if (conflictConstraints.isEmpty()) {
                     getAssignment().assign(0, placement);
                 } else {
-                    sLogger.warn("WARNING: Unable to assign " + lecture.getName() + " := " + placement.getName());
-                    sLogger.debug("  Reason:");
+                    iProgress.warn("WARNING: Unable to assign " + lecture.getName() + " := " + placement.getName());
+                    iProgress.debug("  Reason:");
                     for (Constraint<Lecture, Placement> c : conflictConstraints.keySet()) {
                         Set<Placement> vals = conflictConstraints.get(c);
                         for (Placement v : vals) {
-                            sLogger.debug("    " + v.variable().getName() + " = " + v.getName());
+                            iProgress.debug("    " + v.variable().getName() + " = " + v.getName());
                         }
-                        sLogger.debug("    in constraint " + c);
+                        iProgress.debug("    in constraint " + c);
                     }
                 }
                 iProgress.incProgress();
@@ -929,19 +929,19 @@ public class TimetableXMLLoader extends TimetableLoader {
             Map<Constraint<Lecture, Placement>, Set<Placement>> conflictConstraints = getModel().conflictConstraints(getAssignment(), placement);
             if (conflictConstraints.isEmpty()) {
                 if (!placement.isValid()) {
-                    sLogger.warn("WARNING: Lecture " + lecture.getName() + " does not contain assignment "
+                    iProgress.warn("WARNING: Lecture " + lecture.getName() + " does not contain assignment "
                             + placement.getLongName(true) + " in its domain (" + placement.getNotValidReason(getAssignment(), true) + ").");
                 } else
                     getAssignment().assign(0, placement);
             } else {
-                sLogger.warn("WARNING: Unable to assign " + lecture.getName() + " := " + placement.getName());
-                sLogger.debug("  Reason:");
+                iProgress.warn("WARNING: Unable to assign " + lecture.getName() + " := " + placement.getName());
+                iProgress.debug("  Reason:");
                 for (Constraint<Lecture, Placement> c : conflictConstraints.keySet()) {
                     Set<Placement> vals = conflictConstraints.get(c);
                     for (Placement v : vals) {
-                        sLogger.debug("    " + v.variable().getName() + " = " + v.getName());
+                        iProgress.debug("    " + v.variable().getName() + " = " + v.getName());
                     }
-                    sLogger.debug("    in constraint " + c);
+                    iProgress.debug("    in constraint " + c);
                 }
             }
             iProgress.incProgress();
