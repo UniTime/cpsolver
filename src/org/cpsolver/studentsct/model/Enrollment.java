@@ -50,10 +50,46 @@ public class Enrollment extends Value<Request, Enrollment> {
     private Set<? extends SctAssignment> iAssignments = null;
     private Double iCachedPenalty = null;
     private int iPriority = 0;
+    private boolean iNoReservationPenalty = false;
     private Reservation iReservation = null;
     private Long iTimeStamp = null;
     private String iApproval = null;
 
+    /**
+     * Constructor
+     * 
+     * @param request
+     *            course / free time request
+     * @param priority
+     *            zero for the course, one for the first alternative, two for the second alternative
+     * @param noReservationPenalty
+     *            when true +1 is added to priority (prefer enrollments with reservations)
+     * @param course
+     *            selected course
+     * @param config
+     *            selected configuration
+     * @param assignments
+     *            valid list of sections
+     * @param reservation used reservation
+     */
+    public Enrollment(Request request, int priority, boolean noReservationPenalty, Course course, Config config, Set<? extends SctAssignment> assignments, Reservation reservation) {
+        super(request);
+        iRequest = request;
+        iConfig = config;
+        iAssignments = assignments;
+        iPriority = priority;
+        iCourse = course;
+        iNoReservationPenalty = noReservationPenalty;
+        if (iConfig != null && iCourse == null)
+            for (Course c: ((CourseRequest)iRequest).getCourses()) {
+                if (c.getOffering().getConfigs().contains(iConfig)) {
+                    iCourse = c;
+                    break;
+                }
+            }
+        iReservation = reservation;
+    }
+    
     /**
      * Constructor
      * 
@@ -70,20 +106,7 @@ public class Enrollment extends Value<Request, Enrollment> {
      * @param reservation used reservation
      */
     public Enrollment(Request request, int priority, Course course, Config config, Set<? extends SctAssignment> assignments, Reservation reservation) {
-        super(request);
-        iRequest = request;
-        iConfig = config;
-        iAssignments = assignments;
-        iPriority = priority;
-        iCourse = course;
-        if (iConfig != null && iCourse == null)
-            for (Course c: ((CourseRequest)iRequest).getCourses()) {
-                if (c.getOffering().getConfigs().contains(iConfig)) {
-                    iCourse = c;
-                    break;
-                }
-            }
-        iReservation = reservation;
+        this(request, priority, false, course, config, assignments, reservation);
     }
     
     /**
@@ -519,6 +542,14 @@ public class Enrollment extends Value<Request, Enrollment> {
      * @return zero for the course, one for the first alternative, two for the second alternative
      */
     public int getPriority() {
+        return iPriority + (iNoReservationPenalty ? 1 : 0);
+    }
+    
+    /** 
+     * Return enrollment priority, ignoring priority bump provided by reservations
+     * @return zero for the course, one for the first alternative, two for the second alternative
+     */
+    public int getTruePriority() {
         return iPriority;
     }
     

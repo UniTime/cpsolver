@@ -189,9 +189,9 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
             if (best[idx] != null && best[idx].getAssignments() != null) {
                 if (current[idx] == null || current[idx].getSections() == null)
                     return 1; // higher priority request assigned
-                if (best[idx].getPriority() < current[idx].getPriority())
+                if (best[idx].getTruePriority() < current[idx].getTruePriority())
                     return 1; // less alternative request assigned
-                if (best[idx].getPriority() > current[idx].getPriority())
+                if (best[idx].getTruePriority() > current[idx].getTruePriority())
                     return -1; // less alternative request assigned
             } else {
                 if (current[idx] != null && current[idx].getAssignments() != null)
@@ -271,9 +271,9 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
                 if (best[idx] != null && best[idx].getAssignments() != null) {
                     if (current[idx] == null || current[idx].getSections() == null)
                         return 1; // higher priority request assigned
-                    if (best[idx].getPriority() < current[idx].getPriority())
+                    if (best[idx].getTruePriority() < current[idx].getTruePriority())
                         return 1; // less alternative request assigned
-                    if (best[idx].getPriority() > current[idx].getPriority())
+                    if (best[idx].getTruePriority() > current[idx].getTruePriority())
                         return -1; // less alternative request assigned
                 } else {
                     if (current[idx] != null && current[idx].getAssignments() != null)
@@ -472,9 +472,9 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
                 if (best[idx] != null) {
                     if (current[idx] == null)
                         return false; // higher priority request assigned
-                    if (best[idx].getPriority() < current[idx].getPriority())
+                    if (best[idx].getTruePriority() < current[idx].getTruePriority())
                         return false; // less alternative request assigned
-                    if (best[idx].getPriority() > current[idx].getPriority())
+                    if (best[idx].getTruePriority() > current[idx].getTruePriority())
                         return true; // less alternative request assigned
                     if (request.isAlternative())
                         alt--;
@@ -572,9 +572,9 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
                     if (best[idx] != null) {
                         if (current[idx] == null)
                             return false; // higher priority request assigned
-                        if (best[idx].getPriority() < current[idx].getPriority())
+                        if (best[idx].getTruePriority() < current[idx].getTruePriority())
                             return false; // less alternative request assigned
-                        if (best[idx].getPriority() > current[idx].getPriority())
+                        if (best[idx].getTruePriority() > current[idx].getTruePriority())
                             return true; // less alternative request assigned
                         if (request.isAlternative())
                             alt--;
@@ -876,14 +876,14 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
                 for (Section s : e1.getSections()) {
                     if (s.getTime() != null)
                         for (TimeToAvoid avoid : getTimesToAvoid()) {
-                            if (avoid.priority() > e1.getPriority())
+                            if (avoid.priority() > e1.getRequest().getPriority())
                                 o1 += avoid.overlap(s.getTime());
                         }
                 }
                 for (Section s : e2.getSections()) {
                     if (s.getTime() != null)
                         for (TimeToAvoid avoid : getTimesToAvoid()) {
-                            if (avoid.priority() > e2.getPriority())
+                            if (avoid.priority() > e2.getRequest().getPriority())
                                 o2 += avoid.overlap(s.getTime());
                         }
                 }
