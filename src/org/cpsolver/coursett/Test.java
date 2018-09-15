@@ -448,6 +448,13 @@ public class Test implements SolutionListener<Lecture, Placement> {
         pw.println("Class info:");
         pw.println("id, name, min_class_limit, max_class_limit, room2limit_ratio, half_hours");
         for (Lecture lecture : model.variables()) {
+            if (lecture.timeLocations().isEmpty()) {
+                pw.println(lecture.getClassId() + "," + lecture.getName() + "," + lecture.minClassLimit() + ","
+                        + lecture.maxClassLimit() + "," + lecture.roomToLimitRatio() + ","
+                        + "NO TIMES");
+                sLogger.error(lecture.getName() + " has no times.");
+                continue;
+            }
             TimeLocation time = lecture.timeLocations().get(0);
             pw.println(lecture.getClassId() + "," + lecture.getName() + "," + lecture.minClassLimit() + ","
                     + lecture.maxClassLimit() + "," + lecture.roomToLimitRatio() + ","
