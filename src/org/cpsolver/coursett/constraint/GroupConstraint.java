@@ -2055,7 +2055,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
         return getType().is(Flag.CAN_SHARE_ROOM);
     }
     
-    private int nrSlotsADay(Assignment<Lecture, Placement> assignment, int dayCode, BitSet week, HashMap<Lecture, Placement> assignments, Set<Placement> conflicts) {
+    protected int nrSlotsADay(Assignment<Lecture, Placement> assignment, int dayCode, BitSet week, HashMap<Lecture, Placement> assignments, Set<Placement> conflicts) {
         Set<Integer> slots = new HashSet<Integer>();
         for (Lecture lecture: variables()) {
             Placement placement = null;
@@ -2085,7 +2085,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
     }
 
     public class GroupConstraintContext implements AssignmentConstraintContext<Lecture, Placement> {
-        private int iLastPreference = 0;
+        protected int iLastPreference = 0;
         
         public GroupConstraintContext(Assignment<Lecture, Placement> assignment) {
             updateCriterion(assignment);
@@ -2101,7 +2101,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             updateCriterion(assignment);
         }
         
-        private void updateCriterion(Assignment<Lecture, Placement> assignment) {
+        protected void updateCriterion(Assignment<Lecture, Placement> assignment) {
             if (!isHard()) {
                 getModel().getCriterion(DistributionPreferences.class).inc(assignment, -iLastPreference);
                 iLastPreference = getCurrentPreference(assignment) + Math.abs(iPreference);

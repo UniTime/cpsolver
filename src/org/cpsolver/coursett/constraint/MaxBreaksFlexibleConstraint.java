@@ -43,7 +43,7 @@ import org.cpsolver.ifs.util.ToolBox;
  */
 public class MaxBreaksFlexibleConstraint extends FlexibleConstraint implements WeakeningConstraint<Lecture, Placement> {
     private int iMaxBreakBetweenBTB;
-    private int iMaxBlocksOnADay;
+    protected int iMaxBlocksOnADay;
     
     public MaxBreaksFlexibleConstraint(Long id, String owner, String preference, String reference) {
         super(id, owner, preference, reference);     

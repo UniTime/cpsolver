@@ -45,7 +45,7 @@ public class MaxBlockFlexibleConstraint extends FlexibleConstraint {
     // max number of slots between to classes to be considered Back-To-Back
     private int iMaxBreakBetweenBTB; 
     // max length of a block of classes taught Back-To-Back
-    private int iMaxBlockSlotsBTB;      
+    protected int iMaxBlockSlotsBTB;
     
     /**
      * 
