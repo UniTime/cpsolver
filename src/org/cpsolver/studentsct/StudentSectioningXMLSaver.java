@@ -358,6 +358,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
             imEl.addAttribute("id", getId("instructional-method", config.getInstructionalMethodId()));
             if (iShowNames && config.getInstructionalMethodName() != null)
                 imEl.addAttribute("name", config.getInstructionalMethodName());
+            if (iShowNames && config.getInstructionalMethodReference() != null)
+                imEl.addAttribute("reference", config.getInstructionalMethodReference());
         }
     }
     

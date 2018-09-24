@@ -386,6 +386,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         if (imEl != null) {
             config.setInstructionalMethodId(Long.parseLong(imEl.attributeValue("id")));
             config.setInstructionalMethodName(imEl.attributeValue("name", "M" + imEl.attributeValue("id")));
+            config.setInstructionalMethodReference(imEl.attributeValue("reference", config.getInstructionalMethodName()));
         }
         for (Iterator<?> k = configEl.elementIterator("subpart"); k.hasNext();) {
             Element subpartEl = (Element) k.next();

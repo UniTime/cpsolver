@@ -53,6 +53,7 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
     private List<Subpart> iSubparts = new ArrayList<Subpart>();
     private Long iInstrMethodId;
     private String iInstrMethodName;
+    private String iInstrMethodReference;
 
     /**
      * Constructor
@@ -144,6 +145,18 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
      * @param instrMethodName instructional method name
      */
     public void setInstructionalMethodName(String instrMethodName) { iInstrMethodName = instrMethodName; }
+    
+    /**
+     * Return instructional method reference
+     * @return instructional method reference
+     */
+    public String getInstructionalMethodReference() { return iInstrMethodReference; }
+    
+    /**
+     * Set instructional method reference
+     * @param instrMethodReference instructional method reference
+     */
+    public void setInstructionalMethodReference(String instrMethodReference) { iInstrMethodReference = instrMethodReference; }
 
     @Override
     public String toString() {

@@ -264,6 +264,7 @@ public class Test {
             OnlineConfig clonedConfig = new OnlineConfig(config.getId(), configLimit, config.getName(), clonedOffering);
             clonedConfig.setInstructionalMethodId(config.getInstructionalMethodId());
             clonedConfig.setInstructionalMethodName(config.getInstructionalMethodName());
+            clonedConfig.setInstructionalMethodReference(config.getInstructionalMethodReference());
             clonedConfig.setEnrollment(configEnrollment);
             configs.put(config, clonedConfig);
             for (Iterator<Subpart> f = config.getSubparts().iterator(); f.hasNext();) {
