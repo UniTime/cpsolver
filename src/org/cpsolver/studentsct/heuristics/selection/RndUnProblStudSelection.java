@@ -99,10 +99,13 @@ public class RndUnProblStudSelection extends RandomUnassignmentSelection {
      */
     @Override
     public synchronized Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
-        if (!iProblemStudents.isEmpty() && Math.random() < iRandom) {
-            Student student = ToolBox.random(iProblemStudents);
-            iProblemStudents.remove(student);
-            return new UnassignStudentNeighbour(student, solution.getAssignment());
+        if (Math.random() < iRandom) {
+            while (!iProblemStudents.isEmpty()) {
+                Student student = ToolBox.random(iProblemStudents);
+                iProblemStudents.remove(student);
+                if (student.hasMinCredit() && student.getAssignedCredit(solution.getAssignment()) < student.getMinCredit()) continue;
+                return new UnassignStudentNeighbour(student, solution.getAssignment());
+            }
         }
         Progress.getInstance(solution.getModel()).incProgress();
         return null;

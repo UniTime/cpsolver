@@ -10,6 +10,7 @@ import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.studentsct.heuristics.selection.AssignInitialSelection;
 import org.cpsolver.studentsct.heuristics.selection.BacktrackSelection;
 import org.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
+import org.cpsolver.studentsct.heuristics.selection.MinCreditBranchAndBoundSelection;
 import org.cpsolver.studentsct.heuristics.selection.PriorityConstructionSelection;
 import org.cpsolver.studentsct.heuristics.selection.RandomUnassignmentSelection;
 import org.cpsolver.studentsct.heuristics.selection.ResectionIncompleteStudentsSelection;
@@ -79,12 +80,14 @@ import org.cpsolver.studentsct.model.Request;
 
 public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<Request, Enrollment> implements SolverListener<Request, Enrollment> {
     private boolean iUseConstruction = false;
+    private boolean iUseMinCreditSelection = true;
     private boolean iMPP = false;
     private boolean iShuffleStudentsSelection = false;
 
     public StudentSctNeighbourSelection(DataProperties properties) throws Exception {
         super(properties);
         iUseConstruction = properties.getPropertyBoolean("Sectioning.UsePriorityConstruction", iUseConstruction);
+        iUseMinCreditSelection = properties.getPropertyBoolean("Sectioning.UseMinCreditSelection", iUseMinCreditSelection);
         iMPP = properties.getPropertyBoolean("General.MPP", false);
         iShuffleStudentsSelection = properties.getPropertyBoolean("Shuffle.Enabled", true) && properties.getPropertyBoolean("Load.RequestGroups", false);
     }
@@ -101,9 +104,12 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
         if (iMPP)
             registerSelection(new AssignInitialSelection(solver.getProperties()));
         
+        if (iUseMinCreditSelection)
+            registerSelection(new MinCreditBranchAndBoundSelection(solver.getProperties()));
+        
         // Phase 1: section all students using incremental branch & bound (no
         // unassignments)
-        registerSelection(iUseConstruction ?
+        registerSelection(iUseConstruction && !iUseMinCreditSelection ?
                 new PriorityConstructionSelection(solver.getProperties()) :
                 new BranchBoundSelection(solver.getProperties()));
 

@@ -2,6 +2,7 @@ package org.cpsolver.studentsct.heuristics.selection;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -115,9 +116,24 @@ public class RandomUnassignmentSelection implements NeighbourSelection<Request, 
          */
         public UnassignStudentNeighbour(Student student, Assignment<Request, Enrollment> assignment) {
             iStudent = student;
+            float credit = 0f;
             for (Request request : iStudent.getRequests()) {
-                if (canUnassign(assignment.getValue(request)))
+                Enrollment enrollment = assignment.getValue(request);
+                if (canUnassign(enrollment))
                     iRequests.add(request);
+                else if (enrollment != null)
+                    credit += enrollment.getCredit();
+            }
+            if (credit < iStudent.getMinCredit()) {
+                for (Iterator<Request> i = iRequests.iterator(); i.hasNext(); ) {
+                    Request request = i.next();
+                    Enrollment enrollment = assignment.getValue(request);
+                    if (enrollment != null && enrollment.getCredit() > 0f) {
+                        credit += enrollment.getCredit();
+                        i.remove();
+                    }
+                    if (credit >= iStudent.getMaxCredit()) break;
+                }
             }
         }
         

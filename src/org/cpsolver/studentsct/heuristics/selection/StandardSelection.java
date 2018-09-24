@@ -2,6 +2,7 @@ package org.cpsolver.studentsct.heuristics.selection;
 
 import java.util.Set;
 
+import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.heuristics.NeighbourSelection;
 import org.cpsolver.ifs.heuristics.ValueSelection;
 import org.cpsolver.ifs.heuristics.VariableSelection;
@@ -90,6 +91,20 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
         if (iNrIterations > 0)
             Progress.getInstance(solver.currentSolution().getModel()).setPhase("Ifs...", iNrIterations);
     }
+    
+    /**
+     * Check if the given enrollment can be unassigned
+     * @param enrollment given enrollment
+     * @return if running MPP, do not unassign initial enrollments
+     */
+    public boolean canUnassign(Enrollment enrollment, Assignment<Request, Enrollment> assignment) {
+        if (enrollment.getRequest().isMPP() && enrollment.equals(enrollment.getRequest().getInitialAssignment())) return false;
+        if (enrollment.getRequest().getStudent().hasMinCredit()) {
+            float credit = enrollment.getRequest().getStudent().getAssignedCredit(assignment) - enrollment.getCredit();
+            if (credit < enrollment.getRequest().getStudent().getMinCredit()) return false;
+        }
+        return true;
+    }
 
     /**
      * Employ the provided {@link VariableSelection} and {@link ValueSelection}
@@ -106,14 +121,16 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
         if (solution.getModel().unassignedVariables(solution.getAssignment()).isEmpty() || ++iIteration >= iNrIterations)
             return null;
         Progress.getInstance(solution.getModel()).incProgress();
-        for (int i = 0; i < 10; i++) {
+        attempts: for (int i = 0; i < 10; i++) {
             Request request = iVariableSelection.selectVariable(solution);
             if (request == null) continue;
             Enrollment enrollment = iValueSelection.selectValue(solution, request);
             if (enrollment == null) continue;
             Set<Enrollment> conflicts = enrollment.variable().getModel().conflictValues(solution.getAssignment(), enrollment);
-            if (!conflicts.contains(enrollment))
-                return new SimpleNeighbour<Request, Enrollment>(request, enrollment, conflicts);
+            if (conflicts.contains(enrollment)) continue;
+            for (Enrollment conflict: conflicts)
+                if (!canUnassign(conflict, solution.getAssignment())) continue attempts;
+            return new SimpleNeighbour<Request, Enrollment>(request, enrollment, conflicts);
         }
         return null;
     }
