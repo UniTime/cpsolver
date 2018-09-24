@@ -52,6 +52,7 @@ public class Student implements Comparable<Student> {
     private List<Unavailability> iUnavailabilities = new ArrayList<Unavailability>();
     private boolean iNeedShortDistances = false;
     private boolean iAllowDisabled = false;
+    private Float iMinCredit = null;
     private Float iMaxCredit = null;
 
     /**
@@ -434,6 +435,24 @@ public class Student implements Comparable<Student> {
     }
     
     /**
+     * True if student has min credit defined
+     * @return true if min credit is set
+     */
+    public boolean hasMinCredit() { return iMinCredit != null; }
+    
+    /**
+     * Get student min credit (0 if not set)
+     * return student min credit
+     */
+    public float getMinCredit() { return (iMinCredit == null ? 0 : iMinCredit.floatValue()); }
+    
+    /**
+     * Set student min credit (null if not set)
+     * @param maxCredit student min credit
+     */
+    public void setMinCredit(Float maxCredit) { iMinCredit = maxCredit; }
+    
+    /**
      * True if student has max credit defined
      * @return true if max credit is set
      */
@@ -450,4 +469,18 @@ public class Student implements Comparable<Student> {
      * @param maxCredit student max credit
      */
     public void setMaxCredit(Float maxCredit) { iMaxCredit = maxCredit; }
+    
+    /**
+     * Return the number of assigned credits of the student
+     * @param assignment current assignment
+     * @return total assigned credit using {@link Enrollment#getCredit()} 
+     */
+    public float getAssignedCredit(Assignment<Request, Enrollment> assignment) {
+        float credit = 0f;
+        for (Request r: getRequests()) {
+            Enrollment e = r.getAssignment(assignment);
+            if (e != null) credit += e.getCredit();
+        }
+        return credit;
+    }
 }

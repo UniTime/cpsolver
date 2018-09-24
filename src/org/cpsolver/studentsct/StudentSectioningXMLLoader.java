@@ -803,6 +803,9 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         student.setExternalId(studentEl.attributeValue("externalId"));
         student.setName(studentEl.attributeValue("name"));
         student.setStatus(studentEl.attributeValue("status"));
+        String minCredit = studentEl.attributeValue("minCredit");
+        if (minCredit != null)
+            student.setMinCredit(Float.parseFloat(minCredit));
         String maxCredit = studentEl.attributeValue("maxCredit");
         if (maxCredit != null)
             student.setMaxCredit(Float.parseFloat(maxCredit));

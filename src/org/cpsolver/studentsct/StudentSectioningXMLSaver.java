@@ -572,6 +572,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
             studentEl.addAttribute("shortDistances", "true");
         if (student.isAllowDisabled())
             studentEl.addAttribute("allowDisabled", "true");
+        if (student.hasMinCredit())
+            studentEl.addAttribute("minCredit", String.valueOf(student.getMinCredit()));
         if (student.hasMaxCredit())
             studentEl.addAttribute("maxCredit", String.valueOf(student.getMaxCredit()));
         if (iSaveStudentInfo) {

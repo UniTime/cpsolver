@@ -634,6 +634,10 @@ public class Enrollment extends Value<Request, Enrollment> {
         return (limit == null ? -1 : limit);
     }
     
+    /**
+     * Credit of this enrollment (using either {@link Course#getCreditValue()} or {@link Subpart#getCreditValue()} when course credit is not present)
+     * @return credit of this enrollment
+     */
     public float getCredit() {
         if (getCourse() == null) return 0f;
         if (getAssignments().isEmpty()) return 0f;

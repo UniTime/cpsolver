@@ -949,6 +949,19 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
 
         info.put("Overall solution value", sDoubleFormat.format(getTotalValue(assignment)) + " [precise: " + sDoubleFormat.format(getTotalValue(assignment, true)) + "]");
         
+        int nrStudentsBelowMinCredit = 0, nrStudents = 0;
+        for (Student student: getStudents()) {
+            if (student.isDummy()) continue;
+            if (student.hasMinCredit()) {
+                nrStudents++;
+                float credit = student.getAssignedCredit(assignment); 
+                if (credit < student.getMinCredit() && !student.isComplete(assignment))
+                    nrStudentsBelowMinCredit ++;
+            }
+        }
+        if (nrStudentsBelowMinCredit > 0)
+            info.put("Students below min credit", sDoubleFormat.format(100.0 * nrStudentsBelowMinCredit / nrStudents) + "% (" + nrStudentsBelowMinCredit + "/" + nrStudents + ")");
+        
         return info;
     }
     
