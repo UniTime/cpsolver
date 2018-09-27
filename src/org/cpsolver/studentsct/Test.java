@@ -72,6 +72,7 @@ import org.cpsolver.studentsct.model.Student;
 import org.cpsolver.studentsct.report.CourseConflictTable;
 import org.cpsolver.studentsct.report.DistanceConflictTable;
 import org.cpsolver.studentsct.report.RequestGroupTable;
+import org.cpsolver.studentsct.report.RequestPriorityTable;
 import org.cpsolver.studentsct.report.SectionConflictTable;
 import org.cpsolver.studentsct.report.TimeOverlapConflictTable;
 import org.cpsolver.studentsct.report.UnbalancedSectionsTable;
@@ -566,6 +567,9 @@ public class Test {
                     
                     RequestGroupTable rqt = new RequestGroupTable((StudentSectioningModel) solution.getModel());
                     rqt.create(solution.getAssignment(), model.getProperties()).save(new File(outDir, "request-groups.csv"));
+                    
+                    RequestPriorityTable rpt = new RequestPriorityTable((StudentSectioningModel) solution.getModel());
+                    rpt.create(solution.getAssignment(), model.getProperties()).save(new File(outDir, "request-priorities.csv"));
                 } catch (IOException e) {
                     sLog.error(e.getMessage(), e);
                 }
