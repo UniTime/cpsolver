@@ -304,13 +304,31 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
          */
         public BackTrackNeighbour(BacktrackNeighbourSelectionContext context, List<V> resolvedVariables) {
             iTotalValue = context.getModel().getTotalValue(context.getAssignment());
-            iValue = 0;
             iDifferentAssignments = new ArrayList<T>();
             for (V variable : resolvedVariables) {
                 T value = variable.getAssignment(context.getAssignment());
                 iDifferentAssignments.add(value);
-                iValue += value.toDouble(context.getAssignment());
             }
+            iValue = iTotalValue - context.iValue;
+            if (sLog.isDebugEnabled())
+                iModel = context.getModel();
+        }
+        
+        /**
+         * Constructor
+         * 
+         * @param context assignment context
+         * @param resolvedVariables
+         *            variables that has been changed
+         */
+        public BackTrackNeighbour(BacktrackNeighbourSelectionContext context, V... resolvedVariables) {
+            iTotalValue = context.getModel().getTotalValue(context.getAssignment());
+            iDifferentAssignments = new ArrayList<T>();
+            for (V variable : resolvedVariables) {
+                T value = variable.getAssignment(context.getAssignment());
+                iDifferentAssignments.add(value);
+            }
+            iValue = iTotalValue - context.iValue;
             if (sLog.isDebugEnabled())
                 iModel = context.getModel();
         }
@@ -492,6 +510,20 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
         }
         
         public void saveBest(List<V> variables2resolve) {
+            if (sLog.isDebugEnabled())
+                sLog.debug("    -- all assigned");
+            if (iSolution.getAssignment().nrAssignedVariables() > iNrAssigned || (iSolution.getAssignment().nrAssignedVariables() == iNrAssigned && iValue > iSolution.getModel().getTotalValue(iSolution.getAssignment()))) {
+                if (sLog.isDebugEnabled())
+                    sLog.debug("    -- better than current");
+                if (iBackTrackNeighbour == null || iBackTrackNeighbour.compareTo(iSolution) >= 0) {
+                    if (sLog.isDebugEnabled())
+                        sLog.debug("      -- better than best");
+                    iBackTrackNeighbour = new BackTrackNeighbour(this, variables2resolve);
+                }
+            }
+        }
+        
+        public void saveBest(V... variables2resolve) {
             if (sLog.isDebugEnabled())
                 sLog.debug("    -- all assigned");
             if (iSolution.getAssignment().nrAssignedVariables() > iNrAssigned || (iSolution.getAssignment().nrAssignedVariables() == iNrAssigned && iValue > iSolution.getModel().getTotalValue(iSolution.getAssignment()))) {

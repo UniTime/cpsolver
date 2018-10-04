@@ -18,6 +18,7 @@ import org.cpsolver.studentsct.heuristics.selection.ResectionUnassignedStudentsS
 import org.cpsolver.studentsct.heuristics.selection.RndUnProblStudSelection;
 import org.cpsolver.studentsct.heuristics.selection.ShuffleStudentsSelection;
 import org.cpsolver.studentsct.heuristics.selection.StandardSelection;
+import org.cpsolver.studentsct.heuristics.selection.StudentEnrollmentSwapSelection;
 import org.cpsolver.studentsct.heuristics.selection.SwapStudentSelection;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
@@ -117,11 +118,14 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
         // to find an improvement
         registerSelection(new SwapStudentSelection(solver.getProperties()));
 
-        // Phase 3: use standard value selection for some time
-        registerSelection(new StandardSelection(solver.getProperties(), getVariableSelection(), getValueSelection()));
-
-        // Phase 4: use backtrack neighbour selection
+        // Phase 3A: use backtrack neighbour selection
         registerSelection(new BacktrackSelection(solver.getProperties()));
+        
+        // Phase 3B: enrollment swap selection
+        registerSelection(new StudentEnrollmentSwapSelection(solver.getProperties()));
+        
+        // Phase 4: use standard value selection for some time
+        registerSelection(new StandardSelection(solver.getProperties(), getVariableSelection(), getValueSelection()));
 
         // Phase 5: pick a student (one by one) with an incomplete schedule, try
         // to find an improvement, identify problematic students
@@ -147,8 +151,11 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
         // Phase 11: pick a student (one by one) with an incomplete schedule,
         // try to find an improvement
         registerSelection(new SwapStudentSelection(solver.getProperties()));
+        
+        // Phase 12A: enrollment swap selection
+        registerSelection(new StudentEnrollmentSwapSelection(solver.getProperties()));
 
-        // Phase 12: use backtrack neighbour selection
+        // Phase 12B: use backtrack neighbour selection
         registerSelection(new BacktrackSelection(solver.getProperties()));
         
         if (iShuffleStudentsSelection) {
