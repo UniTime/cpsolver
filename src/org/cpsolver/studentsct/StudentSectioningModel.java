@@ -15,6 +15,7 @@ import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.InheritedAssignment;
 import org.cpsolver.ifs.assignment.OptimisticInheritedAssignment;
 import org.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import org.cpsolver.ifs.assignment.context.CanInheritContext;
 import org.cpsolver.ifs.assignment.context.ModelWithContext;
 import org.cpsolver.ifs.model.Constraint;
 import org.cpsolver.ifs.model.ConstraintListener;
@@ -75,7 +76,7 @@ import org.cpsolver.studentsct.weights.StudentWeights;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class StudentSectioningModel extends ModelWithContext<Request, Enrollment, StudentSectioningModel.StudentSectioningModelContext> {
+public class StudentSectioningModel extends ModelWithContext<Request, Enrollment, StudentSectioningModel.StudentSectioningModelContext> implements CanInheritContext<Request, Enrollment, StudentSectioningModel.StudentSectioningModelContext> {
     private static Logger sLog = Logger.getLogger(StudentSectioningModel.class);
     protected static DecimalFormat sDecimalFormat = new DecimalFormat("0.00");
     private List<Student> iStudents = new ArrayList<Student>();
@@ -1064,6 +1065,23 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         private double iAssignedSameSectionWeight = 0.0, iAssignedSameChoiceWeight = 0.0, iAssignedSameTimeWeight = 0.0;
         private double iAssignedSelectedSectionWeight = 0.0, iAssignedSelectedConfigWeight = 0.0;
         private double iAssignedNoTimeSectionWeight = 0.0;
+        
+        public StudentSectioningModelContext(StudentSectioningModelContext parent) {
+            iCompleteStudents = new HashSet<Student>(parent.iCompleteStudents);
+            iTotalValue = parent.iTotalValue;
+            iNrAssignedDummyRequests = parent.iNrAssignedDummyRequests;
+            iNrCompleteDummyStudents = parent.iNrCompleteDummyStudents;
+            iAssignedCRWeight = parent.iAssignedCRWeight;
+            iAssignedDummyCRWeight = parent.iAssignedDummyCRWeight;
+            iReservedSpace = parent.iReservedSpace;
+            iTotalReservedSpace = parent.iTotalReservedSpace;
+            iAssignedSameSectionWeight = parent.iAssignedSameSectionWeight;
+            iAssignedSameChoiceWeight = parent.iAssignedSameChoiceWeight;
+            iAssignedSameTimeWeight = parent.iAssignedSameTimeWeight;
+            iAssignedSelectedSectionWeight = parent.iAssignedSelectedSectionWeight;
+            iAssignedSelectedConfigWeight = parent.iAssignedSelectedConfigWeight;
+            iAssignedNoTimeSectionWeight = parent.iAssignedNoTimeSectionWeight;
+        }
 
         public StudentSectioningModelContext(Assignment<Request, Enrollment> assignment) {
             for (Request request: variables()) {
@@ -1329,6 +1347,11 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     
     public DistanceMetric getDistanceMetric() {
         return (iDistanceConflict != null ? iDistanceConflict.getDistanceMetric() : null);
+    }
+
+    @Override
+    public StudentSectioningModelContext inheritAssignmentContext(Assignment<Request, Enrollment> assignment, StudentSectioningModelContext parentContext) {
+        return new StudentSectioningModelContext(parentContext);
     }
 
 }

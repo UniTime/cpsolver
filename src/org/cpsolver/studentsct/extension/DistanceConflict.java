@@ -13,6 +13,7 @@ import org.cpsolver.coursett.model.RoomLocation;
 import org.cpsolver.coursett.model.TimeLocation;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import org.cpsolver.ifs.assignment.context.CanInheritContext;
 import org.cpsolver.ifs.assignment.context.ExtensionWithContext;
 import org.cpsolver.ifs.model.ModelListener;
 import org.cpsolver.ifs.solver.Solver;
@@ -60,7 +61,7 @@ import org.cpsolver.studentsct.model.Student;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, DistanceConflict.DistanceConflictContext> implements ModelListener<Request, Enrollment> {
+public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, DistanceConflict.DistanceConflictContext> implements ModelListener<Request, Enrollment>, CanInheritContext<Request, Enrollment, DistanceConflict.DistanceConflictContext> {
     private static Logger sLog = Logger.getLogger(DistanceConflict.class);
     /** Debug flag */
     public static boolean sDebug = false;
@@ -560,6 +561,12 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
                 cx.add(assignment, c);
         }
         
+        public DistanceConflictContext(DistanceConflictContext parent) {
+            iAllConflicts.addAll(parent.iAllConflicts);
+            iOldVariable = parent.iOldVariable;
+            iUnassignedValue = parent.iUnassignedValue;
+        }
+        
         /**
          * Called before a value is assigned to a variable.
          * @param assignment current assignment
@@ -721,5 +728,10 @@ public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, 
     @Override
     public DistanceConflictContext createAssignmentContext(Assignment<Request, Enrollment> assignment) {
         return new DistanceConflictContext(assignment);
+    }
+
+    @Override
+    public DistanceConflictContext inheritAssignmentContext(Assignment<Request, Enrollment> assignment, DistanceConflictContext parentContext) {
+        return new DistanceConflictContext(parentContext);
     }
 }

@@ -6,6 +6,7 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
+import org.cpsolver.ifs.assignment.context.CanInheritContext;
 import org.cpsolver.ifs.assignment.context.ExtensionWithContext;
 import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
@@ -48,7 +49,7 @@ import org.cpsolver.studentsct.model.Unavailability;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollment, TimeOverlapsCounter.TimeOverlapsCounterContext> {
+public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollment, TimeOverlapsCounter.TimeOverlapsCounterContext> implements CanInheritContext<Request, Enrollment, TimeOverlapsCounter.TimeOverlapsCounterContext> {
     private static Logger sLog = Logger.getLogger(TimeOverlapsCounter.class);
     /** Debug flag */
     public static boolean sDebug = false;
@@ -456,6 +457,12 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
             for (Conflict c: computeAllConflicts(assignment))
                 cx.add(assignment, c);
         }
+        
+        public TimeOverlapsCounterContext(TimeOverlapsCounterContext parent) {
+            iTotalNrConflicts = parent.iTotalNrConflicts;
+            if (sDebug)
+                iAllConflicts.addAll(parent.iAllConflicts);
+        }
 
         /**
          * Called when a value is assigned to a variable. Internal number of
@@ -709,5 +716,10 @@ public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollmen
     @Override
     public TimeOverlapsCounterContext createAssignmentContext(Assignment<Request, Enrollment> assignment) {
         return new TimeOverlapsCounterContext(assignment);
+    }
+
+    @Override
+    public TimeOverlapsCounterContext inheritAssignmentContext(Assignment<Request, Enrollment> assignment, TimeOverlapsCounterContext parentContext) {
+        return new TimeOverlapsCounterContext(parentContext);
     }
 }
