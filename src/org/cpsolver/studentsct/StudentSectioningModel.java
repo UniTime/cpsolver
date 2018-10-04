@@ -821,6 +821,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             if (r.getAssignment() != null)
                 total += r.getWeight() * iStudentWeights.getWeight(r.getAssignment());
         */
+        /*
         double dc = 0;
         if (getDistanceConflict() != null && getDistanceConflict().getTotalNrConflicts(assignment) != 0) {
             Set<DistanceConflict.Conflict> conf = getDistanceConflict().getAllConflicts(assignment);
@@ -832,21 +833,17 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             if (!conf.isEmpty())
                 info.put("Student distance conflicts", conf.size() + (sdc > 0 ? " (" + getDistanceConflict().getDistanceMetric().getShortDistanceAccommodationReference() + ": " + sdc + ", weighted: " : " (weighted: ") + sDecimalFormat.format(dc) + ")");
         }
-        double toc = 0;
+        */
         if (getTimeOverlaps() != null && getTimeOverlaps().getTotalNrConflicts(assignment) != 0) {
             Set<TimeOverlapsCounter.Conflict> conf = getTimeOverlaps().getContext(assignment).computeAllConflicts(assignment);
             int share = 0, crShare = 0;
             for (TimeOverlapsCounter.Conflict c: conf) {
-                if (c.getR1() != null)
-                    toc += c.getR1Weight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE1(), c);
-                if (c.getR2() != null) 
-                    toc += c.getR2Weight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE2(), c);
                 share += c.getShare();
                 if (c.getR1() instanceof CourseRequest && c.getR2() instanceof CourseRequest)
                     crShare += c.getShare();
             }
-            if (toc != 0.0)
-                info.put("Time overlapping conflicts", sDoubleFormat.format(share / 12.0) + " hours (" + sDoubleFormat.format(crShare / 12.0) + " hours between courses, weighted: " + sDoubleFormat.format(toc) + ")");
+            if (share > 0)
+                info.put("Time overlapping conflicts", sDoubleFormat.format(share / 12.0) + " hours\n(" + sDoubleFormat.format(crShare / 12.0) + " between courses)");
         }
         /*
         info.put("Overall solution value", sDecimalFormat.format(total - dc - toc) + (dc == 0.0 && toc == 0.0 ? "" :
@@ -939,9 +936,6 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 missing[Math.min(nrRequests - nrAssignedRequests, missing.length) - 1] ++;
                 incomplete ++;
             }
-            if (nrRequests == 0) {
-                sLog.warn("Student " + student.getExternalId() + " has no requests.");
-            }
         }
 
         for (int i = 0; i < missing.length; i++)
@@ -1016,6 +1010,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 + (getNrLastLikeStudents(false) > 0 ? "DRq:" + getNrAssignedLastLikeRequests(assignment, false) + "/" + getNrLastLikeRequests(false) + ", " : "")
                 + (getNrRealStudents(false) > 0 ? "RS:" + getNrCompleteRealStudents(assignment, false) + "/" + getNrRealStudents(false) + ", " : "")
                 + (getNrLastLikeStudents(false) > 0 ? "DS:" + getNrCompleteLastLikeStudents(assignment, false) + "/" + getNrLastLikeStudents(false) + ", " : "")
+                + (iTotalCRWeight > 0.0 ? "CR:" + sDecimalFormat.format(100.0 * getContext(assignment).getAssignedCourseRequestWeight() / iTotalCRWeight) + "%, " : "")
+                + (iTotalSelCRWeight > 0.0 ? "S:" + sDoubleFormat.format(100.0 * (0.3 * getContext(assignment).iAssignedSelectedConfigWeight + 0.7 * getContext(assignment).iAssignedSelectedSectionWeight) / iTotalSelCRWeight) + "%, ": "")
                 + "V:"
                 + sDecimalFormat.format(-getTotalValue(assignment))
                 + (getDistanceConflict() == null ? "" : ", DC:" + getDistanceConflict().getTotalNrConflicts(assignment))
