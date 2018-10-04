@@ -319,7 +319,7 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
                     try {
                         neighbour = getNeighbourSelection().selectNeighbour(current);
                     } catch (Exception e) {
-                        sLogger.warn("Failed to select a neighbour: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
+                        sLogger.debug("Failed to select a neighbour: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()), e);
                     }
                     for (SolverListener<V, T> listener : iSolverListeners) {
                         if (!listener.neighbourSelected(iAssignment, iSolution.getIteration(), neighbour)) {
