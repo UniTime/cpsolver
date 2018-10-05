@@ -95,7 +95,7 @@ public class StudentEnrollmentSwapSelection implements NeighbourSelection<Reques
             if (request instanceof CourseRequest) {
                 try {
                     Enrollment e = request.getAssignment(solution.getAssignment());
-                    if (e.getPriority() > 0 || !((CourseRequest)request).getSelectedChoices().isEmpty()) {
+                    if (e == null || e.getPriority() > 0 || !((CourseRequest)request).getSelectedChoices().isEmpty()) {
                         Neighbour<Request, Enrollment> n = iSelection.selectNeighbour(solution, request);
                         if (n != null && n.value(solution.getAssignment()) <= 0.0)
                             return n;
