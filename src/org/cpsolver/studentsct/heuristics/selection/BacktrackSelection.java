@@ -13,7 +13,9 @@ import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.Progress;
 import org.cpsolver.studentsct.heuristics.RandomizedBacktrackNeighbourSelection;
+import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
+import org.cpsolver.studentsct.model.FreeTimeRequest;
 import org.cpsolver.studentsct.model.Request;
 
 
@@ -82,6 +84,9 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
         Request request = null;
         while ((request = nextRequest()) != null) {
             Progress.getInstance(solution.getModel()).incProgress();
+            Enrollment e = request.getAssignment(solution.getAssignment());
+            if (e != null && request instanceof FreeTimeRequest) continue;
+            if (e != null && e.getPriority() == 0 && ((CourseRequest)request).getSelectedChoices().isEmpty()) continue;
             Neighbour<Request, Enrollment> n = iRBtNSel.selectNeighbour(solution, request);
             if (n != null && n.value(solution.getAssignment()) <= 0.0)
                 return n;
