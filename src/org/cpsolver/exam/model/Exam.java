@@ -563,6 +563,15 @@ public class Exam extends Variable<Exam, ExamPlacement> {
                                 return false;
                         }
                         break;
+                    
+                    case ExamDistributionConstraint.sDistSameDay:
+                        if (period.getPeriod().getDay() != placement.getPeriod().getDay())
+                            return false;
+                        break;
+                    case ExamDistributionConstraint.sDistDifferentDay:
+                        if (period.getPeriod().getDay() == placement.getPeriod().getDay())
+                            return false;
+                        break;
                 }
             }
         }
