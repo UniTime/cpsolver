@@ -893,20 +893,20 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         }
         if (disbSections != 0) {
             double assignedCRWeight = getContext(assignment).getAssignedCourseRequestWeight();
-            info.put("Average disbalance", sDecimalFormat.format(disbWeight / disbSections) + " (" + sDecimalFormat.format(assignedCRWeight == 0 ? 0.0 : 100.0 * disbWeight / assignedCRWeight) + "%)");
+            info.put("Average disbalance", sDecimalFormat.format(assignedCRWeight == 0 ? 0.0 : 100.0 * disbWeight / assignedCRWeight) + "% (" + sDecimalFormat.format(disbWeight / disbSections) + ")");
             String list = "";
             if (disb10SectionList != null) {
                 int i = 0;
                 for (String section: disb10SectionList) {
                     if (i == disb10Limit) {
-                        list += "<br>...";
+                        list += "\n...";
                         break;
                     }
-                    list += "<br>" + section;
+                    list += "\n" + section;
                     i++;
                 }
             }
-            info.put("Sections disbalanced by 10% or more", disb10Sections + " (" + sDecimalFormat.format(disbSections == 0 ? 0.0 : 100.0 * disb10Sections / disbSections) + "%)" + list);
+            info.put("Sections disbalanced by 10% or more", sDecimalFormat.format(disbSections == 0 ? 0.0 : 100.0 * disb10Sections / disbSections) + "% (" + disb10Sections + ")\n" + list);
         }
         
         int assCR = 0, priCR = 0;
