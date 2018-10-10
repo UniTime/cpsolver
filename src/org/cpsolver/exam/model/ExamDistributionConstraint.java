@@ -391,12 +391,12 @@ public class ExamDistributionConstraint extends ConstraintWithContext<Exam, Exam
                 }
                 return true;
             case sDistDifferentDay:
-                HashSet<ExamPeriod> periods1 = new HashSet<ExamPeriod>();
+                HashSet<Integer> days = new HashSet<Integer>();
                 for (Exam exam : variables()) {
                     ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : assignment.getValue(exam));
                     if (placement == null)
                         continue;
-                    if (!periods1.add(placement.getPeriod()))
+                    if (!days.add(placement.getPeriod().getDay()))
                         return false;
                 }
                 return true;
