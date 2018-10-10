@@ -347,7 +347,7 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
                         Map<V, T> assignments = null;
                         try {
                             assignments = neighbour.assignments();
-                        } catch (UnsupportedOperationException e) {
+                        } catch (Exception e) {
                             sLogger.error("Failed to enumerate " + neighbour.getClass().getSimpleName(), e);
                         }
                         if (assignments == null) {
@@ -495,7 +495,7 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
                     Map<V, T> assignments = null;
                     try {
                         assignments = neighbour.assignments();
-                    } catch (UnsupportedOperationException e) {
+                    } catch (Exception e) {
                         sLogger.error("Failed to enumerate " + neighbour.getClass().getSimpleName(), e);
                     }
                     if (assignments == null) {
