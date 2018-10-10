@@ -20,6 +20,7 @@ import org.cpsolver.ifs.assignment.context.ConstraintWithContext;
  * <li>Same period
  * <li>Different period
  * <li>Precedence
+ * <li>Same day
  * </ul>
  * <br>
  * <br>
@@ -56,10 +57,13 @@ public class ExamDistributionConstraint extends ConstraintWithContext<Exam, Exam
     public static final int sDistPrecedence = 4;
     /** Precedence constraint type (reverse order) */
     public static final int sDistPrecedenceRev = 5;
+    /** Same day constraint type */
+    public static final int sDistSameDay = 6;
+    /** Different day constraint type */
+    public static final int sDistDifferentDay = 7;
     /** Distribution type name */
     public static final String[] sDistType = new String[] { "same-room", "different-room", "same-period",
-            "different-period", "precedence", "precedence-rev" };
-
+            "different-period", "precedence", "precedence-rev", "same-day", "different-day"};
     private int iType = -1;
     private boolean iHard = true;
     private int iWeight = 0;
@@ -103,6 +107,8 @@ public class ExamDistributionConstraint extends ConstraintWithContext<Exam, Exam
             iType = (neg ? sDistDifferentRoom : sDistSameRoom);
         } else if ("EX_PRECEDENCE".equals(type)) {
             iType = (neg ? sDistPrecedenceRev : sDistPrecedence);
+        } else if ("EX_SAME_DAY".equals(type)) {
+            iType = (neg ? sDistDifferentDay : sDistSameDay);
         } else
             throw new RuntimeException("Unkown type " + type);
         if ("P".equals(pref) || "R".equals(pref))
@@ -257,6 +263,11 @@ public class ExamDistributionConstraint extends ConstraintWithContext<Exam, Exam
                     if (second.getRoomPlacements().contains(i.next()))
                         return false;
                 return true;
+            case sDistSameDay:
+                return first.getPeriod().getDay() == second.getPeriod().getDay();
+            case sDistDifferentDay:
+                return first.getPeriod().getDay() != second.getPeriod().getDay();
+  
             default:
                 return false;
         }
@@ -367,6 +378,29 @@ public class ExamDistributionConstraint extends ConstraintWithContext<Exam, Exam
                     }
                 }
                 return true;
+            case sDistSameDay:
+                ExamPeriod period1 = null;
+                for (Exam exam : variables()) {
+                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : assignment.getValue(exam));
+                    if (placement == null)
+                        continue;
+                    if (period1 == null)
+                        period1 = placement.getPeriod();
+                    else if (period1.getDay() != placement.getPeriod().getDay())
+                        return false;
+                }
+                return true;
+            case sDistDifferentDay:
+                HashSet<ExamPeriod> periods1 = new HashSet<ExamPeriod>();
+                for (Exam exam : variables()) {
+                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : assignment.getValue(exam));
+                    if (placement == null)
+                        continue;
+                    if (!periods1.add(placement.getPeriod()))
+                        return false;
+                }
+                return true;
+
             default:
                 return false;
         }
