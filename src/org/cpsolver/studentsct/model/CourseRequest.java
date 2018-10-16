@@ -52,6 +52,7 @@ public class CourseRequest extends Request {
     private List<Course> iCourses = null;
     private Set<Choice> iWaitlistedChoices = new HashSet<Choice>();
     private Set<Choice> iSelectedChoices = new HashSet<Choice>();
+    private Set<Choice> iRequiredChoices = new HashSet<Choice>();
     private boolean iWaitlist = false;
     private Long iTimeStamp = null;
     private Double iCachedMinPenalty = null, iCachedMaxPenalty = null;
@@ -362,6 +363,8 @@ public class CourseRequest extends Request {
             for (Section section : sectionsThisSubpart) {
                 if (section.isCancelled())
                     continue;
+                if (!isRequired(section))
+                    continue;
                 if (getInitialAssignment() != null && (getModel() != null && ((StudentSectioningModel)getModel()).getKeepInitialAssignments()) &&
                         !getInitialAssignment().getAssignments().contains(section))
                     continue;
@@ -561,7 +564,7 @@ public class CourseRequest extends Request {
     public Set<Choice> getSelectedChoices() {
         return iSelectedChoices;
     }
-
+    
     /**
      * Return true when the given section is selected (i.e., its choice is among
      * selected choices)
@@ -575,6 +578,42 @@ public class CourseRequest extends Request {
             if (choice.isMatching(section)) hasMatch = true;
         }
         return !iSelectedChoices.isEmpty() && !hasMatch;
+    }
+    
+    /**
+     * Required choices
+     * @return required choices
+     */
+    public Set<Choice> getRequiredChoices() {
+        return iRequiredChoices;
+    }
+    
+    /**
+     * Return true when the given section is required (i.e., its choice is among required choices, or there are no requirements)
+     * @param section given section
+     * @return true if the given section matches the required choices
+     */
+    public boolean isRequired(Section section) {
+        if (iRequiredChoices.isEmpty()) return true;
+        boolean hasConfig = false, hasMatchingConfig = false;
+        boolean hasSubpart = false, hasMatchingSection = false;
+        for (Choice choice: iRequiredChoices) {
+            // different offering -> skip
+            if (!choice.getOffering().equals(section.getSubpart().getConfig().getOffering())) continue;
+            // has config -> check config
+            if (choice.getConfigId() != null) {
+                hasConfig = true;
+                if (choice.sameConfiguration(section)) hasMatchingConfig = true;
+            }
+            // has section of the matching subpart -> check section
+            if (choice.getSubpartId() != null && choice.getSubpartId().equals(section.getSubpart().getId())) {
+                hasSubpart = true;
+                if (choice.sameSection(section)) hasMatchingSection = true;
+            }
+        }
+        if (hasConfig && !hasMatchingConfig) return false;
+        if (hasSubpart && !hasMatchingSection) return false;
+        return true;
     }
 
     /**

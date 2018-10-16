@@ -31,6 +31,7 @@ import org.cpsolver.studentsct.constraint.DisabledSections;
 import org.cpsolver.studentsct.constraint.FixInitialAssignments;
 import org.cpsolver.studentsct.constraint.LinkedSections;
 import org.cpsolver.studentsct.constraint.RequiredReservation;
+import org.cpsolver.studentsct.constraint.RequiredSections;
 import org.cpsolver.studentsct.constraint.ReservationLimit;
 import org.cpsolver.studentsct.constraint.SectionLimit;
 import org.cpsolver.studentsct.constraint.StudentConflict;
@@ -163,6 +164,10 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         if (properties.getPropertyBoolean("Sectioning.DisabledSections", true)) {
             DisabledSections disabledSections = new DisabledSections();
             addGlobalConstraint(disabledSections);
+        }
+        if (properties.getPropertyBoolean("Sectioning.RequiredSections", true)) {
+            RequiredSections requiredSections = new RequiredSections();
+            addGlobalConstraint(requiredSections);
         }
         if (iMPP && iKeepInitials) {
             addGlobalConstraint(new FixInitialAssignments());

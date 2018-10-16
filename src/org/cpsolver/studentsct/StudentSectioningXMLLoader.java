@@ -906,6 +906,11 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             courseRequest.getSelectedChoices().add(
                     new Choice(offeringTable.get(Long.valueOf(choiceEl.attributeValue("offering"))), choiceEl.getText()));
         }
+        for (Iterator<?> k = requestEl.elementIterator("required"); k.hasNext();) {
+            Element choiceEl = (Element) k.next();
+            courseRequest.getRequiredChoices().add(
+                    new Choice(offeringTable.get(Long.valueOf(choiceEl.attributeValue("offering"))), choiceEl.getText()));
+        }
         groups: for (Iterator<?> k = requestEl.elementIterator("group"); k.hasNext();) {
             Element groupEl = (Element) k.next();
             long gid = Long.parseLong(groupEl.attributeValue("id"));

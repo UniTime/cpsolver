@@ -697,6 +697,11 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
             choiceEl.addAttribute("offering", getId("offering", choice.getOffering().getId()));
             choiceEl.setText(choice.getId());
         }
+        for (Choice choice : request.getRequiredChoices()) {
+            Element choiceEl = requestEl.addElement("required");
+            choiceEl.addAttribute("offering", getId("offering", choice.getOffering().getId()));
+            choiceEl.setText(choice.getId());
+        }
         if (iSaveInitial && request.getInitialAssignment() != null) {
             saveEnrollment(requestEl.addElement("initial"), request.getInitialAssignment());
         }
