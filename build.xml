@@ -274,9 +274,11 @@
 	<target name="dist-nojprof" depends="dist"/>
 	
 	<target name="deploy">
-			<exec command="mvn">
-					<arg value="deploy"/>
-			</exec>
+		<exec command="mvn">
+			<arg value="clean"/>
+			<arg value="deploy"/>
+			<arg value="clean"/>
+		</exec>
 	</target>
 	
 	<target name="changelog">

@@ -81,7 +81,7 @@
 	</scm>
 	
 	<build>
-		<directory>dist</directory>
+		<directory>target</directory>
 		<finalName>${project.artifactId}-${project.version}</finalName>
 		<sourceDirectory>src</sourceDirectory>
 		<resources>
