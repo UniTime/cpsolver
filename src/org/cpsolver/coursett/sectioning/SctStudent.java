@@ -80,9 +80,7 @@ public class SctStudent implements Comparable<SctStudent> {
         for (Lecture lecture: getStudent().getLectures())
             if (getModel().getOfferingId().equals(lecture.getConfiguration().getOfferingId()))
                 lectures.add(lecture);
-        if (!lectures.isEmpty())
-            return new SctEnrollment(-1, this, lectures);
-        return null;
+        return new SctEnrollment(-1, this, lectures);
     }
     
     /**
