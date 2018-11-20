@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.log4j.Logger;
+import org.cpsolver.coursett.Constants;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.InheritedAssignment;
 import org.cpsolver.ifs.assignment.OptimisticInheritedAssignment;
@@ -37,6 +38,7 @@ import org.cpsolver.studentsct.constraint.SectionLimit;
 import org.cpsolver.studentsct.constraint.StudentConflict;
 import org.cpsolver.studentsct.constraint.StudentNotAvailable;
 import org.cpsolver.studentsct.extension.DistanceConflict;
+import org.cpsolver.studentsct.extension.StudentQuality;
 import org.cpsolver.studentsct.extension.TimeOverlapsCounter;
 import org.cpsolver.studentsct.model.Config;
 import org.cpsolver.studentsct.model.Course;
@@ -86,6 +88,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     private DataProperties iProperties;
     private DistanceConflict iDistanceConflict = null;
     private TimeOverlapsCounter iTimeOverlaps = null;
+    private StudentQuality iStudentQuality = null;
     private int iNrDummyStudents = 0, iNrDummyRequests = 0;
     private double iTotalDummyWeight = 0.0;
     private double iTotalCRWeight = 0.0, iTotalDummyCRWeight = 0.0;
@@ -394,15 +397,61 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         StudentSectioningModelContext context = getContext(assignment);
         if (!getStudents().isEmpty())
             info.put("Students with complete schedule", sDoubleFormat.format(100.0 * context.nrComplete() / getStudents().size()) + "% (" + context.nrComplete() + "/" + getStudents().size() + ")");
-        if (getDistanceConflict() != null) {
+        if (getStudentQuality() != null) {
+            int confs = getStudentQuality().getTotalPenalty(StudentQuality.Type.Distance, assignment);
+            int shortConfs = getStudentQuality().getTotalPenalty(StudentQuality.Type.ShortDistance, assignment);
+            if (confs > 0 || shortConfs > 0) {
+                info.put("Student distance conflicts", confs + (shortConfs == 0 ? "" : " (" + getDistanceMetric().getShortDistanceAccommodationReference() + ": " + shortConfs + ")"));
+            }
+        } else if (getDistanceConflict() != null) {
             int confs = getDistanceConflict().getTotalNrConflicts(assignment);
             if (confs > 0) {
                 int shortConfs = getDistanceConflict().getTotalNrShortConflicts(assignment);
                 info.put("Student distance conflicts", confs + (shortConfs == 0 ? "" : " (" + getDistanceConflict().getDistanceMetric().getShortDistanceAccommodationReference() + ": " + shortConfs + ")"));
             }
         }
-        if (getTimeOverlaps() != null && getTimeOverlaps().getTotalNrConflicts(assignment) != 0)
-            info.put("Time overlapping conflicts", sDoubleFormat.format(getTimeOverlaps().getTotalNrConflicts(assignment) / 12.0) + " hours");
+        if (getStudentQuality() != null) {
+            int shareCR = getStudentQuality().getContext(assignment).countTotalPenalty(StudentQuality.Type.CourseTimeOverlap, assignment);
+            int shareFT = getStudentQuality().getContext(assignment).countTotalPenalty(StudentQuality.Type.FreeTimeOverlap, assignment);
+            int shareUN = getStudentQuality().getContext(assignment).countTotalPenalty(StudentQuality.Type.Unavailability, assignment);
+            if (shareCR + shareFT + shareUN > 0)
+                info.put("Time overlapping conflicts", sDoubleFormat.format((5.0 * (shareCR + shareFT + shareUN)) / iStudents.size()) + " mins per student\n" + 
+                        "(" + sDoubleFormat.format(5.0 * shareCR / iStudents.size()) + " between courses, " + sDoubleFormat.format(5.0 * shareFT / iStudents.size()) + " free time" +
+                        (shareUN == 0 ? "" : ", " + sDoubleFormat.format(5.0 * shareUN / iStudents.size()) + " teaching assignments") + "; " + sDoubleFormat.format((shareCR + shareFT + shareUN) / 12.0) + " hours total)");
+        } else if (getTimeOverlaps() != null && getTimeOverlaps().getTotalNrConflicts(assignment) != 0) {
+            info.put("Time overlapping conflicts", sDoubleFormat.format(5.0 * getTimeOverlaps().getTotalNrConflicts(assignment) / iStudents.size()) + " mins per student (" + sDoubleFormat.format(getTimeOverlaps().getTotalNrConflicts(assignment) / 12.0) + " hours total)");
+        }
+        if (getStudentQuality() != null) {
+            int confLunch = getStudentQuality().getTotalPenalty(StudentQuality.Type.LunchBreak, assignment);
+            if (confLunch > 0)
+                info.put("Lunch conflicts", sDoubleFormat.format(20.0 * confLunch / getNrRealStudents(false)) + "% (" + confLunch + ")");
+            int confTravel = getStudentQuality().getTotalPenalty(StudentQuality.Type.TravelTime, assignment);
+            if (confTravel > 0)
+                info.put("Travel time", sDoubleFormat.format(((double)confTravel) / getNrRealStudents(false)) + " mins per student (" + sDecimalFormat.format(confTravel / 60.0) + " hours total)");
+            int confBtB = getStudentQuality().getTotalPenalty(StudentQuality.Type.BackToBack, assignment);
+            if (confBtB > 0)
+                info.put("Back-to-back classes", sDoubleFormat.format(((double)confBtB) / getNrRealStudents(false)) + " per student (" + confBtB + ")");
+            int confWorkDay = getStudentQuality().getTotalPenalty(StudentQuality.Type.WorkDay, assignment);
+            if (confWorkDay > 0)
+                info.put("Work day", sDoubleFormat.format(5.0 * confWorkDay / getNrRealStudents(false)) + " mins over " +
+                        new DecimalFormat("0.#").format(getProperties().getPropertyInt("WorkDay.WorkDayLimit", 6*12) / 12.0) + " hours a day per student\n(from start to end, " + sDoubleFormat.format(confWorkDay / 12.0) + " hours total)");
+            int early = getStudentQuality().getTotalPenalty(StudentQuality.Type.TooEarly, assignment);
+            if (early > 0) {
+                int min = getProperties().getPropertyInt("WorkDay.EarlySlot", 102) * Constants.SLOT_LENGTH_MIN + Constants.FIRST_SLOT_TIME_MIN;
+                int h = min / 60;
+                int m = min % 60;
+                String time = (getProperties().getPropertyBoolean("General.UseAmPm", true) ? (h > 12 ? h - 12 : h) + ":" + (m < 10 ? "0" : "") + m + (h >= 12 ? "p" : "a") : h + ":" + (m < 10 ? "0" : "") + m);
+                info.put("Early classes", sDoubleFormat.format(5.0 * early / iStudents.size()) + " mins before " + time + " per student (" + sDoubleFormat.format(early / 12.0) + " hours total)");
+            }
+            int late = getStudentQuality().getTotalPenalty(StudentQuality.Type.TooLate, assignment);
+            if (late > 0) {
+                int min = getProperties().getPropertyInt("WorkDay.LateSlot", 210) * Constants.SLOT_LENGTH_MIN + Constants.FIRST_SLOT_TIME_MIN;
+                int h = min / 60;
+                int m = min % 60;
+                String time = (getProperties().getPropertyBoolean("General.UseAmPm", true) ? (h > 12 ? h - 12 : h) + ":" + (m < 10 ? "0" : "") + m + (h >= 12 ? "p" : "a") : h + ":" + (m < 10 ? "0" : "") + m);
+                info.put("Late classes", sDoubleFormat.format(5.0 * late / iStudents.size()) + " mins after " + time + " per student (" + sDoubleFormat.format(late / 12.0) + " hours total)");
+            }
+        }
         int nrLastLikeStudents = getNrLastLikeStudents(false);
         if (nrLastLikeStudents != 0 && nrLastLikeStudents != getStudents().size()) {
             int nrRealStudents = getStudents().size() - nrLastLikeStudents;
@@ -463,6 +512,29 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 for (TimeOverlapsCounter.Conflict c: iTimeOverlaps.getContext(assignment).computeAllConflicts(assignment)) {
                     if (c.getR1() != null) total -= c.getR1Weight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE1(), c);
                     if (c.getR2() != null) total -= c.getR2Weight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE2(), c);
+                }
+            if (iStudentQuality != null)
+                for (StudentQuality.Type t: StudentQuality.Type.values()) {
+                    for (StudentQuality.Conflict c: iStudentQuality.getContext(assignment).computeAllConflicts(t, assignment)) {
+                        switch (c.getType().getType()) {
+                            case REQUEST:
+                                if (c.getR1() instanceof CourseRequest)
+                                    total -= c.getR1Weight() * iStudentWeights.getStudentQualityConflictWeight(assignment, c.getE1(), c);
+                                else
+                                    total -= c.getR2Weight() * iStudentWeights.getStudentQualityConflictWeight(assignment, c.getE2(), c);
+                                break;
+                            case BOTH:
+                                total -= c.getR1Weight() * iStudentWeights.getStudentQualityConflictWeight(assignment, c.getE1(), c);  
+                                total -= c.getR2Weight() * iStudentWeights.getStudentQualityConflictWeight(assignment, c.getE2(), c);
+                                break;
+                            case LOWER:
+                                total -= avg(c.getR1().getWeight(), c.getR2().getWeight()) * iStudentWeights.getStudentQualityConflictWeight(assignment, c.getE1(), c);
+                                break;
+                            case HIGHER:
+                                total -= avg(c.getR1().getWeight(), c.getR2().getWeight()) * iStudentWeights.getStudentQualityConflictWeight(assignment, c.getE1(), c);
+                                break;
+                        }
+                    }    
                 }
             return -total;
         }
@@ -616,6 +688,23 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
      */
     public TimeOverlapsCounter getTimeOverlaps() {
         return iTimeOverlaps;
+    }
+    
+    public StudentQuality getStudentQuality() { return iStudentQuality; }
+    public void setStudentQuality(StudentQuality q, boolean register) {
+        if (iStudentQuality != null)
+            getInfoProviders().remove(iStudentQuality);
+        iStudentQuality = q;
+        if (iStudentQuality != null)
+            getInfoProviders().add(iStudentQuality);
+        if (register) {
+            iStudentQuality.setAssignmentContextReference(createReference(iStudentQuality));
+            iStudentQuality.register(this);
+        }
+    }
+    
+    public void setStudentQuality(StudentQuality q) {
+        setStudentQuality(q, true);
     }
 
     /**
@@ -839,7 +928,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 info.put("Student distance conflicts", conf.size() + (sdc > 0 ? " (" + getDistanceConflict().getDistanceMetric().getShortDistanceAccommodationReference() + ": " + sdc + ", weighted: " : " (weighted: ") + sDecimalFormat.format(dc) + ")");
         }
         */
-        if (getTimeOverlaps() != null && getTimeOverlaps().getTotalNrConflicts(assignment) != 0) {
+        if (getStudentQuality() == null && getTimeOverlaps() != null && getTimeOverlaps().getTotalNrConflicts(assignment) != 0) {
             Set<TimeOverlapsCounter.Conflict> conf = getTimeOverlaps().getContext(assignment).computeAllConflicts(assignment);
             int share = 0, crShare = 0;
             for (TimeOverlapsCounter.Conflict c: conf) {
@@ -848,7 +937,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                     crShare += c.getShare();
             }
             if (share > 0)
-                info.put("Time overlapping conflicts", sDoubleFormat.format(share / 12.0) + " hours\n(" + sDoubleFormat.format(crShare / 12.0) + " between courses)");
+                info.put("Time overlapping conflicts", sDoubleFormat.format(5.0 * share / iStudents.size()) + " mins per student\n(" + sDoubleFormat.format(5.0 * crShare / iStudents.size()) + " between courses; " + sDoubleFormat.format(getTimeOverlaps().getTotalNrConflicts(assignment) / 12.0) + " hours total)");
         }
         /*
         info.put("Overall solution value", sDecimalFormat.format(total - dc - toc) + (dc == 0.0 && toc == 0.0 ? "" :
@@ -911,7 +1000,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                     i++;
                 }
             }
-            info.put("Sections disbalanced by 10% or more", sDecimalFormat.format(disbSections == 0 ? 0.0 : 100.0 * disb10Sections / disbSections) + "% (" + disb10Sections + ")\n" + list);
+            info.put("Sections disbalanced by 10% or more", sDecimalFormat.format(disbSections == 0 ? 0.0 : 100.0 * disb10Sections / disbSections) + "% (" + disb10Sections + ")" + (list.isEmpty() ? "" : "\n" + list));
         }
         
         int assCR = 0, priCR = 0;
@@ -1025,8 +1114,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 + (iMPP ? ", IT:" + sDecimalFormat.format(100.0 * getContext(assignment).iAssignedSameTimeWeight / iTotalMPPCRWeight) + "%" : "")
                 + ", %:" + sDecimalFormat.format(-100.0 * getTotalValue(assignment) / (getStudents().size() - iNrDummyStudents + 
                         (iProjectedStudentWeight < 0.0 ? iNrDummyStudents * (iTotalDummyWeight / iNrDummyRequests) :iProjectedStudentWeight * iTotalDummyWeight)))
-                + (groupCount > 0 ? ", SG:" + sDecimalFormat.format(100.0 * groupSpread / groupCount) + "%" : "");
-
+                + (groupCount > 0 ? ", SG:" + sDecimalFormat.format(100.0 * groupSpread / groupCount) + "%" : "")
+                + (getStudentQuality() == null ? "" : ", SQ:{" + getStudentQuality().toString(assignment) + "}");
     }
     
     /**
@@ -1200,6 +1289,48 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             if (c.getR2() != null) iTotalValue -= c.getR2Weight() * iStudentWeights.getTimeOverlapConflictWeight(assignment, c.getE2(), c);
         }
         
+        public void add(Assignment<Request, Enrollment> assignment, StudentQuality.Conflict c) {
+            switch (c.getType().getType()) {
+                case REQUEST:
+                    if (c.getR1() instanceof CourseRequest)
+                        iTotalValue += c.getR1Weight() * iStudentWeights.getStudentQualityConflictWeight(assignment, c.getE1(), c);
+                    else
+                        iTotalValue += c.getR2Weight() * iStudentWeights.getStudentQualityConflictWeight(assignment, c.getE2(), c);
+                    break;
+                case BOTH:
+                    iTotalValue += c.getR1Weight() * iStudentWeights.getStudentQualityConflictWeight(assignment, c.getE1(), c);  
+                    iTotalValue += c.getR2Weight() * iStudentWeights.getStudentQualityConflictWeight(assignment, c.getE2(), c);
+                    break;
+                case LOWER:
+                    iTotalValue += avg(c.getR1().getWeight(), c.getR2().getWeight()) * iStudentWeights.getStudentQualityConflictWeight(assignment, c.getE1(), c);
+                    break;
+                case HIGHER:
+                    iTotalValue += avg(c.getR1().getWeight(), c.getR2().getWeight()) * iStudentWeights.getStudentQualityConflictWeight(assignment, c.getE1(), c);
+                    break;
+            }
+        }
+
+        public void remove(Assignment<Request, Enrollment> assignment, StudentQuality.Conflict c) {
+            switch (c.getType().getType()) {
+                case REQUEST:
+                    if (c.getR1() instanceof CourseRequest)
+                        iTotalValue -= c.getR1Weight() * iStudentWeights.getStudentQualityConflictWeight(assignment, c.getE1(), c);
+                    else
+                        iTotalValue -= c.getR2Weight() * iStudentWeights.getStudentQualityConflictWeight(assignment, c.getE2(), c);
+                    break;
+                case BOTH:
+                    iTotalValue -= c.getR1Weight() * iStudentWeights.getStudentQualityConflictWeight(assignment, c.getE1(), c);  
+                    iTotalValue -= c.getR2Weight() * iStudentWeights.getStudentQualityConflictWeight(assignment, c.getE2(), c);
+                    break;
+                case LOWER:
+                    iTotalValue -= avg(c.getR1().getWeight(), c.getR2().getWeight()) * iStudentWeights.getStudentQualityConflictWeight(assignment, c.getE1(), c);
+                    break;
+                case HIGHER:
+                    iTotalValue -= avg(c.getR1().getWeight(), c.getR2().getWeight()) * iStudentWeights.getStudentQualityConflictWeight(assignment, c.getE1(), c);
+                    break;
+            }
+        }
+        
         /**
          * Students with complete schedules (see {@link Student#isComplete(Assignment)})
          * @return students with complete schedule
@@ -1347,7 +1478,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     }
     
     public DistanceMetric getDistanceMetric() {
-        return (iDistanceConflict != null ? iDistanceConflict.getDistanceMetric() : null);
+        return (iStudentQuality != null ? iStudentQuality.getDistanceMetric() : iDistanceConflict != null ? iDistanceConflict.getDistanceMetric() : null);
     }
 
     @Override

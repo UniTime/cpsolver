@@ -217,8 +217,8 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
     public void load(Document document) {
         Element root = document.getRootElement();
         
-        if (getModel().getDistanceConflict() != null && root.element("travel-times") != null)
-            loadTravelTimes(root.element("travel-times"), getModel().getDistanceConflict().getDistanceMetric());
+        if (getModel() != null && root.element("travel-times") != null)
+            loadTravelTimes(root.element("travel-times"), getModel().getDistanceMetric());
         
         Progress.getInstance(getModel()).load(root, true);
         Progress.getInstance(getModel()).message(Progress.MSGLEVEL_STAGE, "Restoring from backup ...");

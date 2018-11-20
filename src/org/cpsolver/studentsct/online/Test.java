@@ -34,6 +34,7 @@ import org.cpsolver.studentsct.StudentSectioningXMLLoader;
 import org.cpsolver.studentsct.StudentSectioningXMLSaver;
 import org.cpsolver.studentsct.constraint.LinkedSections;
 import org.cpsolver.studentsct.extension.DistanceConflict;
+import org.cpsolver.studentsct.extension.StudentQuality;
 import org.cpsolver.studentsct.extension.TimeOverlapsCounter;
 import org.cpsolver.studentsct.heuristics.selection.BranchBoundSelection.BranchBoundNeighbour;
 import org.cpsolver.studentsct.heuristics.studentord.StudentChoiceOrder;
@@ -124,6 +125,9 @@ public class Test {
         iModel.setTimeOverlaps(new TimeOverlapsCounter(null, iModel.getProperties()));
         iModel.getTimeOverlaps().register(iModel);
         iModel.getTimeOverlaps().setAssignmentContextReference(iModel.createReference(iModel.getTimeOverlaps()));
+        iModel.setStudentQuality(new StudentQuality(new DistanceMetric(iModel.getProperties()), iModel.getProperties()));
+        iModel.getStudentQuality().register(iModel);
+        iModel.getStudentQuality().setAssignmentContextReference(iModel.createReference(iModel.getStudentQuality()));
         iModel.setStudentWeights(new StudentSchedulingAssistantWeights(iModel.getProperties()));
         iAssignment = new DefaultSingleAssignment<Request, Enrollment>();
         iSuggestions = "true".equals(System.getProperty("suggestions", iSuggestions ? "true" : "false"));
@@ -876,8 +880,13 @@ public class Test {
 
         pw.print(get("[A] Not Assigned").sum() + ",");
         pw.print(df.format(getPercDisbalancedSections(assignment(), 0.1)) + ",");
-        pw.print(df.format(((double) model().getDistanceConflict().getTotalNrConflicts(assignment())) / model().getStudents().size()) + ",");
-        pw.print(df.format(5.0 * model().getTimeOverlaps().getTotalNrConflicts(assignment()) / model().getStudents().size()) + ",");
+        if (model().getStudentQuality() != null) {
+            pw.print(df.format(((double) model().getStudentQuality().getTotalPenalty(assignment(), StudentQuality.Type.Distance, StudentQuality.Type.ShortDistance)) / model().getStudents().size()) + ",");
+            pw.print(df.format(5.0 * model().getStudentQuality().getTotalPenalty(assignment(), StudentQuality.Type.CourseTimeOverlap, StudentQuality.Type.FreeTimeOverlap, StudentQuality.Type.Unavailability) / model().getStudents().size()) + ",");
+        } else {
+            pw.print(df.format(((double) model().getDistanceConflict().getTotalNrConflicts(assignment())) / model().getStudents().size()) + ",");
+            pw.print(df.format(5.0 * model().getTimeOverlaps().getTotalNrConflicts(assignment()) / model().getStudents().size()) + ",");
+        }
         pw.print(df.format(get("[C] CPU Time").avg()) + ",");
         if (iSuggestions) {
             pw.print(df.format(get("[S] Probability that a class has suggestions [%]").avg()) + ",");

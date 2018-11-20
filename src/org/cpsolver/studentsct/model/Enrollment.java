@@ -10,6 +10,7 @@ import org.cpsolver.ifs.model.Value;
 import org.cpsolver.ifs.util.ToolBox;
 import org.cpsolver.studentsct.StudentSectioningModel;
 import org.cpsolver.studentsct.extension.DistanceConflict;
+import org.cpsolver.studentsct.extension.StudentQuality;
 import org.cpsolver.studentsct.extension.TimeOverlapsCounter;
 import org.cpsolver.studentsct.reservation.Reservation;
 
@@ -403,9 +404,13 @@ public class Enrollment extends Value<Request, Enrollment> {
      * @return enrollment penalty
      **/
     public double toDouble(Assignment<Request, Enrollment> assignment, boolean precise) {
-        if (precise)
-            return - getRequest().getWeight() * ((StudentSectioningModel)variable().getModel()).getStudentWeights().getWeight(assignment, this, distanceConflicts(assignment), timeOverlappingConflicts(assignment));
-        else {
+        if (precise) {
+            StudentSectioningModel model = (StudentSectioningModel)variable().getModel();
+            if (model.getStudentQuality() != null)
+                return - getRequest().getWeight() * model.getStudentWeights().getWeight(assignment, this, studentQualityConflicts(assignment));
+            else
+                return - getRequest().getWeight() * model.getStudentWeights().getWeight(assignment, this, distanceConflicts(assignment), timeOverlappingConflicts(assignment));
+        } else {
             Double value = (assignment == null ? null : variable().getContext(assignment).getLastWeight());
             if (value != null) return - value;
             return - getRequest().getWeight() * ((StudentSectioningModel)variable().getModel()).getStudentWeights().getWeight(assignment, this);
@@ -533,6 +538,17 @@ public class Enrollment extends Value<Request, Enrollment> {
             if (toc == null)
                 return null;
             return toc.allConflicts(assignment, this);
+        } else
+            return null;
+    }
+    
+    public Set<StudentQuality.Conflict> studentQualityConflicts(Assignment<Request, Enrollment> assignment) {
+        if (!isCourseRequest())
+            return null;
+        if (getRequest().getModel() instanceof StudentSectioningModel) {
+            StudentQuality sq = ((StudentSectioningModel) getRequest().getModel()).getStudentQuality();
+            if (sq == null) return null;
+            return sq.allConflicts(assignment, this);
         } else
             return null;
     }

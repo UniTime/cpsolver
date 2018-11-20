@@ -1344,6 +1344,8 @@ public class Test {
                 m.getTimeOverlaps().checkTotalNrConflicts(solution.getAssignment());
             if (m.getDistanceConflict() != null && DistanceConflict.sDebug)
                 m.getDistanceConflict().checkAllConflicts(solution.getAssignment());
+            if (m.getStudentQuality() != null && m.getStudentQuality().isDebug())
+                m.getStudentQuality().checkTotalPenalty(solution.getAssignment());
         }
 
         @Override

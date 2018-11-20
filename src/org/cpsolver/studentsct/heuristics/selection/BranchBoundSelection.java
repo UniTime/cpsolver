@@ -25,6 +25,7 @@ import org.cpsolver.ifs.util.Progress;
 import org.cpsolver.studentsct.StudentSectioningModel;
 import org.cpsolver.studentsct.constraint.LinkedSections;
 import org.cpsolver.studentsct.extension.DistanceConflict;
+import org.cpsolver.studentsct.extension.StudentQuality;
 import org.cpsolver.studentsct.extension.TimeOverlapsCounter;
 import org.cpsolver.studentsct.heuristics.studentord.StudentGroupsChoiceRealFirstOrder;
 import org.cpsolver.studentsct.heuristics.studentord.StudentOrder;
@@ -94,6 +95,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
     protected int iTimeout = 10000;
     protected DistanceConflict iDistanceConflict = null;
     protected TimeOverlapsCounter iTimeOverlaps = null;
+    protected StudentQuality iStudentQuality = null;
     protected StudentSectioningModel iModel = null;
     public static boolean sDebug = false;
     protected Queue<Student> iStudents = null;
@@ -141,6 +143,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         iStudents = new LinkedList<Student>(students);
         iTimeOverlaps = model.getTimeOverlaps();
         iDistanceConflict = model.getDistanceConflict();
+        iStudentQuality = model.getStudentQuality();
     }
     
     @Override
@@ -351,6 +354,20 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             return overlaps;
         }
         
+        public Set<StudentQuality.Conflict> getStudentQualityConflicts(int idx) {
+            if (iStudentQuality == null || iAssignment[idx] == null)
+                return null;
+            
+            Set<StudentQuality.Conflict> conflicts = new HashSet<StudentQuality.Conflict>();
+            for (StudentQuality.Type t: StudentQuality.Type.values()) {
+                conflicts.addAll(iStudentQuality.conflicts(t, iAssignment[idx]));
+                for (int x = 0; x < idx; x++)
+                    if (iAssignment[x] != null)
+                        conflicts.addAll(iStudentQuality.conflicts(t, iAssignment[x], iAssignment[idx]));
+            }
+            return conflicts;
+        }
+        
         /**
          * Weight of an assignment. Unlike {@link StudentWeights#getWeight(Assignment, Enrollment, Set, Set)}, only count this side of distance conflicts and time overlaps.
          * @param enrollment an enrollment
@@ -358,6 +375,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
          * @param timeOverlappingConflicts set of time overlapping conflicts
          * @return value of the assignment
          **/
+        @Deprecated
         protected double getWeight(Enrollment enrollment, Set<DistanceConflict.Conflict> distanceConflicts, Set<TimeOverlapsCounter.Conflict> timeOverlappingConflicts) {
             double weight = - iModel.getStudentWeights().getWeight(iCurrentAssignment, enrollment);
             if (distanceConflicts != null)
@@ -370,6 +388,14 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                 for (TimeOverlapsCounter.Conflict c: timeOverlappingConflicts) {
                     weight += iModel.getStudentWeights().getTimeOverlapConflictWeight(iCurrentAssignment, enrollment, c);
                 }
+            return enrollment.getRequest().getWeight() * weight;
+        }
+        
+        protected double getWeight(Enrollment enrollment, Set<StudentQuality.Conflict> conflicts) {
+            double weight = - iModel.getStudentWeights().getWeight(iCurrentAssignment, enrollment);
+            if (conflicts != null)
+                for (StudentQuality.Conflict c: conflicts)
+                    weight += iModel.getStudentWeights().getStudentQualityConflictWeight(iCurrentAssignment, enrollment, c);
             return enrollment.getRequest().getWeight() * weight;
         }
         
@@ -391,8 +417,12 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             for (Iterator<Request> e = iStudent.getRequests().iterator(); e.hasNext(); i++) {
                 Request r = e.next();
                 if (i < idx) {
-                    if (iAssignment[i] != null)
-                        bound += getWeight(iAssignment[i], getDistanceConflicts(i), getTimeOverlappingConflicts(i));
+                    if (iAssignment[i] != null) {
+                        if (iStudentQuality != null)
+                            bound += getWeight(iAssignment[i], getStudentQualityConflicts(i));
+                        else
+                            bound += getWeight(iAssignment[i], getDistanceConflicts(i), getTimeOverlappingConflicts(i));
+                    }
                     if (r.isAlternative()) {
                         if (iAssignment[i] != null || (r instanceof CourseRequest && ((CourseRequest) r).isWaitlist()))
                             alt--;
@@ -418,8 +448,12 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         public double getValue() {
             double value = 0.0;
             for (int i = 0; i < iAssignment.length; i++)
-                if (iAssignment[i] != null)
-                    value += getWeight(iAssignment[i], getDistanceConflicts(i), getTimeOverlappingConflicts(i));
+                if (iAssignment[i] != null) {
+                    if (iStudentQuality != null)
+                        value += getWeight(iAssignment[i], getStudentQualityConflicts(i));
+                    else
+                        value += getWeight(iAssignment[i], getDistanceConflicts(i), getTimeOverlappingConflicts(i));
+                }
             return value;
         }
 
@@ -603,9 +637,12 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                 private Double value(Enrollment e) {
                     Double value = iValues.get(e);
                     if (value == null) {
-                        value = iModel.getStudentWeights().getWeight(iCurrentAssignment, e,
-                                        (iModel.getDistanceConflict() == null ? null : iModel.getDistanceConflict().conflicts(e)),
-                                        (iModel.getTimeOverlaps() == null ? null : iModel.getTimeOverlaps().conflicts(e)));
+                        if (iModel.getStudentQuality() != null)
+                            value = iModel.getStudentWeights().getWeight(iCurrentAssignment, e, iModel.getStudentQuality().conflicts(e));
+                        else
+                            value = iModel.getStudentWeights().getWeight(iCurrentAssignment, e,
+                                    (iModel.getDistanceConflict() == null ? null : iModel.getDistanceConflict().conflicts(e)),
+                                    (iModel.getTimeOverlaps() == null ? null : iModel.getTimeOverlaps().conflicts(e)));
                         iValues.put(e, value);       
                     }
                     return value;

@@ -16,6 +16,8 @@ import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.ToolBox;
 import org.cpsolver.studentsct.StudentSectioningModel;
 import org.cpsolver.studentsct.extension.DistanceConflict;
+import org.cpsolver.studentsct.extension.StudentQuality;
+import org.cpsolver.studentsct.extension.StudentQuality.Conflict;
 import org.cpsolver.studentsct.extension.TimeOverlapsCounter;
 import org.cpsolver.studentsct.model.Choice;
 import org.cpsolver.studentsct.model.Config;
@@ -88,6 +90,7 @@ public class PriorityStudentWeights implements StudentWeights {
     protected boolean iAdditiveWeights = false;
     protected boolean iMaximizeAssignment = false;
     protected boolean iPreciseComparison = false;
+    protected double[] iQalityWeights;
     
     public PriorityStudentWeights(DataProperties config) {
         iPriorityFactor = config.getPropertyDouble("StudentWeights.Priority", iPriorityFactor);
@@ -114,6 +117,10 @@ public class PriorityStudentWeights implements StudentWeights {
         iAdditiveWeights = config.getPropertyBoolean("StudentWeights.AdditiveWeights", iAdditiveWeights);
         iMaximizeAssignment = config.getPropertyBoolean("StudentWeights.MaximizeAssignment", iMaximizeAssignment);
         iPreciseComparison = config.getPropertyBoolean("StudentWeights.PreciseComparison", iPreciseComparison);
+        iQalityWeights = new double[StudentQuality.Type.values().length];
+        for (StudentQuality.Type type: StudentQuality.Type.values()) {
+            iQalityWeights[type.ordinal()] = config.getPropertyDouble(type.getWeightName(), type.getWeightDefault());
+        }
     }
         
     public double getWeight(Request request) {
@@ -671,5 +678,127 @@ public class PriorityStudentWeights implements StudentWeights {
             System.out.println(cr + ": " + df.format(w[0]) + "  " + df.format(w[1]) + "  " + df.format(w[2]));
         }
 
+    }
+
+    @Override
+    public double getWeight(Assignment<Request, Enrollment> assignment, Enrollment enrollment, Set<StudentQuality.Conflict> qualityConflicts) {
+        if (iAdditiveWeights) {
+            double base = getBaseWeight(assignment, enrollment);
+            double penalty = 0.0;
+            if (qualityConflicts != null) {
+                for (StudentQuality.Conflict c: qualityConflicts) {
+                    switch (c.getType().getType()) {
+                        case REQUEST:
+                            if (enrollment.isCourseRequest())
+                                penalty += base * iQalityWeights[c.getType().ordinal()] * c.getWeight(enrollment);
+                            break;
+                        case BOTH:
+                            Enrollment other = c.getOther(enrollment);
+                            penalty += base * iQalityWeights[c.getType().ordinal()] * c.getWeight(enrollment);
+                            penalty += getBaseWeight(assignment, other) * iQalityWeights[c.getType().ordinal()] * c.getWeight(other);
+                            break;
+                        case LOWER:
+                            other = c.getOther(enrollment);
+                            if (other.getRequest().getPriority() <= enrollment.getRequest().getPriority())
+                                penalty += base * iQalityWeights[c.getType().ordinal()] * c.getWeight(enrollment);
+                            else
+                                penalty += getBaseWeight(assignment, other) * iQalityWeights[c.getType().ordinal()] * c.getWeight(other);
+                            break;
+                        case HIGHER:
+                            other = c.getOther(enrollment);
+                            if (other.getRequest().getPriority() >= enrollment.getRequest().getPriority())
+                                penalty += base * iQalityWeights[c.getType().ordinal()] * c.getWeight(enrollment);
+                            else
+                                penalty += getBaseWeight(assignment, other) * iQalityWeights[c.getType().ordinal()] * c.getWeight(other);
+                    }
+                }
+            }
+            return round(getWeight(assignment, enrollment) - penalty);
+        } else {
+            double base = getWeightMultiplicative(assignment, enrollment);
+            double penalty = 0.0;
+            if (qualityConflicts != null) {
+                for (StudentQuality.Conflict c: qualityConflicts) {
+                    Enrollment other = c.getOther(enrollment);
+                    switch (c.getType().getType()) {
+                        case REQUEST:
+                            if (enrollment.isCourseRequest())
+                                penalty += base * iQalityWeights[c.getType().ordinal()] * c.getWeight(enrollment);
+                            else if (other.isCourseRequest())
+                                penalty += getWeightMultiplicative(assignment, other) * iQalityWeights[c.getType().ordinal()] * c.getWeight(other);
+                            break;
+                        case BOTH:
+                            penalty += base * iQalityWeights[c.getType().ordinal()] * c.getWeight(enrollment);
+                            if (other.getRequest() != null)
+                                penalty += getWeightMultiplicative(assignment, other) * iQalityWeights[c.getType().ordinal()] * c.getWeight(other);
+                            break;
+                        case LOWER:
+                            other = c.getOther(enrollment);
+                            if (other.getRequest().getPriority() <= enrollment.getRequest().getPriority())
+                                penalty += base * iQalityWeights[c.getType().ordinal()] * c.getWeight(enrollment);
+                            else if (other.getRequest() != null)
+                                penalty += getWeightMultiplicative(assignment, other) * iQalityWeights[c.getType().ordinal()] * c.getWeight(other);
+                            break;
+                        case HIGHER:
+                            other = c.getOther(enrollment);
+                            if (other.getRequest().getPriority() >= enrollment.getRequest().getPriority())
+                                penalty += base * iQalityWeights[c.getType().ordinal()] * c.getWeight(enrollment);
+                            else if (other.getRequest() != null)
+                                penalty += getWeightMultiplicative(assignment, other) * iQalityWeights[c.getType().ordinal()] * c.getWeight(other);
+                    }
+                }
+            }
+            return round(base - penalty);
+        }
+    }
+
+    @Override
+    public double getStudentQualityConflictWeight(Assignment<Request, Enrollment> assignment, Enrollment enrollment, Conflict conflict) {
+        switch (conflict.getType().getType()) {
+            case BOTH:
+                if (enrollment == null || enrollment.getRequest() == null) return 0.0;
+                if (iAdditiveWeights) {
+                    return round(getBaseWeight(assignment, enrollment) * iQalityWeights[conflict.getType().ordinal()] * conflict.getWeight(enrollment));
+                } else {
+                    return round(getWeightMultiplicative(assignment, enrollment) * iQalityWeights[conflict.getType().ordinal()] * conflict.getWeight(enrollment));
+                }
+            case REQUEST:
+                if (enrollment == null || enrollment.getRequest() == null || !enrollment.isCourseRequest()) return 0.0;
+                if (iAdditiveWeights) {
+                    return round(getBaseWeight(assignment, enrollment) * iQalityWeights[conflict.getType().ordinal()] * conflict.getWeight(enrollment));
+                } else {
+                    return round(getWeightMultiplicative(assignment, enrollment) * iQalityWeights[conflict.getType().ordinal()] * conflict.getWeight(enrollment));
+                }
+            case LOWER:
+                if (iAdditiveWeights) {
+                    if (conflict.getR1().getPriority() < conflict.getR2().getPriority()) {
+                        return round(getBaseWeight(assignment, conflict.getE2()) * iQalityWeights[conflict.getType().ordinal()] * conflict.getWeight(conflict.getE2()));
+                    } else {
+                        return round(getBaseWeight(assignment, conflict.getE1()) * iQalityWeights[conflict.getType().ordinal()] * conflict.getWeight(conflict.getE1()));
+                    }
+                } else {
+                    if (conflict.getR1().getPriority() < conflict.getR2().getPriority()) {
+                        return round(getWeightMultiplicative(assignment, conflict.getE2()) * iQalityWeights[conflict.getType().ordinal()] * conflict.getWeight(conflict.getE2()));
+                    } else {
+                        return round(getWeightMultiplicative(assignment, conflict.getE1()) * iQalityWeights[conflict.getType().ordinal()] * conflict.getWeight(conflict.getE1()));
+                    }
+                }
+            case HIGHER:
+                if (iAdditiveWeights) {
+                    if (conflict.getR1().getPriority() > conflict.getR2().getPriority()) {
+                        return round(getBaseWeight(assignment, conflict.getE2()) * iQalityWeights[conflict.getType().ordinal()] * conflict.getWeight(conflict.getE2()));
+                    } else {
+                        return round(getBaseWeight(assignment, conflict.getE1()) * iQalityWeights[conflict.getType().ordinal()] * conflict.getWeight(conflict.getE1()));
+                    }
+                } else {
+                    if (conflict.getR1().getPriority() < conflict.getR2().getPriority()) {
+                        return round(getWeightMultiplicative(assignment, conflict.getE2()) * iQalityWeights[conflict.getType().ordinal()] * conflict.getWeight(conflict.getE2()));
+                    } else {
+                        return round(getWeightMultiplicative(assignment, conflict.getE1()) * iQalityWeights[conflict.getType().ordinal()] * conflict.getWeight(conflict.getE1()));
+                    }
+                }
+            default:
+                return 0.0;
+        }
     }
 }

@@ -92,9 +92,12 @@ public class RandomizedBacktrackNeighbourSelection extends BacktrackNeighbourSel
                 private Double value(Enrollment e) {
                     Double value = iValues.get(e);
                     if (value == null) {
-                        value = model.getStudentWeights().getWeight(assignment, e,
-                                (model.getDistanceConflict() == null ? null : model.getDistanceConflict().conflicts(e)),
-                                (model.getTimeOverlaps() == null ? null : model.getTimeOverlaps().conflicts(e)));
+                        if (model.getStudentQuality() != null)
+                            value = model.getStudentWeights().getWeight(assignment, e, model.getStudentQuality().conflicts(e));
+                        else
+                            value = model.getStudentWeights().getWeight(assignment, e,
+                                    (model.getDistanceConflict() == null ? null : model.getDistanceConflict().conflicts(e)),
+                                    (model.getTimeOverlaps() == null ? null : model.getTimeOverlaps().conflicts(e)));
                         iValues.put(e, value);
                     }
                     return value;

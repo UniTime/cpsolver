@@ -7,6 +7,7 @@ import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.studentsct.extension.DistanceConflict;
+import org.cpsolver.studentsct.extension.StudentQuality;
 import org.cpsolver.studentsct.extension.TimeOverlapsCounter;
 import org.cpsolver.studentsct.model.Config;
 import org.cpsolver.studentsct.model.Course;
@@ -265,12 +266,14 @@ public class StudentSchedulingAssistantWeights implements StudentWeights {
     }
 
     @Override
+    @Deprecated
     public double getDistanceConflictWeight(Assignment<Request, Enrollment> assignment,
             DistanceConflict.Conflict distanceConflict) {
         return iParent.getDistanceConflictWeight(assignment, distanceConflict);
     }
 
     @Override
+    @Deprecated
     public double getTimeOverlapConflictWeight(Assignment<Request, Enrollment> assignment, Enrollment enrollment,
             TimeOverlapsCounter.Conflict timeOverlap) {
         return iParent.getTimeOverlapConflictWeight(assignment, enrollment, timeOverlap);
@@ -279,5 +282,43 @@ public class StudentSchedulingAssistantWeights implements StudentWeights {
     @Override
     public boolean isFreeTimeAllowOverlaps() {
         return iParent.isFreeTimeAllowOverlaps();
+    }
+
+    @Override
+    public double getWeight(Assignment<Request, Enrollment> assignment, Enrollment enrollment, Set<StudentQuality.Conflict> qualityConflicts) {
+        if (enrollment.getAssignments().isEmpty()) return 0;
+
+        double weight = getWeight(assignment, enrollment);
+        
+        if (qualityConflicts != null) {
+            for (StudentQuality.Conflict c: qualityConflicts) {
+                switch (c.getType().getType()) {
+                    case BOTH:
+                        weight -= getStudentQualityConflictWeight(assignment, enrollment, c);
+                        break;
+                    case REQUEST:
+                        if (enrollment.isCourseRequest())
+                            weight -= getStudentQualityConflictWeight(assignment, enrollment, c);
+                        break;
+                    case LOWER:
+                        Enrollment other = c.getOther(enrollment);
+                        if (other.getRequest().getPriority() <= enrollment.getRequest().getPriority())
+                            weight -= getStudentQualityConflictWeight(assignment, enrollment, c);
+                        break;
+                    case HIGHER:
+                        other = c.getOther(enrollment);
+                        if (other.getRequest().getPriority() >= enrollment.getRequest().getPriority())
+                            weight -= getStudentQualityConflictWeight(assignment, enrollment, c);
+                        break;
+                }
+            }
+        }
+        return weight;
+
+    }
+
+    @Override
+    public double getStudentQualityConflictWeight(Assignment<Request, Enrollment> assignment, Enrollment enrollment, StudentQuality.Conflict conflict) {
+        return iParent.getStudentQualityConflictWeight(assignment, enrollment, conflict);
     }
 }

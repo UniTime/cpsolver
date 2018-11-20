@@ -4,6 +4,7 @@ import java.util.Hashtable;
 import java.util.Set;
 
 import org.cpsolver.ifs.assignment.Assignment;
+import org.cpsolver.studentsct.extension.StudentQuality;
 import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.FreeTimeRequest;
@@ -104,7 +105,35 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
         if (bestNotAvailable < currentNotAvailable) return 1;
 
         // 0.5. avoid course overlaps & unavailabilities
-        if (getModel().getTimeOverlaps() != null) {
+        if (getModel().getStudentQuality() != null) {
+            int bestTimeOverlaps = 0, currentTimeOverlaps = 0;
+            for (int idx = 0; idx < current.length; idx++) {
+                if (best[idx] != null && best[idx].getAssignments() != null && best[idx].getRequest() instanceof CourseRequest) {
+                    for (int x = 0; x < idx; x++) {
+                        if (best[x] != null && best[x].getAssignments() != null && best[x].getRequest() instanceof CourseRequest)
+                            bestTimeOverlaps += getModel().getStudentQuality().penalty(StudentQuality.Type.CourseTimeOverlap, best[x], best[idx]);
+                    }
+                }
+                if (current[idx] != null && current[idx].getAssignments() != null && current[idx].getRequest() instanceof CourseRequest) {
+                    for (int x = 0; x < idx; x++) {
+                        if (current[x] != null && current[x].getAssignments() != null && current[x].getRequest() instanceof CourseRequest)
+                            currentTimeOverlaps += getModel().getStudentQuality().penalty(StudentQuality.Type.CourseTimeOverlap, current[x], current[idx]);
+                    }
+                }
+            }
+            for (int idx = 0; idx < current.length; idx++) {
+                if (best[idx] != null && best[idx].getAssignments() != null && best[idx].isCourseRequest()) {
+                    bestTimeOverlaps += getModel().getStudentQuality().penalty(StudentQuality.Type.Unavailability, best[idx]);
+                }
+                if (current[idx] != null && current[idx].getAssignments() != null && current[idx].isCourseRequest()) {
+                    currentTimeOverlaps += getModel().getStudentQuality().penalty(StudentQuality.Type.Unavailability, current[idx]);
+                }
+            }
+            if (currentTimeOverlaps < bestTimeOverlaps)
+                return -1;
+            if (bestTimeOverlaps < currentTimeOverlaps)
+                return 1;
+        } else if (getModel().getTimeOverlaps() != null) {
             int bestTimeOverlaps = 0, currentTimeOverlaps = 0;
             for (int idx = 0; idx < current.length; idx++) {
                 if (best[idx] != null && best[idx].getAssignments() != null && best[idx].getRequest() instanceof CourseRequest) {
@@ -197,70 +226,94 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
         if (0.3 * currentSelectedConfigs + 0.7 * currentSelectedSections > 0.3 * bestSelectedConfigs + 0.7 * bestSelectedSections) return -1;
         if (0.3 * bestSelectedConfigs + 0.7 * bestSelectedSections > 0.3 * currentSelectedConfigs + 0.7 * currentSelectedSections) return 1;
         
-        // 4. avoid time overlaps
-        if (getModel().getTimeOverlaps() != null) {
-            int bestTimeOverlaps = 0, currentTimeOverlaps = 0;
-            for (int idx = 0; idx < current.length; idx++) {
-                if (best[idx] != null && best[idx].getAssignments() != null) {
-                    for (int x = 0; x < idx; x++) {
-                        if (best[x] != null && best[x].getAssignments() != null)
-                            bestTimeOverlaps += getModel().getTimeOverlaps().nrConflicts(best[x], best[idx]);
-                        else if (getStudent().getRequests().get(x) instanceof FreeTimeRequest)
-                            bestTimeOverlaps += getModel().getTimeOverlaps()
-                                    .nrConflicts(
-                                            ((FreeTimeRequest) getStudent().getRequests().get(x)).createEnrollment(),
-                                            best[idx]);
+        // 4-5. student quality
+        if (getModel().getStudentQuality() != null) {
+            double bestQuality = 0, currentQuality = 0;
+            for (StudentQuality.Type type: StudentQuality.Type.values()) {
+                for (int idx = 0; idx < current.length; idx++) {
+                    if (best[idx] != null && best[idx].getAssignments() != null) {
+                        bestQuality += iQalityWeights[type.ordinal()] * getModel().getStudentQuality().penalty(type, best[idx]);
+                        for (int x = 0; x < idx; x++) {
+                            if (best[x] != null && best[x].getAssignments() != null)
+                                bestQuality += iQalityWeights[type.ordinal()] * getModel().getStudentQuality().penalty(type, best[x], best[idx]);
+                        }
                     }
-                }
-                if (current[idx] != null && current[idx].getAssignments() != null) {
-                    for (int x = 0; x < idx; x++) {
-                        if (current[x] != null && current[x].getAssignments() != null)
-                            currentTimeOverlaps += getModel().getTimeOverlaps().nrConflicts(current[x], current[idx]);
-                        else if (getStudent().getRequests().get(x) instanceof FreeTimeRequest)
-                            currentTimeOverlaps += getModel().getTimeOverlaps().nrConflicts(
-                                    ((FreeTimeRequest) getStudent().getRequests().get(x)).createEnrollment(),
-                                    current[idx]);
+                    if (current[idx] != null && current[idx].getAssignments() != null) {
+                        currentQuality += iQalityWeights[type.ordinal()] * getModel().getStudentQuality().penalty(type, current[idx]);
+                        for (int x = 0; x < idx; x++) {
+                            if (current[x] != null && current[x].getAssignments() != null)
+                                currentQuality += iQalityWeights[type.ordinal()] * getModel().getStudentQuality().penalty(type, current[x], current[idx]);
+                        }
                     }
                 }
             }
-            for (int idx = 0; idx < current.length; idx++) {
-                if (best[idx] != null && best[idx].getAssignments() != null && best[idx].isCourseRequest()) {
-                    bestTimeOverlaps += getModel().getTimeOverlaps().nrNotAvailableTimeConflicts(best[idx]);
-                }
-                if (current[idx] != null && current[idx].getAssignments() != null && current[idx].isCourseRequest()) {
-                    currentTimeOverlaps += getModel().getTimeOverlaps().nrNotAvailableTimeConflicts(current[idx]);
-                }
-            }
-            if (currentTimeOverlaps < bestTimeOverlaps)
+            if (currentQuality < bestQuality)
                 return -1;
-            if (bestTimeOverlaps < currentTimeOverlaps)
+            if (bestQuality < currentQuality)
                 return 1;
-        }
+        } else {
+            // 4. avoid time overlaps
+            if (getModel().getTimeOverlaps() != null) {
+                int bestTimeOverlaps = 0, currentTimeOverlaps = 0;
+                for (int idx = 0; idx < current.length; idx++) {
+                    if (best[idx] != null && best[idx].getAssignments() != null) {
+                        for (int x = 0; x < idx; x++) {
+                            if (best[x] != null && best[x].getAssignments() != null)
+                                bestTimeOverlaps += getModel().getTimeOverlaps().nrConflicts(best[x], best[idx]);
+                            else if (getStudent().getRequests().get(x) instanceof FreeTimeRequest)
+                                bestTimeOverlaps += getModel().getTimeOverlaps().nrConflicts(((FreeTimeRequest) getStudent().getRequests().get(x)).createEnrollment(), best[idx]);
+                        }
+                    }
+                    if (current[idx] != null && current[idx].getAssignments() != null) {
+                        for (int x = 0; x < idx; x++) {
+                            if (current[x] != null && current[x].getAssignments() != null)
+                                currentTimeOverlaps += getModel().getTimeOverlaps().nrConflicts(current[x], current[idx]);
+                            else if (getStudent().getRequests().get(x) instanceof FreeTimeRequest)
+                                currentTimeOverlaps += getModel().getTimeOverlaps().nrConflicts(
+                                        ((FreeTimeRequest) getStudent().getRequests().get(x)).createEnrollment(),
+                                        current[idx]);
+                        }
+                    }
+                }
+                for (int idx = 0; idx < current.length; idx++) {
+                    if (best[idx] != null && best[idx].getAssignments() != null && best[idx].isCourseRequest()) {
+                        bestTimeOverlaps += getModel().getTimeOverlaps().nrNotAvailableTimeConflicts(best[idx]);
+                    }
+                    if (current[idx] != null && current[idx].getAssignments() != null && current[idx].isCourseRequest()) {
+                        currentTimeOverlaps += getModel().getTimeOverlaps().nrNotAvailableTimeConflicts(current[idx]);
+                    }
+                }
+                if (currentTimeOverlaps < bestTimeOverlaps)
+                    return -1;
+                if (bestTimeOverlaps < currentTimeOverlaps)
+                    return 1;
+            }
 
-        // 5. avoid distance conflicts
-        if (getModel().getDistanceConflict() != null) {
-            int bestDistanceConf = 0, currentDistanceConf = 0;
-            for (int idx = 0; idx < current.length; idx++) {
-                if (best[idx] != null && best[idx].getAssignments() != null) {
-                    bestDistanceConf += getModel().getDistanceConflict().nrConflicts(best[idx]);
-                    for (int x = 0; x < idx; x++) {
-                        if (best[x] != null && best[x].getAssignments() != null)
-                            bestDistanceConf += getModel().getDistanceConflict().nrConflicts(best[x], best[idx]);
+            // 5. avoid distance conflicts
+            if (getModel().getDistanceConflict() != null) {
+                int bestDistanceConf = 0, currentDistanceConf = 0;
+                for (int idx = 0; idx < current.length; idx++) {
+                    if (best[idx] != null && best[idx].getAssignments() != null) {
+                        bestDistanceConf += getModel().getDistanceConflict().nrConflicts(best[idx]);
+                        for (int x = 0; x < idx; x++) {
+                            if (best[x] != null && best[x].getAssignments() != null)
+                                bestDistanceConf += getModel().getDistanceConflict().nrConflicts(best[x], best[idx]);
+                        }
+                    }
+                    if (current[idx] != null && current[idx].getAssignments() != null) {
+                        currentDistanceConf += getModel().getDistanceConflict().nrConflicts(current[idx]);
+                        for (int x = 0; x < idx; x++) {
+                            if (current[x] != null && current[x].getAssignments() != null)
+                                currentDistanceConf += getModel().getDistanceConflict().nrConflicts(current[x],
+                                        current[idx]);
+                        }
                     }
                 }
-                if (current[idx] != null && current[idx].getAssignments() != null) {
-                    currentDistanceConf += getModel().getDistanceConflict().nrConflicts(current[idx]);
-                    for (int x = 0; x < idx; x++) {
-                        if (current[x] != null && current[x].getAssignments() != null)
-                            currentDistanceConf += getModel().getDistanceConflict().nrConflicts(current[x],
-                                    current[idx]);
-                    }
-                }
-            }
-            if (currentDistanceConf < bestDistanceConf)
-                return -1;
-            if (bestDistanceConf < currentDistanceConf)
-                return 1;
+                if (currentDistanceConf < bestDistanceConf)
+                    return -1;
+                if (bestDistanceConf < currentDistanceConf)
+                    return 1;
+            }            
         }
 
         // 6. avoid no-time sections
@@ -419,7 +472,35 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
         }
 
         // 0.5. avoid course time overlaps & unavailabilities
-        if (getModel().getTimeOverlaps() != null) {
+        if (getModel().getStudentQuality() != null) {
+            int bestTimeOverlaps = 0, currentTimeOverlaps = 0;
+            for (int idx = 0; idx < current.length; idx++) {
+                if (best[idx] != null && best[idx].getRequest() instanceof CourseRequest) {
+                    for (int x = 0; x < idx; x++) {
+                        if (best[x] != null && best[x].getRequest() instanceof CourseRequest)
+                            bestTimeOverlaps += getModel().getStudentQuality().penalty(StudentQuality.Type.CourseTimeOverlap, best[x], best[idx]);
+                    }
+                }
+                if (current[idx] != null && idx < maxIdx && current[idx].getRequest() instanceof CourseRequest) {
+                    for (int x = 0; x < idx; x++) {
+                        if (current[x] != null && current[x].getRequest() instanceof CourseRequest)
+                            currentTimeOverlaps += getModel().getStudentQuality().penalty(StudentQuality.Type.CourseTimeOverlap, current[x], current[idx]);
+                    }
+                }
+            }
+            for (int idx = 0; idx < current.length; idx++) {
+                if (best[idx] != null && best[idx].getAssignments() != null && best[idx].isCourseRequest()) {
+                    bestTimeOverlaps += getModel().getStudentQuality().penalty(StudentQuality.Type.Unavailability, best[idx]);
+                }
+                if (current[idx] != null && idx < maxIdx && current[idx].getAssignments() != null && current[idx].isCourseRequest()) {
+                    currentTimeOverlaps += getModel().getStudentQuality().penalty(StudentQuality.Type.Unavailability, current[idx]);
+                }
+            }
+            if (currentTimeOverlaps < bestTimeOverlaps)
+                return true;
+            if (bestTimeOverlaps < currentTimeOverlaps)
+                return false;
+        } else if (getModel().getTimeOverlaps() != null) {
             int bestTimeOverlaps = 0, currentTimeOverlaps = 0;
             for (int idx = 0; idx < current.length; idx++) {
                 if (best[idx] != null && best[idx].getRequest() instanceof CourseRequest) {
@@ -520,70 +601,94 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
         if (0.3 * currentSelectedConfigs + 0.7 * currentSelectedSections > 0.3 * bestSelectedConfigs + 0.7 * bestSelectedSections) return true;
         if (0.3 * bestSelectedConfigs + 0.7 * bestSelectedSections > 0.3 * currentSelectedConfigs + 0.7 * currentSelectedSections) return false;
         
-        // 4. avoid time overlaps
-        if (getModel().getTimeOverlaps() != null) {
-            int bestTimeOverlaps = 0, currentTimeOverlaps = 0;
-            for (int idx = 0; idx < current.length; idx++) {
-                if (best[idx] != null) {
-                    for (int x = 0; x < idx; x++) {
-                        if (best[x] != null)
-                            bestTimeOverlaps += getModel().getTimeOverlaps().nrConflicts(best[x], best[idx]);
-                        else if (getStudent().getRequests().get(x) instanceof FreeTimeRequest)
-                            bestTimeOverlaps += getModel().getTimeOverlaps()
-                                    .nrConflicts(
-                                            ((FreeTimeRequest) getStudent().getRequests().get(x)).createEnrollment(),
-                                            best[idx]);
+        // 4-5. solution quality
+        if (getModel().getStudentQuality() != null) {
+            double bestQuality = 0, currentQuality = 0;
+            for (StudentQuality.Type type: StudentQuality.Type.values()) {
+                for (int idx = 0; idx < current.length; idx++) {
+                    if (best[idx] != null) {
+                        bestQuality += iQalityWeights[type.ordinal()] * getModel().getStudentQuality().penalty(type, best[idx]);
+                        for (int x = 0; x < idx; x++) {
+                            if (best[x] != null)
+                                bestQuality += iQalityWeights[type.ordinal()] * getModel().getStudentQuality().penalty(type, best[x], best[idx]);
+                        }
                     }
-                }
-                if (current[idx] != null && idx < maxIdx) {
-                    for (int x = 0; x < idx; x++) {
-                        if (current[x] != null)
-                            currentTimeOverlaps += getModel().getTimeOverlaps().nrConflicts(current[x], current[idx]);
-                        else if (getStudent().getRequests().get(x) instanceof FreeTimeRequest)
-                            currentTimeOverlaps += getModel().getTimeOverlaps().nrConflicts(
-                                    ((FreeTimeRequest) getStudent().getRequests().get(x)).createEnrollment(),
-                                    current[idx]);
+                    if (current[idx] != null && idx < maxIdx) {
+                        currentQuality += iQalityWeights[type.ordinal()] * getModel().getStudentQuality().penalty(type, current[idx]);
+                        for (int x = 0; x < idx; x++) {
+                            if (current[x] != null)
+                                currentQuality += iQalityWeights[type.ordinal()] * getModel().getStudentQuality().penalty(type, current[x], current[idx]);
+                        }
                     }
                 }
             }
-            for (int idx = 0; idx < current.length; idx++) {
-                if (best[idx] != null && best[idx].getAssignments() != null && best[idx].isCourseRequest()) {
-                    bestTimeOverlaps += getModel().getTimeOverlaps().nrNotAvailableTimeConflicts(best[idx]);
-                }
-                if (current[idx] != null && idx < maxIdx && current[idx].getAssignments() != null && current[idx].isCourseRequest()) {
-                    currentTimeOverlaps += getModel().getTimeOverlaps().nrNotAvailableTimeConflicts(current[idx]);
-                }
-            }
-            if (currentTimeOverlaps < bestTimeOverlaps)
+            if (currentQuality < bestQuality)
                 return true;
-            if (bestTimeOverlaps < currentTimeOverlaps)
+            if (bestQuality < currentQuality)
                 return false;
-        }
+        } else {
+            // 4. avoid time overlaps
+            if (getModel().getTimeOverlaps() != null) {
+                int bestTimeOverlaps = 0, currentTimeOverlaps = 0;
+                for (int idx = 0; idx < current.length; idx++) {
+                    if (best[idx] != null) {
+                        for (int x = 0; x < idx; x++) {
+                            if (best[x] != null)
+                                bestTimeOverlaps += getModel().getTimeOverlaps().nrConflicts(best[x], best[idx]);
+                            else if (getStudent().getRequests().get(x) instanceof FreeTimeRequest)
+                                bestTimeOverlaps += getModel().getTimeOverlaps().nrConflicts(((FreeTimeRequest) getStudent().getRequests().get(x)).createEnrollment(), best[idx]);
+                        }
+                    }
+                    if (current[idx] != null && idx < maxIdx) {
+                        for (int x = 0; x < idx; x++) {
+                            if (current[x] != null)
+                                currentTimeOverlaps += getModel().getTimeOverlaps().nrConflicts(current[x], current[idx]);
+                            else if (getStudent().getRequests().get(x) instanceof FreeTimeRequest)
+                                currentTimeOverlaps += getModel().getTimeOverlaps().nrConflicts(
+                                        ((FreeTimeRequest) getStudent().getRequests().get(x)).createEnrollment(),
+                                        current[idx]);
+                        }
+                    }
+                }
+                for (int idx = 0; idx < current.length; idx++) {
+                    if (best[idx] != null && best[idx].getAssignments() != null && best[idx].isCourseRequest()) {
+                        bestTimeOverlaps += getModel().getTimeOverlaps().nrNotAvailableTimeConflicts(best[idx]);
+                    }
+                    if (current[idx] != null && idx < maxIdx && current[idx].getAssignments() != null && current[idx].isCourseRequest()) {
+                        currentTimeOverlaps += getModel().getTimeOverlaps().nrNotAvailableTimeConflicts(current[idx]);
+                    }
+                }
+                if (currentTimeOverlaps < bestTimeOverlaps)
+                    return true;
+                if (bestTimeOverlaps < currentTimeOverlaps)
+                    return false;
+            }
 
-        // 5. avoid distance conflicts
-        if (getModel().getDistanceConflict() != null) {
-            int bestDistanceConf = 0, currentDistanceConf = 0;
-            for (int idx = 0; idx < current.length; idx++) {
-                if (best[idx] != null) {
-                    bestDistanceConf += getModel().getDistanceConflict().nrConflicts(best[idx]);
-                    for (int x = 0; x < idx; x++) {
-                        if (best[x] != null)
-                            bestDistanceConf += getModel().getDistanceConflict().nrConflicts(best[x], best[idx]);
+            // 5. avoid distance conflicts
+            if (getModel().getDistanceConflict() != null) {
+                int bestDistanceConf = 0, currentDistanceConf = 0;
+                for (int idx = 0; idx < current.length; idx++) {
+                    if (best[idx] != null) {
+                        bestDistanceConf += getModel().getDistanceConflict().nrConflicts(best[idx]);
+                        for (int x = 0; x < idx; x++) {
+                            if (best[x] != null)
+                                bestDistanceConf += getModel().getDistanceConflict().nrConflicts(best[x], best[idx]);
+                        }
+                    }
+                    if (current[idx] != null && idx < maxIdx) {
+                        currentDistanceConf += getModel().getDistanceConflict().nrConflicts(current[idx]);
+                        for (int x = 0; x < idx; x++) {
+                            if (current[x] != null)
+                                currentDistanceConf += getModel().getDistanceConflict().nrConflicts(current[x],
+                                        current[idx]);
+                        }
                     }
                 }
-                if (current[idx] != null && idx < maxIdx) {
-                    currentDistanceConf += getModel().getDistanceConflict().nrConflicts(current[idx]);
-                    for (int x = 0; x < idx; x++) {
-                        if (current[x] != null)
-                            currentDistanceConf += getModel().getDistanceConflict().nrConflicts(current[x],
-                                    current[idx]);
-                    }
-                }
+                if (currentDistanceConf < bestDistanceConf)
+                    return true;
+                if (bestDistanceConf < currentDistanceConf)
+                    return false;
             }
-            if (currentDistanceConf < bestDistanceConf)
-                return true;
-            if (bestDistanceConf < currentDistanceConf)
-                return false;
         }
 
         // 6. avoid no-time sections

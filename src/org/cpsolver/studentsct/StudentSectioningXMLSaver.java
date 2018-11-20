@@ -760,8 +760,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
      * @param root document root
      */
     protected void saveTravelTimes(Element root) {
-        if (getModel().getDistanceConflict() != null) {
-            Map<Long, Map<Long, Integer>> travelTimes = getModel().getDistanceConflict().getDistanceMetric().getTravelTimes();
+        if (getModel().getDistanceMetric() != null) {
+            Map<Long, Map<Long, Integer>> travelTimes = getModel().getDistanceMetric().getTravelTimes();
             if (travelTimes != null) {
                 Element travelTimesEl = root.addElement("travel-times");
                 for (Map.Entry<Long, Map<Long, Integer>> e1: travelTimes.entrySet())

@@ -5,6 +5,7 @@ import java.util.Set;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.solution.SolutionComparator;
 import org.cpsolver.studentsct.extension.DistanceConflict;
+import org.cpsolver.studentsct.extension.StudentQuality;
 import org.cpsolver.studentsct.extension.TimeOverlapsCounter;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
@@ -60,6 +61,15 @@ public interface StudentWeights extends SolutionComparator<Request, Enrollment> 
     public double getWeight(Assignment<Request, Enrollment> assignment, Enrollment enrollment, Set<DistanceConflict.Conflict> distanceConflicts, Set<TimeOverlapsCounter.Conflict> timeOverlappingConflicts);
     
     /**
+     * Return weight of the given enrollment 
+     * @param assignment current assignment
+     * @param enrollment given enrollment
+     * @param qualityConflicts student quality conflicts
+     * @return weight (higher weight means better value)
+     */
+    public double getWeight(Assignment<Request, Enrollment> assignment, Enrollment enrollment, Set<StudentQuality.Conflict> qualityConflicts);
+    
+    /**
      * Return weight of a distance conflict
      * @param assignment current assignment
      * @param distanceConflict distance conflict
@@ -75,6 +85,15 @@ public interface StudentWeights extends SolutionComparator<Request, Enrollment> 
      * @return weight of the conflict
      */
     public double getTimeOverlapConflictWeight(Assignment<Request, Enrollment> assignment, Enrollment enrollment, TimeOverlapsCounter.Conflict timeOverlap);
+    
+    /**
+     * Return weight of a student quality conflict
+     * @param assignment current assignment
+     * @param enrollment enrollment in question
+     * @param conflict student quality conflict
+     * @return weight of the conflict
+     */
+    public double getStudentQualityConflictWeight(Assignment<Request, Enrollment> assignment, Enrollment enrollment, StudentQuality.Conflict conflict);
     
     /**
      * Return true if free time requests allow overlaps

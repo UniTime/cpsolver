@@ -116,9 +116,12 @@ public class SuggestionsBranchAndBound {
             private Double value(Enrollment e) {
                 Double value = iValues.get(e);
                 if (value == null) {
-                    value = iModel.getStudentWeights().getWeight(iAssignment, e,
-                            (iModel.getDistanceConflict() == null ? null : iModel.getDistanceConflict().conflicts(e)),
-                            (iModel.getTimeOverlaps() == null ? null : iModel.getTimeOverlaps().conflicts(e)));
+                    if (iModel.getStudentQuality() != null)
+                        value = iModel.getStudentWeights().getWeight(iAssignment, e, iModel.getStudentQuality().conflicts(e));
+                    else
+                        value = iModel.getStudentWeights().getWeight(iAssignment, e,
+                                (iModel.getDistanceConflict() == null ? null : iModel.getDistanceConflict().conflicts(e)),
+                                (iModel.getTimeOverlaps() == null ? null : iModel.getTimeOverlaps().conflicts(e)));
                     iValues.put(e, value);
                 }
                 return value;
