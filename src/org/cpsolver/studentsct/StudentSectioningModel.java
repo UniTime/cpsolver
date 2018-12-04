@@ -424,16 +424,16 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         if (getStudentQuality() != null) {
             int confLunch = getStudentQuality().getTotalPenalty(StudentQuality.Type.LunchBreak, assignment);
             if (confLunch > 0)
-                info.put("Lunch conflicts", sDoubleFormat.format(20.0 * confLunch / getNrRealStudents(false)) + "% (" + confLunch + ")");
+                info.put("Schedule Quality: Lunch conflicts", sDoubleFormat.format(20.0 * confLunch / getNrRealStudents(false)) + "% (" + confLunch + ")");
             int confTravel = getStudentQuality().getTotalPenalty(StudentQuality.Type.TravelTime, assignment);
             if (confTravel > 0)
-                info.put("Travel time", sDoubleFormat.format(((double)confTravel) / getNrRealStudents(false)) + " mins per student (" + sDecimalFormat.format(confTravel / 60.0) + " hours total)");
+                info.put("Schedule Quality: Travel time", sDoubleFormat.format(((double)confTravel) / getNrRealStudents(false)) + " mins per student (" + sDecimalFormat.format(confTravel / 60.0) + " hours total)");
             int confBtB = getStudentQuality().getTotalPenalty(StudentQuality.Type.BackToBack, assignment);
             if (confBtB > 0)
-                info.put("Back-to-back classes", sDoubleFormat.format(((double)confBtB) / getNrRealStudents(false)) + " per student (" + confBtB + ")");
+                info.put("Schedule Quality: Back-to-back classes", sDoubleFormat.format(((double)confBtB) / getNrRealStudents(false)) + " per student (" + confBtB + ")");
             int confWorkDay = getStudentQuality().getTotalPenalty(StudentQuality.Type.WorkDay, assignment);
             if (confWorkDay > 0)
-                info.put("Work day", sDoubleFormat.format(5.0 * confWorkDay / getNrRealStudents(false)) + " mins over " +
+                info.put("Schedule Quality: Work day", sDoubleFormat.format(5.0 * confWorkDay / getNrRealStudents(false)) + " mins over " +
                         new DecimalFormat("0.#").format(getProperties().getPropertyInt("WorkDay.WorkDayLimit", 6*12) / 12.0) + " hours a day per student\n(from start to end, " + sDoubleFormat.format(confWorkDay / 12.0) + " hours total)");
             int early = getStudentQuality().getTotalPenalty(StudentQuality.Type.TooEarly, assignment);
             if (early > 0) {
@@ -441,7 +441,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 int h = min / 60;
                 int m = min % 60;
                 String time = (getProperties().getPropertyBoolean("General.UseAmPm", true) ? (h > 12 ? h - 12 : h) + ":" + (m < 10 ? "0" : "") + m + (h >= 12 ? "p" : "a") : h + ":" + (m < 10 ? "0" : "") + m);
-                info.put("Early classes", sDoubleFormat.format(5.0 * early / iStudents.size()) + " mins before " + time + " per student (" + sDoubleFormat.format(early / 12.0) + " hours total)");
+                info.put("Schedule Quality: Early classes", sDoubleFormat.format(5.0 * early / iStudents.size()) + " mins before " + time + " per student (" + sDoubleFormat.format(early / 12.0) + " hours total)");
             }
             int late = getStudentQuality().getTotalPenalty(StudentQuality.Type.TooLate, assignment);
             if (late > 0) {
@@ -449,7 +449,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 int h = min / 60;
                 int m = min % 60;
                 String time = (getProperties().getPropertyBoolean("General.UseAmPm", true) ? (h > 12 ? h - 12 : h) + ":" + (m < 10 ? "0" : "") + m + (h >= 12 ? "p" : "a") : h + ":" + (m < 10 ? "0" : "") + m);
-                info.put("Late classes", sDoubleFormat.format(5.0 * late / iStudents.size()) + " mins after " + time + " per student (" + sDoubleFormat.format(late / 12.0) + " hours total)");
+                info.put("Schedule Quality: Late classes", sDoubleFormat.format(5.0 * late / iStudents.size()) + " mins after " + time + " per student (" + sDoubleFormat.format(late / 12.0) + " hours total)");
             }
         }
         int nrLastLikeStudents = getNrLastLikeStudents(false);
@@ -1051,6 +1051,36 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         if (nrStudentsBelowMinCredit > 0)
             info.put("Students below min credit", sDoubleFormat.format(100.0 * nrStudentsBelowMinCredit / nrStudents) + "% (" + nrStudentsBelowMinCredit + "/" + nrStudents + ")");
         
+        int[] notAssignedPriority = new int[] {0, 0, 0, 0, 0, 0, 0};
+        int[] assignedChoice = new int[] {0, 0, 0, 0, 0};
+        int notAssignedTotal = 0, assignedChoiceTotal = 0;
+        int avgPriority = 0, avgChoice = 0;
+        for (Student student: getStudents()) {
+            if (student.isDummy()) continue;
+            for (Request r : student.getRequests()) {
+                if (!(r instanceof CourseRequest)) continue; // ignore free times
+                Enrollment e = r.getAssignment(assignment);
+                if (e == null) {
+                    if (!r.isAlternative()) {
+                        notAssignedPriority[Math.min(r.getPriority(), notAssignedPriority.length - 1)] ++;
+                        notAssignedTotal ++;
+                        avgPriority += r.getPriority();
+                    }
+                } else {
+                    assignedChoice[Math.min(e.getTruePriority(), assignedChoice.length - 1)] ++;
+                    assignedChoiceTotal ++;
+                    avgChoice += e.getTruePriority();
+                }
+            }
+        }
+        for (int i = 0; i < notAssignedPriority.length; i++)
+            if (notAssignedPriority[i] > 0)
+                info.put("Priority: Not-assigned priority " + (i + 1 == notAssignedPriority.length ? (i + 1) + "+" : (i + 1)) + " course requests", sDecimalFormat.format(100.0 * notAssignedPriority[i] / notAssignedTotal) + "% (" + notAssignedPriority[i] + ")");
+        info.put("Priority: Average not-assigned priority", sDecimalFormat.format(1.0 + ((double)avgPriority) / notAssignedTotal));
+        for (int i = 0; i < assignedChoice.length; i++)
+            if (assignedChoice[i] > 0)
+                info.put("Choice: assigned " + (i == 0 ? "1st": i == 1 ? "2nd" : i == 2 ? "3rd" : i + 1 == assignedChoice.length ? (i + 1) + "th+" : (i + 1) + "th") + " course choice", sDecimalFormat.format(100.0 * assignedChoice[i] / assignedChoiceTotal) + "% (" + assignedChoice[i] + ")");
+        info.put("Choice: Average assigned choice", sDecimalFormat.format(1.0 + ((double)avgChoice) / assignedChoiceTotal));
         return info;
     }
     
