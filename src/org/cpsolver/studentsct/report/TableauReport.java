@@ -82,6 +82,7 @@ public class TableauReport implements StudentSectioningReport {
                 new CSVFile.CSVField("Instructional Method"),
                 new CSVFile.CSVField("Preferred Instructional Methods"),
                 new CSVFile.CSVField("Required Instructional Methods"),
+                new CSVFile.CSVField("Critical")
                 });
         for (Student student: getModel().getStudents()) {
             if (student.isDummy()) continue;
@@ -187,6 +188,7 @@ public class TableauReport implements StudentSectioningReport {
                                 new CSVFile.CSVField(e != null ? e.getConfig().getInstructionalMethodReference() : null),
                                 new CSVFile.CSVField(imP),
                                 new CSVFile.CSVField(imR),
+                                new CSVFile.CSVField(cr.isCritical() ? "Yes" : "No")
                         });
                         alternativity++;
                     }

@@ -677,6 +677,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         if (request.getWeight() != 1.0)
             requestEl.addAttribute("weight", sStudentWeightFormat.format(request.getWeight()));
         requestEl.addAttribute("waitlist", request.isWaitlist() ? "true" : "false");
+        if (request.isCritical())
+            requestEl.addAttribute("critical", "true");
         if (request.getTimeStamp() != null)
             requestEl.addAttribute("timeStamp", request.getTimeStamp().toString());
         boolean first = true;

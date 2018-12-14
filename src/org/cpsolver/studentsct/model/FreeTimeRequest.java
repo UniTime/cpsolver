@@ -245,4 +245,9 @@ public class FreeTimeRequest extends Request implements SctAssignment {
     public float getMinCredit() {
         return 0;
     }
+
+    @Override
+    public boolean isCritical() {
+        return false;
+    }
 }

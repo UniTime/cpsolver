@@ -447,6 +447,16 @@ public class Student implements Comparable<Student> {
     public float getMinCredit() { return (iMinCredit == null ? 0 : iMinCredit.floatValue()); }
     
     /**
+     * Has student any critical course requests?
+     * @return true if a student has at least one course request that is marked as critical
+     */
+    public boolean hasCritical() {
+        for (Request r: iRequests)
+            if (!r.isAlternative() && r.isCritical()) return true;
+        return false;
+    }
+    
+    /**
      * Set student min credit (null if not set)
      * @param maxCredit student min credit
      */

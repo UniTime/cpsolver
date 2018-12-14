@@ -262,4 +262,9 @@ public abstract class Request extends VariableWithContext<Request, Enrollment, R
      * Smallest credit provided by this request
      */
     public abstract float getMinCredit();
+    
+    /**
+     * Is this request critical for the student to progress towards his/her degree
+     */
+    public abstract boolean isCritical();
 }

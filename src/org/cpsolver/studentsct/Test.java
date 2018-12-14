@@ -74,6 +74,7 @@ import org.cpsolver.studentsct.report.DistanceConflictTable;
 import org.cpsolver.studentsct.report.RequestGroupTable;
 import org.cpsolver.studentsct.report.RequestPriorityTable;
 import org.cpsolver.studentsct.report.SectionConflictTable;
+import org.cpsolver.studentsct.report.TableauReport;
 import org.cpsolver.studentsct.report.TimeOverlapConflictTable;
 import org.cpsolver.studentsct.report.UnbalancedSectionsTable;
 import org.dom4j.Document;
@@ -570,6 +571,9 @@ public class Test {
                     
                     RequestPriorityTable rpt = new RequestPriorityTable((StudentSectioningModel) solution.getModel());
                     rpt.create(solution.getAssignment(), model.getProperties()).save(new File(outDir, "request-priorities.csv"));
+                    
+                    TableauReport tr = new TableauReport((StudentSectioningModel) solution.getModel());
+                    tr.create(solution.getAssignment(), model.getProperties()).save(new File(outDir, "tableau.csv"));
                 } catch (IOException e) {
                     sLog.error(e.getMessage(), e);
                 }

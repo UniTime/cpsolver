@@ -62,9 +62,11 @@ import org.cpsolver.studentsct.model.Student;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class MinCreditBranchAndBoundSelection extends BranchBoundSelection {
+    protected boolean iMPP = false;
     
     public MinCreditBranchAndBoundSelection(DataProperties properties) {
         super(properties);
+        iMPP = properties.getPropertyBoolean("General.MPP", false);
     }
     
     @Override
@@ -77,7 +79,7 @@ public class MinCreditBranchAndBoundSelection extends BranchBoundSelection {
         Student student = null;
         while ((student = nextStudent()) != null) {
             Progress.getInstance(solution.getModel()).incProgress();
-            if (student.getMinCredit() <= 0) continue; // skip students that have no min credit
+            if (student.getMinCredit() <= 0 && !student.hasCritical()) continue; // skip students that have no min credit
             Neighbour<Request, Enrollment> neighbour = getSelection(solution.getAssignment(), student).select();
             if (neighbour != null)
                 return neighbour;
@@ -94,6 +96,7 @@ public class MinCreditBranchAndBoundSelection extends BranchBoundSelection {
         
         public MinCreditSelection(Student student, Assignment<Request, Enrollment> assignment) {
             super(student, assignment);
+            iTimeout = 10000;
         }
         
         public double getCredit(int idx) {
@@ -104,9 +107,17 @@ public class MinCreditBranchAndBoundSelection extends BranchBoundSelection {
             return credit;
         }
         
+        public boolean isCritical(int idx) {
+            for (int i = idx; i < iStudent.getRequests().size(); i++) {
+                Request r = iStudent.getRequests().get(i);
+                if (!r.isAlternative() && r.isCritical()) return true;
+            }
+            return false;
+        }
+        
         @Override
         public void backTrack(int idx) {
-            if (getCredit(idx) >= iStudent.getMinCredit()) {
+            if (getCredit(idx) >= iStudent.getMinCredit() && !isCritical(idx)) {
                 if (iMinimizePenalty) {
                     if (getBestAssignment() == null || (getNrAssigned() > getBestNrAssigned() || (getNrAssigned() == getBestNrAssigned() && getPenalty() < getBestValue())))
                         saveBest();
@@ -116,7 +127,12 @@ public class MinCreditBranchAndBoundSelection extends BranchBoundSelection {
                 }
                 return;
             }
-            super.backTrack(idx);
+            if (idx < iAssignment.length && getCredit(idx) >= iStudent.getMinCredit() && !iStudent.getRequests().get(idx).isCritical() && (!iMPP || iStudent.getRequests().get(idx).getInitialAssignment() == null)) {
+                // not done yet, over min credit but not critical >> leave unassigned
+                backTrack(idx + 1);
+            } else {
+                super.backTrack(idx);
+            }
         }
     }
 }

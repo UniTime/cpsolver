@@ -103,6 +103,7 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
             float credit = enrollment.getRequest().getStudent().getAssignedCredit(assignment) - enrollment.getCredit();
             if (credit < enrollment.getRequest().getStudent().getMinCredit()) return false;
         }
+        if (!enrollment.getRequest().isAlternative() && enrollment.getRequest().isCritical()) return false;
         return true;
     }
 

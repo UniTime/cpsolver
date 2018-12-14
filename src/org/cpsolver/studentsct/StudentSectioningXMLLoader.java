@@ -136,6 +136,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
     private boolean iLoadOfferings = true;
     private boolean iLoadStudents = true;
     private StudentFilter iStudentFilter = null;
+    private boolean iWaitlistCritical = false;
 
     /**
      * Constructor
@@ -155,6 +156,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         iLoadCurrent = getModel().getProperties().getPropertyBoolean("Xml.LoadCurrent", true);
         iLoadOfferings = getModel().getProperties().getPropertyBoolean("Xml.LoadOfferings", true);
         iLoadStudents = getModel().getProperties().getPropertyBoolean("Xml.LoadStudents", true);
+        iWaitlistCritical = getModel().getProperties().getPropertyBoolean("Xml.WaitlistCritical", false);
         if (getModel().getProperties().getProperty("Xml.StudentFilter") != null) {
             try {
                 iStudentFilter = (StudentFilter) Class.forName(
@@ -893,7 +895,10 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                 Integer.parseInt(requestEl.attributeValue("priority")),
                 "true".equals(requestEl.attributeValue("alternative")), 
                 student, courses,
-                "true".equals(requestEl.attributeValue("waitlist", "false")), timeStamp);
+                "true".equals(requestEl.attributeValue("waitlist", "false")),
+                "true".equals(requestEl.attributeValue("critical", "false")),
+                timeStamp);
+        if (iWaitlistCritical && courseRequest.isCritical() && !courseRequest.isAlternative()) courseRequest.setWaitlist(true);
         if (requestEl.attributeValue("weight") != null)
             courseRequest.setWeight(Double.parseDouble(requestEl.attributeValue("weight")));
         for (Iterator<?> k = requestEl.elementIterator("waitlisted"); k.hasNext();) {
