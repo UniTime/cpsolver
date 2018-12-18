@@ -67,6 +67,7 @@ public class MinCreditBranchAndBoundSelection extends BranchBoundSelection {
     public MinCreditBranchAndBoundSelection(DataProperties properties) {
         super(properties);
         iMPP = properties.getPropertyBoolean("General.MPP", false);
+        iTimeout = properties.getPropertyInt("Neighbour.MinCreditBranchAndBoundTimeout", 10000);
     }
     
     @Override
@@ -96,7 +97,6 @@ public class MinCreditBranchAndBoundSelection extends BranchBoundSelection {
         
         public MinCreditSelection(Student student, Assignment<Request, Enrollment> assignment) {
             super(student, assignment);
-            iTimeout = 10000;
         }
         
         public double getCredit(int idx) {
