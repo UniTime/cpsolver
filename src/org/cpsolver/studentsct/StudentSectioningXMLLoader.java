@@ -3,6 +3,8 @@ package org.cpsolver.studentsct;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -137,6 +139,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
     private boolean iLoadStudents = true;
     private StudentFilter iStudentFilter = null;
     private boolean iWaitlistCritical = false;
+    private boolean iMoveCriticalUp = false;
 
     /**
      * Constructor
@@ -157,6 +160,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         iLoadOfferings = getModel().getProperties().getPropertyBoolean("Xml.LoadOfferings", true);
         iLoadStudents = getModel().getProperties().getPropertyBoolean("Xml.LoadStudents", true);
         iWaitlistCritical = getModel().getProperties().getPropertyBoolean("Xml.WaitlistCritical", false);
+        iMoveCriticalUp = getModel().getProperties().getPropertyBoolean("Xml.MoveCriticalUp", false);
         if (getModel().getProperties().getProperty("Xml.StudentFilter") != null) {
             try {
                 iStudentFilter = (StudentFilter) Class.forName(
@@ -243,6 +247,8 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         
         if (!bestEnrollments.isEmpty()) assignBest(bestEnrollments);
         if (!currentEnrollments.isEmpty()) assignCurrent(currentEnrollments);
+        
+        if (iMoveCriticalUp) moveCriticalRequestsUp();
     }
     
     /**
@@ -307,6 +313,8 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                 
         if (!bestEnrollments.isEmpty()) assignBest(bestEnrollments);
         if (!currentEnrollments.isEmpty()) assignCurrent(currentEnrollments);
+        
+        if (iMoveCriticalUp) moveCriticalRequestsUp();
 
         sLogger.debug("Model successfully loaded.");
     }
@@ -963,5 +971,36 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         return null;
     }
 
+    protected void moveCriticalRequestsUp() {
+        for (Student student: getModel().getStudents()) {
+            int assigned = 0, critical = 0;
+            for (Request r: student.getRequests()) {
+                if (r instanceof CourseRequest) {
+                    if (r.getInitialAssignment() != null) assigned ++;
+                    if (r.isCritical()) critical ++;
+                }
+            }
+            if ((getModel().getKeepInitialAssignments() && assigned > 0) || critical > 0) {
+                Collections.sort(student.getRequests(), new Comparator<Request>() {
+                    @Override
+                    public int compare(Request r1, Request r2) {
+                        if (r1.isAlternative() != r2.isAlternative()) return r1.isAlternative() ? 1 : -1;
+                        if (getModel().getKeepInitialAssignments()) {
+                            boolean a1 = (r1 instanceof CourseRequest && r1.getInitialAssignment() != null);
+                            boolean a2 = (r2 instanceof CourseRequest && r2.getInitialAssignment() != null);
+                            if (a1 != a2) return a1 ? -1 : 1;
+                        }
+                        boolean c1 = r1.isCritical();
+                        boolean c2 = r2.isCritical();
+                        if (c1 != c2) return c1 ? -1 : 1;
+                        return r1.getPriority() < r2.getPriority() ? -1 : 1;
+                    }
+                });
+                int p = 0;
+                for (Request r: student.getRequests())
+                    r.setPriority(p++);
+            }
+        }
+    }
 
 }
