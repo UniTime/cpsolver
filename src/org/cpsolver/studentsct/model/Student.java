@@ -457,6 +457,16 @@ public class Student implements Comparable<Student> {
     }
     
     /**
+     * Has student any unassigned critical course requests?
+     * @return true if a student has at least one not-alternative course request that is marked as critical and that is not assigned
+     */
+    public boolean hasUnassignedCritical(Assignment<Request, Enrollment> assignment) {
+        for (Request r: iRequests)
+            if (!r.isAlternative() && r.isCritical() && assignment.getValue(r) == null) return true;
+        return false;
+    }
+    
+    /**
      * Set student min credit (null if not set)
      * @param maxCredit student min credit
      */

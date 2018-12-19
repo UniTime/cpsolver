@@ -10,6 +10,7 @@ import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.studentsct.heuristics.selection.AssignInitialSelection;
 import org.cpsolver.studentsct.heuristics.selection.BacktrackSelection;
 import org.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
+import org.cpsolver.studentsct.heuristics.selection.CriticalCoursesBranchAndBoundSelection;
 import org.cpsolver.studentsct.heuristics.selection.MinCreditBranchAndBoundSelection;
 import org.cpsolver.studentsct.heuristics.selection.PriorityConstructionSelection;
 import org.cpsolver.studentsct.heuristics.selection.RandomUnassignmentSelection;
@@ -81,6 +82,7 @@ import org.cpsolver.studentsct.model.Request;
 
 public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<Request, Enrollment> implements SolverListener<Request, Enrollment> {
     private boolean iUseConstruction = false;
+    private boolean iUseCriticalCoursesSelection = true;
     private boolean iUseMinCreditSelection = true;
     private boolean iMPP = false;
     private boolean iShuffleStudentsSelection = false;
@@ -88,6 +90,7 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
     public StudentSctNeighbourSelection(DataProperties properties) throws Exception {
         super(properties);
         iUseConstruction = properties.getPropertyBoolean("Sectioning.UsePriorityConstruction", iUseConstruction);
+        iUseCriticalCoursesSelection = properties.getPropertyBoolean("Sectioning.UseCriticalCoursesSelection", iUseCriticalCoursesSelection);
         iUseMinCreditSelection = properties.getPropertyBoolean("Sectioning.UseMinCreditSelection", iUseMinCreditSelection);
         iMPP = properties.getPropertyBoolean("General.MPP", false);
         iShuffleStudentsSelection = properties.getPropertyBoolean("Shuffle.Enabled", true) && properties.getPropertyBoolean("Load.RequestGroups", false);
@@ -104,6 +107,9 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
     public void setup(Solver<Request, Enrollment> solver) {
         if (iMPP)
             registerSelection(new AssignInitialSelection(solver.getProperties()));
+        
+        if (iUseCriticalCoursesSelection)
+            registerSelection(new CriticalCoursesBranchAndBoundSelection(solver.getProperties()));
         
         if (iUseMinCreditSelection)
             registerSelection(new MinCreditBranchAndBoundSelection(solver.getProperties()));
