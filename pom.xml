@@ -209,6 +209,9 @@
 							<packages>org.cpsolver.exam*</packages>
 						</group>
 					</groups>
+					<links>
+						<link>https://dom4j.github.io/javadoc/1.6.1/</link>
+					</links>
 				</configuration>
 				<executions>
 					<execution>

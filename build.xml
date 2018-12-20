@@ -214,7 +214,7 @@
     	<group title="Instructor Scheduling" packages="org.cpsolver.instructor*"/>
  	   	<link href="http://docs.oracle.com/javase/6/docs/api/"/>
  	   	<link href="http://logging.apache.org/log4j/1.2/apidocs/"/>
-    	<link href="http://dom4j.sourceforge.net/dom4j-1.6.1/apidocs/"/>
+    	<link href="https://dom4j.github.io/javadoc/1.6.1/"/>
  	   	<fileset dir="src" includes="**/*.java"/>
     	<packageset dir="src" includes="**/package.html"/>
  	   	<classpath>
