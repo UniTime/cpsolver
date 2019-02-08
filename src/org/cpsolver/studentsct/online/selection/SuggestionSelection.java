@@ -182,6 +182,7 @@ public class SuggestionSelection extends BranchBoundSelection implements OnlineS
         }
 
         @Override
+        @Deprecated
         protected double getWeight(Enrollment enrollment, Set<DistanceConflict.Conflict> distanceConflicts,
                 Set<TimeOverlapsCounter.Conflict> timeOverlappingConflicts) {
             double weight = super.getWeight(enrollment, distanceConflicts, timeOverlappingConflicts);

@@ -41,6 +41,7 @@ import org.cpsolver.studentsct.reservation.CurriculumReservation;
 import org.cpsolver.studentsct.reservation.DummyReservation;
 import org.cpsolver.studentsct.reservation.GroupReservation;
 import org.cpsolver.studentsct.reservation.IndividualReservation;
+import org.cpsolver.studentsct.reservation.LearningCommunityReservation;
 import org.cpsolver.studentsct.reservation.Reservation;
 import org.cpsolver.studentsct.reservation.ReservationOverride;
 import org.dom4j.Document;
@@ -547,6 +548,19 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             r = new GroupReservation(Long.valueOf(reservationEl.attributeValue("id")),
                     Double.parseDouble(reservationEl.attributeValue("limit", "-1")),
                     offering, studentIds);
+        } else if ("lc".equals(reservationEl.attributeValue("type"))) {
+            Set<Long> studentIds = new HashSet<Long>();
+            for (Iterator<?> k = reservationEl.elementIterator("student"); k.hasNext(); ) {
+                Element studentEl = (Element)k.next();
+                studentIds.add(Long.parseLong(studentEl.attributeValue("id")));
+            }
+            long courseId = Long.parseLong(reservationEl.attributeValue("course"));
+            for (Course course: offering.getCourses()) {
+                if (course.getId() == courseId)
+                    r = new LearningCommunityReservation(Long.valueOf(reservationEl.attributeValue("id")),
+                            Double.parseDouble(reservationEl.attributeValue("limit", "-1")),
+                            course, studentIds);
+            }
         } else if ("curriculum".equals(reservationEl.attributeValue("type"))) {
             List<String> classifications = new ArrayList<String>();
             for (Iterator<?> k = reservationEl.elementIterator("classification"); k.hasNext(); ) {

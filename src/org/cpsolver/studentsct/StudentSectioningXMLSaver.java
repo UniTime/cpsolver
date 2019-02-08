@@ -40,6 +40,7 @@ import org.cpsolver.studentsct.reservation.CurriculumReservation;
 import org.cpsolver.studentsct.reservation.DummyReservation;
 import org.cpsolver.studentsct.reservation.GroupReservation;
 import org.cpsolver.studentsct.reservation.IndividualReservation;
+import org.cpsolver.studentsct.reservation.LearningCommunityReservation;
 import org.cpsolver.studentsct.reservation.Reservation;
 import org.cpsolver.studentsct.reservation.ReservationOverride;
 import org.dom4j.Document;
@@ -489,7 +490,15 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
     protected void saveReservation(Element reservationEl, Reservation reservation) {
         reservationEl.addAttribute("id", getId("reservation", reservation.getId()));
         reservationEl.addAttribute("expired", reservation.isExpired() ? "true" : "false");
-        if (reservation instanceof GroupReservation) {
+        if (reservation instanceof LearningCommunityReservation) {
+            LearningCommunityReservation lc = (LearningCommunityReservation)reservation;
+            reservationEl.addAttribute("type", "lc");
+            for (Long studentId: lc.getStudentIds())
+                reservationEl.addElement("student").addAttribute("id", getId("student", studentId));
+            if (lc.getReservationLimit() >= 0.0)
+                reservationEl.addAttribute("limit", String.valueOf(lc.getReservationLimit()));
+            reservationEl.addAttribute("course", getId("course",lc.getCourse().getId()));
+        } else if (reservation instanceof GroupReservation) {
             GroupReservation gr = (GroupReservation)reservation;
             reservationEl.addAttribute("type", "group");
             for (Long studentId: gr.getStudentIds())

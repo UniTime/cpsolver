@@ -76,6 +76,38 @@ public class GroupReservation extends IndividualReservation {
         super(id, offering, DEFAULT_PRIORITY, DEFAULT_MUST_BE_USED, DEFAULT_CAN_ASSIGN_OVER_LIMIT, DEFAULT_ALLOW_OVERLAP, studentIds);
         iLimit = limit;
     }
+    
+    /**
+     * Constructor
+     * @param id reservation unique id
+     * @param limit reservation limit (-1 for unlimited)
+     * @param offering instructional offering on which the reservation is set
+     * @param priority reservation priority
+     * @param mustBeUsed must this reservation be used
+     * @param canAssignOverLimit can assign over class / configuration / course limit
+     * @param allowOverlap does this reservation allow for overlaps
+     * @param studentIds one or more students
+     */
+    protected GroupReservation(long id, double limit, Offering offering, int priority, boolean mustBeUsed, boolean canAssignOverLimit, boolean allowOverlap, Long... studentIds) {
+        super(id, offering, priority, mustBeUsed, canAssignOverLimit, allowOverlap, studentIds);
+        iLimit = limit;
+    }
+    
+    /**
+     * Constructor
+     * @param id reservation unique id
+     * @param limit reservation limit (-1 for unlimited)
+     * @param offering instructional offering on which the reservation is set
+     * @param priority reservation priority
+     * @param mustBeUsed must this reservation be used
+     * @param canAssignOverLimit can assign over class / configuration / course limit
+     * @param allowOverlap does this reservation allow for overlaps
+     * @param studentIds one or more students
+     */
+    protected GroupReservation(long id, double limit, Offering offering, int priority, boolean mustBeUsed, boolean canAssignOverLimit, boolean allowOverlap, Collection<Long> studentIds) {
+        super(id, offering, priority, mustBeUsed, canAssignOverLimit, allowOverlap, studentIds);
+        iLimit = limit;
+    }
 
     /**
      * Reservation limit
