@@ -1,5 +1,7 @@
 package org.cpsolver.studentsct.report;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -65,25 +67,61 @@ public class TableauReport implements StudentSectioningReport {
     @Override
     public CSVFile create(Assignment<Request, Enrollment> assignment, DataProperties properties) {
         CSVFile csv = new CSVFile();
-        csv.setHeader(new CSVFile.CSVField[] {
-                new CSVFile.CSVField("__Student"),
-                new CSVFile.CSVField("Student"),
-                new CSVFile.CSVField("Course"),
-                new CSVFile.CSVField("Course Limit"),
-                new CSVFile.CSVField("Controlling Course"),
-                new CSVFile.CSVField("Primary"),
-                new CSVFile.CSVField("Priority"),
-                new CSVFile.CSVField("Alternativity"),
-                new CSVFile.CSVField("Enrolled"),
-                new CSVFile.CSVField("Credits"),
-                new CSVFile.CSVField("Sections"),
-                new CSVFile.CSVField("Preferred Sections"),
-                new CSVFile.CSVField("Required Sections"),
-                new CSVFile.CSVField("Instructional Method"),
-                new CSVFile.CSVField("Preferred Instructional Methods"),
-                new CSVFile.CSVField("Required Instructional Methods"),
-                new CSVFile.CSVField("Critical")
-                });
+        boolean details = properties.getPropertyBoolean("showdates", true);
+        if (details)
+            csv.setHeader(new CSVFile.CSVField[] {
+                    new CSVFile.CSVField("__Student"),
+                    new CSVFile.CSVField("Student"),
+                    new CSVFile.CSVField("Course"),
+                    new CSVFile.CSVField("Course Limit"),
+                    new CSVFile.CSVField("Controlling Course"),
+                    new CSVFile.CSVField("Primary"),
+                    new CSVFile.CSVField("Priority"),
+                    new CSVFile.CSVField("Alternativity"),
+                    new CSVFile.CSVField("Enrolled"),
+                    new CSVFile.CSVField("Credits"),
+                    new CSVFile.CSVField("Sections"),
+                    new CSVFile.CSVField("Preferred Sections"),
+                    new CSVFile.CSVField("Required Sections"),
+                    new CSVFile.CSVField("Instructional Method"),
+                    new CSVFile.CSVField("Preferred Instructional Methods"),
+                    new CSVFile.CSVField("Required Instructional Methods"),
+                    new CSVFile.CSVField("Critical"),
+                    new CSVFile.CSVField("Term"),
+                    new CSVFile.CSVField("Started"),
+                    new CSVFile.CSVField("Published")
+                    });
+        else
+            csv.setHeader(new CSVFile.CSVField[] {
+                    new CSVFile.CSVField("__Student"),
+                    new CSVFile.CSVField("Student"),
+                    new CSVFile.CSVField("Course"),
+                    new CSVFile.CSVField("Course Limit"),
+                    new CSVFile.CSVField("Controlling Course"),
+                    new CSVFile.CSVField("Primary"),
+                    new CSVFile.CSVField("Priority"),
+                    new CSVFile.CSVField("Alternativity"),
+                    new CSVFile.CSVField("Enrolled"),
+                    new CSVFile.CSVField("Credits"),
+                    new CSVFile.CSVField("Sections"),
+                    new CSVFile.CSVField("Preferred Sections"),
+                    new CSVFile.CSVField("Required Sections"),
+                    new CSVFile.CSVField("Instructional Method"),
+                    new CSVFile.CSVField("Preferred Instructional Methods"),
+                    new CSVFile.CSVField("Required Instructional Methods"),
+                    new CSVFile.CSVField("Critical")
+                    });
+        String term = getModel().getProperties().getProperty("Data.Term");
+        String year = getModel().getProperties().getProperty("Data.Year");
+        String initiative = getModel().getProperties().getProperty("Data.Initiative");
+        String session = null;
+        if (term != null && year != null && initiative != null)
+            session = term + year + initiative;
+        SimpleDateFormat df = new SimpleDateFormat(properties.getProperty("dateformat", "MM/dd/yyyy hh:mmaa"));
+        Long startTimeStamp = getModel().getProperties().getPropertyLong("General.StartTime", null);
+        String started = (startTimeStamp == null ? null : df.format(new Date(startTimeStamp)));
+        Long publishTimeStamp = getModel().getProperties().getPropertyLong("StudentSct.Published", null);
+        String published = (publishTimeStamp == null ? null : df.format(new Date(publishTimeStamp)));
         for (Student student: getModel().getStudents()) {
             if (student.isDummy()) continue;
             int regPriority = 1, altPriority = 1;
@@ -171,25 +209,49 @@ public class TableauReport implements StudentSectioningReport {
                                 }
                             }
                         }
-                        csv.addLine(new CSVFile.CSVField[] {
-                                new CSVFile.CSVField(student.getId()),
-                                new CSVFile.CSVField(student.getExternalId()),
-                                new CSVFile.CSVField(course.getName()),
-                                new CSVFile.CSVField(course.getLimit() < 0 ? null : course.getLimit()),
-                                new CSVFile.CSVField(course.getOffering().getCourses().size() <= 1 ? null : course.getOffering().getName()),
-                                new CSVFile.CSVField(primary == 1 ? "Yes" : "No"),
-                                new CSVFile.CSVField(priority),
-                                new CSVFile.CSVField(alternativity),
-                                new CSVFile.CSVField(enrolled == 1 ? "Yes" : "No"),
-                                new CSVFile.CSVField(enrolled == 1 ? e.getCredit() : course.getCreditValue()),
-                                new CSVFile.CSVField(sect),
-                                new CSVFile.CSVField(sctP),
-                                new CSVFile.CSVField(sctR),
-                                new CSVFile.CSVField(e != null ? e.getConfig().getInstructionalMethodReference() : null),
-                                new CSVFile.CSVField(imP),
-                                new CSVFile.CSVField(imR),
-                                new CSVFile.CSVField(cr.isCritical() ? "Yes" : "No")
-                        });
+                        if (details)
+                            csv.addLine(new CSVFile.CSVField[] {
+                                    new CSVFile.CSVField(student.getId()),
+                                    new CSVFile.CSVField(student.getExternalId()),
+                                    new CSVFile.CSVField(course.getName()),
+                                    new CSVFile.CSVField(course.getLimit() < 0 ? null : course.getLimit()),
+                                    new CSVFile.CSVField(course.getOffering().getCourses().size() <= 1 ? null : course.getOffering().getName()),
+                                    new CSVFile.CSVField(primary == 1 ? "Yes" : "No"),
+                                    new CSVFile.CSVField(priority),
+                                    new CSVFile.CSVField(alternativity),
+                                    new CSVFile.CSVField(enrolled == 1 ? "Yes" : "No"),
+                                    new CSVFile.CSVField(enrolled == 1 ? e.getCredit() : course.getCreditValue() == null ? 0f : course.getCreditValue()),
+                                    new CSVFile.CSVField(sect),
+                                    new CSVFile.CSVField(sctP),
+                                    new CSVFile.CSVField(sctR),
+                                    new CSVFile.CSVField(e != null ? e.getConfig().getInstructionalMethodReference() : null),
+                                    new CSVFile.CSVField(imP),
+                                    new CSVFile.CSVField(imR),
+                                    new CSVFile.CSVField(cr.isCritical() ? "Yes" : "No"),
+                                    new CSVFile.CSVField(session),
+                                    new CSVFile.CSVField(started),
+                                    new CSVFile.CSVField(published),
+                            });
+                        else
+                            csv.addLine(new CSVFile.CSVField[] {
+                                    new CSVFile.CSVField(student.getId()),
+                                    new CSVFile.CSVField(student.getExternalId()),
+                                    new CSVFile.CSVField(course.getName()),
+                                    new CSVFile.CSVField(course.getLimit() < 0 ? null : course.getLimit()),
+                                    new CSVFile.CSVField(course.getOffering().getCourses().size() <= 1 ? null : course.getOffering().getName()),
+                                    new CSVFile.CSVField(primary == 1 ? "Yes" : "No"),
+                                    new CSVFile.CSVField(priority),
+                                    new CSVFile.CSVField(alternativity),
+                                    new CSVFile.CSVField(enrolled == 1 ? "Yes" : "No"),
+                                    new CSVFile.CSVField(enrolled == 1 ? e.getCredit() : course.getCreditValue() == null ? 0f : course.getCreditValue()),
+                                    new CSVFile.CSVField(sect),
+                                    new CSVFile.CSVField(sctP),
+                                    new CSVFile.CSVField(sctR),
+                                    new CSVFile.CSVField(e != null ? e.getConfig().getInstructionalMethodReference() : null),
+                                    new CSVFile.CSVField(imP),
+                                    new CSVFile.CSVField(imR),
+                                    new CSVFile.CSVField(cr.isCritical() ? "Yes" : "No")
+                            });
                         alternativity++;
                     }
                 }
