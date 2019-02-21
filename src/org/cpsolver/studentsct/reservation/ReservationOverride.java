@@ -70,4 +70,12 @@ public class ReservationOverride extends IndividualReservation {
     public ReservationOverride(long id, Offering offering, Collection<Long> studentIds) {
         super(id, offering, DEFAULT_PRIORITY, DEFAULT_MUST_BE_USED, DEFAULT_CAN_ASSIGN_OVER_LIMIT, DEFAULT_ALLOW_OVERLAP, studentIds);
     }
+    
+    @Override
+    /**
+     * Override reservation ignore expiration date when checking if they must be used.
+     */
+    public boolean mustBeUsed() {
+        return mustBeUsedIgnoreExpiration();
+    }
 }

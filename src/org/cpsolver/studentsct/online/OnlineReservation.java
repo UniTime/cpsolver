@@ -30,6 +30,30 @@ public class OnlineReservation extends org.cpsolver.studentsct.reservation.Reser
     private int iType;
     private int iLimit;
     private boolean iApply;
+    private boolean iOverride;
+    
+    /**
+     * Constructor 
+     * @param type reservation type
+     * @param id reservation unique id
+     * @param offering reservation offering
+     * @param priority reservation priority
+     * @param over true when the reservation allows the student to be assigned over the limit
+     * @param limit reservation limit
+     * @param apply true if the reservation applies to the given student
+     * @param mustUse true if the reservation must be used
+     * @param allowOverlap true if the reservation allows for time overlaps
+     * @param expired true if the reservation is expired
+     * @param override true if the reservation is reservation override
+     */
+    public OnlineReservation(int type, long id, Offering offering, int priority, boolean over, int limit, boolean apply, boolean mustUse, boolean allowOverlap, boolean expired, boolean override) {
+            super(id, offering, priority, mustUse, over, allowOverlap);
+            iType = type;
+            iLimit = limit;
+            iApply = apply;
+            iOverride = override;
+            setExpired(expired);
+    }
     
     /**
      * Constructor 
@@ -45,11 +69,7 @@ public class OnlineReservation extends org.cpsolver.studentsct.reservation.Reser
      * @param expired true if the reservation is expired
      */
     public OnlineReservation(int type, long id, Offering offering, int priority, boolean over, int limit, boolean apply, boolean mustUse, boolean allowOverlap, boolean expired) {
-            super(id, offering, priority, mustUse, over, allowOverlap);
-            iType = type;
-            iLimit = limit;
-            iApply = apply;
-            setExpired(expired);
+        this(type, id, offering, priority, over, limit, apply, mustUse, allowOverlap, expired, false);
     }
     
     public int getType() {
@@ -64,5 +84,16 @@ public class OnlineReservation extends org.cpsolver.studentsct.reservation.Reser
     @Override
     public boolean isApplicable(Student student) {
             return iApply;
+    }
+    
+    public boolean isOverride() {
+        return iOverride;
+    }
+    
+    @Override
+    public boolean mustBeUsed() {
+        if (iOverride)
+            return mustBeUsedIgnoreExpiration();
+        return super.mustBeUsed();
     }
 }

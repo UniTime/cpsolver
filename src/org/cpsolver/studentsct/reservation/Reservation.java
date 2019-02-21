@@ -270,6 +270,14 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
     }
     
     /**
+     * If true, student must use the reservation (if applicable). Expiration date is ignored. 
+     * @return must this reservation be used
+     */
+    public boolean mustBeUsedIgnoreExpiration() {
+        return iMustBeUsed;
+    }
+    
+    /**
      * Set to true if the student must use the reservation (if applicable)
      * @param mustBeUsed must this reservation be used
      */
