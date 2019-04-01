@@ -255,7 +255,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         super.addVariable(request);
         if (request instanceof CourseRequest && !request.isAlternative())
             iTotalCRWeight += request.getWeight();
-        if (request instanceof CourseRequest && request.isCritical() && !request.getStudent().isDummy())
+        if (request instanceof CourseRequest && request.isCritical() && !request.getStudent().isDummy() && !request.isAlternative())
             iTotalCriticalCRWeight += request.getWeight();
         if (request.getStudent().isDummy()) {
             iNrDummyRequests++;
@@ -321,7 +321,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             iTotalSelCRWeight -= request.getWeight();
         if (request instanceof CourseRequest && !request.isAlternative())
             iTotalCRWeight -= request.getWeight();
-        if (request instanceof CourseRequest && request.isCritical() && !request.getStudent().isDummy())
+        if (request instanceof CourseRequest && request.isCritical() && !request.getStudent().isDummy() && !request.isAlternative())
             iTotalCriticalCRWeight -= request.getWeight();
     }
 
@@ -1232,7 +1232,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             enrollment.variable().getContext(assignment).setLastWeight(value);
             if (enrollment.isCourseRequest())
                 iAssignedCRWeight += enrollment.getRequest().getWeight();
-            if (enrollment.isCourseRequest() && enrollment.getRequest().isCritical() && !enrollment.getStudent().isDummy())
+            if (enrollment.isCourseRequest() && enrollment.getRequest().isCritical() && !enrollment.getStudent().isDummy() && !enrollment.getRequest().isAlternative())
                 iAssignedCriticalCRWeight += enrollment.getRequest().getWeight();
             if (enrollment.getRequest().isMPP()) {
                 iAssignedSameSectionWeight += enrollment.getRequest().getWeight() * enrollment.percentInitial();
@@ -1283,7 +1283,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             cx.setLastWeight(null);
             if (enrollment.isCourseRequest())
                 iAssignedCRWeight -= enrollment.getRequest().getWeight();
-            if (enrollment.isCourseRequest() && enrollment.getRequest().isCritical() && !enrollment.getStudent().isDummy())
+            if (enrollment.isCourseRequest() && enrollment.getRequest().isCritical() && !enrollment.getStudent().isDummy() && !enrollment.getRequest().isAlternative())
                 iAssignedCriticalCRWeight -= enrollment.getRequest().getWeight();
             if (enrollment.getRequest().isMPP()) {
                 iAssignedSameSectionWeight -= enrollment.getRequest().getWeight() * enrollment.percentInitial();
@@ -1421,7 +1421,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 if (e != null) {
                     if (cr)
                         iAssignedCRWeight += request.getWeight();
-                    if (cr && request.isCritical() && !request.getStudent().isDummy())
+                    if (cr && request.isCritical() && !request.getStudent().isDummy() && !request.isAlternative())
                         iAssignedCriticalCRWeight += request.getWeight();
                     if (request.isMPP()) {
                         iAssignedSameSectionWeight += request.getWeight() * e.percentInitial();
