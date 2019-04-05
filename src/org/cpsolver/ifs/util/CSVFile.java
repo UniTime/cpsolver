@@ -6,7 +6,9 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.Reader;
 import java.io.Serializable;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -64,6 +66,21 @@ public class CSVFile implements Serializable {
         setQuotationMark(quotationMark);
         load(file);
     }
+    
+    public CSVFile(Reader file) throws IOException {
+        load(file);
+    }
+
+    public CSVFile(Reader file, String separator) throws IOException {
+        setSeparator(separator);
+        load(file);
+    }
+
+    public CSVFile(Reader file, String separator, String quotationMark) throws IOException {
+        setSeparator(separator);
+        setQuotationMark(quotationMark);
+        load(file);
+    }
 
     public void setSeparator(String separator) {
         iSeparator = separator;
@@ -82,9 +99,13 @@ public class CSVFile implements Serializable {
     }
 
     public void load(File file) throws IOException {
+        load(new FileReader(file));
+    }
+    
+    public void load(Reader file) throws IOException {
         BufferedReader reader = null;
         try {
-            reader = new BufferedReader(new FileReader(file));
+            reader = new BufferedReader(file);
             iHeader = new CSVLine(reader.readLine()); // read header
             iHeaderMap = new HashMap<String, Integer>();
             iLines = new ArrayList<CSVLine>();
@@ -104,11 +125,15 @@ public class CSVFile implements Serializable {
                 reader.close();
         }
     }
-
+    
     public void save(File file) throws IOException {
+        save(new FileWriter(file));
+    }
+
+    public void save(Writer file) throws IOException {
         PrintWriter writer = null;
         try {
-            writer = new PrintWriter(new FileWriter(file));
+            writer = new PrintWriter(file);
             if (iHeader != null)
                 writer.println(iHeader.toString());
 
