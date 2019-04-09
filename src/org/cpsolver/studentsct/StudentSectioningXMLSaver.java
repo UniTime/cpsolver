@@ -592,6 +592,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                     aacEl.addAttribute("area", aac.getArea());
                 if (aac.getCode() != null)
                     aacEl.addAttribute("code", aac.getCode());
+                if (aac.getLabel() != null)
+                    aacEl.addAttribute("label", aac.getLabel());
             }
             for (AcademicAreaCode aac : student.getMajors()) {
                 Element aacEl = studentEl.addElement("major");
@@ -599,6 +601,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                     aacEl.addAttribute("area", aac.getArea());
                 if (aac.getCode() != null)
                     aacEl.addAttribute("code", aac.getCode());
+                if (aac.getLabel() != null)
+                    aacEl.addAttribute("label", aac.getLabel());
             }
             for (AcademicAreaCode aac : student.getMinors()) {
                 Element aacEl = studentEl.addElement("minor");
@@ -606,6 +610,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                     aacEl.addAttribute("area", aac.getArea());
                 if (aac.getCode() != null)
                     aacEl.addAttribute("code", aac.getCode());
+                if (aac.getLabel() != null)
+                    aacEl.addAttribute("label", aac.getLabel());
             }
             for (AreaClassificationMajor acm : student.getAreaClassificationMajors()) {
                 Element acmEl = studentEl.addElement("acm");

@@ -837,13 +837,13 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             Element requestEl = (Element) j.next();
             if ("classification".equals(requestEl.getName())) {
                 student.getAcademicAreaClasiffications().add(
-                        new AcademicAreaCode(requestEl.attributeValue("area"), requestEl.attributeValue("code")));
+                        new AcademicAreaCode(requestEl.attributeValue("area"), requestEl.attributeValue("code"), requestEl.attributeValue("label")));
             } else if ("major".equals(requestEl.getName())) {
                 student.getMajors().add(
-                        new AcademicAreaCode(requestEl.attributeValue("area"), requestEl.attributeValue("code")));
+                        new AcademicAreaCode(requestEl.attributeValue("area"), requestEl.attributeValue("code"), requestEl.attributeValue("label")));
             } else if ("minor".equals(requestEl.getName())) {
                 student.getMinors().add(
-                        new AcademicAreaCode(requestEl.attributeValue("area"), requestEl.attributeValue("code")));
+                        new AcademicAreaCode(requestEl.attributeValue("area"), requestEl.attributeValue("code"), requestEl.attributeValue("label")));
             } else if ("unavailability".equals(requestEl.getName())) {
                 Offering offering = offeringTable.get(Long.parseLong(requestEl.attributeValue("offering")));
                 Section section = (offering == null ? null : offering.getSection(Long.parseLong(requestEl.attributeValue("section"))));

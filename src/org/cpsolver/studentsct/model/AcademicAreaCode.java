@@ -28,7 +28,7 @@ import org.cpsolver.ifs.util.ToolBox;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class AcademicAreaCode {
-    private String iArea, iCode;
+    private String iArea, iCode, iLabel;
 
     /**
      * Constructor
@@ -41,6 +41,12 @@ public class AcademicAreaCode {
     public AcademicAreaCode(String area, String code) {
         iArea = area;
         iCode = code;
+    }
+    
+    public AcademicAreaCode(String area, String code, String label) {
+        iArea = area;
+        iCode = code;
+        iLabel = label;
     }
 
     /** Academic area 
@@ -56,6 +62,8 @@ public class AcademicAreaCode {
     public String getCode() {
         return iCode;
     }
+    
+    public String getLabel() { return iLabel; }
 
     @Override
     public int hashCode() {
