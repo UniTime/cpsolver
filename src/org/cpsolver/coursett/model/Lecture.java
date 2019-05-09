@@ -1516,7 +1516,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                }
        }
        iIgnoreStudentConflictsWith.set(cache);
-       return cache.contains(other);
+       return cache.contains(other.getClassId());
     }
    
    /**

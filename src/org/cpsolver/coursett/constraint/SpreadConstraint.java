@@ -243,8 +243,9 @@ public class SpreadConstraint extends ConstraintWithContext<Lecture, Placement, 
         // sLogger.debug("  -- nrCurses="+fmt(nrCourses));
         for (Lecture lect : variables()) {
             if (lect.equals(placement.variable())) continue;
-            if (conflicts.contains(lect)) {
-                penalty -= tryUnassign(assignment, assignment.getValue(lect), nrCourses);
+            Placement p = assignment.getValue(lect);
+            if (p != null && conflicts.contains(p)) {
+                penalty -= tryUnassign(assignment, p, nrCourses);
             }
             if (penalty <= context.getMaxAllowedPenalty())
                 return;

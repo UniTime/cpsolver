@@ -50,7 +50,7 @@ public class UnusedInstructorLoad extends InstructorSchedulingCriterion {
         Instructor.Context cx = value.getInstructor().getContext(assignment);
         
         float load = cx.getLoad();
-        if (!cx.getAssignments().contains(assignment)) load += value.variable().getRequest().getLoad();
+        if (!cx.getAssignments().contains(value)) load += value.variable().getRequest().getLoad();
         if (conflicts != null)
             for (TeachingAssignment ta: conflicts)
                 if (ta.getInstructor().equals(value.getInstructor())) load -= ta.variable().getRequest().getLoad();

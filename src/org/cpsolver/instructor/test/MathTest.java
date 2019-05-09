@@ -435,7 +435,7 @@ public class MathTest extends Test {
                     classLevel = "null";
                 if (clazz.getId() < 0)
                     classLevel = clazz.getName();
-                Double load = clazzLevel2load.get(level);
+                Double load = clazzLevel2load.get(classLevel);
                 clazzLevel2load.put(classLevel, clazz.getRequest().getLoad() + (load == null ? 0.0 : load));
             }
             sLog.info("Class loads: (total: " + sDoubleFormat.format(totalLoad) + ")");
