@@ -734,6 +734,9 @@ public class TimetableXMLLoader extends TimetableLoader {
                     offering2students.put(offeringId, studentsThisOffering);
                 }
                 studentsThisOffering.add(student);
+                String altId = ofEl.attributeValue("alternative");
+                if (altId != null)
+                    student.addAlternatives(Long.valueOf(altId), offeringId);
             }
             for (Iterator<?> i2 = studentEl.elementIterator("class"); i2.hasNext();) {
                 String classId = ((Element) i2.next()).attributeValue("id");

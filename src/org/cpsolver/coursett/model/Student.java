@@ -47,6 +47,7 @@ public class Student implements Comparable<Student> {
     HashMap<Long, Double> iOfferingPriority = new HashMap<Long, Double>();
     private InstructorConstraint iInstructor = null;
     private Set<StudentGroup> iGroups = new HashSet<StudentGroup>();
+    private Map<Long, Set<Long>> iAlternatives = null;
 
     public Student(Long studentId) {
         iStudentId = studentId;
@@ -315,9 +316,62 @@ public class Student implements Comparable<Student> {
     public double getJenrlWeight(Lecture l1, Lecture l2) {
         if (getInstructor() != null && (getInstructor().variables().contains(l1) || getInstructor().variables().contains(l2)))
             return 1.0;
+        if (iAlternatives != null && areAlternatives(l1, l2)) return 0.0;
         return avg(getOfferingWeight(l1.getConfiguration()), getOfferingWeight(l2.getConfiguration()));
     }
-
+    
+    public void addAlternatives(Long offeringId1, Long offeringId2) {
+        if (offeringId1 == null || offeringId2 == null) return;
+        if (iAlternatives == null)
+            iAlternatives = new HashMap<Long, Set<Long>>();
+        Set<Long> alts = iAlternatives.get(offeringId1);
+        if (alts == null) {
+            alts = new HashSet<Long>();
+            alts.add(offeringId1);
+            iAlternatives.put(offeringId1, alts);
+        }
+        Set<Long> other = iAlternatives.get(offeringId2);
+        if (other != null) {
+            for (Long id: other)
+                iAlternatives.put(id, alts);
+            alts.addAll(other);
+        } else {
+            alts.add(offeringId2);
+            iAlternatives.put(offeringId2, alts);
+        }
+    }
+    
+    public boolean areAlternatives(Lecture l1, Lecture l2) {
+        if (l1 == null || l2 == null) return false;
+        return areAlternatives(l1.getConfiguration(), l2.getConfiguration());
+    }
+    
+    public boolean areAlternatives(Configuration c1, Configuration c2) {
+        if (c1 == null || c2 == null) return false;
+        return areAlternatives(c1.getOfferingId(), c2.getOfferingId());
+    }
+    
+    public boolean areAlternatives(Long offeringId1, Long offeringId2) {
+        if (iAlternatives == null || offeringId1 == null || offeringId2 == null) return false;
+        Set<Long> alts = iAlternatives.get(offeringId1);
+        if (alts != null && alts.contains(offeringId2)) return true;
+        return false;
+    }
+    
+    public Long getAlternative(Long offeringId) {
+        if (iAlternatives == null || offeringId == null) return null;
+        Set<Long> alternatives = iAlternatives.get(offeringId);
+        if (alternatives == null) return null;
+        Long bestId = null; double bestW = 0.0;
+        for (Long altId: alternatives) {
+            double w = getOfferingWeight(altId);
+            if (bestId == null || w > bestW || (bestW == w && altId < bestId)) {
+                bestId = altId; bestW = w;
+            }
+        }
+        return bestId == null || bestId.equals(offeringId) ? null : bestId;
+    }
+    
     public double avg(double w1, double w2) {
         return Math.sqrt(w1 * w2);
     }
