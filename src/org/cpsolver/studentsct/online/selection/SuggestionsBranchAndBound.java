@@ -539,6 +539,7 @@ public class SuggestionsBranchAndBound {
         private int iNrUnassigned = 0;
         private int iUnassignedPriority = 0;
         private int iNrChanges = 0;
+        private int iSelectedAlternativity = 0;
 
         private long iId = iLastSuggestionId++;
         private Enrollment[] iEnrollments;
@@ -575,6 +576,11 @@ public class SuggestionsBranchAndBound {
                             iNrChanges++;
                     }
                 }
+            }
+            if (iSelectedRequest != null && iSelectedRequest instanceof CourseRequest) {
+                Enrollment enrollment = iAssignment.getValue(iSelectedRequest);
+                if (enrollment != null)
+                    iSelectedAlternativity = ((CourseRequest)iSelectedRequest).getCourses().indexOf(enrollment.getCourse());
             }
             if (iSelectedRequest != null && iSelectedSection != null) {
                 Enrollment enrollment = iAssignment.getValue(iSelectedRequest);
@@ -645,6 +651,10 @@ public class SuggestionsBranchAndBound {
             return iNrUnassigned;
         }
 
+        public int getSelectedAlternativity() {
+            return iSelectedAlternativity;
+        }
+
         /**
          * Average unassigned priority
          * @return average priority of unassinged requests
@@ -712,10 +722,13 @@ public class SuggestionsBranchAndBound {
                 if (s1 != s2) return (s1 > s2 ? -1 : 1);
             }
 
+            cmp = Double.compare(getSelectedAlternativity(), suggestion.getSelectedAlternativity());
+            if (cmp != 0) return cmp;
+
             cmp = Double.compare(getNrChanges(), suggestion.getNrChanges());
             if (cmp != 0)
                 return cmp;
-                        
+
             Iterator<Section> i1 = iSelectedSections.iterator();
             Iterator<Section> i2 = suggestion.iSelectedSections.iterator();
             SectionAssignmentComparator c = new SectionAssignmentComparator();
