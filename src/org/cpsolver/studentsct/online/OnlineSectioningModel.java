@@ -63,13 +63,18 @@ public class OnlineSectioningModel extends StudentSectioningModel {
     public OnlineSectioningModel(DataProperties config, OverExpectedCriterion criterion) {
         super(config);
         iOverExpectedCriterion = criterion;
-        if (isMPP() && getKeepInitialAssignments()) {
+        if (isMPP() && super.getKeepInitialAssignments()) {
             for (GlobalConstraint<Request, Enrollment> c: globalConstraints()) {
                 if (c instanceof FixInitialAssignments) {
                     removeGlobalConstraint(c); break;
                 }
             }
         }
+    }
+    
+    @Override
+    public boolean getKeepInitialAssignments() {
+        return false;
     }
     
     /**
