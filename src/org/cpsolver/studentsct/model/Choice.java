@@ -329,9 +329,14 @@ public class Choice {
         return !hasInstructors() || (section.hasInstructors() && section.getInstructors().containsAll(getInstructors()));
     }
     
+    /** True if the offering is the same */
+    public boolean sameOffering(Section section) {
+        return iOffering != null && iOffering.equals(section.getSubpart().getConfig().getOffering());
+    }
+    
     /** True if the time assignment as well as the instructor(s) are the same */
     public boolean sameChoice(Section section) {
-        return sameInstructionalType(section) && sameTime(section) && sameInstructors(section);
+        return sameOffering(section) && sameInstructionalType(section) && sameTime(section) && sameInstructors(section);
     }
     
     /** True if the section is the very same */

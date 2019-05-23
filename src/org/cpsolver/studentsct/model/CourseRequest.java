@@ -400,7 +400,7 @@ public class CourseRequest extends Request {
                     continue;
                 if (section.isOverlapping(sections))
                     continue;
-                if (selectedOnly && !isSelected(section))
+                if (selectedOnly && hasSelection(section) && !isSelected(section))
                     continue;
                 if (!getStudent().isAvailable(section)) {
                     boolean canOverlap = false;
@@ -600,12 +600,31 @@ public class CourseRequest extends Request {
      * @return true if the given section matches the selected choices
      */
     public boolean isSelected(Section section) {
-        boolean hasMatch = false;
+        for (Choice choice: iSelectedChoices)
+            if (choice.sameSection(section) || choice.sameConfiguration(section)) return true;
+        return false;
+    }
+    
+    /**
+     * Return true when the given section has a preference (i.e., there is a matching selection),
+     * or when there is a section preference for a different configuration
+     * @param section given section
+     * @return true if the there is a matching choice for the given section that is of the same offering
+     */
+    public boolean hasSelection(Section section) {
+        boolean hasSectionChoices = false, hasSectionChoicesThisConfig = false;
         for (Choice choice: iSelectedChoices) {
-            if (choice.sameChoice(section) || choice.sameConfiguration(section)) return true;
-            if (choice.isMatching(section)) hasMatch = true;
+            if (choice.sameOffering(section)) {
+                if (choice.isMatching(section)) return true;
+                if (choice.getSubpartId() != null) {
+                    hasSectionChoices = true;
+                    for (Subpart subpart: section.getSubpart().getConfig().getSubparts()) {
+                        if (choice.getSubpartId().equals(subpart.getId())) { hasSectionChoicesThisConfig = true; }
+                    }
+                }
+            }
         }
-        return !iSelectedChoices.isEmpty() && !hasMatch;
+        return (hasSectionChoices && !hasSectionChoicesThisConfig);
     }
     
     /**

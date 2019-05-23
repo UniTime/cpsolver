@@ -333,7 +333,7 @@ public class Enrollment extends Value<Request, Enrollment> {
             int nrInitial = 0;
             sections: for (Section section : getSections()) {
                 for (Choice choice: selected) {
-                    if (choice.sameInstructionalType(section) && choice.sameTime(section)) {
+                    if (choice.sameOffering(section) && choice.sameInstructionalType(section) && choice.sameTime(section)) {
                         nrInitial ++;
                         continue sections;
                     }

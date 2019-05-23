@@ -222,7 +222,7 @@ public class PriorityStudentWeights implements StudentWeights {
                             bestChoice = 1.0;
                         } else if (bestChoice < iSameChoiceWeight && ch.sameChoice(section)) {
                             bestChoice = iSameChoiceWeight;
-                        } else if (bestChoice < iSameTimeWeight && ch.sameInstructionalType(section) && ch.sameTime(section)) {
+                        } else if (bestChoice < iSameTimeWeight && ch.sameOffering(section) && ch.sameInstructionalType(section) && ch.sameTime(section)) {
                             bestChoice = iSameTimeWeight;
                         } else if (bestChoice < iSameConfigWeight && ch.sameConfiguration(section)) {
                             bestChoice = iSameConfigWeight;
