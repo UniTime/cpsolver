@@ -350,12 +350,64 @@ public class SuggestionsBranchAndBound {
         if (request instanceof CourseRequest) {
             CourseRequest cr = (CourseRequest) request;
             values = (cr.equals(iSelectedRequest) ? cr.getAvaiableEnrollments(iAssignment) : cr.getAvaiableEnrollmentsSkipSameTime(iAssignment));
-            Collections.sort(values, new Comparator<Enrollment>() {
-                @Override
-                public int compare(Enrollment e1, Enrollment e2) {
-                    return iComparator.compare(iAssignment, e1, e2);
-                }
-            });
+            if (cr.equals(iSelectedRequest)) {
+                Collections.sort(values, new Comparator<Enrollment>() {
+                    @Override
+                    public int compare(Enrollment e1, Enrollment e2) {
+                        int s1 = 0;
+                        for (Section s: e1.getSections())
+                            if (((CourseRequest)iSelectedRequest).isSelected(s)) s1++;
+                        int s2 = 0;
+                        for (Section s: e2.getSections())
+                            if (((CourseRequest)iSelectedRequest).isSelected(s)) s2++;
+                        if (s1 != s2) return (s1 > s2 ? -1 : 1);
+                        
+                        if (e1.getRequest().getInitialAssignment() != null) {
+                            Enrollment original = e1.getRequest().getInitialAssignment();
+                            int x1 = 0;
+                            if (original.getCourse().equals(e1.getCourse())) x1 += 100;
+                            if (original.getConfig().equals(e1.getConfig())) {
+                                x1 += 10;
+                                for (Section section: original.getSections()) {
+                                    for (Section s: e1.getSections()) {
+                                        if (s.getSubpart().getId() == section.getSubpart().getId()) {
+                                            if (ToolBox.equals(section.getTime(), s.getTime()) && ToolBox.equals(section.getRooms(), s.getRooms()))
+                                                x1 ++;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            int x2 = 0;
+                            if (original.getCourse().equals(e2.getCourse())) x2 += 100;
+                            if (original.getConfig().equals(e2.getConfig())) {
+                                x2 += 10;
+                                for (Section section: original.getSections()) {
+                                    for (Section s: e2.getSections()) {
+                                        if (s.getSubpart().getId() == section.getSubpart().getId()) {
+                                            if (ToolBox.equals(section.getTime(), s.getTime()) && ToolBox.equals(section.getRooms(), s.getRooms()))
+                                                x2 ++;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            if (x1 != x2) {
+                                return (x1 > x2 ? -1 : 1);
+                            }
+                        }
+                        
+                        return iComparator.compare(iAssignment, e1, e2);
+                    }
+                });
+            } else {
+                Collections.sort(values, new Comparator<Enrollment>() {
+                    @Override
+                    public int compare(Enrollment e1, Enrollment e2) {
+                        return iComparator.compare(iAssignment, e1, e2);
+                    }
+                });
+            }
         } else {
             values = new ArrayList<Enrollment>();
             values.add(((FreeTimeRequest) request).createEnrollment());
@@ -539,7 +591,6 @@ public class SuggestionsBranchAndBound {
         private int iNrUnassigned = 0;
         private int iUnassignedPriority = 0;
         private int iNrChanges = 0;
-        private int iSelectedAlternativity = 0;
 
         private long iId = iLastSuggestionId++;
         private Enrollment[] iEnrollments;
@@ -558,7 +609,7 @@ public class SuggestionsBranchAndBound {
                     iNrUnassigned++;
                     iUnassignedPriority += request.getPriority();
                 }
-                iValue += (enrollment.getAssignments() == null || enrollment.getAssignments().isEmpty() ? 0.0 : enrollment.toDouble(iAssignment));
+                iValue += (enrollment.getAssignments() == null || enrollment.getAssignments().isEmpty() ? 0.0 : enrollment.toDouble(iAssignment, false));
                 if (request.getInitialAssignment() != null && enrollment.isCourseRequest()) {
                     Enrollment original = request.getInitialAssignment();
                     for (Iterator<Section> i = enrollment.getSections().iterator(); i.hasNext();) {
@@ -575,12 +626,11 @@ public class SuggestionsBranchAndBound {
                                 || !ToolBox.equals(section.getRooms(), originalSection.getRooms()))
                             iNrChanges++;
                     }
+                    if (!enrollment.getCourse().equals(request.getInitialAssignment().getCourse()))
+                        iNrChanges += 100 * (1 + enrollment.getTruePriority());
+                    if (!enrollment.getConfig().equals(request.getInitialAssignment().getConfig()))
+                        iNrChanges += 10;
                 }
-            }
-            if (iSelectedRequest != null && iSelectedRequest instanceof CourseRequest) {
-                Enrollment enrollment = iAssignment.getValue(iSelectedRequest);
-                if (enrollment != null)
-                    iSelectedAlternativity = ((CourseRequest)iSelectedRequest).getCourses().indexOf(enrollment.getCourse());
             }
             if (iSelectedRequest != null && iSelectedSection != null) {
                 Enrollment enrollment = iAssignment.getValue(iSelectedRequest);
@@ -651,10 +701,6 @@ public class SuggestionsBranchAndBound {
             return iNrUnassigned;
         }
 
-        public int getSelectedAlternativity() {
-            return iSelectedAlternativity;
-        }
-
         /**
          * Average unassigned priority
          * @return average priority of unassinged requests
@@ -719,12 +765,11 @@ public class SuggestionsBranchAndBound {
                 int s2 = 0;
                 for (Section s: suggestion.iSelectedSections)
                     if (((CourseRequest)iSelectedRequest).isSelected(s)) s2++;
-                if (s1 != s2) return (s1 > s2 ? -1 : 1);
+                if (s1 != s2) {
+                    return (s1 > s2 ? -1 : 1);
+                }
             }
-
-            cmp = Double.compare(getSelectedAlternativity(), suggestion.getSelectedAlternativity());
-            if (cmp != 0) return cmp;
-
+            
             cmp = Double.compare(getNrChanges(), suggestion.getNrChanges());
             if (cmp != 0)
                 return cmp;
