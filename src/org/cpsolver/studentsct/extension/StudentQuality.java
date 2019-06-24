@@ -1365,6 +1365,8 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
                 public SctAssignment next() { return null; }
                 @Override
                 public boolean hasNext() { return false; }
+                @Override
+                public void remove() { throw new UnsupportedOperationException(); }
             };
         }
     }
@@ -1434,6 +1436,8 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
                 }
                 @Override
                 public boolean hasNext() { return iTime != null; }
+                @Override
+                public void remove() { throw new UnsupportedOperationException(); }
             };
         }
     }
@@ -1473,6 +1477,8 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
                 }
                 @Override
                 public boolean hasNext() { return hasNext; }
+                @Override
+                public void remove() { throw new UnsupportedOperationException(); }
             };
         }
     }
