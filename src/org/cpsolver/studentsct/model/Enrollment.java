@@ -510,6 +510,8 @@ public class Enrollment extends Value<Request, Enrollment> {
             return false;
         if (!ToolBox.equals(getAssignments(), e.getAssignments()))
             return false;
+        if (!ToolBox.equals(getReservation(), e.getReservation()))
+            return false;
         return true;
     }
 
