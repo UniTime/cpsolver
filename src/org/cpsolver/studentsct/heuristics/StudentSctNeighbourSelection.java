@@ -10,7 +10,9 @@ import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.studentsct.heuristics.selection.AssignInitialSelection;
 import org.cpsolver.studentsct.heuristics.selection.BacktrackSelection;
 import org.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
+import org.cpsolver.studentsct.heuristics.selection.CriticalBacktrackSelection;
 import org.cpsolver.studentsct.heuristics.selection.CriticalCoursesBranchAndBoundSelection;
+import org.cpsolver.studentsct.heuristics.selection.CriticalStandardSelection;
 import org.cpsolver.studentsct.heuristics.selection.MinCreditBranchAndBoundSelection;
 import org.cpsolver.studentsct.heuristics.selection.PriorityConstructionSelection;
 import org.cpsolver.studentsct.heuristics.selection.RandomUnassignmentSelection;
@@ -108,8 +110,15 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
         if (iMPP)
             registerSelection(new AssignInitialSelection(solver.getProperties()));
         
-        if (iUseCriticalCoursesSelection)
+        if (iUseCriticalCoursesSelection) {
             registerSelection(new CriticalCoursesBranchAndBoundSelection(solver.getProperties()));
+            
+            registerSelection(new CriticalBacktrackSelection(solver.getProperties()));
+            
+            registerSelection(new CriticalStandardSelection(solver.getProperties(), getValueSelection()));
+            
+            registerSelection(new CriticalBacktrackSelection(solver.getProperties()));
+        }
         
         if (iUseMinCreditSelection)
             registerSelection(new MinCreditBranchAndBoundSelection(solver.getProperties()));

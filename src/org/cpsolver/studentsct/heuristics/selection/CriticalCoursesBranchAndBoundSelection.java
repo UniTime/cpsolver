@@ -6,6 +6,7 @@ import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.Progress;
+import org.cpsolver.studentsct.heuristics.studentord.StudentChoiceOrder;
 import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
@@ -69,6 +70,8 @@ public class CriticalCoursesBranchAndBoundSelection extends BranchBoundSelection
         super(properties);
         iMPP = properties.getPropertyBoolean("General.MPP", false);
         iTimeout = properties.getPropertyInt("Neighbour.CriticalCoursesBranchAndBoundTimeout", 10000);
+        if (iOrder instanceof StudentChoiceOrder)
+            ((StudentChoiceOrder)iOrder).setCriticalOnly(true);
     }
     
     @Override

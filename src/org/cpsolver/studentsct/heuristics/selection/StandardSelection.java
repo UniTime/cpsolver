@@ -86,10 +86,17 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
     /** Initialization */
     @Override
     public void init(Solver<Request, Enrollment> solver) {
+        init(solver, "Ifs...");
+    }
+    
+    protected void init(Solver<Request, Enrollment> solver, String name) {
+        iVariableSelection.init(solver);
+        iValueSelection.init(solver);
         iIteration = 0;
         iNrIterations = solver.getProperties().getPropertyLong("Neighbour.StandardIterations", -1);
-        if (iNrIterations > 0)
-            Progress.getInstance(solver.currentSolution().getModel()).setPhase("Ifs...", iNrIterations);
+        if (iNrIterations < 0)
+            iNrIterations = solver.currentSolution().getModel().nrUnassignedVariables(solver.currentSolution().getAssignment());
+        Progress.getInstance(solver.currentSolution().getModel()).setPhase(name, iNrIterations);
     }
     
     /**
@@ -115,10 +122,6 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
      */
     @Override
     public Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
-        if (iNrIterations < 0) {
-            iNrIterations = solution.getModel().nrUnassignedVariables(solution.getAssignment());
-            Progress.getInstance(solution.getModel()).setPhase("Ifs...", iNrIterations);
-        }
         if (solution.getModel().unassignedVariables(solution.getAssignment()).isEmpty() || ++iIteration >= iNrIterations)
             return null;
         Progress.getInstance(solution.getModel()).incProgress();

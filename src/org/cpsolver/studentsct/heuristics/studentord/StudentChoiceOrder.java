@@ -43,11 +43,13 @@ import org.cpsolver.studentsct.model.Subpart;
 public class StudentChoiceOrder implements StudentOrder, Comparator<Student> {
     private boolean iReverse = false;
     private boolean iFast = true;
+    private boolean iCriticalOnly = false;
     private HashMap<Config, Integer> iCache = new HashMap<Config, Integer>();
 
     public StudentChoiceOrder(DataProperties config) {
         iReverse = config.getPropertyBoolean("StudentChoiceOrder.Reverse", iReverse);
         iFast = config.getPropertyBoolean("StudentChoiceOrder.Fast", iFast);
+        iCriticalOnly = config.getPropertyBoolean("StudentChoiceOrder.CriticalOnly", iCriticalOnly);
     }
 
     /** Is order reversed 
@@ -63,6 +65,9 @@ public class StudentChoiceOrder implements StudentOrder, Comparator<Student> {
     public void setReverse(boolean reverse) {
         iReverse = reverse;
     }
+    
+    public boolean isCriticalOnly() { return iCriticalOnly; }
+    public void setCriticalOnly(boolean critOnly) { iCriticalOnly = critOnly; }
 
     /** Order the given list of students */
     @Override
@@ -121,6 +126,7 @@ public class StudentChoiceOrder implements StudentOrder, Comparator<Student> {
         for (Request request : student.getRequests()) {
             if (request instanceof CourseRequest) {
                 CourseRequest cr = (CourseRequest) request;
+                if (iCriticalOnly && (!cr.isCritical() || cr.isAlternative())) continue;
                 for (Course course : cr.getCourses()) {
                     for (Config config : course.getOffering().getConfigs()) {
                         Integer nrChoicesThisCfg = iCache.get(config);
