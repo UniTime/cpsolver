@@ -77,6 +77,7 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
     private int iTimeout = 5000;
     private int iDepth = 4;
     private int iMaxIters = -1;
+    protected BacktrackNeighbourSelectionContext iContext;
 
     /**
      * Constructor
@@ -132,6 +133,7 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
     }
     
     protected void selectNeighbour(Solution<V, T> solution, V variable, BacktrackNeighbourSelectionContext context) {
+        iContext = context;
         Lock lock = solution.getLock().writeLock();
         lock.lock();
         try {
@@ -150,6 +152,10 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
 
         if (sLog.isDebugEnabled())
             sLog.debug("-- selected neighbour: " + context.getBackTrackNeighbour());
+    }
+    
+    public BacktrackNeighbourSelectionContext getContext() {
+        return iContext;
     }
 
     private boolean containsConstantValues(Collection<T> values) {
@@ -454,7 +460,7 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
     }
     
     public class BacktrackNeighbourSelectionContext implements AssignmentContext {
-        private long iT0, iT1;
+        private long iT0, iT1 = 0;
         private boolean iTimeoutReached = false;
         private int iMaxIters = -1, iNrIters = 0;
         protected Solution<V, T> iSolution = null;
@@ -478,6 +484,7 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
          * @return search time
          **/
         public long getTime() {
+            if (iT1 == 0) return JProf.currentTimeMillis() - iT0;
             return iT1 - iT0;
         }
 

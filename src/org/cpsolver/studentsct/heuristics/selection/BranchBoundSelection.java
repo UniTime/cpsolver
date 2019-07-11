@@ -1,6 +1,7 @@
 package org.cpsolver.studentsct.heuristics.selection;
 
 import java.text.DecimalFormat;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -16,6 +17,7 @@ import org.apache.log4j.Logger;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.heuristics.NeighbourSelection;
 import org.cpsolver.ifs.model.GlobalConstraint;
+import org.cpsolver.ifs.model.InfoProvider;
 import org.cpsolver.ifs.model.Neighbour;
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
@@ -89,7 +91,7 @@ import org.cpsolver.studentsct.weights.StudentWeights;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class BranchBoundSelection implements NeighbourSelection<Request, Enrollment> {
+public class BranchBoundSelection implements NeighbourSelection<Request, Enrollment>, InfoProvider<Request, Enrollment> {
     private static Logger sLog = Logger.getLogger(BranchBoundSelection.class);
     private static DecimalFormat sDF = new DecimalFormat("0.00");
     protected int iTimeout = 10000;
@@ -103,6 +105,11 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
     protected StudentOrder iOrder = new StudentGroupsChoiceRealFirstOrder();
     protected double iDistConfWeight = 1.0;
     protected boolean iBranchWhenSelectedHasNoConflict = false;
+    
+    protected long iNbrIterations = 0;
+    protected long iTotalTime = 0;
+    protected long iNbrTimeoutReached = 0;
+    protected long iNbrNoSolution = 0;
 
     /**
      * Constructor
@@ -135,6 +142,10 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
     public void init(Solver<Request, Enrollment> solver, String name) {
         setModel((StudentSectioningModel) solver.currentSolution().getModel());
         Progress.getInstance(solver.currentSolution().getModel()).setPhase(name, iModel.getStudents().size());
+        iNbrIterations = 0;
+        iNbrTimeoutReached = 0;
+        iNbrNoSolution = 0;
+        iTotalTime = 0;
     }
     
     public void setModel(StudentSectioningModel model) {
@@ -243,6 +254,12 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             iValues = new HashMap<CourseRequest, List<Enrollment>>();
             backTrack(0);
             iT1 = JProf.currentTimeMillis();
+            
+            iNbrIterations ++;
+            iTotalTime += (iT1 - iT0);
+            if (iTimeoutReached) iNbrTimeoutReached ++;
+            if (iBestAssignment == null) iNbrNoSolution ++;
+            
             if (iBestAssignment == null)
                 return null;
             return new BranchBoundNeighbour(iStudent, iBestValue, iBestAssignment);
@@ -860,5 +877,18 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
             return ret;
         }
 
+    }
+
+    @Override
+    public void getInfo(Assignment<Request, Enrollment> assignment, Map<String, String> info) {
+        if (iNbrIterations > 0)
+            info.put("Timing of " + getClass().getSimpleName(), sDF.format(((double)iTotalTime) / iNbrIterations) + " ms/it (" +
+                    iNbrIterations + " iterations, " +
+                    (iNbrNoSolution == 0 ? "" : sDF.format(100.0 * iNbrNoSolution / iNbrIterations) + "% no solution, ") +
+                    sDF.format(100.0 * iNbrTimeoutReached / iNbrIterations) + "% time limit of " + sDF.format(iTimeout / 1000.0) + " seconds reached)"); 
+    }
+
+    @Override
+    public void getInfo(Assignment<Request, Enrollment> assignment, Map<String, String> info, Collection<Request> variables) {
     }
 }

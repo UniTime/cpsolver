@@ -1,6 +1,8 @@
 package org.cpsolver.studentsct.heuristics.selection;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.ConcurrentModificationException;
@@ -8,12 +10,14 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.locks.Lock;
 
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.heuristics.BacktrackNeighbourSelection;
 import org.cpsolver.ifs.heuristics.NeighbourSelection;
+import org.cpsolver.ifs.model.InfoProvider;
 import org.cpsolver.ifs.model.Neighbour;
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
@@ -52,9 +56,15 @@ import org.cpsolver.studentsct.model.Request;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class StudentEnrollmentSwapSelection implements NeighbourSelection<Request, Enrollment> {
+public class StudentEnrollmentSwapSelection implements NeighbourSelection<Request, Enrollment>, InfoProvider<Request, Enrollment> {
+    private static DecimalFormat sDF = new DecimalFormat("0.00");
     private Selection iSelection = null;
     protected Queue<Request> iRequests = null;
+    
+    protected long iNbrIterations = 0;
+    protected long iTotalTime = 0;
+    protected long iNbrTimeoutReached = 0;
+    protected long iNbrNoSolution = 0;
 
     public StudentEnrollmentSwapSelection(DataProperties properties) {
     }
@@ -72,6 +82,10 @@ public class StudentEnrollmentSwapSelection implements NeighbourSelection<Reques
             }
         }
         Progress.getInstance(solver.currentSolution().getModel()).setPhase(name, variables.size());
+        iNbrIterations = 0;
+        iNbrTimeoutReached = 0;
+        iNbrNoSolution = 0;
+        iTotalTime = 0;
     }
 
     @Override
@@ -97,6 +111,12 @@ public class StudentEnrollmentSwapSelection implements NeighbourSelection<Reques
                     Enrollment e = request.getAssignment(solution.getAssignment());
                     if (e == null || e.getPriority() > 0 || !((CourseRequest)request).getSelectedChoices().isEmpty()) {
                         Neighbour<Request, Enrollment> n = iSelection.selectNeighbour(solution, request);
+                        if (iSelection.getContext() != null) {
+                            iNbrIterations ++;
+                            iTotalTime += iSelection.getContext().getTime();
+                            if (iSelection.getContext().isTimeoutReached()) iNbrTimeoutReached ++;
+                            if (n == null) iNbrNoSolution ++;
+                        }
                         if (n != null && n.value(solution.getAssignment()) <= 0.0)
                             return n;
                     }
@@ -161,6 +181,7 @@ public class StudentEnrollmentSwapSelection implements NeighbourSelection<Reques
         
         @Override
         protected void selectNeighbour(Solution<Request, Enrollment> solution, Request variable, BacktrackNeighbourSelectionContext context) {
+            iContext = context;
             Lock lock = solution.getLock().writeLock();
             lock.lock();
             try {
@@ -215,5 +236,17 @@ public class StudentEnrollmentSwapSelection implements NeighbourSelection<Reques
             }
         }        
     }
+    
+    @Override
+    public void getInfo(Assignment<Request, Enrollment> assignment, Map<String, String> info) {
+        if (iNbrIterations > 0)
+            info.put("Timing of " + getClass().getSimpleName(), sDF.format(((double)iTotalTime) / iNbrIterations) + " ms/it (" +
+                    iNbrIterations + " iterations, " +
+                    (iNbrNoSolution == 0 ? "" : sDF.format(100.0 * iNbrNoSolution / iNbrIterations) + "% no solution, ") +
+                    sDF.format(100.0 * iNbrTimeoutReached / iNbrIterations) + "% time limit of " + sDF.format(iSelection.getTimeout() / 1000.0) + " seconds reached)");
+    }
 
+    @Override
+    public void getInfo(Assignment<Request, Enrollment> assignment, Map<String, String> info, Collection<Request> variables) {
+    }
 }

@@ -1,12 +1,17 @@
 package org.cpsolver.studentsct.heuristics.selection;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 
+import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.heuristics.NeighbourSelection;
+import org.cpsolver.ifs.model.InfoProvider;
 import org.cpsolver.ifs.model.Neighbour;
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
@@ -46,10 +51,16 @@ import org.cpsolver.studentsct.model.Request;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class BacktrackSelection implements NeighbourSelection<Request, Enrollment> {
-    private RandomizedBacktrackNeighbourSelection iRBtNSel = null;
+public class BacktrackSelection implements NeighbourSelection<Request, Enrollment>, InfoProvider<Request, Enrollment> {
+    private static DecimalFormat sDF = new DecimalFormat("0.00");
+    protected RandomizedBacktrackNeighbourSelection iRBtNSel = null;
     protected Queue<Request> iRequests = null;
     protected boolean iIncludeAssignedRequests = false;
+    
+    protected long iNbrIterations = 0;
+    protected long iTotalTime = 0;
+    protected long iNbrTimeoutReached = 0;
+    protected long iNbrNoSolution = 0;
 
     public BacktrackSelection(DataProperties properties) {
         iIncludeAssignedRequests = properties.getPropertyBoolean("Neighbour.IncludeAssignedRequests", iIncludeAssignedRequests);
@@ -73,6 +84,11 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
     @Override
     public void init(Solver<Request, Enrollment> solver) {
         init(solver, "Backtracking...");
+        
+        iNbrIterations = 0;
+        iNbrTimeoutReached = 0;
+        iNbrNoSolution = 0;
+        iTotalTime = 0;
     }
     
     protected synchronized Request nextRequest() {
@@ -88,10 +104,28 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
             if (e != null && request instanceof FreeTimeRequest) continue;
             if (e != null && e.getPriority() == 0 && ((CourseRequest)request).getSelectedChoices().isEmpty()) continue;
             Neighbour<Request, Enrollment> n = iRBtNSel.selectNeighbour(solution, request);
+            if (iRBtNSel.getContext() != null) {
+                iNbrIterations ++;
+                iTotalTime += iRBtNSel.getContext().getTime();
+                if (iRBtNSel.getContext().isTimeoutReached()) iNbrTimeoutReached ++;
+                if (n == null) iNbrNoSolution ++;
+            }
             if (n != null && n.value(solution.getAssignment()) <= 0.0)
                 return n;
         }
         return null;
     }
 
+    @Override
+    public void getInfo(Assignment<Request, Enrollment> assignment, Map<String, String> info) {
+        if (iNbrIterations > 0)
+            info.put("Timing of " + getClass().getSimpleName(), sDF.format(((double)iTotalTime) / iNbrIterations) + " ms/it (" +
+                    iNbrIterations + " iterations, " +
+                    (iNbrNoSolution == 0 ? "" : sDF.format(100.0 * iNbrNoSolution / iNbrIterations) + "% no solution, ") +
+                    sDF.format(100.0 * iNbrTimeoutReached / iNbrIterations) + "% time limit of " + sDF.format(iRBtNSel.getTimeout() / 1000.0) + " seconds reached)"); 
+    }
+
+    @Override
+    public void getInfo(Assignment<Request, Enrollment> assignment, Map<String, String> info, Collection<Request> variables) {
+    }
 }

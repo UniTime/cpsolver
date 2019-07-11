@@ -1,15 +1,19 @@
 package org.cpsolver.ifs.heuristics;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
+import org.cpsolver.ifs.model.InfoProvider;
 import org.cpsolver.ifs.model.Neighbour;
 import org.cpsolver.ifs.model.Value;
 import org.cpsolver.ifs.model.Variable;
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
+import org.cpsolver.ifs.util.Progress;
 
 /**
  * A round robin neighbour selection. Two or more {@link NeighbourSelection}
@@ -108,14 +112,28 @@ public class RoundRobinNeighbourSelection<V extends Variable<V, T>, T extends Va
     /** Change selection 
      * @param selectionIndex current selection index 
      **/
+    @SuppressWarnings("unchecked")
     public void changeSelection(int selectionIndex) {
         iSolver.currentSolution().getLock().writeLock().lock();
         try {
+            Progress progress = Progress.getInstance(iSolver.currentSolution().getModel());
             int newSelectionIndex = 1 + selectionIndex;
             if (newSelectionIndex <= iSelectionIdx) return; // already changed
             iSelectionIdx = newSelectionIndex;
+            if (selectionIndex >= 0) {
+                try {
+                    NeighbourSelection<V, T> selection = iSelections.get(selectionIndex % iSelections.size());
+                    if (selection instanceof InfoProvider) {
+                        Map<String, String> info = new HashMap<String, String>();
+                        ((InfoProvider<V, T>)selection).getInfo(iSolver.currentSolution().getAssignment(), info);
+                        if (!info.isEmpty())
+                            for (Map.Entry<String, String> e: info.entrySet())
+                                progress.debug(e.getKey() + ": " + e.getValue());
+                    }
+                } catch (Exception e) {}
+            }
             sLogger.info("Phase changed to " + ((newSelectionIndex % iSelections.size()) + 1));
-            sLogger.info(iSolver.currentSolution().toString());
+            progress.debug(iSolver.currentSolution().toString());
             if (iSolver.currentSolution().getBestInfo() == null || iSolver.getSolutionComparator().isBetterThanBestSolution(iSolver.currentSolution()))
                 iSolver.currentSolution().saveBest();
             iSelections.get(iSelectionIdx % iSelections.size()).init(iSolver);
