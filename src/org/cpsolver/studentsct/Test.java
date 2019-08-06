@@ -425,6 +425,7 @@ public class Test {
                 sLog.warn("No solution found.");
             }
             solution.update(JProf.currentTimeSec() - startTime);
+            solution.saveBest();
         }
 
         if (chCourseRequests > 0)
