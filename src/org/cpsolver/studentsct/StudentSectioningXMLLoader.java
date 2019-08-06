@@ -852,6 +852,8 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             } else if ("acm".equals(requestEl.getName())) {
                 student.getAreaClassificationMajors().add(
                         new AreaClassificationMajor(requestEl.attributeValue("area"), requestEl.attributeValue("classification"), requestEl.attributeValue("major")));
+            } else if ("advisor".equals(requestEl.getName())) {
+                student.getAdvisors().add(new Instructor(0l, requestEl.attributeValue("externalId"), requestEl.attributeValue("name"), requestEl.attributeValue("email")));
             }
         }
         return student;

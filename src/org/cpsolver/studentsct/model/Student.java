@@ -54,6 +54,7 @@ public class Student implements Comparable<Student> {
     private boolean iAllowDisabled = false;
     private Float iMinCredit = null;
     private Float iMaxCredit = null;
+    private List<Instructor> iAdvisors = new ArrayList<Instructor>();
 
     /**
      * Constructor
@@ -258,6 +259,13 @@ public class Student implements Comparable<Student> {
      */
     public List<AreaClassificationMajor> getAreaClassificationMajors() {
         return iACM;
+    }
+    
+    /**
+     * List of student's advisors
+     */
+    public List<Instructor> getAdvisors() {
+        return iAdvisors;
     }
 
     /**

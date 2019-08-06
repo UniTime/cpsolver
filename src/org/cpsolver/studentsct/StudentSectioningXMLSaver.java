@@ -623,6 +623,17 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                     acmEl.addAttribute("major", acm.getMajor());
             }
         }
+        if (iShowNames && iSaveStudentInfo) {
+            for (Instructor adv: student.getAdvisors()) {
+                Element advEl = studentEl.addElement("advisor");
+                if (adv.getExternalId() != null)
+                    advEl.addAttribute("externalId", adv.getExternalId());
+                if (adv.getName() != null)
+                    advEl.addAttribute("name", adv.getName());
+                if (adv.getEmail() != null)
+                    advEl.addAttribute("email", adv.getEmail());
+            }
+        }
         for (Unavailability unavailability: student.getUnavailabilities()) {
             Element unavEl = studentEl.addElement("unavailability");
             unavEl.addAttribute("offering", getId("offering", unavailability.getSection().getSubpart().getConfig().getOffering().getId()));
