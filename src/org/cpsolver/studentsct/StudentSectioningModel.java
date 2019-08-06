@@ -50,6 +50,7 @@ import org.cpsolver.studentsct.model.RequestGroup;
 import org.cpsolver.studentsct.model.Section;
 import org.cpsolver.studentsct.model.Student;
 import org.cpsolver.studentsct.model.Subpart;
+import org.cpsolver.studentsct.model.Unavailability;
 import org.cpsolver.studentsct.reservation.Reservation;
 import org.cpsolver.studentsct.weights.PriorityStudentWeights;
 import org.cpsolver.studentsct.weights.StudentWeights;
@@ -1019,7 +1020,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 }
             }
         }
-        info.put("Assigned priority course requests", sDoubleFormat.format(100.0 * priCR / assCR) + "% (" + priCR + "/" + assCR + ")");
+        if (assCR > 0)
+            info.put("Assigned priority course requests", sDoubleFormat.format(100.0 * priCR / assCR) + "% (" + priCR + "/" + assCR + ")");
         int[] missing = new int[] {0, 0, 0, 0, 0};
         int incomplete = 0;
         for (Student student: getStudents()) {
@@ -1081,11 +1083,154 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         for (int i = 0; i < notAssignedPriority.length; i++)
             if (notAssignedPriority[i] > 0)
                 info.put("Priority: Not-assigned priority " + (i + 1 == notAssignedPriority.length ? (i + 1) + "+" : (i + 1)) + " course requests", sDecimalFormat.format(100.0 * notAssignedPriority[i] / notAssignedTotal) + "% (" + notAssignedPriority[i] + ")");
-        info.put("Priority: Average not-assigned priority", sDecimalFormat.format(1.0 + ((double)avgPriority) / notAssignedTotal));
+        if (notAssignedTotal > 0)
+            info.put("Priority: Average not-assigned priority", sDecimalFormat.format(1.0 + ((double)avgPriority) / notAssignedTotal));
         for (int i = 0; i < assignedChoice.length; i++)
             if (assignedChoice[i] > 0)
                 info.put("Choice: assigned " + (i == 0 ? "1st": i == 1 ? "2nd" : i == 2 ? "3rd" : i + 1 == assignedChoice.length ? (i + 1) + "th+" : (i + 1) + "th") + " course choice", sDecimalFormat.format(100.0 * assignedChoice[i] / assignedChoiceTotal) + "% (" + assignedChoice[i] + ")");
-        info.put("Choice: Average assigned choice", sDecimalFormat.format(1.0 + ((double)avgChoice) / assignedChoiceTotal));
+        if (assignedChoiceTotal > 0)
+            info.put("Choice: Average assigned choice", sDecimalFormat.format(1.0 + ((double)avgChoice) / assignedChoiceTotal));
+        
+        int nbrSections = 0, nbrFullSections = 0, nbrSections98 = 0, nbrSections95 = 0, nbrSections90 = 0, nbrSectionsDis = 0;
+        int enrlSections = 0, enrlFullSections = 0, enrlSections98 = 0, enrlSections95 = 0, enrlSections90 = 0, enrlSectionsDis = 0;
+        int nbrOfferings = 0, nbrFullOfferings = 0, nbrOfferings98 = 0, nbrOfferings95 = 0, nbrOfferings90 = 0;
+        int enrlOfferings = 0, enrlOfferingsFull = 0, enrlOfferings98 = 0, enrlOfferings95 = 0, enrlOfferings90 = 0;
+        for (Offering offering: getOfferings()) {
+            int offeringLimit = 0, offeringEnrollment = 0;
+            for (Config config: offering.getConfigs()) {
+                int configLimit = config.getLimit();
+                for (Subpart subpart: config.getSubparts()) {
+                    int subpartLimit = 0;
+                    for (Section section: subpart.getSections()) {
+                        if (section.isCancelled()) continue;
+                        int enrl = section.getEnrollments(assignment).size();
+                        if (section.getLimit() < 0 || subpartLimit < 0)
+                            subpartLimit = -1;
+                        else
+                            subpartLimit += (section.isEnabled() ? section.getLimit() : enrl);
+                        nbrSections ++;
+                        enrlSections += enrl;
+                        if (section.getLimit() >= 0 && section.getLimit() <= enrl) {
+                            nbrFullSections ++;
+                            enrlFullSections += enrl;
+                        }
+                        if (!section.isEnabled() && (enrl > 0 || section.getLimit() >= 0)) {
+                            nbrSectionsDis ++;
+                            enrlSectionsDis += enrl;
+                        }
+                        if (section.getLimit() >= 0 && (section.getLimit() - enrl) <= Math.round(0.02 * section.getLimit())) {
+                            nbrSections98 ++;
+                            enrlSections98 += enrl;
+                        }
+                        if (section.getLimit() >= 0 && (section.getLimit() - enrl) <= Math.round(0.05 * section.getLimit())) {
+                            nbrSections95 ++;
+                            enrlSections95 += enrl;
+                        }
+                        if (section.getLimit() >= 0 && (section.getLimit() - enrl) <= Math.round(0.10 * section.getLimit())) {
+                            nbrSections90 ++;
+                            enrlSections90 += enrl;
+                        }
+                    }
+                    if (configLimit < 0 || subpartLimit < 0)
+                        configLimit = -1;
+                    else
+                        configLimit = Math.min(configLimit, subpartLimit);
+                }
+                if (offeringLimit < 0 || configLimit < 0)
+                    offeringLimit = -1;
+                else
+                    offeringLimit += configLimit;
+                offeringEnrollment += config.getEnrollments(assignment).size();
+            }
+            nbrOfferings ++;
+            enrlOfferings += offeringEnrollment;
+            
+            if (offeringLimit >=0 && offeringEnrollment >= offeringLimit) {
+                nbrFullOfferings ++;
+                enrlOfferingsFull += offeringEnrollment;
+            }
+            if (offeringLimit >= 0 && (offeringLimit - offeringEnrollment) <= Math.round(0.02 * offeringLimit)) {
+                nbrOfferings98++;
+                enrlOfferings98 += offeringEnrollment;
+            }
+            if (offeringLimit >= 0 && (offeringLimit - offeringEnrollment) <= Math.round(0.05 * offeringLimit)) {
+                nbrOfferings95++;
+                enrlOfferings95 += offeringEnrollment;
+            }
+            if (offeringLimit >= 0 && (offeringLimit - offeringEnrollment) <= Math.round(0.10 * offeringLimit)) {
+                nbrOfferings90++;
+                enrlOfferings90 += offeringEnrollment;
+            }
+        }
+        if (enrlOfferings90 > 0 && enrlOfferings > 0) 
+            info.put("Full Offerings", (nbrFullOfferings > 0 ? nbrFullOfferings + " with no space (" + sDecimalFormat.format(100.0 * nbrFullOfferings / nbrOfferings) + "% of all offerings, " +
+                    sDecimalFormat.format(100.0 * enrlOfferingsFull / enrlOfferings) + "% assignments)\n" : "")+
+                    (nbrOfferings98 > nbrFullOfferings ? nbrOfferings98 + " with &leq; 2% available (" + sDecimalFormat.format(100.0 * nbrOfferings98 / nbrOfferings) + "% of all offerings, " +
+                    sDecimalFormat.format(100.0 * enrlOfferings98 / enrlOfferings) + "% assignments)\n" : "")+
+                    (nbrOfferings95 > nbrOfferings98 ? nbrOfferings95 + " with &leq; 5% available (" + sDecimalFormat.format(100.0 * nbrOfferings95 / nbrOfferings) + "% of all offerings, " +
+                    sDecimalFormat.format(100.0 * enrlOfferings95 / enrlOfferings) + "% assignments)\n" : "")+
+                    (nbrOfferings90 > nbrOfferings95 ? nbrOfferings90 + " with &leq; 10% available (" + sDecimalFormat.format(100.0 * nbrOfferings90 / nbrOfferings) + "% of all offerings, " +
+                    sDecimalFormat.format(100.0 * enrlOfferings90 / enrlOfferings) + "% assignments)" : ""));
+        if ((enrlSections90 > 0 || nbrSectionsDis > 0) && enrlSections > 0)
+            info.put("Full Sections", (nbrFullSections > 0 ? nbrFullSections + " with no space (" + sDecimalFormat.format(100.0 * nbrFullSections / nbrSections) + "% of all sections, "+
+                    sDecimalFormat.format(100.0 * enrlFullSections / enrlSections) + "% assignments)\n" : "") +
+                    (nbrSectionsDis > 0 ? nbrSectionsDis + " disabled (" + sDecimalFormat.format(100.0 * nbrSectionsDis / nbrSections) + "% of all sections, "+
+                    sDecimalFormat.format(100.0 * enrlSectionsDis / enrlSections) + "% assignments)\n" : "") +
+                    (enrlSections98 > nbrFullSections ? nbrSections98 + " with &leq; 2% available (" + sDecimalFormat.format(100.0 * nbrSections98 / nbrSections) + "% of all sections, " +
+                    sDecimalFormat.format(100.0 * enrlSections98 / enrlSections) + "% assignments)\n" : "") +
+                    (nbrSections95 > enrlSections98 ? nbrSections95 + " with &leq; 5% available (" + sDecimalFormat.format(100.0 * nbrSections95 / nbrSections) + "% of all sections, " +
+                    sDecimalFormat.format(100.0 * enrlSections95 / enrlSections) + "% assignments)\n" : "") +
+                    (nbrSections90 > nbrSections95 ? nbrSections90 + " with &leq; 10% available (" + sDecimalFormat.format(100.0 * nbrSections90 / nbrSections) + "% of all sections, " +
+                    sDecimalFormat.format(100.0 * enrlSections90 / enrlSections) + "% assignments)" : ""));
+        if (getStudentQuality() != null) {
+            int shareCR = getStudentQuality().getContext(assignment).countTotalPenalty(StudentQuality.Type.CourseTimeOverlap, assignment);
+            int shareFT = getStudentQuality().getContext(assignment).countTotalPenalty(StudentQuality.Type.FreeTimeOverlap, assignment);
+            int shareUN = getStudentQuality().getContext(assignment).countTotalPenalty(StudentQuality.Type.Unavailability, assignment);
+            if (shareCR > 0) {
+                Set<Student> students = new HashSet<Student>();
+                for (StudentQuality.Conflict c: getStudentQuality().getContext(assignment).computeAllConflicts(StudentQuality.Type.CourseTimeOverlap, assignment)) {
+                    students.add(c.getStudent());
+                }
+                info.put("Time overlaps: courses", students.size() + " students (avg " + sDoubleFormat.format(5.0 * shareCR / students.size()) + " mins)");
+            }
+            if (shareFT > 0) {
+                Set<Student> students = new HashSet<Student>();
+                for (StudentQuality.Conflict c: getStudentQuality().getContext(assignment).computeAllConflicts(StudentQuality.Type.FreeTimeOverlap, assignment)) {
+                    students.add(c.getStudent());
+                }
+                info.put("Time overlaps: free times", students.size() + " students (avg " + sDoubleFormat.format(5.0 * shareFT / students.size()) + " mins)");
+            }
+            if (shareUN > 0) {
+                Set<Student> students = new HashSet<Student>();
+                for (StudentQuality.Conflict c: getStudentQuality().getContext(assignment).computeAllConflicts(StudentQuality.Type.Unavailability, assignment)) {
+                    students.add(c.getStudent());
+                }
+                info.put("Time overlaps: teaching assignments", students.size() + " students (avg " + sDoubleFormat.format(5.0 * shareUN / students.size()) + " mins)");
+            }
+        } else if (getTimeOverlaps() != null && getTimeOverlaps().getTotalNrConflicts(assignment) != 0) {
+            Set<TimeOverlapsCounter.Conflict> conf = getTimeOverlaps().getContext(assignment).computeAllConflicts(assignment);
+            int shareCR = 0, shareFT = 0, shareUN = 0;
+            Set<Student> studentsCR = new HashSet<Student>();
+            Set<Student> studentsFT = new HashSet<Student>();
+            Set<Student> studentsUN = new HashSet<Student>();
+            for (TimeOverlapsCounter.Conflict c: conf) {
+                if (c.getR1() instanceof CourseRequest && c.getR2() instanceof CourseRequest) {
+                    shareCR += c.getShare(); studentsCR.add(c.getStudent());
+                } else if (c.getS2() instanceof Unavailability) {
+                    shareUN += c.getShare(); studentsUN.add(c.getStudent());
+                } else {
+                    shareFT += c.getShare(); studentsFT.add(c.getStudent());
+                }
+            }
+            if (shareCR > 0)
+                info.put("Time overlaps: courses", studentsCR.size() + " students (avg " + sDoubleFormat.format(5.0 * shareCR / studentsCR.size()) + " mins)");
+            if (shareFT > 0)
+                info.put("Time overlaps: free times", studentsFT.size() + " students (avg " + sDoubleFormat.format(5.0 * shareFT / studentsFT.size()) + " mins)");
+            if (shareUN > 0)
+                info.put("Time overlaps: teaching assignments", studentsUN.size() + " students (avg " + sDoubleFormat.format(5.0 * shareUN / studentsUN.size()) + " mins)");
+        }
+
+        
         return info;
     }
     
