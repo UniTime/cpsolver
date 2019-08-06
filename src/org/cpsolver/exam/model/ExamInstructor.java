@@ -238,6 +238,21 @@ public class ExamInstructor extends Constraint<Exam, ExamPlacement> {
         iAvailable[period] = available;
     }
     
+    /**
+     * True if the given two exams can have a direct instructor conflict with this
+     * instructor, i.e., they can be placed at the same period.
+     * 
+     * @param ex1
+     *            an exam
+     * @param ex2
+     *            an exam
+     * @return {@link ExamStudent#isAllowDirectConflicts()} and
+     *         {@link Exam#isAllowDirectConflicts()} for both exams
+     */
+    public boolean canConflict(Exam ex1, Exam ex2) {
+        return isAllowDirectConflicts() && ex1.isAllowDirectConflicts() && ex2.isAllowDirectConflicts();
+    }
+    
     /*
     @Override
     public Context createAssignmentContext(Assignment<Exam, ExamPlacement> assignment) {

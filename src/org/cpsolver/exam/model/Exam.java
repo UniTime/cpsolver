@@ -94,6 +94,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
 
     private ArrayList<ExamOwner> iOwners = new ArrayList<ExamOwner>();
     private List<ExamPeriodPlacement> iPeriodPlacements = null;
+    private List<ExamPeriodPlacement> iAvailablePeriodPlacements = null;
     private List<ExamRoomPlacement> iRoomPlacements = null;
     private List<ExamRoomPlacement> iRoomPreferredPlacements = null;
 
@@ -250,9 +251,23 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      * @return list of {@link ExamPeriodPlacement}
      */
     public List<ExamPeriodPlacement> getPeriodPlacements() {
-        return iPeriodPlacements;
+        if (iAvailablePeriodPlacements == null) {
+            iAvailablePeriodPlacements = new ArrayList<ExamPeriodPlacement>(iPeriodPlacements.size());
+            for (ExamPeriodPlacement p: iPeriodPlacements) {
+                boolean available = true;
+                for (ExamInstructor i: getInstructors())
+                    if (!i.isAllowDirectConflicts() && !i.isAvailable(p.getPeriod())) { available = false; break; }
+                for (ExamStudent s: getStudents())
+                    if (!s.isAllowDirectConflicts() && !s.isAvailable(p.getPeriod())) { available = false; break; }
+                if (available)
+                    iAvailablePeriodPlacements.add(p);
+            }
+            if (iAvailablePeriodPlacements.isEmpty())
+                sLog.error("  Exam " + getName() + " has no available periods.");
+        }
+        return iAvailablePeriodPlacements;
     }
-
+    
     /**
      * Initialize exam's domain.
      */
@@ -466,6 +481,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
         if (constraint instanceof ExamInstructor)
             iInstructors.add((ExamInstructor) constraint);
         super.addContstraint(constraint);
+        iAvailablePeriodPlacements = null;
     }
 
     /**
@@ -485,6 +501,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
         if (constraint instanceof ExamInstructor)
             iInstructors.remove(constraint);
         super.removeContstraint(constraint);
+        iAvailablePeriodPlacements = null;
     }
 
     /**
@@ -932,6 +949,29 @@ public class Exam extends Variable<Exam, ExamPlacement> {
         }
         return conf;
     }
+    
+    /**
+     * Number of instructor of this exam (that does not have direct conflicts
+     * allowed, see {@link ExamInstructor#canConflict(Exam, Exam)}) that attend
+     * some other exam in the given period.
+     * 
+     * @param assignment current assignment
+     * @param period
+     *            a period
+     * @return number of direct student conflicts that are prohibited
+     */
+    public int countInstructorConflicts(Assignment<Exam, ExamPlacement> assignment, ExamPeriodPlacement period) {
+        int conf = 0;
+        Map<ExamInstructor, Set<Exam>> instructorsOfPeriod = ((ExamModel)getModel()).getInstructorsOfPeriod(assignment, period.getPeriod());
+        for (ExamInstructor i : getInstructors()) {
+            Set<Exam> exams = instructorsOfPeriod.get(i);
+            if (exams == null) continue;
+            for (Exam exam : exams) {
+                if (!exam.equals(this) && !i.canConflict(this, exam)) conf++;
+            }
+        }
+        return conf;
+    }
 
     /**
      * List of exams that are assigned to the given period and share one or more
@@ -1092,7 +1132,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
      * @return the appropriate period placement
      */
     public ExamPeriodPlacement getPeriodPlacement(Long periodId) {
-        for (ExamPeriodPlacement periodPlacement : iPeriodPlacements) {
+        for (ExamPeriodPlacement periodPlacement : getPeriodPlacements()) {
             if (periodPlacement.getId().equals(periodId))
                 return periodPlacement;
         }

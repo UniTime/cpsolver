@@ -109,6 +109,10 @@ public class ExamConstruction extends NeighbourSelectionWithContext<Exam, ExamPl
                         if (context.assignments().contains(exam.getId() + ":" + period.getIndex()))
                             continue;
                     }
+                    if (exam.countInstructorConflicts(assignment, period) > 0) {
+                        if (context.assignments().contains(exam.getId() + ":" + period.getIndex()))
+                            continue;
+                    }
                     if (!exam.checkDistributionConstraints(assignment, period))
                         continue;
                     ExamPlacement placement = new ExamPlacement(exam, period, null);
@@ -162,6 +166,10 @@ public class ExamConstruction extends NeighbourSelectionWithContext<Exam, ExamPl
         ExamPlacement best = null;
         for (ExamPeriodPlacement period : bestExam.getPeriodPlacements()) {
             if (bestExam.countStudentConflicts(assignment, period) > 0) {
+                if (context.assignments().contains(bestExam.getId() + ":" + period.getIndex()))
+                    continue;
+            }
+            if (bestExam.countInstructorConflicts(assignment, period) > 0) {
                 if (context.assignments().contains(bestExam.getId() + ":" + period.getIndex()))
                     continue;
             }
