@@ -145,6 +145,7 @@ public class RandomUnassignmentSelection implements NeighbourSelection<Request, 
         public boolean canUnassign(Enrollment enrollment) {
             if (enrollment == null) return false;
             if (enrollment.getRequest().isMPP() && enrollment.equals(enrollment.getRequest().getInitialAssignment())) return false;
+            if (enrollment.getStudent().isPriority()) return false;
             if (enrollment.getRequest().isCritical()) return false;
             return true;
         }

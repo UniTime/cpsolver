@@ -577,6 +577,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         }
         if (student.isDummy())
             studentEl.addAttribute("dummy", "true");
+        if (student.isPriority())
+            studentEl.addAttribute("priority", "true");
         if (student.isNeedShortDistances())
             studentEl.addAttribute("shortDistances", "true");
         if (student.isAllowDisabled())

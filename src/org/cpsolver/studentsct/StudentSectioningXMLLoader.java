@@ -820,6 +820,8 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
      */
     protected Student loadStudent(Element studentEl, Map<Long, Offering> offeringTable) {
         Student student = new Student(Long.parseLong(studentEl.attributeValue("id")), "true".equals(studentEl.attributeValue("dummy")));
+        if ("true".equals(studentEl.attributeValue("priority")))
+            student.setPriority(true);
         if ("true".equals(studentEl.attributeValue("shortDistances")))
             student.setNeedShortDistances(true);
         if ("true".equals(studentEl.attributeValue("allowDisabled")))

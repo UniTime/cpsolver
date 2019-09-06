@@ -17,6 +17,7 @@ import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.Progress;
+import org.cpsolver.studentsct.filter.StudentFilter;
 import org.cpsolver.studentsct.heuristics.RandomizedBacktrackNeighbourSelection;
 import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
@@ -61,6 +62,7 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
     protected long iTotalTime = 0;
     protected long iNbrTimeoutReached = 0;
     protected long iNbrNoSolution = 0;
+    protected StudentFilter iFilter = null;
 
     public BacktrackSelection(DataProperties properties) {
         iIncludeAssignedRequests = properties.getPropertyBoolean("Neighbour.IncludeAssignedRequests", iIncludeAssignedRequests);
@@ -92,7 +94,11 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
     }
     
     protected synchronized Request nextRequest() {
-        return iRequests.poll();
+        while (true) {
+            Request request = iRequests.poll();
+            if (request == null) return null;
+            if (iFilter == null || iFilter.accept(request.getStudent())) return request;
+        }
     }
 
     @Override
@@ -128,4 +134,14 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
     @Override
     public void getInfo(Assignment<Request, Enrollment> assignment, Map<String, String> info, Collection<Request> variables) {
     }
+    
+    /**
+     * Only consider students meeting the given filter.
+     */
+    public StudentFilter getFilter() { return iFilter; }
+    
+    /**
+     * Only consider students meeting the given filter.
+     */
+    public BacktrackSelection withFilter(StudentFilter filter) { iFilter = filter; return this; }
 }

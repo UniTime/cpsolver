@@ -43,6 +43,7 @@ public class StudentGroupsChoiceRealFirstOrder extends StudentChoiceOrder {
     
     @Override
     public int compare(Student s1, Student s2) {
+        if (s1.isPriority() != s2.isPriority()) return (s1.isPriority() ? -1 : 1);
         if (s1.isDummy()) {
             if (!s2.isDummy())
                 return 1;

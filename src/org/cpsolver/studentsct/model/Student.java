@@ -40,7 +40,7 @@ import org.cpsolver.studentsct.constraint.LinkedSections;
 public class Student implements Comparable<Student> {
     private long iId;
     private String iExternalId = null, iName = null;
-    private boolean iDummy = false;
+    private boolean iDummy = false, iPriority = false;
     private List<Request> iRequests = new ArrayList<Request>();
     private List<AcademicAreaCode> iAcadAreaClassifs = new ArrayList<AcademicAreaCode>();
     private List<AcademicAreaCode> iMajors = new ArrayList<AcademicAreaCode>();
@@ -226,6 +226,22 @@ public class Student implements Comparable<Student> {
      */
     public void setDummy(boolean dummy) {
         iDummy = dummy;
+    }
+    
+    /**
+     * Student's priority flag. Priority students are to be assigned first.
+     * @return true if priority student
+     */
+    public boolean isPriority() {
+        return iPriority;
+    }
+    
+    /**
+     * Set student's priority flag. Priority students are to be assigned first.
+     * @param priority priority student
+     */
+    public void setPriority(boolean priority) {
+        iPriority = priority;
     }
 
     /**

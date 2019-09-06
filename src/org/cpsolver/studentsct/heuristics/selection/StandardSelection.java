@@ -100,17 +100,18 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
     }
     
     /**
-     * Check if the given enrollment can be unassigned
-     * @param enrollment given enrollment
+     * Check if the given conflicting enrollment can be unassigned
+     * @param conflict given enrollment
      * @return if running MPP, do not unassign initial enrollments
      */
-    public boolean canUnassign(Enrollment enrollment, Assignment<Request, Enrollment> assignment) {
-        if (enrollment.getRequest().isMPP() && enrollment.equals(enrollment.getRequest().getInitialAssignment())) return false;
-        if (enrollment.getRequest().getStudent().hasMinCredit()) {
-            float credit = enrollment.getRequest().getStudent().getAssignedCredit(assignment) - enrollment.getCredit();
-            if (credit < enrollment.getRequest().getStudent().getMinCredit()) return false;
+    public boolean canUnassign(Enrollment enrollment, Enrollment conflict, Assignment<Request, Enrollment> assignment) {
+        if (conflict.getRequest().isMPP() && conflict.equals(conflict.getRequest().getInitialAssignment())) return false;
+        if (conflict.getRequest().getStudent().hasMinCredit()) {
+            float credit = conflict.getRequest().getStudent().getAssignedCredit(assignment) - conflict.getCredit();
+            if (credit < conflict.getRequest().getStudent().getMinCredit()) return false;
         }
-        if (!enrollment.getRequest().isAlternative() && enrollment.getRequest().isCritical()) return false;
+        if (!enrollment.getStudent().isPriority() && conflict.getStudent().isPriority()) return false;
+        if (!conflict.getRequest().isAlternative() && conflict.getRequest().isCritical()) return false;
         return true;
     }
 
@@ -133,7 +134,7 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
             Set<Enrollment> conflicts = enrollment.variable().getModel().conflictValues(solution.getAssignment(), enrollment);
             if (conflicts.contains(enrollment)) continue;
             for (Enrollment conflict: conflicts)
-                if (!canUnassign(conflict, solution.getAssignment())) continue attempts;
+                if (!canUnassign(enrollment, conflict, solution.getAssignment())) continue attempts;
             return new SimpleNeighbour<Request, Enrollment>(request, enrollment, conflicts);
         }
         return null;

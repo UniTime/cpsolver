@@ -29,6 +29,7 @@ import org.cpsolver.studentsct.constraint.LinkedSections;
 import org.cpsolver.studentsct.extension.DistanceConflict;
 import org.cpsolver.studentsct.extension.StudentQuality;
 import org.cpsolver.studentsct.extension.TimeOverlapsCounter;
+import org.cpsolver.studentsct.filter.StudentFilter;
 import org.cpsolver.studentsct.heuristics.studentord.StudentGroupsChoiceRealFirstOrder;
 import org.cpsolver.studentsct.heuristics.studentord.StudentOrder;
 import org.cpsolver.studentsct.model.CourseRequest;
@@ -105,6 +106,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
     protected StudentOrder iOrder = new StudentGroupsChoiceRealFirstOrder();
     protected double iDistConfWeight = 1.0;
     protected boolean iBranchWhenSelectedHasNoConflict = false;
+    protected StudentFilter iFilter = null;
     
     protected long iNbrIterations = 0;
     protected long iTotalTime = 0;
@@ -163,7 +165,12 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
     }
     
     protected synchronized Student nextStudent() {
-        return iStudents.poll();
+        while (true) {
+            Student student = iStudents.poll();
+            if (student == null) return null;
+            if (iFilter == null || iFilter.accept(student))
+                return student;
+        }
     }
     
     public synchronized void addStudent(Student student) {
@@ -891,4 +898,14 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
     @Override
     public void getInfo(Assignment<Request, Enrollment> assignment, Map<String, String> info, Collection<Request> variables) {
     }
+    
+    /**
+     * Only consider students meeting the given filter.
+     */
+    public StudentFilter getFilter() { return iFilter; }
+    
+    /**
+     * Only consider students meeting the given filter.
+     */
+    public BranchBoundSelection withFilter(StudentFilter filter) { iFilter = filter; return this; }
 }

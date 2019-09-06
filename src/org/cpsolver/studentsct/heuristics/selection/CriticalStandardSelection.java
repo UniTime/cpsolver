@@ -53,8 +53,8 @@ public class CriticalStandardSelection extends StandardSelection {
     }
     
     @Override
-    public boolean canUnassign(Enrollment enrollment, Assignment<Request, Enrollment> assignment) {
-        if (enrollment.getRequest().isMPP() && enrollment.equals(enrollment.getRequest().getInitialAssignment())) return false;
+    public boolean canUnassign(Enrollment enrollment, Enrollment conflict, Assignment<Request, Enrollment> assignment) {
+        if (conflict.getRequest().isMPP() && conflict.equals(conflict.getRequest().getInitialAssignment())) return false;
         // Override to allow unassignment of critical course requests
         return true;
     }

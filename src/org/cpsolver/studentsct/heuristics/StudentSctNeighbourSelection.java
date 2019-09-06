@@ -1,12 +1,22 @@
 package org.cpsolver.studentsct.heuristics;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.heuristics.NeighbourSelection;
 import org.cpsolver.ifs.heuristics.RoundRobinNeighbourSelection;
+import org.cpsolver.ifs.heuristics.VariableSelection;
 import org.cpsolver.ifs.model.Neighbour;
+import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.solver.SolverListener;
 import org.cpsolver.ifs.util.DataProperties;
+import org.cpsolver.studentsct.filter.PriortyStudentFilter;
+import org.cpsolver.studentsct.filter.StudentFilter;
 import org.cpsolver.studentsct.heuristics.selection.AssignInitialSelection;
 import org.cpsolver.studentsct.heuristics.selection.BacktrackSelection;
 import org.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
@@ -23,8 +33,10 @@ import org.cpsolver.studentsct.heuristics.selection.ShuffleStudentsSelection;
 import org.cpsolver.studentsct.heuristics.selection.StandardSelection;
 import org.cpsolver.studentsct.heuristics.selection.StudentEnrollmentSwapSelection;
 import org.cpsolver.studentsct.heuristics.selection.SwapStudentSelection;
+import org.cpsolver.studentsct.heuristics.selection.UnassignedRequestSelection;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
+import org.cpsolver.studentsct.weights.PriorityStudentWeights;
 
 /**
  * (Batch) student sectioning neighbour selection. It is based on
@@ -88,6 +100,7 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
     private boolean iUseMinCreditSelection = true;
     private boolean iMPP = false;
     private boolean iShuffleStudentsSelection = false;
+    private boolean iPriorityStudentsFirstSelection = true;
 
     public StudentSctNeighbourSelection(DataProperties properties) throws Exception {
         super(properties);
@@ -96,6 +109,7 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
         iUseMinCreditSelection = properties.getPropertyBoolean("Sectioning.UseMinCreditSelection", iUseMinCreditSelection);
         iMPP = properties.getPropertyBoolean("General.MPP", false);
         iShuffleStudentsSelection = properties.getPropertyBoolean("Shuffle.Enabled", true) && properties.getPropertyBoolean("Load.RequestGroups", false);
+        iPriorityStudentsFirstSelection = properties.getPropertyBoolean("Sectioning.PriorityStudentsFirstSelection", iPriorityStudentsFirstSelection);
     }
 
     @Override
@@ -118,6 +132,18 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
             registerSelection(new CriticalStandardSelection(solver.getProperties(), getValueSelection()));
             
             registerSelection(new CriticalBacktrackSelection(solver.getProperties()));
+        }
+        
+        if (iPriorityStudentsFirstSelection) {
+            StudentFilter filter = new PriortyStudentFilter();
+            
+            registerSelection(new BranchBoundSelection(solver.getProperties()).withFilter(filter));
+            
+            registerSelection(new BacktrackSelection(solver.getProperties()).withFilter(filter));
+            
+            registerSelection(new StandardSelection(solver.getProperties(), new UnassignedRequestSelection().withFilter(filter), getValueSelection()));
+            
+            registerSelection(new BacktrackSelection(solver.getProperties()).withFilter(filter));
         }
         
         if (iUseMinCreditSelection)
@@ -211,5 +237,4 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
         if (neighbour instanceof BranchBoundSelection.BranchBoundNeighbour && selection instanceof BranchBoundSelection)
             ((BranchBoundSelection)selection).addStudent(((BranchBoundSelection.BranchBoundNeighbour)neighbour).getStudent());
     }
-
 }
