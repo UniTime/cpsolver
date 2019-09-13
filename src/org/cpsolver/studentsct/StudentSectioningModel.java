@@ -1062,7 +1062,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             if (missing[i] > 0)
                 info.put("Students missing " + (i == 0 ? "1 course" : i + 1 == missing.length ? (i + 1) + " or more courses" : (i + 1) + " courses"), sDecimalFormat.format(100.0 * missing[i] / incomplete) + "% (" + missing[i] + ")");
 
-        info.put("Overall solution value", sDoubleFormat.format(getTotalValue(assignment)) + " [precise: " + sDoubleFormat.format(getTotalValue(assignment, true)) + "]");
+        info.put("Overall solution value", sDoubleFormat.format(getTotalValue(assignment)));// + " [precise: " + sDoubleFormat.format(getTotalValue(assignment, true)) + "]");
         
         int nrStudentsBelowMinCredit = 0, nrStudents = 0;
         for (Student student: getStudents()) {

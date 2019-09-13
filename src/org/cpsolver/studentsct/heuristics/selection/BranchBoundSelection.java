@@ -174,7 +174,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
     }
     
     public synchronized void addStudent(Student student) {
-        if (iStudents != null) iStudents.add(student);
+        if (iStudents != null && !student.isDummy()) iStudents.add(student);
     }
 
     /**

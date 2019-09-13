@@ -1,17 +1,9 @@
 package org.cpsolver.studentsct.heuristics;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
-
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.heuristics.NeighbourSelection;
 import org.cpsolver.ifs.heuristics.RoundRobinNeighbourSelection;
-import org.cpsolver.ifs.heuristics.VariableSelection;
 import org.cpsolver.ifs.model.Neighbour;
-import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.solver.SolverListener;
 import org.cpsolver.ifs.util.DataProperties;
@@ -36,7 +28,6 @@ import org.cpsolver.studentsct.heuristics.selection.SwapStudentSelection;
 import org.cpsolver.studentsct.heuristics.selection.UnassignedRequestSelection;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
-import org.cpsolver.studentsct.weights.PriorityStudentWeights;
 
 /**
  * (Batch) student sectioning neighbour selection. It is based on

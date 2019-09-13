@@ -145,7 +145,7 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
     }
     
     protected synchronized void addStudent(Student student) {
-        iStudents.add(student);
+        if (iStudents != null && !student.isDummy()) iStudents.add(student);
     }
 
     /**
