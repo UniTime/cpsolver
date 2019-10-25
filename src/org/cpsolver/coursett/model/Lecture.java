@@ -1575,4 +1575,18 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
    public void setMaxRoomCombinations(int maxRoomCombinations) {
        iMaxRoomCombinations = maxRoomCombinations;
    }
+   
+   private Integer iMinWeeks = null;
+   public int getMinWeeks() {
+       if (iMinWeeks == null) {
+           iMinWeeks = 0;
+           for (TimeLocation t: timeLocations()) {
+               int s = t.getWeekCode().nextSetBit(0);
+               int e = t.getWeekCode().previousSetBit(t.getWeekCode().size());
+               int weeks = 1 + (e - s) / 7;
+               if (iMinWeeks == 0 || weeks < iMinWeeks) iMinWeeks = weeks;
+           }
+       }
+       return iMinWeeks;
+   }
 }

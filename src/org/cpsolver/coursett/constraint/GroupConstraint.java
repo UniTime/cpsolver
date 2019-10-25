@@ -916,6 +916,39 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                 }
                 return null;
             }}),
+        /**
+         * Given classes must be taught on weeks that are back-to-back (the gap between the two assigned date patterns is less than a week).<br>
+         * When prohibited or (strongly) discouraged: any two classes must have at least a week gap in between.
+         */
+        BTB_WEEKS("BTB_WEEKS", "Back-To-Back Weeks", new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                if (gc.variables().size() <= 2) {
+                    return gc.isBackToBackWeeks(plc1.getTimeLocation(), plc2.getTimeLocation());
+                } else {
+                    int totalWeeks = 0;
+                    for (Lecture l: gc.variables())
+                        totalWeeks += l.getMinWeeks();
+                    return gc.isMaxWeekSpan(plc1.getTimeLocation(), plc2.getTimeLocation(), totalWeeks);
+                }
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return gc.isNotBackToBackWeeks(plc1.getTimeLocation(), plc2.getTimeLocation());
+            }}),
+        /**
+         * Given classes must be taught on weeks that are back-to-back and in the given order.<br>
+         * When prohibited or (strongly) discouraged: given classes must be taught on weeks in the given order with at least one week between any two following classes.
+         */
+        FOLLOWING_WEEKS("FOLLOWING_WEEKS", "Following Weeks", new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return gc.isFollowingWeeksBTB(plc1, plc2, true);
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return gc.isFollowingWeeksBTB(plc1, plc2, false);
+            }}),
         ;
         
         String iReference, iName;
@@ -2110,5 +2143,75 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
         }
         
         public int getPreference() { return iLastPreference; }
-    }    
+    }
+    
+    private boolean isBackToBackWeeks(TimeLocation t1, TimeLocation t2) {
+        if (t1.shareWeeks(t2)) return false;
+        int f1 = t1.getWeekCode().nextSetBit(0);
+        int e1 = t1.getWeekCode().previousSetBit(t1.getWeekCode().size());
+        int f2 = t2.getWeekCode().nextSetBit(0);
+        int e2 = t2.getWeekCode().previousSetBit(t2.getWeekCode().size());
+        if (e1 < f2) {
+            return (f2 - e1) < 7;
+        } else if (e2 < f1) {
+            return (f1 - e2) < 7;
+        }
+        return false;
+    }
+    
+    private boolean isMaxWeekSpan(TimeLocation t1, TimeLocation t2, int nrWeeks) {
+        if (t1.shareWeeks(t2)) return false;
+        if (isBackToBackWeeks(t1, t2)) return true;
+        
+        int f1 = t1.getWeekCode().nextSetBit(0);
+        int e1 = t1.getWeekCode().previousSetBit(t1.getWeekCode().size());
+        int f2 = t2.getWeekCode().nextSetBit(0);
+        int e2 = t2.getWeekCode().previousSetBit(t2.getWeekCode().size());
+        if (e1 < f2) {
+            return (3 + e2 - f1) / 7 <= nrWeeks;
+        } else if (e2 < f1) {
+            return (3 + e1 - f2) / 7 <= nrWeeks;
+        }
+        return false;
+    }
+    
+    private boolean isNotBackToBackWeeks(TimeLocation t1, TimeLocation t2) {
+        if (t1.shareWeeks(t2)) return false;
+        int f1 = t1.getWeekCode().nextSetBit(0);
+        int e1 = t1.getWeekCode().previousSetBit(t1.getWeekCode().size());
+        int f2 = t2.getWeekCode().nextSetBit(0);
+        int e2 = t2.getWeekCode().previousSetBit(t2.getWeekCode().size());
+        if (e1 < f2) {
+            return (f2 - e1) >= 7;
+        } else if (e2 < f1) {
+            return (f1 - e2) >= 7;
+        }
+        return false;
+    }
+    
+    private boolean isFollowingWeeksBTB(Placement p1, Placement p2, boolean btb) {
+        int ord1 = variables().indexOf(p1.variable());
+        int ord2 = variables().indexOf(p2.variable());
+        TimeLocation t1, t2;
+        boolean following = false;
+        if (ord1 < ord2) {
+            t1 = p1.getTimeLocation();
+            t2 = p2.getTimeLocation();
+            if (ord1 + 1 == ord2) following = true;
+        } else {
+            t2 = p1.getTimeLocation();
+            t1 = p2.getTimeLocation();
+            if (ord2 + 1 == ord1) following = true;
+        }
+        if (t1.shareWeeks(t2)) return false;
+        int e1 = t1.getWeekCode().previousSetBit(t1.getWeekCode().size());
+        int s2 = t2.getWeekCode().nextSetBit(0);
+        if (e1 >= s2) return false;
+        if (!btb) // not back-to-back: any two classes must be at least a week apart
+            return (s2 - e1) >= 7;
+        else if (following) // back-to-back and following classes: must be within a week
+            return (s2 - e1) < 7;
+        else // back-to-back and not following: just the order
+            return true;
+    }
 }
