@@ -597,6 +597,7 @@ public class SuggestionsBranchAndBound {
         private Section iSelectedEnrollment = null;
         private boolean iSelectedEnrollmentChangeTime = false;
         private TreeSet<Section> iSelectedSections = new TreeSet<Section>(new EnrollmentSectionComparator());
+        private int iSelectedChoice = 0;
 
         /**
          * Create suggestion
@@ -657,8 +658,10 @@ public class SuggestionsBranchAndBound {
             if (iSelectedRequest != null) {
                 Enrollment enrollment = iAssignment.getValue(iSelectedRequest);
                 if (enrollment.isCourseRequest() && enrollment.getAssignments() != null
-                        && !enrollment.getAssignments().isEmpty())
+                        && !enrollment.getAssignments().isEmpty()) {
                     iSelectedSections.addAll(enrollment.getSections());
+                    iSelectedChoice = ((CourseRequest)iSelectedRequest).getCourses().indexOf(enrollment.getCourse());
+                }
             }
         }
 
@@ -771,6 +774,10 @@ public class SuggestionsBranchAndBound {
             }
             
             cmp = Double.compare(getNrChanges(), suggestion.getNrChanges());
+            if (cmp != 0)
+                return cmp;
+            
+            cmp = Double.compare(iSelectedChoice, suggestion.iSelectedChoice);
             if (cmp != 0)
                 return cmp;
 
