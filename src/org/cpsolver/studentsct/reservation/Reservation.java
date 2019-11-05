@@ -181,18 +181,31 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
      * This will also add all parent sections and the appropriate configuration to the offering.
      * @param section a class restriction
      */
-    public void addSection(Section section) {
-        addConfig(section.getSubpart().getConfig());
-        while (section != null) {
+    public void addSection(Section section, boolean inclusive) {
+        if (inclusive) {
+            addConfig(section.getSubpart().getConfig());
+            while (section != null) {
+                Set<Section> sections = iSections.get(section.getSubpart());
+                if (sections == null) {
+                    sections = new HashSet<Section>();
+                    iSections.put(section.getSubpart(), sections);
+                }
+                sections.add(section);
+                section = section.getParent();
+            }
+        } else {
             Set<Section> sections = iSections.get(section.getSubpart());
             if (sections == null) {
                 sections = new HashSet<Section>();
                 iSections.put(section.getSubpart(), sections);
             }
             sections.add(section);
-            section = section.getParent();
         }
         clearLimitCapCache();
+    }
+    
+    public void addSection(Section section) {
+        addSection(section, true);
     }
     
     /**
@@ -207,17 +220,34 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
         // Check the offering
         if (!iOffering.equals(enrollment.getConfig().getOffering())) return false;
         
-        // If there are configurations, check the configuration
-        if (!iConfigs.isEmpty() && !iConfigs.contains(enrollment.getConfig())) return false;
-        
-        // Check all the sections of the enrollment
-        for (Section section: enrollment.getSections()) {
-            Set<Section> sections = iSections.get(section.getSubpart());
-            if (sections != null && !sections.contains(section))
-                return false;
+        if (areRestrictionsInclusive()) {
+            // If there are configurations, check the configuration
+            if (!iConfigs.isEmpty() && !iConfigs.contains(enrollment.getConfig())) return false;
+            
+            // Check all the sections of the enrollment
+            for (Section section: enrollment.getSections()) {
+                Set<Section> sections = iSections.get(section.getSubpart());
+                if (sections != null && !sections.contains(section))
+                    return false;
+            }
+            return true;
+        } else {
+            // no restrictions -> true
+            if (iConfigs.isEmpty() && iSections.isEmpty()) return true;
+            
+            // configuration match -> true
+            if (iConfigs.contains(enrollment.getConfig())) return true;
+
+            // section match -> true
+            for (Section section: enrollment.getSections()) {
+                Set<Section> sections = iSections.get(section.getSubpart());
+                if (sections != null && sections.contains(section))
+                    return true;
+            }
+            
+            // no match -> false
+            return false;
         }
-        
-        return true;
     }
     
     /**
@@ -291,10 +321,11 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
      */
     public double getRestrictivity() {
         if (iCachedRestrictivity == null) {
+            boolean inclusive = areRestrictionsInclusive();
             if (getConfigs().isEmpty()) return 1.0;
             int nrChoices = 0, nrMatchingChoices = 0;
             for (Config config: getOffering().getConfigs()) {
-                int x[] = nrChoices(config, 0, new HashSet<Section>(), getConfigs().contains(config));
+                int x[] = nrChoices(config, 0, new HashSet<Section>(), getConfigs().contains(config), inclusive);
                 nrChoices += x[0];
                 nrMatchingChoices += x[1];
             }
@@ -306,7 +337,7 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
     
     
     /** Number of choices and number of chaing choices in the given sub enrollment */
-    private int[] nrChoices(Config config, int idx, HashSet<Section> sections, boolean matching) {
+    private int[] nrChoices(Config config, int idx, HashSet<Section> sections, boolean matching, boolean inclusive) {
         if (config.getSubparts().size() == idx) {
             return new int[]{1, matching ? 1 : 0};
         } else {
@@ -320,8 +351,11 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
                 if (section.isOverlapping(sections))
                     continue;
                 sections.add(section);
-                boolean m = matching && (matchingSections == null || matchingSections.contains(section));
-                int[] x = nrChoices(config, 1 + idx, sections, m);
+                boolean m = (inclusive
+                        ? matching && (matchingSections == null || matchingSections.contains(section))
+                        : matching || (matchingSections != null && matchingSections.contains(section))
+                       );
+                int[] x = nrChoices(config, 1 + idx, sections, m, inclusive);
                 choicesThisSubpart += x[0];
                 matchingChoicesThisSubpart += x[1];
                 sections.remove(section);
@@ -384,6 +418,16 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
         if (iLimitCap == null) iLimitCap = getLimitCapNoCache();
         return iLimitCap;
     }
+    
+    /**
+     * Check if restrictions are inclusive (that is for each section, the reservation also contains all its parents and the configuration)
+     */
+    public boolean areRestrictionsInclusive() {
+        for (Map.Entry<Subpart, Set<Section>> entry: getSections().entrySet()) {
+            if (getConfigs().contains(entry.getKey().getConfig())) return true;
+        }
+        return false;
+    }
 
     /**
      * Compute limit cap (maximum number of students that can get into the offering using this reservation)
@@ -394,26 +438,41 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
         if (canAssignOverLimit()) return -1; // can assign over limit -> no cap
         
         double cap = 0;
-        // for each config
-        for (Config config: iConfigs) {
-            // config cap
-            double configCap = config.getLimit();
-        
-            for (Map.Entry<Subpart, Set<Section>> entry: getSections().entrySet()) {
-                if (!config.equals(entry.getKey().getConfig())) continue;
-                Set<Section> sections = entry.getValue();
+        if (areRestrictionsInclusive()) {
+            // for each config
+            for (Config config: getConfigs()) {
+                // config cap
+                double configCap = config.getLimit();
+            
+                for (Map.Entry<Subpart, Set<Section>> entry: getSections().entrySet()) {
+                    if (!config.equals(entry.getKey().getConfig())) continue;
+                    Set<Section> sections = entry.getValue();
+                    
+                    // subpart cap
+                    double subpartCap = 0;
+                    for (Section section: sections)
+                        subpartCap = add(subpartCap, section.getLimit());
+            
+                    // minimize
+                    configCap = min(configCap, subpartCap);
+                }
                 
+                // add config cap
+                cap = add(cap, configCap);
+            }
+        } else {
+            // for each config
+            for (Config config: getConfigs())
+               cap = add(cap, config.getLimit());
+            // for each subpart
+            for (Map.Entry<Subpart, Set<Section>> entry: getSections().entrySet()) {
+                Set<Section> sections = entry.getValue();
                 // subpart cap
                 double subpartCap = 0;
                 for (Section section: sections)
                     subpartCap = add(subpartCap, section.getLimit());
-        
-                // minimize
-                configCap = min(configCap, subpartCap);
+                cap = add(cap, subpartCap);
             }
-            
-            // add config cap
-            cap = add(cap, configCap);
         }
         
         return cap;

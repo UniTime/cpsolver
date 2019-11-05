@@ -234,6 +234,8 @@ public class Offering {
                 for (Reservation r: getReservations()) {
                     // ignore expired reservations
                     if (r.isExpired()) continue;
+                    // skip reservations that have restrictions that are not inclusive (these are only checked on the restricted sections/configs)
+                    if (!r.areRestrictionsInclusive() && (!r.getConfigs().isEmpty() || !r.getSections().isEmpty())) continue;
                     // there is an unlimited reservation -> no unreserved space
                     if (r.getLimit() < 0) return 0.0;
                 }
@@ -246,6 +248,8 @@ public class Offering {
         for (Reservation r: getReservations()) {
             // ignore expired reservations
             if (r.isExpired()) continue;
+            // skip reservations that have restrictions that are not inclusive (these are only checked on the restricted sections/configs)
+            if (!r.areRestrictionsInclusive() && (!r.getConfigs().isEmpty() || !r.getSections().isEmpty())) continue;
             // unlimited reservation -> no unreserved space
             if (r.getLimit() < 0) return 0.0;
             reserved += r.getLimit();
@@ -271,6 +275,8 @@ public class Offering {
                 for (Reservation r: getReservations()) {
                     // ignore expired reservations
                     if (r.isExpired()) continue;
+                    // skip reservations that have restrictions that are not inclusive (these are only checked on the restricted sections/configs)
+                    if (!r.areRestrictionsInclusive() && (!r.getConfigs().isEmpty() || !r.getSections().isEmpty())) continue;
                     // there is an unlimited reservation -> no unreserved space
                     if (r.getLimit() < 0) return 0.0;
                 }
@@ -283,6 +289,8 @@ public class Offering {
         for (Reservation r: getReservations()) {
             // ignore expired reservations
             if (r.isExpired()) continue;
+            // skip reservations that have restrictions that are not inclusive (these are only checked on the restricted sections/configs)
+            if (!r.areRestrictionsInclusive() && (!r.getConfigs().isEmpty() || !r.getSections().isEmpty())) continue;
             // unlimited reservation -> no unreserved space
             if (r.getLimit() < 0) return 0.0;
             reserved += Math.max(0.0, r.getContext(assignment).getReservedAvailableSpace(assignment, excludeRequest));

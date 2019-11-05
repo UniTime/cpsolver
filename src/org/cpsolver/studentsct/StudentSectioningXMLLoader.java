@@ -604,7 +604,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         }
         for (Iterator<?> k = reservationEl.elementIterator("section"); k.hasNext(); ) {
             Element sectionEl = (Element)k.next();
-            r.addSection(sectionTable.get(Long.parseLong(sectionEl.attributeValue("id"))));
+            r.addSection(sectionTable.get(Long.parseLong(sectionEl.attributeValue("id"))), false);
         }
         r.setPriority(Integer.parseInt(reservationEl.attributeValue("priority", String.valueOf(r.getPriority()))));
         r.setMustBeUsed("true".equals(reservationEl.attributeValue("mustBeUsed", r.mustBeUsed() ? "true" : "false")));
