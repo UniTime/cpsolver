@@ -14,6 +14,7 @@ import org.cpsolver.coursett.Constants;
 import org.cpsolver.coursett.criteria.DistributionPreferences;
 import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
+import org.cpsolver.coursett.model.RoomLocation;
 import org.cpsolver.coursett.model.TimeLocation;
 import org.cpsolver.coursett.model.TimetableModel;
 import org.cpsolver.ifs.assignment.Assignment;
@@ -1326,7 +1327,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             if (depth < 0) return;
             ignore.add(this);
             
-            int neededSize = value.variable().maxRoomUse();
+            List<Placement> neededSize = null;
             
             for (Lecture lecture: variables()) {
                 if (conflicts.contains(value)) break; // already conflicting
@@ -1337,7 +1338,8 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                     if (isSatisfiedPair(assignment, value, current)) {
                         // Increase needed size if the assignment is of the same room and overlapping in time
                         if (canShareRoom() && sameRoomAndOverlaps(value, current)) {
-                            neededSize += lecture.maxRoomUse();
+                            if (neededSize == null) neededSize = new ArrayList<Placement>(); 
+                            neededSize.add(current);
                         }
                         continue;
                     }
@@ -1378,8 +1380,9 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                     return;
                 }
                 // Increase needed size if all supporters are of the same room and in overlapping times
-                if (shareRoomAndOverlaps) {
-                    neededSize += lecture.maxRoomUse();
+                if (shareRoomAndOverlaps && support != null) {
+                    if (neededSize == null) neededSize = new ArrayList<Placement>(); 
+                    neededSize.add(support);
                 }
 
                 // Only one supporter -> propagate the new assignment over other hard constraints of the lecture
@@ -1404,11 +1407,21 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                 }
             }
             
-            if (canShareRoom() && neededSize > value.getRoomSize()) {
-                // room is too small to fit all meet with classes
-                conflicts.add(value);
+            if (canShareRoom() && neededSize != null) {
+                if (value.getRoomLocations() != null) {
+                    for (RoomLocation room: value.getRoomLocations())
+                        if (room.getRoomConstraint() != null && !room.getRoomConstraint().checkRoomSize(value, neededSize)) {
+                            // room is too small to fit all meet with classes
+                            conflicts.add(value);
+                        }
+                } else if (value.getRoomLocation() != null) {
+                    RoomLocation room = value.getRoomLocation();
+                    if (room.getRoomConstraint() != null && !room.getRoomConstraint().checkRoomSize(value, neededSize)) {
+                        // room is too small to fit all meet with classes
+                        conflicts.add(value);
+                    }
+                }
             }
-            
         } finally {
             ignore.remove(this);
         }

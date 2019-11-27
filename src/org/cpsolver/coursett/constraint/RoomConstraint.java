@@ -2,6 +2,7 @@ package org.cpsolver.coursett.constraint;
 
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
@@ -14,9 +15,12 @@ import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
 import org.cpsolver.coursett.model.RoomSharingModel;
 import org.cpsolver.coursett.model.TimeLocation;
+import org.cpsolver.coursett.model.TimetableModel;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
 import org.cpsolver.ifs.assignment.context.ConstraintWithContext;
+import org.cpsolver.ifs.model.Model;
+import org.cpsolver.ifs.util.DataProperties;
 
 
 /**
@@ -57,6 +61,7 @@ public class RoomConstraint extends ConstraintWithContext<Lecture, Placement, Ro
     private RoomSharingModel iRoomSharingModel = null;
 
     private Long iType = null;
+    private int iDayOfWeekOffset = 0;
 
     /**
      * Constructor
@@ -81,6 +86,15 @@ public class RoomConstraint extends ConstraintWithContext<Lecture, Placement, Ro
         iPosX = x;
         iPosY = y;
         iIgnoreTooFar = ignoreTooFar;
+    }
+    
+    @Override
+    public void setModel(Model<Lecture, Placement> model) {
+        super.setModel(model);
+        if (model != null) {
+            DataProperties config = ((TimetableModel)model).getProperties();
+            iDayOfWeekOffset = config.getPropertyInt("DatePattern.DayOfWeekOffset", 0);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -174,9 +188,7 @@ public class RoomConstraint extends ConstraintWithContext<Lecture, Placement, Ro
             return;
         Lecture lecture = placement.variable();
         Placement current = assignment.getValue(lecture);
-        boolean canShareRoom = lecture.canShareRoom();
-        int size = lecture.maxRoomUse();
-        HashSet<Placement> skipPlacements = null;
+        Set<Placement> shared = null;
         BitSet weekCode = placement.getTimeLocation().getWeekCode();
         RoomConstraintContext context = getContext(assignment);
 
@@ -187,20 +199,54 @@ public class RoomConstraint extends ConstraintWithContext<Lecture, Placement, Ro
                     continue;
                 if (confPlacement.equals(current))
                     continue;
-                Lecture confLecture = confPlacement.variable();
-                if (skipPlacements != null && skipPlacements.contains(confPlacement))
+                if (shared != null && shared.contains(confPlacement))
                     continue;
-                if (canShareRoom && confPlacement.canShareRooms(placement)
-                        && confLecture.maxRoomUse() + size <= getCapacity()) {
-                    size += confLecture.maxRoomUse();
-                    if (skipPlacements == null)
-                        skipPlacements = new HashSet<Placement>();
-                    skipPlacements.add(confPlacement);
+                if (confPlacement.canShareRooms(placement) && checkRoomSize(placement, shared, confPlacement)) {
+                    if (shared == null) shared = new HashSet<Placement>();
+                    shared.add(confPlacement);
                     continue;
                 }
                 conflicts.add(confPlacement);
             }
         }
+    }
+    
+    public boolean checkRoomSize(Placement placement, Collection<Placement> other, Placement extra) {
+        int day = -1;
+        TimeLocation t1 = placement.getTimeLocation();
+        while ((day = t1.getWeekCode().nextSetBit(1 + day)) >= 0) {
+            int dow = (day + iDayOfWeekOffset) % 7;
+            if ((t1.getDayCode() & Constants.DAY_CODES[dow]) == 0) continue;
+            if (extra != null) {
+                TimeLocation t2 = extra.getTimeLocation();
+                if (!t2.hasDay(day) || (t2.getDayCode() & Constants.DAY_CODES[dow]) == 0) continue;
+            }
+            for (int i = 0; i < t1.getLength(); i++) {
+                int slot = t1.getStartSlot() + i;
+                int size = placement.variable().maxRoomUse();
+                if (extra != null) {
+                    TimeLocation t2 = extra.getTimeLocation();
+                    if (t2.getStartSlot() <= slot && slot < t2.getStartSlot() + t2.getLength())
+                        size += extra.variable().maxRoomUse();
+                    else
+                        continue;
+                }
+                if (other != null)
+                    for (Placement p: other) {
+                        TimeLocation t2 = p.getTimeLocation();
+                        if (t2.hasDay(day) && (t2.getDayCode() & Constants.DAY_CODES[dow]) != 0 && t2.getStartSlot() <= slot && slot < t2.getStartSlot() + t2.getLength())
+                            size += p.variable().maxRoomUse();
+                    }
+                if (size > getCapacity()) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public boolean checkRoomSize(Placement placement, Collection<Placement> other) {
+        return checkRoomSize(placement, other, null);
     }
 
     @Override
@@ -211,8 +257,7 @@ public class RoomConstraint extends ConstraintWithContext<Lecture, Placement, Ro
             return false;
         Lecture lecture = placement.variable();
         Placement current = assignment.getValue(lecture);
-        int size = lecture.maxRoomUse();
-        HashSet<Placement> skipPlacements = null;
+        Set<Placement> shared = null;
         BitSet weekCode = placement.getTimeLocation().getWeekCode();
         RoomConstraintContext context = getContext(assignment);
 
@@ -223,14 +268,11 @@ public class RoomConstraint extends ConstraintWithContext<Lecture, Placement, Ro
                     continue;
                 if (confPlacement.equals(current))
                     continue;
-                Lecture confLecture = confPlacement.variable();
-                if (skipPlacements != null && skipPlacements.contains(confPlacement))
+                if (shared != null && shared.contains(confPlacement))
                     continue;
-                if (confPlacement.canShareRooms(placement) && confLecture.maxRoomUse() + size <= getCapacity()) {
-                    size += confLecture.maxRoomUse();
-                    if (skipPlacements == null)
-                        skipPlacements = new HashSet<Placement>();
-                    skipPlacements.add(confPlacement);
+                if (confPlacement.canShareRooms(placement) && checkRoomSize(placement, shared, confPlacement)) {
+                    if (shared == null) shared = new HashSet<Placement>();
+                    shared.add(confPlacement);
                     continue;
                 }
                 return true;
