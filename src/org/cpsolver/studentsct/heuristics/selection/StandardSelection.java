@@ -111,7 +111,7 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
             if (credit < conflict.getRequest().getStudent().getMinCredit()) return false;
         }
         if (!enrollment.getStudent().isPriority() && conflict.getStudent().isPriority()) return false;
-        if (!conflict.getRequest().isAlternative() && conflict.getRequest().isCritical()) return false;
+        if (!conflict.getRequest().isAlternative() && conflict.getRequest().getRequestPriority().isHigher(enrollment.getRequest())) return false;
         return true;
     }
 

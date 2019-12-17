@@ -14,6 +14,7 @@ import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
+import org.cpsolver.studentsct.model.Request.RequestPriority;
 
 /**
  * Use the standard IFS search for the unassigned critical course requests.
@@ -42,14 +43,20 @@ import org.cpsolver.studentsct.model.Request;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class CriticalStandardSelection extends StandardSelection {
+    private RequestPriority iPriority;
+    
+    public CriticalStandardSelection(DataProperties properties, ValueSelection<Request, Enrollment> valueSelection, RequestPriority priority) {
+        super(properties, new UnassignedCriticalCourseRequestSelection(priority), valueSelection);
+        iPriority = priority;
+    }
     
     public CriticalStandardSelection(DataProperties properties, ValueSelection<Request, Enrollment> valueSelection) {
-        super(properties, new UnassignedCriticalCourseRequestSelection(), valueSelection);
+        this(properties, valueSelection, RequestPriority.Critical);
     }
     
     @Override
     public void init(Solver<Request, Enrollment> solver) {
-        init(solver, "Ifs (critical)...");
+        init(solver, "Ifs (" + iPriority.name() + ")...");
     }
     
     @Override
@@ -65,6 +72,11 @@ public class CriticalStandardSelection extends StandardSelection {
     static class UnassignedCriticalCourseRequestSelection implements VariableSelection<Request, Enrollment>{
         protected int iNrRounds = 0;
         protected Queue<Request> iRequests = null;
+        private RequestPriority iPriority;
+        
+        public UnassignedCriticalCourseRequestSelection(RequestPriority priority) {
+            iPriority = priority;
+        }
         
         @Override
         public void init(Solver<Request, Enrollment> solver) {
@@ -82,7 +94,7 @@ public class CriticalStandardSelection extends StandardSelection {
                 iNrRounds --;
                 List<Request> variables = new ArrayList<Request>();
                 for (Request r: solution.getModel().unassignedVariables(solution.getAssignment()))
-                    if (r.isCritical()) variables.add(r);
+                    if (iPriority.isCritical(r)) variables.add(r);
                 Collections.shuffle(variables);
                 iRequests.addAll(variables);
             }

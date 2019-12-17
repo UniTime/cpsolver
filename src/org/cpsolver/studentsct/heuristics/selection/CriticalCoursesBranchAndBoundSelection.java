@@ -11,6 +11,7 @@ import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.Student;
+import org.cpsolver.studentsct.model.Request.RequestPriority;
 
 /**
  * This selection is very much like {@link BranchBoundSelection}, but only critical
@@ -65,18 +66,26 @@ import org.cpsolver.studentsct.model.Student;
  */
 public class CriticalCoursesBranchAndBoundSelection extends BranchBoundSelection {
     protected boolean iMPP = false;
+    private RequestPriority iPriority;
     
-    public CriticalCoursesBranchAndBoundSelection(DataProperties properties) {
+    public CriticalCoursesBranchAndBoundSelection(DataProperties properties, RequestPriority priority) {
         super(properties);
         iMPP = properties.getPropertyBoolean("General.MPP", false);
         iTimeout = properties.getPropertyInt("Neighbour.CriticalCoursesBranchAndBoundTimeout", 10000);
-        if (iOrder instanceof StudentChoiceOrder)
+        iPriority = priority;
+        if (iOrder instanceof StudentChoiceOrder) {
             ((StudentChoiceOrder)iOrder).setCriticalOnly(true);
+            ((StudentChoiceOrder)iOrder).setRequestPriority(iPriority);
+        }
+    }
+    
+    public CriticalCoursesBranchAndBoundSelection(DataProperties properties) {
+        this(properties, RequestPriority.Critical);
     }
     
     @Override
     public void init(Solver<Request, Enrollment> solver) {
-        init(solver, "Critical Courses B&B...");
+        init(solver, iPriority.name() + " Courses B&B...");
     }
     
     @Override
@@ -84,7 +93,7 @@ public class CriticalCoursesBranchAndBoundSelection extends BranchBoundSelection
         Student student = null;
         while ((student = nextStudent()) != null) {
             Progress.getInstance(solution.getModel()).incProgress();
-            if (student.hasUnassignedCritical(solution.getAssignment())) {
+            if (student.hasUnassignedCritical(solution.getAssignment(), iPriority)) {
                 // only consider students that have some unassigned critical course requests
                 Neighbour<Request, Enrollment> neighbour = getSelection(solution.getAssignment(), student).select();
                 if (neighbour != null) return neighbour;
@@ -107,7 +116,7 @@ public class CriticalCoursesBranchAndBoundSelection extends BranchBoundSelection
         public boolean isCritical(int idx) {
             for (int i = idx; i < iStudent.getRequests().size(); i++) {
                 Request r = iStudent.getRequests().get(i);
-                if (!r.isAlternative() && r.isCritical()) return true;
+                if (!r.isAlternative() && iPriority.isCritical(r)) return true;
             }
             return false;
         }
@@ -124,7 +133,7 @@ public class CriticalCoursesBranchAndBoundSelection extends BranchBoundSelection
                 }
                 return;
             }
-            if (idx < iAssignment.length && !iStudent.getRequests().get(idx).isCritical() && (!iMPP || iStudent.getRequests().get(idx).getInitialAssignment() == null)) {
+            if (idx < iAssignment.length && !iPriority.isCritical(iStudent.getRequests().get(idx)) && (!iMPP || iStudent.getRequests().get(idx).getInitialAssignment() == null)) {
                 // not done yet && not critical && not initial >> leave unassigned
                 backTrack(idx + 1);
             } else {

@@ -58,7 +58,7 @@ public class CourseRequest extends Request {
     private Double iCachedMinPenalty = null, iCachedMaxPenalty = null;
     public static boolean sSameTimePrecise = false;
     private Set<RequestGroup> iRequestGroups = new HashSet<RequestGroup>();
-    private boolean iCritical = false;
+    private RequestPriority iPriority = RequestPriority.Normal;
 
     /**
      * Constructor
@@ -89,7 +89,40 @@ public class CourseRequest extends Request {
         for (Course course: iCourses)
             course.getRequests().add(this);
         iWaitlist = waitlist;
-        iCritical = critical;
+        iPriority = (critical ? RequestPriority.Critical : RequestPriority.Normal);
+        iTimeStamp = timeStamp;
+    }
+    
+    /**
+     * Constructor
+     * 
+     * @param id
+     *            request unique id
+     * @param priority
+     *            request priority
+     * @param alternative
+     *            true if the request is alternative (alternative request can be
+     *            assigned instead of a non-alternative course requests, if it
+     *            is left unassigned)
+     * @param student
+     *            appropriate student
+     * @param courses
+     *            list of requested courses (in the correct order -- first is
+     *            the requested course, second is the first alternative, etc.)
+     * @param waitlist
+     *            time stamp of the request if the student can be put on a wait-list (no alternative
+     *            course request will be given instead)
+     * @param importance
+     *            request priority 
+     * @param timeStamp request time stamp
+     */
+    public CourseRequest(long id, int priority, boolean alternative, Student student, java.util.List<Course> courses, boolean waitlist, RequestPriority importance, Long timeStamp) {
+        super(id, priority, alternative, student);
+        iCourses = new ArrayList<Course>(courses);
+        for (Course course: iCourses)
+            course.getRequests().add(this);
+        iWaitlist = waitlist;
+        iPriority = importance;
         iTimeStamp = timeStamp;
     }
     
@@ -671,7 +704,9 @@ public class CourseRequest extends Request {
     public String getName() {
         String ret = (isAlternative() ? "A" : "")
                 + (1 + getPriority() + (isAlternative() ? -getStudent().nrRequests() : 0)) + ". "
-                + (isCritical() ? (isWaitlist() ? "(cw) " : "(c) ") : isWaitlist() ? "(w) " : "");
+                + (getRequestPriority() != RequestPriority.Normal ?
+                  (isWaitlist() ? "(" + getRequestPriority().getAbbreviation() + "w) " : "(" + getRequestPriority().getAbbreviation() + ") ")
+                  : isWaitlist() ? "(w) " : "");
         int idx = 0;
         for (Course course : iCourses) {
             if (idx == 0)
@@ -702,20 +737,12 @@ public class CourseRequest extends Request {
     }
     
     /**
-     * True if the course request is critical for the student in order to move forward in their degree
-     * @return true if the request is critical
-     */
-    @Override
-    public boolean isCritical() {
-        return iCritical;
-    }
-    
-    /**
      * True if the course request is critical for the student in order to move forward in their degree 
      * @param critical true if the request is critical
      */
+    @Deprecated
     public void setCritical(boolean critical) {
-        iCritical = critical;
+        iPriority = (critical ? RequestPriority.Critical : RequestPriority.Normal);
     }
     
     /**
@@ -995,5 +1022,14 @@ public class CourseRequest extends Request {
             }
         }
         return (credit == null ? 0 : credit.floatValue());
+    }
+
+    @Override
+    public RequestPriority getRequestPriority() {
+        return iPriority;
+    }
+    
+    public void setRequestPriority(RequestPriority priority) {
+        iPriority = priority;
     }
 }

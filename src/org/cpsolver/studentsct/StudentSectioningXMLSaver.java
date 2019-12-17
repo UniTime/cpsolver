@@ -30,6 +30,7 @@ import org.cpsolver.studentsct.model.FreeTimeRequest;
 import org.cpsolver.studentsct.model.Instructor;
 import org.cpsolver.studentsct.model.Offering;
 import org.cpsolver.studentsct.model.Request;
+import org.cpsolver.studentsct.model.Request.RequestPriority;
 import org.cpsolver.studentsct.model.RequestGroup;
 import org.cpsolver.studentsct.model.Section;
 import org.cpsolver.studentsct.model.Student;
@@ -705,7 +706,9 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         if (request.getWeight() != 1.0)
             requestEl.addAttribute("weight", sStudentWeightFormat.format(request.getWeight()));
         requestEl.addAttribute("waitlist", request.isWaitlist() ? "true" : "false");
-        if (request.isCritical())
+        if (request.getRequestPriority() != RequestPriority.Normal)
+            requestEl.addAttribute("importance", request.getRequestPriority().name());
+        if (request.getRequestPriority() == RequestPriority.Critical)
             requestEl.addAttribute("critical", "true");
         if (request.getTimeStamp() != null)
             requestEl.addAttribute("timeStamp", request.getTimeStamp().toString());

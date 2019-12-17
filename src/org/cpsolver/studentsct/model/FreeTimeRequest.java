@@ -247,7 +247,7 @@ public class FreeTimeRequest extends Request implements SctAssignment {
     }
 
     @Override
-    public boolean isCritical() {
-        return false;
+    public RequestPriority getRequestPriority() {
+        return RequestPriority.Normal;
     }
 }

@@ -371,7 +371,7 @@ public class Test {
             for (Course course : ((CourseRequest) request).getCourses())
                 courses.add(clone(course, student.getId(), original, classTable, model));
             CourseRequest clonnedRequest = new CourseRequest(student.getRequests().size() + 1, student.getRequests().size(),
-                    request.isAlternative(), student, courses, ((CourseRequest) request).isWaitlist(), request.isCritical(), null);
+                    request.isAlternative(), student, courses, ((CourseRequest) request).isWaitlist(), request.getRequestPriority(), null);
             for (Request originalRequest : original.getRequests()) {
                 Enrollment originalEnrollment = assignment().getValue(originalRequest);
                 for (Course clonnedCourse : clonnedRequest.getCourses()) {

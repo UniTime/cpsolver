@@ -8,6 +8,7 @@ import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.Progress;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
+import org.cpsolver.studentsct.model.Request.RequestPriority;
 import org.cpsolver.studentsct.model.Student;
 
 /**
@@ -63,11 +64,17 @@ import org.cpsolver.studentsct.model.Student;
  */
 public class MinCreditBranchAndBoundSelection extends BranchBoundSelection {
     protected boolean iMPP = false;
+    private RequestPriority iPriority;
     
-    public MinCreditBranchAndBoundSelection(DataProperties properties) {
+    public MinCreditBranchAndBoundSelection(DataProperties properties, RequestPriority priority) {
         super(properties);
         iMPP = properties.getPropertyBoolean("General.MPP", false);
         iTimeout = properties.getPropertyInt("Neighbour.MinCreditBranchAndBoundTimeout", 10000);
+        iPriority = priority;
+    }
+    
+    public MinCreditBranchAndBoundSelection(DataProperties properties) {
+        this(properties, RequestPriority.Important);
     }
     
     @Override
@@ -111,7 +118,7 @@ public class MinCreditBranchAndBoundSelection extends BranchBoundSelection {
         public boolean isCritical(int idx) {
             for (int i = idx; i < iStudent.getRequests().size(); i++) {
                 Request r = iStudent.getRequests().get(i);
-                if (!r.isAlternative() && r.isCritical()) return true;
+                if (!r.isAlternative() && iPriority.isCritical(r)) return true;
             }
             return false;
         }
@@ -128,7 +135,7 @@ public class MinCreditBranchAndBoundSelection extends BranchBoundSelection {
                 }
                 return;
             }
-            if (idx < iAssignment.length && getCredit(idx) >= iStudent.getMinCredit() && !iStudent.getRequests().get(idx).isCritical() && (!iMPP || iStudent.getRequests().get(idx).getInitialAssignment() == null)) {
+            if (idx < iAssignment.length && getCredit(idx) >= iStudent.getMinCredit() && !iPriority.isCritical(iStudent.getRequests().get(idx)) && (!iMPP || iStudent.getRequests().get(idx).getInitialAssignment() == null)) {
                 // not done yet, over min credit but not critical >> leave unassigned
                 backTrack(idx + 1);
             } else {

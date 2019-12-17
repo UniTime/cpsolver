@@ -28,6 +28,7 @@ import org.cpsolver.studentsct.heuristics.selection.SwapStudentSelection;
 import org.cpsolver.studentsct.heuristics.selection.UnassignedRequestSelection;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
+import org.cpsolver.studentsct.model.Request.RequestPriority;
 
 /**
  * (Batch) student sectioning neighbour selection. It is based on
@@ -116,13 +117,16 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
             registerSelection(new AssignInitialSelection(solver.getProperties()));
         
         if (iUseCriticalCoursesSelection) {
-            registerSelection(new CriticalCoursesBranchAndBoundSelection(solver.getProperties()));
-            
-            registerSelection(new CriticalBacktrackSelection(solver.getProperties()));
-            
-            registerSelection(new CriticalStandardSelection(solver.getProperties(), getValueSelection()));
-            
-            registerSelection(new CriticalBacktrackSelection(solver.getProperties()));
+            for (RequestPriority rp: RequestPriority.values()) {
+                if (rp == RequestPriority.Normal) break;
+                registerSelection(new CriticalCoursesBranchAndBoundSelection(solver.getProperties(), rp));
+                
+                registerSelection(new CriticalBacktrackSelection(solver.getProperties(), rp));
+                
+                registerSelection(new CriticalStandardSelection(solver.getProperties(), getValueSelection(), rp));
+                
+                registerSelection(new CriticalBacktrackSelection(solver.getProperties(), rp));
+            }
         }
         
         if (iPriorityStudentsFirstSelection) {

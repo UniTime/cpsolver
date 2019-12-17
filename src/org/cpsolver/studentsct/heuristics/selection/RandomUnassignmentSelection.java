@@ -17,6 +17,7 @@ import org.cpsolver.ifs.util.ToolBox;
 import org.cpsolver.studentsct.StudentSectioningModel;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
+import org.cpsolver.studentsct.model.Request.RequestPriority;
 import org.cpsolver.studentsct.model.Student;
 
 
@@ -69,6 +70,7 @@ import org.cpsolver.studentsct.model.Student;
 public class RandomUnassignmentSelection implements NeighbourSelection<Request, Enrollment> {
     private List<Student> iStudents = null;
     protected double iRandom = 0.5;
+    private RequestPriority iPriority;
 
     /**
      * Constructor
@@ -76,8 +78,13 @@ public class RandomUnassignmentSelection implements NeighbourSelection<Request, 
      * @param properties
      *            configuration
      */
-    public RandomUnassignmentSelection(DataProperties properties) {
+    public RandomUnassignmentSelection(DataProperties properties, RequestPriority priority) {
         iRandom = properties.getPropertyDouble("Neighbour.RandomUnassignmentProb", iRandom);
+        iPriority = priority;
+    }
+    
+    public RandomUnassignmentSelection(DataProperties properties) {
+        this(properties, RequestPriority.Important);
     }
 
     /**
@@ -97,7 +104,7 @@ public class RandomUnassignmentSelection implements NeighbourSelection<Request, 
     public Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
         if (Math.random() < iRandom) {
             Student student = ToolBox.random(iStudents);
-            return new UnassignStudentNeighbour(student, solution.getAssignment());
+            return new UnassignStudentNeighbour(student, solution.getAssignment(), iPriority);
         }
         Progress.getInstance(solution.getModel()).incProgress();
         return null;
@@ -107,6 +114,7 @@ public class RandomUnassignmentSelection implements NeighbourSelection<Request, 
     public static class UnassignStudentNeighbour implements Neighbour<Request, Enrollment> {
         private Student iStudent = null;
         private List<Request> iRequests = new ArrayList<Request>();
+        private RequestPriority iPriority;
 
         /**
          * Constructor
@@ -114,8 +122,9 @@ public class RandomUnassignmentSelection implements NeighbourSelection<Request, 
          * @param student
          *            a student to be unassigned
          */
-        public UnassignStudentNeighbour(Student student, Assignment<Request, Enrollment> assignment) {
+        public UnassignStudentNeighbour(Student student, Assignment<Request, Enrollment> assignment, RequestPriority priority) {
             iStudent = student;
+            iPriority = priority;
             float credit = 0f;
             for (Request request : iStudent.getRequests()) {
                 Enrollment enrollment = assignment.getValue(request);
@@ -146,7 +155,7 @@ public class RandomUnassignmentSelection implements NeighbourSelection<Request, 
             if (enrollment == null) return false;
             if (enrollment.getRequest().isMPP() && enrollment.equals(enrollment.getRequest().getInitialAssignment())) return false;
             if (enrollment.getStudent().isPriority()) return false;
-            if (enrollment.getRequest().isCritical()) return false;
+            if (iPriority.isCritical(enrollment.getRequest())) return false;
             return true;
         }
 

@@ -8,6 +8,7 @@ import org.cpsolver.studentsct.model.Course;
 import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
+import org.cpsolver.studentsct.model.Request.RequestPriority;
 import org.cpsolver.studentsct.model.Student;
 
 /**
@@ -55,6 +56,7 @@ public class CriticalCoursesTable implements StudentSectioningReport {
     
     @Override
     public CSVFile create(Assignment<Request, Enrollment> assignment, DataProperties properties) {
+        RequestPriority rp = RequestPriority.valueOf(properties.getProperty("priority", RequestPriority.Critical.name()));
         CSVFile csv = new CSVFile();
         csv.setHeader(new CSVFile.CSVField[] {
                 new CSVFile.CSVField("__Student"),
@@ -73,7 +75,7 @@ public class CriticalCoursesTable implements StudentSectioningReport {
                 if (r instanceof CourseRequest) {
                     CourseRequest cr = (CourseRequest)r;
                     priority ++;
-                    if (!cr.isCritical() || cr.isAlternative()) continue;
+                    if (rp != cr.getRequestPriority() || cr.isAlternative()) continue;
                     Enrollment e = cr.getAssignment(assignment);
                     Course course = cr.getCourses().get(0);
                     Course alt1 = (cr.getCourses().size() < 2 ? null : cr.getCourses().get(1));

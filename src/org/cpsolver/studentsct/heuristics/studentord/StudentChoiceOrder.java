@@ -12,6 +12,7 @@ import org.cpsolver.studentsct.model.Config;
 import org.cpsolver.studentsct.model.Course;
 import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Request;
+import org.cpsolver.studentsct.model.Request.RequestPriority;
 import org.cpsolver.studentsct.model.Section;
 import org.cpsolver.studentsct.model.Student;
 import org.cpsolver.studentsct.model.Subpart;
@@ -44,6 +45,7 @@ public class StudentChoiceOrder implements StudentOrder, Comparator<Student> {
     private boolean iReverse = false;
     private boolean iFast = true;
     private boolean iCriticalOnly = false;
+    private RequestPriority iPriority = RequestPriority.Critical;
     private HashMap<Config, Integer> iCache = new HashMap<Config, Integer>();
 
     public StudentChoiceOrder(DataProperties config) {
@@ -68,6 +70,8 @@ public class StudentChoiceOrder implements StudentOrder, Comparator<Student> {
     
     public boolean isCriticalOnly() { return iCriticalOnly; }
     public void setCriticalOnly(boolean critOnly) { iCriticalOnly = critOnly; }
+    public void setRequestPriority(RequestPriority priority) { iPriority = priority; }
+    public RequestPriority getRequestPriority() { return iPriority; }
 
     /** Order the given list of students */
     @Override
@@ -127,7 +131,7 @@ public class StudentChoiceOrder implements StudentOrder, Comparator<Student> {
         for (Request request : student.getRequests()) {
             if (request instanceof CourseRequest) {
                 CourseRequest cr = (CourseRequest) request;
-                if (iCriticalOnly && (!cr.isCritical() || cr.isAlternative())) continue;
+                if (iCriticalOnly && (!iPriority.isCritical(cr) || cr.isAlternative())) continue;
                 for (Course course : cr.getCourses()) {
                     for (Config config : course.getOffering().getConfigs()) {
                         Integer nrChoicesThisCfg = iCache.get(config);

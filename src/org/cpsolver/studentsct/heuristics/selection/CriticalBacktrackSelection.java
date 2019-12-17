@@ -11,6 +11,7 @@ import org.cpsolver.ifs.util.Progress;
 import org.cpsolver.studentsct.heuristics.RandomizedBacktrackNeighbourSelection;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
+import org.cpsolver.studentsct.model.Request.RequestPriority;
 
 /**
  * Use backtrack neighbour selection. For all unassigned variables (in a random
@@ -39,17 +40,23 @@ import org.cpsolver.studentsct.model.Request;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class CriticalBacktrackSelection extends BacktrackSelection {
+    private RequestPriority iPriority;
+    
+    public CriticalBacktrackSelection(DataProperties properties, RequestPriority priority) {
+        super(properties);
+        iPriority = priority;
+        iIncludeAssignedRequests = properties.getPropertyBoolean("Neighbour.IncludeCriticalAssignedRequests", iIncludeAssignedRequests);
+    }
     
     public CriticalBacktrackSelection(DataProperties properties) {
-        super(properties);
-        iIncludeAssignedRequests = properties.getPropertyBoolean("Neighbour.IncludeCriticalAssignedRequests", iIncludeAssignedRequests);
+        this(properties, RequestPriority.Critical);
     }
     
     @Override
     public void init(Solver<Request, Enrollment> solver, String name) {
         List<Request> variables = new ArrayList<Request>();
         for (Request r: (iIncludeAssignedRequests ? solver.currentSolution().getModel().variables() : solver.currentSolution().getModel().unassignedVariables(solver.currentSolution().getAssignment())))
-            if (r.isCritical()) variables.add(r);
+            if (iPriority.isCritical(r)) variables.add(r);
         Collections.shuffle(variables);
         iRequests = new LinkedList<Request>(variables);
         if (iRBtNSel == null) {
@@ -60,7 +67,7 @@ public class CriticalBacktrackSelection extends BacktrackSelection {
                 throw new RuntimeException(e.getMessage(), e);
             }
         }
-        Progress.getInstance(solver.currentSolution().getModel()).setPhase("Backtracking (critical)...", variables.size());
+        Progress.getInstance(solver.currentSolution().getModel()).setPhase("Backtracking (" + iPriority.name() + ")...", variables.size());
     }
 
 }

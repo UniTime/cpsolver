@@ -31,6 +31,7 @@ import org.cpsolver.studentsct.model.FreeTimeRequest;
 import org.cpsolver.studentsct.model.Instructor;
 import org.cpsolver.studentsct.model.Offering;
 import org.cpsolver.studentsct.model.Request;
+import org.cpsolver.studentsct.model.Request.RequestPriority;
 import org.cpsolver.studentsct.model.RequestGroup;
 import org.cpsolver.studentsct.model.Section;
 import org.cpsolver.studentsct.model.Student;
@@ -922,9 +923,10 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                 "true".equals(requestEl.attributeValue("alternative")), 
                 student, courses,
                 "true".equals(requestEl.attributeValue("waitlist", "false")),
-                "true".equals(requestEl.attributeValue("critical", "false")),
+                RequestPriority.valueOf(requestEl.attributeValue("importance",
+                        "true".equals(requestEl.attributeValue("critical", "false")) ? RequestPriority.Critical.name() : RequestPriority.Normal.name())),
                 timeStamp);
-        if (iWaitlistCritical && courseRequest.isCritical() && !courseRequest.isAlternative()) courseRequest.setWaitlist(true);
+        if (iWaitlistCritical && RequestPriority.Critical.isCritical(courseRequest) && !courseRequest.isAlternative()) courseRequest.setWaitlist(true);
         if (requestEl.attributeValue("weight") != null)
             courseRequest.setWeight(Double.parseDouble(requestEl.attributeValue("weight")));
         for (Iterator<?> k = requestEl.elementIterator("waitlisted"); k.hasNext();) {
@@ -995,7 +997,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             for (Request r: student.getRequests()) {
                 if (r instanceof CourseRequest) {
                     if (r.getInitialAssignment() != null) assigned ++;
-                    if (r.isCritical()) critical ++;
+                    if (r.getRequestPriority() != RequestPriority.Normal) critical ++;
                 }
             }
             if ((getModel().getKeepInitialAssignments() && assigned > 0) || critical > 0) {
@@ -1008,9 +1010,9 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                             boolean a2 = (r2 instanceof CourseRequest && r2.getInitialAssignment() != null);
                             if (a1 != a2) return a1 ? -1 : 1;
                         }
-                        boolean c1 = r1.isCritical();
-                        boolean c2 = r2.isCritical();
-                        if (c1 != c2) return c1 ? -1 : 1;
+                        int c1 = r1.getRequestPriority().ordinal();
+                        int c2 = r2.getRequestPriority().ordinal();
+                        if (c1 != c2) return c1 < c2 ? -1 : 1;
                         return r1.getPriority() < r2.getPriority() ? -1 : 1;
                     }
                 });

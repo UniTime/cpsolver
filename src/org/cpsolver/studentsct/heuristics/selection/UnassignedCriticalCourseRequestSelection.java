@@ -11,9 +11,16 @@ import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
+import org.cpsolver.studentsct.model.Request.RequestPriority;
 
 public class UnassignedCriticalCourseRequestSelection implements VariableSelection<Request, Enrollment>{
     protected Queue<Request> iRequests = null;
+    private RequestPriority iPriority = null;
+    
+    UnassignedCriticalCourseRequestSelection(RequestPriority priority) {
+        iPriority = priority;
+    }
+    
     
     @Override
     public void init(Solver<Request, Enrollment> solver) {
@@ -30,7 +37,7 @@ public class UnassignedCriticalCourseRequestSelection implements VariableSelecti
         if (ret == null) {
             List<Request> variables = new ArrayList<Request>();
             for (Request r: solution.getModel().unassignedVariables(solution.getAssignment()))
-                if (r.isCritical()) variables.add(r);
+                if (iPriority.isCritical(r)) variables.add(r);
             Collections.shuffle(variables);
             iRequests.addAll(variables);
             ret = iRequests.poll();

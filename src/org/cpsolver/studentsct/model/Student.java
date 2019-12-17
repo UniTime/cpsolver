@@ -6,6 +6,7 @@ import java.util.List;
 import org.cpsolver.coursett.model.TimeLocation;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.studentsct.constraint.LinkedSections;
+import org.cpsolver.studentsct.model.Request.RequestPriority;
 
 
 
@@ -474,6 +475,7 @@ public class Student implements Comparable<Student> {
      * Has student any critical course requests?
      * @return true if a student has at least one course request that is marked as critical
      */
+    @Deprecated
     public boolean hasCritical() {
         for (Request r: iRequests)
             if (!r.isAlternative() && r.isCritical()) return true;
@@ -481,12 +483,33 @@ public class Student implements Comparable<Student> {
     }
     
     /**
+     * Has student any critical course requests?
+     * @return true if a student has at least one course request that is marked as critical
+     */
+    public boolean hasCritical(RequestPriority rp) {
+        for (Request r: iRequests)
+            if (!r.isAlternative() && rp.isCritical(r)) return true;
+        return false;
+    }
+    
+    /**
      * Has student any unassigned critical course requests?
      * @return true if a student has at least one not-alternative course request that is marked as critical and that is not assigned
      */
+    @Deprecated
     public boolean hasUnassignedCritical(Assignment<Request, Enrollment> assignment) {
         for (Request r: iRequests)
             if (!r.isAlternative() && r.isCritical() && assignment.getValue(r) == null) return true;
+        return false;
+    }
+    
+    /**
+     * Has student any unassigned critical course requests?
+     * @return true if a student has at least one not-alternative course request that is marked as critical and that is not assigned
+     */
+    public boolean hasUnassignedCritical(Assignment<Request, Enrollment> assignment, RequestPriority rp) {
+        for (Request r: iRequests)
+            if (!r.isAlternative() && rp.isCritical(r) && assignment.getValue(r) == null) return true;
         return false;
     }
     

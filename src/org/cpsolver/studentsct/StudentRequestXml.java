@@ -17,6 +17,7 @@ import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.FreeTimeRequest;
 import org.cpsolver.studentsct.model.Request;
+import org.cpsolver.studentsct.model.Request.RequestPriority;
 import org.cpsolver.studentsct.model.Section;
 import org.cpsolver.studentsct.model.Student;
 import org.dom4j.Document;
@@ -99,7 +100,8 @@ public class StudentRequestXml {
                     crReqElement.addAttribute("subjectArea", course.getSubjectArea());
                     crReqElement.addAttribute("courseNumber", course.getCourseNumber());
                     crReqElement.addAttribute("waitlist", crReq.isWaitlist() ? "true" : "false");
-                    crReqElement.addAttribute("critical", crReq.isCritical() ? "true" : "false");
+                    crReqElement.addAttribute("critical", crReq.getRequestPriority() == RequestPriority.Critical ? "true" : "false");
+                    crReqElement.addAttribute("importance", crReq.getRequestPriority().name());
                     crReqElement.addAttribute("alternative", crReq.isAlternative() ? "true" : "false");
                     for (int i = 1; i < crReq.getCourses().size(); i++) {
                         Course altCourse = crReq.getCourses().get(i);

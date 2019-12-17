@@ -12,6 +12,7 @@ import org.cpsolver.ifs.util.Progress;
 import org.cpsolver.ifs.util.ToolBox;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
+import org.cpsolver.studentsct.model.Request.RequestPriority;
 import org.cpsolver.studentsct.model.Student;
 
 
@@ -104,7 +105,7 @@ public class RndUnProblStudSelection extends RandomUnassignmentSelection {
                 Student student = ToolBox.random(iProblemStudents);
                 iProblemStudents.remove(student);
                 if (student.hasMinCredit() && student.getAssignedCredit(solution.getAssignment()) < student.getMinCredit()) continue;
-                return new UnassignStudentNeighbour(student, solution.getAssignment());
+                return new UnassignStudentNeighbour(student, solution.getAssignment(), RequestPriority.Important);
             }
         }
         Progress.getInstance(solution.getModel()).incProgress();

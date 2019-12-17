@@ -14,6 +14,7 @@ import org.cpsolver.studentsct.model.Course;
 import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
+import org.cpsolver.studentsct.model.Request.RequestPriority;
 import org.cpsolver.studentsct.model.Section;
 import org.cpsolver.studentsct.model.Student;
 import org.cpsolver.studentsct.model.Subpart;
@@ -66,6 +67,7 @@ public class TableauReport implements StudentSectioningReport {
     public CSVFile create(Assignment<Request, Enrollment> assignment, DataProperties properties) {
         CSVFile csv = new CSVFile();
         boolean simple = properties.getPropertyBoolean("simple", false);
+        RequestPriority rp = RequestPriority.valueOf(properties.getProperty("priority", RequestPriority.Critical.name()));
         if (simple) {
             csv.setHeader(new CSVFile.CSVField[] {
                     new CSVFile.CSVField("__Student"),
@@ -213,7 +215,7 @@ public class TableauReport implements StudentSectioningReport {
                                     new CSVFile.CSVField(e != null ? e.getConfig().getInstructionalMethodReference() : null),
                                     new CSVFile.CSVField(imP),
                                     new CSVFile.CSVField(imR),
-                                    new CSVFile.CSVField(cr.isCritical() ? "Yes" : "No")
+                                    new CSVFile.CSVField(rp.isCritical(cr) ? "Yes" : "No")
                             });
                         alternativity++;
                     }

@@ -266,5 +266,37 @@ public abstract class Request extends VariableWithContext<Request, Enrollment, R
     /**
      * Is this request critical for the student to progress towards his/her degree
      */
-    public abstract boolean isCritical();
+    @Deprecated
+    public boolean isCritical() {
+        return getRequestPriority() != null && getRequestPriority().ordinal() < RequestPriority.Normal.ordinal();
+    }
+    
+    /**
+     * Importance of the request. Higher priority requests are assigned before lower priority requests.
+     */
+    public abstract RequestPriority getRequestPriority();
+    
+    /**
+     * Importance of the request for the student to progress towards his/her degree.
+     * The request priority is used to re-order course priorities (if desired),
+     * and to assign requests of a higher priority first (before requests of a lower priority).
+     */
+    public static enum RequestPriority {
+        Critical("c"),
+        Important("i"),
+        Normal(""), // this is the default priority
+        ;
+        
+        String iAbbv;
+        RequestPriority(String abbv) {
+            iAbbv = abbv;
+        }
+        public String getAbbreviation() { return iAbbv; }
+        public boolean isCritical(Request r) {
+            return r.getRequestPriority().ordinal() <= ordinal();
+        }
+        public boolean isHigher(Request r) {
+            return ordinal() < r.getRequestPriority().ordinal();
+        }
+    }
 }
