@@ -198,7 +198,7 @@ public class FreeTimeRequest extends Request implements SctAssignment {
     
     @Override
     public boolean equals(Object o) {
-        return super.equals(o) && (o instanceof CourseRequest) && getTime().equals(((FreeTimeRequest)o).getTime());
+        return super.equals(o) && (o instanceof FreeTimeRequest) && getTime().equals(((FreeTimeRequest)o).getTime());
     }
     
     public class FreeTimeRequestContext extends RequestContext {
