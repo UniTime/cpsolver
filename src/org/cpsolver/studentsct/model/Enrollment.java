@@ -571,6 +571,15 @@ public class Enrollment extends Value<Request, Enrollment> {
         return iPriority;
     }
     
+    /** 
+     * Return adjusted enrollment priority, including priority bump provided by reservations
+     * (but ensuring that getting the course without a reservation is still better than getting an alternative) 
+     * @return zero for the course, two for the first alternative, four for the second alternative; plus one when the no reservation penalty applies
+     */
+    public int getAdjustedPriority() {
+        return 2 * iPriority + (iNoReservationPenalty ? 1 : 0);
+    }
+    
     /**
      * Return total number of slots of all sections in the enrollment.
      * @return number of slots used

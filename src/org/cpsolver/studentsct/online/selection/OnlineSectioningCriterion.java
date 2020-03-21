@@ -218,9 +218,9 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
             if (best[idx] != null && best[idx].getAssignments() != null) {
                 if (current[idx] == null || current[idx].getSections() == null)
                     return 1; // higher priority request assigned
-                if (best[idx].getTruePriority() < current[idx].getTruePriority())
+                if (best[idx].getAdjustedPriority() < current[idx].getAdjustedPriority())
                     return 1; // less alternative request assigned
-                if (best[idx].getTruePriority() > current[idx].getTruePriority())
+                if (best[idx].getAdjustedPriority() > current[idx].getAdjustedPriority())
                     return -1; // less alternative request assigned
             } else {
                 if (current[idx] != null && current[idx].getAssignments() != null)
@@ -328,9 +328,9 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
                 if (best[idx] != null && best[idx].getAssignments() != null) {
                     if (current[idx] == null || current[idx].getSections() == null)
                         return 1; // higher priority request assigned
-                    if (best[idx].getTruePriority() < current[idx].getTruePriority())
+                    if (best[idx].getAdjustedPriority() < current[idx].getAdjustedPriority())
                         return 1; // less alternative request assigned
-                    if (best[idx].getTruePriority() > current[idx].getTruePriority())
+                    if (best[idx].getAdjustedPriority() > current[idx].getAdjustedPriority())
                         return -1; // less alternative request assigned
                 } else {
                     if (current[idx] != null && current[idx].getAssignments() != null)
@@ -551,9 +551,9 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
                 if (best[idx] != null) {
                     if (current[idx] == null)
                         return false; // higher priority request assigned
-                    if (best[idx].getTruePriority() < current[idx].getTruePriority())
+                    if (best[idx].getAdjustedPriority() < current[idx].getAdjustedPriority())
                         return false; // less alternative request assigned
-                    if (best[idx].getTruePriority() > current[idx].getTruePriority())
+                    if (best[idx].getAdjustedPriority() > current[idx].getAdjustedPriority())
                         return true; // less alternative request assigned
                     if (request.isAlternative())
                         alt--;
@@ -679,9 +679,9 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
                     if (best[idx] != null) {
                         if (current[idx] == null)
                             return false; // higher priority request assigned
-                        if (best[idx].getTruePriority() < current[idx].getTruePriority())
+                        if (best[idx].getAdjustedPriority() < current[idx].getAdjustedPriority())
                             return false; // less alternative request assigned
-                        if (best[idx].getTruePriority() > current[idx].getTruePriority())
+                        if (best[idx].getAdjustedPriority() > current[idx].getAdjustedPriority())
                             return true; // less alternative request assigned
                         if (request.isAlternative())
                             alt--;
