@@ -38,6 +38,7 @@ import org.cpsolver.studentsct.model.Student;
 import org.cpsolver.studentsct.model.Subpart;
 import org.cpsolver.studentsct.model.Unavailability;
 import org.cpsolver.studentsct.reservation.CourseReservation;
+import org.cpsolver.studentsct.reservation.CurriculumOverride;
 import org.cpsolver.studentsct.reservation.CurriculumReservation;
 import org.cpsolver.studentsct.reservation.DummyReservation;
 import org.cpsolver.studentsct.reservation.GroupReservation;
@@ -562,7 +563,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                             Double.parseDouble(reservationEl.attributeValue("limit", "-1")),
                             course, studentIds);
             }
-        } else if ("curriculum".equals(reservationEl.attributeValue("type"))) {
+        } else if ("curriculum".equals(reservationEl.attributeValue("type")) || "curriculum-override".equals(reservationEl.attributeValue("type"))) {
             List<String> classifications = new ArrayList<String>();
             for (Iterator<?> k = reservationEl.elementIterator("classification"); k.hasNext(); ) {
                 Element clasfEl = (Element)k.next();
@@ -573,11 +574,18 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                 Element majorEl = (Element)k.next();
                 majors.add(majorEl.attributeValue("code"));
             }
-            r = new CurriculumReservation(Long.valueOf(reservationEl.attributeValue("id")),
-                    Double.parseDouble(reservationEl.attributeValue("limit", "-1")),
-                    offering,
-                    reservationEl.attributeValue("area"),
-                    classifications, majors);
+            if ("curriculum".equals(reservationEl.attributeValue("type")))
+                r = new CurriculumReservation(Long.valueOf(reservationEl.attributeValue("id")),
+                        Double.parseDouble(reservationEl.attributeValue("limit", "-1")),
+                        offering,
+                        reservationEl.attributeValue("area"),
+                        classifications, majors);
+            else
+                r = new CurriculumOverride(Long.valueOf(reservationEl.attributeValue("id")),
+                        Double.parseDouble(reservationEl.attributeValue("limit", "-1")),
+                        offering,
+                        reservationEl.attributeValue("area"),
+                        classifications, majors);
         } else if ("course".equals(reservationEl.attributeValue("type"))) {
             long courseId = Long.parseLong(reservationEl.attributeValue("course"));
             for (Course course: offering.getCourses()) {

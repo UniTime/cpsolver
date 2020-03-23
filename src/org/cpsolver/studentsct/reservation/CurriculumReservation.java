@@ -77,6 +77,30 @@ public class CurriculumReservation extends Reservation {
         if (majors != null)
             iMajors.addAll(majors);
     }
+    
+    /**
+     * Constructor
+     * @param id unique id
+     * @param limit reservation limit (-1 for unlimited)
+     * @param offering instructional offering on which the reservation is set
+     * @param acadArea academic area
+     * @param classifications zero or more classifications (classifications must match if not empty)
+     * @param majors zero or more majors (majors must match if not empty)
+     * @param priority reservation priority
+     * @param mustBeUsed must this reservation be used
+     * @param canAssignOverLimit can assign over class / configuration / course limit
+     * @param allowOverlap does this reservation allow for overlaps
+     */
+    protected CurriculumReservation(long id, double limit, Offering offering, String acadArea, Collection<String> classifications, Collection<String> majors,
+            int priority, boolean mustBeUsed, boolean canAssignOverLimit, boolean allowOverlap) {
+        super(id, offering, priority, mustBeUsed, canAssignOverLimit, allowOverlap);
+        iLimit = limit;
+        iAcadArea = acadArea;
+        if (classifications != null)
+            iClassifications.addAll(classifications);
+        if (majors != null)
+            iMajors.addAll(majors);
+    }
 
     /**
      * Reservation limit (-1 for unlimited)

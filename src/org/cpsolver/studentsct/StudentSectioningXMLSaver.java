@@ -37,6 +37,7 @@ import org.cpsolver.studentsct.model.Student;
 import org.cpsolver.studentsct.model.Subpart;
 import org.cpsolver.studentsct.model.Unavailability;
 import org.cpsolver.studentsct.reservation.CourseReservation;
+import org.cpsolver.studentsct.reservation.CurriculumOverride;
 import org.cpsolver.studentsct.reservation.CurriculumReservation;
 import org.cpsolver.studentsct.reservation.DummyReservation;
 import org.cpsolver.studentsct.reservation.GroupReservation;
@@ -516,7 +517,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
             for (Long studentId: ((IndividualReservation)reservation).getStudentIds())
                 reservationEl.addElement("student").addAttribute("id", getId("student", studentId));
         } else if (reservation instanceof CurriculumReservation) {
-            reservationEl.addAttribute("type", "curriculum");
+            reservationEl.addAttribute("type", (reservation instanceof CurriculumOverride ? "curriculum-override" : "curriculum"));
             CurriculumReservation cr = (CurriculumReservation)reservation;
             if (cr.getReservationLimit() >= 0.0)
                 reservationEl.addAttribute("limit", String.valueOf(cr.getReservationLimit()));
