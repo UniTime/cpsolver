@@ -76,6 +76,7 @@ public class PriorityStudentWeights implements StudentWeights {
     protected boolean iLeftoverSpread = false;
     protected double iBalancingFactor = 0.0050;
     protected double iNoTimeFactor = 0.0100;
+    protected double iReservationNotFollowedFactor = 0.1000;
     protected double iAlternativeRequestFactor = 0.1260;
     protected double iProjectedStudentWeight = 0.0100;
     protected boolean iMPP = false;
@@ -114,6 +115,7 @@ public class PriorityStudentWeights implements StudentWeights {
         iGroupBestRatio = config.getPropertyDouble("StudentWeights.GroupBestRatio", iGroupBestRatio);
         iGroupFillRatio = config.getPropertyDouble("StudentWeights.GroupFillRatio", iGroupFillRatio);
         iNoTimeFactor = config.getPropertyDouble("StudentWeights.NoTimeFactor", iNoTimeFactor);
+        iReservationNotFollowedFactor = config.getPropertyDouble("StudentWeights.ReservationNotFollowedFactor", iReservationNotFollowedFactor);
         iAdditiveWeights = config.getPropertyBoolean("StudentWeights.AdditiveWeights", iAdditiveWeights);
         iMaximizeAssignment = config.getPropertyBoolean("StudentWeights.MaximizeAssignment", iMaximizeAssignment);
         iPreciseComparison = config.getPropertyBoolean("StudentWeights.PreciseComparison", iPreciseComparison);
@@ -251,12 +253,12 @@ public class PriorityStudentWeights implements StudentWeights {
     
     protected double getBaseWeight(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
         double weight = getCachedWeight(enrollment.getRequest());
-        switch (enrollment.getPriority()) {
+        switch (enrollment.getTruePriority()) {
             case 0: break;
             case 1: weight *= iFirstAlternativeFactor; break;
             case 2: weight *= iSecondAlternativeFactor; break;
             default:
-                weight *= Math.pow(iFirstAlternativeFactor, enrollment.getPriority());
+                weight *= Math.pow(iFirstAlternativeFactor, enrollment.getTruePriority());
         }
         return weight;
     }
@@ -279,6 +281,9 @@ public class PriorityStudentWeights implements StudentWeights {
             }
             if (noTimeSections > 0)
                 weight *= (1.0 - iNoTimeFactor * noTimeSections / total);
+        }
+        if (enrollment.getTruePriority() < enrollment.getPriority()) {
+            weight *= (1.0 - iReservationNotFollowedFactor);
         }
         if (enrollment.isCourseRequest() && iBalancingFactor != 0.0) {
             double configUsed = enrollment.getConfig().getEnrollmentTotalWeight(assignment, enrollment.getRequest()) + enrollment.getRequest().getWeight();
@@ -339,6 +344,9 @@ public class PriorityStudentWeights implements StudentWeights {
             }
             if (noTimeSections > 0)
                 weight += iNoTimeFactor * noTimeSections / total;
+        }
+        if (enrollment.getTruePriority() < enrollment.getPriority()) {
+            weight += iReservationNotFollowedFactor;
         }
         if (enrollment.isCourseRequest() && iBalancingFactor != 0.0) {
             double configUsed = enrollment.getConfig().getEnrollmentTotalWeight(assignment, enrollment.getRequest()) + enrollment.getRequest().getWeight();
