@@ -89,14 +89,17 @@ public class RoundRobinNeighbourSelection<V extends Variable<V, T>, T extends Va
      */
     @Override
     public Neighbour<V, T> selectNeighbour(Solution<V, T> solution) {
-        while (true) {
+        int nrChanges = 0;
+        while (nrChanges <= iSelections.size()) {
             int selectionIndex = getSelectionIndex();
             NeighbourSelection<V, T> selection = iSelections.get(selectionIndex % iSelections.size());
             Neighbour<V, T> neighbour = selection.selectNeighbour(solution);
             if (neighbour != null)
                 return neighbour;
             changeSelection(selectionIndex);
+            nrChanges ++;
         }
+        return null;
     }
     
     public int getSelectionIndex() {
