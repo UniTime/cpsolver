@@ -210,17 +210,20 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
 
         // 0. best priority & alternativity ignoring free time requests
         boolean ft = false;
+        boolean res = false;
         for (int idx = 0; idx < current.length; idx++) {
             if (isFreeTime(idx)) {
                 ft = true;
                 continue;
             }
+            Request request = getRequest(idx);
+            if (request instanceof CourseRequest && ((CourseRequest)request).hasReservations()) res = true;
             if (best[idx] != null && best[idx].getAssignments() != null) {
                 if (current[idx] == null || current[idx].getSections() == null)
                     return 1; // higher priority request assigned
-                if (best[idx].getAdjustedPriority() < current[idx].getAdjustedPriority())
+                if (best[idx].getTruePriority() < current[idx].getTruePriority())
                     return 1; // less alternative request assigned
-                if (best[idx].getAdjustedPriority() > current[idx].getAdjustedPriority())
+                if (best[idx].getTruePriority() > current[idx].getTruePriority())
                     return -1; // less alternative request assigned
             } else {
                 if (current[idx] != null && current[idx].getAssignments() != null)
@@ -328,9 +331,9 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
                 if (best[idx] != null && best[idx].getAssignments() != null) {
                     if (current[idx] == null || current[idx].getSections() == null)
                         return 1; // higher priority request assigned
-                    if (best[idx].getAdjustedPriority() < current[idx].getAdjustedPriority())
+                    if (best[idx].getTruePriority() < current[idx].getTruePriority())
                         return 1; // less alternative request assigned
-                    if (best[idx].getAdjustedPriority() > current[idx].getAdjustedPriority())
+                    if (best[idx].getTruePriority() > current[idx].getTruePriority())
                         return -1; // less alternative request assigned
                 } else {
                     if (current[idx] != null && current[idx].getAssignments() != null)
@@ -374,6 +377,23 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
         }
         if (0.3 * currentSelectedConfigs + 0.7 * currentSelectedSections > 0.3 * bestSelectedConfigs + 0.7 * bestSelectedSections) return -1;
         if (0.3 * bestSelectedConfigs + 0.7 * bestSelectedSections > 0.3 * currentSelectedConfigs + 0.7 * currentSelectedSections) return 1;
+        
+        // 3.9 maximize selection with penalization for not followed reservations
+        if (res) {
+            for (int idx = 0; idx < current.length; idx++) {
+                if (best[idx] != null && best[idx].getAssignments() != null) {
+                    if (current[idx] == null || current[idx].getSections() == null)
+                        return 1; // higher priority request assigned
+                    if (best[idx].getAdjustedPriority() < current[idx].getAdjustedPriority())
+                        return 1; // less alternative request assigned
+                    if (best[idx].getAdjustedPriority() > current[idx].getAdjustedPriority())
+                        return -1; // less alternative request assigned
+                } else {
+                    if (current[idx] != null && current[idx].getAssignments() != null)
+                        return -1; // higher priority request assigned
+                }
+            }
+        }
 
         // 4-5. student quality
         if (getModel().getStudentQuality() != null) {
@@ -541,19 +561,21 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
         // 0. best priority & alternativity ignoring free time requests
         int alt = 0;
         boolean ft = false;
+        boolean res = false;
         for (int idx = 0; idx < current.length; idx++) {
             if (isFreeTime(idx)) {
                 ft = true;
                 continue;
             }
             Request request = getRequest(idx);
+            if (request instanceof CourseRequest && ((CourseRequest)request).hasReservations()) res = true;
             if (idx < maxIdx) {
                 if (best[idx] != null) {
                     if (current[idx] == null)
                         return false; // higher priority request assigned
-                    if (best[idx].getAdjustedPriority() < current[idx].getAdjustedPriority())
+                    if (best[idx].getTruePriority() < current[idx].getTruePriority())
                         return false; // less alternative request assigned
-                    if (best[idx].getAdjustedPriority() > current[idx].getAdjustedPriority())
+                    if (best[idx].getTruePriority() > current[idx].getTruePriority())
                         return true; // less alternative request assigned
                     if (request.isAlternative())
                         alt--;
@@ -565,7 +587,7 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
                 }
             } else {
                 if (best[idx] != null) {
-                    if (best[idx].getPriority() > 0)
+                    if (best[idx].getTruePriority() > 0)
                         return true; // alternativity can be improved
                 } else {
                     if (!request.isAlternative() || alt > 0)
@@ -679,9 +701,9 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
                     if (best[idx] != null) {
                         if (current[idx] == null)
                             return false; // higher priority request assigned
-                        if (best[idx].getAdjustedPriority() < current[idx].getAdjustedPriority())
+                        if (best[idx].getTruePriority() < current[idx].getTruePriority())
                             return false; // less alternative request assigned
-                        if (best[idx].getAdjustedPriority() > current[idx].getAdjustedPriority())
+                        if (best[idx].getTruePriority() > current[idx].getTruePriority())
                             return true; // less alternative request assigned
                         if (request.isAlternative())
                             alt--;
@@ -693,7 +715,7 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
                     }
                 } else {
                     if (best[idx] != null) {
-                        if (best[idx].getPriority() > 0)
+                        if (best[idx].getTruePriority() > 0)
                             return true; // alternativity can be improved
                     } else {
                         if (!request.isAlternative() || alt > 0)
@@ -750,6 +772,39 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
         }
         if (0.3 * currentSelectedConfigs + 0.7 * currentSelectedSections > 0.3 * bestSelectedConfigs + 0.7 * bestSelectedSections) return true;
         if (0.3 * bestSelectedConfigs + 0.7 * bestSelectedSections > 0.3 * currentSelectedConfigs + 0.7 * currentSelectedSections) return false;
+        
+        // 3.9 maximize selection with penalization for not followed reservations
+        if (res) {
+            alt = 0;
+            for (int idx = 0; idx < current.length; idx++) {
+                Request request = getStudent().getRequests().get(idx);
+                if (idx < maxIdx) {
+                    if (best[idx] != null) {
+                        if (current[idx] == null)
+                            return false; // higher priority request assigned
+                        if (best[idx].getAdjustedPriority() < current[idx].getAdjustedPriority())
+                            return false; // less alternative request assigned
+                        if (best[idx].getAdjustedPriority() > current[idx].getAdjustedPriority())
+                            return true; // less alternative request assigned
+                        if (request.isAlternative())
+                            alt--;
+                    } else {
+                        if (current[idx] != null)
+                            return true; // higher priority request assigned
+                        if (request instanceof CourseRequest && !request.isAlternative())
+                            alt++;
+                    }
+                } else {
+                    if (best[idx] != null) {
+                        if (best[idx].getPriority() > 0)
+                            return true; // alternativity can be improved
+                    } else {
+                        if (!request.isAlternative() || alt > 0)
+                            return true; // priority can be improved
+                    }
+                }
+            }
+        }
         
         // 4-5. student quality
         if (getModel().getStudentQuality() != null) {
