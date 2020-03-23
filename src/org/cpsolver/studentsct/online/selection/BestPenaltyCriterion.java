@@ -156,9 +156,9 @@ public class BestPenaltyCriterion implements SelectionCriterion {
     @Override
     public int compare(Assignment<Request, Enrollment> assignment, Enrollment e1, Enrollment e2) {
         // 1. alternativity
-        if (e1.getPriority() < e2.getPriority())
+        if (e1.getTruePriority() < e2.getTruePriority())
             return -1;
-        if (e1.getPriority() > e2.getPriority())
+        if (e1.getTruePriority() > e2.getTruePriority())
             return 1;
 
         // 2. maximize number of penalties

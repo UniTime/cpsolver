@@ -56,20 +56,23 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
         int currentAssignedRequests = 0, bestAssignedRequests = 0;
         int currentAssignedPriority = 0, bestAssignedPriority = 0;
         int currentAssignedAlternativity = 0, bestAssignedAlternativity = 0;
+        int currentNotFollowedReservations = 0, bestNotFollowedReservations = 0;
         for (int idx = 0; idx < current.length; idx++) {
             if (current[idx] != null && current[idx].getAssignments() != null) {
                 currentAssignedRequests++;
                 if (current[idx].isCourseRequest())
                     currentAssignedCourseReq++;
-                currentAssignedPriority += current[idx].getPriority() * current[idx].getPriority();
+                currentAssignedPriority += current[idx].getTruePriority() * current[idx].getTruePriority();
                 currentAssignedAlternativity += (current[idx].getRequest().isAlternative() ? 1 : 0);
+                if (current[idx].getTruePriority() < current[idx].getPriority()) currentNotFollowedReservations ++;
             }
             if (best[idx] != null && best[idx].getAssignments() != null) {
                 bestAssignedRequests++;
                 if (best[idx].isCourseRequest())
                     bestAssignedCourseReq++;
-                bestAssignedPriority += best[idx].getPriority() * best[idx].getPriority();
+                bestAssignedPriority += best[idx].getTruePriority() * best[idx].getTruePriority();
                 bestAssignedAlternativity += (best[idx].getRequest().isAlternative() ? 1 : 0);
+                if (best[idx].getTruePriority() < best[idx].getPriority()) bestNotFollowedReservations ++;
             }
         }
         if (currentAssignedCourseReq > bestAssignedCourseReq)
@@ -225,6 +228,12 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
         }
         if (0.3 * currentSelectedConfigs + 0.7 * currentSelectedSections > 0.3 * bestSelectedConfigs + 0.7 * bestSelectedSections) return -1;
         if (0.3 * bestSelectedConfigs + 0.7 * bestSelectedSections > 0.3 * currentSelectedConfigs + 0.7 * currentSelectedSections) return 1;
+        
+        // 3.9 minimize enrollments where the reservation is not followed
+        if (currentNotFollowedReservations < bestNotFollowedReservations)
+            return -1;
+        if (bestNotFollowedReservations < currentNotFollowedReservations)
+            return 1;
         
         // 4-5. student quality
         if (getModel().getStudentQuality() != null) {
@@ -406,6 +415,7 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
         int currentAssignedRequests = 0, bestAssignedRequests = 0;
         int currentAssignedPriority = 0, bestAssignedPriority = 0;
         int currentAssignedAlternativity = 0, bestAssignedAlternativity = 0;
+        int currentNotFollowedReservations = 0, bestNotFollowedReservations = 0;
         int alt = 0;
         for (int idx = 0; idx < current.length; idx++) {
             if (idx < maxIdx) {
@@ -413,8 +423,9 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
                     currentAssignedRequests++;
                     if (current[idx].isCourseRequest())
                         currentAssignedCourseReq++;
-                    currentAssignedPriority += current[idx].getPriority() * current[idx].getPriority();
+                    currentAssignedPriority += current[idx].getTruePriority() * current[idx].getTruePriority();
                     currentAssignedAlternativity += (current[idx].getRequest().isAlternative() ? 1 : 0);
+                    if (current[idx].getTruePriority() < current[idx].getPriority()) currentNotFollowedReservations ++;
                 } else if (!isFreeTime(idx) && !getRequest(idx).isAlternative()) {
                     alt++;
                 }
@@ -434,8 +445,9 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
                 bestAssignedRequests++;
                 if (best[idx].isCourseRequest())
                     bestAssignedCourseReq++;
-                bestAssignedPriority += best[idx].getPriority() * best[idx].getPriority();
+                bestAssignedPriority += best[idx].getTruePriority() * best[idx].getTruePriority();
                 bestAssignedAlternativity += (best[idx].getRequest().isAlternative() ? 1 : 0);
+                if (best[idx].getTruePriority() < best[idx].getPriority()) bestNotFollowedReservations ++;
             }
         }
         if (currentAssignedCourseReq > bestAssignedCourseReq)
@@ -600,6 +612,12 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
         }
         if (0.3 * currentSelectedConfigs + 0.7 * currentSelectedSections > 0.3 * bestSelectedConfigs + 0.7 * bestSelectedSections) return true;
         if (0.3 * bestSelectedConfigs + 0.7 * bestSelectedSections > 0.3 * currentSelectedConfigs + 0.7 * currentSelectedSections) return false;
+        
+        // 3.9 minimize enrollments where the reservation is not followed
+        if (currentNotFollowedReservations < bestNotFollowedReservations)
+            return true;
+        if (bestNotFollowedReservations < currentNotFollowedReservations)
+            return false;
         
         // 4-5. solution quality
         if (getModel().getStudentQuality() != null) {

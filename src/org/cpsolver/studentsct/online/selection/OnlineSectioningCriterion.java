@@ -796,7 +796,7 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
                     }
                 } else {
                     if (best[idx] != null) {
-                        if (best[idx].getPriority() > 0)
+                        if (best[idx].getTruePriority() > 0)
                             return true; // alternativity can be improved
                     } else {
                         if (!request.isAlternative() || alt > 0)
@@ -1001,9 +1001,9 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
     @Override
     public int compare(Assignment<Request, Enrollment> assignment, Enrollment e1, Enrollment e2) {
         // 1. alternativity
-        if (e1.getPriority() < e2.getPriority())
+        if (e1.getTruePriority() < e2.getTruePriority())
             return -1;
-        if (e1.getPriority() > e2.getPriority())
+        if (e1.getTruePriority() > e2.getTruePriority())
             return 1;
         
         // 1.5 not available sections
@@ -1051,6 +1051,12 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
             if (s1 > s2) return -1;
             if (s2 > s1) return 1;
         }
+        
+        // 3.9 maximize selection with penalization for not followed reservations
+        if (e1.getAdjustedPriority() < e2.getAdjustedPriority())
+            return -1;
+        if (e1.getAdjustedPriority() > e2.getAdjustedPriority())
+            return 1;
 
         // 4. avoid time overlaps
         if (getTimesToAvoid() == null) {
