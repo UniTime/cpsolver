@@ -177,7 +177,7 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
         protected void train(Solution<V, T> solution) {
             double value = iTrainingTotal / iTrainingIterations;
             if (iStochasticHC) {
-                iInitialTemperature = - value / Math.log(1.0 / iTrainingProbability - 1.0);
+                iInitialTemperature = value / Math.log(1.0 / iTrainingProbability - 1.0);
             } else {
                 iInitialTemperature = - value / Math.log(iTrainingProbability);
             }
