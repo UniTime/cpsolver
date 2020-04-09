@@ -601,6 +601,9 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                 studentIds.add(Long.parseLong(studentEl.attributeValue("id")));
             }
             r = new ReservationOverride(Long.valueOf(reservationEl.attributeValue("id")), offering, studentIds);
+            if ("true".equalsIgnoreCase(reservationEl.attributeValue("neverIncluded"))) {
+                ((ReservationOverride)r).setNeverIncluded(true);
+            }
         }
         if (r == null) {
             sLogger.error("Unknown reservation type "+ reservationEl.attributeValue("type"));

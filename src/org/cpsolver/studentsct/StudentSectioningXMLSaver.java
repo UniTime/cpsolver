@@ -510,6 +510,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         } else if (reservation instanceof ReservationOverride) {
             reservationEl.addAttribute("type", "override");
             ReservationOverride o = (ReservationOverride)reservation;
+            if (o.neverIncluded()) reservationEl.addAttribute("neverIncluded", "true");
             for (Long studentId: o.getStudentIds())
                 reservationEl.addElement("student").addAttribute("id", getId("student", studentId));
         } else if (reservation instanceof IndividualReservation) {

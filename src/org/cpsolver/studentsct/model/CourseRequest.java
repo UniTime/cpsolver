@@ -21,6 +21,7 @@ import org.cpsolver.studentsct.constraint.CourseLimit;
 import org.cpsolver.studentsct.constraint.LinkedSections;
 import org.cpsolver.studentsct.constraint.SectionLimit;
 import org.cpsolver.studentsct.reservation.Reservation;
+import org.cpsolver.studentsct.reservation.ReservationOverride;
 
 
 /**
@@ -310,6 +311,7 @@ public class CourseRequest extends Request {
             if (availableOnly) {
                 for (Reservation r: getReservations(course)) {
                     if (!r.canBatchAssignOverLimit()) continue;
+                    if (r instanceof ReservationOverride && ((ReservationOverride)r).neverIncluded()) continue;
                     if (!r.getConfigs().isEmpty() && !r.getConfigs().contains(config)) continue;
                     if (r.getReservedAvailableSpace(assignment, this) < getWeight()) continue;
                     canOverLimit = true; break;
@@ -325,7 +327,8 @@ public class CourseRequest extends Request {
                     for (Reservation r: getReservations(course)) {
                         if (r.mustBeUsed()) reservationMustBeUsed = true;
                         if (availableOnly && r.getReservedAvailableSpace(assignment, this) < getWeight()) continue;
-                        if (r.getConfigs().isEmpty()) {
+                        if (r instanceof ReservationOverride && ((ReservationOverride)r).neverIncluded()) {
+                        } else if (r.getConfigs().isEmpty()) {
                             hasReservation = true;
                         } else if (r.getConfigs().contains(config)) {
                             hasReservation = true;
