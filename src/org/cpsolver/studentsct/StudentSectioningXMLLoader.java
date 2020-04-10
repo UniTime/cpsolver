@@ -601,9 +601,6 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                 studentIds.add(Long.parseLong(studentEl.attributeValue("id")));
             }
             r = new ReservationOverride(Long.valueOf(reservationEl.attributeValue("id")), offering, studentIds);
-            if ("true".equalsIgnoreCase(reservationEl.attributeValue("neverIncluded"))) {
-                ((ReservationOverride)r).setNeverIncluded(true);
-            }
         }
         if (r == null) {
             sLogger.error("Unknown reservation type "+ reservationEl.attributeValue("type"));
@@ -623,6 +620,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         r.setAllowOverlap("true".equals(reservationEl.attributeValue("allowOverlap", r.isAllowOverlap() ? "true" : "false")));
         r.setCanAssignOverLimit("true".equals(reservationEl.attributeValue("canAssignOverLimit", r.canAssignOverLimit() ? "true" : "false")));
         r.setAllowDisabled("true".equals(reservationEl.attributeValue("allowDisabled", r.isAllowDisabled() ? "true" : "false")));
+        r.setNeverIncluded("true".equals(reservationEl.attributeValue("neverIncluded", "false")));
         return r;
     }
     

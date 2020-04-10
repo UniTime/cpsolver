@@ -2,7 +2,6 @@ package org.cpsolver.studentsct.reservation;
 
 import java.util.Collection;
 
-import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Offering;
 
 /**
@@ -51,10 +50,6 @@ public class ReservationOverride extends IndividualReservation {
      * Overlaps are not allowed for group reservation overrides by default. 
      */
     public static final boolean DEFAULT_ALLOW_OVERLAP = false;
-    /**
-     * No enrollment is matching this reservation when set to true 
-     */
-    private boolean iNeverIncluded = false;
     
     /**
      * Constructor
@@ -82,21 +77,5 @@ public class ReservationOverride extends IndividualReservation {
      */
     public boolean mustBeUsed() {
         return mustBeUsedIgnoreExpiration();
-    }
-    
-    /**
-     * No enrollment is matching this reservation when set to true
-     */
-    public boolean neverIncluded() { return iNeverIncluded; }
-    
-    /**
-     * No enrollment is matching this reservation when set to true
-     */
-    public void setNeverIncluded(boolean neverIncluded) { iNeverIncluded = neverIncluded; }
-    
-    @Override
-    public boolean isIncluded(Enrollment enrollment) {
-        if (neverIncluded()) return false;
-        return super.isIncluded(enrollment);
     }
 }

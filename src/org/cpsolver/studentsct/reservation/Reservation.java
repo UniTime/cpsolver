@@ -85,6 +85,10 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
     /** Does this reservation allow for disabled sections */
     private boolean iAllowDisabled = false;
     
+    /** No enrollment is matching this reservation when set to true */
+    private boolean iNeverIncluded = false;
+
+    
     /**
      * Constructor
      * @param id reservation unique id
@@ -214,6 +218,9 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
      * @return true if the given enrollment meets the reservation
      */
     public boolean isIncluded(Enrollment enrollment) {
+        // Never included flag is set -- return false
+        if (neverIncluded()) return false;
+        
         // Free time request are never included
         if (enrollment.getConfig() == null) return false;
         
@@ -544,6 +551,16 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
     public boolean isExpired() {
         return iExpired;
     }
+    
+    /**
+     * No enrollment is matching this reservation when set to true
+     */
+    public boolean neverIncluded() { return iNeverIncluded; }
+    
+    /**
+     * No enrollment is matching this reservation when set to true
+     */
+    public void setNeverIncluded(boolean neverIncluded) { iNeverIncluded = neverIncluded; }
     
     @Override
     public Model<Request, Enrollment> getModel() {
