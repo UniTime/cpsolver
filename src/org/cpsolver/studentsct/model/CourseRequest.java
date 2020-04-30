@@ -212,6 +212,10 @@ public class CourseRequest extends Request {
     @Override
     public List<Enrollment> computeEnrollments(Assignment<Request, Enrollment> assignment) {
         List<Enrollment> ret = new ArrayList<Enrollment>();
+        if (getInitialAssignment() != null && getModel() != null && ((StudentSectioningModel)getModel()).isMPP() && ((StudentSectioningModel)getModel()).getKeepInitialAssignments()) {
+            ret.add(getInitialAssignment());
+            return ret;
+        }
         int idx = 0;
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
@@ -232,6 +236,10 @@ public class CourseRequest extends Request {
      */
     public List<Enrollment> computeRandomEnrollments(Assignment<Request, Enrollment> assignment, int limitEachConfig) {
         List<Enrollment> ret = new ArrayList<Enrollment>();
+        if (getInitialAssignment() != null && getModel() != null && ((StudentSectioningModel)getModel()).isMPP() && ((StudentSectioningModel)getModel()).getKeepInitialAssignments()) {
+            ret.add(getInitialAssignment());
+            return ret;
+        }
         int idx = 0;
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
@@ -517,6 +525,10 @@ public class CourseRequest extends Request {
      **/
     public List<Enrollment> getAvaiableEnrollments(Assignment<Request, Enrollment> assignment) {
         List<Enrollment> ret = new ArrayList<Enrollment>();
+        if (getInitialAssignment() != null && getModel() != null && ((StudentSectioningModel)getModel()).isMPP() && ((StudentSectioningModel)getModel()).getKeepInitialAssignments()) {
+            ret.add(getInitialAssignment());
+            return ret;
+        }
         int idx = 0;
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
@@ -539,6 +551,8 @@ public class CourseRequest extends Request {
      */
     public List<Enrollment> getSelectedEnrollments(Assignment<Request, Enrollment> assignment, boolean availableOnly) {
         if (getSelectedChoices().isEmpty())
+            return null;
+        if (getInitialAssignment() != null && getModel() != null && ((StudentSectioningModel)getModel()).isMPP() && ((StudentSectioningModel)getModel()).getKeepInitialAssignments())
             return null;
         List<Enrollment> enrollments = new ArrayList<Enrollment>();
         for (Course course : iCourses) {
@@ -563,8 +577,11 @@ public class CourseRequest extends Request {
      */
     public List<Enrollment> getAvaiableEnrollmentsSkipSameTime(Assignment<Request, Enrollment> assignment) {
         List<Enrollment> ret = new ArrayList<Enrollment>();
-        if (getInitialAssignment() != null)
+        if (getInitialAssignment() != null) {
             ret.add(getInitialAssignment());
+            if (getModel() != null && ((StudentSectioningModel)getModel()).isMPP() && ((StudentSectioningModel)getModel()).getKeepInitialAssignments())
+                return ret;
+        }
         int idx = 0;
         for (Course course : iCourses) {
             boolean skipSameTime = true;
@@ -588,6 +605,11 @@ public class CourseRequest extends Request {
      */
     public List<Enrollment> getEnrollmentsSkipSameTime(Assignment<Request, Enrollment> assignment) {
         List<Enrollment> ret = new ArrayList<Enrollment>();
+        if (getInitialAssignment() != null) {
+            ret.add(getInitialAssignment());
+            if (getModel() != null && ((StudentSectioningModel)getModel()).isMPP() && ((StudentSectioningModel)getModel()).getKeepInitialAssignments())
+                return ret;
+        }
         int idx = 0;
         for (Course course : iCourses) {
             for (Config config : course.getOffering().getConfigs()) {
