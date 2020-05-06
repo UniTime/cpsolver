@@ -746,6 +746,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         if (iSaveBest && request.getBestAssignment() != null) {
             saveEnrollment(requestEl.addElement("best"), request.getBestAssignment());
         }
+        if (request.isFixed())
+            saveEnrollment(requestEl.addElement("fixed"), request.getFixedValue());
         for (RequestGroup g: request.getRequestGroups()) {
             Element groupEl = requestEl.addElement("group").addAttribute("id", getId("group", g.getId())).addAttribute("course", getId("course", g.getCourse().getId()));
             if (iShowNames)

@@ -19,6 +19,7 @@ import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.model.Constraint;
 import org.cpsolver.ifs.util.DistanceMetric;
 import org.cpsolver.ifs.util.Progress;
+import org.cpsolver.studentsct.constraint.FixedAssignments;
 import org.cpsolver.studentsct.filter.StudentFilter;
 import org.cpsolver.studentsct.model.AcademicAreaCode;
 import org.cpsolver.studentsct.model.AreaClassificationMajor;
@@ -252,6 +253,15 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         if (!currentEnrollments.isEmpty()) assignCurrent(currentEnrollments);
         
         if (iMoveCriticalUp) moveCriticalRequestsUp();
+        
+        boolean hasFixed = false;
+        for (Request r: getModel().variables()) {
+            if (r instanceof CourseRequest && ((CourseRequest)r).isFixed()) {
+                hasFixed = true; break;
+            }
+        }
+        if (hasFixed)
+            getModel().addGlobalConstraint(new FixedAssignments());
     }
     
     /**
@@ -750,6 +760,9 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                     if (enrollment != null)
                         bestEnrollments.add(enrollment);
                 }
+                Element fixedEl = requestEl.element("fixed");
+                if (fixedEl != null && request instanceof CourseRequest)
+                    ((CourseRequest)request).setFixedValue(loadEnrollment(fixedEl, request));
             }
             getModel().addStudent(student);
         }

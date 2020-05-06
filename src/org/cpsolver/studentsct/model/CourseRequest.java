@@ -59,6 +59,7 @@ public class CourseRequest extends Request {
     public static boolean sSameTimePrecise = false;
     private Set<RequestGroup> iRequestGroups = new HashSet<RequestGroup>();
     private RequestPriority iPriority = RequestPriority.Normal;
+    private Enrollment iFixed = null;
 
     /**
      * Constructor
@@ -212,6 +213,10 @@ public class CourseRequest extends Request {
     @Override
     public List<Enrollment> computeEnrollments(Assignment<Request, Enrollment> assignment) {
         List<Enrollment> ret = new ArrayList<Enrollment>();
+        if (isFixed()) {
+            ret.add(getFixedValue());
+            return ret;
+        }
         if (getInitialAssignment() != null && getModel() != null && ((StudentSectioningModel)getModel()).isMPP() && ((StudentSectioningModel)getModel()).getKeepInitialAssignments()) {
             ret.add(getInitialAssignment());
             return ret;
@@ -236,6 +241,10 @@ public class CourseRequest extends Request {
      */
     public List<Enrollment> computeRandomEnrollments(Assignment<Request, Enrollment> assignment, int limitEachConfig) {
         List<Enrollment> ret = new ArrayList<Enrollment>();
+        if (isFixed()) {
+            ret.add(getFixedValue());
+            return ret;
+        }
         if (getInitialAssignment() != null && getModel() != null && ((StudentSectioningModel)getModel()).isMPP() && ((StudentSectioningModel)getModel()).getKeepInitialAssignments()) {
             ret.add(getInitialAssignment());
             return ret;
@@ -439,6 +448,8 @@ public class CourseRequest extends Request {
                 if (getInitialAssignment() != null && (getModel() != null && ((StudentSectioningModel)getModel()).getKeepInitialAssignments()) &&
                         !getInitialAssignment().getAssignments().contains(section))
                     continue;
+                if (isFixed() && !getFixedValue().getAssignments().contains(section))
+                    continue;
                 if (section.getParent() != null && !sections.contains(section.getParent()))
                     continue;
                 if (section.isOverlapping(sections))
@@ -525,6 +536,10 @@ public class CourseRequest extends Request {
      **/
     public List<Enrollment> getAvaiableEnrollments(Assignment<Request, Enrollment> assignment) {
         List<Enrollment> ret = new ArrayList<Enrollment>();
+        if (isFixed()) {
+            ret.add(getFixedValue());
+            return ret;
+        }
         if (getInitialAssignment() != null && getModel() != null && ((StudentSectioningModel)getModel()).isMPP() && ((StudentSectioningModel)getModel()).getKeepInitialAssignments()) {
             ret.add(getInitialAssignment());
             return ret;
@@ -552,6 +567,7 @@ public class CourseRequest extends Request {
     public List<Enrollment> getSelectedEnrollments(Assignment<Request, Enrollment> assignment, boolean availableOnly) {
         if (getSelectedChoices().isEmpty())
             return null;
+        if (isFixed()) return null;
         if (getInitialAssignment() != null && getModel() != null && ((StudentSectioningModel)getModel()).isMPP() && ((StudentSectioningModel)getModel()).getKeepInitialAssignments())
             return null;
         List<Enrollment> enrollments = new ArrayList<Enrollment>();
@@ -577,6 +593,10 @@ public class CourseRequest extends Request {
      */
     public List<Enrollment> getAvaiableEnrollmentsSkipSameTime(Assignment<Request, Enrollment> assignment) {
         List<Enrollment> ret = new ArrayList<Enrollment>();
+        if (isFixed()) {
+            ret.add(getFixedValue());
+            return ret;
+        }
         if (getInitialAssignment() != null) {
             ret.add(getInitialAssignment());
             if (getModel() != null && ((StudentSectioningModel)getModel()).isMPP() && ((StudentSectioningModel)getModel()).getKeepInitialAssignments())
@@ -605,6 +625,10 @@ public class CourseRequest extends Request {
      */
     public List<Enrollment> getEnrollmentsSkipSameTime(Assignment<Request, Enrollment> assignment) {
         List<Enrollment> ret = new ArrayList<Enrollment>();
+        if (isFixed()) {
+            ret.add(getFixedValue());
+            return ret;
+        }
         if (getInitialAssignment() != null) {
             ret.add(getInitialAssignment());
             if (getModel() != null && ((StudentSectioningModel)getModel()).isMPP() && ((StudentSectioningModel)getModel()).getKeepInitialAssignments())
@@ -1056,4 +1080,8 @@ public class CourseRequest extends Request {
     public void setRequestPriority(RequestPriority priority) {
         iPriority = priority;
     }
+
+    public boolean isFixed() { return iFixed != null; }
+    public Enrollment getFixedValue() { return iFixed; }
+    public void setFixedValue(Enrollment constant) { iFixed = constant; }
 }
