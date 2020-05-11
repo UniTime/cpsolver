@@ -3,6 +3,7 @@ package org.cpsolver.ifs.solver;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -380,8 +381,17 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
                                 value = neighbour.value(current.getAssignment());
                             }
                             Map<V, T> undo = new HashMap<V, T>();
-                            for (V var: assignments.keySet())
-                                undo.put(var, iSolution.getAssignment().unassign(iSolution.getIteration(), var));
+                            for (Iterator<Map.Entry<V, T>> i = assignments.entrySet().iterator(); i.hasNext(); ) {
+                                Map.Entry<V, T> e = i.next();
+                                T cur = iSolution.getAssignment().getValue(e.getKey());
+                                if (e.getValue() == null && cur == null) {
+                                    i.remove();
+                                } else if (cur != null && cur.equals(e.getValue())) {
+                                    i.remove();
+                                } else {
+                                    undo.put(e.getKey(), iSolution.getAssignment().unassign(iSolution.getIteration(), e.getKey()));
+                                }
+                            }
                             boolean fail = false;
                             for (T val: assignments.values()) {
                                 if (val == null) continue;

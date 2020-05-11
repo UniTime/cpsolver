@@ -852,8 +852,8 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         /** Assign the schedule */
         @Override
         public void assign(Assignment<Request, Enrollment> assignment, long iteration) {
-            for (Request r: iStudent.getRequests())
-                assignment.unassign(iteration, r);
+            for (int i = 0; i < iAssignment.length; i++)
+                assignment.unassign(iteration, iStudent.getRequests().get(i), iAssignment[i]);
             for (int i = 0; i < iAssignment.length; i++)
                 if (iAssignment[i] != null)
                     assignment.assign(iteration, iAssignment[i]);

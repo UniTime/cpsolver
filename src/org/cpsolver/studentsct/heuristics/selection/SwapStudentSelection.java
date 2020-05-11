@@ -444,7 +444,7 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
         public void assign(Assignment<Request, Enrollment> assignment, long iteration) {
             assignment.unassign(iteration, iEnrollment.variable());
             for (Enrollment swap : iSwaps) {
-                assignment.unassign(iteration, swap.variable());
+                assignment.unassign(iteration, swap.variable(), swap);
             }
             assignment.assign(iteration, iEnrollment);
             for (Enrollment swap : iSwaps) {

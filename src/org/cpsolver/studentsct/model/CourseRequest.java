@@ -567,10 +567,10 @@ public class CourseRequest extends Request {
     public List<Enrollment> getSelectedEnrollments(Assignment<Request, Enrollment> assignment, boolean availableOnly) {
         if (getSelectedChoices().isEmpty())
             return null;
-        if (isFixed()) return null;
-        if (getInitialAssignment() != null && getModel() != null && ((StudentSectioningModel)getModel()).isMPP() && ((StudentSectioningModel)getModel()).getKeepInitialAssignments())
-            return null;
         List<Enrollment> enrollments = new ArrayList<Enrollment>();
+        if (isFixed()) return enrollments;
+        if (getInitialAssignment() != null && getModel() != null && ((StudentSectioningModel)getModel()).isMPP() && ((StudentSectioningModel)getModel()).getKeepInitialAssignments())
+            return enrollments;
         for (Course course : iCourses) {
             boolean hasChoice = false;
             for (Choice choice: getSelectedChoices())

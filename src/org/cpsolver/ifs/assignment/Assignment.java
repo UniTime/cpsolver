@@ -93,6 +93,16 @@ public interface Assignment<V extends Variable<V, T>, T extends Value<V, T>> {
     public T unassign(long iteration, V variable);
     
     /**
+     * Unassign the given variable, but only if the current assignment differs from the given value.
+     * Replacement for {@link Variable#unassign(int)}.
+     * @param iteration current iteration
+     * @param variable variable to be unassigned
+     * @param value target value
+     * @return previous assignment of the variable, null if it was not assigned
+     **/
+    public T unassign(long iteration, V variable, T value);
+    
+    /**
      * Number of assigned variables in this assignment.
      * Replacement for {@link Model#nrAssignedVariables()}.
      * @return number of assigned variables in this assignment

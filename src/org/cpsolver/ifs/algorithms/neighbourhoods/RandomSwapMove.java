@@ -196,7 +196,7 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
         @Override
         public void assign(Assignment<V, T> assignment, long iteration) {
             for (T value: iAssignments)
-                assignment.unassign(iteration, value.variable());
+                assignment.unassign(iteration, value.variable(), value);
             for (T value: iAssignments)
                 assignment.assign(iteration, value);
         }

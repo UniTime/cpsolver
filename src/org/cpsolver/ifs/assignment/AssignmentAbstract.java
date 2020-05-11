@@ -106,6 +106,7 @@ public abstract class AssignmentAbstract<V extends Variable<V, T>, T extends Val
         // unassign old value, if assigned
         T old = getValueInternal(variable);
         if (old != null) {
+            if (old.equals(value)) return old;
             if (model != null)
                 model.beforeUnassigned(this, iteration, old);
             setValueInternal(iteration, variable, null);
@@ -146,6 +147,18 @@ public abstract class AssignmentAbstract<V extends Variable<V, T>, T extends Val
     @Override
     public T unassign(long iteration, V variable) {
         return assign(iteration, variable, null);
+    }
+    
+    @Override
+    public T unassign(long iteration, V variable, T value) {
+        T current = getValue(variable);
+        if (current == null && value == null) {
+            return current;
+        } else if (current != null && current.equals(value)) {
+            return current;
+        } else {
+            return assign(iteration, variable, null);
+        }
     }
     
     @Override
