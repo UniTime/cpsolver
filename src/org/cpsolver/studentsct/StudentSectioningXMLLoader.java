@@ -773,9 +773,9 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
      * @param bestEnrollments best enrollments
      */
     protected void assignBest(List<Enrollment> bestEnrollments) {
-        // Enrollments with a reservation must go first
+        // Enrollments with a reservation must go first, enrollments with an override go last
         for (Enrollment enrollment : bestEnrollments) {
-            if (enrollment.getReservation() == null) continue;
+            if (enrollment.getReservation() == null || enrollment.getReservation().isExpired()) continue;
             if (!enrollment.getStudent().isAvailable(enrollment)) {
                 sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
                 continue;
@@ -788,6 +788,18 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         }
         for (Enrollment enrollment : bestEnrollments) {
             if (enrollment.getReservation() != null) continue;
+            if (!enrollment.getStudent().isAvailable(enrollment)) {
+                sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
+                continue;
+            }
+            Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
+            if (conflicts.isEmpty())
+                getAssignment().assign(0, enrollment);
+            else
+                sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
+        }
+        for (Enrollment enrollment : bestEnrollments) {
+            if (enrollment.getReservation() == null || enrollment.getReservation().isExpired()) continue;
             if (!enrollment.getStudent().isAvailable(enrollment)) {
                 sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
                 continue;
@@ -808,9 +820,9 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
     protected void assignCurrent(List<Enrollment> currentEnrollments) {
         for (Request request : getModel().variables())
             getAssignment().unassign(0, request);
-        // Enrollments with a reservation must go first
+        // Enrollments with a reservation must go first, enrollments with an override go last
         for (Enrollment enrollment : currentEnrollments) {
-            if (enrollment.getReservation() == null) continue;
+            if (enrollment.getReservation() == null || enrollment.getReservation().isExpired()) continue;
             if (!enrollment.getStudent().isAvailable(enrollment)) {
                 sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
                 continue;
@@ -823,6 +835,18 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         }
         for (Enrollment enrollment : currentEnrollments) {
             if (enrollment.getReservation() != null) continue;
+            if (!enrollment.getStudent().isAvailable(enrollment)) {
+                sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
+                continue;
+            }
+            Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
+            if (conflicts.isEmpty())
+                getAssignment().assign(0, enrollment);
+            else
+                sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
+        }
+        for (Enrollment enrollment : currentEnrollments) {
+            if (enrollment.getReservation() == null || !enrollment.getReservation().isExpired()) continue;
             if (!enrollment.getStudent().isAvailable(enrollment)) {
                 sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
                 continue;
