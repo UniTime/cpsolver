@@ -378,7 +378,7 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
                 if (o != null) {
                     if (idx > 0 && iStat != null)
                         iStat.variableUnassigned(iteration, o, iDifferentAssignments.get(0));
-                    assignment.unassign(iteration, p.variable(), p);
+                    assignment.unassign(iteration, p.variable());
                 }
             }
             for (T p : iDifferentAssignments) {

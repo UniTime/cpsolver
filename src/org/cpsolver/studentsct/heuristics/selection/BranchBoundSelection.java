@@ -645,6 +645,8 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
          * @return true if can be left unassigned
          **/
         protected boolean canLeaveUnassigned(Request request) {
+            if (request instanceof CourseRequest && ((CourseRequest)request).getFixedValue() != null) return false;
+            if (request.isMPP() && iModel.getKeepInitialAssignments()) return false;
             return true;
         }
         

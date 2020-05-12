@@ -208,6 +208,22 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
             iStudent = student;
             iAssignment = assignment;
         }
+        
+        /**
+         * Check if the given conflicting enrollment can be unassigned
+         * @param conflict given enrollment
+         * @return if running MPP, do not unassign initial enrollments
+         */
+        public boolean canUnassign(Enrollment enrollment, Enrollment conflict, Assignment<Request, Enrollment> assignment) {
+            if (conflict.getRequest().isMPP() && conflict.equals(conflict.getRequest().getInitialAssignment())) return false;
+            if (conflict.getRequest().getStudent().hasMinCredit()) {
+                float credit = conflict.getRequest().getStudent().getAssignedCredit(assignment) - conflict.getCredit();
+                if (credit < conflict.getRequest().getStudent().getMinCredit()) return false;
+            }
+            if (!enrollment.getStudent().isPriority() && conflict.getStudent().isPriority()) return false;
+            if (!conflict.getRequest().isAlternative() && conflict.getRequest().getRequestPriority().isHigher(enrollment.getRequest())) return false;
+            return true;
+        }
 
         /**
          * The actual selection
@@ -243,7 +259,7 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
                     values = ((CourseRequest) request).computeRandomEnrollments(iAssignment, iMaxValues);
                 } else
                     values = request.values(iAssignment);
-                for (Enrollment enrollment : values) {
+                values: for (Enrollment enrollment : values) {
                     if (iTimeout > 0 && (JProf.currentTimeMillis() - iT0) > iTimeout) {
                         if (!iTimeoutReached) {
                             if (sDebug)
@@ -259,8 +275,10 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
                         continue;
                     
                     double bound = enrollment.toDouble(iAssignment);
-                    for (Enrollment conflict: conflicts)
+                    for (Enrollment conflict: conflicts) {
                         bound += conflict.variable().getBound();
+                        if (!canUnassign(enrollment, conflict, iAssignment)) continue values;
+                    }
                     if (iBestEnrollment != null && bound >= iBestValue)
                         continue;
                     

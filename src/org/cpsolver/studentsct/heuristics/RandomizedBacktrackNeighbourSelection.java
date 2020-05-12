@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.heuristics.BacktrackNeighbourSelection;
@@ -114,5 +115,28 @@ public class RandomizedBacktrackNeighbourSelection extends BacktrackNeighbourSel
         } else {
             return variable.computeEnrollments(context.getAssignment()).iterator();
         }
+    }
+    
+    /**
+     * Check if the given conflicting enrollment can be unassigned
+     * @param conflict given enrollment
+     * @return if running MPP, do not unassign initial enrollments
+     */
+    public boolean canUnassign(Enrollment enrollment, Enrollment conflict, Assignment<Request, Enrollment> assignment) {
+        if (conflict.getRequest().isMPP() && conflict.equals(conflict.getRequest().getInitialAssignment())) return false;
+        if (conflict.getRequest().getStudent().hasMinCredit()) {
+            float credit = conflict.getRequest().getStudent().getAssignedCredit(assignment) - conflict.getCredit();
+            if (credit < conflict.getRequest().getStudent().getMinCredit()) return false;
+        }
+        if (!enrollment.getStudent().isPriority() && conflict.getStudent().isPriority()) return false;
+        if (!conflict.getRequest().isAlternative() && conflict.getRequest().getRequestPriority().isHigher(enrollment.getRequest())) return false;
+        return true;
+    }
+    
+    @Override
+    protected boolean checkBound(List<Request> variables2resolve, int idx, int depth, Enrollment value, Set<Enrollment> conflicts) {
+        for (Enrollment conflict: conflicts)
+            if (!canUnassign(value, conflict, getContext().getAssignment())) return false;
+        return super.checkBound(variables2resolve, idx, depth, value, conflicts);
     }
 }
