@@ -215,7 +215,9 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
          * @return if running MPP, do not unassign initial enrollments
          */
         public boolean canUnassign(Enrollment enrollment, Enrollment conflict, Assignment<Request, Enrollment> assignment) {
-            if (conflict.getRequest().isMPP() && conflict.equals(conflict.getRequest().getInitialAssignment())) return false;
+            if (conflict.getRequest().isMPP() && conflict.equals(conflict.getRequest().getInitialAssignment()) && 
+                    !enrollment.equals(enrollment.getRequest().getInitialAssignment())) return false;
+            if (conflict.getRequest() instanceof CourseRequest && ((CourseRequest)conflict.getRequest()).getFixedValue() != null) return false;
             if (conflict.getRequest().getStudent().hasMinCredit()) {
                 float credit = conflict.getRequest().getStudent().getAssignedCredit(assignment) - conflict.getCredit();
                 if (credit < conflict.getRequest().getStudent().getMinCredit()) return false;
