@@ -405,7 +405,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                 continue;
             boolean notAvailable = false;
             for (InstructorConstraint ic : getInstructorConstraints()) {
-                if (!ic.isAvailable(this, timeLocation)) {
+                if (!ic.isAvailable(this, timeLocation) && ic.isHard()) {
                     notAvailable = true;
                     break;
                 }

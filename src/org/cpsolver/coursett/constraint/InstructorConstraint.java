@@ -102,7 +102,7 @@ public class InstructorConstraint extends ConstraintWithContext<Lecture, Placeme
         return true;
     }
     
-    private DistanceMetric getDistanceMetric() {
+    protected DistanceMetric getDistanceMetric() {
         return ((TimetableModel)getModel()).getDistanceMetric();
     }
 

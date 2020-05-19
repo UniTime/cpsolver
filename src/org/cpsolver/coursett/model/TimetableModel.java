@@ -38,6 +38,7 @@ import org.cpsolver.coursett.criteria.TimePreferences;
 import org.cpsolver.coursett.criteria.TimeViolations;
 import org.cpsolver.coursett.criteria.TooBigRooms;
 import org.cpsolver.coursett.criteria.UselessHalfHours;
+import org.cpsolver.coursett.criteria.additional.InstructorConflict;
 import org.cpsolver.coursett.criteria.placement.DeltaTimePreference;
 import org.cpsolver.coursett.criteria.placement.HardConflicts;
 import org.cpsolver.coursett.criteria.placement.PotentialHardConflicts;
@@ -154,6 +155,10 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
             } catch (Exception e) {
                 sLogger.error("Unable to use " + criterion + ": " + e.getMessage());
             }
+        }
+        if (properties.getPropertyBoolean("General.SoftInstructorConstraints", false)) {
+            InstructorConflict ic = new InstructorConflict(); ic.configure(properties);
+            addCriterion(ic);
         }
         try {
             String studentSectioningClassName = properties.getProperty("StudentSectioning.Class", DefaultStudentSectioning.class.getName());

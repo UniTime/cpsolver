@@ -28,6 +28,7 @@ import org.cpsolver.coursett.constraint.InstructorConstraint;
 import org.cpsolver.coursett.constraint.MinimizeNumberOfUsedGroupsOfTime;
 import org.cpsolver.coursett.constraint.MinimizeNumberOfUsedRoomsConstraint;
 import org.cpsolver.coursett.constraint.RoomConstraint;
+import org.cpsolver.coursett.constraint.SoftInstructorConstraint;
 import org.cpsolver.coursett.constraint.SpreadConstraint;
 import org.cpsolver.coursett.model.Configuration;
 import org.cpsolver.coursett.model.Lecture;
@@ -472,7 +473,7 @@ public class TimetableXMLSaver extends TimetableSaver {
         }
 
         for (InstructorConstraint ic : getModel().getInstructorConstraints()) {
-            if (iShowNames || ic.isIgnoreDistances()) {
+            if (iShowNames || ic.isIgnoreDistances() || ic instanceof SoftInstructorConstraint) {
                 Element instrEl = instructorsEl.addElement("instructor").addAttribute("id",
                         getId("inst", ic.getResourceId()));
                 if (iShowNames) {
@@ -485,6 +486,7 @@ public class TimetableXMLSaver extends TimetableSaver {
                 if (ic.isIgnoreDistances()) {
                     instrEl.addAttribute("ignDist", "true");
                 }
+                if (ic instanceof SoftInstructorConstraint) instrEl.addAttribute("soft", "true");
             }
             if (ic.getUnavailabilities() != null) {
                 for (Placement placement: ic.getUnavailabilities()) {

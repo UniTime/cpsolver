@@ -26,6 +26,7 @@ import org.cpsolver.coursett.constraint.JenrlConstraint;
 import org.cpsolver.coursett.constraint.MinimizeNumberOfUsedGroupsOfTime;
 import org.cpsolver.coursett.constraint.MinimizeNumberOfUsedRoomsConstraint;
 import org.cpsolver.coursett.constraint.RoomConstraint;
+import org.cpsolver.coursett.constraint.SoftInstructorConstraint;
 import org.cpsolver.coursett.constraint.SpreadConstraint;
 import org.cpsolver.coursett.constraint.FlexibleConstraint.FlexibleConstraintType;
 import org.cpsolver.coursett.model.Configuration;
@@ -318,10 +319,18 @@ public class TimetableXMLLoader extends TimetableLoader {
         if (root.element("instructors") != null) {
             for (Iterator<?> i = root.element("instructors").elementIterator("instructor"); i.hasNext();) {
                 Element instructorEl = (Element) i.next();
-                InstructorConstraint instructorConstraint = new InstructorConstraint(Long.valueOf(instructorEl
+                InstructorConstraint instructorConstraint = null;
+                if ("true".equalsIgnoreCase(instructorEl.attributeValue("soft", "false"))) {
+                    instructorConstraint = new SoftInstructorConstraint(Long.valueOf(instructorEl
+                            .attributeValue("id")), instructorEl.attributeValue("puid"), (instructorEl
+                            .attributeValue("name") != null ? instructorEl.attributeValue("name") : "i"
+                            + instructorEl.attributeValue("id")), "true".equals(instructorEl.attributeValue("ignDist")));
+                } else {
+                    instructorConstraint = new InstructorConstraint(Long.valueOf(instructorEl
                         .attributeValue("id")), instructorEl.attributeValue("puid"), (instructorEl
                         .attributeValue("name") != null ? instructorEl.attributeValue("name") : "i"
                         + instructorEl.attributeValue("id")), "true".equals(instructorEl.attributeValue("ignDist")));
+                }
                 if (instructorEl.attributeValue("type") != null)
                     instructorConstraint.setType(Long.valueOf(instructorEl.attributeValue("type")));
                 instructorConstraints.put(instructorEl.attributeValue("id"), instructorConstraint);
