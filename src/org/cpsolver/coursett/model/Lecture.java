@@ -102,7 +102,6 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     public boolean iCommitted = false;
 
     public static boolean sSaveMemory = false;
-    public static boolean sAllowBreakHard = false;
     private int iMaxRoomCombinations = -1;
 
     private Integer iCacheMinRoomSize = null;
@@ -415,7 +414,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
             if (iNrRooms == 0) {
                 Placement p = new Placement(this, timeLocation, (RoomLocation) null);
                 for (InstructorConstraint ic : getInstructorConstraints()) {
-                    if (!ic.isAvailable(this, p)) {
+                    if (!ic.isAvailable(this, p) && ic.isHard()) {
                         notAvailable = true;
                         break;
                     }
@@ -494,7 +493,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     public void clearValueCache() {
         super.setValues(null);
     }
-
+    
     /** All values */
     @Override
     public List<Placement> values(Assignment<Lecture, Placement> assignment) {
@@ -505,11 +504,11 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                 setValues(values);
                 return values;
             } else if (isCacheDomain()) {
-                List<Placement> values = computeValues(null, sAllowBreakHard); 
+                List<Placement> values = computeValues(null, allowBreakHard()); 
                 setValues(values);
                 return values;
             } else {
-                return computeValues(assignment, sAllowBreakHard);
+                return computeValues(assignment, allowBreakHard());
             }
         } else {
             return super.values(assignment);
@@ -1035,7 +1034,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     }
 
     public boolean allowBreakHard() {
-        return sAllowBreakHard;
+        return (getModel() == null ? false : ((TimetableModel)getModel()).isAllowBreakHard());
     }
 
     public int getNrRooms() {

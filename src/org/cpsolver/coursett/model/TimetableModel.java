@@ -97,6 +97,7 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
     private List<BitSet> iWeeks = null;
     private boolean iOnFlySectioning = false;
     private int iStudentWorkDayLimit = -1;
+    private boolean iAllowBreakHard = false;
 
     private HashSet<Student> iAllStudents = new HashSet<Student>();
     
@@ -114,6 +115,7 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
             addModelListener(new OnFlySectioning(this)); iOnFlySectioning = true;
         }
         iStudentWorkDayLimit = properties.getPropertyInt("StudentConflict.WorkDayLimit", -1);
+        iAllowBreakHard = properties.getPropertyBoolean("General.AllowBreakHard", false);
         String criteria = properties.getProperty("General.Criteria",
                 // Objectives
                 StudentConflict.class.getName() + ";" +
@@ -143,6 +145,10 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
         // Interactive mode -- count time / room violations
         if (properties.getPropertyBoolean("General.InteractiveMode", false))
             criteria += ";" + TimeViolations.class.getName() + ";" + RoomViolations.class.getName();
+        else if (properties.getPropertyBoolean("General.AllowProhibitedRooms", false)) {
+            criteria += ";" + RoomViolations.class.getName();
+            iAllowBreakHard = true;
+        }
         // Additional (custom) criteria
         criteria += ";" + properties.getProperty("General.AdditionalCriteria", "");
         for (String criterion: criteria.split("\\;")) {
@@ -657,4 +663,6 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
         }
         super.restoreBest(assignment);
     }
+    
+    public boolean isAllowBreakHard() { return iAllowBreakHard; }
 }

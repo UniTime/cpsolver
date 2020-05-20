@@ -494,7 +494,7 @@ public class Placement extends Value<Lecture, Placement> {
         if (!lecture.isValid(this))
             return false;
         for (InstructorConstraint ic : lecture.getInstructorConstraints()) {
-            if (!ic.isAvailable(lecture, this))
+            if (!ic.isAvailable(lecture, this) && ic.isHard())
                 return false;
         }
         if (lecture.getNrRooms() > 0) {
@@ -521,7 +521,7 @@ public class Placement extends Value<Lecture, Placement> {
         if (reason != null)
             return reason;
         for (InstructorConstraint ic : lecture.getInstructorConstraints()) {
-            if (!ic.isAvailable(lecture, this)) {
+            if (!ic.isAvailable(lecture, this) && ic.isHard()) {
                 if (!ic.isAvailable(lecture, getTimeLocation())) {
                     for (Placement c: ic.getUnavailabilities()) {
                         if (c.getTimeLocation().hasIntersection(getTimeLocation()) && !lecture.canShareRoom(c.variable()))
