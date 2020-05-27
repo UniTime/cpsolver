@@ -631,6 +631,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         r.setCanAssignOverLimit("true".equals(reservationEl.attributeValue("canAssignOverLimit", r.canAssignOverLimit() ? "true" : "false")));
         r.setAllowDisabled("true".equals(reservationEl.attributeValue("allowDisabled", r.isAllowDisabled() ? "true" : "false")));
         r.setNeverIncluded("true".equals(reservationEl.attributeValue("neverIncluded", "false")));
+        r.setBreakLinkedSections("true".equals(reservationEl.attributeValue("breakLinkedSections", "false")));
         return r;
     }
     

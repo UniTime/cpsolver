@@ -87,6 +87,9 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
     
     /** No enrollment is matching this reservation when set to true */
     private boolean iNeverIncluded = false;
+    
+    /** Can break linked-sections constraint */
+    private boolean iBreakLinkedSections = false;
 
     
     /**
@@ -561,6 +564,17 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
      * No enrollment is matching this reservation when set to true
      */
     public void setNeverIncluded(boolean neverIncluded) { iNeverIncluded = neverIncluded; }
+    
+    /**
+     * Can break linked-section constraints when set to true
+     */
+    public boolean canBreakLinkedSections() { return iBreakLinkedSections; }
+    
+    /**
+     * Can break linked-section constraints when set to true
+     */
+    public void setBreakLinkedSections(boolean breakLinkedSections) { iBreakLinkedSections = breakLinkedSections; }
+    
     
     @Override
     public Model<Request, Enrollment> getModel() {

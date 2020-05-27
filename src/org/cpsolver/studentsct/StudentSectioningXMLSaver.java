@@ -539,6 +539,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         reservationEl.addAttribute("canAssignOverLimit", reservation.canAssignOverLimit() ? "true" : "false");
         reservationEl.addAttribute("allowDisabled", reservation.isAllowDisabled() ? "true" : "false");
         if (reservation.neverIncluded()) reservationEl.addAttribute("neverIncluded", "true");
+        if (reservation.canBreakLinkedSections()) reservationEl.addAttribute("breakLinkedSections", "true");
         for (Config config: reservation.getConfigs())
             reservationEl.addElement("config").addAttribute("id", getId("config", config.getId()));
         for (Map.Entry<Subpart, Set<Section>> entry: reservation.getSections().entrySet()) {

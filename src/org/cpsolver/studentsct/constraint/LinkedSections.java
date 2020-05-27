@@ -174,6 +174,7 @@ public class LinkedSections {
      */
     public void computeConflicts(Enrollment enrollment, EnrollmentAssignment assignment, ConflictHandler conflicts) {
         if (enrollment == null || enrollment.getCourse() == null) return;
+        if (enrollment.getReservation() != null && enrollment.getReservation().canBreakLinkedSections()) return;
         Map<Subpart, Set<Section>> subparts = iSections.get(enrollment.getCourse().getOffering());
         if (subparts == null || subparts.isEmpty()) return;
         boolean match = false, partial = false;
@@ -204,6 +205,7 @@ public class LinkedSections {
                 if (request.equals(enrollment.getRequest())) continue; // given enrollment
                 Enrollment otherEnrollment = assignment.getEnrollment(request, i);
                 if (otherEnrollment == null || otherEnrollment.getCourse() == null) continue; // not assigned or not course request
+                if (otherEnrollment.getReservation() != null && otherEnrollment.getReservation().canBreakLinkedSections()) continue;
                 Map<Subpart, Set<Section>> otherSubparts = iSections.get(otherEnrollment.getCourse().getOffering());
                 if (otherSubparts == null || otherSubparts.isEmpty()) continue; // offering is not in the link
                 boolean otherMatch = false, otherPartial = false;
@@ -226,6 +228,7 @@ public class LinkedSections {
                 if (request.equals(enrollment.getRequest())) continue; // given enrollment
                 Enrollment otherEnrollment = assignment.getEnrollment(request, i);
                 if (otherEnrollment == null || otherEnrollment.getCourse() == null) continue; // not assigned or not course request
+                if (otherEnrollment.getReservation() != null && otherEnrollment.getReservation().canBreakLinkedSections()) continue;
                 Map<Subpart, Set<Section>> otherSubparts = iSections.get(otherEnrollment.getCourse().getOffering());
                 if (otherSubparts == null || otherSubparts.isEmpty()) continue; // offering is not in the link
                 boolean otherMatch = false, otherPartial = false;
