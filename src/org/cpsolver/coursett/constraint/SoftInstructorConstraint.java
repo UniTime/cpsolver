@@ -121,6 +121,8 @@ public class SoftInstructorConstraint extends InstructorConstraint {
             Placement current = assignment.getValue(lecture);
             BitSet weekCode = placement.getTimeLocation().getWeekCode();
             
+            if (!isAvailable(lecture, placement)) return true;
+            
             for (Enumeration<Integer> e = placement.getTimeLocation().getSlots(); e.hasMoreElements();) {
                 int slot = e.nextElement();
                 for (Placement p : getPlacements(slot)) {
