@@ -76,6 +76,7 @@ public class PriorityStudentWeights implements StudentWeights {
     protected boolean iLeftoverSpread = false;
     protected double iBalancingFactor = 0.0050;
     protected double iNoTimeFactor = 0.0100;
+    protected double iOnlineFactor = 0.0100;
     protected double iReservationNotFollowedFactor = 0.1000;
     protected double iAlternativeRequestFactor = 0.1260;
     protected double iProjectedStudentWeight = 0.0100;
@@ -115,6 +116,7 @@ public class PriorityStudentWeights implements StudentWeights {
         iGroupBestRatio = config.getPropertyDouble("StudentWeights.GroupBestRatio", iGroupBestRatio);
         iGroupFillRatio = config.getPropertyDouble("StudentWeights.GroupFillRatio", iGroupFillRatio);
         iNoTimeFactor = config.getPropertyDouble("StudentWeights.NoTimeFactor", iNoTimeFactor);
+        iOnlineFactor = config.getPropertyDouble("StudentWeights.OnlineFactor", iOnlineFactor);
         iReservationNotFollowedFactor = config.getPropertyDouble("StudentWeights.ReservationNotFollowedFactor", iReservationNotFollowedFactor);
         iAdditiveWeights = config.getPropertyBoolean("StudentWeights.AdditiveWeights", iAdditiveWeights);
         iMaximizeAssignment = config.getPropertyBoolean("StudentWeights.MaximizeAssignment", iMaximizeAssignment);
@@ -282,6 +284,15 @@ public class PriorityStudentWeights implements StudentWeights {
             if (noTimeSections > 0)
                 weight *= (1.0 - iNoTimeFactor * noTimeSections / total);
         }
+        if (enrollment.isCourseRequest() && iOnlineFactor != 0.0) {
+            int onlineSections = 0, total = 0;
+            for (Section section: enrollment.getSections()) {
+                if (section.isOnline()) onlineSections ++;
+                total ++;
+            }
+            if (onlineSections > 0)
+                weight *= (1.0 - iOnlineFactor * onlineSections / total);
+        }
         if (enrollment.getTruePriority() < enrollment.getPriority()) {
             weight *= (1.0 - iReservationNotFollowedFactor);
         }
@@ -344,6 +355,15 @@ public class PriorityStudentWeights implements StudentWeights {
             }
             if (noTimeSections > 0)
                 weight += iNoTimeFactor * noTimeSections / total;
+        }
+        if (enrollment.isCourseRequest() && iOnlineFactor != 0.0) {
+            int onlineSections = 0, total = 0;
+            for (Section section: enrollment.getSections()) {
+                if (section.isOnline()) onlineSections ++;
+                total ++;
+            }
+            if (onlineSections > 0)
+                weight += iOnlineFactor * onlineSections / total;
         }
         if (enrollment.getTruePriority() < enrollment.getPriority()) {
             weight += iReservationNotFollowedFactor;

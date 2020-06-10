@@ -70,7 +70,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     private double iSpaceHeld = 0.0;
     private String iNote = null;
     private Set<Long> iIgnoreConflictsWith = null;
-    private boolean iCancelled = false, iEnabled = true;
+    private boolean iCancelled = false, iEnabled = true, iOnline = false;
     private List<Unavailability> iUnavailabilities = new ArrayList<Unavailability>();
 
     /**
@@ -765,6 +765,18 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
      * @param enabled true if the class is enabled for student scheduling
      */
     public void setEnabled(boolean enabled) { iEnabled = enabled; }
+    
+    /**
+     * Return whether the class is online.
+     * @retrun true if the class is online
+     */
+    public boolean isOnline() { return iOnline; }
+    
+    /**
+     * Set whether the class is online.
+     * @param online true if the class is online
+     */
+    public void setOnline(boolean online) { iOnline = online; }
     
     @Override
     public Model<Request, Enrollment> getModel() {

@@ -1367,6 +1367,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         private double iAssignedSameSectionWeight = 0.0, iAssignedSameChoiceWeight = 0.0, iAssignedSameTimeWeight = 0.0;
         private double iAssignedSelectedSectionWeight = 0.0, iAssignedSelectedConfigWeight = 0.0;
         private double iAssignedNoTimeSectionWeight = 0.0;
+        private double iAssignedOnlineSectionWeight = 0.0;
         private int iNrCompletePriorityStudents = 0;
         private double iAssignedPriorityCRWeight = 0.0;
         
@@ -1385,6 +1386,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             iAssignedSelectedSectionWeight = parent.iAssignedSelectedSectionWeight;
             iAssignedSelectedConfigWeight = parent.iAssignedSelectedConfigWeight;
             iAssignedNoTimeSectionWeight = parent.iAssignedNoTimeSectionWeight;
+            iAssignedOnlineSectionWeight = parent.iAssignedOnlineSectionWeight;
             iNrCompletePriorityStudents = parent.iNrCompletePriorityStudents;
             iAssignedPriorityCRWeight = parent.iAssignedPriorityCRWeight;
             iAssignedCriticalCRWeight = new double[RequestPriority.values().length];
@@ -1456,10 +1458,15 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             }
             if (enrollment.isCourseRequest()) {
                 int noTime = 0;
-                for (Section section: enrollment.getSections())
+                int online = 0;
+                for (Section section: enrollment.getSections()) {
                     if (section.getTime() == null) noTime ++;
+                    if (section.isOnline()) online ++;
+                }
                 if (noTime > 0)
                     iAssignedNoTimeSectionWeight += enrollment.getRequest().getWeight() * noTime / enrollment.getSections().size();
+                if (online > 0)
+                    iAssignedOnlineSectionWeight += enrollment.getRequest().getWeight() * online / enrollment.getSections().size();
             }
         }
 
@@ -1513,10 +1520,15 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             }
             if (enrollment.isCourseRequest()) {
                 int noTime = 0;
-                for (Section section: enrollment.getSections())
+                int online = 0;
+                for (Section section: enrollment.getSections()) {
                     if (section.getTime() == null) noTime ++;
+                    if (section.isOnline()) online ++;
+                }
                 if (noTime > 0)
                     iAssignedNoTimeSectionWeight -= enrollment.getRequest().getWeight() * noTime / enrollment.getSections().size();
+                if (online > 0)
+                    iAssignedOnlineSectionWeight -= enrollment.getRequest().getWeight() * online / enrollment.getSections().size();
             }
         }
         
@@ -1618,6 +1630,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             iTotalMPPCRWeight = 0.0;
             iTotalSelCRWeight = 0.0;
             iAssignedNoTimeSectionWeight = 0.0;
+            iAssignedOnlineSectionWeight = 0.0;
             for (Request request: variables()) {
                 boolean cr = (request instanceof CourseRequest);
                 if (cr && !request.isAlternative())
@@ -1668,10 +1681,15 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                     }
                     if (cr) {
                         int noTime = 0;
-                        for (Section section: e.getSections())
+                        int online = 0;
+                        for (Section section: e.getSections()) {
                             if (section.getTime() == null) noTime ++;
+                            if (section.isOnline()) online ++;
+                        }
                         if (noTime > 0)
                             iAssignedNoTimeSectionWeight += request.getWeight() * noTime / e.getSections().size();
+                        if (online > 0)
+                            iAssignedOnlineSectionWeight += request.getWeight() * online / e.getSections().size();
                     }
                 }
             }
@@ -1715,6 +1733,9 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 }
                 if (iAssignedNoTimeSectionWeight > 0.0) {
                     info.put("Using classes w/o time", sDecimalFormat.format(100.0 * iAssignedNoTimeSectionWeight / iAssignedCRWeight) + "% (" + sDecimalFormat.format(iAssignedNoTimeSectionWeight) + ")"); 
+                }
+                if (iAssignedOnlineSectionWeight > 0.0) {
+                    info.put("Using online classes", sDecimalFormat.format(100.0 * iAssignedOnlineSectionWeight / iAssignedCRWeight) + "% (" + sDecimalFormat.format(iAssignedOnlineSectionWeight) + ")"); 
                 }
             }
             if (iTotalPriorityCRWeight > 0.0) {

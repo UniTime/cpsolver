@@ -521,6 +521,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         section.setSpaceExpected(Double.parseDouble(sectionEl.attributeValue("expect", "0.0")));
         section.setCancelled("true".equalsIgnoreCase(sectionEl.attributeValue("cancelled", "false")));
         section.setEnabled("true".equalsIgnoreCase(sectionEl.attributeValue("enabled", "true")));
+        section.setOnline("true".equalsIgnoreCase(sectionEl.attributeValue("online", "false")));
         for (Iterator<?> m = sectionEl.elementIterator("cname"); m.hasNext(); ) {
             Element cNameEl = (Element)m.next();
             section.setName(Long.parseLong(cNameEl.attributeValue("id")), cNameEl.getText());

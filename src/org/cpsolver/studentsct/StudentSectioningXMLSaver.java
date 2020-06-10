@@ -403,6 +403,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
             sectionEl.addAttribute("cancelled", "true");
         if (!section.isEnabled())
             sectionEl.addAttribute("enabled", "false");
+        if (section.isOnline())
+            sectionEl.addAttribute("online", "true");
         if (iShowNames && section.getNameByCourse() != null)
             for (Map.Entry<Long, String> entry: section.getNameByCourse().entrySet())
                 sectionEl.addElement("cname").addAttribute("id", getId("course", entry.getKey())).setText(entry.getValue());

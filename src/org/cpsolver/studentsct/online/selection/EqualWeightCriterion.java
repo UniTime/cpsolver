@@ -325,23 +325,34 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
             }            
         }
 
-        // 6. avoid no-time sections
+        // 6. avoid no-time and online sections (no-time first, online second)
         int bestNoTime = 0, currentNoTime = 0;
+        int bestOnline = 0, currentOnline = 0;
         for (int idx = 0; idx < current.length; idx++) {
             if (best[idx] != null && best[idx].getAssignments() != null) {
-                for (Section section : best[idx].getSections())
+                for (Section section : best[idx].getSections()) {
                     if (section.getTime() == null)
                         bestNoTime++;
+                    if (section.isOnline())
+                        bestOnline++;
+                }
             }
             if (current[idx] != null && current[idx].getAssignments() != null) {
-                for (Section section : current[idx].getSections())
+                for (Section section : current[idx].getSections()) {
                     if (section.getTime() == null)
                         currentNoTime++;
+                    if (section.isOnline())
+                        currentOnline++;
+                }
             }
         }
         if (currentNoTime < bestNoTime)
             return -1;
         if (bestNoTime < currentNoTime)
+            return 1;
+        if (currentOnline < bestOnline)
+            return -1;
+        if (bestOnline < currentOnline)
             return 1;
 
         // 7. balance sections
@@ -709,23 +720,34 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
             }
         }
 
-        // 6. avoid no-time sections
+        // 6. avoid no-time and online sections (no-time first, online second)
         int bestNoTime = 0, currentNoTime = 0;
+        int bestOnline = 0, currentOnline = 0;
         for (int idx = 0; idx < current.length; idx++) {
             if (best[idx] != null) {
-                for (Section section : best[idx].getSections())
+                for (Section section : best[idx].getSections()) {
                     if (section.getTime() == null)
                         bestNoTime++;
+                    if (section.isOnline())
+                        bestOnline++;
+                }
             }
             if (current[idx] != null && idx < maxIdx) {
-                for (Section section : current[idx].getSections())
+                for (Section section : current[idx].getSections()) {
                     if (section.getTime() == null)
                         currentNoTime++;
+                    if (section.isOnline())
+                        currentOnline++;
+                }
             }
         }
         if (currentNoTime < bestNoTime)
             return true;
         if (bestNoTime < currentNoTime)
+            return false;
+        if (currentOnline < bestOnline)
+            return true;
+        if (bestOnline < currentOnline)
             return false;
 
         // 7. balance sections
