@@ -725,6 +725,7 @@ public class CourseRequest extends Request {
         if (iRequiredChoices.isEmpty()) return true;
         boolean hasConfig = false, hasMatchingConfig = false;
         boolean hasSubpart = false, hasMatchingSection = false;
+        boolean hasSectionReq = false;
         for (Choice choice: iRequiredChoices) {
             // different offering -> skip
             if (!choice.getOffering().equals(section.getSubpart().getConfig().getOffering())) continue;
@@ -734,13 +735,18 @@ public class CourseRequest extends Request {
                 if (choice.sameConfiguration(section)) hasMatchingConfig = true;
             }
             // has section of the matching subpart -> check section
-            if (choice.getSubpartId() != null && choice.getSubpartId().equals(section.getSubpart().getId())) {
-                hasSubpart = true;
-                if (choice.sameSection(section)) hasMatchingSection = true;
+            if (choice.getSubpartId() != null) {
+                hasSectionReq = true;
+                if (choice.getSubpartId().equals(section.getSubpart().getId())) {
+                    hasSubpart = true;
+                    if (choice.sameSection(section)) hasMatchingSection = true;
+                }
             }
         }
         if (hasConfig && !hasMatchingConfig) return false;
         if (hasSubpart && !hasMatchingSection) return false;
+        // no match, but there are section requirements for a different config -> not satisfied 
+        if (!hasMatchingConfig && !hasMatchingSection && hasSectionReq) return false;
         return true;
     }
 
