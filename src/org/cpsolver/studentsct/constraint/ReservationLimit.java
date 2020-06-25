@@ -7,7 +7,6 @@ import java.util.Set;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.model.GlobalConstraint;
 import org.cpsolver.ifs.util.DataProperties;
-import org.cpsolver.ifs.util.ToolBox;
 import org.cpsolver.studentsct.constraint.ConfigLimit.Adepts;
 import org.cpsolver.studentsct.model.Config;
 import org.cpsolver.studentsct.model.Enrollment;
@@ -63,6 +62,7 @@ import org.cpsolver.studentsct.reservation.Reservation;
 public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
     private static double sNominalWeight = 0.00001;
     private boolean iPreferDummyStudents = false;
+    private boolean iPreferPriorityStudents = true;
 
     /**
      * Constructor
@@ -73,6 +73,7 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
     public ReservationLimit(DataProperties cfg) {
         super();
         iPreferDummyStudents = cfg.getPropertyBoolean("ReservationLimit.PreferDummyStudents", false);
+        iPreferPriorityStudents = cfg.getPropertyBoolean("Sectioning.PriorityStudentsFirstSelection.AllIn", true);
     }
 
     
@@ -166,7 +167,7 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
                     
                     // pick adept (prefer dummy students), decrease unreserved space,
                     // make conflict
-                    Enrollment conflict = new Adepts(iPreferDummyStudents, adepts, assignment).get();
+                    Enrollment conflict = new Adepts(iPreferDummyStudents, iPreferPriorityStudents, adepts, assignment).get();
                     adepts.remove(conflict);
                     reserved += conflict.getRequest().getWeight();
                     conflicts.add(conflict);
@@ -213,7 +214,7 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
                         
                         // pick adept (prefer dummy students), decrease unreserved space,
                         // make conflict
-                        Enrollment conflict = new Adepts(iPreferDummyStudents, adepts, assignment).get();
+                        Enrollment conflict = new Adepts(iPreferDummyStudents, iPreferPriorityStudents, adepts, assignment).get();
                         adepts.remove(conflict);
                         unreserved += conflict.getRequest().getWeight();
                         conflicts.add(conflict);
@@ -257,7 +258,7 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
                     
                     // pick adept (prefer dummy students), decrease unreserved space,
                     // make conflict
-                    Enrollment conflict = new Adepts(iPreferDummyStudents, adepts, assignment).get();
+                    Enrollment conflict = new Adepts(iPreferDummyStudents, iPreferPriorityStudents, adepts, assignment).get();
                     adepts.remove(conflict);
                     unreserved += conflict.getRequest().getWeight();
                     conflicts.add(conflict);

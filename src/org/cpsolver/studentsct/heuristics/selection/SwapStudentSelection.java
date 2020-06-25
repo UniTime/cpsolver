@@ -101,6 +101,7 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
     private int iMaxValues = 100;
     public static boolean sDebug = false;
     protected StudentOrder iOrder = new StudentChoiceRealFirstOrder();
+    private boolean iPreferPriorityStudents = true;
     
     protected long iNbrIterations = 0;
     protected long iTotalTime = 0;
@@ -124,6 +125,7 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
                 sLog.error("Unable to set student order, reason:" + e.getMessage(), e);
             }
         }
+        iPreferPriorityStudents = properties.getPropertyBoolean("Sectioning.PriorityStudentsFirstSelection.AllIn", true);
     }
 
     /** Initialization */
@@ -222,8 +224,10 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
                 float credit = conflict.getRequest().getStudent().getAssignedCredit(assignment) - conflict.getCredit();
                 if (credit < conflict.getRequest().getStudent().getMinCredit()) return false;
             }
-            if (!enrollment.getStudent().isPriority() && conflict.getStudent().isPriority()) return false;
             if (!conflict.getRequest().isAlternative() && conflict.getRequest().getRequestPriority().isHigher(enrollment.getRequest())) return false;
+            if (iPreferPriorityStudents || conflict.getRequest().getRequestPriority().isSame(enrollment.getRequest())) {
+                if (!enrollment.getStudent().isPriority() && conflict.getStudent().isPriority()) return false;
+            }
             return true;
         }
 

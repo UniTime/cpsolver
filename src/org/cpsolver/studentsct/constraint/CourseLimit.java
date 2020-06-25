@@ -65,6 +65,7 @@ import org.cpsolver.studentsct.model.Request;
 public class CourseLimit extends GlobalConstraint<Request, Enrollment> {
     private static double sNominalWeight = 0.00001;
     private boolean iPreferDummyStudents = false;
+    private boolean iPreferPriorityStudents = true;
 
     /**
      * Constructor
@@ -75,6 +76,7 @@ public class CourseLimit extends GlobalConstraint<Request, Enrollment> {
     public CourseLimit(DataProperties cfg) {
         super();
         iPreferDummyStudents = cfg.getPropertyBoolean("CourseLimit.PreferDummyStudents", false);
+        iPreferPriorityStudents = cfg.getPropertyBoolean("Sectioning.PriorityStudentsFirstSelection.AllIn", true);
     }
 
 
@@ -163,7 +165,7 @@ public class CourseLimit extends GlobalConstraint<Request, Enrollment> {
             
             // pick adept (prefer dummy students), decrease unreserved space,
             // make conflict
-            Enrollment conflict = new Adepts(iPreferDummyStudents, adepts, assignment).get();
+            Enrollment conflict = new Adepts(iPreferDummyStudents, iPreferPriorityStudents, adepts, assignment).get();
             adepts.remove(conflict);
             enrlWeight -= conflict.getRequest().getWeight();
             conflicts.add(conflict);

@@ -7,7 +7,6 @@ import java.util.Set;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.model.GlobalConstraint;
 import org.cpsolver.ifs.util.DataProperties;
-import org.cpsolver.ifs.util.ToolBox;
 import org.cpsolver.studentsct.constraint.ConfigLimit.Adepts;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
@@ -71,6 +70,7 @@ import org.cpsolver.studentsct.reservation.Reservation;
 public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
     private static double sNominalWeight = 0.00001;
     private boolean iPreferDummyStudents = false;
+    private boolean iPreferPriorityStudents = true;
 
     /**
      * Constructor
@@ -81,6 +81,7 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
     public SectionLimit(DataProperties cfg) {
         super();
         iPreferDummyStudents = cfg.getPropertyBoolean("SectionLimit.PreferDummyStudents", false);
+        iPreferPriorityStudents = cfg.getPropertyBoolean("Sectioning.PriorityStudentsFirstSelection.AllIn", true);
     }
 
     /**
@@ -196,7 +197,7 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
                         
                         // pick adept (prefer dummy students), decrease unreserved space,
                         // make conflict
-                        Enrollment conflict = new Adepts(iPreferDummyStudents, adepts, assignment).get();
+                        Enrollment conflict = new Adepts(iPreferDummyStudents, iPreferPriorityStudents, adepts, assignment).get();
                         adepts.remove(conflict);
                         unreserved += conflict.getRequest().getWeight();
                         conflicts.add(conflict);
@@ -237,7 +238,7 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
                 
                 // pick adept (prefer dummy students & students w/o reservation), decrease enrollment
                 // weight, make conflict
-                Enrollment conflict = new Adepts(iPreferDummyStudents, adepts, assignment).get();
+                Enrollment conflict = new Adepts(iPreferDummyStudents, iPreferPriorityStudents, adepts, assignment).get();
                 adepts.remove(conflict);
                 enrlWeight -= conflict.getRequest().getWeight();
                 conflicts.add(conflict);

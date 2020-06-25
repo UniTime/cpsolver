@@ -298,5 +298,8 @@ public abstract class Request extends VariableWithContext<Request, Enrollment, R
         public boolean isHigher(Request r) {
             return ordinal() < r.getRequestPriority().ordinal();
         }
+        public boolean isSame(Request r) {
+            return ordinal() == r.getRequestPriority().ordinal();
+        }
     }
 }

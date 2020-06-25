@@ -63,6 +63,7 @@ import org.cpsolver.studentsct.model.Request;
  */
 public class RandomizedBacktrackNeighbourSelection extends BacktrackNeighbourSelection<Request, Enrollment> {
     private int iMaxValues = 100;
+    private boolean iPreferPriorityStudents = true;
 
     /**
      * Constructor
@@ -74,6 +75,7 @@ public class RandomizedBacktrackNeighbourSelection extends BacktrackNeighbourSel
     public RandomizedBacktrackNeighbourSelection(DataProperties properties) throws Exception {
         super(properties);
         iMaxValues = properties.getPropertyInt("Neighbour.MaxValues", iMaxValues);
+        iPreferPriorityStudents = properties.getPropertyBoolean("Sectioning.PriorityStudentsFirstSelection.AllIn", true);
     }
 
     /**
@@ -130,8 +132,10 @@ public class RandomizedBacktrackNeighbourSelection extends BacktrackNeighbourSel
             float credit = conflict.getRequest().getStudent().getAssignedCredit(assignment) - conflict.getCredit();
             if (credit < conflict.getRequest().getStudent().getMinCredit()) return false;
         }
-        if (!enrollment.getStudent().isPriority() && conflict.getStudent().isPriority()) return false;
         if (!conflict.getRequest().isAlternative() && conflict.getRequest().getRequestPriority().isHigher(enrollment.getRequest())) return false;
+        if (iPreferPriorityStudents || conflict.getRequest().getRequestPriority().isSame(enrollment.getRequest())) {
+            if (!enrollment.getStudent().isPriority() && conflict.getStudent().isPriority()) return false;
+        }
         return true;
     }
     

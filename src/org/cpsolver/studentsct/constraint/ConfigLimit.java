@@ -67,6 +67,7 @@ public class ConfigLimit extends GlobalConstraint<Request, Enrollment> {
     
     private static double sNominalWeight = 0.00001;
     private boolean iPreferDummyStudents = false;
+    private boolean iPreferPriorityStudents = true;
 
     /**
      * Constructor
@@ -77,6 +78,7 @@ public class ConfigLimit extends GlobalConstraint<Request, Enrollment> {
     public ConfigLimit(DataProperties cfg) {
         super();
         iPreferDummyStudents = cfg.getPropertyBoolean("ConfigLimit.PreferDummyStudents", false);
+        iPreferPriorityStudents = cfg.getPropertyBoolean("Sectioning.PriorityStudentsFirstSelection.AllIn", true);
     }
 
 
@@ -165,7 +167,7 @@ public class ConfigLimit extends GlobalConstraint<Request, Enrollment> {
             
             // pick adept (prefer dummy students & students w/o reservation), decrease enrollment
             // weight, make conflict
-            Enrollment conflict = new Adepts(iPreferDummyStudents, adepts, assignment).get();
+            Enrollment conflict = new Adepts(iPreferDummyStudents, iPreferPriorityStudents, adepts, assignment).get();
             adepts.remove(conflict);
             enrlWeight -= conflict.getRequest().getWeight();
             conflicts.add(conflict);
@@ -225,19 +227,23 @@ public class ConfigLimit extends GlobalConstraint<Request, Enrollment> {
         private RequestPriority iRequestPriority;
         private boolean iReservation;
         private boolean iConsiderDummy;
+        private boolean iPriorityFirst;
         
-        public Adepts(boolean preferDummy) {
+        public Adepts(boolean preferDummy, boolean priorityFirst) {
             iConsiderDummy = preferDummy;
+            iPriorityFirst = priorityFirst;
             iEnrollments = new ArrayList<Enrollment>();
         }
         
-        public Adepts(boolean preferDummy, int size) {
+        public Adepts(boolean preferDummy, boolean priorityFirst, int size) {
             iConsiderDummy = preferDummy;
+            iPriorityFirst = priorityFirst;
             iEnrollments = new ArrayList<Enrollment>(size);
         }
         
-        public Adepts(boolean preferDummy, Collection<Enrollment> adepts, Assignment<Request, Enrollment> assignment) {
+        public Adepts(boolean preferDummy, boolean priorityFirst, Collection<Enrollment> adepts, Assignment<Request, Enrollment> assignment) {
             iConsiderDummy = preferDummy;
+            iPriorityFirst = priorityFirst;
             iEnrollments = new ArrayList<Enrollment>(adepts.size());
             for (Enrollment adept: adepts)
                 add(adept, assignment);
@@ -261,19 +267,36 @@ public class ConfigLimit extends GlobalConstraint<Request, Enrollment> {
                 iEnrollments.add(enrollment);
                 return;
             }
-            if (iPriority != priority) { // different priority
-                if (priority) return; // ignore priority students
-                iEnrollments.clear();
-                iValue = value; iDummy = dummy; iPriority = priority; iRequestPriority = rp; iReservation = reservation;
-                iEnrollments.add(enrollment);
-                return;
-            }
-            if (iRequestPriority != rp) { // different request priority
-                if (rp.ordinal() < iRequestPriority.ordinal()) return; // ignore more critical courses
-                iEnrollments.clear();
-                iValue = value; iDummy = dummy; iPriority = priority; iRequestPriority = rp; iReservation = reservation;
-                iEnrollments.add(enrollment);
-                return;
+            if (iPriorityFirst) {
+                if (iPriority != priority) { // different priority
+                    if (priority) return; // ignore priority students
+                    iEnrollments.clear();
+                    iValue = value; iDummy = dummy; iPriority = priority; iRequestPriority = rp; iReservation = reservation;
+                    iEnrollments.add(enrollment);
+                    return;
+                }
+                if (iRequestPriority != rp) { // different request priority
+                    if (rp.ordinal() < iRequestPriority.ordinal()) return; // ignore more critical courses
+                    iEnrollments.clear();
+                    iValue = value; iDummy = dummy; iPriority = priority; iRequestPriority = rp; iReservation = reservation;
+                    iEnrollments.add(enrollment);
+                    return;
+                }
+            } else {
+                if (iRequestPriority != rp) { // different request priority
+                    if (rp.ordinal() < iRequestPriority.ordinal()) return; // ignore more critical courses
+                    iEnrollments.clear();
+                    iValue = value; iDummy = dummy; iPriority = priority; iRequestPriority = rp; iReservation = reservation;
+                    iEnrollments.add(enrollment);
+                    return;
+                }
+                if (iPriority != priority) { // different priority
+                    if (priority) return; // ignore priority students
+                    iEnrollments.clear();
+                    iValue = value; iDummy = dummy; iPriority = priority; iRequestPriority = rp; iReservation = reservation;
+                    iEnrollments.add(enrollment);
+                    return;
+                }
             }
             if (iReservation != reservation) { // different reservation
                 if (reservation) return; // ignore students with reservation

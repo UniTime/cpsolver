@@ -65,6 +65,7 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
     private ValueSelection<Request, Enrollment> iValueSelection = null;
     private VariableSelection<Request, Enrollment> iVariableSelection = null;
     protected long iNrIterations = -1;
+    private boolean iPreferPriorityStudents = true;
 
     /**
      * Constructor (variable and value selection are expected to be already
@@ -81,6 +82,7 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
             ValueSelection<Request, Enrollment> valueSelection) {
         iVariableSelection = variableSelection;
         iValueSelection = valueSelection;
+        iPreferPriorityStudents = properties.getPropertyBoolean("Sectioning.PriorityStudentsFirstSelection.AllIn", true);
     }
 
     /** Initialization */
@@ -110,8 +112,10 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
             float credit = conflict.getRequest().getStudent().getAssignedCredit(assignment) - conflict.getCredit();
             if (credit < conflict.getRequest().getStudent().getMinCredit()) return false;
         }
-        if (!enrollment.getStudent().isPriority() && conflict.getStudent().isPriority()) return false;
         if (!conflict.getRequest().isAlternative() && conflict.getRequest().getRequestPriority().isHigher(enrollment.getRequest())) return false;
+        if (iPreferPriorityStudents || conflict.getRequest().getRequestPriority().isSame(enrollment.getRequest())) {
+            if (!enrollment.getStudent().isPriority() && conflict.getStudent().isPriority()) return false;
+        }
         return true;
     }
 
