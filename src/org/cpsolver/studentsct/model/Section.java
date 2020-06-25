@@ -768,7 +768,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     
     /**
      * Return whether the class is online.
-     * @retrun true if the class is online
+     * @return true if the class is online
      */
     public boolean isOnline() { return iOnline; }
     
