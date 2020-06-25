@@ -8,6 +8,7 @@ import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.model.GlobalConstraint;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.ToolBox;
+import org.cpsolver.studentsct.constraint.ConfigLimit.Adepts;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.Section;
@@ -195,34 +196,7 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
                         
                         // pick adept (prefer dummy students), decrease unreserved space,
                         // make conflict
-                        List<Enrollment> best = new ArrayList<Enrollment>();
-                        boolean bestDummy = false;
-                        double bestValue = 0;
-                        for (Enrollment adept: adepts) {
-                            boolean dummy = adept.getStudent().isDummy();
-                            double value = adept.toDouble(assignment, false);
-                            
-                            if (iPreferDummyStudents && dummy != bestDummy) {
-                                if (dummy) {
-                                    best.clear();
-                                    best.add(adept);
-                                    bestDummy = dummy;
-                                    bestValue = value;
-                                }
-                                continue;
-                            }
-                            
-                            if (best.isEmpty() || value > bestValue) {
-                                if (best.isEmpty()) best.clear();
-                                best.add(adept);
-                                bestDummy = dummy;
-                                bestValue = value;
-                            } else if (bestValue == value) {
-                                best.add(adept);
-                            }
-                        }
-                        
-                        Enrollment conflict = ToolBox.random(best);
+                        Enrollment conflict = new Adepts(iPreferDummyStudents, adepts, assignment).get();
                         adepts.remove(conflict);
                         unreserved += conflict.getRequest().getWeight();
                         conflicts.add(conflict);
@@ -263,49 +237,7 @@ public class SectionLimit extends GlobalConstraint<Request, Enrollment> {
                 
                 // pick adept (prefer dummy students & students w/o reservation), decrease enrollment
                 // weight, make conflict
-                List<Enrollment> best = new ArrayList<Enrollment>();
-                boolean bestDummy = false;
-                double bestValue = 0;
-                boolean bestRes = true;
-                for (Enrollment adept: adepts) {
-                    boolean dummy = adept.getStudent().isDummy();
-                    double value = adept.toDouble(assignment, false);
-                    boolean res = hasSectionReservation(adept, section);
-                    
-                    if (iPreferDummyStudents && dummy != bestDummy) {
-                        if (dummy) {
-                            best.clear();
-                            best.add(adept);
-                            bestDummy = dummy;
-                            bestValue = value;
-                            bestRes = res;
-                        }
-                        continue;
-                    }
-                    
-                    if (bestRes != res) {
-                        if (!res) {
-                            best.clear();
-                            best.add(adept);
-                            bestDummy = dummy;
-                            bestValue = value;
-                            bestRes = res;
-                        }
-                        continue;
-                    }
-
-                    if (best.isEmpty() || value > bestValue) {
-                        if (best.isEmpty()) best.clear();
-                        best.add(adept);
-                        bestDummy = dummy;
-                        bestValue = value;
-                        bestRes = res;
-                    } else if (bestValue == value) {
-                        best.add(adept);
-                    }
-                }
-                
-                Enrollment conflict = ToolBox.random(best);
+                Enrollment conflict = new Adepts(iPreferDummyStudents, adepts, assignment).get();
                 adepts.remove(conflict);
                 enrlWeight -= conflict.getRequest().getWeight();
                 conflicts.add(conflict);
