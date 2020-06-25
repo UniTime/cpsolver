@@ -45,9 +45,13 @@ import org.cpsolver.studentsct.model.Request.RequestPriority;
 public class CriticalStandardSelection extends StandardSelection {
     private RequestPriority iPriority;
     
-    public CriticalStandardSelection(DataProperties properties, ValueSelection<Request, Enrollment> valueSelection, RequestPriority priority) {
-        super(properties, new UnassignedCriticalCourseRequestSelection(priority), valueSelection);
+    public CriticalStandardSelection(DataProperties properties, VariableSelection<Request, Enrollment> variableSelection, ValueSelection<Request, Enrollment> valueSelection, RequestPriority priority) {
+        super(properties, variableSelection, valueSelection);
         iPriority = priority;
+    }
+    
+    public CriticalStandardSelection(DataProperties properties, ValueSelection<Request, Enrollment> valueSelection, RequestPriority priority) {
+        this(properties, new UnassignedCriticalCourseRequestSelection(priority), valueSelection, priority);
     }
     
     public CriticalStandardSelection(DataProperties properties, ValueSelection<Request, Enrollment> valueSelection) {
