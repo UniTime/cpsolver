@@ -122,6 +122,7 @@ public class RoundRobinNeighbourSelection<V extends Variable<V, T>, T extends Va
             Progress progress = Progress.getInstance(iSolver.currentSolution().getModel());
             int newSelectionIndex = 1 + selectionIndex;
             if (newSelectionIndex <= iSelectionIdx) return; // already changed
+            if (selectionIndex == -1 && iSelectionIdx >= 0) return; // already changed
             iSelectionIdx = newSelectionIndex;
             if (selectionIndex >= 0) {
                 try {
