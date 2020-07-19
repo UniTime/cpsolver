@@ -1419,8 +1419,10 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         @Override
         public void assigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
             Student student = enrollment.getStudent();
-            if (student.isComplete(assignment))
-                iCompleteStudents.add(student);
+            if (student.isComplete(assignment) && iCompleteStudents.add(student)) {
+                if (student.isDummy()) iNrCompleteDummyStudents++;
+                if (student.isPriority()) iNrCompletePriorityStudents++;
+            }
             double value = enrollment.getRequest().getWeight() * iStudentWeights.getWeight(assignment, enrollment);
             iTotalValue -= value;
             enrollment.variable().getContext(assignment).setLastWeight(value);
@@ -1447,14 +1449,10 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 iNrAssignedDummyRequests++;
                 if (enrollment.isCourseRequest())
                     iAssignedDummyCRWeight += enrollment.getRequest().getWeight();
-                if (student.isComplete(assignment))
-                    iNrCompleteDummyStudents++;
             }
             if (student.isPriority()) {
                 if (enrollment.isCourseRequest())
                     iAssignedPriorityCRWeight += enrollment.getRequest().getWeight();
-                if (student.isComplete(assignment))
-                    iNrCompletePriorityStudents++;
             }
             if (enrollment.isCourseRequest()) {
                 int noTime = 0;
@@ -1477,7 +1475,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         @Override
         public void unassigned(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
             Student student = enrollment.getStudent();
-            if (iCompleteStudents.contains(student)) {
+            if (enrollment.isCourseRequest() && iCompleteStudents.contains(student)) {
                 iCompleteStudents.remove(student);
                 if (student.isDummy())
                     iNrCompleteDummyStudents--;
