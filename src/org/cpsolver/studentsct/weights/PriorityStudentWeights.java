@@ -436,7 +436,7 @@ public class PriorityStudentWeights implements StudentWeights {
     @Override
     public double getTimeOverlapConflictWeight(Assignment<Request, Enrollment> assignment, Enrollment e, TimeOverlapsCounter.Conflict c) {
         if (e == null || e.getRequest() == null) return 0.0;
-        double toc = Math.min(iTimeOverlapMaxLimit * c.getShare() / e.getNrSlots(), iTimeOverlapMaxLimit);
+        double toc = Math.min(iTimeOverlapFactor * c.getShare() / e.getNrSlots(), iTimeOverlapMaxLimit);
         if (iAdditiveWeights) {
             return round(getBaseWeight(assignment, e) * toc);
         } else {
