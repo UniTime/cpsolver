@@ -1760,7 +1760,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             }
             if (iTotalSelCRWeight > 0.0) {
                 info.put("Selection",sDoubleFormat.format(100.0 * (0.3 * iAssignedSelectedConfigWeight + 0.7 * iAssignedSelectedSectionWeight) / iTotalSelCRWeight) +
-                        "% (" + Math.round(0.3 * iAssignedSelectedSectionWeight + 0.7 * iAssignedSelectedSectionWeight) + "/" + Math.round(iTotalSelCRWeight) + ")");
+                        "% (" + Math.round(0.3 * iAssignedSelectedConfigWeight + 0.7 * iAssignedSelectedSectionWeight) + "/" + Math.round(iTotalSelCRWeight) + ")");
             }
         }
 
