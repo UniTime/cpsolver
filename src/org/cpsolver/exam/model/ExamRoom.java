@@ -44,6 +44,7 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
     private String iName;
     private int iSize, iAltSize;
     private Double iCoordX, iCoordY;
+    private boolean iHard = true;
 
     /**
      * Constructor
@@ -78,6 +79,11 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
             iPenalty[i] = 0;
         }
     }
+    
+    public void setHard(boolean hard) { iHard = hard; }
+    
+    @Override
+    public boolean isHard() { return iHard; }
     
     private Map<Long, Double> iDistanceCache = new HashMap<Long, Double>();
     /**
@@ -226,6 +232,7 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
      */
     @Override
     public void computeConflicts(Assignment<Exam, ExamPlacement> assignment, ExamPlacement p, Set<ExamPlacement> conflicts) {
+        if (!isHard()) return;
         if (!p.contains(this)) return;
         
         if (getRoomSharing() == null) {
@@ -243,6 +250,7 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
      */
     @Override
     public boolean inConflict(Assignment<Exam, ExamPlacement> assignment, ExamPlacement p) {
+        if (!isHard()) return false;
         if (!p.contains(this)) return false;
         
         if (getRoomSharing() == null) {
@@ -259,7 +267,7 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
      */
     @Override
     public boolean isConsistent(ExamPlacement p1, ExamPlacement p2) {
-        return (p1.getPeriod() != p2.getPeriod() || !p1.contains(this) || !p2.contains(this));
+        return !isHard() || (p1.getPeriod() != p2.getPeriod() || !p1.contains(this) || !p2.contains(this));
     }
 
     /**

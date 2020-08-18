@@ -571,6 +571,8 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
                 r.addAttribute("name", room.getName());
             r.addAttribute("size", String.valueOf(room.getSize()));
             r.addAttribute("alt", String.valueOf(room.getAltSize()));
+            if (!room.isHard())
+                r.addAttribute("hard", "false");
             if (room.getCoordX() != null && room.getCoordY() != null)
                 r.addAttribute("coordinates", room.getCoordX() + "," + room.getCoordY());
             for (ExamPeriod period : getPeriods()) {
@@ -868,6 +870,7 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
                     Integer.parseInt(e.attributeValue("size")), Integer.parseInt(e.attributeValue("alt")),
                     (coords == null ? null : Double.valueOf(coords.substring(0, coords.indexOf(',')))),
                     (coords == null ? null : Double.valueOf(coords.substring(coords.indexOf(',') + 1))));
+            room.setHard("true".equalsIgnoreCase(e.attributeValue("hard", "true")));
             addConstraint(room);
             getRooms().add(room);
             rooms.put(new Long(room.getId()), room);
