@@ -21,6 +21,7 @@ import org.cpsolver.studentsct.constraint.CourseLimit;
 import org.cpsolver.studentsct.constraint.LinkedSections;
 import org.cpsolver.studentsct.constraint.SectionLimit;
 import org.cpsolver.studentsct.reservation.Reservation;
+import org.cpsolver.studentsct.reservation.Restriction;
 
 
 /**
@@ -323,6 +324,7 @@ public class CourseRequest extends Request {
         if (limit > 0 && enrollments.size() >= limit)
             return;
         if (idx == 0) { // run only once for each configuration
+            if (isNotAllowed(course, config)) return;
             boolean canOverLimit = false;
             if (availableOnly) {
                 for (Reservation r: getReservations(course)) {
@@ -382,10 +384,11 @@ public class CourseRequest extends Request {
                     }
                 }
             }
-            if (!config.getOffering().hasReservations()) {
-                enrollments.add(new Enrollment(this, priority, null, config, new HashSet<SctAssignment>(sections), null));
+            Enrollment e = new Enrollment(this, priority, course, config, new HashSet<SctAssignment>(sections), null);
+            if (isNotAllowed(e)) {
+            } else if (!config.getOffering().hasReservations()) {
+                enrollments.add(e);
             } else {
-                Enrollment e = new Enrollment(this, priority, null, config, new HashSet<SctAssignment>(sections), null);
                 boolean mustHaveReservation = config.getOffering().getTotalUnreservedSpace() < getWeight();
                 boolean mustHaveConfigReservation = config.getTotalUnreservedSpace() < getWeight();
                 boolean mustHaveSectionReservation = false;
@@ -455,6 +458,8 @@ public class CourseRequest extends Request {
                 if (section.isOverlapping(sections))
                     continue;
                 if (selectedOnly && hasSelection(section) && !isSelected(section))
+                    continue;
+                if (isNotAllowed(course, section))
                     continue;
                 if (!getStudent().isAvailable(section)) {
                     boolean canOverlap = false;
@@ -996,6 +1001,75 @@ public class CourseRequest extends Request {
      */
     public synchronized void clearReservationCache() {
         if (iReservations != null) iReservations.clear();
+    }
+    
+    /**
+     * Get restrictions for this course requests
+     * @param course given course
+     * @return restrictions for this course requests and the given course
+     */
+    public synchronized List<Restriction> getRestrictions(Course course) {
+        if (iRestrictions == null)
+            iRestrictions = new HashMap<Course, List<Restriction>>();
+        List<Restriction> restrictions = iRestrictions.get(course);
+        if (restrictions == null) {
+            restrictions = new ArrayList<Restriction>();
+            for (Restriction r: course.getOffering().getRestrictions()) {
+                if (r.isApplicable(getStudent()))
+                    restrictions.add(r);
+            }
+            iRestrictions.put(course, restrictions);
+        }
+        return restrictions;
+    }
+    private Map<Course, List<Restriction>> iRestrictions = null;
+    
+    /**
+     * Return true if there is a restriction for a course of this request
+     * @return true if there is a restriction for a course of this request
+     */
+    public boolean hasRestrictions(Course course) {
+        return !getRestrictions(course).isEmpty();
+    }
+    
+    /**
+     * Return true when there are restrictions for a course of this course request and the given config does not meet any of them
+     */
+    public boolean isNotAllowed(Course course, Config config) {
+        List<Restriction> restrictions = getRestrictions(course);
+        if (restrictions.isEmpty()) return false;
+        for (Restriction r: restrictions)
+            if (r.isIncluded(config)) return false;
+        return true;
+    }
+    
+    /**
+     * Return true when there are restrictions for a course of this course request and the given section does not meet any of them
+     */
+    public boolean isNotAllowed(Course course, Section section) {
+        List<Restriction> restrictions = getRestrictions(course);
+        if (restrictions.isEmpty()) return false;
+        for (Restriction r: restrictions)
+            if (r.isIncluded(section)) return false;
+        return true;
+    }
+    
+    /**
+     * Return true when there are restrictions for a course of this course request and the given enrollment does not meet any of them
+     */
+    public boolean isNotAllowed(Enrollment e) {
+        List<Restriction> restrictions = getRestrictions(e.getCourse());
+        if (restrictions.isEmpty()) return false;
+        for (Restriction r: restrictions)
+            if (r.isIncluded(e)) return false;
+        return true;
+    }
+    
+    /**
+     * Clear restriction information that was cached on this request
+     */
+    public synchronized void clearRestrictionCache() {
+        if (iRestrictions != null) iRestrictions.clear();
     }
     
     /**

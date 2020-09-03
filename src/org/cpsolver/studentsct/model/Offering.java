@@ -8,6 +8,7 @@ import java.util.Set;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.model.Model;
 import org.cpsolver.studentsct.reservation.Reservation;
+import org.cpsolver.studentsct.reservation.Restriction;
 
 
 
@@ -45,6 +46,7 @@ public class Offering {
     private List<Config> iConfigs = new ArrayList<Config>();
     private List<Course> iCourses = new ArrayList<Course>();
     private List<Reservation> iReservations = new ArrayList<Reservation>();
+    private List<Restriction> iRestrictions = new ArrayList<Restriction>();
 
     /**
      * Constructor
@@ -213,6 +215,16 @@ public class Offering {
      **/
     public boolean hasReservations() { return !iReservations.isEmpty(); }
     
+    /** Restrictions associated with this offering 
+     * @return restrictions for this offering
+     **/
+    public List<Restriction> getRestrictions() { return iRestrictions; }
+    
+    /** True if there are restrictions for this offering 
+     * @return true if there is at least one restriction
+     **/
+    public boolean hasRestrictions() { return !iRestrictions.isEmpty(); }
+    
     /**
      * Total space in the offering that is not reserved by any reservation 
      * @return total unreserved space in the offering
@@ -310,6 +322,15 @@ public class Offering {
             for (CourseRequest r: c.getRequests())
                 r.clearReservationCache();
         iTotalUnreservedSpace = null;
+    }
+    
+    /**
+     * Clear restriction information that was cached on this offering or below
+     */
+    public synchronized void clearRestrictionCache() {
+        for (Course c: getCourses())
+            for (CourseRequest r: c.getRequests())
+                r.clearRestrictionCache();
     }
 
     @Override

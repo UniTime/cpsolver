@@ -37,14 +37,18 @@ import org.cpsolver.studentsct.model.Student;
 import org.cpsolver.studentsct.model.Subpart;
 import org.cpsolver.studentsct.model.Unavailability;
 import org.cpsolver.studentsct.reservation.CourseReservation;
+import org.cpsolver.studentsct.reservation.CourseRestriction;
 import org.cpsolver.studentsct.reservation.CurriculumOverride;
 import org.cpsolver.studentsct.reservation.CurriculumReservation;
+import org.cpsolver.studentsct.reservation.CurriculumRestriction;
 import org.cpsolver.studentsct.reservation.DummyReservation;
 import org.cpsolver.studentsct.reservation.GroupReservation;
 import org.cpsolver.studentsct.reservation.IndividualReservation;
+import org.cpsolver.studentsct.reservation.IndividualRestriction;
 import org.cpsolver.studentsct.reservation.LearningCommunityReservation;
 import org.cpsolver.studentsct.reservation.Reservation;
 import org.cpsolver.studentsct.reservation.ReservationOverride;
+import org.cpsolver.studentsct.reservation.Restriction;
 import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
 import org.dom4j.Element;
@@ -298,6 +302,7 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
             Element offeringEl = offeringsEl.addElement("offering");
             saveOffering(offeringEl, offering);
             saveReservations(offeringEl, offering);
+            saveRestrictions(offeringEl, offering);
         }
     }
     
@@ -547,6 +552,52 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         for (Map.Entry<Subpart, Set<Section>> entry: reservation.getSections().entrySet()) {
             for (Section section: entry.getValue()) {
                 reservationEl.addElement("section").addAttribute("id", getId("section", section.getId()));
+            }
+        }
+    }
+    
+    /**
+     * Save restrictions of the given offering
+     * @param offeringEl offering element to be populated with restrictions
+     * @param offering offering which restrictions are to be saved
+     */
+    protected void saveRestrictions(Element offeringEl, Offering offering) {
+        if (!offering.getRestrictions().isEmpty()) {
+            for (Restriction r: offering.getRestrictions()) {
+                saveRestriction(offeringEl.addElement("restriction"), r);
+            }
+        }
+    }
+    
+    /**
+     * Save restriction
+     * @param restrictionEl restriction element to be populated
+     * @param restriction restriction to be saved
+     */
+    protected void saveRestriction(Element restrictionEl, Restriction restriction) {
+        restrictionEl.addAttribute("id", getId("restriction", restriction.getId()));
+        if (restriction instanceof IndividualRestriction) {
+            restrictionEl.addAttribute("type", "individual");
+            for (Long studentId: ((IndividualRestriction)restriction).getStudentIds())
+                restrictionEl.addElement("student").addAttribute("id", getId("student", studentId));
+        } else if (restriction instanceof CurriculumRestriction) {
+            restrictionEl.addAttribute("type", "curriculum");
+            CurriculumRestriction cr = (CurriculumRestriction)restriction;
+            restrictionEl.addAttribute("area", cr.getAcademicArea());
+            for (String clasf: cr.getClassifications())
+                restrictionEl.addElement("classification").addAttribute("code", clasf);
+            for (String major: cr.getMajors())
+                restrictionEl.addElement("major").addAttribute("code", major);
+        } else if (restriction instanceof CourseRestriction) {
+            restrictionEl.addAttribute("type", "course");
+            CourseRestriction cr = (CourseRestriction)restriction;
+            restrictionEl.addAttribute("course", getId("course",cr.getCourse().getId()));
+        }
+        for (Config config: restriction.getConfigs())
+            restrictionEl.addElement("config").addAttribute("id", getId("config", config.getId()));
+        for (Map.Entry<Subpart, Set<Section>> entry: restriction.getSections().entrySet()) {
+            for (Section section: entry.getValue()) {
+                restrictionEl.addElement("section").addAttribute("id", getId("section", section.getId()));
             }
         }
     }

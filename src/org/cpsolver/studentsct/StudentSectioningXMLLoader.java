@@ -39,14 +39,18 @@ import org.cpsolver.studentsct.model.Student;
 import org.cpsolver.studentsct.model.Subpart;
 import org.cpsolver.studentsct.model.Unavailability;
 import org.cpsolver.studentsct.reservation.CourseReservation;
+import org.cpsolver.studentsct.reservation.CourseRestriction;
 import org.cpsolver.studentsct.reservation.CurriculumOverride;
 import org.cpsolver.studentsct.reservation.CurriculumReservation;
+import org.cpsolver.studentsct.reservation.CurriculumRestriction;
 import org.cpsolver.studentsct.reservation.DummyReservation;
 import org.cpsolver.studentsct.reservation.GroupReservation;
 import org.cpsolver.studentsct.reservation.IndividualReservation;
+import org.cpsolver.studentsct.reservation.IndividualRestriction;
 import org.cpsolver.studentsct.reservation.LearningCommunityReservation;
 import org.cpsolver.studentsct.reservation.Reservation;
 import org.cpsolver.studentsct.reservation.ReservationOverride;
+import org.cpsolver.studentsct.reservation.Restriction;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
@@ -367,6 +371,11 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                 Element reservationEl = (Element)j.next();
                 loadReservation(reservationEl, offering, configTable, sectionTable);
             } 
+            
+            for (Iterator<?> j = offeringEl.elementIterator("restriction"); j.hasNext(); ) {
+                Element restrictionEl = (Element)j.next();
+                loadRestriction(restrictionEl, offering, configTable, sectionTable);
+            }
         }
     }
     
@@ -633,6 +642,60 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         r.setAllowDisabled("true".equals(reservationEl.attributeValue("allowDisabled", r.isAllowDisabled() ? "true" : "false")));
         r.setNeverIncluded("true".equals(reservationEl.attributeValue("neverIncluded", "false")));
         r.setBreakLinkedSections("true".equals(reservationEl.attributeValue("breakLinkedSections", "false")));
+        return r;
+    }
+    
+    /**
+     * Load restriction
+     * @param restrictionEl restriction element
+     * @param offering parent offering
+     * @param configTable config table (of the offering)
+     * @param sectionTable section table (of the offering)
+     * @return loaded restriction
+     */
+    protected Restriction loadRestriction(Element restrictionEl, Offering offering, HashMap<Long, Config> configTable, HashMap<Long, Section> sectionTable) {
+        Restriction r = null;
+        if ("individual".equals(restrictionEl.attributeValue("type"))) {
+            Set<Long> studentIds = new HashSet<Long>();
+            for (Iterator<?> k = restrictionEl.elementIterator("student"); k.hasNext(); ) {
+                Element studentEl = (Element)k.next();
+                studentIds.add(Long.parseLong(studentEl.attributeValue("id")));
+            }
+            r = new IndividualRestriction(Long.valueOf(restrictionEl.attributeValue("id")), offering, studentIds);
+        } else if ("curriculum".equals(restrictionEl.attributeValue("type"))) {
+            List<String> classifications = new ArrayList<String>();
+            for (Iterator<?> k = restrictionEl.elementIterator("classification"); k.hasNext(); ) {
+                Element clasfEl = (Element)k.next();
+                classifications.add(clasfEl.attributeValue("code"));
+            }
+            List<String> majors = new ArrayList<String>();
+            for (Iterator<?> k = restrictionEl.elementIterator("major"); k.hasNext(); ) {
+                Element majorEl = (Element)k.next();
+                majors.add(majorEl.attributeValue("code"));
+            }
+            r = new CurriculumRestriction(Long.valueOf(restrictionEl.attributeValue("id")),
+                    offering,
+                    restrictionEl.attributeValue("area"),
+                    classifications, majors);
+        } else if ("course".equals(restrictionEl.attributeValue("type"))) {
+            long courseId = Long.parseLong(restrictionEl.attributeValue("course"));
+            for (Course course: offering.getCourses()) {
+                if (course.getId() == courseId)
+                    r = new CourseRestriction(Long.valueOf(restrictionEl.attributeValue("id")), course);
+            }
+        }
+        if (r == null) {
+            sLogger.error("Unknown reservation type "+ restrictionEl.attributeValue("type"));
+            return null;
+        }
+        for (Iterator<?> k = restrictionEl.elementIterator("config"); k.hasNext(); ) {
+            Element configEl = (Element)k.next();
+            r.addConfig(configTable.get(Long.parseLong(configEl.attributeValue("id"))));
+        }
+        for (Iterator<?> k = restrictionEl.elementIterator("section"); k.hasNext(); ) {
+            Element sectionEl = (Element)k.next();
+            r.addSection(sectionTable.get(Long.parseLong(sectionEl.attributeValue("id"))));
+        }
         return r;
     }
     
