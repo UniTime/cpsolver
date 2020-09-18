@@ -431,12 +431,14 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                     setBestAssignment(p, getBestAssignmentIteration());
                 values.add(p);
             } else if (iNrRooms == 1) {
-                for (RoomLocation roomLocation : iRoomLocations) {
+                rooms: for (RoomLocation roomLocation : iRoomLocations) {
                     if (!allowBreakHard && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(roomLocation.getPreference()))) continue;
                     if (roomLocation.getPreference() > 500) continue;
                     if (roomLocation.getRoomConstraint() != null && !roomLocation.getRoomConstraint().isAvailable(this, timeLocation, getScheduler())) continue;
                     Placement p = new Placement(this, timeLocation, roomLocation);
                     p.setVariable(this);
+                    for (InstructorConstraint ic : getInstructorConstraints())
+                        if (!ic.isAvailable(this, p) && ic.isHard()) continue rooms;
                     if (sSaveMemory && !isValid(p)) continue;
                     if (getInitialAssignment() != null && p.equals(getInitialAssignment())) setInitialAssignment(p);
                     if (getBestAssignment() != null && getBestAssignment().equals(p)) setBestAssignment(p, getBestAssignmentIteration());
@@ -445,17 +447,32 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
             } else {
                 if (getMaxRoomCombinations() > 0 && ToolBox.binomial(iRoomLocations.size(), iNrRooms) > getMaxRoomCombinations()) {
                     if (getInitialAssignment() != null && getInitialAssignment().getNrRooms() == getNrRooms()) {
+                        boolean av = true;
+                        for (RoomLocation room: iRoomLocations) {
+                            if (room.getRoomConstraint() != null && !room.getRoomConstraint().isAvailable(this, timeLocation, getScheduler())) { av = false; break; }
+                            if (room.getPreference() > 500) { av = false; break; }
+                            if (!allowBreakHard && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(room.getPreference()))) { av = false; break; }
+                        }
                         Placement p = new Placement(this, timeLocation, new ArrayList<RoomLocation>(getInitialAssignment().getRoomLocations()));
-                        p.setVariable(this);
-                        if (p.equals(getInitialAssignment())) setInitialAssignment(p);
-                        values.add(p);
+                        for (InstructorConstraint ic : getInstructorConstraints())
+                            if (!ic.isAvailable(this, p) && ic.isHard()) { av = false; break; }
+                        if (av && (!sSaveMemory || isValid(p))) {
+                            p.setVariable(this);
+                            if (p.equals(getInitialAssignment())) setInitialAssignment(p);
+                            if (getBestAssignment() != null && getBestAssignment().equals(p)) setBestAssignment(p, getBestAssignmentIteration());
+                            values.add(p);
+                        }
                     }
                     List<RoomLocation> available = new ArrayList<RoomLocation>(iRoomLocations.size());
                     List<RoomLocation> other = new ArrayList<RoomLocation>(iRoomLocations.size());
-                    for (RoomLocation room: iRoomLocations) {
+                    rooms: for (RoomLocation room: iRoomLocations) {
                         if (room.getRoomConstraint() != null && !room.getRoomConstraint().isAvailable(this, timeLocation, getScheduler())) continue;
-                        if (Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(room.getPreference()))) continue;
-                        if (assignment != null && room.getRoomConstraint() != null && !room.getRoomConstraint().getContext(assignment).inConflict(this, timeLocation)) {
+                        if (room.getPreference() > 500) continue;
+                        if (!allowBreakHard && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(room.getPreference()))) continue;
+                        for (InstructorConstraint ic : getInstructorConstraints())
+                            if (!ic.isAvailable(this, new Placement(this, timeLocation, room)) && ic.isHard()) continue rooms;
+                        if (assignment != null && room.getRoomConstraint() != null && !room.getRoomConstraint().getContext(assignment).inConflict(this, timeLocation) &&
+                            !Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(room.getPreference()))) {
                             available.add(room);
                         } else {
                             other.add(room);
@@ -466,13 +483,18 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                         Placement p = new Placement(this, timeLocation, new ArrayList<RoomLocation>(e.nextElement()));
                         if (getInitialAssignment() != null && p.sameRooms(getInitialAssignment())) continue;
                         p.setVariable(this);
+                        if (sSaveMemory && !isValid(p)) continue;
+                        if (getBestAssignment() != null && getBestAssignment().equals(p)) setBestAssignment(p, getBestAssignmentIteration());
                         values.add(p);
                     }
                 } else {
                     List<RoomLocation> rooms = new ArrayList<RoomLocation>(iRoomLocations.size());
-                    for (RoomLocation room: iRoomLocations) {
+                    rooms: for (RoomLocation room: iRoomLocations) {
                         if (!allowBreakHard && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(room.getPreference()))) continue;
+                        if (room.getPreference() > 500) continue;
                         if (room.getRoomConstraint() != null && !room.getRoomConstraint().isAvailable(this, timeLocation, getScheduler())) continue;
+                        for (InstructorConstraint ic : getInstructorConstraints())
+                            if (!ic.isAvailable(this, new Placement(this, timeLocation, room)) && ic.isHard()) continue rooms;
                         rooms.add(room);
                     }
                     if (rooms.size() < iNrRooms) continue;
