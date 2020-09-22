@@ -622,7 +622,8 @@ public class TimetableXMLLoader extends TimetableLoader {
                 for (InstructorConstraint ic : ics)
                     ic.setNotAvailable(placement);
                 for (RoomConstraint rc : roomConstraintsThisClass)
-                    rc.setNotAvailable(placement);
+                    if (rc.getConstraint())
+                        rc.setNotAvailable(placement);
             } else {
                 for (InstructorConstraint ic : ics)
                     ic.addVariable(lecture);

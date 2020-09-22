@@ -115,7 +115,7 @@ public class RoomConstraint extends ConstraintWithContext<Lecture, Placement, Ro
     }
 
     public boolean isAvailable(int slot) {
-        if (iAvailable != null && iAvailable[slot] != null && !iAvailable[slot].isEmpty())
+        if (getConstraint() && iAvailable != null && iAvailable[slot] != null && !iAvailable[slot].isEmpty())
             return false;
         if (getSharingModel() != null && getSharingModel().isNotAvailable(slot))
             return false;
@@ -123,7 +123,7 @@ public class RoomConstraint extends ConstraintWithContext<Lecture, Placement, Ro
     }
 
     public boolean isAvailable(Lecture lecture, TimeLocation time, Long scheduler) {
-        if (iAvailable != null) {
+        if (iAvailable != null && getConstraint()) {
             for (Enumeration<Integer> e = time.getSlots(); e.hasMoreElements();) {
                 int slot = e.nextElement();
                 if (iAvailable[slot] != null) {
