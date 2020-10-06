@@ -12,6 +12,7 @@ import org.cpsolver.ifs.heuristics.VariableSelection;
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
+import org.cpsolver.studentsct.filter.StudentFilter;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.Request.RequestPriority;
@@ -60,7 +61,10 @@ public class CriticalStandardSelection extends StandardSelection {
     
     @Override
     public void init(Solver<Request, Enrollment> solver) {
-        init(solver, "Ifs (" + iPriority.name() + ")...");
+        StudentFilter filter = null;
+        if (iVariableSelection instanceof UnassignedRequestSelection)
+            filter = ((UnassignedRequestSelection)iVariableSelection).getFilter();
+        init(solver, iPriority.name() + " Ifs" + (filter == null ? "" : " (" + filter.getName().toLowerCase() + " students)") + "...");
     }
     
     @Override

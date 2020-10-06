@@ -19,6 +19,7 @@ import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.Request.RequestPriority;
 import org.cpsolver.studentsct.model.Student;
+import org.cpsolver.studentsct.model.Student.StudentPriority;
 
 
 /**
@@ -154,7 +155,7 @@ public class RandomUnassignmentSelection implements NeighbourSelection<Request, 
         public boolean canUnassign(Enrollment enrollment) {
             if (enrollment == null) return false;
             if (enrollment.getRequest().isMPP() && enrollment.equals(enrollment.getRequest().getInitialAssignment())) return false;
-            if (enrollment.getStudent().isPriority()) return false;
+            if (enrollment.getStudent().getPriority().ordinal() < StudentPriority.Normal.ordinal()) return false;
             if (iPriority.isCritical(enrollment.getRequest())) return false;
             return true;
         }

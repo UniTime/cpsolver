@@ -85,7 +85,7 @@ public class CriticalCoursesBranchAndBoundSelection extends BranchBoundSelection
     
     @Override
     public void init(Solver<Request, Enrollment> solver) {
-        init(solver, iPriority.name() + " Courses B&B...");
+        init(solver, iPriority.name() + " Courses B&B" + (iFilter == null ? "" : " (" + iFilter.getName().toLowerCase() + " students)") + "...");
     }
     
     @Override

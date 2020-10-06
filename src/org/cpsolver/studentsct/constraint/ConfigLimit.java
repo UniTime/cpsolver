@@ -12,6 +12,7 @@ import org.cpsolver.studentsct.model.Config;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.Request.RequestPriority;
+import org.cpsolver.studentsct.model.Student.StudentPriority;
 
 
 /**
@@ -223,7 +224,7 @@ public class ConfigLimit extends GlobalConstraint<Request, Enrollment> {
         private ArrayList<Enrollment> iEnrollments;
         private double iValue;
         private boolean iDummy;
-        private boolean iPriority;
+        private StudentPriority iPriority;
         private RequestPriority iRequestPriority;
         private boolean iReservation;
         private boolean iConsiderDummy;
@@ -252,7 +253,7 @@ public class ConfigLimit extends GlobalConstraint<Request, Enrollment> {
         public void add(Enrollment enrollment, Assignment<Request, Enrollment> assignment) {
             double value = enrollment.toDouble(assignment, false);
             boolean dummy = enrollment.getStudent().isDummy();
-            boolean priority = enrollment.getStudent().isPriority();
+            StudentPriority priority = enrollment.getStudent().getPriority();
             boolean reservation = (enrollment.getReservation() != null);
             RequestPriority rp = enrollment.getRequest().getRequestPriority();
             if (iEnrollments.isEmpty()) { // no adepts yet
@@ -269,7 +270,7 @@ public class ConfigLimit extends GlobalConstraint<Request, Enrollment> {
             }
             if (iPriorityFirst) {
                 if (iPriority != priority) { // different priority
-                    if (priority) return; // ignore priority students
+                    if (priority.ordinal() < iPriority.ordinal()) return; // ignore more priority students
                     iEnrollments.clear();
                     iValue = value; iDummy = dummy; iPriority = priority; iRequestPriority = rp; iReservation = reservation;
                     iEnrollments.add(enrollment);
@@ -291,7 +292,7 @@ public class ConfigLimit extends GlobalConstraint<Request, Enrollment> {
                     return;
                 }
                 if (iPriority != priority) { // different priority
-                    if (priority) return; // ignore priority students
+                    if (priority.ordinal() < iPriority.ordinal()) return; // ignore more priority students
                     iEnrollments.clear();
                     iValue = value; iDummy = dummy; iPriority = priority; iRequestPriority = rp; iReservation = reservation;
                     iEnrollments.add(enrollment);

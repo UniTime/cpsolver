@@ -53,6 +53,7 @@ import org.cpsolver.studentsct.model.Student;
 import org.cpsolver.studentsct.model.Subpart;
 import org.cpsolver.studentsct.model.Unavailability;
 import org.cpsolver.studentsct.model.Request.RequestPriority;
+import org.cpsolver.studentsct.model.Student.StudentPriority;
 import org.cpsolver.studentsct.reservation.Reservation;
 import org.cpsolver.studentsct.weights.PriorityStudentWeights;
 import org.cpsolver.studentsct.weights.StudentWeights;
@@ -93,10 +94,12 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     private TimeOverlapsCounter iTimeOverlaps = null;
     private StudentQuality iStudentQuality = null;
     private int iNrDummyStudents = 0, iNrDummyRequests = 0;
-    private int iNrPriorityStudents = 0;
+    private int[] iNrPriorityStudents = null;
     private double iTotalDummyWeight = 0.0;
-    private double iTotalCRWeight = 0.0, iTotalDummyCRWeight = 0.0, iTotalPriorityCRWeight = 0.0;
-    private double[] iTotalCriticalCRWeight, iTotalPriorityCriticalCRWeight;
+    private double iTotalCRWeight = 0.0, iTotalDummyCRWeight = 0.0;
+    private double[] iTotalPriorityCRWeight = null;
+    private double[] iTotalCriticalCRWeight;
+    private double[][] iTotalPriorityCriticalCRWeight;
     private double iTotalMPPCRWeight = 0.0;
     private double iTotalSelCRWeight = 0.0;
     private double iBestAssignedCourseRequestWeight = 0.0;
@@ -118,10 +121,18 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     public StudentSectioningModel(DataProperties properties) {
         super();
         iTotalCriticalCRWeight = new double[RequestPriority.values().length];
-        iTotalPriorityCriticalCRWeight = new double[RequestPriority.values().length];
+        iTotalPriorityCriticalCRWeight = new double[RequestPriority.values().length][StudentPriority.values().length];
         for (int i = 0; i < RequestPriority.values().length; i++) {
             iTotalCriticalCRWeight[i] = 0.0;
-            iTotalPriorityCriticalCRWeight[i] = 0.0;
+            for (int j = 0; j < StudentPriority.values().length; j++) {
+                iTotalPriorityCriticalCRWeight[i][j] = 0.0;
+            }
+        }
+        iNrPriorityStudents = new int[StudentPriority.values().length];
+        iTotalPriorityCRWeight = new double[StudentPriority.values().length];
+        for (int i = 0; i < StudentPriority.values().length; i++) {
+            iNrPriorityStudents[i] = 0;
+            iTotalPriorityCRWeight[i] = 0.0;
         }
         iReservationCanAssignOverTheLimit =  properties.getPropertyBoolean("Reservation.CanAssignOverTheLimit", false);
         iMPP = properties.getPropertyBoolean("General.MPP", false);
@@ -257,8 +268,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         iStudents.add(student);
         if (student.isDummy())
             iNrDummyStudents++;
-        if (student.isPriority())
-            iNrPriorityStudents++;
+        iNrPriorityStudents[student.getPriority().ordinal()]++;
         for (Request request : student.getRequests())
             addVariable(request);
         if (getProperties().getPropertyBoolean("Sectioning.StudentConflict", true)) {
@@ -273,18 +283,16 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             iTotalCRWeight += request.getWeight();
         if (request instanceof CourseRequest && request.getRequestPriority() != RequestPriority.Normal && !request.getStudent().isDummy() && !request.isAlternative())
             iTotalCriticalCRWeight[request.getRequestPriority().ordinal()] += request.getWeight();
-        if (request instanceof CourseRequest && request.getRequestPriority() != RequestPriority.Normal && request.getStudent().isPriority() && !request.isAlternative())
-            iTotalPriorityCriticalCRWeight[request.getRequestPriority().ordinal()] += request.getWeight();
+        if (request instanceof CourseRequest && request.getRequestPriority() != RequestPriority.Normal && !request.isAlternative())
+            iTotalPriorityCriticalCRWeight[request.getRequestPriority().ordinal()][request.getStudent().getPriority().ordinal()] += request.getWeight();
         if (request.getStudent().isDummy()) {
             iNrDummyRequests++;
             iTotalDummyWeight += request.getWeight();
             if (request instanceof CourseRequest && !request.isAlternative())
                 iTotalDummyCRWeight += request.getWeight();
         }
-        if (request.getStudent().isPriority()) {
-            if (request instanceof CourseRequest && !request.isAlternative())
-                iTotalPriorityCRWeight += request.getWeight();
-        }
+        if (request instanceof CourseRequest && !request.isAlternative())
+            iTotalPriorityCRWeight[request.getStudent().getPriority().ordinal()] += request.getWeight();
         if (request.isMPP())
             iTotalMPPCRWeight += request.getWeight();
         if (request.hasSelection())
@@ -307,8 +315,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         iStudents.remove(student);
         if (student.isDummy())
             iNrDummyStudents--;
-        if (student.isPriority())
-            iNrPriorityStudents--;
+        iNrPriorityStudents[student.getPriority().ordinal()]--;
         StudentConflict conflict = null;
         for (Request request : student.getRequests()) {
             for (Constraint<Request, Enrollment> c : request.constraints()) {
@@ -339,10 +346,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             if (request instanceof CourseRequest && !request.isAlternative())
                 iTotalDummyCRWeight -= request.getWeight();
         }
-        if (request.getStudent().isPriority()) {
-            if (request instanceof CourseRequest && !request.isAlternative())
-                iTotalPriorityCRWeight -= request.getWeight();
-        }
+        if (request instanceof CourseRequest && !request.isAlternative())
+            iTotalPriorityCRWeight[request.getStudent().getPriority().ordinal()] -= request.getWeight();
         if (request.isMPP())
             iTotalMPPCRWeight -= request.getWeight();
         if (request.hasSelection())
@@ -351,8 +356,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             iTotalCRWeight -= request.getWeight();
         if (request instanceof CourseRequest && request.getRequestPriority() != RequestPriority.Normal && !request.getStudent().isDummy() && !request.isAlternative())
             iTotalCriticalCRWeight[request.getRequestPriority().ordinal()] -= request.getWeight();
-        if (request instanceof CourseRequest && request.getRequestPriority() != RequestPriority.Normal && request.getStudent().isPriority() && !request.isAlternative())
-            iTotalPriorityCriticalCRWeight[request.getRequestPriority().ordinal()] -= request.getWeight();
+        if (request instanceof CourseRequest && request.getRequestPriority() != RequestPriority.Normal && !request.isAlternative())
+            iTotalPriorityCriticalCRWeight[request.getRequestPriority().ordinal()][request.getStudent().getPriority().ordinal()] -= request.getWeight();
     }
 
 
@@ -432,9 +437,14 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         StudentSectioningModelContext context = getContext(assignment);
         if (!getStudents().isEmpty())
             info.put("Students with complete schedule", sDoubleFormat.format(100.0 * context.nrComplete() / getStudents().size()) + "% (" + context.nrComplete() + "/" + getStudents().size() + ")");
-        if (iNrPriorityStudents > 0)
-            info.put("Students with complete schedule (priority students)",
-                    sDoubleFormat.format(100.0 * context.iNrCompletePriorityStudents / iNrPriorityStudents) + "% (" + context.iNrCompletePriorityStudents + "/" + iNrPriorityStudents + ")");
+        String priorityComplete = "";
+        for (StudentPriority sp: StudentPriority.values()) {
+            if (sp != StudentPriority.Dummy && iNrPriorityStudents[sp.ordinal()] > 0)
+                priorityComplete += (priorityComplete.isEmpty() ? "" : "\n") +
+                    sp.name() + ": " + sDoubleFormat.format(100.0 * context.iNrCompletePriorityStudents[sp.ordinal()] / iNrPriorityStudents[sp.ordinal()]) + "% (" + context.iNrCompletePriorityStudents[sp.ordinal()] + "/" + iNrPriorityStudents[sp.ordinal()] + ")";
+        }
+        if (!priorityComplete.isEmpty())
+            info.put("Students with complete schedule (priority students)", priorityComplete);
         if (getStudentQuality() != null) {
             int confs = getStudentQuality().getTotalPenalty(StudentQuality.Type.Distance, assignment);
             int shortConfs = getStudentQuality().getTotalPenalty(StudentQuality.Type.ShortDistance, assignment);
@@ -1311,6 +1321,17 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 }
             }
         }
+        String priority = "";
+        for (StudentPriority sp: StudentPriority.values()) {
+            if (sp.ordinal() < StudentPriority.Normal.ordinal()) {
+                if (iTotalPriorityCRWeight[sp.ordinal()] > 0.0)
+                    priority += sp.code() + "PCR:" + sDecimalFormat.format(100.0 * getContext(assignment).iAssignedPriorityCRWeight[sp.ordinal()] / iTotalPriorityCRWeight[sp.ordinal()]) + "%, ";
+                if (iTotalPriorityCriticalCRWeight[RequestPriority.Critical.ordinal()][sp.ordinal()] > 0.0)
+                    priority += sp.code() + "PCC:" + sDecimalFormat.format(100.0 * getContext(assignment).iAssignedPriorityCriticalCRWeight[RequestPriority.Critical.ordinal()][sp.ordinal()] / iTotalPriorityCriticalCRWeight[RequestPriority.Critical.ordinal()][sp.ordinal()]) + "%, ";
+                if (iTotalPriorityCriticalCRWeight[RequestPriority.Important.ordinal()][sp.ordinal()] > 0.0)
+                    priority += sp.code() + "PCI:" + sDecimalFormat.format(100.0 * getContext(assignment).iAssignedPriorityCriticalCRWeight[RequestPriority.Important.ordinal()][sp.ordinal()] / iTotalPriorityCriticalCRWeight[RequestPriority.Important.ordinal()][sp.ordinal()]) + "%, ";
+            }
+        }
         return   (getNrRealStudents(false) > 0 ? "RRq:" + getNrAssignedRealRequests(assignment, false) + "/" + getNrRealRequests(false) + ", " : "")
                 + (getNrLastLikeStudents(false) > 0 ? "DRq:" + getNrAssignedLastLikeRequests(assignment, false) + "/" + getNrLastLikeRequests(false) + ", " : "")
                 + (getNrRealStudents(false) > 0 ? "RS:" + getNrCompleteRealStudents(assignment, false) + "/" + getNrRealStudents(false) + ", " : "")
@@ -1319,11 +1340,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 + (iTotalSelCRWeight > 0.0 ? "S:" + sDoubleFormat.format(100.0 * (0.3 * getContext(assignment).iAssignedSelectedConfigWeight + 0.7 * getContext(assignment).iAssignedSelectedSectionWeight) / iTotalSelCRWeight) + "%, ": "")
                 + (iTotalCriticalCRWeight[RequestPriority.Critical.ordinal()] > 0.0 ? "CC:" + sDecimalFormat.format(100.0 * getContext(assignment).getAssignedCriticalCourseRequestWeight(RequestPriority.Critical) / iTotalCriticalCRWeight[RequestPriority.Critical.ordinal()]) + "%, " : "")
                 + (iTotalCriticalCRWeight[RequestPriority.Important.ordinal()] > 0.0 ? "IC:" + sDecimalFormat.format(100.0 * getContext(assignment).getAssignedCriticalCourseRequestWeight(RequestPriority.Important) / iTotalCriticalCRWeight[RequestPriority.Important.ordinal()]) + "%, " : "")
-                + (iTotalPriorityCRWeight > 0.0 ? "PCR:" + sDecimalFormat.format(100.0 * getContext(assignment).iAssignedPriorityCRWeight / iTotalPriorityCRWeight) + "%, " : "")
-                + (iTotalPriorityCriticalCRWeight[RequestPriority.Critical.ordinal()] > 0.0 ? "PCC:" + sDecimalFormat.format(100.0 * getContext(assignment).iAssignedPriorityCriticalCRWeight[RequestPriority.Critical.ordinal()] / iTotalPriorityCriticalCRWeight[RequestPriority.Critical.ordinal()]) + "%, " : "")
-                + (iTotalPriorityCriticalCRWeight[RequestPriority.Important.ordinal()] > 0.0 ? "PCI:" + sDecimalFormat.format(100.0 * getContext(assignment).iAssignedPriorityCriticalCRWeight[RequestPriority.Important.ordinal()] / iTotalPriorityCriticalCRWeight[RequestPriority.Important.ordinal()]) + "%, " : "")
-                + "V:"
-                + sDecimalFormat.format(-getTotalValue(assignment))
+                + priority
+                + "V:" + sDecimalFormat.format(-getTotalValue(assignment))
                 + (getDistanceConflict() == null ? "" : ", DC:" + getDistanceConflict().getTotalNrConflicts(assignment))
                 + (getTimeOverlaps() == null ? "" : ", TOC:" + getTimeOverlaps().getTotalNrConflicts(assignment))
                 + (iMPP ? ", IS:" + sDecimalFormat.format(100.0 * getContext(assignment).iAssignedSameSectionWeight / iTotalMPPCRWeight) + "%" : "")
@@ -1367,14 +1385,15 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         private double iTotalValue = 0.0;
         private int iNrAssignedDummyRequests = 0, iNrCompleteDummyStudents = 0;
         private double iAssignedCRWeight = 0.0, iAssignedDummyCRWeight = 0.0;
-        private double[] iAssignedCriticalCRWeight, iAssignedPriorityCriticalCRWeight;
+        private double[] iAssignedCriticalCRWeight;
+        private double[][] iAssignedPriorityCriticalCRWeight;
         private double iReservedSpace = 0.0, iTotalReservedSpace = 0.0;
         private double iAssignedSameSectionWeight = 0.0, iAssignedSameChoiceWeight = 0.0, iAssignedSameTimeWeight = 0.0;
         private double iAssignedSelectedSectionWeight = 0.0, iAssignedSelectedConfigWeight = 0.0;
         private double iAssignedNoTimeSectionWeight = 0.0;
         private double iAssignedOnlineSectionWeight = 0.0;
-        private int iNrCompletePriorityStudents = 0;
-        private double iAssignedPriorityCRWeight = 0.0;
+        private int[] iNrCompletePriorityStudents = null;
+        private double[] iAssignedPriorityCRWeight = null;
         
         public StudentSectioningModelContext(StudentSectioningModelContext parent) {
             iCompleteStudents = new HashSet<Student>(parent.iCompleteStudents);
@@ -1392,24 +1411,37 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             iAssignedSelectedConfigWeight = parent.iAssignedSelectedConfigWeight;
             iAssignedNoTimeSectionWeight = parent.iAssignedNoTimeSectionWeight;
             iAssignedOnlineSectionWeight = parent.iAssignedOnlineSectionWeight;
-            iNrCompletePriorityStudents = parent.iNrCompletePriorityStudents;
-            iAssignedPriorityCRWeight = parent.iAssignedPriorityCRWeight;
             iAssignedCriticalCRWeight = new double[RequestPriority.values().length];
-            iAssignedPriorityCriticalCRWeight = new double[RequestPriority.values().length];
+            iAssignedPriorityCriticalCRWeight = new double[RequestPriority.values().length][StudentPriority.values().length];
             for (int i = 0; i < RequestPriority.values().length; i++) {
                 iAssignedCriticalCRWeight[i] = parent.iAssignedCriticalCRWeight[i];
-                iAssignedPriorityCriticalCRWeight[i] = parent.iAssignedPriorityCriticalCRWeight[i];
+                for (int j = 0; j < StudentPriority.values().length; j++) {
+                    iAssignedPriorityCriticalCRWeight[i][j] = parent.iAssignedPriorityCriticalCRWeight[i][j];
+                }
             }   
-
+            iNrCompletePriorityStudents = new int[StudentPriority.values().length];
+            iAssignedPriorityCRWeight = new double[StudentPriority.values().length];
+            for (int i = 0; i < StudentPriority.values().length; i++) {
+                iNrCompletePriorityStudents[i] = parent.iNrCompletePriorityStudents[i];
+                iAssignedPriorityCRWeight[i] = parent.iAssignedPriorityCRWeight[i];
+            }
         }
 
         public StudentSectioningModelContext(Assignment<Request, Enrollment> assignment) {
             iAssignedCriticalCRWeight = new double[RequestPriority.values().length];
-            iAssignedPriorityCriticalCRWeight = new double[RequestPriority.values().length];
+            iAssignedPriorityCriticalCRWeight = new double[RequestPriority.values().length][StudentPriority.values().length];
             for (int i = 0; i < RequestPriority.values().length; i++) {
                 iAssignedCriticalCRWeight[i] = 0.0;
-                iAssignedPriorityCriticalCRWeight[i] = 0.0;
-            }   
+                for (int j = 0; j < StudentPriority.values().length; j++) {
+                    iAssignedPriorityCriticalCRWeight[i][j] = 0.0;
+                }
+            }
+            iNrCompletePriorityStudents = new int[StudentPriority.values().length];
+            iAssignedPriorityCRWeight = new double[StudentPriority.values().length];
+            for (int i = 0; i < StudentPriority.values().length; i++) {
+                iNrCompletePriorityStudents[i] = 0;
+                iAssignedPriorityCRWeight[i] = 0.0;
+            }
             for (Request request: variables()) {
                 Enrollment enrollment = assignment.getValue(request);
                 if (enrollment != null)
@@ -1426,7 +1458,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             Student student = enrollment.getStudent();
             if (student.isComplete(assignment) && iCompleteStudents.add(student)) {
                 if (student.isDummy()) iNrCompleteDummyStudents++;
-                if (student.isPriority()) iNrCompletePriorityStudents++;
+                iNrCompletePriorityStudents[student.getPriority().ordinal()]++;
             }
             double value = enrollment.getRequest().getWeight() * iStudentWeights.getWeight(assignment, enrollment);
             iTotalValue -= value;
@@ -1435,8 +1467,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 iAssignedCRWeight += enrollment.getRequest().getWeight();
             if (enrollment.isCourseRequest() && enrollment.getRequest().getRequestPriority() != RequestPriority.Normal && !enrollment.getStudent().isDummy() && !enrollment.getRequest().isAlternative())
                 iAssignedCriticalCRWeight[enrollment.getRequest().getRequestPriority().ordinal()] += enrollment.getRequest().getWeight();
-            if (enrollment.isCourseRequest() && enrollment.getRequest().getRequestPriority() != RequestPriority.Normal && enrollment.getStudent().isPriority() && !enrollment.getRequest().isAlternative())
-                iAssignedPriorityCriticalCRWeight[enrollment.getRequest().getRequestPriority().ordinal()] += enrollment.getRequest().getWeight();
+            if (enrollment.isCourseRequest() && enrollment.getRequest().getRequestPriority() != RequestPriority.Normal && !enrollment.getRequest().isAlternative())
+                iAssignedPriorityCriticalCRWeight[enrollment.getRequest().getRequestPriority().ordinal()][enrollment.getStudent().getPriority().ordinal()] += enrollment.getRequest().getWeight();
             if (enrollment.getRequest().isMPP()) {
                 iAssignedSameSectionWeight += enrollment.getRequest().getWeight() * enrollment.percentInitial();
                 iAssignedSameChoiceWeight += enrollment.getRequest().getWeight() * enrollment.percentSelected();
@@ -1455,10 +1487,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 if (enrollment.isCourseRequest())
                     iAssignedDummyCRWeight += enrollment.getRequest().getWeight();
             }
-            if (student.isPriority()) {
-                if (enrollment.isCourseRequest())
-                    iAssignedPriorityCRWeight += enrollment.getRequest().getWeight();
-            }
+            if (enrollment.isCourseRequest())
+                iAssignedPriorityCRWeight[enrollment.getStudent().getPriority().ordinal()] += enrollment.getRequest().getWeight();
             if (enrollment.isCourseRequest()) {
                 int noTime = 0;
                 int online = 0;
@@ -1484,8 +1514,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 iCompleteStudents.remove(student);
                 if (student.isDummy())
                     iNrCompleteDummyStudents--;
-                if (student.isPriority())
-                    iNrCompletePriorityStudents--;
+                iNrCompletePriorityStudents[student.getPriority().ordinal()]--;
             }
             Request.RequestContext cx = enrollment.variable().getContext(assignment);
             Double value = cx.getLastWeight();
@@ -1497,8 +1526,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 iAssignedCRWeight -= enrollment.getRequest().getWeight();
             if (enrollment.isCourseRequest() && enrollment.getRequest().getRequestPriority() != RequestPriority.Normal && !enrollment.getStudent().isDummy() && !enrollment.getRequest().isAlternative())
                 iAssignedCriticalCRWeight[enrollment.getRequest().getRequestPriority().ordinal()] -= enrollment.getRequest().getWeight();
-            if (enrollment.isCourseRequest() && enrollment.getRequest().getRequestPriority() != RequestPriority.Normal && enrollment.getStudent().isPriority() && !enrollment.getRequest().isAlternative())
-                iAssignedPriorityCriticalCRWeight[enrollment.getRequest().getRequestPriority().ordinal()] -= enrollment.getRequest().getWeight();
+            if (enrollment.isCourseRequest() && enrollment.getRequest().getRequestPriority() != RequestPriority.Normal && !enrollment.getRequest().isAlternative())
+                iAssignedPriorityCriticalCRWeight[enrollment.getRequest().getRequestPriority().ordinal()][enrollment.getStudent().getPriority().ordinal()] -= enrollment.getRequest().getWeight();
             if (enrollment.getRequest().isMPP()) {
                 iAssignedSameSectionWeight -= enrollment.getRequest().getWeight() * enrollment.percentInitial();
                 iAssignedSameChoiceWeight -= enrollment.getRequest().getWeight() * enrollment.percentSelected();
@@ -1517,10 +1546,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 if (enrollment.isCourseRequest())
                     iAssignedDummyCRWeight -= enrollment.getRequest().getWeight();
             }
-            if (student.isPriority()) {
-                if (enrollment.isCourseRequest())
-                    iAssignedPriorityCRWeight -= enrollment.getRequest().getWeight();
-            }
+            if (enrollment.isCourseRequest())
+                iAssignedPriorityCRWeight[enrollment.getStudent().getPriority().ordinal()] -= enrollment.getRequest().getWeight();
             if (enrollment.isCourseRequest()) {
                 int noTime = 0;
                 int online = 0;
@@ -1618,15 +1645,20 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         public void requestWeightsChanged(Assignment<Request, Enrollment> assignment) {
             iTotalCRWeight = 0.0;
             iTotalDummyWeight = 0.0; iTotalDummyCRWeight = 0.0;
-            iTotalPriorityCRWeight = 0.0;
+            iTotalPriorityCRWeight = new double[StudentPriority.values().length];
             iAssignedCRWeight = 0.0;
             iAssignedDummyCRWeight = 0.0;
-            iAssignedPriorityCRWeight = 0.0;
             iAssignedCriticalCRWeight = new double[RequestPriority.values().length];
-            iAssignedPriorityCriticalCRWeight = new double[RequestPriority.values().length];
+            iAssignedPriorityCriticalCRWeight = new double[RequestPriority.values().length][StudentPriority.values().length];
             for (int i = 0; i < RequestPriority.values().length; i++) {
                 iAssignedCriticalCRWeight[i] = 0.0;
-                iAssignedPriorityCriticalCRWeight[i] = 0.0;
+                for (int j = 0; j < StudentPriority.values().length; j++) {
+                    iAssignedPriorityCriticalCRWeight[i][j] = 0.0;
+                }
+            }
+            iAssignedPriorityCRWeight = new double[StudentPriority.values().length];
+            for (int i = 0; i < StudentPriority.values().length; i++) {
+                iAssignedPriorityCRWeight[i] = 0.0;
             }
             iNrDummyRequests = 0; iNrAssignedDummyRequests = 0;
             iTotalReservedSpace = 0.0; iReservedSpace = 0.0;
@@ -1644,9 +1676,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                     if (cr && !request.isAlternative())
                         iTotalDummyCRWeight += request.getWeight();
                 }
-                if (request.getStudent().isPriority()) {
-                    if (cr && !request.isAlternative())
-                        iTotalPriorityCRWeight += request.getWeight();
+                if (cr && !request.isAlternative()) {
+                    iTotalPriorityCRWeight[request.getStudent().getPriority().ordinal()] += request.getWeight();
                 }
                 if (request.isMPP())
                     iTotalMPPCRWeight += request.getWeight();
@@ -1658,8 +1689,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                         iAssignedCRWeight += request.getWeight();
                     if (cr && request.getRequestPriority() != RequestPriority.Normal && !request.getStudent().isDummy() && !request.isAlternative())
                         iAssignedCriticalCRWeight[request.getRequestPriority().ordinal()] += request.getWeight();
-                    if (cr && request.getRequestPriority() != RequestPriority.Normal && request.getStudent().isPriority() && !request.isAlternative())
-                        iAssignedPriorityCriticalCRWeight[request.getRequestPriority().ordinal()] += request.getWeight();
+                    if (cr && request.getRequestPriority() != RequestPriority.Normal && !request.isAlternative())
+                        iAssignedPriorityCriticalCRWeight[request.getRequestPriority().ordinal()][request.getStudent().getPriority().ordinal()] += request.getWeight();
                     if (request.isMPP()) {
                         iAssignedSameSectionWeight += request.getWeight() * e.percentInitial();
                         iAssignedSameChoiceWeight += request.getWeight() * e.percentSelected();
@@ -1678,9 +1709,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                         if (cr)
                             iAssignedDummyCRWeight += request.getWeight();
                     }
-                    if (request.getStudent().isPriority()) {
-                        if (cr)
-                            iAssignedPriorityCRWeight += request.getWeight();
+                    if (cr) {
+                        iAssignedPriorityCRWeight[request.getStudent().getPriority().ordinal()] += request.getWeight();
                     }
                     if (cr) {
                         int noTime = 0;
@@ -1741,18 +1771,29 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                     info.put("Using online classes", sDecimalFormat.format(100.0 * iAssignedOnlineSectionWeight / iAssignedCRWeight) + "% (" + sDecimalFormat.format(iAssignedOnlineSectionWeight) + ")"); 
                 }
             }
-            if (iTotalPriorityCRWeight > 0.0) {
-                info.put("Assigned course requests (priority students)", sDecimalFormat.format(100.0 * iAssignedPriorityCRWeight / iTotalPriorityCRWeight) + "% (" + (int)Math.round(iAssignedPriorityCRWeight) + "/" + (int)Math.round(iTotalPriorityCRWeight) + ")");
+            String priorityAssignedCR = "";
+            for (StudentPriority sp: StudentPriority.values()) {
+                if (sp != StudentPriority.Dummy && iTotalPriorityCRWeight[sp.ordinal()] > 0.0) {
+                    priorityAssignedCR += (priorityAssignedCR.isEmpty() ? "" : "\n") +
+                            sp.name() + ": " + sDecimalFormat.format(100.0 * iAssignedPriorityCRWeight[sp.ordinal()] / iTotalPriorityCRWeight[sp.ordinal()]) + "% (" + (int)Math.round(iAssignedPriorityCRWeight[sp.ordinal()]) + "/" + (int)Math.round(iTotalPriorityCRWeight[sp.ordinal()]) + ")";
+                }
             }
+            if (!priorityAssignedCR.isEmpty())
+                info.put("Assigned course requests (priority students)", priorityAssignedCR);
             for (RequestPriority rp: RequestPriority.values()) {
                 if (rp == RequestPriority.Normal) continue;
                 if (iTotalCriticalCRWeight[rp.ordinal()] > 0.0) {
                     info.put("Assigned " + rp.name().toLowerCase() + " course requests", sDoubleFormat.format(100.0 * iAssignedCriticalCRWeight[rp.ordinal()] / iTotalCriticalCRWeight[rp.ordinal()]) + "% (" + (int)Math.round(iAssignedCriticalCRWeight[rp.ordinal()]) + "/" + (int)Math.round(iTotalCriticalCRWeight[rp.ordinal()]) + ")");
                 }
-                if (iTotalPriorityCriticalCRWeight[rp.ordinal()] > 0.0) {
-                    info.put("Assigned " + rp.name().toLowerCase() + " course requests (priority students)", sDoubleFormat.format(100.0 * iAssignedPriorityCriticalCRWeight[rp.ordinal()] / iTotalPriorityCriticalCRWeight[rp.ordinal()]) + "% (" + (int)Math.round(iAssignedPriorityCriticalCRWeight[rp.ordinal()]) + "/" + (int)Math.round(iTotalPriorityCriticalCRWeight[rp.ordinal()]) + ")");
+                priorityAssignedCR = "";
+                for (StudentPriority sp: StudentPriority.values()) {
+                    if (sp != StudentPriority.Dummy && iTotalPriorityCriticalCRWeight[rp.ordinal()][sp.ordinal()] > 0.0) {
+                        priorityAssignedCR += (priorityAssignedCR.isEmpty() ? "" : "\n") +
+                                sp.name() + ": " + sDoubleFormat.format(100.0 * iAssignedPriorityCriticalCRWeight[rp.ordinal()][sp.ordinal()] / iTotalPriorityCriticalCRWeight[rp.ordinal()][sp.ordinal()]) + "% (" + (int)Math.round(iAssignedPriorityCriticalCRWeight[rp.ordinal()][sp.ordinal()]) + "/" + (int)Math.round(iTotalPriorityCriticalCRWeight[rp.ordinal()][sp.ordinal()]) + ")";
+                    }
                 }
-
+                if (!priorityAssignedCR.isEmpty())
+                    info.put("Assigned " + rp.name().toLowerCase() + " course requests (priority students)", priorityAssignedCR);
             }
             if (iTotalReservedSpace > 0.0)
                 info.put("Reservations", sDoubleFormat.format(100.0 * iReservedSpace / iTotalReservedSpace) + "% (" + Math.round(iReservedSpace) + "/" + Math.round(iTotalReservedSpace) + ")");

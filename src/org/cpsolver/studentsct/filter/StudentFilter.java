@@ -35,4 +35,9 @@ public interface StudentFilter {
      * @param student a student
      * @return true if the student is to be accepted (sectioned)*/
     public boolean accept(Student student);
+    
+    /**
+     * Filter name
+     */
+    public String getName();
 }

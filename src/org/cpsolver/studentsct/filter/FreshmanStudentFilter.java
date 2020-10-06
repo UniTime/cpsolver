@@ -48,4 +48,9 @@ public class FreshmanStudentFilter implements StudentFilter {
         return false;
     }
 
+    @Override
+    public String getName() {
+        return "Freshman";
+    }
+
 }

@@ -40,4 +40,9 @@ public class RealStudentFilter implements StudentFilter {
         return !student.isDummy();
     }
 
+    @Override
+    public String getName() {
+        return "Real";
+    }
+
 }

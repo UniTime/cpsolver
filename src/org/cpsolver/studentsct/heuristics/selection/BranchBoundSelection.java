@@ -161,7 +161,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
     
     @Override
     public void init(Solver<Request, Enrollment> solver) {
-        init(solver, "Branch&bound...");
+        init(solver, "Branch&bound" + (iFilter == null ? "" : " (" + iFilter.getName().toLowerCase() + " students)") + "...");
     }
     
     protected synchronized Student nextStudent() {

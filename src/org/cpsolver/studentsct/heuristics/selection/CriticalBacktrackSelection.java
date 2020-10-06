@@ -67,7 +67,7 @@ public class CriticalBacktrackSelection extends BacktrackSelection {
                 throw new RuntimeException(e.getMessage(), e);
             }
         }
-        Progress.getInstance(solver.currentSolution().getModel()).setPhase("Backtracking (" + iPriority.name() + ")...", variables.size());
+        Progress.getInstance(solver.currentSolution().getModel()).setPhase(iPriority.name() + " Backtracking" + (iFilter == null ? "" : " (" + iFilter.getName().toLowerCase() + " students)") + "...", variables.size());
     }
 
 }

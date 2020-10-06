@@ -65,4 +65,14 @@ public class CombinedStudentFilter implements StudentFilter {
         }
     }
 
+    @Override
+    public String getName() {
+        switch (iOp) {
+            case OP_OR:
+                return iFirst.getName() + " OR " + iSecond.getName();
+            case OP_AND:
+            default:
+                return iFirst.getName() + " AND " + iSecond.getName();
+        }
+    }
 }

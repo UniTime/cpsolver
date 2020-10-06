@@ -85,4 +85,9 @@ public class RandomStudentFilter implements StudentFilter {
         }
     }
 
+    @Override
+    public String getName() {
+        return "Random";
+    }
+
 }

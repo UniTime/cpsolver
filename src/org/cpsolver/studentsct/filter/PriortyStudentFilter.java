@@ -1,6 +1,7 @@
 package org.cpsolver.studentsct.filter;
 
 import org.cpsolver.studentsct.model.Student;
+import org.cpsolver.studentsct.model.Student.StudentPriority;
 
 /**
  * This student filter only accepts students that are flagged as priority students.
@@ -25,10 +26,26 @@ import org.cpsolver.studentsct.model.Student;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class PriortyStudentFilter implements StudentFilter  {
+    StudentPriority iPriority = StudentPriority.Priority;
+    boolean iIncludeHigherPriority = true;
+    
+    public PriortyStudentFilter(StudentPriority priority, boolean includeHigherPriority) {
+        iPriority = priority; iIncludeHigherPriority = includeHigherPriority;
+    }
 
     @Override
     public boolean accept(Student student) {
-        return student.isPriority() && !student.isDummy();
+        if (student.isDummy()) return false;
+        if (iIncludeHigherPriority) {
+            return iPriority.isSameOrHigher(student);
+        } else {
+            return iPriority.isSame(student);
+        }
+    }
+
+    @Override
+    public String getName() {
+        return iPriority.name();
     }
 
 }

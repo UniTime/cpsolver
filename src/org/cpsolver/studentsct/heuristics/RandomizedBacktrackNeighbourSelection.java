@@ -134,7 +134,7 @@ public class RandomizedBacktrackNeighbourSelection extends BacktrackNeighbourSel
         }
         if (!conflict.getRequest().isAlternative() && conflict.getRequest().getRequestPriority().isHigher(enrollment.getRequest())) return false;
         if (iPreferPriorityStudents || conflict.getRequest().getRequestPriority().isSame(enrollment.getRequest())) {
-            if (!enrollment.getStudent().isPriority() && conflict.getStudent().isPriority()) return false;
+            if (conflict.getStudent().getPriority().isHigher(enrollment.getStudent())) return false;
         }
         return true;
     }

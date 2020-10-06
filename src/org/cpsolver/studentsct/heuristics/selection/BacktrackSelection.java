@@ -85,7 +85,7 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
 
     @Override
     public void init(Solver<Request, Enrollment> solver) {
-        init(solver, "Backtracking...");
+        init(solver, "Backtracking" + (iFilter == null ? "" : " (" + iFilter.getName().toLowerCase() + " students)") + "...");
         
         iNbrIterations = 0;
         iNbrTimeoutReached = 0;

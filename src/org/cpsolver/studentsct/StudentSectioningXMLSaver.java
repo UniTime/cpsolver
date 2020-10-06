@@ -34,6 +34,7 @@ import org.cpsolver.studentsct.model.Request.RequestPriority;
 import org.cpsolver.studentsct.model.RequestGroup;
 import org.cpsolver.studentsct.model.Section;
 import org.cpsolver.studentsct.model.Student;
+import org.cpsolver.studentsct.model.Student.StudentPriority;
 import org.cpsolver.studentsct.model.Subpart;
 import org.cpsolver.studentsct.model.Unavailability;
 import org.cpsolver.studentsct.reservation.CourseReservation;
@@ -634,8 +635,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         }
         if (student.isDummy())
             studentEl.addAttribute("dummy", "true");
-        if (student.isPriority())
-            studentEl.addAttribute("priority", "true");
+        if (student.getPriority().ordinal() < StudentPriority.Normal.ordinal())
+            studentEl.addAttribute("priority", student.getPriority().name());
         if (student.isNeedShortDistances())
             studentEl.addAttribute("shortDistances", "true");
         if (student.isAllowDisabled())

@@ -1339,6 +1339,11 @@ public class Test {
         public boolean accept(Student student) {
             return !iIds.contains(new Long(student.getId()));
         }
+
+        @Override
+        public String getName() {
+            return "Extra";
+        }
     }
 
     public static class TestSolutionListener implements SolutionListener<Request, Enrollment> {

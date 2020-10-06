@@ -33,6 +33,7 @@ import org.cpsolver.studentsct.model.Instructor;
 import org.cpsolver.studentsct.model.Offering;
 import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.Request.RequestPriority;
+import org.cpsolver.studentsct.model.Student.StudentPriority;
 import org.cpsolver.studentsct.model.RequestGroup;
 import org.cpsolver.studentsct.model.Section;
 import org.cpsolver.studentsct.model.Student;
@@ -932,8 +933,8 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
      */
     protected Student loadStudent(Element studentEl, Map<Long, Offering> offeringTable) {
         Student student = new Student(Long.parseLong(studentEl.attributeValue("id")), "true".equals(studentEl.attributeValue("dummy")));
-        if ("true".equals(studentEl.attributeValue("priority")))
-            student.setPriority(true);
+        if (studentEl.attributeValue("priority") != null)
+            student.setPriority(StudentPriority.getPriority(studentEl.attributeValue("priority")));
         if ("true".equals(studentEl.attributeValue("shortDistances")))
             student.setNeedShortDistances(true);
         if ("true".equals(studentEl.attributeValue("allowDisabled")))

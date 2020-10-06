@@ -48,4 +48,9 @@ public class ReverseStudentFilter implements StudentFilter {
         return (iFilter == null ? false : !iFilter.accept(student));
     }
 
+    @Override
+    public String getName() {
+        return "NOT " + iFilter.getName();
+    }
+
 }

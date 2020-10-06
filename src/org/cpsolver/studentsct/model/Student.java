@@ -41,7 +41,7 @@ import org.cpsolver.studentsct.model.Request.RequestPriority;
 public class Student implements Comparable<Student> {
     private long iId;
     private String iExternalId = null, iName = null;
-    private boolean iDummy = false, iPriority = false;
+    private StudentPriority iPriority = StudentPriority.Normal;
     private List<Request> iRequests = new ArrayList<Request>();
     private List<AcademicAreaCode> iAcadAreaClassifs = new ArrayList<AcademicAreaCode>();
     private List<AcademicAreaCode> iMajors = new ArrayList<AcademicAreaCode>();
@@ -77,7 +77,7 @@ public class Student implements Comparable<Student> {
      */
     public Student(long id, boolean dummy) {
         iId = id;
-        iDummy = dummy;
+        iPriority = (dummy ? StudentPriority.Dummy : StudentPriority.Normal);
     }
 
     /** Student unique id 
@@ -217,7 +217,7 @@ public class Student implements Comparable<Student> {
      * @return true if projected student
      */
     public boolean isDummy() {
-        return iDummy;
+        return iPriority == StudentPriority.Dummy;
     }
 
     /**
@@ -226,23 +226,47 @@ public class Student implements Comparable<Student> {
      * @param dummy projected student
      */
     public void setDummy(boolean dummy) {
-        iDummy = dummy;
+        if (dummy)
+            iPriority = StudentPriority.Dummy;
+        else if (iPriority == StudentPriority.Dummy)
+            iPriority = StudentPriority.Normal;
     }
     
     /**
-     * Student's priority flag. Priority students are to be assigned first.
-     * @return true if priority student
+     * Student's priority. Priority students are to be assigned first.
+     * @return student priority level
      */
-    public boolean isPriority() {
+    public StudentPriority getPriority() {
         return iPriority;
     }
     
     /**
-     * Set student's priority flag. Priority students are to be assigned first.
-     * @param priority priority student
+     * Set student's priority. Priority students are to be assigned first.
+     * @param priority student priority level
      */
-    public void setPriority(boolean priority) {
+    public void setPriority(StudentPriority priority) {
         iPriority = priority;
+    }
+    
+    /**
+     * Set student's priority. Priority students are to be assigned first.
+     * @param priority true for priority student
+     */
+    @Deprecated
+    public void setPriority(boolean priority) {
+        if (priority)
+            iPriority = StudentPriority.Priority;
+        else if (StudentPriority.Normal.isHigher(this))
+            iPriority = StudentPriority.Normal;
+    }
+    
+    /**
+     * Student's priority. Priority students are to be assigned first.
+     * @return true if priority student
+     */
+    @Deprecated
+    public boolean isPriority() {
+        return StudentPriority.Normal.isHigher(this);
     }
 
     /**
@@ -389,10 +413,9 @@ public class Student implements Comparable<Student> {
 
     @Override
     public int compareTo(Student s) {
-        // real students first
-        if (isDummy()) {
-            if (!s.isDummy()) return 1;
-        } else if (s.isDummy()) return -1;
+        // priority students first, dummy students last
+        if (getPriority() != s.getPriority())
+            return (getPriority().ordinal() < s.getPriority().ordinal() ? -1 : 1);
         // then id
         return new Long(getId()).compareTo(s.getId());
     }
@@ -549,5 +572,45 @@ public class Student implements Comparable<Student> {
             if (e != null) credit += e.getCredit();
         }
         return credit;
+    }
+    
+    /**
+     * Student priority level. Higher priority students are to be assigned first.
+     * The student priority is used to re-order students and assign them accoding
+     * to their priority.
+     */
+    public static enum StudentPriority {
+        Priority("P"),
+        Senior("4"),
+        Junior("3"),
+        Sophomore("2"),
+        Frehmen("1"),
+        Normal("N"), // this is the default priority
+        Dummy("D"), // dummy students priority
+        ;
+        
+        String iCode;
+        StudentPriority(String code) {
+            iCode = code;
+        }
+        public String code() { return iCode; }
+        
+        public boolean isSameOrHigher(Student s) {
+            return s.getPriority().ordinal() <= ordinal();
+        }
+        public boolean isHigher(Student s) {
+            return ordinal() < s.getPriority().ordinal();
+        }
+        public boolean isSame(Student s) {
+            return ordinal() == s.getPriority().ordinal();
+        }
+        public static StudentPriority getPriority(String value) {
+            if ("true".equalsIgnoreCase(value)) return StudentPriority.Priority;
+            if ("false".equalsIgnoreCase(value)) return StudentPriority.Normal;
+            for (StudentPriority sp: StudentPriority.values()) {
+                if (sp.name().equalsIgnoreCase(value)) return sp;
+            }
+            return StudentPriority.Normal;
+        }
     }
 }

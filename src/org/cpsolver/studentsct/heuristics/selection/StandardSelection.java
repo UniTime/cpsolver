@@ -12,6 +12,7 @@ import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.Progress;
+import org.cpsolver.studentsct.filter.StudentFilter;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
 
@@ -62,8 +63,8 @@ import org.cpsolver.studentsct.model.Request;
  */
 public class StandardSelection implements NeighbourSelection<Request, Enrollment> {
     private long iIteration = 0;
-    private ValueSelection<Request, Enrollment> iValueSelection = null;
-    private VariableSelection<Request, Enrollment> iVariableSelection = null;
+    protected ValueSelection<Request, Enrollment> iValueSelection = null;
+    protected VariableSelection<Request, Enrollment> iVariableSelection = null;
     protected long iNrIterations = -1;
     private boolean iPreferPriorityStudents = true;
 
@@ -88,7 +89,10 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
     /** Initialization */
     @Override
     public void init(Solver<Request, Enrollment> solver) {
-        init(solver, "Ifs...");
+        StudentFilter filter = null;
+        if (iVariableSelection instanceof UnassignedRequestSelection)
+            filter = ((UnassignedRequestSelection)iVariableSelection).getFilter();
+        init(solver, "Ifs" + (filter == null ? "" : " (" + filter.getName().toLowerCase() + " students)") + "...");
     }
     
     protected void init(Solver<Request, Enrollment> solver, String name) {
@@ -114,7 +118,7 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
         }
         if (!conflict.getRequest().isAlternative() && conflict.getRequest().getRequestPriority().isHigher(enrollment.getRequest())) return false;
         if (iPreferPriorityStudents || conflict.getRequest().getRequestPriority().isSame(enrollment.getRequest())) {
-            if (!enrollment.getStudent().isPriority() && conflict.getStudent().isPriority()) return false;
+            if (conflict.getStudent().getPriority().isHigher(enrollment.getStudent())) return false;
         }
         return true;
     }

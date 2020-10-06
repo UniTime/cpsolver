@@ -83,7 +83,7 @@ public class StudentChoiceOrder implements StudentOrder, Comparator<Student> {
 
     @Override
     public int compare(Student s1, Student s2) {
-        if (s1.isPriority() != s2.isPriority()) return (s1.isPriority() ? -1 : 1);
+        if (s1.getPriority() != s2.getPriority()) return (s1.getPriority().ordinal() < s2.getPriority().ordinal() ? -1 : 1);
         try {
             int cmp = -Double.compare(avgNrChoices(s1), avgNrChoices(s2));
             if (cmp != 0)
