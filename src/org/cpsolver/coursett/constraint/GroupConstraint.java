@@ -2,6 +2,7 @@ package org.cpsolver.coursett.constraint;
 
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -949,6 +950,20 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             @Override
             public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
                 return gc.isFollowingWeeksBTB(plc1, plc2, false);
+            }}),
+        /**
+         * Given classes must be taught on the same dates. If one of the classes meets more often, the class meeting less often can only meet on the dates when the other class is meeting.<br>
+         * When prohibited or (strongly) discouraged: given classes cannot be taught on the same days (there cannot be a date when both classes are meeting).<br>
+         * Note: unlike with the same days/weeks constraint, this constraint consider individual meeting dates of both classes.
+         */
+        SAME_DATES("SAME_DATES", "Same Dates", new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return gc.isSameDates(plc1.getTimeLocation(), plc2.getTimeLocation());
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return gc.isDifferentDates(plc1.getTimeLocation(), plc2.getTimeLocation());
             }}),
         ;
         
@@ -2226,5 +2241,27 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             return (s2 - e1) < 7;
         else // back-to-back and not following: just the order
             return true;
+    }
+    
+    private boolean isDifferentDates(TimeLocation t1, TimeLocation t2) {
+        if (!t1.shareDays(t2) || !t1.shareWeeks(t2)) return true;
+        for (Enumeration<Integer> e = t1.getDates(iDayOfWeekOffset); e.hasMoreElements(); ) {
+            Integer date = e.nextElement();
+            if (t2.hasDate(date, iDayOfWeekOffset)) return false;
+        }
+        return true;
+    }
+    
+    private boolean isSameDates(TimeLocation t1, TimeLocation t2) {
+        if (!t1.shareDays(t2) || !t1.shareWeeks(t2)) return false;
+        // t1 is meets less often
+        if (t1.countDates(iDayOfWeekOffset) > t2.countDates(iDayOfWeekOffset)) {
+            TimeLocation t = t1; t1 = t2; t2 = t;
+        }
+        for (Enumeration<Integer> e = t1.getDates(iDayOfWeekOffset); e.hasMoreElements(); ) {
+            Integer date = e.nextElement();
+            if (!t2.hasDate(date, iDayOfWeekOffset)) return false;
+        }
+        return true;
     }
 }

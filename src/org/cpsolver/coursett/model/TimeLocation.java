@@ -555,4 +555,78 @@ public class TimeLocation {
         }
         return iFirstMeeting;
     }
+    
+    /** List dates when this time location meets. 
+     * @return enumeration of dates of this time (indexes to the {@link TimeLocation#getWeekCode()} for matching days of the week)
+     **/
+    public IntEnumeration getDates(int dayOfWeekOffset) {
+        return new DateEnum(dayOfWeekOffset);
+    }
+    
+    /**
+     * Check if the given time location has a particular date
+     * @param date a date, expressed as an index to the {@link TimeLocation#getWeekCode()} 
+     * @param dayOfWeekOffset day of the week offset for the weeks pattern
+     * @return true if this time location is meeting on the given date
+     */
+    public boolean hasDate(int date, int dayOfWeekOffset) {
+        if (getWeekCode().get(date)) {
+            int dow = (date + dayOfWeekOffset) % 7;
+            if ((getDayCode() & Constants.DAY_CODES[dow]) != 0) return true;
+        }
+        return false;
+    }
+    
+    /**
+     * Count how many times this time location is meeting
+     * @param dayOfWeekOffset day of the week offset for the weeks pattern
+     * @return number of dates during which this time location is meeting
+     */
+    public int countDates(int dayOfWeekOffset) {
+        int idx = -1;
+        int count = 0;
+        while ((idx = getWeekCode().nextSetBit(1 + idx)) >= 0) {
+            int dow = (idx + dayOfWeekOffset) % 7;
+            if ((getDayCode() & Constants.DAY_CODES[dow]) != 0) count++;
+        }
+        return count;
+    }
+    
+    private class DateEnum implements IntEnumeration {
+        int dayOfWeekOffset = 0;
+        int nextDate = -1;
+        boolean hasNext = false;
+
+        private DateEnum(int dayOfWeekOffset) {
+            this.dayOfWeekOffset = dayOfWeekOffset;
+            hasNext = nextDate();
+        }
+
+        boolean nextDate() {
+            while (true) {
+                nextDate = getWeekCode().nextSetBit(1 + nextDate);
+                if (nextDate < 0) return false;
+                int dow = (nextDate + dayOfWeekOffset) % 7;
+                if ((getDayCode() & Constants.DAY_CODES[dow]) != 0) return true;
+            }
+        }
+
+        @Override
+        public boolean hasMoreElements() {
+            return hasNext;
+        }
+
+        @Override
+        public Integer nextElement() {
+            int ret = nextDate;
+            hasNext = nextDate();
+            return ret;
+        }
+        
+        @Deprecated
+        @Override
+        public Integer nextInt() {
+            return nextElement();
+        }
+    }
 }
