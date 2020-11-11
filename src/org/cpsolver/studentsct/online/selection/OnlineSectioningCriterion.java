@@ -1206,7 +1206,7 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
     /**
      * Time to be avoided.
      */
-    protected static class TimeToAvoid {
+    public static class TimeToAvoid {
         private TimeLocation iTime;
         private double iPenalty;
         private int iPriority;
@@ -1223,7 +1223,7 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
 
         public double overlap(TimeLocation time) {
             if (time.hasIntersection(iTime)) {
-                return iPenalty * (time.nrSharedDays(iTime) * time.nrSharedDays(iTime))
+                return iPenalty * (time.nrSharedDays(iTime) * time.nrSharedHours(iTime))
                         / (iTime.getNrMeetings() * iTime.getLength());
             } else {
                 return 0.0;

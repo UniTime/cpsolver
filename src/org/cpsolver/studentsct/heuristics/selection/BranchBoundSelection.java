@@ -1,6 +1,7 @@
 package org.cpsolver.studentsct.heuristics.selection;
 
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -36,7 +37,10 @@ import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.FreeTimeRequest;
 import org.cpsolver.studentsct.model.Request;
+import org.cpsolver.studentsct.model.Section;
 import org.cpsolver.studentsct.model.Student;
+import org.cpsolver.studentsct.model.Unavailability;
+import org.cpsolver.studentsct.online.selection.OnlineSectioningCriterion.TimeToAvoid;
 import org.cpsolver.studentsct.weights.StudentWeights;
 
 /**
@@ -106,6 +110,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
     protected StudentOrder iOrder = new StudentGroupsChoiceRealFirstOrder();
     protected double iDistConfWeight = 1.0;
     protected boolean iBranchWhenSelectedHasNoConflict = false;
+    protected boolean iTimesToAvoidHeuristics = true;
     protected StudentFilter iFilter = null;
     
     protected long iNbrIterations = 0;
@@ -134,6 +139,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         }
         iDistConfWeight = properties.getPropertyDouble("DistanceConflict.Weight", iDistConfWeight);
         iBranchWhenSelectedHasNoConflict = properties.getPropertyBoolean("Students.BranchWhenSelectedHasNoConflict", iBranchWhenSelectedHasNoConflict);
+        iTimesToAvoidHeuristics = properties.getPropertyBoolean("OnlineStudentSectioning.TimesToAvoidHeuristics", iTimesToAvoidHeuristics);
     }
 
     /**
@@ -225,6 +231,8 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         protected HashMap<CourseRequest, List<Enrollment>> iValues;
         /** Current assignment */
         protected Assignment<Request, Enrollment> iCurrentAssignment;
+        /** Times to avoid (used when comparing enrollments) */
+        protected ArrayList<TimeToAvoid> iTimesToAvoid = null;
 
         /**
          * Constructor
@@ -236,6 +244,26 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         public Selection(Student student, Assignment<Request, Enrollment> assignment) {
             iStudent = student;
             iCurrentAssignment = assignment;
+            if (iTimesToAvoidHeuristics) {
+                iTimesToAvoid = new ArrayList<TimeToAvoid>();
+                for (Request r : iStudent.getRequests()) {
+                    if (r instanceof CourseRequest) {
+                        List<Enrollment> enrollments = ((CourseRequest) r).getAvaiableEnrollmentsSkipSameTime(assignment);
+                        if (enrollments.size() <= 5) {
+                            int penalty = (7 - enrollments.size()) * (r.isAlternative() ? 1 : 7 - enrollments.size());
+                            for (Enrollment enrollment : enrollments)
+                                for (Section section : enrollment.getSections())
+                                    if (section.getTime() != null)
+                                        iTimesToAvoid.add(new TimeToAvoid(section.getTime(), penalty, r.getPriority()));
+                        }
+                    } else if (r instanceof FreeTimeRequest) {
+                        iTimesToAvoid.add(new TimeToAvoid(((FreeTimeRequest) r).getTime(), 1, Integer.MAX_VALUE));
+                    }
+                }
+                for (Unavailability unavailability: iStudent.getUnavailabilities())
+                    if (unavailability.getTime() != null)
+                        iTimesToAvoid.add(new TimeToAvoid(unavailability.getTime(), 1, Integer.MAX_VALUE));
+            }
         }
 
         /**
@@ -679,7 +707,28 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                     if (e1.equals(iCurrentAssignment.getValue(request))) return -1;
                     if (e2.equals(iCurrentAssignment.getValue(request))) return 1;
                     Double v1 = value(e1), v2 = value(e2);
-                    return v1.equals(v2) ? e1.compareTo(iCurrentAssignment, e2) : v2.compareTo(v1);
+                    if (iTimesToAvoid != null && Math.abs(v1 - v2) < 0.0001) {
+                        double o1 = 0.0, o2 = 0.0;
+                        for (Section s : e1.getSections()) {
+                            if (s.getTime() != null)
+                                for (TimeToAvoid avoid : iTimesToAvoid) {
+                                    if (avoid.priority() > e1.getRequest().getPriority())
+                                        o1 += avoid.overlap(s.getTime());
+                                }
+                        }
+                        for (Section s : e2.getSections()) {
+                            if (s.getTime() != null)
+                                for (TimeToAvoid avoid : iTimesToAvoid) {
+                                    if (avoid.priority() > e2.getRequest().getPriority())
+                                        o2 += avoid.overlap(s.getTime());
+                                }
+                        }
+                        if (o1 < o2)
+                            return -1;
+                        if (o2 < o1)
+                            return 1;
+                    }
+                    return v1.equals(v2) ? e1.compareTo(iCurrentAssignment, e2) : v2.compareTo(v1); 
                 }
                 
             });
