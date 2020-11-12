@@ -305,4 +305,16 @@ public class Subpart implements Comparable<Subpart> {
      * return subpart's credit value
      */
     public Float getCreditValue() { return iCreditValue; }
+    
+    public boolean isOnline() {
+        for (Section section: getSections())
+            if (!section.isOnline()) return false;
+        return true;
+    }
+    
+    public boolean hasTime() {
+        for (Section section: getSections())
+            if (section.getTime() != null) return true;
+        return false;
+    }
 }

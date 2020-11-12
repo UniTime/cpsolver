@@ -155,12 +155,13 @@ public class PriorityStudentWeights implements StudentWeights {
     }
     
     public double getCachedWeight(Request request) {
-        Double w = (Double)request.getExtra();
-        if (w == null) {
-            w = getWeight(request);
-            request.setExtra(w);
+        double[] cache = (double[])request.getExtra();
+        if (cache == null) {
+            double base = getWeight(request); 
+            cache = new double[]{base, computeBound(base, request)};
+            request.setExtra(cache);
         }
-        return w;
+        return cache[0];
     }
     
     /**
@@ -246,7 +247,53 @@ public class PriorityStudentWeights implements StudentWeights {
 
     @Override
     public double getBound(Request request) {
-        return getCachedWeight(request);
+        double[] cache = (double[])request.getExtra();
+        if (cache == null) {
+            double base = getWeight(request); 
+            cache = new double[]{base, computeBound(base, request)};
+            request.setExtra(cache);
+        }
+        return cache[1];
+    }
+    
+    protected double computeBound(double base, Request request) {
+        if (iAdditiveWeights) {
+            double weight = 0.0;
+            if (request instanceof CourseRequest) {
+                CourseRequest cr = (CourseRequest)request;
+                if (iNoTimeFactor != 0.0 && !cr.getCourses().isEmpty()) {
+                    weight += iNoTimeFactor * cr.getCourses().get(0).getArrHrsBound();
+                }
+                if (iOnlineFactor != 0.0 && !cr.getCourses().isEmpty()) {
+                    weight += iOnlineFactor * cr.getCourses().get(0).getOnlineBound();
+                }
+                if (iMPP && cr.getInitialAssignment() == null) {
+                    weight += iPerturbationFactor;
+                }
+                if (iSelectionFactor != 0.0 && cr.getSelectedChoices().isEmpty()) {
+                    weight += iSelectionFactor;
+                }
+            }
+            return round(base * (1.0 - weight));
+        } else {
+            double weight = base;
+            if (request instanceof CourseRequest) {
+                CourseRequest cr = (CourseRequest)request;
+                if (iNoTimeFactor != 0.0 && !cr.getCourses().isEmpty()) {
+                    weight *= (1.0 - iNoTimeFactor * cr.getCourses().get(0).getArrHrsBound());
+                }
+                if (iOnlineFactor != 0.0 && !cr.getCourses().isEmpty()) {
+                    weight *= (1.0 - iOnlineFactor * cr.getCourses().get(0).getOnlineBound());
+                }
+                if (iMPP && cr.getInitialAssignment() == null) {
+                    weight *= (1.0 - iPerturbationFactor);
+                }
+                if (iSelectionFactor != 0.0 && cr.getSelectedChoices().isEmpty()) {
+                    weight *= (1.0 - iSelectionFactor);
+                }
+            }
+            return round(weight);
+        }
     }
     
     protected double round(double value) {

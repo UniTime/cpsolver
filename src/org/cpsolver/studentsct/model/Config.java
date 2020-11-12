@@ -559,4 +559,18 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
             }
         return (hasCredit ? new Float(credit) : null);
     }
+    
+    public int getNrOnline() {
+        int online = 0;
+        for (Subpart subpart: getSubparts())
+            if (subpart.isOnline()) online ++;
+        return online;
+    }
+    
+    public int getNrArrHours() {
+        int arrHrs = 0;
+        for (Subpart subpart: getSubparts())
+            if (!subpart.hasTime()) arrHrs ++;
+        return arrHrs;
+    }
 }

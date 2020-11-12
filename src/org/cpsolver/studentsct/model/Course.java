@@ -451,4 +451,26 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
             return iMinEnrollmentWeight;
         }
     }
+    
+    public double getOnlineBound() {
+        double bound = 1.0; 
+        for (Config config: getOffering().getConfigs()) {
+            int online = config.getNrOnline();
+            if (online == 0) return 0.0;
+            double factor = ((double)online) / config.getSubparts().size();
+            if (factor < bound) bound = factor;
+        }
+        return bound;
+    }
+    
+    public double getArrHrsBound() {
+        double bound = 1.0; 
+        for (Config config: getOffering().getConfigs()) {
+            int arrHrs = config.getNrArrHours();
+            if (arrHrs == 0) return 0.0;
+            double factor = ((double)arrHrs) / config.getSubparts().size();
+            if (factor < bound) bound = factor;
+        }
+        return bound;
+    }
 }
