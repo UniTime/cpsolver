@@ -11,7 +11,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
@@ -105,7 +104,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
     protected StudentQuality iStudentQuality = null;
     protected StudentSectioningModel iModel = null;
     public static boolean sDebug = false;
-    protected Queue<Student> iStudents = null;
+    protected LinkedList<Student> iStudents = null;
     protected boolean iMinimizePenalty = false;
     protected StudentOrder iOrder = new StudentGroupsChoiceRealFirstOrder();
     protected double iDistConfWeight = 1.0;
@@ -180,7 +179,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
     }
     
     public synchronized void addStudent(Student student) {
-        if (iStudents != null && !student.isDummy()) iStudents.add(student);
+        if (iStudents != null && !student.isDummy()) iStudents.addFirst(student);
     }
 
     /**
