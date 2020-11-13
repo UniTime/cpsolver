@@ -183,6 +183,22 @@ public class CourseRequest extends Request {
         }
         return new Enrollment(this, iCourses.indexOf(course), course, config, sections, reservation);
     }
+    
+    /**
+     * Create enrollment for the given list of sections. The list of sections
+     * needs to be correct, i.e., a section for each subpart of a configuration
+     * of one of the requested courses.
+     * @param course selected course
+     * @param sections selected sections
+     * @param reservation selected reservation
+     * @return enrollment
+     */
+    public Enrollment createEnrollment(Course course, Set<? extends SctAssignment> sections, Reservation reservation) {
+        if (sections == null || sections.isEmpty())
+            return null;
+        Config config = ((Section) sections.iterator().next()).getSubpart().getConfig();
+        return new Enrollment(this, iCourses.indexOf(course), course, config, sections, reservation);
+    }
 
     /**
      * Create enrollment for the given list of sections. The list of sections

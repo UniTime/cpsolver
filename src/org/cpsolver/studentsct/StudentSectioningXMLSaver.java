@@ -818,6 +818,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
     protected void saveEnrollment(Element assignmentEl, Enrollment enrollment) {
         if (enrollment.getReservation() != null)
             assignmentEl.addAttribute("reservation", getId("reservation", enrollment.getReservation().getId()));
+        if (enrollment.getCourse() != null)
+            assignmentEl.addAttribute("course", getId("course", enrollment.getCourse().getId()));
         for (Section section : enrollment.getSections()) {
             Element sectionEl = assignmentEl.addElement("section").addAttribute("id",
                     getId("section", section.getId()));

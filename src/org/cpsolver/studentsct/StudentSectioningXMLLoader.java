@@ -1095,8 +1095,14 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                     for (Reservation r: course.getOffering().getReservations())
                         if (r.getId() == reservationId) { reservation = r; break; }
             }
-            if (!sections.isEmpty())
+            if (!sections.isEmpty()) {
+                if (enrollmentEl.attributeValue("course") != null) {
+                    Course course = courseRequest.getCourse(Long.valueOf(enrollmentEl.attributeValue("course")));
+                    if (course != null)
+                        return courseRequest.createEnrollment(course, sections, reservation); 
+                }
                 return courseRequest.createEnrollment(sections, reservation);
+            }
         } else if (request instanceof FreeTimeRequest) {
             return ((FreeTimeRequest)request).createEnrollment();
         }
