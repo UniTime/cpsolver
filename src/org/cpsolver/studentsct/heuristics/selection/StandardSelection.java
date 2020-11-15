@@ -66,7 +66,7 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
     protected ValueSelection<Request, Enrollment> iValueSelection = null;
     protected VariableSelection<Request, Enrollment> iVariableSelection = null;
     protected long iNrIterations = -1;
-    private boolean iPreferPriorityStudents = true;
+    protected boolean iPreferPriorityStudents = true;
 
     /**
      * Constructor (variable and value selection are expected to be already

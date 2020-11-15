@@ -45,10 +45,12 @@ import org.cpsolver.studentsct.model.Request.RequestPriority;
  */
 public class CriticalStandardSelection extends StandardSelection {
     private RequestPriority iPriority;
+    private boolean iAllowCriticalUnassignment = false;
     
     public CriticalStandardSelection(DataProperties properties, VariableSelection<Request, Enrollment> variableSelection, ValueSelection<Request, Enrollment> valueSelection, RequestPriority priority) {
         super(properties, variableSelection, valueSelection);
         iPriority = priority;
+        iAllowCriticalUnassignment = properties.getPropertyBoolean("Neighbour.AllowCriticalUnassignment", iAllowCriticalUnassignment);
     }
     
     public CriticalStandardSelection(DataProperties properties, ValueSelection<Request, Enrollment> valueSelection, RequestPriority priority) {
@@ -69,7 +71,12 @@ public class CriticalStandardSelection extends StandardSelection {
     
     @Override
     public boolean canUnassign(Enrollment enrollment, Enrollment conflict, Assignment<Request, Enrollment> assignment) {
+        if (!iAllowCriticalUnassignment) return super.canUnassign(enrollment, conflict, assignment);
+        
         if (conflict.getRequest().isMPP() && conflict.equals(conflict.getRequest().getInitialAssignment())) return false;
+        if (iPreferPriorityStudents || conflict.getRequest().getRequestPriority().isSame(enrollment.getRequest())) {
+            if (conflict.getStudent().getPriority().isHigher(enrollment.getStudent())) return false;
+        }
         // Override to allow unassignment of critical course requests
         return true;
     }
