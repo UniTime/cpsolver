@@ -4,6 +4,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.ConcurrentModificationException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -114,15 +115,20 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
             Enrollment e = request.getAssignment(solution.getAssignment());
             if (e != null && request instanceof FreeTimeRequest) continue;
             if (e != null && e.getPriority() == 0 && ((CourseRequest)request).getSelectedChoices().isEmpty()) continue;
-            Neighbour<Request, Enrollment> n = iRBtNSel.selectNeighbour(solution, request);
-            if (iRBtNSel.getContext() != null) {
-                iNbrIterations ++;
-                iTotalTime += iRBtNSel.getContext().getTime();
-                if (iRBtNSel.getContext().isTimeoutReached()) iNbrTimeoutReached ++;
-                if (n == null) iNbrNoSolution ++;
+            for (int i = 0; i < 5; i++) {
+                try {
+                    Neighbour<Request, Enrollment> n = iRBtNSel.selectNeighbour(solution, request);
+                    if (iRBtNSel.getContext() != null) {
+                        iNbrIterations ++;
+                        iTotalTime += iRBtNSel.getContext().getTime();
+                        if (iRBtNSel.getContext().isTimeoutReached()) iNbrTimeoutReached ++;
+                        if (n == null) iNbrNoSolution ++;
+                    }
+                    if (n != null && n.value(solution.getAssignment()) <= 0.0)
+                        return n;
+                    break;
+                } catch (ConcurrentModificationException ex) {}
             }
-            if (n != null && n.value(solution.getAssignment()) <= 0.0)
-                return n;
         }
         return null;
     }

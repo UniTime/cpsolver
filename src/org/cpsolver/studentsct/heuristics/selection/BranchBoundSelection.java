@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -192,9 +193,13 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         Student student = null;
         while ((student = nextStudent()) != null) {
             Progress.getInstance(solution.getModel()).incProgress();
-            Neighbour<Request, Enrollment> neighbour = getSelection(solution.getAssignment(), student).select();
-            if (neighbour != null)
-                return neighbour;
+            for (int i = 0; i < 5; i++) {
+                try {
+                    Neighbour<Request, Enrollment> neighbour = getSelection(solution.getAssignment(), student).select();
+                    if (neighbour != null) return neighbour;
+                    break;
+                } catch (ConcurrentModificationException e) {}
+            }
         }
         return null;
     }

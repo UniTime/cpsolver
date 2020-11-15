@@ -4,6 +4,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -162,13 +163,18 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
             Progress.getInstance(solution.getModel()).incProgress();
             if (student.isComplete(solution.getAssignment()) || student.nrAssignedRequests(solution.getAssignment()) == 0)
                 continue;
-            Selection selection = getSelection(solution.getAssignment(), student);
-            Neighbour<Request, Enrollment> neighbour = selection.select();
-            if (neighbour != null) {
-                addStudent(student);
-                return neighbour;
-            } else
-                iProblemStudents.addAll(selection.getProblemStudents());
+            for (int i = 0; i < 5; i++) {
+                try {
+                    Selection selection = getSelection(solution.getAssignment(), student);
+                    Neighbour<Request, Enrollment> neighbour = selection.select();
+                    if (neighbour != null) {
+                        addStudent(student);
+                        return neighbour;
+                    } else
+                        iProblemStudents.addAll(selection.getProblemStudents());
+                    break;
+                } catch (ConcurrentModificationException e) {}
+            }
         }
         return null;
     }
