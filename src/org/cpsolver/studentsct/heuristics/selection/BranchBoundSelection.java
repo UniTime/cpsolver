@@ -706,8 +706,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                 public int compare(Enrollment e1, Enrollment e2) {
                     if (e1.equals(iCurrentAssignment.getValue(request))) return -1;
                     if (e2.equals(iCurrentAssignment.getValue(request))) return 1;
-                    Double v1 = value(e1), v2 = value(e2);
-                    if (iTimesToAvoid != null && Math.abs(v1 - v2) < 0.0001) {
+                    if (iTimesToAvoid != null) {
                         double o1 = 0.0, o2 = 0.0;
                         for (Section s : e1.getSections()) {
                             if (s.getTime() != null)
@@ -728,6 +727,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
                         if (o2 < o1)
                             return 1;
                     }
+                    Double v1 = value(e1), v2 = value(e2);
                     return v1.equals(v2) ? e1.compareTo(iCurrentAssignment, e2) : v2.compareTo(v1); 
                 }
                 
