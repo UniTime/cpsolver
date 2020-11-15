@@ -7,14 +7,15 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 
 import org.cpsolver.ifs.assignment.Assignment;
+import org.cpsolver.ifs.heuristics.BacktrackNeighbourSelection;
 import org.cpsolver.ifs.heuristics.NeighbourSelection;
 import org.cpsolver.ifs.model.InfoProvider;
 import org.cpsolver.ifs.model.Neighbour;
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
+import org.cpsolver.ifs.solver.SolverListener;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.Progress;
 import org.cpsolver.studentsct.filter.StudentFilter;
@@ -52,10 +53,10 @@ import org.cpsolver.studentsct.model.Request;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class BacktrackSelection implements NeighbourSelection<Request, Enrollment>, InfoProvider<Request, Enrollment> {
+public class BacktrackSelection implements NeighbourSelection<Request, Enrollment>, InfoProvider<Request, Enrollment>, SolverListener<Request, Enrollment> {
     private static DecimalFormat sDF = new DecimalFormat("0.00");
     protected RandomizedBacktrackNeighbourSelection iRBtNSel = null;
-    protected Queue<Request> iRequests = null;
+    protected LinkedList<Request> iRequests = null;
     protected boolean iIncludeAssignedRequests = false;
     
     protected long iNbrIterations = 0;
@@ -99,6 +100,10 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
             if (request == null) return null;
             if (iFilter == null || iFilter.accept(request.getStudent())) return request;
         }
+    }
+    
+    public synchronized void addRequest(Request request) {
+        if (iRequests != null && request != null && !request.getStudent().isDummy()) iRequests.addFirst(request);
     }
 
     @Override
@@ -144,4 +149,22 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
      * Only consider students meeting the given filter.
      */
     public BacktrackSelection withFilter(StudentFilter filter) { iFilter = filter; return this; }
+    
+    @Override
+    public boolean variableSelected(Assignment<Request, Enrollment> assignment, long iteration, Request variable) {
+        return false;
+    }
+    @Override
+    public boolean valueSelected(Assignment<Request, Enrollment> assignment, long iteration, Request variable, Enrollment value) {
+        return false;
+    }
+    @Override
+    public boolean neighbourSelected(Assignment<Request, Enrollment> assignment, long iteration, Neighbour<Request, Enrollment> neighbour) {
+        return false;
+    }
+    @Override
+    public void neighbourFailed(Assignment<Request, Enrollment> assignment, long iteration, Neighbour<Request, Enrollment> neighbour) {
+        if (neighbour instanceof BacktrackNeighbourSelection.BackTrackNeighbour)
+            addRequest(((BacktrackNeighbourSelection<Request, Enrollment>.BackTrackNeighbour)neighbour).getAssignments().get(0).getRequest());
+    }
 }

@@ -21,6 +21,7 @@ import org.cpsolver.ifs.model.InfoProvider;
 import org.cpsolver.ifs.model.Neighbour;
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
+import org.cpsolver.ifs.solver.SolverListener;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.JProf;
 import org.cpsolver.ifs.util.Progress;
@@ -95,7 +96,7 @@ import org.cpsolver.studentsct.weights.StudentWeights;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class BranchBoundSelection implements NeighbourSelection<Request, Enrollment>, InfoProvider<Request, Enrollment> {
+public class BranchBoundSelection implements NeighbourSelection<Request, Enrollment>, InfoProvider<Request, Enrollment>, SolverListener<Request, Enrollment> {
     private static Logger sLog = Logger.getLogger(BranchBoundSelection.class);
     private static DecimalFormat sDF = new DecimalFormat("0.00");
     protected int iTimeout = 10000;
@@ -958,4 +959,22 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
      * Only consider students meeting the given filter.
      */
     public BranchBoundSelection withFilter(StudentFilter filter) { iFilter = filter; return this; }
+
+    @Override
+    public boolean variableSelected(Assignment<Request, Enrollment> assignment, long iteration, Request variable) {
+        return false;
+    }
+    @Override
+    public boolean valueSelected(Assignment<Request, Enrollment> assignment, long iteration, Request variable, Enrollment value) {
+        return false;
+    }
+    @Override
+    public boolean neighbourSelected(Assignment<Request, Enrollment> assignment, long iteration, Neighbour<Request, Enrollment> neighbour) {
+        return false;
+    }
+    @Override
+    public void neighbourFailed(Assignment<Request, Enrollment> assignment, long iteration, Neighbour<Request, Enrollment> neighbour) {
+        if (neighbour instanceof BranchBoundNeighbour)
+            addStudent(((BranchBoundNeighbour)neighbour).getStudent());
+    }
 }

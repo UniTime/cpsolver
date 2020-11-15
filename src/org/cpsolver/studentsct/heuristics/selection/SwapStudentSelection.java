@@ -9,7 +9,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
 
 
@@ -20,6 +19,7 @@ import org.cpsolver.ifs.model.InfoProvider;
 import org.cpsolver.ifs.model.Neighbour;
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
+import org.cpsolver.ifs.solver.SolverListener;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.JProf;
 import org.cpsolver.ifs.util.Progress;
@@ -92,10 +92,10 @@ import org.cpsolver.studentsct.model.Student;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class SwapStudentSelection implements NeighbourSelection<Request, Enrollment>, ProblemStudentsProvider, InfoProvider<Request, Enrollment> {
+public class SwapStudentSelection implements NeighbourSelection<Request, Enrollment>, ProblemStudentsProvider, InfoProvider<Request, Enrollment>, SolverListener<Request, Enrollment> {
     private static Logger sLog = Logger.getLogger(SwapStudentSelection.class);
     private Set<Student> iProblemStudents = Collections.synchronizedSet(new HashSet<Student>());
-    private Queue<Student> iStudents = null;
+    private LinkedList<Student> iStudents = null;
     private static DecimalFormat sDF = new DecimalFormat("0.00");
     private int iTimeout = 5000;
     private int iMaxValues = 100;
@@ -146,8 +146,8 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
         return iStudents.poll();
     }
     
-    protected synchronized void addStudent(Student student) {
-        if (iStudents != null && !student.isDummy()) iStudents.add(student);
+    public synchronized void addStudent(Student student) {
+        if (iStudents != null && !student.isDummy()) iStudents.addFirst(student);
     }
 
     /**
@@ -459,6 +459,8 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
         public double value(Assignment<Request, Enrollment> assignment) {
             return iValue;
         }
+        
+        public Student getStudent() { return iEnrollment.getStudent(); }
 
         /**
          * Perform the move. All the requeired swaps are identified and
@@ -512,5 +514,23 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
 
     @Override
     public void getInfo(Assignment<Request, Enrollment> assignment, Map<String, String> info, Collection<Request> variables) {
+    }
+    
+    @Override
+    public boolean variableSelected(Assignment<Request, Enrollment> assignment, long iteration, Request variable) {
+        return false;
+    }
+    @Override
+    public boolean valueSelected(Assignment<Request, Enrollment> assignment, long iteration, Request variable, Enrollment value) {
+        return false;
+    }
+    @Override
+    public boolean neighbourSelected(Assignment<Request, Enrollment> assignment, long iteration, Neighbour<Request, Enrollment> neighbour) {
+        return false;
+    }
+    @Override
+    public void neighbourFailed(Assignment<Request, Enrollment> assignment, long iteration, Neighbour<Request, Enrollment> neighbour) {
+        if (neighbour instanceof SwapStudentNeighbour)
+            addStudent(((SwapStudentNeighbour)neighbour).getStudent());
     }
 }

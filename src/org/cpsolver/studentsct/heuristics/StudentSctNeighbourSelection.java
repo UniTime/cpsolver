@@ -1,5 +1,7 @@
 package org.cpsolver.studentsct.heuristics;
 
+import java.util.Iterator;
+
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.heuristics.NeighbourSelection;
 import org.cpsolver.ifs.heuristics.RoundRobinNeighbourSelection;
@@ -112,6 +114,11 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
         super.init(solver);
         setup(solver);
         solver.setUpdateProgress(false);
+        for (Iterator<SolverListener<Request, Enrollment>> i = solver.getSolverListeners().iterator(); i.hasNext(); ) {
+            SolverListener<Request, Enrollment> listener = i.next();
+            if (listener instanceof StudentSctNeighbourSelection)
+                i.remove();
+        }
         solver.addSolverListener(this);
     }
 
@@ -264,10 +271,11 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
         return true;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void neighbourFailed(Assignment<Request, Enrollment> assignment, long iteration, Neighbour<Request, Enrollment> neighbour) {
         NeighbourSelection<Request, Enrollment> selection = getSelection();
-        if (neighbour instanceof BranchBoundSelection.BranchBoundNeighbour && selection instanceof BranchBoundSelection)
-            ((BranchBoundSelection)selection).addStudent(((BranchBoundSelection.BranchBoundNeighbour)neighbour).getStudent());
+        if (selection instanceof SolverListener)
+            ((SolverListener<Request, Enrollment>)selection).neighbourFailed(assignment, iteration, neighbour);
     }
 }
