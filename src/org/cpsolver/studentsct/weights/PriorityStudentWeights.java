@@ -93,6 +93,7 @@ public class PriorityStudentWeights implements StudentWeights {
     protected boolean iMaximizeAssignment = false;
     protected boolean iPreciseComparison = false;
     protected double[] iQalityWeights;
+    protected boolean iImprovedBound = true;
     
     public PriorityStudentWeights(DataProperties config) {
         iPriorityFactor = config.getPropertyDouble("StudentWeights.Priority", iPriorityFactor);
@@ -125,6 +126,7 @@ public class PriorityStudentWeights implements StudentWeights {
         for (StudentQuality.Type type: StudentQuality.Type.values()) {
             iQalityWeights[type.ordinal()] = config.getPropertyDouble(type.getWeightName(), type.getWeightDefault());
         }
+        iImprovedBound = config.getPropertyBoolean("StudentWeights.ImprovedBound", iImprovedBound);
     }
         
     public double getWeight(Request request) {
@@ -257,6 +259,7 @@ public class PriorityStudentWeights implements StudentWeights {
     }
     
     protected double computeBound(double base, Request request) {
+        if (!iImprovedBound) return base;
         if (iAdditiveWeights) {
             double weight = 0.0;
             if (request instanceof CourseRequest) {
