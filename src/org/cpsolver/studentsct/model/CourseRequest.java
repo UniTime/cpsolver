@@ -761,6 +761,13 @@ public class CourseRequest extends Request {
                 if (choice.getSubpartId().equals(section.getSubpart().getId())) {
                     hasSubpart = true;
                     if (choice.sameSection(section)) hasMatchingSection = true;
+                } else if (!hasMatchingConfig) {
+                    for (Subpart subpart: section.getSubpart().getConfig().getSubparts()) {
+                        if (choice.getSubpartId().equals(subpart.getId())) {
+                            hasMatchingConfig = true;
+                            break;
+                        }
+                    }
                 }
             }
         }
