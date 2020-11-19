@@ -1097,13 +1097,13 @@ public class CourseRequest extends Request {
     
     /**
      * Return true if this request can track MPP
-     * @return true if the request is course request and it either has an initial enrollment or some selected choices.
+     * @return true if the request is course request and it either has an initial enrollment
      */
     @Override
     public boolean isMPP() {
         StudentSectioningModel model = (StudentSectioningModel) getModel();
         if (model == null || !model.isMPP()) return false;
-        return !getStudent().isDummy() && (getInitialAssignment() != null || !getSelectedChoices().isEmpty()); 
+        return !getStudent().isDummy() && getInitialAssignment() != null; 
     }
     
     /**
