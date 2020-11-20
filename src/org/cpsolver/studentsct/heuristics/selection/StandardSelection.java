@@ -67,6 +67,9 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
     protected VariableSelection<Request, Enrollment> iVariableSelection = null;
     protected long iNrIterations = -1;
     protected boolean iPreferPriorityStudents = true;
+    protected long iConflictTimeOut = -7200;
+    protected long iTimeOut = -3600;
+    protected boolean iCanConflict = true;
 
     /**
      * Constructor (variable and value selection are expected to be already
@@ -84,6 +87,13 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
         iVariableSelection = variableSelection;
         iValueSelection = valueSelection;
         iPreferPriorityStudents = properties.getPropertyBoolean("Sectioning.PriorityStudentsFirstSelection.AllIn", true);
+        iTimeOut = properties.getPropertyLong("Neighbour.StandardTimeOut", -3600);
+        if (iTimeOut < 0)
+            iTimeOut = Math.max(0, properties.getPropertyLong("Termination.TimeOut", -1l) + iTimeOut);
+        iConflictTimeOut = properties.getPropertyLong("Neighbour.StandardConflictTimeOut", -7200);
+        if (iConflictTimeOut < 0)
+            iConflictTimeOut = Math.max(0, properties.getPropertyLong("Termination.TimeOut", -1l) + iConflictTimeOut);
+        iCanConflict = properties.getPropertyBoolean("Neighbour.StandardCanConflict", true);
     }
 
     /** Initialization */
@@ -102,7 +112,13 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
         iNrIterations = solver.getProperties().getPropertyLong("Neighbour.StandardIterations", -1);
         if (iNrIterations < 0)
             iNrIterations = solver.currentSolution().getModel().nrUnassignedVariables(solver.currentSolution().getAssignment());
-        Progress.getInstance(solver.currentSolution().getModel()).setPhase(name, iNrIterations);
+        if (iTimeOut > 0 && solver.currentSolution().getTime() > iTimeOut)
+            iNrIterations = 0;
+        iCanConflict = solver.getProperties().getPropertyBoolean("Neighbour.StandardCanConflict", true);
+        if (iCanConflict && iConflictTimeOut > 0 && solver.currentSolution().getTime() > iConflictTimeOut)
+            iCanConflict = false;
+        if (iNrIterations > 0)
+            Progress.getInstance(solver.currentSolution().getModel()).setPhase((iCanConflict ? name : "No-conf " + name), iNrIterations);
     }
     
     /**
@@ -111,6 +127,7 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
      * @return if running MPP, do not unassign initial enrollments
      */
     public boolean canUnassign(Enrollment enrollment, Enrollment conflict, Assignment<Request, Enrollment> assignment) {
+        if (!iCanConflict) return false;
         if (conflict.getRequest().isMPP() && conflict.equals(conflict.getRequest().getInitialAssignment())) return false;
         if (conflict.getRequest().getStudent().hasMinCredit()) {
             float credit = conflict.getRequest().getStudent().getAssignedCredit(assignment) - conflict.getCredit();
