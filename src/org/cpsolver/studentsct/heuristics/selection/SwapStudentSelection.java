@@ -160,7 +160,9 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
     public Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
         Student student = null;
         while ((student = nextStudent()) != null) {
-            Progress.getInstance(solution.getModel()).incProgress();
+            Progress p = Progress.getInstance(solution.getModel()); 
+            p.incProgress();
+            if (p.getProgress() > 1.1 * p.getProgressMax()) return null;
             if (student.isComplete(solution.getAssignment()) || student.nrAssignedRequests(solution.getAssignment()) == 0)
                 continue;
             for (int i = 0; i < 5; i++) {
