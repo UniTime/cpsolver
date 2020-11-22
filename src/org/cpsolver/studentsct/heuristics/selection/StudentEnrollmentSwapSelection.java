@@ -11,7 +11,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.concurrent.locks.Lock;
 
 import org.cpsolver.ifs.assignment.Assignment;
@@ -21,6 +20,7 @@ import org.cpsolver.ifs.model.InfoProvider;
 import org.cpsolver.ifs.model.Neighbour;
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
+import org.cpsolver.ifs.solver.SolverListener;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.Progress;
 import org.cpsolver.studentsct.StudentSectioningModel;
@@ -56,10 +56,10 @@ import org.cpsolver.studentsct.model.Request;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class StudentEnrollmentSwapSelection implements NeighbourSelection<Request, Enrollment>, InfoProvider<Request, Enrollment> {
+public class StudentEnrollmentSwapSelection implements NeighbourSelection<Request, Enrollment>, InfoProvider<Request, Enrollment>, SolverListener<Request, Enrollment> {
     private static DecimalFormat sDF = new DecimalFormat("0.00");
     private Selection iSelection = null;
-    protected Queue<Request> iRequests = null;
+    protected LinkedList<Request> iRequests = null;
     
     protected long iNbrIterations = 0;
     protected long iTotalTime = 0;
@@ -98,14 +98,16 @@ public class StudentEnrollmentSwapSelection implements NeighbourSelection<Reques
     }
     
     public synchronized void addRequest(Request request) {
-        if (iRequests != null) iRequests.add(request);
+        if (iRequests != null) iRequests.addFirst(request);
     }
 
     @Override
     public Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
         Request request = null;
         while ((request = nextRequest()) != null) {
-            Progress.getInstance(solution.getModel()).incProgress();
+            Progress p = Progress.getInstance(solution.getModel()); 
+            p.incProgress();
+            if (p.getProgress() > 1.1 * p.getProgressMax()) return null;
             if (request instanceof CourseRequest) {
                 try {
                     Enrollment e = request.getAssignment(solution.getAssignment());
@@ -248,5 +250,23 @@ public class StudentEnrollmentSwapSelection implements NeighbourSelection<Reques
 
     @Override
     public void getInfo(Assignment<Request, Enrollment> assignment, Map<String, String> info, Collection<Request> variables) {
+    }
+    
+    @Override
+    public boolean variableSelected(Assignment<Request, Enrollment> assignment, long iteration, Request variable) {
+        return false;
+    }
+    @Override
+    public boolean valueSelected(Assignment<Request, Enrollment> assignment, long iteration, Request variable, Enrollment value) {
+        return false;
+    }
+    @Override
+    public boolean neighbourSelected(Assignment<Request, Enrollment> assignment, long iteration, Neighbour<Request, Enrollment> neighbour) {
+        return false;
+    }
+    @Override
+    public void neighbourFailed(Assignment<Request, Enrollment> assignment, long iteration, Neighbour<Request, Enrollment> neighbour) {
+        if (neighbour instanceof BacktrackNeighbourSelection.BackTrackNeighbour)
+            addRequest(((BacktrackNeighbourSelection<Request, Enrollment>.BackTrackNeighbour)neighbour).getAssignments().get(0).getRequest());
     }
 }
