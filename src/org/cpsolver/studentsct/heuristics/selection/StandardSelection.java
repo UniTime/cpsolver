@@ -1,5 +1,6 @@
 package org.cpsolver.studentsct.heuristics.selection;
 
+import java.util.ConcurrentModificationException;
 import java.util.Set;
 
 import org.cpsolver.ifs.assignment.Assignment;
@@ -152,15 +153,17 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
             return null;
         Progress.getInstance(solution.getModel()).incProgress();
         attempts: for (int i = 0; i < 10; i++) {
-            Request request = iVariableSelection.selectVariable(solution);
-            if (request == null) continue;
-            Enrollment enrollment = iValueSelection.selectValue(solution, request);
-            if (enrollment == null) continue;
-            Set<Enrollment> conflicts = enrollment.variable().getModel().conflictValues(solution.getAssignment(), enrollment);
-            if (conflicts.contains(enrollment)) continue;
-            for (Enrollment conflict: conflicts)
-                if (!canUnassign(enrollment, conflict, solution.getAssignment())) continue attempts;
-            return new SimpleNeighbour<Request, Enrollment>(request, enrollment, conflicts);
+            try {
+                Request request = iVariableSelection.selectVariable(solution);
+                if (request == null) continue;
+                Enrollment enrollment = iValueSelection.selectValue(solution, request);
+                if (enrollment == null) continue;
+                Set<Enrollment> conflicts = enrollment.variable().getModel().conflictValues(solution.getAssignment(), enrollment);
+                if (conflicts.contains(enrollment)) continue;
+                for (Enrollment conflict: conflicts)
+                    if (!canUnassign(enrollment, conflict, solution.getAssignment())) continue attempts;
+                return new SimpleNeighbour<Request, Enrollment>(request, enrollment, conflicts);
+            } catch (ConcurrentModificationException e) {}
         }
         return null;
     }
