@@ -11,6 +11,7 @@ import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.studentsct.filter.StudentFilter;
 import org.cpsolver.studentsct.model.Enrollment;
+import org.cpsolver.studentsct.model.FreeTimeRequest;
 import org.cpsolver.studentsct.model.Request;
 
 public class UnassignedRequestSelection implements VariableSelection<Request, Enrollment>{
@@ -34,6 +35,7 @@ public class UnassignedRequestSelection implements VariableSelection<Request, En
             iNrRounds --;
             List<Request> variables = new ArrayList<Request>();
             for (Request r: solution.getModel().unassignedVariables(solution.getAssignment())) {
+                if (r instanceof FreeTimeRequest) continue;
                 if (iFilter == null || iFilter.accept(r.getStudent()))
                     variables.add(r);
             }
