@@ -72,7 +72,8 @@ public class CriticalStandardSelection extends StandardSelection {
     @Override
     public boolean canUnassign(Enrollment enrollment, Enrollment conflict, Assignment<Request, Enrollment> assignment) {
         if (!iAllowCriticalUnassignment) return super.canUnassign(enrollment, conflict, assignment);
-        
+        if (!iCanConflict) return false;
+        if (!iCanHigherPriorityConflict && conflict.getRequest().getPriority() < enrollment.getRequest().getPriority()) return false;
         if (conflict.getRequest().isMPP() && conflict.equals(conflict.getRequest().getInitialAssignment())) return false;
         if (iPreferPriorityStudents || conflict.getRequest().getRequestPriority().isSame(enrollment.getRequest())) {
             if (conflict.getStudent().getPriority().isHigher(enrollment.getStudent())) return false;

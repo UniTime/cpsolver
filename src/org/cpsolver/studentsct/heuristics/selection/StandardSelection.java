@@ -71,6 +71,7 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
     protected long iConflictTimeOut = -7200;
     protected long iTimeOut = -3600;
     protected boolean iCanConflict = true;
+    protected boolean iCanHigherPriorityConflict = true;
 
     /**
      * Constructor (variable and value selection are expected to be already
@@ -95,6 +96,7 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
         if (iConflictTimeOut < 0)
             iConflictTimeOut = Math.max(0, properties.getPropertyLong("Termination.TimeOut", -1l) + iConflictTimeOut);
         iCanConflict = properties.getPropertyBoolean("Neighbour.StandardCanConflict", true);
+        iCanHigherPriorityConflict = properties.getPropertyBoolean("Neighbour.StandardCanHigherPriorityConflict", true);
     }
 
     /** Initialization */
@@ -129,6 +131,7 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
      */
     public boolean canUnassign(Enrollment enrollment, Enrollment conflict, Assignment<Request, Enrollment> assignment) {
         if (!iCanConflict) return false;
+        if (!iCanHigherPriorityConflict && conflict.getRequest().getPriority() < enrollment.getRequest().getPriority()) return false;
         if (conflict.getRequest().isMPP() && conflict.equals(conflict.getRequest().getInitialAssignment())) return false;
         if (conflict.getRequest().getStudent().hasMinCredit()) {
             float credit = conflict.getRequest().getStudent().getAssignedCredit(assignment) - conflict.getCredit();
