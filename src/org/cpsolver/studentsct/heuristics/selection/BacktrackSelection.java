@@ -4,9 +4,11 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.ConcurrentModificationException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 
 import org.cpsolver.ifs.assignment.Assignment;
@@ -25,6 +27,8 @@ import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.FreeTimeRequest;
 import org.cpsolver.studentsct.model.Request;
+import org.cpsolver.studentsct.model.Request.RequestPriority;
+import org.cpsolver.studentsct.model.Student.StudentPriority;
 
 
 /**
@@ -65,14 +69,17 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
     protected long iNbrTimeoutReached = 0;
     protected long iNbrNoSolution = 0;
     protected StudentFilter iFilter = null;
+    protected RequestComparator iRequestComparator = null;
 
     public BacktrackSelection(DataProperties properties) {
         iIncludeAssignedRequests = properties.getPropertyBoolean("Neighbour.IncludeAssignedRequests", iIncludeAssignedRequests);
+        iRequestComparator = new RequestComparator(properties);
     }
 
     public void init(Solver<Request, Enrollment> solver, String name) {
         List<Request> variables = new ArrayList<Request>(iIncludeAssignedRequests ? solver.currentSolution().getModel().variables() : solver.currentSolution().getModel().unassignedVariables(solver.currentSolution().getAssignment()));
         Collections.shuffle(variables);
+        Collections.sort(variables, iRequestComparator);
         iRequests = new LinkedList<Request>(variables);
         if (iRBtNSel == null) {
             try {
@@ -104,7 +111,19 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
     }
     
     public synchronized void addRequest(Request request) {
-        if (iRequests != null && request != null && !request.getStudent().isDummy()) iRequests.addFirst(request);
+        if (iRequests != null && request != null && !request.getStudent().isDummy()) {
+            if (request.getStudent().getPriority().ordinal() < StudentPriority.Normal.ordinal() || request.getRequestPriority().ordinal() < RequestPriority.Normal.ordinal()) {
+                for (ListIterator<Request> i = iRequests.listIterator(); i.hasNext();) {
+                    Request r = i.next();
+                    if (iRequestComparator.compare(r, request) > 0) {
+                        i.previous(); // go one back
+                        i.add(request);
+                        return;
+                    }
+                }
+            }
+            iRequests.add(request);
+        }
     }
 
     @Override
@@ -172,5 +191,32 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
     public void neighbourFailed(Assignment<Request, Enrollment> assignment, long iteration, Neighbour<Request, Enrollment> neighbour) {
         if (neighbour instanceof BacktrackNeighbourSelection.BackTrackNeighbour)
             addRequest(((BacktrackNeighbourSelection<Request, Enrollment>.BackTrackNeighbour)neighbour).getAssignments().get(0).getRequest());
+    }
+    
+    public static class RequestComparator implements Comparator<Request> {
+        protected boolean iPreferPriorityStudents = true;
+        protected RequestComparator(DataProperties properties) {
+            iPreferPriorityStudents = properties.getPropertyBoolean("Sectioning.PriorityStudentsFirstSelection.AllIn", true);
+        }
+        
+        @Override
+        public int compare(Request r1, Request r2) {
+            if (iPreferPriorityStudents) {
+                if (r1.getStudent().getPriority() != r2.getStudent().getPriority())
+                    return r1.getStudent().getPriority().compareTo(r2.getStudent().getPriority());
+                if (r1.getRequestPriority() != r2.getRequestPriority())
+                    return r1.getRequestPriority().compareTo(r2.getRequestPriority());
+            } else {
+                if (r1.getRequestPriority() != r2.getRequestPriority())
+                    return r1.getRequestPriority().compareTo(r2.getRequestPriority());
+                if (r1.getRequestPriority() != r2.getRequestPriority())
+                    return r1.getStudent().getPriority().compareTo(r2.getStudent().getPriority());
+            }
+            if (r1.isAlternative() != r2.isAlternative())
+                return r2.isAlternative() ? -1 : 1; 
+            if (r1.getPriority() != r2.getPriority())
+                return r1.getPriority() < r2.getPriority() ? -1 : 1;
+            return 0;
+        }
     }
 }

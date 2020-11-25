@@ -58,6 +58,7 @@ public class CriticalBacktrackSelection extends BacktrackSelection {
         for (Request r: (iIncludeAssignedRequests ? solver.currentSolution().getModel().variables() : solver.currentSolution().getModel().unassignedVariables(solver.currentSolution().getAssignment())))
             if (iPriority.isCritical(r)) variables.add(r);
         Collections.shuffle(variables);
+        Collections.sort(variables, iRequestComparator);
         iRequests = new LinkedList<Request>(variables);
         if (iRBtNSel == null) {
             try {
