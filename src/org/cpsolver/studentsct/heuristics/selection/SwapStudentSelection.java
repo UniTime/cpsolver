@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -31,6 +32,7 @@ import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.Student;
+import org.cpsolver.studentsct.model.Student.StudentPriority;
 
 /**
  * Pick a student (one by one) with an incomplete schedule, try to find an
@@ -148,7 +150,19 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
     }
     
     public synchronized void addStudent(Student student) {
-        if (iStudents != null && !student.isDummy()) iStudents.addFirst(student);
+        if (iStudents != null && student != null && !student.isDummy()) {
+            if (student.getPriority().ordinal() < StudentPriority.Normal.ordinal()) {
+                for (ListIterator<Student> i = iStudents.listIterator(); i.hasNext();) {
+                    Student s = i.next();
+                    if (s.getPriority().compareTo(student.getPriority()) > 0) {
+                        i.previous(); // go one back
+                        i.add(student);
+                        return;
+                    }
+                }
+            }
+            iStudents.add(student);
+        }
     }
 
     /**
@@ -162,7 +176,7 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
         while ((student = nextStudent()) != null) {
             Progress p = Progress.getInstance(solution.getModel()); 
             p.incProgress();
-            if (p.getProgress() > 1.1 * p.getProgressMax()) return null;
+            if (p.getProgress() > 2.0 * p.getProgressMax()) return null;
             if (student.isComplete(solution.getAssignment()) || student.nrAssignedRequests(solution.getAssignment()) == 0)
                 continue;
             for (int i = 0; i < 5; i++) {
