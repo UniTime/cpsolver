@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
 
@@ -24,9 +25,12 @@ import org.cpsolver.ifs.solver.SolverListener;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.Progress;
 import org.cpsolver.studentsct.StudentSectioningModel;
+import org.cpsolver.studentsct.heuristics.selection.BacktrackSelection.RequestComparator;
 import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
+import org.cpsolver.studentsct.model.Request.RequestPriority;
+import org.cpsolver.studentsct.model.Student.StudentPriority;
 
 /**
  * Swap enrollments of different students of a course. This is to improve
@@ -65,13 +69,16 @@ public class StudentEnrollmentSwapSelection implements NeighbourSelection<Reques
     protected long iTotalTime = 0;
     protected long iNbrTimeoutReached = 0;
     protected long iNbrNoSolution = 0;
+    protected RequestComparator iRequestComparator;
 
     public StudentEnrollmentSwapSelection(DataProperties properties) {
+        iRequestComparator = new RequestComparator(properties);
     }
 
     public void init(Solver<Request, Enrollment> solver, String name) {
         List<Request> variables = new ArrayList<Request>(solver.currentSolution().getModel().assignedVariables(solver.currentSolution().getAssignment()));
         Collections.shuffle(variables);
+        Collections.sort(variables, iRequestComparator);
         iRequests = new LinkedList<Request>(variables);
         if (iSelection == null) {
             try {
@@ -98,7 +105,19 @@ public class StudentEnrollmentSwapSelection implements NeighbourSelection<Reques
     }
     
     public synchronized void addRequest(Request request) {
-        if (iRequests != null) iRequests.addFirst(request);
+        if (iRequests != null && request != null && !request.getStudent().isDummy()) {
+            if (request.getStudent().getPriority().ordinal() < StudentPriority.Normal.ordinal() || request.getRequestPriority().ordinal() < RequestPriority.Normal.ordinal()) {
+                for (ListIterator<Request> i = iRequests.listIterator(); i.hasNext();) {
+                    Request r = i.next();
+                    if (iRequestComparator.compare(r, request) > 0) {
+                        i.previous(); // go one back
+                        i.add(request);
+                        return;
+                    }
+                }
+            }
+            iRequests.add(request);
+        }
     }
 
     @Override
@@ -107,7 +126,7 @@ public class StudentEnrollmentSwapSelection implements NeighbourSelection<Reques
         while ((request = nextRequest()) != null) {
             Progress p = Progress.getInstance(solution.getModel()); 
             p.incProgress();
-            if (p.getProgress() > 1.1 * p.getProgressMax()) return null;
+            if (p.getProgress() > 2.0 * p.getProgressMax()) return null;
             if (request instanceof CourseRequest) {
                 try {
                     Enrollment e = request.getAssignment(solution.getAssignment());
