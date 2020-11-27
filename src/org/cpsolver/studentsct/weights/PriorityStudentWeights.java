@@ -94,6 +94,8 @@ public class PriorityStudentWeights implements StudentWeights {
     protected boolean iPreciseComparison = false;
     protected double[] iQalityWeights;
     protected boolean iImprovedBound = true;
+    protected double iCriticalBoost = 1.0;
+    protected double iPriortyBoost = 1.0;
     
     public PriorityStudentWeights(DataProperties config) {
         iPriorityFactor = config.getPropertyDouble("StudentWeights.Priority", iPriorityFactor);
@@ -127,6 +129,8 @@ public class PriorityStudentWeights implements StudentWeights {
             iQalityWeights[type.ordinal()] = config.getPropertyDouble(type.getWeightName(), type.getWeightDefault());
         }
         iImprovedBound = config.getPropertyBoolean("StudentWeights.ImprovedBound", iImprovedBound);
+        iPriortyBoost = config.getPropertyDouble("StudentWeights.PriortyBoost", 1.0);
+        iCriticalBoost = config.getPropertyDouble("StudentWeights.CriticalBoost", 1.0);
     }
         
     public double getWeight(Request request) {
@@ -155,11 +159,26 @@ public class PriorityStudentWeights implements StudentWeights {
         }
         return 0.0;
     }
+
+    public double getBoostedWeight(Request request) {
+        double weight = getWeight(request);
+        if (iPriortyBoost != 1.0) {
+            Double boost = request.getStudent().getPriority().getBoost();
+            if (boost != null)
+                weight *= boost * iPriortyBoost;
+        }
+        if (iCriticalBoost != 1.0) {
+            Double boost = request.getRequestPriority().getBoost();
+            if (boost != null)
+                weight *= boost * iCriticalBoost;
+        }
+        return weight;
+    }
     
     public double getCachedWeight(Request request) {
         double[] cache = (double[])request.getExtra();
         if (cache == null) {
-            double base = getWeight(request); 
+            double base = getBoostedWeight(request); 
             cache = new double[]{base, computeBound(base, request)};
             request.setExtra(cache);
         }
@@ -251,7 +270,7 @@ public class PriorityStudentWeights implements StudentWeights {
     public double getBound(Request request) {
         double[] cache = (double[])request.getExtra();
         if (cache == null) {
-            double base = getWeight(request); 
+            double base = getBoostedWeight(request); 
             cache = new double[]{base, computeBound(base, request)};
             request.setExtra(cache);
         }

@@ -282,16 +282,19 @@ public abstract class Request extends VariableWithContext<Request, Enrollment, R
      * and to assign requests of a higher priority first (before requests of a lower priority).
      */
     public static enum RequestPriority {
-        Critical("c"),
-        Important("i"),
-        Normal(""), // this is the default priority
+        Critical("c", 1.0),
+        Important("i", 0.5),
+        Normal("", null), // this is the default priority
         ;
         
         String iAbbv;
-        RequestPriority(String abbv) {
+        Double iBoost;
+        RequestPriority(String abbv, Double boost) {
             iAbbv = abbv;
+            iBoost = boost;
         }
         public String getAbbreviation() { return iAbbv; }
+        public Double getBoost() { return iBoost; }
         public boolean isCritical(Request r) {
             return r.getRequestPriority().ordinal() <= ordinal();
         }

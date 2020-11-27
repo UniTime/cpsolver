@@ -580,20 +580,23 @@ public class Student implements Comparable<Student> {
      * to their priority.
      */
     public static enum StudentPriority {
-        Priority("P"),
-        Senior("4"),
-        Junior("3"),
-        Sophomore("2"),
-        Frehmen("1"),
-        Normal("N"), // this is the default priority
-        Dummy("D"), // dummy students priority
+        Priority("P", 1.00),
+        Senior("4", 0.70),
+        Junior("3", 0.49),
+        Sophomore("2", 0.33),
+        Frehmen("1", 0.24),
+        Normal("N", null), // this is the default priority
+        Dummy("D", null), // dummy students priority
         ;
         
         String iCode;
-        StudentPriority(String code) {
+        Double iBoost;
+        StudentPriority(String code, Double boost) {
             iCode = code;
+            iBoost = boost;
         }
         public String code() { return iCode; }
+        public Double getBoost() { return iBoost; }
         
         public boolean isSameOrHigher(Student s) {
             return s.getPriority().ordinal() <= ordinal();
