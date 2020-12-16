@@ -532,6 +532,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         section.setCancelled("true".equalsIgnoreCase(sectionEl.attributeValue("cancelled", "false")));
         section.setEnabled("true".equalsIgnoreCase(sectionEl.attributeValue("enabled", "true")));
         section.setOnline("true".equalsIgnoreCase(sectionEl.attributeValue("online", "false")));
+        section.setPast("true".equalsIgnoreCase(sectionEl.attributeValue("past", "false")));
         for (Iterator<?> m = sectionEl.elementIterator("cname"); m.hasNext(); ) {
             Element cNameEl = (Element)m.next();
             section.setName(Long.parseLong(cNameEl.attributeValue("id")), cNameEl.getText());

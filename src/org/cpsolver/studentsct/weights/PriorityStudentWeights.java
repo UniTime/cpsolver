@@ -77,6 +77,7 @@ public class PriorityStudentWeights implements StudentWeights {
     protected double iBalancingFactor = 0.0050;
     protected double iNoTimeFactor = 0.0100;
     protected double iOnlineFactor = 0.0100;
+    protected double iPastFactor = 0.0000;
     protected double iReservationNotFollowedFactor = 0.1000;
     protected double iAlternativeRequestFactor = 0.1260;
     protected double iProjectedStudentWeight = 0.0100;
@@ -120,6 +121,7 @@ public class PriorityStudentWeights implements StudentWeights {
         iGroupFillRatio = config.getPropertyDouble("StudentWeights.GroupFillRatio", iGroupFillRatio);
         iNoTimeFactor = config.getPropertyDouble("StudentWeights.NoTimeFactor", iNoTimeFactor);
         iOnlineFactor = config.getPropertyDouble("StudentWeights.OnlineFactor", iOnlineFactor);
+        iPastFactor = config.getPropertyDouble("StudentWeights.PastFactor", iPastFactor);
         iReservationNotFollowedFactor = config.getPropertyDouble("StudentWeights.ReservationNotFollowedFactor", iReservationNotFollowedFactor);
         iAdditiveWeights = config.getPropertyBoolean("StudentWeights.AdditiveWeights", iAdditiveWeights);
         iMaximizeAssignment = config.getPropertyBoolean("StudentWeights.MaximizeAssignment", iMaximizeAssignment);
@@ -289,6 +291,9 @@ public class PriorityStudentWeights implements StudentWeights {
                 if (iOnlineFactor != 0.0 && !cr.getCourses().isEmpty()) {
                     weight += iOnlineFactor * cr.getCourses().get(0).getOnlineBound();
                 }
+                if (iPastFactor != 0.0 && !cr.getCourses().isEmpty()) {
+                    weight += iPastFactor * cr.getCourses().get(0).getPastBound();
+                }
                 if (iMPP && cr.getInitialAssignment() == null) {
                     weight += iPerturbationFactor;
                 }
@@ -306,6 +311,9 @@ public class PriorityStudentWeights implements StudentWeights {
                 }
                 if (iOnlineFactor != 0.0 && !cr.getCourses().isEmpty()) {
                     weight *= (1.0 - iOnlineFactor * cr.getCourses().get(0).getOnlineBound());
+                }
+                if (iPastFactor != 0.0 && !cr.getCourses().isEmpty()) {
+                    weight *= (1.0 - iPastFactor * cr.getCourses().get(0).getPastBound());
                 }
                 if (iMPP && cr.getInitialAssignment() == null) {
                     weight *= (1.0 - iPerturbationFactor);
@@ -361,6 +369,15 @@ public class PriorityStudentWeights implements StudentWeights {
             }
             if (onlineSections > 0)
                 weight *= (1.0 - iOnlineFactor * onlineSections / total);
+        }
+        if (enrollment.isCourseRequest() && iPastFactor != 0.0) {
+            int pastSections = 0, total = 0;
+            for (Section section: enrollment.getSections()) {
+                if (section.isPast()) pastSections ++;
+                total ++;
+            }
+            if (pastSections > 0)
+                weight *= (1.0 - iPastFactor * pastSections / total);
         }
         if (enrollment.getTruePriority() < enrollment.getPriority()) {
             weight *= (1.0 - iReservationNotFollowedFactor);
@@ -433,6 +450,15 @@ public class PriorityStudentWeights implements StudentWeights {
             }
             if (onlineSections > 0)
                 weight += iOnlineFactor * onlineSections / total;
+        }
+        if (enrollment.isCourseRequest() && iPastFactor != 0.0) {
+            int pastSections = 0, total = 0;
+            for (Section section: enrollment.getSections()) {
+                if (section.isPast()) pastSections ++;
+                total ++;
+            }
+            if (pastSections > 0)
+                weight += iPastFactor * pastSections / total;
         }
         if (enrollment.getTruePriority() < enrollment.getPriority()) {
             weight += iReservationNotFollowedFactor;

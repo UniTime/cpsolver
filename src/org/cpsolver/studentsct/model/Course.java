@@ -473,4 +473,15 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
         }
         return bound;
     }
+    
+    public double getPastBound() {
+        double bound = 1.0; 
+        for (Config config: getOffering().getConfigs()) {
+            int past = config.getNrPast();
+            if (past == 0) return 0.0;
+            double factor = ((double)past) / config.getSubparts().size();
+            if (factor < bound) bound = factor;
+        }
+        return bound;
+    }
 }

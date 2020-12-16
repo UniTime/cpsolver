@@ -317,4 +317,10 @@ public class Subpart implements Comparable<Subpart> {
             if (section.getTime() != null) return true;
         return false;
     }
+    
+    public boolean isPast() {
+        for (Section section: getSections())
+            if (!section.isPast()) return false;
+        return true;
+    }
 }

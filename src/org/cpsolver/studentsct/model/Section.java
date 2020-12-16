@@ -70,7 +70,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     private double iSpaceHeld = 0.0;
     private String iNote = null;
     private Set<Long> iIgnoreConflictsWith = null;
-    private boolean iCancelled = false, iEnabled = true, iOnline = false;
+    private boolean iCancelled = false, iEnabled = true, iOnline = false, iPast = false;
     private List<Unavailability> iUnavailabilities = new ArrayList<Unavailability>();
 
     /**
@@ -753,6 +753,18 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
      * @param cancelled true if the class is cancelled
      */
     public void setCancelled(boolean cancelled) { iCancelled = cancelled; }
+
+    /**
+     * Return past flag of the class.
+     * @return true if the class is in the past and should be avoided when possible
+     */
+    public boolean isPast() { return iPast; }
+    
+    /**
+     * Set past flag of the class.
+     * @param past true if the class is in the past and should be avoided when possible
+     */
+    public void setPast(boolean past) { iPast = past; }
 
     /**
      * Return enabled flag of the class.

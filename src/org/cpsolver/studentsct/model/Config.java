@@ -573,4 +573,11 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
             if (!subpart.hasTime()) arrHrs ++;
         return arrHrs;
     }
+    
+    public int getNrPast() {
+        int past = 0;
+        for (Subpart subpart: getSubparts())
+            if (subpart.isPast()) past ++;
+        return past;
+    }
 }

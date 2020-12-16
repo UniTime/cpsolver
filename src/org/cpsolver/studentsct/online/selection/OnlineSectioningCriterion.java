@@ -394,6 +394,27 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
                 }
             }
         }
+        
+        // 3.95 avoid past sections
+        int bestPast = 0, currentPast = 0;
+        for (int idx = 0; idx < current.length; idx++) {
+            if (best[idx] != null && best[idx].getAssignments() != null) {
+                for (Section section : best[idx].getSections()) {
+                    if (section.isPast())
+                        bestPast++;
+                }
+            }
+            if (current[idx] != null && current[idx].getAssignments() != null) {
+                for (Section section : current[idx].getSections()) {
+                    if (section.isPast())
+                        currentPast++;
+                }
+            }
+        }
+        if (currentPast < bestPast)
+            return -1;
+        if (bestPast < currentPast)
+            return 1;
 
         // 4-5. student quality
         if (getModel().getStudentQuality() != null) {
@@ -817,6 +838,27 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
             }
         }
         
+        // 3.95 avoid past sections
+        int bestPast = 0, currentPast = 0;
+        for (int idx = 0; idx < current.length; idx++) {
+            if (best[idx] != null && best[idx].getAssignments() != null) {
+                for (Section section : best[idx].getSections()) {
+                    if (section.isPast())
+                        bestPast++;
+                }
+            }
+            if (current[idx] != null && idx < maxIdx && current[idx].getAssignments() != null) {
+                for (Section section : current[idx].getSections()) {
+                    if (section.isPast())
+                        currentPast++;
+                }
+            }
+        }
+        if (currentPast < bestPast)
+            return true;
+        if (bestPast < currentPast)
+            return false;
+        
         // 4-5. student quality
         if (getModel().getStudentQuality() != null) {
             double bestQuality = 0, currentQuality = 0;
@@ -1078,6 +1120,21 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
         if (e1.getAdjustedPriority() < e2.getAdjustedPriority())
             return -1;
         if (e1.getAdjustedPriority() > e2.getAdjustedPriority())
+            return 1;
+        
+        // 3.95 avoid past sections
+        int w1 = 0, w2 = 0;
+        for (Section section : e1.getSections()) {
+            if (section.isPast())
+                w1++;
+        }
+        for (Section section : e2.getSections()) {
+            if (section.isPast())
+                w2++;
+        }
+        if (w1 < w2)
+            return -1;
+        if (w2 < w1)
             return 1;
 
         // 4. avoid time overlaps

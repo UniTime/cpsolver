@@ -235,6 +235,27 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
         if (bestNotFollowedReservations < currentNotFollowedReservations)
             return 1;
         
+        // 3.95 avoid past sections
+        int bestPast = 0, currentPast = 0;
+        for (int idx = 0; idx < current.length; idx++) {
+            if (best[idx] != null && best[idx].getAssignments() != null) {
+                for (Section section : best[idx].getSections()) {
+                    if (section.isPast())
+                        bestPast++;
+                }
+            }
+            if (current[idx] != null && current[idx].getAssignments() != null) {
+                for (Section section : current[idx].getSections()) {
+                    if (section.isPast())
+                        currentPast++;
+                }
+            }
+        }
+        if (currentPast < bestPast)
+            return -1;
+        if (bestPast < currentPast)
+            return 1;
+        
         // 4-5. student quality
         if (getModel().getStudentQuality() != null) {
             double bestQuality = 0, currentQuality = 0;
@@ -628,6 +649,27 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
         if (currentNotFollowedReservations < bestNotFollowedReservations)
             return true;
         if (bestNotFollowedReservations < currentNotFollowedReservations)
+            return false;
+        
+        // 3.95 avoid past sections
+        int bestPast = 0, currentPast = 0;
+        for (int idx = 0; idx < current.length; idx++) {
+            if (best[idx] != null && best[idx].getAssignments() != null) {
+                for (Section section : best[idx].getSections()) {
+                    if (section.isPast())
+                        bestPast++;
+                }
+            }
+            if (current[idx] != null && idx < maxIdx && current[idx].getAssignments() != null) {
+                for (Section section : current[idx].getSections()) {
+                    if (section.isPast())
+                        currentPast++;
+                }
+            }
+        }
+        if (currentPast < bestPast)
+            return true;
+        if (bestPast < currentPast)
             return false;
         
         // 4-5. solution quality
