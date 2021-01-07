@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.cpsolver.studentsct.model.AcademicAreaCode;
 import org.cpsolver.studentsct.model.AreaClassificationMajor;
 import org.cpsolver.studentsct.model.Offering;
 import org.cpsolver.studentsct.model.Student;
@@ -148,28 +147,12 @@ public class CurriculumReservation extends Reservation {
      */
     @Override
     public boolean isApplicable(Student student) {
-        boolean match = false;
         for (AreaClassificationMajor acm: student.getAreaClassificationMajors())
             if (getAcademicArea().equals(acm.getArea()) &&
                 (getClassifications().isEmpty() || getClassifications().contains(acm.getClassification())) &&
                 (getMajors().isEmpty() || getMajors().contains(acm.getMajor())))
                     return true;
-        if (student.getAcademicAreaClasiffications() == null) return false;
-        for (AcademicAreaCode aac: student.getAcademicAreaClasiffications()) {
-            if (getAcademicArea().equals(aac.getArea())) {
-                if (getClassifications().isEmpty() || getClassifications().contains(aac.getCode())) {
-                    match = true; break;
-                }
-            }
-        }
-        if (!match) return false;
-        for (AcademicAreaCode aac: student.getMajors()) {
-            if (getAcademicArea().equals(aac.getArea())) {
-                if (getMajors().isEmpty() || getMajors().contains(aac.getCode()))
-                    return true;
-            }
-        }
-        return getMajors().isEmpty();
+        return false;
     }
     
 

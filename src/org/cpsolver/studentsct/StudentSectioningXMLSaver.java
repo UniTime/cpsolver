@@ -19,7 +19,6 @@ import org.cpsolver.coursett.model.TimeLocation;
 import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.Progress;
 import org.cpsolver.studentsct.constraint.LinkedSections;
-import org.cpsolver.studentsct.model.AcademicAreaCode;
 import org.cpsolver.studentsct.model.AreaClassificationMajor;
 import org.cpsolver.studentsct.model.Choice;
 import org.cpsolver.studentsct.model.Config;
@@ -35,6 +34,7 @@ import org.cpsolver.studentsct.model.RequestGroup;
 import org.cpsolver.studentsct.model.Section;
 import org.cpsolver.studentsct.model.Student;
 import org.cpsolver.studentsct.model.Student.StudentPriority;
+import org.cpsolver.studentsct.model.StudentGroup;
 import org.cpsolver.studentsct.model.Subpart;
 import org.cpsolver.studentsct.model.Unavailability;
 import org.cpsolver.studentsct.reservation.CourseReservation;
@@ -648,33 +648,6 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         if (student.hasMaxCredit())
             studentEl.addAttribute("maxCredit", String.valueOf(student.getMaxCredit()));
         if (iSaveStudentInfo) {
-            for (AcademicAreaCode aac : student.getAcademicAreaClasiffications()) {
-                Element aacEl = studentEl.addElement("classification");
-                if (aac.getArea() != null)
-                    aacEl.addAttribute("area", aac.getArea());
-                if (aac.getCode() != null)
-                    aacEl.addAttribute("code", aac.getCode());
-                if (aac.getLabel() != null)
-                    aacEl.addAttribute("label", aac.getLabel());
-            }
-            for (AcademicAreaCode aac : student.getMajors()) {
-                Element aacEl = studentEl.addElement("major");
-                if (aac.getArea() != null)
-                    aacEl.addAttribute("area", aac.getArea());
-                if (aac.getCode() != null)
-                    aacEl.addAttribute("code", aac.getCode());
-                if (aac.getLabel() != null)
-                    aacEl.addAttribute("label", aac.getLabel());
-            }
-            for (AcademicAreaCode aac : student.getMinors()) {
-                Element aacEl = studentEl.addElement("minor");
-                if (aac.getArea() != null)
-                    aacEl.addAttribute("area", aac.getArea());
-                if (aac.getCode() != null)
-                    aacEl.addAttribute("code", aac.getCode());
-                if (aac.getLabel() != null)
-                    aacEl.addAttribute("label", aac.getLabel());
-            }
             for (AreaClassificationMajor acm : student.getAreaClassificationMajors()) {
                 Element acmEl = studentEl.addElement("acm");
                 if (acm.getArea() != null)
@@ -684,6 +657,26 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                 if (acm.getArea() != null)
                     acmEl.addAttribute("major", acm.getMajor());
             }
+            for (AreaClassificationMajor acm : student.getAreaClassificationMinors()) {
+                Element acmEl = studentEl.addElement("acm");
+                if (acm.getArea() != null)
+                    acmEl.addAttribute("area", acm.getArea());
+                if (acm.getArea() != null)
+                    acmEl.addAttribute("classification", acm.getClassification());
+                if (acm.getArea() != null)
+                    acmEl.addAttribute("minor", acm.getMajor());
+            }
+            for (StudentGroup g : student.getGroups()) {
+                Element grEl = studentEl.addElement("group");
+                if (g.getType() != null && !g.getType().isEmpty())
+                    grEl.addAttribute("type", g.getType());
+                if (g.getReference() != null)
+                    grEl.addAttribute("reference", g.getReference());
+                if (g.getName() != null)
+                    grEl.addAttribute("name", g.getName());
+            }
+            for (String acc: student.getAccommodations())
+                studentEl.addElement("accommodation").addAttribute("reference", acc);
         }
         if (iShowNames && iSaveStudentInfo) {
             for (Instructor adv: student.getAdvisors()) {

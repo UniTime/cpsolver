@@ -6,7 +6,7 @@ import java.util.Comparator;
 import java.util.List;
 
 import org.cpsolver.ifs.util.DataProperties;
-import org.cpsolver.studentsct.model.AcademicAreaCode;
+import org.cpsolver.studentsct.model.AreaClassificationMajor;
 import org.cpsolver.studentsct.model.Student;
 
 
@@ -49,13 +49,13 @@ public class StudentMajorOrder implements StudentOrder, Comparator<Student> {
 
     @Override
     public int compare(Student s1, Student s2) {
-        int cmp = compareMajors(s1.getMajors(), s2.getMajors());
+        int cmp = compareMajors(s1.getAreaClassificationMajors(), s2.getAreaClassificationMajors());
         if (cmp != 0)
             return (iReverse ? -1 : 1) * cmp;
         return (iReverse ? -1 : 1) * Double.compare(s1.getId(), s2.getId());
     }
 
-    public int compareMajors(List<AcademicAreaCode> m1, List<AcademicAreaCode> m2) {
+    public int compareMajors(List<AreaClassificationMajor> m1, List<AreaClassificationMajor> m2) {
         if (m1.isEmpty()) {
             return m2.isEmpty() ? 0 : -1;
         } else if (m2.isEmpty())
@@ -63,10 +63,10 @@ public class StudentMajorOrder implements StudentOrder, Comparator<Student> {
         return compareMajors(m1.get(0), m2.get(0));
     }
 
-    public int compareMajors(AcademicAreaCode m1, AcademicAreaCode m2) {
+    public int compareMajors(AreaClassificationMajor m1, AreaClassificationMajor m2) {
         int cmp = (m1.getArea() == null ? "" : m1.getArea()).compareTo(m2.getArea() == null ? "" : m2.getArea());
         if (cmp != 0)
             return cmp;
-        return (m1.getCode() == null ? "" : m1.getCode()).compareTo(m2.getCode() == null ? "" : m2.getCode());
+        return (m1.getMajor() == null ? "" : m1.getMajor()).compareTo(m2.getMajor() == null ? "" : m2.getMajor());
     }
 }

@@ -21,7 +21,6 @@ import org.cpsolver.ifs.util.DistanceMetric;
 import org.cpsolver.ifs.util.Progress;
 import org.cpsolver.studentsct.constraint.FixedAssignments;
 import org.cpsolver.studentsct.filter.StudentFilter;
-import org.cpsolver.studentsct.model.AcademicAreaCode;
 import org.cpsolver.studentsct.model.AreaClassificationMajor;
 import org.cpsolver.studentsct.model.Choice;
 import org.cpsolver.studentsct.model.Config;
@@ -37,6 +36,7 @@ import org.cpsolver.studentsct.model.Student.StudentPriority;
 import org.cpsolver.studentsct.model.RequestGroup;
 import org.cpsolver.studentsct.model.Section;
 import org.cpsolver.studentsct.model.Student;
+import org.cpsolver.studentsct.model.StudentGroup;
 import org.cpsolver.studentsct.model.Subpart;
 import org.cpsolver.studentsct.model.Unavailability;
 import org.cpsolver.studentsct.reservation.CourseReservation;
@@ -949,28 +949,39 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         String maxCredit = studentEl.attributeValue("maxCredit");
         if (maxCredit != null)
             student.setMaxCredit(Float.parseFloat(maxCredit));
+        List<String[]> clasf = new ArrayList<String[]>();
+        List<String[]> major = new ArrayList<String[]>();
         for (Iterator<?> j = studentEl.elementIterator(); j.hasNext();) {
             Element requestEl = (Element) j.next();
             if ("classification".equals(requestEl.getName())) {
-                student.getAcademicAreaClasiffications().add(
-                        new AcademicAreaCode(requestEl.attributeValue("area"), requestEl.attributeValue("code"), requestEl.attributeValue("label")));
+                clasf.add(new String[] {requestEl.attributeValue("area"), requestEl.attributeValue("code"), requestEl.attributeValue("label")});
             } else if ("major".equals(requestEl.getName())) {
-                student.getMajors().add(
-                        new AcademicAreaCode(requestEl.attributeValue("area"), requestEl.attributeValue("code"), requestEl.attributeValue("label")));
+                major.add(new String[] {requestEl.attributeValue("area"), requestEl.attributeValue("code"), requestEl.attributeValue("label")});
             } else if ("minor".equals(requestEl.getName())) {
-                student.getMinors().add(
-                        new AcademicAreaCode(requestEl.attributeValue("area"), requestEl.attributeValue("code"), requestEl.attributeValue("label")));
+                if ("A".equals(requestEl.attributeValue("area")))
+                    student.getAccommodations().add(requestEl.attributeValue("code"));
+                else
+                    student.getGroups().add(new StudentGroup(requestEl.attributeValue("area"), requestEl.attributeValue("code"), requestEl.attributeValue("label")));
             } else if ("unavailability".equals(requestEl.getName())) {
                 Offering offering = offeringTable.get(Long.parseLong(requestEl.attributeValue("offering")));
                 Section section = (offering == null ? null : offering.getSection(Long.parseLong(requestEl.attributeValue("section"))));
                 if (section != null)
                     new Unavailability(student, section, "true".equals(requestEl.attributeValue("allowOverlap")));
             } else if ("acm".equals(requestEl.getName())) {
-                student.getAreaClassificationMajors().add(
-                        new AreaClassificationMajor(requestEl.attributeValue("area"), requestEl.attributeValue("classification"), requestEl.attributeValue("major")));
+                if (requestEl.attributeValue("minor") != null)
+                    student.getAreaClassificationMajors().add(new AreaClassificationMajor(requestEl.attributeValue("area"), requestEl.attributeValue("classification"), requestEl.attributeValue("minor")));
+                else
+                    student.getAreaClassificationMajors().add(new AreaClassificationMajor(requestEl.attributeValue("area"), requestEl.attributeValue("classification"), requestEl.attributeValue("major")));
+            } else if ("group".equals(requestEl.getName())) {
+                student.getGroups().add(new StudentGroup(requestEl.attributeValue("type"), requestEl.attributeValue("reference"), requestEl.attributeValue("name")));
+            } else if ("accommodation".equals(requestEl.getName())) {
+                student.getAccommodations().add(requestEl.attributeValue("reference"));
             } else if ("advisor".equals(requestEl.getName())) {
                 student.getAdvisors().add(new Instructor(0l, requestEl.attributeValue("externalId"), requestEl.attributeValue("name"), requestEl.attributeValue("email")));
             }
+        }
+        for (int i = 0; i < Math.min(clasf.size(), major.size()); i++) {
+            student.getAreaClassificationMajors().add(new AreaClassificationMajor(clasf.get(i)[0],clasf.get(i)[1],major.get(i)[1]));
         }
         return student;
     }

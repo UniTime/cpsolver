@@ -1,6 +1,6 @@
 package org.cpsolver.studentsct.filter;
 
-import org.cpsolver.studentsct.model.AcademicAreaCode;
+import org.cpsolver.studentsct.model.AreaClassificationMajor;
 import org.cpsolver.studentsct.model.Student;
 
 /**
@@ -37,12 +37,12 @@ public class FreshmanStudentFilter implements StudentFilter {
      **/
     @Override
     public boolean accept(Student student) {
-        for (AcademicAreaCode aac : student.getAcademicAreaClasiffications()) {
-            if ("A".equals(aac.getCode()))
+        for (AreaClassificationMajor aac : student.getAreaClassificationMajors()) {
+            if ("A".equals(aac.getClassification()))
                 return true; // First Year
-            if ("01".equals(aac.getCode()))
+            if ("01".equals(aac.getClassification()))
                 return true; // First Semester Freshman
-            if ("02".equals(aac.getCode()))
+            if ("02".equals(aac.getClassification()))
                 return true; // Second Semester Freshman
         }
         return false;

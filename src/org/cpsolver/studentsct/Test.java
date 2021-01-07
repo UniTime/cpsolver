@@ -62,7 +62,7 @@ import org.cpsolver.studentsct.heuristics.selection.SwapStudentSelection;
 import org.cpsolver.studentsct.heuristics.selection.BranchBoundSelection.BranchBoundNeighbour;
 import org.cpsolver.studentsct.heuristics.studentord.StudentOrder;
 import org.cpsolver.studentsct.heuristics.studentord.StudentRandomOrder;
-import org.cpsolver.studentsct.model.AcademicAreaCode;
+import org.cpsolver.studentsct.model.AreaClassificationMajor;
 import org.cpsolver.studentsct.model.Course;
 import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
@@ -261,8 +261,6 @@ public class Test {
             }
             if (cfg.getProperty("Test.LastLikeCourseDemands") != null)
                 loadLastLikeCourseDemandsXml(model, new File(cfg.getProperty("Test.LastLikeCourseDemands")));
-            if (cfg.getProperty("Test.StudentInfos") != null)
-                loadStudentInfoXml(model, new File(cfg.getProperty("Test.StudentInfos")));
             if (cfg.getProperty("Test.CrsReq") != null)
                 loadCrsReqFiles(model, cfg.getProperty("Test.CrsReq"));
         } catch (Exception e) {
@@ -981,14 +979,12 @@ public class Test {
                             String clasf = line.substring(18, 20).trim();
                             String major = line.substring(21, 24).trim();
                             String minor = line.substring(24, 27).trim();
-                            student.getAcademicAreaClasiffications().clear();
-                            student.getMajors().clear();
-                            student.getMinors().clear();
-                            student.getAcademicAreaClasiffications().add(new AcademicAreaCode(area, clasf));
+                            student.getAreaClassificationMajors().clear();
+                            student.getAreaClassificationMinors().clear();
                             if (major.length() > 0)
-                                student.getMajors().add(new AcademicAreaCode(area, major));
+                                student.getAreaClassificationMajors().add(new AreaClassificationMajor(area, clasf, major));
                             if (minor.length() > 0)
-                                student.getMinors().add(new AcademicAreaCode(area, minor));
+                                student.getAreaClassificationMajors().add(new AreaClassificationMajor(area, clasf, minor));
                         }
                     } finally {
                         in.close();
@@ -997,7 +993,7 @@ public class Test {
             }
             int without = 0;
             for (Student student: students.values()) {
-                if (student.getAcademicAreaClasiffications().isEmpty())
+                if (student.getAreaClassificationMajors().isEmpty())
                     without++;
             }
             fixPriorities(model);
@@ -1025,61 +1021,6 @@ public class Test {
                     request.setPriority(priority);
                 }
             }
-        }
-    }
-
-    /** Load student infos from a given XML file. 
-     * @param model problem model
-     * @param xml an XML file
-     **/
-    public static void loadStudentInfoXml(StudentSectioningModel model, File xml) {
-        try {
-            sLog.info("Loading student infos from " + xml);
-            Document document = (new SAXReader()).read(xml);
-            Element root = document.getRootElement();
-            HashMap<Long, Student> studentTable = new HashMap<Long, Student>();
-            for (Student student : model.getStudents()) {
-                studentTable.put(new Long(student.getId()), student);
-            }
-            for (Iterator<?> i = root.elementIterator("student"); i.hasNext();) {
-                Element studentEl = (Element) i.next();
-                Student student = studentTable.get(Long.valueOf(studentEl.attributeValue("externalId")));
-                if (student == null) {
-                    sLog.debug(" -- student " + studentEl.attributeValue("externalId") + " not found");
-                    continue;
-                }
-                sLog.debug(" -- loading info for student " + student);
-                student.getAcademicAreaClasiffications().clear();
-                if (studentEl.element("studentAcadAreaClass") != null)
-                    for (Iterator<?> j = studentEl.element("studentAcadAreaClass").elementIterator("acadAreaClass"); j
-                            .hasNext();) {
-                        Element studentAcadAreaClassElement = (Element) j.next();
-                        student.getAcademicAreaClasiffications().add(
-                                new AcademicAreaCode(studentAcadAreaClassElement.attributeValue("academicArea"),
-                                        studentAcadAreaClassElement.attributeValue("academicClass")));
-                    }
-                sLog.debug("   -- acad areas classifs " + student.getAcademicAreaClasiffications());
-                student.getMajors().clear();
-                if (studentEl.element("studentMajors") != null)
-                    for (Iterator<?> j = studentEl.element("studentMajors").elementIterator("major"); j.hasNext();) {
-                        Element studentMajorElement = (Element) j.next();
-                        student.getMajors().add(
-                                new AcademicAreaCode(studentMajorElement.attributeValue("academicArea"),
-                                        studentMajorElement.attributeValue("code")));
-                    }
-                sLog.debug("   -- majors " + student.getMajors());
-                student.getMinors().clear();
-                if (studentEl.element("studentMinors") != null)
-                    for (Iterator<?> j = studentEl.element("studentMinors").elementIterator("minor"); j.hasNext();) {
-                        Element studentMinorElement = (Element) j.next();
-                        student.getMinors().add(
-                                new AcademicAreaCode(studentMinorElement.attributeValue("academicArea", ""),
-                                        studentMinorElement.attributeValue("code", "")));
-                    }
-                sLog.debug("   -- minors " + student.getMinors());
-            }
-        } catch (Exception e) {
-            sLog.error(e.getMessage(), e);
         }
     }
 

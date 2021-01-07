@@ -3,9 +3,8 @@ package org.cpsolver.studentsct.model;
 import org.cpsolver.ifs.util.ToolBox;
 
 /**
- * Academic area and code. This class is used for
- * {@link Student#getAcademicAreaClasiffications()}, {@link Student#getMajors()}
- * , and {@link Student#getMinors()}. <br>
+ * Student group type, reference and name. This class is used for
+ * {@link Student#getGroups()}. <br>
  * <br>
  * 
  * @version StudentSct 1.3 (Student Sectioning)<br>
@@ -27,59 +26,58 @@ import org.cpsolver.ifs.util.ToolBox;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class AcademicAreaCode {
-    private String iArea, iCode, iLabel;
+public class StudentGroup {
+    private String iType, iReference, iName;
 
     /**
      * Constructor
      * 
-     * @param area
-     *            academic area
-     * @param code
-     *            code
+     * @param type group type (can be empty)
+     * @param reference group reference
+     * @param name group name
      */
-    public AcademicAreaCode(String area, String code) {
-        iArea = area;
-        iCode = code;
-    }
-    
-    public AcademicAreaCode(String area, String code, String label) {
-        iArea = area;
-        iCode = code;
-        iLabel = label;
+    public StudentGroup(String type, String reference, String name) {
+        iType = type;
+        iReference = reference;
+        iName = name;
     }
 
-    /** Academic area 
-     * @return academic area abbreviation
+    /** Group type
+     * @return group type reference
      **/
-    public String getArea() {
-        return iArea;
+    public String getType() {
+        return iType;
     }
 
-    /** Code 
-     * @return classification code
+    /** Group reference 
+     * @return group reference
      **/
-    public String getCode() {
-        return iCode;
+    public String getReference() {
+        return iReference;
     }
     
-    public String getLabel() { return iLabel; }
+    /** Group name 
+     * @return group name
+     **/
+    public String getName() {
+        return iName;
+    }
 
     @Override
     public int hashCode() {
-        return (iArea + ":" + iCode).hashCode();
+        return toString().hashCode();
     }
 
     @Override
     public boolean equals(Object o) {
-        if (o == null || !(o instanceof AcademicAreaCode))
+        if (o == null || !(o instanceof StudentGroup))
             return false;
-        AcademicAreaCode aac = (AcademicAreaCode) o;
-        return ToolBox.equals(aac.getArea(), getArea()) && ToolBox.equals(aac.getCode(), getCode());
+        StudentGroup acm = (StudentGroup) o;
+        return ToolBox.equals(acm.getType(), getType()) && ToolBox.equals(acm.getReference(), getReference()) && ToolBox.equals(acm.getName(), getName());
     }
 
     @Override
     public String toString() {
-        return getArea() + ":" + getCode();
+        return getReference() + (getType() == null || getType().isEmpty() ? "" : " (" + getType() + ")");
     }
 }

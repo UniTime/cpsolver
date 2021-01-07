@@ -1,7 +1,9 @@
 package org.cpsolver.studentsct.model;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.cpsolver.coursett.model.TimeLocation;
 import org.cpsolver.ifs.assignment.Assignment;
@@ -43,11 +45,11 @@ public class Student implements Comparable<Student> {
     private String iExternalId = null, iName = null;
     private StudentPriority iPriority = StudentPriority.Normal;
     private List<Request> iRequests = new ArrayList<Request>();
-    private List<AcademicAreaCode> iAcadAreaClassifs = new ArrayList<AcademicAreaCode>();
-    private List<AcademicAreaCode> iMajors = new ArrayList<AcademicAreaCode>();
-    private List<AcademicAreaCode> iMinors = new ArrayList<AcademicAreaCode>();
-    private List<AreaClassificationMajor> iACM = new ArrayList<AreaClassificationMajor>();
+    private List<AreaClassificationMajor> iMajors = new ArrayList<AreaClassificationMajor>();
+    private List<AreaClassificationMajor> iMinors = new ArrayList<AreaClassificationMajor>();
     private List<LinkedSections> iLinkedSections = new ArrayList<LinkedSections>();
+    private Set<String> iAccommodations = new HashSet<String>();
+    private List<StudentGroup> iGroups = new ArrayList<StudentGroup>();
     private String iStatus = null;
     private Long iEmailTimeStamp = null;
     private List<Unavailability> iUnavailabilities = new ArrayList<Unavailability>();
@@ -269,29 +271,21 @@ public class Student implements Comparable<Student> {
         return StudentPriority.Normal.isHigher(this);
     }
 
-    /**
-     * List of academic area - classification codes ({@link AcademicAreaCode})
-     * for the given student
-     * @return list of academic area abbreviation &amp; classification code pairs
-     */
-    public List<AcademicAreaCode> getAcademicAreaClasiffications() {
-        return iAcadAreaClassifs;
-    }
 
     /**
-     * List of major codes ({@link AcademicAreaCode}) for the given student
-     * @return list of academic area abbreviation &amp; major code pairs
+     * List of student groups ({@link StudentGroup}) for the given student
+     * @return list of academic area abbreviation (group type) &amp; group code pairs
      */
-    public List<AcademicAreaCode> getMajors() {
-        return iMajors;
+    public List<StudentGroup> getGroups() {
+        return iGroups;
     }
-
+    
     /**
-     * List of major codes ({@link AcademicAreaCode}) for the given student
-     * @return list of academic area abbreviation &amp; minor code pairs
+     * List student accommodations
+     * @return student accommodations
      */
-    public List<AcademicAreaCode> getMinors() {
-        return iMinors;
+    public Set<String> getAccommodations() {
+        return iAccommodations;
     }
     
     /**
@@ -299,9 +293,17 @@ public class Student implements Comparable<Student> {
      * @return list of academic area, classification, and major codes
      */
     public List<AreaClassificationMajor> getAreaClassificationMajors() {
-        return iACM;
+        return iMajors;
     }
     
+    /**
+     * List of academic area, classification, and minor codes ({@link AreaClassificationMajor}) for the given student
+     * @return list of academic area, classification, and minor codes
+     */
+    public List<AreaClassificationMajor> getAreaClassificationMinors() {
+        return iMinors;
+    }
+
     /**
      * List of student's advisors
      */
@@ -615,5 +617,14 @@ public class Student implements Comparable<Student> {
             }
             return StudentPriority.Normal;
         }
+    }
+    
+    /**
+     * Check if a student has given accommodation
+     * @param code accommodation reference code
+     * @return true if present
+     */
+    public boolean hasAccommodation(String code) {
+        return code != null && !code.isEmpty() && iAccommodations.contains(code);
     }
 }
