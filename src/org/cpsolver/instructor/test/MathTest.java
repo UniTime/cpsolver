@@ -255,6 +255,7 @@ public class MathTest extends Test {
             Attribute.Type level = new Attribute.Type(0l, "Level", false, true);
             addAttributeType(level);
             Map<String, Attribute> code2attribute = new HashMap<String, Attribute>();
+            r.close();
 
             r = new BufferedReader(new FileReader(new File(dir, "level_codes.csv")));
             String[] codes = r.readLine().split(",");
@@ -402,6 +403,7 @@ public class MathTest extends Test {
                         sLog.info("  -- no courses available");
                 }
             }
+            r.close();
 
             double totalLoad = 0.0;
             for (TeachingRequest.Variable clazz : variables()) {

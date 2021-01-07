@@ -4,9 +4,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.model.Model;
-import org.cpsolver.ifs.model.Value;
-import org.cpsolver.ifs.model.Variable;
 
 
 /**

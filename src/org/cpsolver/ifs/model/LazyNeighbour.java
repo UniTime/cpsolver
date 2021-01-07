@@ -1,10 +1,6 @@
 package org.cpsolver.ifs.model;
 
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.model.Model;
-import org.cpsolver.ifs.model.Neighbour;
-import org.cpsolver.ifs.model.Value;
-import org.cpsolver.ifs.model.Variable;
 
 /**
  * Lazy neigbour (a change of the overall solution value is unknown before

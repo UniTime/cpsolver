@@ -2,7 +2,6 @@ package org.cpsolver.ifs.assignment;
 
 import java.util.Comparator;
 
-import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.model.Value;
 import org.cpsolver.ifs.model.Variable;
 
