@@ -659,11 +659,11 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             }
         }),
         /**
-         * DRC: A back-to-back conflict (for students with BTB accommodation) is there every time when a student has two classes that are
+         * DRC: A back-to-back conflict (for students with BTB accommodation) is there every time when a student has two classes that are NOT
          * back-to-back or less than Accommodations.BackToBackDistance time slots apart (defaults to 30 minutes).
-         * Such a conflict is weighted by Accommodations.BackToBackFactor, which defaults to -0.001 (Back-to-Backs are preferred).
+         * Such a conflict is weighted by Accommodations.BackToBackFactor, which defaults to 0.001
          */
-        AccBackToBack(WeightType.BOTH, "Accommodations.BackToBackFactor", -0.001, new Quality() {
+        AccBackToBack(WeightType.BOTH, "Accommodations.BackToBackFactor", 0.001, new Quality() {
             @Override
             public boolean isApplicable(Context cx, Student student, Request r1, Request r2) {
                 return r1 instanceof CourseRequest && r2 instanceof CourseRequest && !student.isDummy() && student.hasAccommodation(cx.getBackToBackAccommodation());
@@ -676,10 +676,10 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
                 if (t1 == null || t2 == null || !t1.shareDays(t2) || !t1.shareWeeks(t2)) return false;
                 if (t1.getStartSlot() + t1.getNrSlotsPerMeeting() <= t2.getStartSlot()) {
                     int dist = t2.getStartSlot() - (t1.getStartSlot() + t1.getNrSlotsPerMeeting());
-                    return dist <= cx.getBackToBackDistance();
+                    return dist > cx.getBackToBackDistance();
                 } else if (t2.getStartSlot() + t2.getNrSlotsPerMeeting() <= t1.getStartSlot()) {
                     int dist = t1.getStartSlot() - (t2.getStartSlot() + t2.getNrSlotsPerMeeting());
-                    return dist <= cx.getBackToBackDistance();
+                    return dist > cx.getBackToBackDistance();
                 }
                 return false;
             }
@@ -1213,7 +1213,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             return distance;
         }
 
-        protected int getDistanceInMinutes(Placement p1, Placement p2) {
+        public int getDistanceInMinutes(Placement p1, Placement p2) {
             if (p1.isMultiRoom()) {
                 if (p2.isMultiRoom()) {
                     int dist = 0;
