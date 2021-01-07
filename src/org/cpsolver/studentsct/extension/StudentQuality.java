@@ -113,6 +113,13 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
     }
     
     /**
+     * Student quality context
+     */
+    public Context getStudentQualityContext() {
+        return iContext;
+    }
+    
+    /**
      * Weighting types 
      */
     public static enum WeightType {
@@ -476,7 +483,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
         /**
          * A back-to-back conflict is there every time when a student has two classes that are
          * back-to-back or less than StudentWeights.BackToBackDistance time slots apart (defaults to 30 minutes).
-         * Such a conflict is weighted by StudentWeights.TravelTimeFactor, which
+         * Such a conflict is weighted by StudentWeights.BackToBackFactor, which
          * defaults to -0.0001 (these conflicts are preferred by default, trying to avoid schedule gaps).
          */
         BackToBack(WeightType.BOTH, "StudentWeights.BackToBackFactor", -0.0001, new Quality() {
@@ -615,7 +622,126 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             public double getWeight(Context cx, Conflict c, Enrollment e) {
                 return Math.min(cx.getTimeOverlapMaxLimit() * c.getPenalty() / c.getE1().getNrSlots(), cx.getTimeOverlapMaxLimit());
             }
-        })
+        }),
+        /** 
+         * DRC: Time conflict between class and a free time request (for students with FT accommodation).
+         * Free time conflicts are penalized as the time of a course request overlapping with a free time
+         * proportional to the time of the request, capped at one half of the time.
+         * This criterion is weighted by Accommodations.FreeTimeOverlapFactor, defaulting to 0.5.
+         */
+        AccFreeTimeOverlap(WeightType.REQUEST, "Accommodations.FreeTimeOverlapFactor", 0.5000, new Quality(){
+            @Override
+            public boolean isApplicable(Context cx, Student student, Request r1, Request r2) {
+                return false;
+            }
+
+            @Override
+            public boolean inConflict(Context cx, SctAssignment a1, SctAssignment a2) {
+                if (a1.getTime() == null || a2.getTime() == null) return false;
+                return a1.getTime().hasIntersection(a2.getTime());
+            }
+
+            @Override
+            public int penalty(Context cx, SctAssignment a1, SctAssignment a2) {
+                if (!inConflict(cx, a1, a2)) return 0;
+                return a1.getTime().nrSharedDays(a2.getTime()) * a1.getTime().nrSharedHours(a2.getTime());
+            }
+            
+            @Override
+            public Iterable<? extends SctAssignment> other(Context cx, Enrollment e) {
+                if (!e.getStudent().hasAccommodation(cx.getFreeTimeAccommodation())) return new Nothing();
+                return (e.isCourseRequest() ? new FreeTimes(e.getStudent()) : new Nothing());
+            }
+            
+            @Override
+            public double getWeight(Context cx, Conflict c, Enrollment e) {
+                return Math.min(cx.getTimeOverlapMaxLimit() * c.getPenalty() / c.getE1().getNrSlots(), cx.getTimeOverlapMaxLimit());
+            }
+        }),
+        /**
+         * DRC: A back-to-back conflict (for students with BTB accommodation) is there every time when a student has two classes that are
+         * back-to-back or less than Accommodations.BackToBackDistance time slots apart (defaults to 30 minutes).
+         * Such a conflict is weighted by Accommodations.BackToBackFactor, which defaults to -0.001 (Back-to-Backs are preferred).
+         */
+        AccBackToBack(WeightType.BOTH, "Accommodations.BackToBackFactor", -0.001, new Quality() {
+            @Override
+            public boolean isApplicable(Context cx, Student student, Request r1, Request r2) {
+                return r1 instanceof CourseRequest && r2 instanceof CourseRequest && !student.isDummy() && student.hasAccommodation(cx.getBackToBackAccommodation());
+            }
+
+            @Override
+            public boolean inConflict(Context cx, SctAssignment a1, SctAssignment a2) {
+                TimeLocation t1 = a1.getTime();
+                TimeLocation t2 = a2.getTime();
+                if (t1 == null || t2 == null || !t1.shareDays(t2) || !t1.shareWeeks(t2)) return false;
+                if (t1.getStartSlot() + t1.getNrSlotsPerMeeting() <= t2.getStartSlot()) {
+                    int dist = t2.getStartSlot() - (t1.getStartSlot() + t1.getNrSlotsPerMeeting());
+                    return dist <= cx.getBackToBackDistance();
+                } else if (t2.getStartSlot() + t2.getNrSlotsPerMeeting() <= t1.getStartSlot()) {
+                    int dist = t1.getStartSlot() - (t2.getStartSlot() + t2.getNrSlotsPerMeeting());
+                    return dist <= cx.getBackToBackDistance();
+                }
+                return false;
+            }
+
+            @Override
+            public int penalty(Context cx, SctAssignment a1, SctAssignment a2) {
+                if (!inConflict(cx, a1, a2)) return 0;
+                return a1.getTime().nrSharedDays(a2.getTime());
+            }
+            
+            @Override
+            public Iterable<? extends SctAssignment> other(Context cx, Enrollment e) {
+                return new Nothing();
+            }
+
+            @Override
+            public double getWeight(Context cx, Conflict c, Enrollment e) {
+                return c.getPenalty();
+            }
+        }),
+        /**
+         * DRC: A not back-to-back conflict (for students with BBC accommodation) is there every time when a student has two classes that are
+         * back-to-back or less than Accommodations.BackToBackDistance time slots apart (defaults to 30 minutes).
+         * Such a conflict is weighted by Accommodations.BreaksBetweenClassesFactor, which defaults to 0.001.
+         */
+        AccBreaksBetweenClasses(WeightType.BOTH, "Accommodations.BreaksBetweenClassesFactor", 0.001, new Quality() {
+            @Override
+            public boolean isApplicable(Context cx, Student student, Request r1, Request r2) {
+                return r1 instanceof CourseRequest && r2 instanceof CourseRequest && !student.isDummy() && student.hasAccommodation(cx.getBreakBetweenClassesAccommodation());
+            }
+
+            @Override
+            public boolean inConflict(Context cx, SctAssignment a1, SctAssignment a2) {
+                TimeLocation t1 = a1.getTime();
+                TimeLocation t2 = a2.getTime();
+                if (t1 == null || t2 == null || !t1.shareDays(t2) || !t1.shareWeeks(t2)) return false;
+                if (t1.getStartSlot() + t1.getNrSlotsPerMeeting() <= t2.getStartSlot()) {
+                    int dist = t2.getStartSlot() - (t1.getStartSlot() + t1.getNrSlotsPerMeeting());
+                    return dist <= cx.getBackToBackDistance();
+                } else if (t2.getStartSlot() + t2.getNrSlotsPerMeeting() <= t1.getStartSlot()) {
+                    int dist = t1.getStartSlot() - (t2.getStartSlot() + t2.getNrSlotsPerMeeting());
+                    return dist <= cx.getBackToBackDistance();
+                }
+                return false;
+            }
+
+            @Override
+            public int penalty(Context cx, SctAssignment a1, SctAssignment a2) {
+                if (!inConflict(cx, a1, a2)) return 0;
+                return a1.getTime().nrSharedDays(a2.getTime());
+            }
+            
+            @Override
+            public Iterable<? extends SctAssignment> other(Context cx, Enrollment e) {
+                return new Nothing();
+            }
+
+            @Override
+            public double getWeight(Context cx, Conflict c, Enrollment e) {
+                return c.getPenalty();
+            }
+        }),
         ;
         
         private WeightType iType;
@@ -1026,7 +1152,8 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
         private DistanceMetric iDistanceMetric = null;
         private boolean iDebug = false;
         protected double iTimeOverlapMaxLimit = 0.5000;
-        private int iLunchStart, iLunchEnd, iLunchLength, iMaxTravelGap, iWorkDayLimit, iBackToBackDistance, iEarlySlot, iLateSlot;
+        private int iLunchStart, iLunchEnd, iLunchLength, iMaxTravelGap, iWorkDayLimit, iBackToBackDistance, iEarlySlot, iLateSlot, iAccBackToBackDistance;
+        private String iFreeTimeAccommodation = "FT", iBackToBackAccommodation = "BTB", iBreakBetweenClassesAccommodation = "BBC";
         
         public Context(DistanceMetric dm, DataProperties config) {
             iDistanceMetric = (dm == null ? new DistanceMetric(config) : dm);
@@ -1038,8 +1165,12 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             iMaxTravelGap = config.getPropertyInt("TravelTime.MaxTravelGap", 12);
             iWorkDayLimit = config.getPropertyInt("WorkDay.WorkDayLimit", 6 * 12);
             iBackToBackDistance = config.getPropertyInt("StudentWeights.BackToBackDistance", 6);
+            iAccBackToBackDistance = config.getPropertyInt("Accommodations.BackToBackDistance", 6);
             iEarlySlot = config.getPropertyInt("WorkDay.EarlySlot", 102);
             iLateSlot = config.getPropertyInt("WorkDay.LateSlot", 210);
+            iFreeTimeAccommodation = config.getProperty("Accommodations.FreeTimeReference", iFreeTimeAccommodation);
+            iBackToBackAccommodation = config.getProperty("Accommodations.BackToBackReference", iBackToBackAccommodation);
+            iBreakBetweenClassesAccommodation = config.getProperty("Accommodations.BreakBetweenClassesReference", iBreakBetweenClassesAccommodation);
         }
         
         public DistanceMetric getDistanceMetric() {
@@ -1055,8 +1186,12 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
         public int getMaxTravelGap() { return iMaxTravelGap; }
         public int getWorkDayLimit() { return iWorkDayLimit; }
         public int getBackToBackDistance() { return iBackToBackDistance; }
+        public int getAccBackToBackDistance() { return iAccBackToBackDistance; }
         public int getEarlySlot() { return iEarlySlot; }
         public int getLateSlot() { return iLateSlot; }
+        public String getFreeTimeAccommodation() { return iFreeTimeAccommodation; }
+        public String getBackToBackAccommodation() { return iBackToBackAccommodation; }
+        public String getBreakBetweenClassesAccommodation() { return iBreakBetweenClassesAccommodation; }
             
         private Map<Long, Map<Long, Integer>> iDistanceCache = new HashMap<Long, Map<Long,Integer>>();
         protected synchronized int getDistanceInMinutes(RoomLocation r1, RoomLocation r2) {

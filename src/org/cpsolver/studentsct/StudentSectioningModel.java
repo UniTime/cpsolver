@@ -499,6 +499,38 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 String time = (getProperties().getPropertyBoolean("General.UseAmPm", true) ? (h > 12 ? h - 12 : h) + ":" + (m < 10 ? "0" : "") + m + (h >= 12 ? "p" : "a") : h + ":" + (m < 10 ? "0" : "") + m);
                 info.put("Schedule Quality: Late classes", sDoubleFormat.format(5.0 * late / iStudents.size()) + " mins after " + time + " per student (" + sDoubleFormat.format(late / 12.0) + " hours total)");
             }
+            int accFT = getStudentQuality().getTotalPenalty(StudentQuality.Type.AccFreeTimeOverlap, assignment);
+            if (accFT > 0) {
+                Set<String> students = new TreeSet<String>();
+                for (StudentQuality.Conflict c: getStudentQuality().getContext(assignment).computeAllConflicts(StudentQuality.Type.AccFreeTimeOverlap, assignment)) {
+                    students.add(c.getStudent().getExternalId());
+                }
+                info.put("Accommodations: Free time conflicts", sDoubleFormat.format(5.0 * accFT / getStudentsWithAccommodation(getStudentQuality().getStudentQualityContext().getFreeTimeAccommodation())) + " mins per student, " + sDoubleFormat.format(accFT / 12.0) + " hours total " + students);
+            }
+            int accBtB = getStudentQuality().getTotalPenalty(StudentQuality.Type.AccBackToBack, assignment);
+            if (accBtB > 0) {
+                Set<String> students = new TreeSet<String>();
+                for (StudentQuality.Conflict c: getStudentQuality().getContext(assignment).computeAllConflicts(StudentQuality.Type.AccBackToBack, assignment)) {
+                    students.add(c.getStudent().getExternalId());
+                }
+                info.put("Accommodations: Back-to-back classes", sDoubleFormat.format(((double)accBtB) / getStudentsWithAccommodation(getStudentQuality().getStudentQualityContext().getBackToBackAccommodation())) + " BTB classes per student, " + accBtB + " total " + students);
+            }
+            int accBbc = getStudentQuality().getTotalPenalty(StudentQuality.Type.AccBreaksBetweenClasses, assignment);
+            if (accBbc > 0) {
+                Set<String> students = new TreeSet<String>();
+                for (StudentQuality.Conflict c: getStudentQuality().getContext(assignment).computeAllConflicts(StudentQuality.Type.AccBreaksBetweenClasses, assignment)) {
+                    students.add(c.getStudent().getExternalId());
+                }
+                info.put("Accommodations: Break between classes", sDoubleFormat.format(((double)accBbc) / getStudentsWithAccommodation(getStudentQuality().getStudentQualityContext().getBreakBetweenClassesAccommodation())) + " BTB classes per student, " + accBbc + " total " + students);
+            }
+            int shortConfs = getStudentQuality().getTotalPenalty(StudentQuality.Type.ShortDistance, assignment);
+            if (shortConfs > 0) {
+                Set<String> students = new TreeSet<String>();
+                for (StudentQuality.Conflict c: getStudentQuality().getContext(assignment).computeAllConflicts(StudentQuality.Type.ShortDistance, assignment)) {
+                    students.add(c.getStudent().getExternalId());
+                }
+                info.put("Accommodations: Distance conflicts", sDoubleFormat.format(((double)shortConfs) / getStudentsWithAccommodation(getStudentQuality().getDistanceMetric().getShortDistanceAccommodationReference())) + " short distance conflicts per student, " + shortConfs + " total " + students);
+            }
         }
         int nrLastLikeStudents = getNrLastLikeStudents(false);
         if (nrLastLikeStudents != 0 && nrLastLikeStudents != getStudents().size()) {
@@ -815,6 +847,18 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 nrRealStudents++;
         }
         return nrRealStudents;
+    }
+    
+    /**
+     * Count students with given accommodation
+     */
+    public int getStudentsWithAccommodation(String acc) {
+        int nrAccStudents = 0;
+        for (Student student : getStudents()) {
+            if (student.hasAccommodation(acc))
+                nrAccStudents++;
+        }
+        return nrAccStudents;
     }
 
     /**
