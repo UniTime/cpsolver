@@ -43,6 +43,7 @@ public class ExamPeriod implements Comparable<ExamPeriod> {
     private int iLength;
     private int iDay, iTime;
     private int iPenalty;
+    private Integer iStart = null;
     private ExamPeriod iPrev, iNext;
 
     /**
@@ -241,5 +242,30 @@ public class ExamPeriod implements Comparable<ExamPeriod> {
     @Override
     public int compareTo(ExamPeriod p) {
         return Double.compare(getIndex(), p.getIndex());
+    }
+    
+    public Integer getStartTime() { return iStart; }
+    public void setStartTime(Integer startTime) { iStart = startTime; }
+    
+    /**
+     * Check if this period overlaps with the given period
+     * @param p other period
+     * @return true if the two periods overlap in time (considering period lengths)
+     */
+    public boolean hasIntersection(ExamPeriod p) {
+        if (getIndex() == p.getIndex() || getStartTime() == null || p.getStartTime() == null) return false;
+        return getDay() == p.getDay() && (getStartTime() + getLength() > p.getStartTime()) && (p.getStartTime() + p.getLength() > getStartTime());
+    }
+    
+    /**
+     * Check if the first exam assigned to this period overlaps with the second exam assigned in the given period period
+     * @param x1 exam of this period
+     * @param x2 the other exam (of the period p)
+     * @param p other period
+     * @return true if the two periods overlap in time (considering examination lengths)
+     */
+    public boolean hasIntersection(Exam x1, Exam x2, ExamPeriod p) {
+        if (getIndex() == p.getIndex() || getStartTime() == null || p.getStartTime() == null) return false;
+        return getDay() == p.getDay() && (getStartTime() + x1.getLength() > p.getStartTime()) && (p.getStartTime() + x2.getLength() > getStartTime());
     }
 }

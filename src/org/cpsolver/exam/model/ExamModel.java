@@ -141,6 +141,7 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
     private List<ExamDistributionConstraint> iDistributionConstraints = new ArrayList<ExamDistributionConstraint>();
     private List<ExamInstructor> iInstructors = new ArrayList<ExamInstructor>();
     private ExamRoomSharing iRoomSharing = null;
+    private boolean iCheckForPeriodOverlaps = false;
 
     private DistanceMetric iDistanceMetric = null;
 
@@ -154,6 +155,7 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
         super();
         iProperties = properties;
         iMaxRooms = properties.getPropertyInt("Exams.MaxRooms", iMaxRooms);
+        iCheckForPeriodOverlaps = properties.getPropertyBoolean("Exams.CheckForPeriodOverlaps", iCheckForPeriodOverlaps);
         iDistanceMetric = new DistanceMetric(properties);
         String roomSharingClass = properties.getProperty("Exams.RoomSharingClass");
         if (roomSharingClass != null) {
@@ -253,6 +255,19 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
      */
     public void setMaxRooms(int maxRooms) {
         iMaxRooms = maxRooms;
+    }
+    
+    /**
+     * Check for examination periods that overlap with each other
+     * @return true if examination periods can overlap with each other
+     */
+    public boolean isCheckForPeriodOverlaps() { return iCheckForPeriodOverlaps; }
+    
+    /**
+     * Enable checking for period overlaps
+     */
+    public void setCheckForPeriodOverlaps(boolean check) {
+        iCheckForPeriodOverlaps = check;
     }
 
     /**
@@ -551,6 +566,7 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
                     ((ExamCriterion)criterion).getXmlParameters(params);
             }
             params.put("maxRooms", String.valueOf(getMaxRooms()));
+            params.put("checkForPeriodOverlaps", isCheckForPeriodOverlaps() ? "true" : "false");
             Element parameters = root.addElement("parameters");
             for (String key: new TreeSet<String>(params.keySet())) {
                 parameters.addElement("property").addAttribute("name", key).addAttribute("value", params.get(key));
@@ -558,10 +574,12 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
         }
         Element periods = root.addElement("periods");
         for (ExamPeriod period : getPeriods()) {
-            periods.addElement("period").addAttribute("id", getId(idconv, "period", String.valueOf(period.getId())))
+            Element periodEl = periods.addElement("period").addAttribute("id", getId(idconv, "period", String.valueOf(period.getId())))
                     .addAttribute("length", String.valueOf(period.getLength())).addAttribute("day", period.getDayStr())
                     .addAttribute("time", period.getTimeStr()).addAttribute("penalty",
                             String.valueOf(period.getPenalty()));
+            if (period.getStartTime() != null)
+                periodEl.addAttribute("start", period.getStartTime().toString());
         }
         Element rooms = root.addElement("rooms");
         for (ExamRoom room : getRooms()) {
@@ -854,12 +872,15 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
             try {
                 setMaxRooms(Integer.valueOf(params.get("maxRooms")));
             } catch (NumberFormatException e) {} catch (NullPointerException e) {}
+            setCheckForPeriodOverlaps("true".equalsIgnoreCase(params.get("checkForPeriodOverlaps")));
         }
         for (Iterator<?> i = root.element("periods").elementIterator("period"); i.hasNext();) {
             Element e = (Element) i.next();
-            addPeriod(Long.valueOf(e.attributeValue("id")), e.attributeValue("day"), e.attributeValue("time"), Integer
+            ExamPeriod p = addPeriod(Long.valueOf(e.attributeValue("id")), e.attributeValue("day"), e.attributeValue("time"), Integer
                     .parseInt(e.attributeValue("length")), Integer.parseInt(e.attributeValue("penalty") == null ? e
                     .attributeValue("weight", "0") : e.attributeValue("penalty")));
+            if (e.attributeValue("start") != null)
+                p.setStartTime(Integer.valueOf(e.attributeValue("start")));
         }
         HashMap<Long, ExamRoom> rooms = new HashMap<Long, ExamRoom>();
         HashMap<String, ArrayList<ExamRoom>> roomGroups = new HashMap<String, ArrayList<ExamRoom>>();

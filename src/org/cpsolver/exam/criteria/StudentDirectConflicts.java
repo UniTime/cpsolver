@@ -65,13 +65,33 @@ public class StudentDirectConflicts extends ExamCriterion {
         Exam exam = value.variable();
         int penalty = 0;
         ExamPeriod period = value.getPeriod();
-        Map<ExamStudent, Set<Exam>> students = ((ExamModel)getModel()).getStudentsOfPeriod(assignment, period);
+        ExamModel m = (ExamModel)getModel();
+        Map<ExamStudent, Set<Exam>> students = m.getStudentsOfPeriod(assignment, period);
         for (ExamStudent s : exam.getStudents()) {
             Set<Exam> exams = students.get(s);
             if (exams == null) continue;
             int nrExams = exams.size() + (exams.contains(exam) ? 0 : 1);
             if (nrExams > 1)
                 penalty++;
+        }
+        if (m.isCheckForPeriodOverlaps()) {
+            for (ExamPeriod p: m.getPeriods()) {
+                if (period.hasIntersection(p)) {
+                    Map<ExamStudent, Set<Exam>> others = m.getStudentsOfPeriod(assignment, p);
+                    s: for (ExamStudent s : exam.getStudents()) {
+                        Set<Exam> exams = students.get(s);
+                        if (exams == null || exams.size() + (exams.contains(exam) ? 0 : 1) <= 1) {
+                            Set<Exam> other = others.get(s);
+                            if (other != null && !other.isEmpty())
+                                for (Exam x: other) {
+                                    if (period.hasIntersection(exam, x, p)) {
+                                        penalty ++; continue s;
+                                    }
+                                }
+                        }
+                    }
+                }
+            }
         }
         /*
         for (ExamStudent s : exam.getStudents()) {
@@ -108,6 +128,31 @@ public class StudentDirectConflicts extends ExamCriterion {
                 int nrExams = exams.size();
                 if (nrExams > 1)
                     ret += nrExams - 1;
+            }
+        }
+        if (m.isCheckForPeriodOverlaps()) {
+            for (ExamPeriod p: m.getPeriods()) {
+                for (ExamPeriod q: m.getPeriods()) {
+                    if (p.getIndex() < q.getIndex() && p.hasIntersection(q)) {
+                        Map<ExamStudent, Set<Exam>> s1 = m.getStudentsOfPeriod(assignment, p);
+                        Map<ExamStudent, Set<Exam>> s2 = m.getStudentsOfPeriod(assignment, q);
+                        for (Map.Entry<ExamStudent, Set<Exam>> e: s1.entrySet()) {
+                            ExamStudent s = e.getKey();
+                            if (!e.getValue().isEmpty()) {
+                                Set<Exam> x = s2.get(s);
+                                if (x != null && x.isEmpty()) {
+                                    x1: for (Exam x1: e.getValue()) {
+                                        for (Exam x2: x) {
+                                            if (p.hasIntersection(x1, x2, q)) {
+                                                ret += 1; break x1;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
         return ret;
