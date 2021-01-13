@@ -531,11 +531,18 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
             CurriculumReservation cr = (CurriculumReservation)reservation;
             if (cr.getReservationLimit() >= 0.0)
                 reservationEl.addAttribute("limit", String.valueOf(cr.getReservationLimit()));
-            reservationEl.addAttribute("area", cr.getAcademicArea());
+            if (cr.getAcademicAreas().size() == 1)
+                reservationEl.addAttribute("area", cr.getAcademicAreas().iterator().next());
+            else {
+                for (String area: cr.getAcademicAreas())
+                    reservationEl.addElement("area").addAttribute("code", area);
+            }
             for (String clasf: cr.getClassifications())
                 reservationEl.addElement("classification").addAttribute("code", clasf);
             for (String major: cr.getMajors())
                 reservationEl.addElement("major").addAttribute("code", major);
+            for (String minor: cr.getMinors())
+                reservationEl.addElement("minor").addAttribute("code", minor);
         } else if (reservation instanceof CourseReservation) {
             reservationEl.addAttribute("type", "course");
             CourseReservation cr = (CourseReservation)reservation;

@@ -586,6 +586,13 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                             course, studentIds);
             }
         } else if ("curriculum".equals(reservationEl.attributeValue("type")) || "curriculum-override".equals(reservationEl.attributeValue("type"))) {
+            List<String> acadAreas = new ArrayList<String>();
+            for (Iterator<?> k = reservationEl.elementIterator("area"); k.hasNext(); ) {
+                Element areaEl = (Element)k.next();
+                acadAreas.add(areaEl.attributeValue("code"));
+            }
+            if (acadAreas.isEmpty() && reservationEl.attributeValue("area") != null)
+                acadAreas.add(reservationEl.attributeValue("area"));
             List<String> classifications = new ArrayList<String>();
             for (Iterator<?> k = reservationEl.elementIterator("classification"); k.hasNext(); ) {
                 Element clasfEl = (Element)k.next();
@@ -596,18 +603,21 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                 Element majorEl = (Element)k.next();
                 majors.add(majorEl.attributeValue("code"));
             }
+            List<String> minors = new ArrayList<String>();
+            for (Iterator<?> k = reservationEl.elementIterator("minor"); k.hasNext(); ) {
+                Element minorEl = (Element)k.next();
+                minors.add(minorEl.attributeValue("code"));
+            }
             if ("curriculum".equals(reservationEl.attributeValue("type")))
                 r = new CurriculumReservation(Long.valueOf(reservationEl.attributeValue("id")),
                         Double.parseDouble(reservationEl.attributeValue("limit", "-1")),
                         offering,
-                        reservationEl.attributeValue("area"),
-                        classifications, majors);
+                        acadAreas, classifications, majors, minors);
             else
                 r = new CurriculumOverride(Long.valueOf(reservationEl.attributeValue("id")),
                         Double.parseDouble(reservationEl.attributeValue("limit", "-1")),
                         offering,
-                        reservationEl.attributeValue("area"),
-                        classifications, majors);
+                        acadAreas, classifications, majors, minors);
         } else if ("course".equals(reservationEl.attributeValue("type"))) {
             long courseId = Long.parseLong(reservationEl.attributeValue("course"));
             for (Course course: offering.getCourses()) {
@@ -969,7 +979,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                     new Unavailability(student, section, "true".equals(requestEl.attributeValue("allowOverlap")));
             } else if ("acm".equals(requestEl.getName())) {
                 if (requestEl.attributeValue("minor") != null)
-                    student.getAreaClassificationMajors().add(new AreaClassificationMajor(requestEl.attributeValue("area"), requestEl.attributeValue("classification"), requestEl.attributeValue("minor")));
+                    student.getAreaClassificationMinors().add(new AreaClassificationMajor(requestEl.attributeValue("area"), requestEl.attributeValue("classification"), requestEl.attributeValue("minor")));
                 else
                     student.getAreaClassificationMajors().add(new AreaClassificationMajor(requestEl.attributeValue("area"), requestEl.attributeValue("classification"), requestEl.attributeValue("major")));
             } else if ("group".equals(requestEl.getName())) {

@@ -37,9 +37,10 @@ import org.cpsolver.studentsct.model.Student;
  */
 public class CurriculumReservation extends Reservation {
     private double iLimit;
-    private String iAcadArea;
+    private Set<String> iAcadAreas = new HashSet<String>();
     private Set<String> iClassifications = new HashSet<String>();
     private Set<String> iMajors = new HashSet<String>();
+    private Set<String> iMinors = new HashSet<String>();
     
     /**
      * Reservation priority (lower than individual and group reservations)
@@ -63,18 +64,70 @@ public class CurriculumReservation extends Reservation {
      * @param id unique id
      * @param limit reservation limit (-1 for unlimited)
      * @param offering instructional offering on which the reservation is set
-     * @param acadArea academic area
+     * @param acadAreas one or more academic areas
      * @param classifications zero or more classifications (classifications must match if not empty)
      * @param majors zero or more majors (majors must match if not empty)
+     * @param minors zero or more majors (minors must match if not empty)
      */
-    public CurriculumReservation(long id, double limit, Offering offering, String acadArea, Collection<String> classifications, Collection<String> majors) {
+    public CurriculumReservation(long id, double limit, Offering offering, Collection<String> acadAreas, Collection<String> classifications, Collection<String> majors, Collection<String> minors) {
         super(id, offering, DEFAULT_PRIORITY, DEFAULT_MUST_BE_USED, DEFAULT_CAN_ASSIGN_OVER_LIMIT, DEFAULT_ALLOW_OVERLAP);
         iLimit = limit;
-        iAcadArea = acadArea;
+        if (acadAreas != null)
+            iAcadAreas.addAll(acadAreas);
         if (classifications != null)
             iClassifications.addAll(classifications);
         if (majors != null)
             iMajors.addAll(majors);
+        if (minors != null)
+            iMinors.addAll(minors);
+    }
+    
+    /**
+     * Constructor
+     * @param id unique id
+     * @param limit reservation limit (-1 for unlimited)
+     * @param offering instructional offering on which the reservation is set
+     * @param acadArea academic area
+     * @param classifications zero or more classifications (classifications must match if not empty)
+     * @param majors zero or more majors (majors must match if not empty)
+     */
+    @Deprecated
+    public CurriculumReservation(long id, double limit, Offering offering, String acadArea, Collection<String> classifications, Collection<String> majors) {
+        super(id, offering, DEFAULT_PRIORITY, DEFAULT_MUST_BE_USED, DEFAULT_CAN_ASSIGN_OVER_LIMIT, DEFAULT_ALLOW_OVERLAP);
+        iLimit = limit;
+        iAcadAreas.add(acadArea);
+        if (classifications != null)
+            iClassifications.addAll(classifications);
+        if (majors != null)
+            iMajors.addAll(majors);
+    }
+    
+    /**
+     * Constructor
+     * @param id unique id
+     * @param limit reservation limit (-1 for unlimited)
+     * @param offering instructional offering on which the reservation is set
+     * @param acadAreas one or more academic areas
+     * @param classifications zero or more classifications (classifications must match if not empty)
+     * @param majors zero or more majors (majors must match if not empty)
+     * @param minors zero or more majors (minors must match if not empty)
+     * @param priority reservation priority
+     * @param mustBeUsed must this reservation be used
+     * @param canAssignOverLimit can assign over class / configuration / course limit
+     * @param allowOverlap does this reservation allow for overlaps
+     */
+    protected CurriculumReservation(long id, double limit, Offering offering, Collection<String> acadAreas, Collection<String> classifications, Collection<String> majors, Collection<String> minors,
+            int priority, boolean mustBeUsed, boolean canAssignOverLimit, boolean allowOverlap) {
+        super(id, offering, priority, mustBeUsed, canAssignOverLimit, allowOverlap);
+        iLimit = limit;
+        if (acadAreas != null)
+            iAcadAreas.addAll(acadAreas);
+        if (classifications != null)
+            iClassifications.addAll(classifications);
+        if (majors != null)
+            iMajors.addAll(majors);
+        if (minors != null)
+            iMinors.addAll(minors);
     }
     
     /**
@@ -90,11 +143,12 @@ public class CurriculumReservation extends Reservation {
      * @param canAssignOverLimit can assign over class / configuration / course limit
      * @param allowOverlap does this reservation allow for overlaps
      */
+    @Deprecated
     protected CurriculumReservation(long id, double limit, Offering offering, String acadArea, Collection<String> classifications, Collection<String> majors,
             int priority, boolean mustBeUsed, boolean canAssignOverLimit, boolean allowOverlap) {
         super(id, offering, priority, mustBeUsed, canAssignOverLimit, allowOverlap);
         iLimit = limit;
-        iAcadArea = acadArea;
+        iAcadAreas.add(acadArea);
         if (classifications != null)
             iClassifications.addAll(classifications);
         if (majors != null)
@@ -119,11 +173,21 @@ public class CurriculumReservation extends Reservation {
 
     
     /**
+     * Academic areas
+     * @return selected academic areas
+     */
+    public Set<String> getAcademicAreas() {
+        return iAcadAreas;
+    }
+    
+    /**
      * Academic area
      * @return selected academic area
      */
+    @Deprecated
     public String getAcademicArea() {
-        return iAcadArea;
+        if (getAcademicAreas().isEmpty()) return "";
+        return getAcademicAreas().iterator().next();
     }
     
     /**
@@ -132,6 +196,14 @@ public class CurriculumReservation extends Reservation {
      */
     public Set<String> getMajors() {
         return iMajors;
+    }
+    
+    /**
+     * Minors
+     * @return selected minors
+     */
+    public Set<String> getMinors() {
+        return iMinors;
     }
     
     /**
@@ -147,11 +219,18 @@ public class CurriculumReservation extends Reservation {
      */
     @Override
     public boolean isApplicable(Student student) {
-        for (AreaClassificationMajor acm: student.getAreaClassificationMajors())
-            if (getAcademicArea().equals(acm.getArea()) &&
-                (getClassifications().isEmpty() || getClassifications().contains(acm.getClassification())) &&
-                (getMajors().isEmpty() || getMajors().contains(acm.getMajor())))
-                    return true;
+        if (!getMajors().isEmpty() || getMinors().isEmpty())
+            for (AreaClassificationMajor acm: student.getAreaClassificationMajors())
+                if (getAcademicAreas().contains(acm.getArea()) &&
+                    (getClassifications().isEmpty() || getClassifications().contains(acm.getClassification())) &&
+                    (getMajors().isEmpty() || getMajors().contains(acm.getMajor())))
+                        return true;
+        if (!getMinors().isEmpty())
+            for (AreaClassificationMajor acm: student.getAreaClassificationMinors())
+                if (getAcademicAreas().contains(acm.getArea()) &&
+                    (getClassifications().isEmpty() || getClassifications().contains(acm.getClassification())) &&
+                    (getMinors().contains(acm.getMajor())))
+                        return true;
         return false;
     }
     

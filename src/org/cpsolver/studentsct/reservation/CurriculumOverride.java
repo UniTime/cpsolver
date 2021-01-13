@@ -51,6 +51,10 @@ public class CurriculumOverride extends CurriculumReservation {
      */
     public static final boolean DEFAULT_ALLOW_OVERLAP = false;
 
+    public CurriculumOverride(long id, double limit, Offering offering, Collection<String> acadAreas, Collection<String> classifications, Collection<String> majors, Collection<String> minors) {
+        super(id, limit, offering, acadAreas, classifications, majors, minors, DEFAULT_PRIORITY, DEFAULT_MUST_BE_USED, DEFAULT_CAN_ASSIGN_OVER_LIMIT, DEFAULT_ALLOW_OVERLAP);
+    }
+    @Deprecated
     public CurriculumOverride(long id, double limit, Offering offering, String acadArea, Collection<String> classifications, Collection<String> majors) {
         super(id, limit, offering, acadArea, classifications, majors, DEFAULT_PRIORITY, DEFAULT_MUST_BE_USED, DEFAULT_CAN_ASSIGN_OVER_LIMIT, DEFAULT_ALLOW_OVERLAP);
     }
