@@ -539,8 +539,13 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
             }
             for (String clasf: cr.getClassifications())
                 reservationEl.addElement("classification").addAttribute("code", clasf);
-            for (String major: cr.getMajors())
-                reservationEl.addElement("major").addAttribute("code", major);
+            for (String major: cr.getMajors()) {
+                Element majorEl = reservationEl.addElement("major").addAttribute("code", major);
+                Set<String> concentrations = cr.getConcentrations(major);
+                if (concentrations != null)
+                    for (String conc: concentrations)
+                        majorEl.addElement("concentration").addAttribute("code", conc);
+            }
             for (String minor: cr.getMinors())
                 reservationEl.addElement("minor").addAttribute("code", minor);
         } else if (reservation instanceof CourseReservation) {
@@ -593,11 +598,23 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         } else if (restriction instanceof CurriculumRestriction) {
             restrictionEl.addAttribute("type", "curriculum");
             CurriculumRestriction cr = (CurriculumRestriction)restriction;
-            restrictionEl.addAttribute("area", cr.getAcademicArea());
+            if (cr.getAcademicAreas().size() == 1)
+                restrictionEl.addAttribute("area", cr.getAcademicAreas().iterator().next());
+            else {
+                for (String area: cr.getAcademicAreas())
+                    restrictionEl.addElement("area").addAttribute("code", area);
+            }
             for (String clasf: cr.getClassifications())
                 restrictionEl.addElement("classification").addAttribute("code", clasf);
-            for (String major: cr.getMajors())
-                restrictionEl.addElement("major").addAttribute("code", major);
+            for (String major: cr.getMajors()) {
+                Element majorEl = restrictionEl.addElement("major").addAttribute("code", major);
+                Set<String> concentrations = cr.getConcentrations(major);
+                if (concentrations != null)
+                    for (String conc: concentrations)
+                        majorEl.addElement("concentration").addAttribute("code", conc);
+            }
+            for (String minor: cr.getMinors())
+                restrictionEl.addElement("minor").addAttribute("code", minor);
         } else if (restriction instanceof CourseRestriction) {
             restrictionEl.addAttribute("type", "course");
             CourseRestriction cr = (CourseRestriction)restriction;
@@ -659,19 +676,23 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                 Element acmEl = studentEl.addElement("acm");
                 if (acm.getArea() != null)
                     acmEl.addAttribute("area", acm.getArea());
-                if (acm.getArea() != null)
+                if (acm.getClassification() != null)
                     acmEl.addAttribute("classification", acm.getClassification());
-                if (acm.getArea() != null)
+                if (acm.getMajor() != null)
                     acmEl.addAttribute("major", acm.getMajor());
+                if (acm.getConcentration() != null)
+                    acmEl.addAttribute("concentration", acm.getConcentration());
             }
             for (AreaClassificationMajor acm : student.getAreaClassificationMinors()) {
                 Element acmEl = studentEl.addElement("acm");
                 if (acm.getArea() != null)
                     acmEl.addAttribute("area", acm.getArea());
-                if (acm.getArea() != null)
+                if (acm.getClassification() != null)
                     acmEl.addAttribute("classification", acm.getClassification());
-                if (acm.getArea() != null)
+                if (acm.getMajor() != null)
                     acmEl.addAttribute("minor", acm.getMajor());
+                if (acm.getConcentration() != null)
+                    acmEl.addAttribute("concentration", acm.getConcentration());
             }
             for (StudentGroup g : student.getGroups()) {
                 Element grEl = studentEl.addElement("group");

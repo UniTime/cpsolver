@@ -618,6 +618,13 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                         Double.parseDouble(reservationEl.attributeValue("limit", "-1")),
                         offering,
                         acadAreas, classifications, majors, minors);
+            for (Iterator<?> k = reservationEl.elementIterator("major"); k.hasNext(); ) {
+                Element majorEl = (Element)k.next();
+                for (Iterator<?> l = majorEl.elementIterator("concentration"); l.hasNext(); ) {
+                    Element concentrationEl = (Element)l.next();
+                    ((CurriculumReservation)r).addConcentration(majorEl.attributeValue("code"), concentrationEl.attributeValue("code"));
+                }
+            }
         } else if ("course".equals(reservationEl.attributeValue("type"))) {
             long courseId = Long.parseLong(reservationEl.attributeValue("course"));
             for (Course course: offering.getCourses()) {
@@ -675,6 +682,13 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             }
             r = new IndividualRestriction(Long.valueOf(restrictionEl.attributeValue("id")), offering, studentIds);
         } else if ("curriculum".equals(restrictionEl.attributeValue("type"))) {
+            List<String> acadAreas = new ArrayList<String>();
+            for (Iterator<?> k = restrictionEl.elementIterator("area"); k.hasNext(); ) {
+                Element areaEl = (Element)k.next();
+                acadAreas.add(areaEl.attributeValue("code"));
+            }
+            if (acadAreas.isEmpty() && restrictionEl.attributeValue("area") != null)
+                acadAreas.add(restrictionEl.attributeValue("area"));
             List<String> classifications = new ArrayList<String>();
             for (Iterator<?> k = restrictionEl.elementIterator("classification"); k.hasNext(); ) {
                 Element clasfEl = (Element)k.next();
@@ -685,10 +699,21 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                 Element majorEl = (Element)k.next();
                 majors.add(majorEl.attributeValue("code"));
             }
+            List<String> minors = new ArrayList<String>();
+            for (Iterator<?> k = restrictionEl.elementIterator("minor"); k.hasNext(); ) {
+                Element minorEl = (Element)k.next();
+                minors.add(minorEl.attributeValue("code"));
+            }
             r = new CurriculumRestriction(Long.valueOf(restrictionEl.attributeValue("id")),
                     offering,
-                    restrictionEl.attributeValue("area"),
-                    classifications, majors);
+                    acadAreas, classifications, majors, minors);
+            for (Iterator<?> k = restrictionEl.elementIterator("major"); k.hasNext(); ) {
+                Element majorEl = (Element)k.next();
+                for (Iterator<?> l = majorEl.elementIterator("concentration"); l.hasNext(); ) {
+                    Element concentrationEl = (Element)l.next();
+                    ((CurriculumRestriction)r).addConcentration(majorEl.attributeValue("code"), concentrationEl.attributeValue("code"));
+                }
+            }
         } else if ("course".equals(restrictionEl.attributeValue("type"))) {
             long courseId = Long.parseLong(restrictionEl.attributeValue("course"));
             for (Course course: offering.getCourses()) {
@@ -979,9 +1004,9 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                     new Unavailability(student, section, "true".equals(requestEl.attributeValue("allowOverlap")));
             } else if ("acm".equals(requestEl.getName())) {
                 if (requestEl.attributeValue("minor") != null)
-                    student.getAreaClassificationMinors().add(new AreaClassificationMajor(requestEl.attributeValue("area"), requestEl.attributeValue("classification"), requestEl.attributeValue("minor")));
+                    student.getAreaClassificationMinors().add(new AreaClassificationMajor(requestEl.attributeValue("area"), requestEl.attributeValue("classification"), requestEl.attributeValue("minor"), requestEl.attributeValue("concentration")));
                 else
-                    student.getAreaClassificationMajors().add(new AreaClassificationMajor(requestEl.attributeValue("area"), requestEl.attributeValue("classification"), requestEl.attributeValue("major")));
+                    student.getAreaClassificationMajors().add(new AreaClassificationMajor(requestEl.attributeValue("area"), requestEl.attributeValue("classification"), requestEl.attributeValue("major"), requestEl.attributeValue("concentration")));
             } else if ("group".equals(requestEl.getName())) {
                 student.getGroups().add(new StudentGroup(requestEl.attributeValue("type"), requestEl.attributeValue("reference"), requestEl.attributeValue("name")));
             } else if ("accommodation".equals(requestEl.getName())) {

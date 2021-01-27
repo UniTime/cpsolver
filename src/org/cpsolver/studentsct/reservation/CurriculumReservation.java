@@ -1,7 +1,9 @@
 package org.cpsolver.studentsct.reservation;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.cpsolver.studentsct.model.AreaClassificationMajor;
@@ -41,6 +43,7 @@ public class CurriculumReservation extends Reservation {
     private Set<String> iClassifications = new HashSet<String>();
     private Set<String> iMajors = new HashSet<String>();
     private Set<String> iMinors = new HashSet<String>();
+    private Map<String, Set<String>> iConcentrations = null;
     
     /**
      * Reservation priority (lower than individual and group reservations)
@@ -213,6 +216,22 @@ public class CurriculumReservation extends Reservation {
     public Set<String> getClassifications() {
         return iClassifications;
     }
+    
+    /** Concentrations for major */
+    public Set<String> getConcentrations(String major) {
+        return (iConcentrations == null ? null : iConcentrations.get(major));
+    }
+    
+    /** Add concentration for major */
+    public void addConcentration(String major, String concentration) {
+        if (iConcentrations == null) iConcentrations = new HashMap<String, Set<String>>();
+        Set<String> concentrations = iConcentrations.get(major);
+        if (concentrations == null) {
+            concentrations = new HashSet<String>();
+            iConcentrations.put(major, concentrations);
+        }
+        concentrations.add(concentration);
+    }
 
     /**
      * Check the area, classifications and majors
@@ -223,8 +242,14 @@ public class CurriculumReservation extends Reservation {
             for (AreaClassificationMajor acm: student.getAreaClassificationMajors())
                 if (getAcademicAreas().contains(acm.getArea()) &&
                     (getClassifications().isEmpty() || getClassifications().contains(acm.getClassification())) &&
-                    (getMajors().isEmpty() || getMajors().contains(acm.getMajor())))
+                    (getMajors().isEmpty() || getMajors().contains(acm.getMajor()))) {
+                    Set<String> conc = getConcentrations(acm.getMajor());
+                    if (conc != null && !conc.isEmpty()) {
+                        return acm.getConcentration() != null && conc.contains(acm.getConcentration());
+                    } else {
                         return true;
+                    }
+                }
         if (!getMinors().isEmpty())
             for (AreaClassificationMajor acm: student.getAreaClassificationMinors())
                 if (getAcademicAreas().contains(acm.getArea()) &&

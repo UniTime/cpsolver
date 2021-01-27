@@ -27,7 +27,7 @@ import org.cpsolver.ifs.util.ToolBox;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class AreaClassificationMajor {
-    private String iArea, iClassification, iMajor;
+    private String iArea, iClassification, iMajor, iConcentration;
 
     /**
      * Constructor
@@ -40,6 +40,21 @@ public class AreaClassificationMajor {
         iArea = area;
         iClassification = classification;
         iMajor = major;
+    }
+    
+    /**
+     * Constructor
+     * 
+     * @param area academic area
+     * @param classification academic classification
+     * @param major major
+     * @param concentration concentration (optional)
+     */
+    public AreaClassificationMajor(String area, String classification, String major, String concentration) {
+        iArea = area;
+        iClassification = classification;
+        iMajor = major;
+        iConcentration = concentration;
     }
 
     /** Academic area 
@@ -61,6 +76,13 @@ public class AreaClassificationMajor {
      **/
     public String getMajor() {
         return iMajor;
+    }
+    
+    /** Concentration (optional)
+     * @return concentration code
+     **/
+    public String getConcentration() {
+        return iConcentration;
     }
 
     @Override

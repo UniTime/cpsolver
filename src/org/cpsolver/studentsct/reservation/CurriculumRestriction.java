@@ -1,7 +1,9 @@
 package org.cpsolver.studentsct.reservation;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.cpsolver.studentsct.model.AreaClassificationMajor;
@@ -34,9 +36,50 @@ import org.cpsolver.studentsct.model.Student;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class CurriculumRestriction extends Restriction {
-    private String iAcadArea;
+    private Set<String> iAcadAreas = new HashSet<String>();
     private Set<String> iClassifications = new HashSet<String>();
     private Set<String> iMajors = new HashSet<String>();
+    private Set<String> iMinors = new HashSet<String>();
+    private Map<String, Set<String>> iConcentrations = null;
+    
+    /**
+     * Constructor
+     * @param id restriction unique id
+     * @param offering instructional offering on which the restriction is set
+     * @param acadAreas one or more academic areas
+     * @param classifications zero or more classifications (classifications must match if not empty)
+     * @param majors zero or more majors (majors must match if not empty)
+     * @param minors zero or more majors (minors must match if not empty)
+     */
+    public CurriculumRestriction(long id, Offering offering, Collection<String> acadAreas, Collection<String> classifications, Collection<String> majors, Collection<String> minors) {
+        super(id, offering);
+        if (acadAreas != null)
+            iAcadAreas.addAll(acadAreas);
+        if (classifications != null)
+            iClassifications.addAll(classifications);
+        if (majors != null)
+            iMajors.addAll(majors);
+        if (minors != null)
+            iMinors.addAll(minors);
+    }
+    
+    /**
+     * Constructor
+     * @param id restriction unique id
+     * @param offering instructional offering on which the restriction is set
+     * @param acadAreas one or more academic areas
+     * @param classifications zero or more classifications (classifications must match if not empty)
+     * @param majors zero or more majors (majors must match if not empty)
+     */
+    public CurriculumRestriction(long id, Offering offering, Collection<String> acadAreas, Collection<String> classifications, Collection<String> majors) {
+        super(id, offering);
+        if (acadAreas != null)
+            iAcadAreas.addAll(acadAreas);
+        if (classifications != null)
+            iClassifications.addAll(classifications);
+        if (majors != null)
+            iMajors.addAll(majors);
+    }
     
     /**
      * Constructor
@@ -46,9 +89,10 @@ public class CurriculumRestriction extends Restriction {
      * @param classifications zero or more classifications (classifications must match if not empty)
      * @param majors zero or more majors (majors must match if not empty)
      */
+    @Deprecated
     public CurriculumRestriction(long id, Offering offering, String acadArea, Collection<String> classifications, Collection<String> majors) {
         super(id, offering);
-        iAcadArea = acadArea;
+        iAcadAreas.add(acadArea);
         if (classifications != null)
             iClassifications.addAll(classifications);
         if (majors != null)
@@ -56,11 +100,21 @@ public class CurriculumRestriction extends Restriction {
     }
 
     /**
+     * Academic areas
+     * @return selected academic areas
+     */
+    public Set<String> getAcademicAreas() {
+        return iAcadAreas;
+    }
+    
+    /**
      * Academic area
      * @return selected academic area
      */
+    @Deprecated
     public String getAcademicArea() {
-        return iAcadArea;
+        if (getAcademicAreas().isEmpty()) return "";
+        return getAcademicAreas().iterator().next();
     }
     
     /**
@@ -72,11 +126,35 @@ public class CurriculumRestriction extends Restriction {
     }
     
     /**
+     * Minors
+     * @return selected minors
+     */
+    public Set<String> getMinors() {
+        return iMinors;
+    }
+    
+    /**
      * Academic classifications
      * @return selected academic classifications
      */
     public Set<String> getClassifications() {
         return iClassifications;
+    }
+    
+    /** Concentrations for major */
+    public Set<String> getConcentrations(String major) {
+        return (iConcentrations == null ? null : iConcentrations.get(major));
+    }
+    
+    /** Add concentration for major */
+    public void addConcentration(String major, String concentration) {
+        if (iConcentrations == null) iConcentrations = new HashMap<String, Set<String>>();
+        Set<String> concentrations = iConcentrations.get(major);
+        if (concentrations == null) {
+            concentrations = new HashSet<String>();
+            iConcentrations.put(major, concentrations);
+        }
+        concentrations.add(concentration);
     }
 
     /**
@@ -84,11 +162,24 @@ public class CurriculumRestriction extends Restriction {
      */
     @Override
     public boolean isApplicable(Student student) {
-        for (AreaClassificationMajor acm: student.getAreaClassificationMajors())
-            if (getAcademicArea().equals(acm.getArea()) &&
-                (getClassifications().isEmpty() || getClassifications().contains(acm.getClassification())) &&
-                (getMajors().isEmpty() || getMajors().contains(acm.getMajor())))
-                    return true;
+        if (!getMajors().isEmpty() || getMinors().isEmpty())
+            for (AreaClassificationMajor acm: student.getAreaClassificationMajors())
+                if (getAcademicAreas().contains(acm.getArea()) &&
+                    (getClassifications().isEmpty() || getClassifications().contains(acm.getClassification())) &&
+                    (getMajors().isEmpty() || getMajors().contains(acm.getMajor()))) {
+                    Set<String> conc = getConcentrations(acm.getMajor());
+                    if (conc != null && !conc.isEmpty()) {
+                        return acm.getConcentration() != null && conc.contains(acm.getConcentration());
+                    } else {
+                        return true;
+                    }
+                }
+        if (!getMinors().isEmpty())
+            for (AreaClassificationMajor acm: student.getAreaClassificationMinors())
+                if (getAcademicAreas().contains(acm.getArea()) &&
+                    (getClassifications().isEmpty() || getClassifications().contains(acm.getClassification())) &&
+                    (getMinors().contains(acm.getMajor())))
+                        return true;
         return false;
     }
 }
