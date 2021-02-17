@@ -901,7 +901,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                 sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
         }
         for (Enrollment enrollment : bestEnrollments) {
-            if (enrollment.getReservation() == null || enrollment.getReservation().isExpired()) continue;
+            if (enrollment.getReservation() == null || !enrollment.getReservation().isExpired()) continue;
             if (!enrollment.getStudent().isAvailable(enrollment)) {
                 sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
                 continue;
