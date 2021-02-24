@@ -5,6 +5,7 @@ import org.cpsolver.ifs.model.Neighbour;
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
+import org.cpsolver.ifs.util.Progress;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
 
@@ -41,10 +42,13 @@ public class RestoreBestSolution implements NeighbourSelection<Request, Enrollme
 
     @Override
     public void init(Solver<Request, Enrollment> solver) {
+        Progress.getInstance(solver.currentSolution().getModel()).setPhase("Restore best...", 1);
         if (solver.currentSolution().getBestInfo() == null) return; // no best saved yet
         if (iBestValue == null || iBestValue >= solver.currentSolution().getBestValue()) {
+            Progress.getInstance(solver.currentSolution().getModel()).debug("best value marked");
             iBestValue = solver.currentSolution().getBestValue();
         } else {
+            Progress.getInstance(solver.currentSolution().getModel()).debug("best solution restored");
             solver.currentSolution().restoreBest();
         }
     }
