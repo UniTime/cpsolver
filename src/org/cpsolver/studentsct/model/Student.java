@@ -586,7 +586,7 @@ public class Student implements Comparable<Student> {
         Senior("4", 0.70),
         Junior("3", 0.49),
         Sophomore("2", 0.33),
-        Frehmen("1", 0.24),
+        Freshmen("1", 0.24),
         Normal("N", null), // this is the default priority
         Dummy("D", null), // dummy students priority
         ;
