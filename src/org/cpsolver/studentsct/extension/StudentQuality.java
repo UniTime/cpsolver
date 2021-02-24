@@ -1,5 +1,6 @@
 package org.cpsolver.studentsct.extension;
 
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashMap;
@@ -830,7 +831,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
      */
     public Set<Conflict> conflicts(Enrollment e1, Enrollment e2) {
         Set<Conflict> ret = new HashSet<Conflict>();
-        for (Type type: Type.values()) {
+        for (Type type: iContext.getTypes()) {
             if (!e1.getStudent().equals(e2.getStudent()) || !type.isApplicable(iContext, e1.getStudent(), e1.getRequest(), e2.getRequest())) continue;
             for (SctAssignment s1 : e1.getAssignments()) {
                 for (SctAssignment s2 : e2.getAssignments()) {
@@ -873,7 +874,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
      */
     public Set<Conflict> conflicts(Enrollment e1) {
         Set<Conflict> ret = new HashSet<Conflict>();
-        for (Type type: Type.values()) {
+        for (Type type: iContext.getTypes()) {
             boolean applicable = type.isApplicable(iContext, e1.getStudent(), e1.getRequest(), e1.getRequest()); 
             for (SctAssignment s1 : e1.getAssignments()) {
                 if (applicable) {
@@ -944,7 +945,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
      * Re-check total penalization for the given assignment 
      */
     public void checkTotalPenalty(Assignment<Request, Enrollment> assignment) {
-        for (Type type: Type.values())
+        for (Type type: iContext.getTypes())
             checkTotalPenalty(type, assignment);
     }
     
@@ -967,7 +968,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
      */
     public Set<Conflict> allConflicts(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
         Set<Conflict> conflicts = new HashSet<Conflict>();
-        for (Type t: Type.values()) {
+        for (Type t: iContext.getTypes()) {
             conflicts.addAll(conflicts(t, enrollment));
             for (Request request : enrollment.getStudent().getRequests()) {
                 if (request.equals(enrollment.getRequest()) || assignment.getValue(request) == null) continue;
@@ -1149,6 +1150,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
      * Context holding parameters and distance cache. See {@link Type} for the list of available parameters.
      */
     public static class Context {
+        private List<Type> iTypes = null;
         private DistanceMetric iDistanceMetric = null;
         private boolean iDebug = false;
         protected double iTimeOverlapMaxLimit = 0.5000;
@@ -1171,6 +1173,10 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             iFreeTimeAccommodation = config.getProperty("Accommodations.FreeTimeReference", iFreeTimeAccommodation);
             iBackToBackAccommodation = config.getProperty("Accommodations.BackToBackReference", iBackToBackAccommodation);
             iBreakBetweenClassesAccommodation = config.getProperty("Accommodations.BreakBetweenClassesReference", iBreakBetweenClassesAccommodation);
+            iTypes = new ArrayList<Type>();
+            for (Type t: Type.values())
+                if (config.getPropertyDouble(t.getWeightName(), t.getWeightDefault()) != 0.0)
+                    iTypes.add(t);
         }
         
         public DistanceMetric getDistanceMetric() {
@@ -1192,6 +1198,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
         public String getFreeTimeAccommodation() { return iFreeTimeAccommodation; }
         public String getBackToBackAccommodation() { return iBackToBackAccommodation; }
         public String getBreakBetweenClassesAccommodation() { return iBreakBetweenClassesAccommodation; }
+        public List<Type> getTypes() { return iTypes; }
             
         private Map<Long, Map<Long, Integer>> iDistanceCache = new HashMap<Long, Map<Long,Integer>>();
         protected synchronized int getDistanceInMinutes(RoomLocation r1, RoomLocation r2) {
@@ -1260,41 +1267,41 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
         @SuppressWarnings("unchecked")
         public StudentQualityContext(Assignment<Request, Enrollment> assignment) {
             iTotalPenalty = new int[Type.values().length];
-            for (int i = 0; i < iTotalPenalty.length; i++)
-                iTotalPenalty[i] = countTotalPenalty(Type.values()[i], assignment);
+            for (Type t: iContext.getTypes())
+                iTotalPenalty[t.ordinal()] = countTotalPenalty(t, assignment);
             if (iContext.isDebug()) {
                 iAllConflicts = new Set[Type.values().length];
-                for (int i = 0; i < iTotalPenalty.length; i++)
-                    iAllConflicts[i] = computeAllConflicts(Type.values()[i], assignment);
+                for (Type t: iContext.getTypes())
+                    iAllConflicts[t.ordinal()] = computeAllConflicts(t, assignment);
             }
             StudentSectioningModelContext cx = ((StudentSectioningModel)getModel()).getContext(assignment);
-            for (Type t: Type.values())
+            for (Type t: iContext.getTypes())
                 for (Conflict c: computeAllConflicts(t, assignment)) cx.add(assignment, c);
         }
         
         @SuppressWarnings("unchecked")
         public StudentQualityContext(StudentQualityContext parent) {
             iTotalPenalty = new int[Type.values().length];
-            for (int i = 0; i < iTotalPenalty.length; i++)
-                iTotalPenalty[i] = parent.iTotalPenalty[i];
+            for (Type t: iContext.getTypes())
+                iTotalPenalty[t.ordinal()] = parent.iTotalPenalty[t.ordinal()];
             if (iContext.isDebug()) {
                 iAllConflicts = new Set[Type.values().length];
-                for (int i = 0; i < iTotalPenalty.length; i++)
-                    iAllConflicts[i] = new HashSet<Conflict>(parent.iAllConflicts[i]);
+                for (Type t: iContext.getTypes())
+                    iAllConflicts[t.ordinal()] = new HashSet<Conflict>(parent.iAllConflicts[t.ordinal()]);
             }
         }
 
         @Override
         public void assigned(Assignment<Request, Enrollment> assignment, Enrollment value) {
             StudentSectioningModelContext cx = ((StudentSectioningModel)getModel()).getContext(assignment);
-            for (Type type: Type.values()) {
+            for (Type type: iContext.getTypes()) {
                 iTotalPenalty[type.ordinal()] += allPenalty(type, assignment, value);
                 for (Conflict c: allConflicts(type, assignment, value))
                     cx.add(assignment, c);
             }
             if (iContext.isDebug()) {
                 sLog.debug("A:" + value.variable() + " := " + value);
-                for (Type type: Type.values()) {
+                for (Type type: iContext.getTypes()) {
                     int inc = allPenalty(type, assignment, value);
                     if (inc != 0) {
                         sLog.debug("-- " + type + " +" + inc + " A: " + value.variable() + " := " + value);
@@ -1319,14 +1326,14 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
         @Override
         public void unassigned(Assignment<Request, Enrollment> assignment, Enrollment value) {
             StudentSectioningModelContext cx = ((StudentSectioningModel)getModel()).getContext(assignment);
-            for (Type type: Type.values()) {
+            for (Type type: iContext.getTypes()) {
                 iTotalPenalty[type.ordinal()] -= allPenalty(type, assignment, value);
                 for (Conflict c: allConflicts(type, assignment, value))
                     cx.remove(assignment, c);
             }
             if (iContext.isDebug()) {
                 sLog.debug("U:" + value.variable() + " := " + value);
-                for (Type type: Type.values()) {
+                for (Type type: iContext.getTypes()) {
                     int dec = allPenalty(type, assignment, value);
                     if (dec != 0) {
                         sLog.debug("--  " + type + " -" + dec + " U: " + value.variable() + " := " + value);
@@ -1622,7 +1629,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
     public void getInfo(Assignment<Request, Enrollment> assignment, Map<String, String> info) {
         StudentQualityContext cx = getContext(assignment);
         if (iContext.isDebug())
-            for (Type type: Type.values())
+            for (Type type: iContext.getTypes())
                 info.put("[Schedule Quality] " + type.getName(), String.valueOf(cx.getTotalPenalty(type)));
     }
 
@@ -1633,7 +1640,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
     public String toString(Assignment<Request, Enrollment> assignment) {
         String ret = "";
         StudentQualityContext cx = getContext(assignment);
-        for (Type type: Type.values()) {
+        for (Type type: iContext.getTypes()) {
             int p = cx.getTotalPenalty(type);
             if (p != 0) {
                 ret += (ret.isEmpty() ? "" : ", ") + type.getAbbv() + ": " + p;
