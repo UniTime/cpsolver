@@ -89,6 +89,7 @@ public class RandomizedBacktrackNeighbourSelection extends BacktrackNeighbourSel
             final CourseRequest request = (CourseRequest)variable;
             final StudentSectioningModel model = (StudentSectioningModel)context.getModel();
             final Assignment<Request, Enrollment> assignment = context.getAssignment();
+            final Enrollment current = assignment.getValue(request);
             List<Enrollment> values = (iMaxValues > 0 ? request.computeRandomEnrollments(assignment, iMaxValues) : request.computeEnrollments(assignment));
             Collections.sort(values, new Comparator<Enrollment>() {
                 private HashMap<Enrollment, Double> iValues = new HashMap<Enrollment, Double>();
@@ -107,8 +108,9 @@ public class RandomizedBacktrackNeighbourSelection extends BacktrackNeighbourSel
                 }
                 @Override
                 public int compare(Enrollment e1, Enrollment e2) {
-                    if (e1.equals(assignment.getValue(request))) return -1;
-                    if (e2.equals(assignment.getValue(request))) return 1;
+                    if (e1.equals(e2)) return 0;
+                    if (e1.equals(current)) return -1;
+                    if (e2.equals(current)) return 1;
                     Double v1 = value(e1), v2 = value(e2);
                     return v1.equals(v2) ? e1.compareTo(assignment, e2) : v2.compareTo(v1);
                 }
