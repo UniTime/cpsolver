@@ -276,6 +276,10 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         }
     }
     
+    public int getNbrStudents(StudentPriority priority) {
+        return iNrPriorityStudents[priority.ordinal()];
+    }
+    
     @Override
     public void addVariable(Request request) {
         super.addVariable(request);

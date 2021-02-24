@@ -42,10 +42,10 @@ public class PriortyStudentFilter implements StudentFilter  {
             return iPriority.isSame(student);
         }
     }
-
+    
     @Override
     public String getName() {
-        return iPriority.name();
+        return iPriority.name() + (iIncludeHigherPriority ? "+" : "");
     }
 
 }

@@ -9,6 +9,7 @@ import org.cpsolver.ifs.model.Neighbour;
 import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.solver.SolverListener;
 import org.cpsolver.ifs.util.DataProperties;
+import org.cpsolver.studentsct.StudentSectioningModel;
 import org.cpsolver.studentsct.filter.PriortyStudentFilter;
 import org.cpsolver.studentsct.filter.StudentFilter;
 import org.cpsolver.studentsct.heuristics.selection.AssignInitialSelection;
@@ -97,6 +98,8 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
     private boolean iShuffleStudentsSelection = false;
     private boolean iPriorityStudentsFirstSelection = true;
     private boolean iPriorityStudentsFirstAllIn = true;
+    private int iPriorityRounds = 1, iCriticalRounds = 1;
+    private boolean iPriorityLastRoundAllStudents = false;
 
     public StudentSctNeighbourSelection(DataProperties properties) throws Exception {
         super(properties);
@@ -107,6 +110,9 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
         iShuffleStudentsSelection = properties.getPropertyBoolean("Shuffle.Enabled", true) && properties.getPropertyBoolean("Load.RequestGroups", false);
         iPriorityStudentsFirstSelection = properties.getPropertyBoolean("Sectioning.PriorityStudentsFirstSelection", iPriorityStudentsFirstSelection);
         iPriorityStudentsFirstAllIn = properties.getPropertyBoolean("Sectioning.PriorityStudentsFirstSelection.AllIn", iPriorityStudentsFirstAllIn);
+        iCriticalRounds = properties.getPropertyInt("Sectioning.CriticalRounds", iCriticalRounds);
+        iPriorityRounds = properties.getPropertyInt("Sectioning.PriorityRounds", iPriorityRounds);
+        iPriorityLastRoundAllStudents = properties.getPropertyBoolean("Sectioning.PriorityLastRoundAllStudents", iPriorityLastRoundAllStudents);
     }
 
     @Override
@@ -130,23 +136,73 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
             if (iUseCriticalCoursesSelection) {
                 for (StudentPriority sp: StudentPriority.values()) {
                     if (sp == StudentPriority.Normal) break;
-                    StudentFilter filter = new PriortyStudentFilter(sp, false);
-                    
-                    for (RequestPriority rp: RequestPriority.values()) {
-                        registerSelection(new CriticalCoursesBranchAndBoundSelection(solver.getProperties(), rp).withFilter(filter));
+                    for (int pr = 0; pr < iPriorityRounds; pr++ ) {
+                        // last round >> include all students up to the selected priority
+                        boolean includeHigherPriority = (iPriorityLastRoundAllStudents && sp.ordinal() > 0 && (pr + 1 == iPriorityRounds));
                         
-                        registerSelection(new CriticalBacktrackSelection(solver.getProperties(), rp).withFilter(filter));
+                        StudentFilter filter = new PriortyStudentFilter(sp, includeHigherPriority);
                         
-                        registerSelection(new CriticalStandardSelection(solver.getProperties(), new UnassignedRequestSelection().withFilter(filter), getValueSelection(), rp));
-                        
-                        registerSelection(new CriticalBacktrackSelection(solver.getProperties(), rp).withFilter(filter));
+                        for (RequestPriority rp: RequestPriority.values()) {
+                            for (int cr = 0; cr < iCriticalRounds; cr++ ) {
+                                registerSelection(new CriticalCoursesBranchAndBoundSelection(solver.getProperties(), rp).withFilter(filter));
+                                
+                                registerSelection(new CriticalBacktrackSelection(solver.getProperties(), rp).withFilter(filter));
+                                
+                                registerSelection(new CriticalStandardSelection(solver.getProperties(), new UnassignedRequestSelection().withFilter(filter), getValueSelection(), rp));
+                                
+                                registerSelection(new CriticalBacktrackSelection(solver.getProperties(), rp).withFilter(filter));
+                            }
+                        }
                     }
                 }
             } else {
                 for (StudentPriority sp: StudentPriority.values()) {
                     if (sp == StudentPriority.Normal) break;
-                    StudentFilter filter = new PriortyStudentFilter(sp, false);
                 
+                    for (int pr = 0; pr < iPriorityRounds; pr++ ) {
+                        // last round >> include all students up to the selected priority
+                        boolean includeHigherPriority = (iPriorityLastRoundAllStudents && sp.ordinal() > 0 && (pr + 1 == iPriorityRounds));
+
+                        StudentFilter filter = new PriortyStudentFilter(sp, includeHigherPriority);
+                        
+                        registerSelection(new BranchBoundSelection(solver.getProperties()).withFilter(filter));
+                        
+                        registerSelection(new BacktrackSelection(solver.getProperties()).withFilter(filter));
+                        
+                        registerSelection(new StandardSelection(solver.getProperties(), new UnassignedRequestSelection().withFilter(filter), getValueSelection()));
+                        
+                        registerSelection(new BacktrackSelection(solver.getProperties()).withFilter(filter));
+                    }
+                }
+            }
+        }
+        
+        if (iUseCriticalCoursesSelection) {
+            for (RequestPriority rp: RequestPriority.values()) {
+                if (rp == RequestPriority.Normal) break;
+                for (int cr = 0; cr < iCriticalRounds; cr++ ) {
+                    registerSelection(new CriticalCoursesBranchAndBoundSelection(solver.getProperties(), rp));
+                    
+                    registerSelection(new CriticalBacktrackSelection(solver.getProperties(), rp));
+                    
+                    registerSelection(new CriticalStandardSelection(solver.getProperties(), getValueSelection(), rp));
+                    
+                    registerSelection(new CriticalBacktrackSelection(solver.getProperties(), rp));
+                }
+            }
+        }
+        
+        if (iPriorityStudentsFirstSelection && !iPriorityStudentsFirstAllIn) {
+            for (StudentPriority sp: StudentPriority.values()) {
+                if (sp == StudentPriority.Normal) break;
+                if (((StudentSectioningModel)solver.currentSolution().getModel()).getNbrStudents(sp) == 0) continue;
+            
+                for (int pr = 0; pr < iPriorityRounds; pr++ ) {
+                    // last round >> include all students up to the selected priority
+                    boolean includeHigherPriority = (iPriorityLastRoundAllStudents && sp.ordinal() > 0 && (pr + 1 == iPriorityRounds));
+
+                    StudentFilter filter = new PriortyStudentFilter(sp, includeHigherPriority);
+
                     registerSelection(new BranchBoundSelection(solver.getProperties()).withFilter(filter));
                     
                     registerSelection(new BacktrackSelection(solver.getProperties()).withFilter(filter));
@@ -155,34 +211,6 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
                     
                     registerSelection(new BacktrackSelection(solver.getProperties()).withFilter(filter));
                 }
-            }
-        }
-        
-        if (iUseCriticalCoursesSelection) {
-            for (RequestPriority rp: RequestPriority.values()) {
-                if (rp == RequestPriority.Normal) break;
-                registerSelection(new CriticalCoursesBranchAndBoundSelection(solver.getProperties(), rp));
-                
-                registerSelection(new CriticalBacktrackSelection(solver.getProperties(), rp));
-                
-                registerSelection(new CriticalStandardSelection(solver.getProperties(), getValueSelection(), rp));
-                
-                registerSelection(new CriticalBacktrackSelection(solver.getProperties(), rp));
-            }
-        }
-        
-        if (iPriorityStudentsFirstSelection && !iPriorityStudentsFirstAllIn) {
-            for (StudentPriority sp: StudentPriority.values()) {
-                if (sp == StudentPriority.Normal) break;
-                StudentFilter filter = new PriortyStudentFilter(sp, false);
-            
-                registerSelection(new BranchBoundSelection(solver.getProperties()).withFilter(filter));
-                
-                registerSelection(new BacktrackSelection(solver.getProperties()).withFilter(filter));
-                
-                registerSelection(new StandardSelection(solver.getProperties(), new UnassignedRequestSelection().withFilter(filter), getValueSelection()));
-                
-                registerSelection(new BacktrackSelection(solver.getProperties()).withFilter(filter));
             }
         }
         
