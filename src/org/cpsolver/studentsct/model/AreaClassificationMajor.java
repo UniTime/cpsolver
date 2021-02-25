@@ -28,6 +28,8 @@ import org.cpsolver.ifs.util.ToolBox;
  */
 public class AreaClassificationMajor {
     private String iArea, iClassification, iMajor, iConcentration;
+    private String iAreaName, iClassificationName, iMajorName, iConcentrationName;
+    private Double iWeight;
 
     /**
      * Constructor
@@ -55,6 +57,90 @@ public class AreaClassificationMajor {
         iClassification = classification;
         iMajor = major;
         iConcentration = concentration;
+    }
+    
+    /**
+     * Constructor
+     * 
+     * @param area academic area
+     * @param classification academic classification
+     * @param major major
+     * @param concentration concentration (optional)
+     * @param weight weight (optional)
+     */
+    public AreaClassificationMajor(String area, String classification, String major, String concentration, Double weight) {
+        iArea = area;
+        iClassification = classification;
+        iMajor = major;
+        iConcentration = concentration;
+        iWeight = weight;
+    }
+    
+    /**
+     * Constructor
+     * 
+     * @param areaCode academic area abbreviation
+     * @param areaName academic area name
+     * @param classificationCode academic classificationCode
+     * @param classificationName academic classificationName
+     * @param majorCode major code
+     * @param majorName major name
+     */
+    public AreaClassificationMajor(String areaCode, String areaName, String classificationCode, String classificationName, String majorCode, String majorName) {
+        iArea = areaCode;
+        iAreaName = areaName;
+        iClassification = classificationCode;
+        iClassificationName = classificationName;
+        iMajor = majorCode;
+        iMajorName = majorName;
+    }
+    
+    /**
+     * Constructor
+     * 
+     * @param areaCode academic area abbreviation
+     * @param areaName academic area name
+     * @param classificationCode academic classificationCode
+     * @param classificationName academic classificationName
+     * @param majorCode major code
+     * @param majorName major name
+     * @param concentrationCode concentration (optional)
+     * @param concentrationName concentration (optional)
+     */
+    public AreaClassificationMajor(String areaCode, String areaName, String classificationCode, String classificationName, String majorCode, String majorName, String concentrationCode, String concentrationName) {
+        iArea = areaCode;
+        iAreaName = areaName;
+        iClassification = classificationCode;
+        iClassificationName = classificationName;
+        iMajor = majorCode;
+        iMajorName = majorName;
+        iConcentration = concentrationCode;
+        iConcentrationName = concentrationName;
+    }
+    
+    /**
+     * Constructor
+     * 
+     * @param areaCode academic area abbreviation
+     * @param areaName academic area name
+     * @param classificationCode academic classificationCode
+     * @param classificationName academic classificationName
+     * @param majorCode major code
+     * @param majorName major name
+     * @param concentrationCode concentration (optional)
+     * @param concentrationName concentration (optional)
+     * @param weight weight (optional)
+     */
+    public AreaClassificationMajor(String areaCode, String areaName, String classificationCode, String classificationName, String majorCode, String majorName, String concentrationCode, String concentrationName, Double weight) {
+        iArea = areaCode;
+        iAreaName = areaName;
+        iClassification = classificationCode;
+        iClassificationName = classificationName;
+        iMajor = majorCode;
+        iMajorName = majorName;
+        iConcentration = concentrationCode;
+        iConcentrationName = concentrationName;
+        iWeight = weight;
     }
 
     /** Academic area 
@@ -84,6 +170,38 @@ public class AreaClassificationMajor {
     public String getConcentration() {
         return iConcentration;
     }
+    
+    /** Academic area  name
+     * @return academic area name
+     **/
+    public String getAreaName() {
+        return iAreaName;
+    }
+
+    /** Academic classification name
+     * @return classification name
+     **/
+    public String getClassificationName() {
+        return iClassificationName;
+    }
+    
+    /** Major name
+     * @return major name
+     **/
+    public String getMajorName() {
+        return iMajorName;
+    }
+    
+    /** Concentration (optional)
+     * @return concentration name
+     **/
+    public String getConcentrationName() {
+        return iConcentrationName;
+    }
+    
+    /** Weight (optional, defaults to 1.0)
+     */
+    public double getWeight() { return iWeight == null ? 1.0 : iWeight.doubleValue(); }
 
     @Override
     public int hashCode() {

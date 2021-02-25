@@ -682,6 +682,16 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                     acmEl.addAttribute("major", acm.getMajor());
                 if (acm.getConcentration() != null)
                     acmEl.addAttribute("concentration", acm.getConcentration());
+                if (acm.getAreaName() != null && iShowNames)
+                    acmEl.addAttribute("areaName", acm.getAreaName());
+                if (acm.getClassificationName() != null && iShowNames)
+                    acmEl.addAttribute("classificationName", acm.getClassificationName());
+                if (acm.getMajorName() != null && iShowNames)
+                    acmEl.addAttribute("majorName", acm.getMajorName());
+                if (acm.getConcentrationName() != null && iShowNames)
+                    acmEl.addAttribute("concentrationName", acm.getConcentrationName());
+                if (acm.getWeight() != 1.0)
+                    acmEl.addAttribute("weight", String.valueOf(acm.getWeight()));
             }
             for (AreaClassificationMajor acm : student.getAreaClassificationMinors()) {
                 Element acmEl = studentEl.addElement("acm");
@@ -693,6 +703,16 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                     acmEl.addAttribute("minor", acm.getMajor());
                 if (acm.getConcentration() != null)
                     acmEl.addAttribute("concentration", acm.getConcentration());
+                if (acm.getAreaName() != null && iShowNames)
+                    acmEl.addAttribute("areaName", acm.getAreaName());
+                if (acm.getClassificationName() != null && iShowNames)
+                    acmEl.addAttribute("classificationName", acm.getClassificationName());
+                if (acm.getMajorName() != null && iShowNames)
+                    acmEl.addAttribute("minorName", acm.getMajorName());
+                if (acm.getConcentrationName() != null && iShowNames)
+                    acmEl.addAttribute("concentrationName", acm.getConcentrationName());
+                if (acm.getWeight() != 1.0)
+                    acmEl.addAttribute("weight", String.valueOf(acm.getWeight()));
             }
             for (StudentGroup g : student.getGroups()) {
                 Element grEl = studentEl.addElement("group");

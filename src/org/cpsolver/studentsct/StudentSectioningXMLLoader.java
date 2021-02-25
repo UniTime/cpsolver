@@ -1004,9 +1004,19 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                     new Unavailability(student, section, "true".equals(requestEl.attributeValue("allowOverlap")));
             } else if ("acm".equals(requestEl.getName())) {
                 if (requestEl.attributeValue("minor") != null)
-                    student.getAreaClassificationMinors().add(new AreaClassificationMajor(requestEl.attributeValue("area"), requestEl.attributeValue("classification"), requestEl.attributeValue("minor"), requestEl.attributeValue("concentration")));
+                    student.getAreaClassificationMinors().add(new AreaClassificationMajor(
+                            requestEl.attributeValue("area"), requestEl.attributeValue("areaName"),
+                            requestEl.attributeValue("classification"), requestEl.attributeValue("classificationName"),
+                            requestEl.attributeValue("minor"), requestEl.attributeValue("minorName"),
+                            requestEl.attributeValue("concentration"), requestEl.attributeValue("concentrationName"),
+                            requestEl.attributeValue("weight") == null ? null : Double.valueOf(requestEl.attributeValue("weight"))));
                 else
-                    student.getAreaClassificationMajors().add(new AreaClassificationMajor(requestEl.attributeValue("area"), requestEl.attributeValue("classification"), requestEl.attributeValue("major"), requestEl.attributeValue("concentration")));
+                    student.getAreaClassificationMajors().add(new AreaClassificationMajor(
+                            requestEl.attributeValue("area"), requestEl.attributeValue("areaName"),
+                            requestEl.attributeValue("classification"), requestEl.attributeValue("classificationName"),
+                            requestEl.attributeValue("major"), requestEl.attributeValue("majorName"),
+                            requestEl.attributeValue("concentration"), requestEl.attributeValue("concentrationName"),
+                            requestEl.attributeValue("weight") == null ? null : Double.valueOf(requestEl.attributeValue("weight"))));
             } else if ("group".equals(requestEl.getName())) {
                 student.getGroups().add(new StudentGroup(requestEl.attributeValue("type"), requestEl.attributeValue("reference"), requestEl.attributeValue("name")));
             } else if ("accommodation".equals(requestEl.getName())) {
