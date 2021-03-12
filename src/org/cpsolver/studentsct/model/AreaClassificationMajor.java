@@ -268,6 +268,6 @@ public class AreaClassificationMajor {
 
     @Override
     public String toString() {
-        return getArea() + "/" + getMajor() + " " + getClassification();
+        return getArea() + "/" + getMajor() + (getConcentration() == null || getConcentration().isEmpty()? "" : "-" + getConcentration()) + " " + getClassification();
     }
 }
