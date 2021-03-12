@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.cpsolver.coursett.Constants;
 import org.cpsolver.coursett.model.RoomLocation;
@@ -15,12 +17,15 @@ import org.cpsolver.studentsct.StudentSectioningModel;
 import org.cpsolver.studentsct.extension.StudentQuality;
 import org.cpsolver.studentsct.extension.StudentQuality.Conflict;
 import org.cpsolver.studentsct.extension.StudentQuality.Type;
+import org.cpsolver.studentsct.model.AreaClassificationMajor;
 import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
+import org.cpsolver.studentsct.model.Instructor;
 import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.SctAssignment;
 import org.cpsolver.studentsct.model.Section;
 import org.cpsolver.studentsct.model.Student;
+import org.cpsolver.studentsct.model.StudentGroup;
 
 
 /**
@@ -91,6 +96,30 @@ public class AccommodationConflictsTable implements StudentSectioningReport {
             ret += (ret.isEmpty() ? "" : ", ") + r.getName();
         return ret;
     }
+    
+    protected String curriculum(Student student) {
+        String curriculum = "";
+        for (AreaClassificationMajor acm: student.getAreaClassificationMajors())
+                curriculum += (curriculum.isEmpty() ? "" : ", ") + acm.toString();
+        return curriculum;
+    }
+    
+    protected String group(Student student) {
+        String group = "";
+        Set<String> groups = new TreeSet<String>();
+        for (StudentGroup g: student.getGroups())
+                groups.add(g.getReference());
+        for (String g: groups)
+                group += (group.isEmpty() ? "" : ", ") + g;
+        return group;           
+    }
+    
+    protected String advisor(Student student) {
+        String advisors = "";
+        for (Instructor instructor: student.getAdvisors())
+                advisors += (advisors.isEmpty() ? "" : ", ") + instructor.getName();
+        return advisors;
+    }
 
     /**
      * Create report
@@ -112,6 +141,7 @@ public class AccommodationConflictsTable implements StudentSectioningReport {
         csv.setHeader(new CSVFile.CSVField[] {
                 new CSVFile.CSVField("__Student"),
                 new CSVFile.CSVField("External Id"), new CSVFile.CSVField("Student Name"),
+                new CSVFile.CSVField("Curriculum"), new CSVFile.CSVField("Group"), new CSVFile.CSVField("Advisor"),
                 new CSVFile.CSVField("Type"),
                 new CSVFile.CSVField("Course"), new CSVFile.CSVField("Class"), new CSVFile.CSVField("Meeting Time"), new CSVFile.CSVField("Room"),
                 new CSVFile.CSVField("Conflicting\nCourse"), new CSVFile.CSVField("Conflicting\nClass"), new CSVFile.CSVField("Conflicting\nMeeting Time"), new CSVFile.CSVField("Conflicting\nRoom"),
@@ -182,6 +212,9 @@ public class AccommodationConflictsTable implements StudentSectioningReport {
             line.add(new CSVFile.CSVField(conflict.getStudent().getId()));
             line.add(new CSVFile.CSVField(conflict.getStudent().getExternalId()));
             line.add(new CSVFile.CSVField(conflict.getStudent().getName()));
+            line.add(new CSVFile.CSVField(curriculum(conflict.getStudent())));
+            line.add(new CSVFile.CSVField(group(conflict.getStudent())));
+            line.add(new CSVFile.CSVField(advisor(conflict.getStudent())));
             switch (conflict.getType()) {
                 case ShortDistance:
                     line.add(new CSVFile.CSVField(iSQ.getDistanceMetric().getShortDistanceAccommodationReference()));
