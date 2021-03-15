@@ -278,7 +278,13 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
         // Phase 15: reset to best if no improvement has been done in the last cycle
         registerSelection(new RestoreBestSolution(solver.getProperties()));
         
-        // Phase 16: random unassignment of some students
+        // Phase 16: use backtrack neighbour selection
+        registerSelection(new BacktrackSelection(solver.getProperties()));
+
+        // Phase 17: section all students using incremental branch & bound
+        registerSelection(new BranchBoundSelection(solver.getProperties()));
+                
+        // Phase 18: random unassignment of some students
         registerSelection(new RandomUnassignmentSelection(solver.getProperties()));
     }
 
