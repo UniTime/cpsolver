@@ -44,7 +44,7 @@ public class RestoreBestSolution implements NeighbourSelection<Request, Enrollme
     public void init(Solver<Request, Enrollment> solver) {
         Progress.getInstance(solver.currentSolution().getModel()).setPhase("Restore best...", 1);
         if (solver.currentSolution().getBestInfo() == null) return; // no best saved yet
-        if (iBestValue == null || iBestValue >= solver.currentSolution().getBestValue()) {
+        if (iBestValue == null || iBestValue > solver.currentSolution().getBestValue()) {
             Progress.getInstance(solver.currentSolution().getModel()).debug("best value marked");
             iBestValue = solver.currentSolution().getBestValue();
         } else {
