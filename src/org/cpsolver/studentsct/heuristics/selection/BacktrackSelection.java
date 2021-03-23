@@ -65,6 +65,7 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
     protected boolean iIncludeAssignedRequests = false;
     
     protected long iNbrIterations = 0;
+    protected long iMaxIterations = 0;
     protected long iTotalTime = 0;
     protected long iNbrTimeoutReached = 0;
     protected long iNbrNoSolution = 0;
@@ -100,6 +101,7 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
         iNbrTimeoutReached = 0;
         iNbrNoSolution = 0;
         iTotalTime = 0;
+        iMaxIterations = Math.max(10,  2 * iRequests.size());
     }
     
     protected synchronized Request nextRequest() {
@@ -129,6 +131,7 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
     @Override
     public Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
         Request request = null;
+        if (iNbrIterations > iMaxIterations) return null;
         while ((request = nextRequest()) != null) {
             Progress.getInstance(solution.getModel()).incProgress();
             Enrollment e = request.getAssignment(solution.getAssignment());
@@ -158,7 +161,9 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
             info.put("Timing of " + getClass().getSimpleName(), sDF.format(((double)iTotalTime) / iNbrIterations) + " ms/it (" +
                     iNbrIterations + " iterations, " +
                     (iNbrNoSolution == 0 ? "" : sDF.format(100.0 * iNbrNoSolution / iNbrIterations) + "% no solution, ") +
-                    sDF.format(100.0 * iNbrTimeoutReached / iNbrIterations) + "% time limit of " + sDF.format(iRBtNSel.getTimeout() / 1000.0) + " seconds reached)"); 
+                    sDF.format(100.0 * iNbrTimeoutReached / iNbrIterations) + "% time limit of " + sDF.format(iRBtNSel.getTimeout() / 1000.0) + " seconds reached" +
+                    (iNbrIterations > iMaxIterations ? ", stopped after " + iNbrIterations + " iterations" : "") +
+                    ")");
     }
 
     @Override
