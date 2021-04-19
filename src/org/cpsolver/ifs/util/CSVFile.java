@@ -103,9 +103,9 @@ public class CSVFile implements Serializable {
     }
     
     public void load(Reader file) throws IOException {
-        BufferedReader reader = null;
+        LineReader reader = null;
         try {
-            reader = new BufferedReader(file);
+            reader = new LineReader(file);
             iHeader = new CSVLine(reader.readLine()); // read header
             iHeaderMap = new HashMap<String, Integer>();
             iLines = new ArrayList<CSVLine>();
@@ -520,5 +520,41 @@ public class CSVFile implements Serializable {
                 return this;
             }
         }).set(filter);
+    }
+    
+    private class LineReader extends BufferedReader {
+        LineReader(Reader r) {
+            super(r);
+        }
+        
+        public boolean isOpenEnded(String line) {
+            if (iQuotationMark == null) return false;
+            int idx = 0;
+            int newIdx = 0;
+            int fromIdx = 0;
+            while ((newIdx = line.indexOf(iSeparator, fromIdx)) >= 0) {
+                String field = line.substring(idx, newIdx);
+                if (field.startsWith(iQuotationMark) && (!field.endsWith(iQuotationMark) || field.length() == 1)) {
+                    fromIdx = newIdx + iSeparator.length();
+                    continue;
+                }
+                idx = newIdx + iSeparator.length();
+                fromIdx = idx;
+            }
+            String field = line.substring(idx);
+            if (field.startsWith(iQuotationMark) && (!field.endsWith(iQuotationMark) || field.length() == 1)) return true;
+            return false;
+        }
+        
+        @Override
+        public String readLine() throws IOException {
+            String line = super.readLine();
+            while (line != null && isOpenEnded(line)) {
+                String next = super.readLine();
+                if (next == null) return line;
+                line += "\n" + next;
+            }
+            return line;
+        }
     }
 }
