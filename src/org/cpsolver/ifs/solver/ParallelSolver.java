@@ -125,104 +125,112 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
         
         @Override
         public void run() {
-            iStop = false;
-            iNrFinished = 0;
-            setName("SolverSync");
-            
-            // Initialization
-            iProgress = Progress.getInstance(currentSolution().getModel());
-            iProgress.setStatus("Solving problem ...");
-            iProgress.setPhase("Initializing solver");
-            initSolver();
-            onStart();
-            
-            if (isUpdateProgress()) {
-                if (currentSolution().getBestInfo() == null) {
-                    iProgress.setPhase("Searching for initial solution ...", currentSolution().getModel().variables().size());
-                } else {
-                    iProgress.setPhase("Improving found solution ...");
-                }
-            }
-            sLogger.info("Initial solution:" + ToolBox.dict2string(currentSolution().getInfo(), 2));
-            if ((iSaveBestUnassigned < 0 || iSaveBestUnassigned >= currentSolution().getAssignment().nrUnassignedVariables(currentSolution().getModel())) && (currentSolution().getBestInfo() == null || getSolutionComparator().isBetterThanBestSolution(currentSolution()))) {
-                if (currentSolution().getAssignment().nrAssignedVariables() == currentSolution().getModel().variables().size())
-                    sLogger.info("Complete solution " + ToolBox.dict2string(currentSolution().getInfo(), 1) + " was found.");
-                currentSolution().saveBest();
-            }
-
-            if (currentSolution().getModel().variables().isEmpty()) {
-                iProgress.error("Nothing to solve.");
-                iStop = true;
-            }
-            
-            BlockingQueue<Neighbour<V, T>> queue = null;
-            if (hasSingleSolution() && iNrSolvers > 1 && getProperties().getPropertyBoolean("ParallelSolver.SingleSolutionQueue", false))
-                queue = new ArrayBlockingQueue<Neighbour<V, T>>(2 * iNrSolvers);
-            
-            if (!iStop) {
-                for (int i = 1; i <= iNrSolvers; i++) {
-                    SolverThread thread = new SolverThread(i, queue);
-                    thread.setPriority(THREAD_PRIORITY);
-                    thread.setName("Solver-" + i);
-                    thread.start();
-                    iSolvers.add(thread);
-                }
-            }
-            
-            if (queue != null) {
-                iAssignmentThread = new AssignmentThread(queue);
-                iAssignmentThread.start();
-            }
-            
-            int timeout = getProperties().getPropertyInt("Termination.TimeOut", 1800);
-            double start = JProf.currentTimeSec();
-            while (!iStop && iNrFinished < iNrSolvers) {
-                try {
-                    Thread.sleep(1000);
-                    double time = JProf.currentTimeSec() - start;
-                    
-                    // Increment progress bar
-                    if (isUpdateProgress()) {
-                        if (currentSolution().getBestInfo() != null && currentSolution().getModel().getBestUnassignedVariables() == 0) {
-                            if (!"Improving found solution ...".equals(iProgress.getPhase()))
-                                iProgress.setPhase("Improving found solution ...");
-                            iProgress.setProgress(Math.min(100, (int)Math.round(100 * time / timeout)));
-                        } else if (currentSolution().getModel().getBestUnassignedVariables() > 0 && (currentSolution().getModel().countVariables() - currentSolution().getModel().getBestUnassignedVariables() > iProgress.getProgress())) {
-                            iProgress.setProgress(currentSolution().getModel().countVariables() - currentSolution().getModel().getBestUnassignedVariables());
-                        } else if (iSolvers.get(0).iAssignment.nrAssignedVariables() > iProgress.getProgress()) {
-                            iProgress.setProgress(iSolvers.get(0).iAssignment.nrAssignedVariables());
-                        }
+            try {
+                iStop = false;
+                iNrFinished = 0;
+                setName("SolverSync");
+                
+                // Initialization
+                iProgress = Progress.getInstance(currentSolution().getModel());
+                iProgress.setStatus("Solving problem ...");
+                iProgress.setPhase("Initializing solver");
+                initSolver();
+                onStart();
+                
+                if (isUpdateProgress()) {
+                    if (currentSolution().getBestInfo() == null) {
+                        iProgress.setPhase("Searching for initial solution ...", currentSolution().getModel().variables().size());
+                    } else {
+                        iProgress.setPhase("Improving found solution ...");
                     }
-                } catch (InterruptedException e) {}
-            }
-            
-            boolean stop = iStop; iStop = true;
-            for (SolverThread thread: iSolvers) {
-                try {
-                    thread.join();
-                } catch (InterruptedException e) {}
-            }
-            if (iAssignmentThread != null) {
-                try {
-                    iAssignmentThread.join();
-                } catch (InterruptedException e) {}
-            }
-            
-            // Finalization
-            iLastSolution = iCurrentSolution;
+                }
+                sLogger.info("Initial solution:" + ToolBox.dict2string(currentSolution().getInfo(), 2));
+                if ((iSaveBestUnassigned < 0 || iSaveBestUnassigned >= currentSolution().getAssignment().nrUnassignedVariables(currentSolution().getModel())) && (currentSolution().getBestInfo() == null || getSolutionComparator().isBetterThanBestSolution(currentSolution()))) {
+                    if (currentSolution().getAssignment().nrAssignedVariables() == currentSolution().getModel().variables().size())
+                        sLogger.info("Complete solution " + ToolBox.dict2string(currentSolution().getInfo(), 1) + " was found.");
+                    currentSolution().saveBest();
+                }
 
-            iProgress.setPhase("Done", 1);
-            iProgress.incProgress();
+                if (currentSolution().getModel().variables().isEmpty()) {
+                    iProgress.error("Nothing to solve.");
+                    iStop = true;
+                }
+                
+                BlockingQueue<Neighbour<V, T>> queue = null;
+                if (hasSingleSolution() && iNrSolvers > 1 && getProperties().getPropertyBoolean("ParallelSolver.SingleSolutionQueue", false))
+                    queue = new ArrayBlockingQueue<Neighbour<V, T>>(2 * iNrSolvers);
+                
+                if (!iStop) {
+                    for (int i = 1; i <= iNrSolvers; i++) {
+                        SolverThread thread = new SolverThread(i, queue);
+                        thread.setPriority(THREAD_PRIORITY);
+                        thread.setName("Solver-" + i);
+                        thread.start();
+                        iSolvers.add(thread);
+                    }
+                }
+                
+                if (queue != null) {
+                    iAssignmentThread = new AssignmentThread(queue);
+                    iAssignmentThread.start();
+                }
+                
+                int timeout = getProperties().getPropertyInt("Termination.TimeOut", 1800);
+                double start = JProf.currentTimeSec();
+                while (!iStop && iNrFinished < iNrSolvers) {
+                    try {
+                        Thread.sleep(1000);
+                        double time = JProf.currentTimeSec() - start;
+                        
+                        // Increment progress bar
+                        if (isUpdateProgress()) {
+                            if (currentSolution().getBestInfo() != null && currentSolution().getModel().getBestUnassignedVariables() == 0) {
+                                if (!"Improving found solution ...".equals(iProgress.getPhase()))
+                                    iProgress.setPhase("Improving found solution ...");
+                                iProgress.setProgress(Math.min(100, (int)Math.round(100 * time / timeout)));
+                            } else if (currentSolution().getModel().getBestUnassignedVariables() > 0 && (currentSolution().getModel().countVariables() - currentSolution().getModel().getBestUnassignedVariables() > iProgress.getProgress())) {
+                                iProgress.setProgress(currentSolution().getModel().countVariables() - currentSolution().getModel().getBestUnassignedVariables());
+                            } else if (iSolvers.get(0).iAssignment.nrAssignedVariables() > iProgress.getProgress()) {
+                                iProgress.setProgress(iSolvers.get(0).iAssignment.nrAssignedVariables());
+                            }
+                        }
+                    } catch (InterruptedException e) {}
+                }
+                
+                boolean stop = iStop; iStop = true;
+                for (SolverThread thread: iSolvers) {
+                    try {
+                        thread.join();
+                    } catch (InterruptedException e) {}
+                }
+                if (iAssignmentThread != null) {
+                    try {
+                        iAssignmentThread.join();
+                    } catch (InterruptedException e) {}
+                }
+                
+                // Finalization
+                iLastSolution = iCurrentSolution;
 
-            iSynchronizationThread = null;
-            if (stop) {
-                sLogger.debug("Solver stopped.");
-                iProgress.setStatus("Solver stopped.");
-                onStop();
-            } else {
-                sLogger.debug("Solver done.");
-                iProgress.setStatus("Solver done.");
-                onFinish();
+                iProgress.setPhase("Done", 1);
+                iProgress.incProgress();
+
+                if (stop) {
+                    sLogger.debug("Solver stopped.");
+                    iProgress.setStatus("Solver stopped.");
+                    onStop();
+                } else {
+                    sLogger.debug("Solver done.");
+                    iProgress.setStatus("Solver done.");
+                    onFinish();
+                }
+            } catch (Exception ex) {
+                sLogger.error(ex.getMessage(), ex);
+                iProgress.fatal("Solver synchronization failed, reason:" + ex.getMessage(), ex);
+                iProgress.setStatus("Solver failed.");
+                onFailure();
+            } finally {
+                iSynchronizationThread = null;
             }
         }
     }

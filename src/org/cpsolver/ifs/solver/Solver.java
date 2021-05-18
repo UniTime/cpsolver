@@ -691,7 +691,6 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
                 iProgress.setPhase("Done", 1);
                 iProgress.incProgress();
 
-                iSolverThread = null;
                 if (iStop) {
                     sLogger.debug("Solver stopped.");
                     iProgress.setStatus("Solver stopped.");
@@ -706,8 +705,9 @@ public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
                 iProgress.fatal("Solver failed, reason:" + ex.getMessage(), ex);
                 iProgress.setStatus("Solver failed.");
                 onFailure();
+            } finally {
+                iSolverThread = null;
             }
-            iSolverThread = null;
         }
     }
     
