@@ -116,7 +116,7 @@ public class TableauReport implements StudentSectioningReport {
                     for (Course course: cr.getCourses()) {
                         int enrolled = (e != null && e.getCourse().equals(course) ? 1 : 0);
                         String sect = null;
-                        if (e != null) {
+                        if (e != null && e.getCourse().equals(course)) {
                             sect = "";
                             Set<String> added = new HashSet<String>();
                             for (Section s: e.getSections()) {
