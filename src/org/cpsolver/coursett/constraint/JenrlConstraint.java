@@ -125,7 +125,7 @@ public class JenrlConstraint extends BinaryConstraintWithContext<Lecture, Placem
     }
     
     private int getWorkDayLimit() {
-        return (getModel() == null ? null : ((TimetableModel)getModel()).getStudentWorkDayLimit());
+        return (getModel() == null ? -1 : ((TimetableModel)getModel()).getStudentWorkDayLimit());
     }
 
     /** True if the given two lectures overlap in time 
