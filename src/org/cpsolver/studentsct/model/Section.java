@@ -220,6 +220,11 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
         return (iPlacement == null ? null : iPlacement.getTimeLocation());
     }
     
+    /** Check if the class has a time assignment (is not arranged hours) */
+    public boolean hasTime() {
+        return iPlacement != null && iPlacement.getTimeLocation() != null && iPlacement.getTimeLocation().getDayCode() != 0;
+    }
+    
     /** True if the instructional type is the same */
     public boolean sameInstructionalType(Section section) {
         return getSubpart().getInstructionalType().equals(section.getSubpart().getInstructionalType());

@@ -355,7 +355,7 @@ public class PriorityStudentWeights implements StudentWeights {
         if (enrollment.isCourseRequest() && iNoTimeFactor != 0.0) {
             int noTimeSections = 0, total = 0;
             for (Section section: enrollment.getSections()) {
-                if (section.getTime() == null) noTimeSections ++;
+                if (!section.hasTime()) noTimeSections ++;
                 total ++;
             }
             if (noTimeSections > 0)
@@ -436,7 +436,7 @@ public class PriorityStudentWeights implements StudentWeights {
         if (enrollment.isCourseRequest() && iNoTimeFactor != 0.0) {
             int noTimeSections = 0, total = 0;
             for (Section section: enrollment.getSections()) {
-                if (section.getTime() == null) noTimeSections ++;
+                if (!section.hasTime()) noTimeSections ++;
                 total ++;
             }
             if (noTimeSections > 0)

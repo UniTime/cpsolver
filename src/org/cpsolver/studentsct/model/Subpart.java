@@ -314,7 +314,7 @@ public class Subpart implements Comparable<Subpart> {
     
     public boolean hasTime() {
         for (Section section: getSections())
-            if (section.getTime() != null) return true;
+            if (section.hasTime()) return true;
         return false;
     }
     

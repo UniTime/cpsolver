@@ -352,7 +352,7 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
         for (int idx = 0; idx < current.length; idx++) {
             if (best[idx] != null && best[idx].getAssignments() != null) {
                 for (Section section : best[idx].getSections()) {
-                    if (section.getTime() == null)
+                    if (!section.hasTime())
                         bestNoTime++;
                     if (section.isOnline())
                         bestOnline++;
@@ -360,7 +360,7 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
             }
             if (current[idx] != null && current[idx].getAssignments() != null) {
                 for (Section section : current[idx].getSections()) {
-                    if (section.getTime() == null)
+                    if (!section.hasTime())
                         currentNoTime++;
                     if (section.isOnline())
                         currentOnline++;
@@ -768,7 +768,7 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
         for (int idx = 0; idx < current.length; idx++) {
             if (best[idx] != null) {
                 for (Section section : best[idx].getSections()) {
-                    if (section.getTime() == null)
+                    if (!section.hasTime())
                         bestNoTime++;
                     if (section.isOnline())
                         bestOnline++;
@@ -776,7 +776,7 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
             }
             if (current[idx] != null && idx < maxIdx) {
                 for (Section section : current[idx].getSections()) {
-                    if (section.getTime() == null)
+                    if (!section.hasTime())
                         currentNoTime++;
                     if (section.isOnline())
                         currentOnline++;

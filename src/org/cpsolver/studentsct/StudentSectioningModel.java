@@ -1528,7 +1528,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 int online = 0;
                 int past = 0;
                 for (Section section: enrollment.getSections()) {
-                    if (section.getTime() == null) noTime ++;
+                    if (!section.hasTime()) noTime ++;
                     if (section.isOnline()) online ++;
                     if (section.isPast()) past ++;
                 }
@@ -1591,7 +1591,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 int online = 0;
                 int past = 0;
                 for (Section section: enrollment.getSections()) {
-                    if (section.getTime() == null) noTime ++;
+                    if (!section.hasTime()) noTime ++;
                     if (section.isOnline()) online ++;
                     if (section.isPast()) past ++;
                 }
@@ -1760,7 +1760,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                         int online = 0;
                         int past = 0;
                         for (Section section: e.getSections()) {
-                            if (section.getTime() == null) noTime ++;
+                            if (!section.hasTime()) noTime ++;
                             if (section.isOnline()) online ++;
                             if (section.isPast()) past ++;
                         }

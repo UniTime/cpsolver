@@ -507,13 +507,13 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
         for (int idx = 0; idx < current.length; idx++) {
             if (best[idx] != null && best[idx].getAssignments() != null) {
                 for (Section section : best[idx].getSections()) {
-                    if (section.getTime() == null)
+                    if (!section.hasTime())
                         bestNoTime++;
                     if (section.isOnline())
                         bestOnline++;
                 }
                 for (Section section : current[idx].getSections()) {
-                    if (section.getTime() == null)
+                    if (!section.hasTime())
                         currentNoTime++;
                     if (section.isOnline())
                         currentOnline++;
@@ -958,7 +958,7 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
         for (int idx = 0; idx < current.length; idx++) {
             if (best[idx] != null) {
                 for (Section section : best[idx].getSections()) {
-                    if (section.getTime() == null)
+                    if (!section.hasTime())
                         bestNoTime++;
                     if (section.isOnline())
                         bestOnline++;
@@ -966,7 +966,7 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
             }
             if (current[idx] != null && idx < maxIdx) {
                 for (Section section : current[idx].getSections()) {
-                    if (section.getTime() == null)
+                    if (!section.hasTime())
                         currentNoTime++;
                     if (section.isOnline())
                         currentOnline++;
@@ -1192,13 +1192,13 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
         int n1 = 0, n2 = 0;
         int o1 = 0, o2 = 0;
         for (Section section : e1.getSections()) {
-            if (section.getTime() == null)
+            if (!section.hasTime())
                 n1++;
             if (section.isOnline())
                 o1++;
         }
         for (Section section : e2.getSections()) {
-            if (section.getTime() == null)
+            if (!section.hasTime())
                 n2++;
             if (section.isOnline())
                 o2++;
