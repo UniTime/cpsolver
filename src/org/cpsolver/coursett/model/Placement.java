@@ -220,11 +220,11 @@ public class Placement extends Value<Lecture, Placement> {
                 sb.append(r.getName());
             }
             return getTimeLocation().getLongName(useAmPm) + " " + sb
-                    + (lecture.getInstructorName() != null ? " " + lecture.getInstructorName() : "");
+                    + (lecture != null &&  lecture.getInstructorName() != null ? " " + lecture.getInstructorName() : "");
         } else
             return getTimeLocation().getLongName(useAmPm)
                     + (getRoomLocation() == null ? "" : " " + getRoomLocation().getName())
-                    + (lecture.getInstructorName() != null ? " " + lecture.getInstructorName() : "");
+                    + (lecture != null && lecture.getInstructorName() != null ? " " + lecture.getInstructorName() : "");
     }
     
     @Deprecated
