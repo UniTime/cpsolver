@@ -215,7 +215,8 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
                 iProgress.setPhase("Done", 1);
                 iProgress.incProgress();
 
-                if (stop) {
+                iStop = stop;
+                if (iStop) {
                     sLogger.debug("Solver stopped.");
                     iProgress.setStatus("Solver stopped.");
                     onStop();
