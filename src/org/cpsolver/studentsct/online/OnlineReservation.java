@@ -96,4 +96,9 @@ public class OnlineReservation extends org.cpsolver.studentsct.reservation.Reser
             return mustBeUsedIgnoreExpiration();
         return super.mustBeUsed();
     }
+    
+    @Override
+    public double getLimitCap() {
+        return getReservationLimit();
+    }
 }
