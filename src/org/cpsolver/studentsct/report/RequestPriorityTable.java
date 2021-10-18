@@ -65,6 +65,7 @@ public class RequestPriorityTable implements StudentSectioningReport {
     public CSVFile create(Assignment<Request, Enrollment> assignment, DataProperties properties) {
         CSVFile csv = new CSVFile();
         csv.setHeader(new CSVFile.CSVField[] {
+                new CSVFile.CSVField("__Student"),
                 new CSVFile.CSVField("Student"),
                 new CSVFile.CSVField("Course"),
                 new CSVFile.CSVField("Alternative"),
@@ -90,7 +91,8 @@ public class RequestPriorityTable implements StudentSectioningReport {
                     for (Course course: cr.getCourses()) {
                         int alternative = (primary == 0 || alternativity > 0 ? 1 : 0);
                         int enrolled = (e != null && e.getCourse().equals(course) ? 1 : 0);
-                        csv.addLine(new CSVFile.CSVField[] { 
+                        csv.addLine(new CSVFile.CSVField[] {
+                                new CSVFile.CSVField(student.getId()),
                                 new CSVFile.CSVField(student.getExternalId()),
                                 new CSVFile.CSVField(cr.getCourses().get(alternativity).getName()),
                                 new CSVFile.CSVField(alternative),
