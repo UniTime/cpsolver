@@ -379,6 +379,9 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
      */
     @Override
     public int compareTo(Assignment<Request, Enrollment> assignment, Reservation r) {
+        if (mustBeUsed() != r.mustBeUsed()) {
+            return (mustBeUsed() ? -1 : 1);
+        }
         if (getPriority() != r.getPriority()) {
             return (getPriority() < r.getPriority() ? -1 : 1);
         }
@@ -394,6 +397,9 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
      */
     @Override
     public int compareTo(Reservation r) {
+        if (mustBeUsed() != r.mustBeUsed()) {
+            return (mustBeUsed() ? -1 : 1);
+        }
         if (getPriority() != r.getPriority()) {
             return (getPriority() < r.getPriority() ? -1 : 1);
         }
