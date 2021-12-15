@@ -684,6 +684,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                     acmEl.addAttribute("concentration", acm.getConcentration());
                 if (acm.getDegree() != null)
                     acmEl.addAttribute("degree", acm.getDegree());
+                if (acm.getProgram() != null)
+                    acmEl.addAttribute("program", acm.getProgram());
                 if (acm.getAreaName() != null && iShowNames)
                     acmEl.addAttribute("areaName", acm.getAreaName());
                 if (acm.getClassificationName() != null && iShowNames)
@@ -694,6 +696,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                     acmEl.addAttribute("concentrationName", acm.getConcentrationName());
                 if (acm.getDegreeName() != null && iShowNames)
                     acmEl.addAttribute("degreeName", acm.getDegreeName());
+                if (acm.getProgramName() != null && iShowNames)
+                    acmEl.addAttribute("programName", acm.getProgramName());
                 if (acm.getWeight() != 1.0)
                     acmEl.addAttribute("weight", String.valueOf(acm.getWeight()));
             }
@@ -709,6 +713,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                     acmEl.addAttribute("concentration", acm.getConcentration());
                 if (acm.getDegree() != null)
                     acmEl.addAttribute("degree", acm.getDegree());
+                if (acm.getProgram() != null)
+                    acmEl.addAttribute("program", acm.getProgram());
                 if (acm.getAreaName() != null && iShowNames)
                     acmEl.addAttribute("areaName", acm.getAreaName());
                 if (acm.getClassificationName() != null && iShowNames)
@@ -719,6 +725,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                     acmEl.addAttribute("concentrationName", acm.getConcentrationName());
                 if (acm.getDegreeName() != null && iShowNames)
                     acmEl.addAttribute("degreeName", acm.getDegreeName());
+                if (acm.getProgramName() != null && iShowNames)
+                    acmEl.addAttribute("programName", acm.getProgramName());
                 if (acm.getWeight() != 1.0)
                     acmEl.addAttribute("weight", String.valueOf(acm.getWeight()));
             }
