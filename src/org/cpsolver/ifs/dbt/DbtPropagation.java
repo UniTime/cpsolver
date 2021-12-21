@@ -47,7 +47,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * 
  */
 public class DbtPropagation<V extends Variable<V, T>, T extends Value<V, T>> extends MacPropagation<V, T> implements SolverListener<V, T> {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(DbtPropagation.class);
+    private static org.apache.logging.log4j.Logger sLogger = org.apache.logging.log4j.LogManager.getLogger(DbtPropagation.class);
 
     /**
      * Constructor. No parameter is taken from properties.

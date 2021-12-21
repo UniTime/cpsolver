@@ -15,11 +15,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TreeSet;
 
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.FileAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
 import org.cpsolver.coursett.constraint.DepartmentSpreadConstraint;
 import org.cpsolver.coursett.constraint.GroupConstraint;
 import org.cpsolver.coursett.constraint.InstructorConstraint;
@@ -113,7 +108,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
             java.util.Locale.US);
     private static java.text.DecimalFormat sDoubleFormat = new java.text.DecimalFormat("0.000",
             new java.text.DecimalFormatSymbols(Locale.US));
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(Test.class);
+    private static org.apache.logging.log4j.Logger sLogger = org.apache.logging.log4j.LogManager.getLogger(Test.class);
 
     private PrintWriter iCSVFile = null;
 
@@ -138,30 +133,6 @@ public class Test implements SolutionListener<Lecture, Placement> {
     public void init(Solver<Lecture, Placement> solver) {
         iSolver = solver;
         solver.currentSolution().addSolutionListener(this);
-    }
-    
-    /**
-     * Setup log4j logging
-     * 
-     * @param logFile  log file
-     * @param debug true if debug messages should be logged (use -Ddebug=true to enable debug message)
-     */
-    public static void setupLogging(File logFile, boolean debug) {
-        Logger root = Logger.getRootLogger();
-        ConsoleAppender console = new ConsoleAppender(new PatternLayout("[%t] %m%n"));
-        console.setThreshold(Level.INFO);
-        root.addAppender(console);
-        if (logFile != null) {
-            try {
-                FileAppender file = new FileAppender(new PatternLayout("%d{dd-MMM-yy HH:mm:ss.SSS} [%t] %-5p %c{2}> %m%n"), logFile.getPath(), false);
-                file.setThreshold(Level.DEBUG);
-                root.addAppender(file);
-            } catch (IOException e) {
-                sLogger.fatal("Unable to configure logging, reason: " + e.getMessage(), e);
-            }
-        }
-        if (!debug)
-            root.setLevel(Level.INFO);
     }
 
     /**
@@ -212,7 +183,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
             System.out.println("Output folder: " + properties.getProperty("General.Output"));
             File outDir = new File(properties.getProperty("General.Output", "."));
             outDir.mkdirs();
-            setupLogging(new File(outDir, "debug.log"), "true".equals(System.getProperty("debug", "false")));
+            ToolBox.setupLogging(new File(outDir, "debug.log"), "true".equals(System.getProperty("debug", "false")));
 
             TimetableModel model = new TimetableModel(properties);
             int nrSolvers = properties.getPropertyInt("Parallel.NrSolvers", 1);

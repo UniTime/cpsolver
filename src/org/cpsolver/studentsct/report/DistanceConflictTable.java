@@ -66,7 +66,7 @@ import org.cpsolver.studentsct.model.Student;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class DistanceConflictTable implements StudentSectioningReport {
-    private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(DistanceConflictTable.class);
+    private static org.apache.logging.log4j.Logger sLog = org.apache.logging.log4j.LogManager.getLogger(DistanceConflictTable.class);
     private static DecimalFormat sDF1 = new DecimalFormat("0.####");
     private static DecimalFormat sDF2 = new DecimalFormat("0.0000");
 

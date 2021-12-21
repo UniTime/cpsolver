@@ -31,7 +31,7 @@ import org.cpsolver.ifs.assignment.context.ConstraintWithContext;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class ResourceConstraint extends ConstraintWithContext<Rectangle, Location, ResourceConstraint.Context> {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(ResourceConstraint.class);
+    private static org.apache.logging.log4j.Logger sLogger = org.apache.logging.log4j.LogManager.getLogger(ResourceConstraint.class);
     private int iWidth, iHeight;
 
     /**

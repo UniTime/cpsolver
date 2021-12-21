@@ -63,8 +63,7 @@ import org.cpsolver.ifs.util.DataProperties;
  **/
 public class GeneralTerminationCondition<V extends Variable<V, T>, T extends Value<V, T>> implements
         TerminationCondition<V, T> {
-    protected static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger
-            .getLogger(GeneralTerminationCondition.class);
+    protected static org.apache.logging.log4j.Logger sLogger = org.apache.logging.log4j.LogManager.getLogger(GeneralTerminationCondition.class);
     private int iMaxIter;
     private double iTimeOut;
     private boolean iStopWhenComplete;

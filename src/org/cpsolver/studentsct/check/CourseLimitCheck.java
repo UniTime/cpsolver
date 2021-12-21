@@ -85,7 +85,7 @@ import org.cpsolver.studentsct.model.Subpart;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class CourseLimitCheck {
-    private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(CourseLimitCheck.class);
+    private static org.apache.logging.log4j.Logger sLog = org.apache.logging.log4j.LogManager.getLogger(CourseLimitCheck.class);
     private static DecimalFormat sDF = new DecimalFormat("0.0");
     private StudentSectioningModel iModel;
     private CSVFile iCSVFile = null;

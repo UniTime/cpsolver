@@ -12,7 +12,7 @@ import java.util.StringTokenizer;
 import java.util.TreeSet;
 
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.cpsolver.coursett.IdConvertor;
 import org.cpsolver.exam.criteria.DistributionPenalty;
 import org.cpsolver.exam.criteria.ExamCriterion;
@@ -132,7 +132,7 @@ import org.dom4j.Element;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext> {
-    private static Logger sLog = Logger.getLogger(ExamModel.class);
+    private static Logger sLog = org.apache.logging.log4j.LogManager.getLogger(ExamModel.class);
     private DataProperties iProperties = null;
     private int iMaxRooms = 4;
     private List<ExamPeriod> iPeriods = new ArrayList<ExamPeriod>();

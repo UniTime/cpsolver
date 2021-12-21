@@ -81,7 +81,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * @param <T> Value
  */
 public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(Model.class);
+    private static org.apache.logging.log4j.Logger sLogger = org.apache.logging.log4j.LogManager.getLogger(Model.class);
     protected static java.text.DecimalFormat sTimeFormat = new java.text.DecimalFormat("0.00",
             new java.text.DecimalFormatSymbols(Locale.US));
     protected static java.text.DecimalFormat sDoubleFormat = new java.text.DecimalFormat("0.00",

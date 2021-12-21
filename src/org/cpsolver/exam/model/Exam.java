@@ -14,7 +14,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.cpsolver.exam.criteria.DistributionPenalty;
 import org.cpsolver.exam.criteria.ExamRotationPenalty;
 import org.cpsolver.exam.criteria.RoomPenalty;
@@ -73,7 +73,7 @@ import org.cpsolver.ifs.util.ToolBox;
  */
 public class Exam extends Variable<Exam, ExamPlacement> {
     private static boolean sAlterMaxSize = false;
-    private static Logger sLog = Logger.getLogger(Exam.class);
+    private static Logger sLog = org.apache.logging.log4j.LogManager.getLogger(Exam.class);
     protected static java.text.DecimalFormat sDoubleFormat = new java.text.DecimalFormat("0.00",
             new java.text.DecimalFormatSymbols(Locale.US));
 

@@ -43,7 +43,7 @@ import org.cpsolver.studentsct.model.Subpart;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class SectionLimitCheck {
-    private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(SectionLimitCheck.class);
+    private static org.apache.logging.log4j.Logger sLog = org.apache.logging.log4j.LogManager.getLogger(SectionLimitCheck.class);
     private static DecimalFormat sDF = new DecimalFormat("0.000");
     private StudentSectioningModel iModel;
 

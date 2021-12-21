@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
@@ -87,7 +87,7 @@ import org.cpsolver.studentsct.model.Subpart;
  */
 
 public class OnlineSelection extends BranchBoundSelection {
-    private static Logger sLog = Logger.getLogger(OnlineSelection.class);
+    private static Logger sLog = org.apache.logging.log4j.LogManager.getLogger(OnlineSelection.class);
     private int iDistributionType = -1;
     private double iEpsilon = 0.05;
     private boolean iUsePenalties = true;

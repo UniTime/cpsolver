@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.cpsolver.coursett.Constants;
 import org.cpsolver.coursett.model.TimeLocation;
 import org.cpsolver.ifs.assignment.Assignment;
@@ -58,7 +58,7 @@ import org.cpsolver.instructor.model.TeachingRequest;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class MathTest extends Test {
-    private static Logger sLog = Logger.getLogger(MathTest.class);
+    private static Logger sLog = org.apache.logging.log4j.LogManager.getLogger(MathTest.class);
     
     public MathTest(DataProperties properties) {
         super(properties);

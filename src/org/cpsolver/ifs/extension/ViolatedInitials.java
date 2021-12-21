@@ -48,7 +48,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * @param <T> Value
  */
 public class ViolatedInitials<V extends Variable<V, T>, T extends Value<V, T>> extends Extension<V, T> {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(ViolatedInitials.class);
+    private static org.apache.logging.log4j.Logger sLogger = org.apache.logging.log4j.LogManager.getLogger(ViolatedInitials.class);
     private Map<T, Set<T>> iViolatedInitials = new HashMap<T, Set<T>>();
 
     public ViolatedInitials(Solver<V, T> solver, DataProperties properties) {

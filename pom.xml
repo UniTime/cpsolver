@@ -62,9 +62,9 @@
 	
 	<dependencies>
 		<dependency>
-			<groupId>log4j</groupId>
-			<artifactId>log4j</artifactId>
-			<version>1.2.17</version>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-core</artifactId>
+			<version>2.17.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.dom4j</groupId>
@@ -86,7 +86,7 @@
 		<sourceDirectory>src</sourceDirectory>
 		<resources>
 			<resource>
-				<directory />
+				<directory/>
 				<includes>
 					<include>LICENSE</include>
 				</includes>
@@ -95,6 +95,12 @@
 				<directory>${project.build.directory}</directory>
 				<includes>
 					<include>cpsolver.version</include>
+				</includes>
+			</resource>
+			<resource>
+				<directory>src</directory>
+				<includes>
+					<include>log4j2.xml</include>
 				</includes>
 			</resource>
 		</resources>

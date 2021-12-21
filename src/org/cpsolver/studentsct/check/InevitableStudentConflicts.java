@@ -80,7 +80,7 @@ import org.cpsolver.studentsct.model.Student;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class InevitableStudentConflicts {
-    private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(InevitableStudentConflicts.class);
+    private static org.apache.logging.log4j.Logger sLog = org.apache.logging.log4j.LogManager.getLogger(InevitableStudentConflicts.class);
     private StudentSectioningModel iModel;
     private CSVFile iCSVFile = null;
     public static boolean sDebug = false;

@@ -2,7 +2,7 @@ package org.cpsolver.studentsct.online;
 
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.model.Constraint;
 import org.cpsolver.ifs.model.GlobalConstraint;
@@ -44,7 +44,7 @@ import org.cpsolver.studentsct.online.expectations.PercentageOverExpected;
  * 
  */
 public class OnlineSectioningModel extends StudentSectioningModel {
-    private static Logger sLog = Logger.getLogger(OnlineSectioningModel.class);
+    private static Logger sLog = org.apache.logging.log4j.LogManager.getLogger(OnlineSectioningModel.class);
     private OverExpectedCriterion iOverExpectedCriterion;
 
     public OnlineSectioningModel(DataProperties properties) {

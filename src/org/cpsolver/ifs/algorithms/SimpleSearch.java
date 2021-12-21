@@ -1,6 +1,6 @@
 package org.cpsolver.ifs.algorithms;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.context.AssignmentContext;
 import org.cpsolver.ifs.assignment.context.NeighbourSelectionWithContext;
@@ -50,7 +50,7 @@ import org.cpsolver.ifs.util.Progress;
  * @param <T> Value
  */
 public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> extends NeighbourSelectionWithContext<V,T,SimpleSearch<V,T>.SimpleSearchContext> {
-    private Logger iLog = Logger.getLogger(SimpleSearch.class);
+    private Logger iLog = org.apache.logging.log4j.LogManager.getLogger(SimpleSearch.class);
     private NeighbourSelection<V, T> iCon = null;
     private boolean iConstructionUntilComplete = false; 
     private StandardNeighbourSelection<V, T> iStd = null;

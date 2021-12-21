@@ -12,11 +12,6 @@ import java.util.Locale;
 import java.util.Map;
 
 
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.FileAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
 import org.cpsolver.exam.criteria.DistributionPenalty;
 import org.cpsolver.exam.criteria.ExamRotationPenalty;
 import org.cpsolver.exam.criteria.InstructorBackToBackConflicts;
@@ -111,36 +106,8 @@ import org.dom4j.io.XMLWriter;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class Test {
-    private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(Test.class);
+    private static org.apache.logging.log4j.Logger sLog = org.apache.logging.log4j.LogManager.getLogger(Test.class);
     private static java.text.DecimalFormat sDoubleFormat = new java.text.DecimalFormat("0.00", new java.text.DecimalFormatSymbols(Locale.US));
-
-    /**
-     * Setup log4j logging
-     * 
-     * @param logFile
-     *            log file
-     * @param debug
-     *            true if debug messages should be logged (use -Ddebug=true to
-     *            enable debug message)
-     */
-    public static void setupLogging(File logFile, boolean debug) {
-        Logger root = Logger.getRootLogger();
-        ConsoleAppender console = new ConsoleAppender(new PatternLayout("[%t] %m%n"));
-        console.setThreshold(Level.INFO);
-        root.addAppender(console);
-        if (logFile != null) {
-            try {
-                FileAppender file = new FileAppender(new PatternLayout(
-                        "%d{dd-MMM-yy HH:mm:ss.SSS} [%t] %-5p %c{2}> %m%n"), logFile.getPath(), false);
-                file.setThreshold(Level.DEBUG);
-                root.addAppender(file);
-            } catch (IOException e) {
-                sLog.fatal("Unable to configure logging, reason: " + e.getMessage(), e);
-            }
-        }
-        if (!debug)
-            root.setLevel(Level.INFO);
-    }
 
     /** Generate exam reports 
      * @param model problem model
@@ -382,7 +349,7 @@ public class Test {
             String logName = outFile.getName();
             if (logName.indexOf('.') >= 0)
                 logName = logName.substring(0, logName.lastIndexOf('.')) + ".log";
-            setupLogging(new File(outFile.getParent(), logName), "true".equals(System.getProperty("debug", "false")));
+            ToolBox.setupLogging(new File(outFile.getParent(), logName), "true".equals(System.getProperty("debug", "false")));
 
             ExamModel model = new ExamModel(cfg);
 

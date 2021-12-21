@@ -58,7 +58,7 @@ import org.dom4j.Element;
  */
 public class Progress {
     public static boolean sTraceEnabled = false;
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(Progress.class);
+    private static org.apache.logging.log4j.Logger sLogger = org.apache.logging.log4j.LogManager.getLogger(Progress.class);
     public static SimpleDateFormat sDF = new SimpleDateFormat("MM/dd/yy HH:mm:ss.SSS");
     public static final int MSGLEVEL_TRACE = 0;
     public static final int MSGLEVEL_DEBUG = 1;

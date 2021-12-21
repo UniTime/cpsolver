@@ -1,6 +1,5 @@
 package org.cpsolver.ifs.util;
 
-import org.apache.log4j.Logger;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.model.Model;
 import org.cpsolver.ifs.model.Value;
@@ -100,7 +99,7 @@ public abstract class ProblemLoader<V extends Variable<V, T>, T extends Value<V,
         try {
             load();
         } catch (Exception e) {
-            Logger.getLogger(this.getClass()).error(e.getMessage(), e);
+            org.apache.logging.log4j.LogManager.getLogger(this.getClass()).error(e.getMessage(), e);
         } finally {
             if (iCallback != null)
                 iCallback.execute();

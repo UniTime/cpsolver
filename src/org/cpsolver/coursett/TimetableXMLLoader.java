@@ -107,7 +107,7 @@ import org.dom4j.io.SAXReader;
  */
 
 public class TimetableXMLLoader extends TimetableLoader {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(TimetableXMLLoader.class);
+    private static org.apache.logging.log4j.Logger sLogger = org.apache.logging.log4j.LogManager.getLogger(TimetableXMLLoader.class);
     private static SimpleDateFormat sDF = new SimpleDateFormat("MM/dd");
 
     private boolean iDeptBalancing = true;

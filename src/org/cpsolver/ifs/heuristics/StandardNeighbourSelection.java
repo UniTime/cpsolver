@@ -76,7 +76,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * @param <T> Value
  **/
 public class StandardNeighbourSelection<V extends Variable<V, T>, T extends Value<V, T>> implements NeighbourSelection<V, T> {
-    protected static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(StandardNeighbourSelection.class);
+    protected static org.apache.logging.log4j.Logger sLogger = org.apache.logging.log4j.LogManager.getLogger(StandardNeighbourSelection.class);
 
     private ValueSelection<V, T> iValueSelection = null;
     private VariableSelection<V, T> iVariableSelection = null;

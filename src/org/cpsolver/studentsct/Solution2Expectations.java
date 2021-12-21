@@ -41,7 +41,7 @@ import org.cpsolver.studentsct.model.Student;
  */
 
 public class Solution2Expectations {
-    private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(Solution2Expectations.class);
+    private static org.apache.logging.log4j.Logger sLog = org.apache.logging.log4j.LogManager.getLogger(Solution2Expectations.class);
     
     public static void main(String[] args) {
         try {

@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.TreeSet;
 
 
-import org.apache.log4j.BasicConfigurator;
 import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
 import org.cpsolver.coursett.model.TimetableModel;
@@ -21,6 +20,7 @@ import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.util.CSVFile;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.Progress;
+import org.cpsolver.ifs.util.ToolBox;
 import org.dom4j.Document;
 import org.dom4j.Element;
 import org.dom4j.io.SAXReader;
@@ -280,7 +280,7 @@ public class GetInfo {
 
     public static void main(String[] args) {
         try {
-            BasicConfigurator.configure();
+            ToolBox.configureLogging();
             File folder = new File(args[0]);
             List<Info> infos = new ArrayList<Info>();
             getInfos(folder, infos, null);

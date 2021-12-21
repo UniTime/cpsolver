@@ -23,12 +23,8 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
 
-
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.FileAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.DefaultSingleAssignment;
 import org.cpsolver.ifs.assignment.EmptyAssignment;
@@ -227,7 +223,7 @@ import org.dom4j.io.XMLWriter;
  */
 
 public class Test {
-    private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(Test.class);
+    private static org.apache.logging.log4j.Logger sLog = org.apache.logging.log4j.LogManager.getLogger(Test.class);
     private static java.text.SimpleDateFormat sDateFormat = new java.text.SimpleDateFormat("yyMMdd_HHmmss",
             java.util.Locale.US);
     private static DecimalFormat sDF = new DecimalFormat("0.000");
@@ -277,7 +273,7 @@ public class Test {
             TimeOverlapsCounter.sDebug = true;
         if (cfg.getProperty("CourseRequest.SameTimePrecise") != null)
             CourseRequest.sSameTimePrecise = cfg.getPropertyBoolean("CourseRequest.SameTimePrecise", false);
-        Logger.getLogger(BacktrackNeighbourSelection.class).setLevel(
+        Configurator.setLevel(BacktrackNeighbourSelection.class.getName(),
                 cfg.getPropertyBoolean("Debug.BacktrackNeighbourSelection", false) ? Level.DEBUG : Level.INFO);
         if (cfg.getPropertyBoolean("Test.FixPriorities", false))
             fixPriorities(model);
@@ -1188,27 +1184,6 @@ public class Test {
         }
     }
     
-    /**
-     * Setup log4j logging
-     * 
-     * @param logFile  log file
-     */
-    public static void setupLogging(File logFile) {
-        Logger root = Logger.getRootLogger();
-        ConsoleAppender console = new ConsoleAppender(new PatternLayout("[%t] %m%n"));
-        console.setThreshold(Level.INFO);
-        root.addAppender(console);
-        if (logFile != null) {
-            try {
-                FileAppender file = new FileAppender(new PatternLayout("%d{dd-MMM-yy HH:mm:ss.SSS} [%t] %-5p %c{2}> %m%n"), logFile.getPath(), false);
-                file.setThreshold(Level.DEBUG);
-                root.addAppender(file);
-            } catch (IOException e) {
-                sLog.fatal("Unable to configure logging, reason: " + e.getMessage(), e);
-            }
-        }
-    }
-
     /** Main 
      * @param args program arguments
      **/
@@ -1250,7 +1225,7 @@ public class Test {
                 outDir = new File(System.getProperty("user.home", ".") + File.separator + "Sectioning-Test" + File.separator + (sDateFormat.format(new Date())));
             }
             outDir.mkdirs();
-            setupLogging(new File(outDir, "debug.log"));
+            ToolBox.setupLogging(new File(outDir, "debug.log"), "true".equals(System.getProperty("debug", "false")));
             cfg.setProperty("General.Output", outDir.getAbsolutePath());
 
             if (args.length >= 4 && "online".equals(args[3])) {

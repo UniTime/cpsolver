@@ -34,7 +34,7 @@ import org.cpsolver.coursett.constraint.JenrlConstraint;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class Student implements Comparable<Student> {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(Student.class);
+    private static org.apache.logging.log4j.Logger sLogger = org.apache.logging.log4j.LogManager.getLogger(Student.class);
     public static boolean USE_DISTANCE_CACHE = false;
     Long iStudentId = null;
     HashMap<Long, Double> iOfferings = new HashMap<Long, Double>();

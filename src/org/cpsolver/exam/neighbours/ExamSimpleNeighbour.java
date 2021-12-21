@@ -2,7 +2,7 @@ package org.cpsolver.exam.neighbours;
 
 import java.text.DecimalFormat;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.cpsolver.exam.model.Exam;
 import org.cpsolver.exam.model.ExamModel;
 import org.cpsolver.exam.model.ExamPlacement;
@@ -36,7 +36,7 @@ import org.cpsolver.ifs.model.SimpleNeighbour;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class ExamSimpleNeighbour extends SimpleNeighbour<Exam, ExamPlacement> {
-    private static Logger sLog = Logger.getLogger(ExamSimpleNeighbour.class);
+    private static Logger sLog = org.apache.logging.log4j.LogManager.getLogger(ExamSimpleNeighbour.class);
     private static boolean sCheck = false;
     private double iValue = 0;
     private double iDx;

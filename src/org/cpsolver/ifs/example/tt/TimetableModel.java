@@ -59,7 +59,7 @@ import org.dom4j.io.XMLWriter;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class TimetableModel extends Model<Activity, Location> {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(TimetableModel.class);
+    private static org.apache.logging.log4j.Logger sLogger = org.apache.logging.log4j.LogManager.getLogger(TimetableModel.class);
     private int iNrDays, iNrHours;
 
     public TimetableModel(int nrDays, int nrHours) {
@@ -396,7 +396,7 @@ public class TimetableModel extends Model<Activity, Location> {
     public static void main(String[] args) {
         try {
             // Configure logging
-            org.apache.log4j.BasicConfigurator.configure();
+            ToolBox.configureLogging();
             
             // Load properties (take first argument as input file, containing key=value lines)
             DataProperties properties = new DataProperties();

@@ -73,7 +73,7 @@ import org.cpsolver.studentsct.model.Student;
  */
 
 public class CourseConflictTable implements StudentSectioningReport {
-    private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(CourseConflictTable.class);
+    private static org.apache.logging.log4j.Logger sLog = org.apache.logging.log4j.LogManager.getLogger(CourseConflictTable.class);
     private static DecimalFormat sDF = new DecimalFormat("0.000");
 
     private StudentSectioningModel iModel = null;

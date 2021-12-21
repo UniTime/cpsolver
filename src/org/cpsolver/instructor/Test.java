@@ -11,7 +11,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.cpsolver.coursett.model.TimeLocation;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.DefaultParallelAssignment;
@@ -61,7 +61,7 @@ import org.dom4j.io.XMLWriter;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class Test extends InstructorSchedulingModel {
-    private static Logger sLog = Logger.getLogger(Test.class);
+    private static Logger sLog = org.apache.logging.log4j.LogManager.getLogger(Test.class);
     
     /**
      * Constructor

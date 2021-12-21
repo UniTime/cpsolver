@@ -99,7 +99,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * @param <T> Value
  */
 public class DbtValueSelection<V extends Variable<V, T>, T extends Value<V, T>> implements ValueSelection<V, T> {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(GeneralValueSelection.class);
+    private static org.apache.logging.log4j.Logger sLogger = org.apache.logging.log4j.LogManager.getLogger(GeneralValueSelection.class);
     private double iRandomWalkProb = 0.0;
     private double iInitialSelectionProb = 0.0;
     private int iMPPLimit = -1;

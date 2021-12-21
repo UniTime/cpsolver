@@ -6,7 +6,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.cpsolver.coursett.Constants;
 import org.cpsolver.coursett.model.Placement;
 import org.cpsolver.coursett.model.RoomLocation;
@@ -62,7 +62,7 @@ import org.cpsolver.studentsct.model.Student;
  */
 
 public class DistanceConflict extends ExtensionWithContext<Request, Enrollment, DistanceConflict.DistanceConflictContext> implements ModelListener<Request, Enrollment>, CanInheritContext<Request, Enrollment, DistanceConflict.DistanceConflictContext> {
-    private static Logger sLog = Logger.getLogger(DistanceConflict.class);
+    private static Logger sLog = org.apache.logging.log4j.LogManager.getLogger(DistanceConflict.class);
     /** Debug flag */
     public static boolean sDebug = false;
     private DistanceMetric iDistanceMetric = null;

@@ -136,8 +136,7 @@ import org.dom4j.io.SAXReader;
  */
 
 public class StudentSectioningXMLLoader extends StudentSectioningLoader {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger
-            .getLogger(StudentSectioningXMLLoader.class);
+    private static org.apache.logging.log4j.Logger sLogger = org.apache.logging.log4j.LogManager.getLogger(StudentSectioningXMLLoader.class);
 
     private File iInputFile;
     private File iTimetableFile = null;

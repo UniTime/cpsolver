@@ -47,7 +47,7 @@ import org.cpsolver.ifs.util.Progress;
  */
 
 public class MacRevised<V extends Variable<V, T>, T extends Value<V, T>> extends ExtensionWithContext<V, T, MacRevised<V, T>.NoGood> {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(MacRevised.class);
+    private static org.apache.logging.log4j.Logger sLogger = org.apache.logging.log4j.LogManager.getLogger(MacRevised.class);
     private boolean iDbt = false;
     private Progress iProgress;
 

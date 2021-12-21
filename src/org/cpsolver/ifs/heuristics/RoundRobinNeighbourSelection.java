@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.cpsolver.ifs.model.InfoProvider;
 import org.cpsolver.ifs.model.Neighbour;
 import org.cpsolver.ifs.model.Value;
@@ -52,7 +52,7 @@ import org.cpsolver.ifs.util.Progress;
  * @param <T> Value
  */
 public class RoundRobinNeighbourSelection<V extends Variable<V, T>, T extends Value<V, T>> extends StandardNeighbourSelection<V, T> {
-    protected static Logger sLogger = Logger.getLogger(RoundRobinNeighbourSelection.class);
+    protected static Logger sLogger = org.apache.logging.log4j.LogManager.getLogger(RoundRobinNeighbourSelection.class);
     private int iSelectionIdx = -1;
     private List<NeighbourSelection<V, T>> iSelections = new ArrayList<NeighbourSelection<V, T>>();
     protected Solver<V, T> iSolver = null;

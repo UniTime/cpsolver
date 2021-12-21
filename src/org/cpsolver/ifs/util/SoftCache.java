@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Simple table cache (key, value) using java soft references.
@@ -42,7 +42,7 @@ import org.apache.log4j.Logger;
  */
 
 public class SoftCache<K, V> implements Map<K, V> {
-    private static Logger sLogger = Logger.getLogger(SoftCache.class);
+    private static Logger sLogger = org.apache.logging.log4j.LogManager.getLogger(SoftCache.class);
     private HashMap<K, Reference<V>> iCache = new HashMap<K, Reference<V>>();
     private ReferenceQueue<V> iQueue = new ReferenceQueue<V>();
 

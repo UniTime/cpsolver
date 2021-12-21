@@ -41,7 +41,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * @param <T> Value
  */
 public class SearchIntensification<V extends Variable<V, T>, T extends Value<V, T>> extends ExtensionWithContext<V, T, SearchIntensification<V, T>.Context> implements SolutionListener<V, T> {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(SearchIntensification.class);
+    private static org.apache.logging.log4j.Logger sLogger = org.apache.logging.log4j.LogManager.getLogger(SearchIntensification.class);
     private long iInitialIterationLimit = 100;
     private ConflictStatistics<V, T> iCBS = null;
     private int iResetInterval = 5;

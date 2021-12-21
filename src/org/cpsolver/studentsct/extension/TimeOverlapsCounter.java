@@ -3,7 +3,7 @@ package org.cpsolver.studentsct.extension;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
 import org.cpsolver.ifs.assignment.context.CanInheritContext;
@@ -50,7 +50,7 @@ import org.cpsolver.studentsct.model.Unavailability;
  */
 
 public class TimeOverlapsCounter extends ExtensionWithContext<Request, Enrollment, TimeOverlapsCounter.TimeOverlapsCounterContext> implements CanInheritContext<Request, Enrollment, TimeOverlapsCounter.TimeOverlapsCounterContext> {
-    private static Logger sLog = Logger.getLogger(TimeOverlapsCounter.class);
+    private static Logger sLog = org.apache.logging.log4j.LogManager.getLogger(TimeOverlapsCounter.class);
     /** Debug flag */
     public static boolean sDebug = false;
 

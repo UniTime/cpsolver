@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.Set;
 
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.heuristics.NeighbourSelection;
 import org.cpsolver.ifs.model.InfoProvider;
@@ -96,7 +96,7 @@ import org.cpsolver.studentsct.model.Student.StudentPriority;
  */
 
 public class SwapStudentSelection implements NeighbourSelection<Request, Enrollment>, ProblemStudentsProvider, InfoProvider<Request, Enrollment>, SolverListener<Request, Enrollment> {
-    private static Logger sLog = Logger.getLogger(SwapStudentSelection.class);
+    private static Logger sLog = org.apache.logging.log4j.LogManager.getLogger(SwapStudentSelection.class);
     private Set<Student> iProblemStudents = Collections.synchronizedSet(new HashSet<Student>());
     private LinkedList<Student> iStudents = null;
     private static DecimalFormat sDF = new DecimalFormat("0.00");

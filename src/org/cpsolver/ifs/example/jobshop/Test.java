@@ -57,7 +57,7 @@ import org.cpsolver.ifs.util.ToolBox;
  */
 public class Test {
     private static java.text.SimpleDateFormat sDateFormat = new java.text.SimpleDateFormat("dd-MMM-yy_HHmmss", java.util.Locale.US);
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(Test.class);
+    private static org.apache.logging.log4j.Logger sLogger = org.apache.logging.log4j.LogManager.getLogger(Test.class);
 
     public static void test(DataProperties properties) {
         try {

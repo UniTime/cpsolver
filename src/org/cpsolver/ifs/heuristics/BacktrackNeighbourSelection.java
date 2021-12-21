@@ -10,7 +10,7 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.context.AssignmentContext;
 import org.cpsolver.ifs.constant.ConstantVariable;
@@ -73,7 +73,7 @@ import org.cpsolver.ifs.util.JProf;
  */
 public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Value<V, T>> extends StandardNeighbourSelection<V, T> {
     private ConflictStatistics<V, T> iStat = null;
-    private static Logger sLog = Logger.getLogger(BacktrackNeighbourSelection.class);
+    private static Logger sLog = org.apache.logging.log4j.LogManager.getLogger(BacktrackNeighbourSelection.class);
     private int iTimeout = 5000;
     private int iDepth = 4;
     private int iMaxIters = -1;

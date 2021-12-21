@@ -116,7 +116,7 @@ import org.dom4j.io.XMLWriter;
  */
 
 public class TimetableXMLSaver extends TimetableSaver {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(TimetableXMLSaver.class);
+    private static org.apache.logging.log4j.Logger sLogger = org.apache.logging.log4j.LogManager.getLogger(TimetableXMLSaver.class);
     private static DecimalFormat[] sDF = { new DecimalFormat(""), new DecimalFormat("0"), new DecimalFormat("00"),
             new DecimalFormat("000"), new DecimalFormat("0000"), new DecimalFormat("00000"),
             new DecimalFormat("000000"), new DecimalFormat("0000000") };

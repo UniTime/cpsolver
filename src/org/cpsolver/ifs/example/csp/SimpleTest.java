@@ -2,6 +2,7 @@ package org.cpsolver.ifs.example.csp;
 
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
+import org.cpsolver.ifs.util.ToolBox;
 
 /**
  * Simple test of IFS CBS algorithm on random binary CSP problem
@@ -32,7 +33,7 @@ public class SimpleTest {
      * @param args program arguments
      */
     public static void main(String[] args) {
-        org.apache.log4j.BasicConfigurator.configure();
+        ToolBox.configureLogging();
         int nrVariables = 25;
         int nrValues = 12;
         int nrConstraints = 198;

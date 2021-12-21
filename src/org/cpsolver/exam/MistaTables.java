@@ -54,7 +54,7 @@ import org.dom4j.io.SAXReader;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class MistaTables {
-    private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(MistaTables.class);
+    private static org.apache.logging.log4j.Logger sLog = org.apache.logging.log4j.LogManager.getLogger(MistaTables.class);
     private static java.text.DecimalFormat sNF = new java.text.DecimalFormat("###,##0", new java.text.DecimalFormatSymbols(Locale.US));
     private static java.text.DecimalFormat sDF = new java.text.DecimalFormat("###,##0.000", new java.text.DecimalFormatSymbols(Locale.US));
     

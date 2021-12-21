@@ -204,7 +204,7 @@ import org.cpsolver.ifs.util.ToolBox;
 public class Solver<V extends Variable<V, T>, T extends Value<V, T>> {
     public static int THREAD_PRIORITY = 3;
     /** log */
-    protected static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(Solver.class);
+    protected static org.apache.logging.log4j.Logger sLogger = org.apache.logging.log4j.LogManager.getLogger(Solver.class);
     /** current solution */
     protected Solution<V, T> iCurrentSolution = null;
     /** last solution (after IFS Solver finishes) */

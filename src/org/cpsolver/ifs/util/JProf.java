@@ -3,7 +3,7 @@ package org.cpsolver.ifs.util;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * CPU time measurement. <b>JAVA profiling extension is used. Java needs to be
@@ -46,18 +46,18 @@ public class JProf {
             try {
                 ThreadMXBean bean = ManagementFactory.getThreadMXBean();
                 if (!bean.isCurrentThreadCpuTimeSupported()) {
-                    Logger.getLogger(JProf.class).warn("Measuring " + sMode.name() + " time is not supported, falling back to wall time.");
+                    LogManager.getLogger(JProf.class).warn("Measuring " + sMode.name() + " time is not supported, falling back to wall time.");
                     sMode = Mode.wall;
                 }
                 if (!bean.isThreadCpuTimeEnabled())
                     bean.setThreadCpuTimeEnabled(true);
             } catch (UnsupportedOperationException e) {
-                Logger.getLogger(JProf.class).error("Unable to measure " + sMode.name() + " time, falling back to wall time: " + e.getMessage());
+                LogManager.getLogger(JProf.class).error("Unable to measure " + sMode.name() + " time, falling back to wall time: " + e.getMessage());
                 sMode = Mode.wall;
                 sMode = Mode.wall;
             }
         }
-        Logger.getLogger(JProf.class).info("Using " + sMode.name() + " time.");
+        LogManager.getLogger(JProf.class).info("Using " + sMode.name() + " time.");
         sInitialized = true;
     }
     
@@ -77,7 +77,7 @@ public class JProf {
                     return System.nanoTime() / 1e9;
             }
         } catch (UnsupportedOperationException e) {
-            Logger.getLogger(JProf.class).error("Unable to measure " + sMode.name() + " time, falling back to wall time: " + e.getMessage());
+            LogManager.getLogger(JProf.class).error("Unable to measure " + sMode.name() + " time, falling back to wall time: " + e.getMessage());
             sMode = Mode.wall;
             return System.nanoTime() / 1e9;
         }
@@ -99,7 +99,7 @@ public class JProf {
                     return System.currentTimeMillis();
             }
         } catch (UnsupportedOperationException e) {
-            Logger.getLogger(JProf.class).error("Unable to measure " + sMode.name() + " time, falling back to wall time: " + e.getMessage());
+            LogManager.getLogger(JProf.class).error("Unable to measure " + sMode.name() + " time, falling back to wall time: " + e.getMessage());
             sMode = Mode.wall;
             return System.currentTimeMillis();
         }

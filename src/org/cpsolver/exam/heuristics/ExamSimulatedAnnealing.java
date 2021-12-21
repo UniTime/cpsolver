@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.cpsolver.exam.model.Exam;
 import org.cpsolver.exam.model.ExamPlacement;
 import org.cpsolver.exam.neighbours.ExamRandomMove;
@@ -83,7 +83,7 @@ import org.cpsolver.ifs.util.ToolBox;
  */
 @Deprecated
 public class ExamSimulatedAnnealing extends NeighbourSelectionWithContext<Exam, ExamPlacement, ExamSimulatedAnnealing.Context> implements SolutionListener<Exam, ExamPlacement>, LazyNeighbourAcceptanceCriterion<Exam, ExamPlacement> {
-    private static Logger sLog = Logger.getLogger(ExamSimulatedAnnealing.class);
+    private static Logger sLog = org.apache.logging.log4j.LogManager.getLogger(ExamSimulatedAnnealing.class);
     private static DecimalFormat sDF2 = new DecimalFormat("0.00");
     private static DecimalFormat sDF5 = new DecimalFormat("0.00000");
     private static DecimalFormat sDF10 = new DecimalFormat("0.0000000000");

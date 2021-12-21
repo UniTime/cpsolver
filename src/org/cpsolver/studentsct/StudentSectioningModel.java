@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.cpsolver.coursett.Constants;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.InheritedAssignment;
@@ -84,7 +84,7 @@ import org.cpsolver.studentsct.weights.StudentWeights;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class StudentSectioningModel extends ModelWithContext<Request, Enrollment, StudentSectioningModel.StudentSectioningModelContext> implements CanInheritContext<Request, Enrollment, StudentSectioningModel.StudentSectioningModelContext> {
-    private static Logger sLog = Logger.getLogger(StudentSectioningModel.class);
+    private static Logger sLog = org.apache.logging.log4j.LogManager.getLogger(StudentSectioningModel.class);
     protected static DecimalFormat sDecimalFormat = new DecimalFormat("0.00");
     private List<Student> iStudents = new ArrayList<Student>();
     private List<Offering> iOfferings = new ArrayList<Offering>();

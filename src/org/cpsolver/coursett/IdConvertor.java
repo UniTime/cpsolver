@@ -41,7 +41,7 @@ import org.dom4j.io.XMLWriter;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class IdConvertor {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(IdConvertor.class);
+    private static org.apache.logging.log4j.Logger sLogger = org.apache.logging.log4j.LogManager.getLogger(IdConvertor.class);
     private static IdConvertor sInstance = null;
     private HashMap<String, HashMap<String, String>> iConversion = new HashMap<String, HashMap<String, String>>();
     private String iFile = null;

@@ -3,7 +3,7 @@ package org.cpsolver.ifs.algorithms;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.context.AssignmentContext;
 import org.cpsolver.ifs.assignment.context.NeighbourSelectionWithContext;
@@ -54,7 +54,7 @@ import org.cpsolver.ifs.util.Progress;
  * @param <T> Value
  */
 public class MetaHeuristicSearch<V extends Variable<V, T>, T extends Value<V, T>> extends NeighbourSelectionWithContext<V,T,MetaHeuristicSearch<V,T>.MetaHeuristicSearchContext> {
-    private Logger iLog = Logger.getLogger(SimpleSearch.class);
+    private Logger iLog = org.apache.logging.log4j.LogManager.getLogger(SimpleSearch.class);
     private List<NeighbourSelection<V, T>> iConstructionPhase = new ArrayList<NeighbourSelection<V,T>>();
     private List<NeighbourSelection<V, T>> iIncompletePhase = new ArrayList<NeighbourSelection<V,T>>();
     private List<NeighbourSelection<V, T>> iHillClimberPhase = new ArrayList<NeighbourSelection<V,T>>();

@@ -17,9 +17,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
+import org.apache.logging.log4j.Logger;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.AssignmentMap;
 import org.cpsolver.ifs.assignment.DefaultSingleAssignment;
@@ -109,7 +107,7 @@ import org.cpsolver.studentsct.reservation.Reservation;
  */
 public class Test {
     public static DecimalFormat sDF = new DecimalFormat("0.00000");
-    public static Logger sLog = Logger.getLogger(Test.class);
+    public static Logger sLog = org.apache.logging.log4j.LogManager.getLogger(Test.class);
 
     private OnlineSectioningModel iModel;
     private Assignment<Request, Enrollment> iAssignment;
@@ -904,7 +902,7 @@ public class Test {
     public static void main(String[] args) {
         try {
             System.setProperty("jprof", "cpu");
-            BasicConfigurator.configure();
+            ToolBox.configureLogging();
 
             DataProperties cfg = new DataProperties();
             cfg.setProperty("Neighbour.BranchAndBoundTimeout", "5000");
@@ -919,22 +917,10 @@ public class Test {
             cfg.setProperty("StudentWeights.MultiCriteria", "true");
             cfg.setProperty("CourseRequest.SameTimePrecise", "true");
 
-            cfg.setProperty("log4j.rootLogger", "INFO, A1");
-            cfg.setProperty("log4j.appender.A1", "org.apache.log4j.ConsoleAppender");
-            cfg.setProperty("log4j.appender.A1.layout", "org.apache.log4j.PatternLayout");
-            cfg.setProperty("log4j.appender.A1.layout.ConversionPattern", "%-5p %c{2}: %m%n");
-            cfg.setProperty("log4j.logger.org.hibernate", "INFO");
-            cfg.setProperty("log4j.logger.org.hibernate.cfg", "WARN");
-            cfg.setProperty("log4j.logger.org.hibernate.cache.EhCacheProvider", "ERROR");
-            cfg.setProperty("log4j.logger.org.unitime.commons.hibernate", "INFO");
-            cfg.setProperty("log4j.logger.net", "INFO");
-
             cfg.setProperty("Xml.LoadBest", "false");
             cfg.setProperty("Xml.LoadCurrent", "false");
 
             cfg.putAll(System.getProperties());
-
-            PropertyConfigurator.configure(cfg);
 
             final Test test = new Test(cfg);
 

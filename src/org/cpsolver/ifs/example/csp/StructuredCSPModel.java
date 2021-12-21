@@ -94,7 +94,7 @@ import org.cpsolver.ifs.util.DataProperties;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class StructuredCSPModel extends Model<CSPVariable, CSPValue> {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(StructuredCSPModel.class);
+    private static org.apache.logging.log4j.Logger sLogger = org.apache.logging.log4j.LogManager.getLogger(StructuredCSPModel.class);
     private DataProperties iProperties = null;
 
     /** Constructor 

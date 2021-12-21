@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Set;
 
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.cpsolver.exam.criteria.RoomPenalty;
 import org.cpsolver.exam.criteria.RoomSizePenalty;
 import org.cpsolver.exam.model.Exam;
@@ -52,7 +52,7 @@ import org.cpsolver.ifs.util.ToolBox;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
-    private static Logger sLog = Logger.getLogger(ExamSplitMoves.class);
+    private static Logger sLog = org.apache.logging.log4j.LogManager.getLogger(ExamSplitMoves.class);
     private ExamSplitter iSplitter = null;
 
     /** Constructor 

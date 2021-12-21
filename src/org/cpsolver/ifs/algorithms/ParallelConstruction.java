@@ -3,7 +3,7 @@ package org.cpsolver.ifs.algorithms;
 import java.util.Collection;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.context.AssignmentContext;
 import org.cpsolver.ifs.assignment.context.NeighbourSelectionWithContext;
@@ -51,7 +51,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * @param <T> Value
  */
 public class ParallelConstruction<V extends Variable<V, T>, T extends Value<V, T>> extends NeighbourSelectionWithContext<V, T, ParallelConstruction<V, T>.ConstructionContext> implements SolutionListener<V, T> {
-    protected static Logger sLog = Logger.getLogger(ParallelConstruction.class);
+    protected static Logger sLog = org.apache.logging.log4j.LogManager.getLogger(ParallelConstruction.class);
     protected NeighbourSelection<V, T> iParent = null;
     protected Double iBestValue = null;
     protected int iBestIndex = -1, iBestAssigned = 0;

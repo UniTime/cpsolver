@@ -1,6 +1,6 @@
 package org.cpsolver.exam.heuristics;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.cpsolver.exam.model.Exam;
 import org.cpsolver.exam.model.ExamPlacement;
 import org.cpsolver.exam.neighbours.ExamRandomMove;
@@ -64,7 +64,7 @@ import org.cpsolver.ifs.util.Progress;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class ExamNeighbourSelection extends NeighbourSelectionWithContext<Exam, ExamPlacement, ExamNeighbourSelection.Context> implements TerminationCondition<Exam, ExamPlacement> {
-    private static Logger sLog = Logger.getLogger(ExamNeighbourSelection.class);
+    private static Logger sLog = org.apache.logging.log4j.LogManager.getLogger(ExamNeighbourSelection.class);
     private ExamColoringConstruction iColor = null;
     private ExamConstruction iCon = null;
     private StandardNeighbourSelection<Exam, ExamPlacement> iStd = null;

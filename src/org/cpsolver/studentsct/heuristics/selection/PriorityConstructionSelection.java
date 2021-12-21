@@ -54,7 +54,7 @@ import org.cpsolver.studentsct.model.Student;
  */
 
 public class PriorityConstructionSelection implements NeighbourSelection<Request, Enrollment> {
-    private static org.apache.log4j.Logger sLog = org.apache.log4j.Logger.getLogger(PriorityConstructionSelection.class);
+    private static org.apache.logging.log4j.Logger sLog = org.apache.logging.log4j.LogManager.getLogger(PriorityConstructionSelection.class);
     private static DecimalFormat sDF = new DecimalFormat("0.00");
     private int iCycle = 0;
     private int iMaxCycles = 7;

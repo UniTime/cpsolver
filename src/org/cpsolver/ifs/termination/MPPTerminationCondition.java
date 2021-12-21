@@ -79,7 +79,7 @@ import org.cpsolver.ifs.util.DataProperties;
  **/
 public class MPPTerminationCondition<V extends Variable<V, T>, T extends Value<V, T>> implements
         TerminationCondition<V, T> {
-    protected static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(MPPTerminationCondition.class);
+    protected static org.apache.logging.log4j.Logger sLogger = org.apache.logging.log4j.LogManager.getLogger(MPPTerminationCondition.class);
     private int iMinPerturbances;
     private int iMaxIter;
     private double iTimeOut;

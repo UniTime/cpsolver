@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.heuristics.NeighbourSelection;
 import org.cpsolver.ifs.model.GlobalConstraint;
@@ -98,7 +98,7 @@ import org.cpsolver.studentsct.weights.StudentWeights;
  */
 
 public class BranchBoundSelection implements NeighbourSelection<Request, Enrollment>, InfoProvider<Request, Enrollment>, SolverListener<Request, Enrollment> {
-    private static Logger sLog = Logger.getLogger(BranchBoundSelection.class);
+    private static Logger sLog = org.apache.logging.log4j.LogManager.getLogger(BranchBoundSelection.class);
     private static DecimalFormat sDF = new DecimalFormat("0.00");
     protected int iTimeout = 10000;
     protected DistanceConflict iDistanceConflict = null;

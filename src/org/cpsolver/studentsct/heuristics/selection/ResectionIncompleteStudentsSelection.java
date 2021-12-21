@@ -1,6 +1,6 @@
 package org.cpsolver.studentsct.heuristics.selection;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.model.Neighbour;
 import org.cpsolver.ifs.solution.Solution;
@@ -44,7 +44,7 @@ import org.cpsolver.studentsct.model.Student;
  */
 
 public class ResectionIncompleteStudentsSelection extends BranchBoundSelection {
-    private static Logger sLog = Logger.getLogger(ResectionIncompleteStudentsSelection.class);
+    private static Logger sLog = org.apache.logging.log4j.LogManager.getLogger(ResectionIncompleteStudentsSelection.class);
 
     public ResectionIncompleteStudentsSelection(DataProperties properties) {
         super(properties);

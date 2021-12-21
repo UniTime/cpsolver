@@ -80,7 +80,7 @@ import org.cpsolver.ifs.util.DistanceMetric;
  */
 
 public class TimetableModel extends ConstantModel<Lecture, Placement> {
-    private static org.apache.log4j.Logger sLogger = org.apache.log4j.Logger.getLogger(TimetableModel.class);
+    private static org.apache.logging.log4j.Logger sLogger = org.apache.logging.log4j.LogManager.getLogger(TimetableModel.class);
     private static java.text.DecimalFormat sDoubleFormat = new java.text.DecimalFormat("0.00",
             new java.text.DecimalFormatSymbols(Locale.US));
 

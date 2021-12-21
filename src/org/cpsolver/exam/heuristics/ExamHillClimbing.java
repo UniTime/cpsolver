@@ -5,7 +5,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.cpsolver.exam.model.Exam;
 import org.cpsolver.exam.model.ExamPlacement;
 import org.cpsolver.exam.neighbours.ExamRandomMove;
@@ -63,7 +63,7 @@ import org.cpsolver.ifs.util.ToolBox;
  */
 @Deprecated
 public class ExamHillClimbing extends NeighbourSelectionWithContext<Exam, ExamPlacement, ExamHillClimbing.Context> implements SolutionListener<Exam, ExamPlacement>, LazyNeighbourAcceptanceCriterion<Exam, ExamPlacement> {
-    private static Logger sLog = Logger.getLogger(ExamHillClimbing.class);
+    private static Logger sLog = org.apache.logging.log4j.LogManager.getLogger(ExamHillClimbing.class);
     private List<NeighbourSelection<Exam, ExamPlacement>> iNeighbours = null;
     private int iMaxIdleIters = 25000;
     private Progress iProgress = null;

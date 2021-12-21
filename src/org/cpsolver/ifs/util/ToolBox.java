@@ -20,9 +20,18 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
+import org.apache.logging.log4j.core.config.builder.api.AppenderComponentBuilder;
+import org.apache.logging.log4j.core.config.builder.api.ComponentBuilder;
+import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilder;
+import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilderFactory;
+import org.apache.logging.log4j.core.config.builder.api.LayoutComponentBuilder;
+import org.apache.logging.log4j.core.config.builder.api.LoggerComponentBuilder;
+import org.apache.logging.log4j.core.config.builder.api.RootLoggerComponentBuilder;
+import org.apache.logging.log4j.core.config.builder.impl.BuiltConfiguration;
 
 /**
  * Several auxiliary static methods.
@@ -258,15 +267,46 @@ public class ToolBox {
 
     /** Configurates log4j loging */
     public static void configureLogging() {
-        Properties props = new Properties();
-        props.setProperty("log4j.rootLogger", "DEBUG, A1");
-        props.setProperty("log4j.appender.A1", "org.apache.log4j.ConsoleAppender");
-        props.setProperty("log4j.appender.A1.layout", "org.apache.log4j.PatternLayout");
-        props.setProperty("log4j.appender.A1.layout.ConversionPattern", "%-5p %c{2}: %m%n");
-        props.setProperty("log4j.logger.net", "INFO");
-        props.setProperty("log4j.logger.org.cpsolver", "DEBUG");
-        props.setProperty("log4j.logger.org", "INFO");
-        PropertyConfigurator.configure(props);
+        if ("true".equalsIgnoreCase(System.getProperty("org.cpsolver.debug", "false"))) {
+            Configurator.setLevel("org.cpsolver", Level.DEBUG);
+        }
+    }
+    
+    /**
+     * Setup log4j logging
+     * 
+     * @param logFile  log file
+     * @param debug true if debug messages should be logged (use -Ddebug=true to enable debug message)
+     */
+    public static void setupLogging(File logFile, boolean debug) {
+        ConfigurationBuilder<BuiltConfiguration> builder = ConfigurationBuilderFactory.newConfigurationBuilder();
+        
+        AppenderComponentBuilder console = builder.newAppender("stdout", "Console");
+        console.addAttribute("target", "SYSTEM_OUT");
+        LayoutComponentBuilder consoleLayout = builder.newLayout("PatternLayout");
+        consoleLayout.addAttribute("pattern", "%-5p %c{2}: %m%n");
+        console.add(consoleLayout);
+        builder.add(console);
+        
+        RootLoggerComponentBuilder root = builder.newRootLogger(Level.INFO);
+        root.add(builder.newAppenderRef("stdout"));
+        builder.add(root);
+        
+        if (logFile != null) {
+            AppenderComponentBuilder file = builder.newAppender("log", "File");
+            file.addAttribute("fileName", logFile.getPath());
+            
+            LayoutComponentBuilder filePattern = builder.newLayout("PatternLayout");
+            filePattern.addAttribute("pattern", "%d{dd-MMM-yy HH:mm:ss.SSS} [%t] %-5p %c{2}> %m%n");
+            file.add(filePattern);
+            builder.add(file);
+            
+            LoggerComponentBuilder logger = builder.newLogger("org.cpsolver", debug ? Level.DEBUG : Level.INFO);
+            logger.add(builder.newAppenderRef("log"));
+            logger.addAttribute("additivity", true);
+            builder.add(logger);
+        }
+        Configurator.reconfigure(builder.build());
     }
 
     /**
@@ -312,25 +352,69 @@ public class ToolBox {
      * @return name of the log file
      */
     public static String configureLogging(String logDir, Properties properties, boolean timeInFileName, boolean includeSystemOuts) {
-        String time = new java.text.SimpleDateFormat("yyyy-MM-dd_(HH.mm.ss)", java.util.Locale.US).format(new Date());
         (new File(logDir)).mkdirs();
-        String fileName = logDir + File.separator + (timeInFileName ? "debug_" + time : "debug") + ".log";
-        Properties props = (properties != null ? properties : new Properties());
-        if (!props.containsKey("log4j.rootLogger")) {
-            props.setProperty("log4j.rootLogger", "debug, LogFile");
-            if (timeInFileName)
-                props.setProperty("log4j.appender.LogFile", "org.apache.log4j.FileAppender");
-            else {
-                props.setProperty("log4j.appender.LogFile", "org.apache.log4j.DailyRollingFileAppender");
-                props.setProperty("log4j.appender.LogFile.DatePattern", "'.'yyyy-MM-dd");
-            }
-            props.setProperty("log4j.appender.LogFile.File", fileName);
-            props.setProperty("log4j.appender.LogFile.layout", "org.apache.log4j.PatternLayout");
-            props.setProperty("log4j.appender.LogFile.layout.ConversionPattern",
-                    "%d{dd-MMM-yy HH:mm:ss.SSS} [%t] %-5p %c{2}> %m%n");
+
+        ConfigurationBuilder<BuiltConfiguration> builder = ConfigurationBuilderFactory.newConfigurationBuilder();
+        
+        AppenderComponentBuilder console = builder.newAppender("stdout", "Console");
+        LayoutComponentBuilder consoleLayout = builder.newLayout("PatternLayout");
+        consoleLayout.addAttribute("pattern", "[%t] %m%n");
+        console.add(consoleLayout);
+        builder.add(console);
+        
+        AppenderComponentBuilder file = null;
+        String fileName = null;
+        if (timeInFileName) {
+            file = builder.newAppender("log", "File");
+            String time = new java.text.SimpleDateFormat("yyyy-MM-dd_(HH.mm.ss)", java.util.Locale.US).format(new Date());
+            fileName = logDir + File.separator + "debug_" + time + ".log";
+            file.addAttribute("fileName", fileName);
+        } else {
+            file = builder.newAppender("log", "RollingFile");
+            fileName = logDir + File.separator + "debug.log";
+            file.addAttribute("fileName", fileName);
+            file.addAttribute("filePattern", logDir + File.separator + "debug-%d{MM-dd-yy}-%i.log.gz");
+            ComponentBuilder<?> triggeringPolicies = builder.newComponent("Policies")
+                    .addComponent(builder.newComponent("CronTriggeringPolicy").addAttribute("schedule", "0 0 0 * * ?"))
+                    .addComponent(builder.newComponent("SizeBasedTriggeringPolicy").addAttribute("size", "100M"));
+            file.addComponent(triggeringPolicies);
         }
-        PropertyConfigurator.configure(props);
-        Logger log = Logger.getRootLogger();
+        LayoutComponentBuilder filePattern = builder.newLayout("PatternLayout");
+        filePattern.addAttribute("pattern", "%d{dd-MMM-yy HH:mm:ss.SSS} [%t] %-5p %c{2}> %m%n");
+        file.add(filePattern);
+        builder.add(file);
+        
+        RootLoggerComponentBuilder root = builder.newRootLogger("true".equals(System.getProperty("org.cpsolver.debug", "false")) ? Level.DEBUG : Level.INFO);
+        root.add(builder.newAppenderRef("log"));
+        builder.add(root);
+        
+        LoggerComponentBuilder info = builder.newLogger("org.cpsolver", Level.INFO);
+        info.add(builder.newAppenderRef("stdout"));
+        info.addAttribute("additivity", true);
+        builder.add(info);
+        
+        if (properties != null) {
+            for (Map.Entry<Object, Object> e: properties.entrySet()) {
+                String property = (String)e.getKey();
+                String value = (String)e.getValue();
+                if (property.startsWith("log4j.logger.")) {
+                    if (value.indexOf(',') < 0) {
+                        LoggerComponentBuilder logger = builder.newLogger(property.substring("log4j.logger.".length()), Level.getLevel(value));
+                        builder.add(logger);
+                    } else {
+                        String level = value.substring(0, value.indexOf(','));
+                        String appender = value.substring(value.indexOf(',') + 1);
+                        LoggerComponentBuilder logger = builder.newLogger(property.substring("log4j.logger.".length()), Level.getLevel(level));
+                        for (String a: appender.split(","))
+                            logger.add(builder.newAppenderRef(a));
+                        builder.add(logger);
+                    }
+                }
+            }
+        }
+        Configurator.reconfigure(builder.build());
+        
+        Logger log = LogManager.getRootLogger();
         log.info("-----------------------------------------------------------------------");
         log.info("IFS debug file");
         log.info("");
@@ -349,8 +433,8 @@ public class ToolBox {
         log.info("Classpath:   " + System.getProperty("java.class.path"));
         log.info("");
         if (includeSystemOuts) {
-            System.setErr(new PrintStream(new LogOutputStream(System.err, Logger.getLogger("STDERR"), Level.ERROR)));
-            System.setOut(new PrintStream(new LogOutputStream(System.out, Logger.getLogger("STDOUT"), Level.DEBUG)));
+            System.setErr(new PrintStream(new LogOutputStream(System.err, org.apache.logging.log4j.LogManager.getLogger("STDERR"), Level.ERROR)));
+            System.setOut(new PrintStream(new LogOutputStream(System.out, org.apache.logging.log4j.LogManager.getLogger("STDOUT"), Level.DEBUG)));
         }
         return fileName;
     }

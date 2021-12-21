@@ -7,7 +7,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.cpsolver.exam.model.Exam;
 import org.cpsolver.exam.model.ExamModel;
 import org.cpsolver.exam.model.ExamPeriodPlacement;
@@ -81,7 +81,7 @@ import org.cpsolver.ifs.util.ToolBox;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class ExamTabuSearch extends NeighbourSelectionWithContext<Exam, ExamPlacement, ExamTabuSearch.TabuList> implements ValueSelection<Exam, ExamPlacement> {
-    private static Logger sLog = Logger.getLogger(ExamTabuSearch.class);
+    private static Logger sLog = org.apache.logging.log4j.LogManager.getLogger(ExamTabuSearch.class);
     private ConflictStatistics<Exam, ExamPlacement> iStat = null;
 
     private long iFirstIteration = -1;

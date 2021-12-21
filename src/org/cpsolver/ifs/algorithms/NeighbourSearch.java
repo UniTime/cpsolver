@@ -7,7 +7,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.cpsolver.ifs.algorithms.neighbourhoods.HillClimberSelection;
 import org.cpsolver.ifs.algorithms.neighbourhoods.RandomMove;
 import org.cpsolver.ifs.algorithms.neighbourhoods.RandomSwapMove;
@@ -74,7 +74,7 @@ public abstract class NeighbourSearch<V extends Variable<V, T>, T extends Value<
     @SuppressWarnings("unchecked")
     public NeighbourSearch(DataProperties properties) {
         iPhase = getClass().getSimpleName().replaceAll("(?<=[^A-Z])([A-Z])"," $1");
-        iLog = Logger.getLogger(getClass());
+        iLog = org.apache.logging.log4j.LogManager.getLogger(getClass());
         iRandomSelection = properties.getPropertyBoolean(getParameterBaseName() + ".Random", iRandomSelection);
         iUpdatePoints = properties.getPropertyBoolean(getParameterBaseName() + ".Update", iUpdatePoints);
         String neighbours = properties.getProperty(getParameterBaseName() + ".Neighbours",
