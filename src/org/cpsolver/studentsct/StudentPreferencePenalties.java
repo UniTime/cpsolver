@@ -123,7 +123,7 @@ public class StudentPreferencePenalties {
         int idx = 0;
         while (roulette.hasMoreElements()) {
             int[] dt = roulette.nextElement();
-            iWeight.put(dt[0] + "." + dt[1], new Double(((double) idx) / (roulette.size() - 1)));
+            iWeight.put(dt[0] + "." + dt[1], Double.valueOf(((double) idx) / (roulette.size() - 1)));
             if (sDebug)
                 sLog.debug("  -- " + (idx + 1) + ". preference is " + toString(dt[0], dt[1]) + " (P:"
                         + sDF.format(((double) idx) / (roulette.size() - 1)) + ")");

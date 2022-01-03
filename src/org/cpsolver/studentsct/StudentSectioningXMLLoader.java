@@ -312,9 +312,9 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             loadOfferings(root.element("offerings"), offeringTable, courseTable, timetable);
         } else {
             for (Offering offering : getModel().getOfferings()) {
-                offeringTable.put(new Long(offering.getId()), offering);
+                offeringTable.put(Long.valueOf(offering.getId()), offering);
                 for (Course course : offering.getCourses()) {
-                    courseTable.put(new Long(course.getId()), course);
+                    courseTable.put(Long.valueOf(course.getId()), course);
                 }
             }
         }
@@ -352,13 +352,13 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             Offering offering = new Offering(
                     Long.parseLong(offeringEl.attributeValue("id")),
                     offeringEl.attributeValue("name", "O" + offeringEl.attributeValue("id")));
-            offeringTable.put(new Long(offering.getId()), offering);
+            offeringTable.put(Long.valueOf(offering.getId()), offering);
             getModel().addOffering(offering);
             
             for (Iterator<?> j = offeringEl.elementIterator("course"); j.hasNext();) {
                 Element courseEl = (Element) j.next();
                 Course course = loadCourse(courseEl, offering);
-                courseTable.put(new Long(course.getId()), course);
+                courseTable.put(Long.valueOf(course.getId()), course);
             }
             
             for (Iterator<?> j = offeringEl.elementIterator("config"); j.hasNext();) {
@@ -423,7 +423,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         for (Iterator<?> k = configEl.elementIterator("subpart"); k.hasNext();) {
             Element subpartEl = (Element) k.next();
             Subpart subpart = loadSubpart(subpartEl, config, subpartTable, sectionTable, timetable);
-            subpartTable.put(new Long(subpart.getId()), subpart);
+            subpartTable.put(Long.valueOf(subpart.getId()), subpart);
         }
         return config;
     }
@@ -456,7 +456,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         for (Iterator<?> l = subpartEl.elementIterator("section"); l.hasNext();) {
             Element sectionEl = (Element) l.next();
             Section section = loadSection(sectionEl, subpart, sectionTable, timetable);
-            sectionTable.put(new Long(section.getId()), section);
+            sectionTable.put(Long.valueOf(section.getId()), section);
         }
         
         return subpart;

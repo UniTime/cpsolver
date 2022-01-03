@@ -97,7 +97,7 @@ public class HeuristicSelector<E> {
     }
 
     public Double firstLevelThreshold() {
-        return (iElements.isEmpty() ? null : new Double(iBestValueZero
+        return (iElements.isEmpty() ? null : Double.valueOf(iBestValueZero
                 * (iBestValueZero < 0.0 ? 1.0 - iThreshKoef[0] : 1.0 + iThreshKoef[0])));
     }
 

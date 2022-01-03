@@ -50,7 +50,7 @@ public class RandomStudentFilter implements StudentFilter {
      */
     @Override
     public boolean accept(Student student) {
-        Long studentId = new Long(student.getId());
+        Long studentId = Long.valueOf(student.getId());
         if (iAcceptedStudentIds.contains(studentId))
             return true;
         if (iRejectedStudentIds.contains(studentId))

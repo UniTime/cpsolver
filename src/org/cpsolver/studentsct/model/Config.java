@@ -318,7 +318,7 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
     
     @Override
     public int hashCode() {
-        return new Long(getId()).hashCode();
+        return Long.valueOf(getId()).hashCode();
     }
     
     @Override
@@ -557,7 +557,7 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
                 hasCredit = true;
                 credit += subpart.getCreditValue();
             }
-        return (hasCredit ? new Float(credit) : null);
+        return (hasCredit ? Float.valueOf(credit) : null);
     }
     
     public int getNrOnline() {

@@ -209,8 +209,8 @@ public class CourseConflictTable implements StudentSectioningReport {
                     boolean noAlt = (weight == null ? true : ((Boolean) weight[2]).booleanValue());
                     HashSet<String> expl = (weight == null ? new HashSet<String>() : (HashSet<String>) weight[3]);
                     expl.add(course.getName() + " n/a");
-                    conflictCourseTable.put(course, new Object[] { new Double(nrStud), new Double(nrStudW),
-                            new Boolean(noAlt), expl });
+                    conflictCourseTable.put(course, new Object[] { Double.valueOf(nrStud), Double.valueOf(nrStudW),
+                            Boolean.valueOf(noAlt), expl });
                 }
 
                 for (Enrollment enrollment : availableValues) {
@@ -263,8 +263,8 @@ public class CourseConflictTable implements StudentSectioningReport {
                             HashSet<String> expl = (weight == null ? new HashSet<String>()
                                     : (HashSet<String>) weight[3]);
                             expl.addAll(explanations(assignment, enrollment, conflict, useAmPm));
-                            conflictCourseTable.put(conflictCourse, new Object[] { new Double(nrStud),
-                                    new Double(nrStudW), new Boolean(noAlt), expl });
+                            conflictCourseTable.put(conflictCourse, new Object[] { Double.valueOf(nrStud),
+                                    Double.valueOf(nrStudW), Boolean.valueOf(noAlt), expl });
                         }
                     }
                 }

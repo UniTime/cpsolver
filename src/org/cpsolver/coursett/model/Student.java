@@ -241,7 +241,7 @@ public class Student implements Comparable<Student> {
                 }
                 double all = student.getOfferings().size() + getOfferings().size();
                 double dif = all - 2.0 * same;
-                dist = new Double(dif / all);
+                dist = Double.valueOf(dif / all);
             }
             if (USE_DISTANCE_CACHE) {
                 if (iDistanceCache == null)

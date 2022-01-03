@@ -558,7 +558,7 @@ public class TeachingRequest {
         
         @Override
         public int hashCode() {
-            return new Long(iRequestId << 8 + iIndex).hashCode();
+            return Long.valueOf(iRequestId << 8 + iIndex).hashCode();
         }
         
         @Override

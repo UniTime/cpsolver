@@ -184,7 +184,7 @@ public class FreeTimeRequest extends Request implements SctAssignment {
     @Override
     public int compareById(SctAssignment a) {
         if (a instanceof FreeTimeRequest) {
-            return new Long(getId()).compareTo(((FreeTimeRequest)a).getId());
+            return Long.valueOf(getId()).compareTo(((FreeTimeRequest)a).getId());
         } else {
             return 1;
         }

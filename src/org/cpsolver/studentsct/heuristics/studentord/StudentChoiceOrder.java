@@ -136,7 +136,7 @@ public class StudentChoiceOrder implements StudentOrder, Comparator<Student> {
                     for (Config config : course.getOffering().getConfigs()) {
                         Integer nrChoicesThisCfg = iCache.get(config);
                         if (nrChoicesThisCfg == null) {
-                            nrChoicesThisCfg = new Integer(nrChoices(config, 0, new HashSet<Section>()));
+                            nrChoicesThisCfg = Integer.valueOf(nrChoices(config, 0, new HashSet<Section>()));
                             iCache.put(config, nrChoicesThisCfg);
                         }
                         nrChoices += nrChoicesThisCfg.intValue();

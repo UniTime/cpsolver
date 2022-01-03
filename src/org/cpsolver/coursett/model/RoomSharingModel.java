@@ -35,8 +35,8 @@ public class RoomSharingModel {
     protected Long[] iDepartmentIds = null;
     protected HashMap<Long, Integer> iDepartmentIdx = null;
 
-    public static Long sFreeForAllPref = new Long(-1);
-    public static Long sNotAvailablePref = new Long(-2);
+    public static Long sFreeForAllPref = Long.valueOf(-1);
+    public static Long sNotAvailablePref = Long.valueOf(-2);
     public static char sFreeForAllPrefChar = '*';
     public static char sNotAvailablePrefChar = '#';
 

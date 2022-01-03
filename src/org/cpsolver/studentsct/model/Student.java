@@ -419,7 +419,7 @@ public class Student implements Comparable<Student> {
         if (getPriority() != s.getPriority())
             return (getPriority().ordinal() < s.getPriority().ordinal() ? -1 : 1);
         // then id
-        return new Long(getId()).compareTo(s.getId());
+        return Long.valueOf(getId()).compareTo(s.getId());
     }
     
     /**

@@ -229,7 +229,7 @@ public class SoftCache<K, V> implements Map<K, V> {
         for (int t = 0; t < 10; t++) {
             SoftCache<Integer, byte[]> x = new SoftCache<Integer, byte[]>();
             for (int i = 0; i < 1000000; i++)
-                x.put(new Integer(i), new byte[1024]);
+                x.put(Integer.valueOf(i), new byte[1024]);
         }
     }
 }

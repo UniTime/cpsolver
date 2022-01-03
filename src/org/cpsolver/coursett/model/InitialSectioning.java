@@ -400,7 +400,7 @@ public class InitialSectioning {
                         }
                     }
                 }
-                iDist = new Double(dist / cnt);
+                iDist = Double.valueOf(dist / cnt);
             }
             return iDist.doubleValue();
         }

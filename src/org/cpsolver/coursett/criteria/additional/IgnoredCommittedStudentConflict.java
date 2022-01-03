@@ -83,7 +83,7 @@ public class IgnoredCommittedStudentConflict extends StudentConflict {
         for (Lecture lecture: variables) {
             Double max = null;
             for (Placement placement: lecture.values(assignment)) {
-                if (max == null) { max = new Double(countCommittedConflicts(placement)); continue; }
+                if (max == null) { max = Double.valueOf(countCommittedConflicts(placement)); continue; }
                 max = Math.max(max, countCommittedConflicts(placement));
             }
             if (max != null) bounds[0] += max;

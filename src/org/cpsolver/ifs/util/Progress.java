@@ -237,7 +237,7 @@ public class Progress {
 
     /** Save current progress to the heap memory */
     public synchronized void save() {
-        iSave.add(new Object[] { iStatus, iPhase, new Long(iProgressMax), new Long(iProgressCurrent) });
+        iSave.add(new Object[] { iStatus, iPhase, Long.valueOf(iProgressMax), Long.valueOf(iProgressCurrent) });
         fireProgressSaved();
     }
 

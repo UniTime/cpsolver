@@ -911,7 +911,7 @@ public class CourseRequest extends Request {
             for (Course course : iCourses) {
                 min = Math.min(min, course.getOffering().getMinPenalty());
             }
-            iCachedMinPenalty = new Double(min);
+            iCachedMinPenalty = Double.valueOf(min);
         }
         return iCachedMinPenalty.doubleValue();
     }
@@ -927,7 +927,7 @@ public class CourseRequest extends Request {
             for (Course course : iCourses) {
                 max = Math.max(max, course.getOffering().getMaxPenalty());
             }
-            iCachedMaxPenalty = new Double(max);
+            iCachedMaxPenalty = Double.valueOf(max);
         }
         return iCachedMaxPenalty.doubleValue();
     }
@@ -947,7 +947,7 @@ public class CourseRequest extends Request {
         return - getWeight() * ((StudentSectioningModel)getModel()).getStudentWeights().getBound(this);
         /*
         if (iCachedBound == null) {
-            iCachedBound = new Double(-Math.pow(Enrollment.sPriorityWeight, getPriority())
+            iCachedBound = Double.valueOf(-Math.pow(Enrollment.sPriorityWeight, getPriority())
                     * (isAlternative() ? Enrollment.sAlterativeWeight : 1.0)
                     * Math.pow(Enrollment.sInitialWeight, (getInitialAssignment() == null ? 0 : 1))
                     * Math.pow(Enrollment.sSelectedWeight, (iSelectedChoices.isEmpty() ? 0 : 1))

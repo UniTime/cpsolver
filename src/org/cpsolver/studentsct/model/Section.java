@@ -494,7 +494,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
     @Override
     public int compareById(SctAssignment a) {
         if (a instanceof Section) {
-            return new Long(getId()).compareTo(((Section)a).getId());
+            return Long.valueOf(getId()).compareTo(((Section)a).getId());
         } else {
             return -1;
         }

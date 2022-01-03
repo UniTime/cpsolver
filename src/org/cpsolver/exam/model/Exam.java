@@ -878,7 +878,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
                         rooms++;
                 }
             }
-            iEstimatedDomainSize = new Integer(periods * rooms / split);
+            iEstimatedDomainSize = Integer.valueOf(periods * rooms / split);
         }
         return iEstimatedDomainSize.intValue();
     }

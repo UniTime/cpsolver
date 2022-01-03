@@ -654,7 +654,7 @@ public class OnlineSectProof {
                             }
                             Integer wc = worstCaseCat[i].get(cat);
                             if (wc == null || wc.intValue() < onl) {
-                                worstCaseCat[i].put(cat, new Integer(onl));
+                                worstCaseCat[i].put(cat, Integer.valueOf(onl));
                                 worstCaseSqCat[i].put(cat, sq.toString());
                             }
                         }

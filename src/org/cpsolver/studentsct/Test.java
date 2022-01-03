@@ -801,12 +801,12 @@ public class Test {
                     if (code == 'H' || code == 'T')
                         continue; // skip header and tail
                     long studentId = Long.parseLong(line.substring(14, 23));
-                    Student student = students.get(new Long(studentId));
+                    Student student = students.get(Long.valueOf(studentId));
                     if (student == null) {
                         student = new Student(studentId);
                         if (lastLike)
                             student.setDummy(true);
-                        students.put(new Long(studentId), student);
+                        students.put(Long.valueOf(studentId), student);
                         sLog.debug("  -- loading student " + studentId + " ...");
                     } else
                         sLog.debug("  -- updating student " + studentId + " ...");
@@ -913,7 +913,7 @@ public class Test {
                     long newId = -1;
                     while (true) {
                         newId = 1 + (long) (999999999L * Math.random());
-                        if (studentIds.add(new Long(newId)))
+                        if (studentIds.add(Long.valueOf(newId)))
                             break;
                     }
                     student.setId(newId);
@@ -963,7 +963,7 @@ public class Test {
                             if (code == 'D' || code == 'K')
                                 continue; // skip delete nad cancel
                             long studentId = Long.parseLong(line.substring(2, 11));
-                            Student student = students.get(new Long(studentId));
+                            Student student = students.get(Long.valueOf(studentId));
                             if (student == null) {
                                 sLog.info("  -- student " + studentId + " not found");
                                 continue;
@@ -1069,11 +1069,11 @@ public class Test {
         HashSet<Long> realIds = new HashSet<Long>();
         for (Student student : model.getStudents()) {
             if (student.isDummy()) {
-                if (!lastLikeIds.add(new Long(student.getId()))) {
+                if (!lastLikeIds.add(Long.valueOf(student.getId()))) {
                     sLog.error("Two last-like student with id " + student.getId());
                 }
             } else {
-                if (!realIds.add(new Long(student.getId()))) {
+                if (!realIds.add(Long.valueOf(student.getId()))) {
                     sLog.error("Two real student with id " + student.getId());
                 }
             }
@@ -1082,22 +1082,22 @@ public class Test {
                     CourseRequest courseRequest = (CourseRequest) request;
                     Course course = courseRequest.getCourses().get(0);
                     Integer cnt = (student.isDummy() ? lastLike : real).get(course);
-                    (student.isDummy() ? lastLike : real).put(course, new Integer(
+                    (student.isDummy() ? lastLike : real).put(course, Integer.valueOf(
                             (cnt == null ? 0 : cnt.intValue()) + 1));
                 }
             }
         }
         for (Student student : new ArrayList<Student>(model.getStudents())) {
-            if (student.isDummy() && realIds.contains(new Long(student.getId()))) {
+            if (student.isDummy() && realIds.contains(Long.valueOf(student.getId()))) {
                 sLog.warn("There is both last-like and real student with id " + student.getId());
                 long newId = -1;
                 while (true) {
                     newId = 1 + (long) (999999999L * Math.random());
-                    if (!realIds.contains(new Long(newId)) && !lastLikeIds.contains(new Long(newId)))
+                    if (!realIds.contains(Long.valueOf(newId)) && !lastLikeIds.contains(Long.valueOf(newId)))
                         break;
                 }
-                lastLikeIds.remove(new Long(student.getId()));
-                lastLikeIds.add(new Long(newId));
+                lastLikeIds.remove(Long.valueOf(student.getId()));
+                lastLikeIds.add(Long.valueOf(newId));
                 student.setId(newId);
                 sLog.warn("  -- last-like student id changed to " + student.getId());
             }
@@ -1247,13 +1247,13 @@ public class Test {
 
         public ExtraStudentFilter(StudentSectioningModel model) {
             for (Student student : model.getStudents()) {
-                iIds.add(new Long(student.getId()));
+                iIds.add(Long.valueOf(student.getId()));
             }
         }
 
         @Override
         public boolean accept(Student student) {
-            return !iIds.contains(new Long(student.getId()));
+            return !iIds.contains(Long.valueOf(student.getId()));
         }
 
         @Override

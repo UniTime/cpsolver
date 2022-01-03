@@ -128,7 +128,7 @@ public class Unavailability implements SctAssignment {
     @Override
     public int compareById(SctAssignment a) {
         if (a instanceof Unavailability) {
-            return new Long(getId()).compareTo(((Unavailability)a).getId());
+            return Long.valueOf(getId()).compareTo(((Unavailability)a).getId());
         } else {
             return 1;
         }

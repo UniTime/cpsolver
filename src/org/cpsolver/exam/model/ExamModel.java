@@ -894,7 +894,7 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
             room.setHard("true".equalsIgnoreCase(e.attributeValue("hard", "true")));
             addConstraint(room);
             getRooms().add(room);
-            rooms.put(new Long(room.getId()), room);
+            rooms.put(Long.valueOf(room.getId()), room);
             for (Iterator<?> j = e.elementIterator("period"); j.hasNext();) {
                 Element pe = (Element) j.next();
                 ExamPeriod period = getPeriod(Long.valueOf(pe.attributeValue("id")));
@@ -997,7 +997,7 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
                             allRooms.put(r, 0);
                 }
                 for (Iterator<?> j = e.elementIterator("original-room"); j.hasNext();) {
-                    allRooms.put((rooms.get(Long.valueOf(((Element) j.next()).attributeValue("id")))), new Integer(-1));
+                    allRooms.put((rooms.get(Long.valueOf(((Element) j.next()).attributeValue("id")))), Integer.valueOf(-1));
                 }
                 for (Map.Entry<ExamRoom, Integer> entry : allRooms.entrySet()) {
                     ExamRoomPlacement room = new ExamRoomPlacement(entry.getKey(), entry.getValue(), 100);
@@ -1017,7 +1017,7 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
                 exam.setSizeOverride(Integer.valueOf(e.attributeValue("size")));
             if (e.attributeValue("printOffset") != null)
                 exam.setPrintOffset(Integer.valueOf(e.attributeValue("printOffset")));
-            exams.put(new Long(exam.getId()), exam);
+            exams.put(Long.valueOf(exam.getId()), exam);
             addVariable(exam);
             if (e.attribute("average") != null)
                 exam.setAveragePeriod(Integer.parseInt(e.attributeValue("average")));
@@ -1061,7 +1061,7 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
                 Element f = (Element) j.next();
                 ExamOwner owner = new ExamOwner(exam, Long.parseLong(f.attributeValue("id")), f.attributeValue("name"));
                 exam.getOwners().add(owner);
-                courseSections.put(new Long(owner.getId()), owner);
+                courseSections.put(Long.valueOf(owner.getId()), owner);
             }
             if (iRoomSharing != null)
                 iRoomSharing.load(exam, e);

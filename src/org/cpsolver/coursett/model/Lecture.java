@@ -553,7 +553,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
             for (TimeLocation time : iTimeLocations) {
                 ret = Math.min(ret, time.getNormalizedPreference());
             }
-            iBestTimePreferenceCache = new Double(ret);
+            iBestTimePreferenceCache = Double.valueOf(ret);
         }
         return iBestTimePreferenceCache.doubleValue();
     }
@@ -858,7 +858,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
             }
 
             maxAchievableClassLimit = Math.max(minClassLimit(), maxAchievableClassLimit);
-            iCacheMaxAchievableClassLimit = new Integer(maxAchievableClassLimit);
+            iCacheMaxAchievableClassLimit = Integer.valueOf(maxAchievableClassLimit);
             return maxAchievableClassLimit;
         } finally {
             iLock.writeLock().unlock();
@@ -1175,7 +1175,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                     if (r.getPreference() <= Constants.sPreferenceLevelProhibited / 2)
                         min = Math.min(min, r.getRoomSize());
                 }
-                iCacheMinRoomSize = new Integer(min);
+                iCacheMinRoomSize = Integer.valueOf(min);
                 return min;
             } else {
                 List<RoomLocation> rooms = new ArrayList<RoomLocation>();
@@ -1191,7 +1191,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                     }
                 });
                 int min = rooms.isEmpty() ? 0 : rooms.get(Math.min(getNrRooms(), rooms.size()) - 1).getRoomSize();
-                iCacheMinRoomSize = new Integer(min);
+                iCacheMinRoomSize = Integer.valueOf(min);
                 return min;
             }
         } finally {
@@ -1215,7 +1215,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                     if (r.getPreference() <= Constants.sPreferenceLevelProhibited / 2) 
                         max = Math.max(max, r.getRoomSize());
                 }
-                iCacheMaxRoomSize = new Integer(max);
+                iCacheMaxRoomSize = Integer.valueOf(max);
                 return max;
             } else {
                 List<RoomLocation> rooms = new ArrayList<RoomLocation>();
@@ -1230,7 +1230,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                     }
                 });
                 int max = rooms.isEmpty() ? 0 : rooms.get(Math.min(getNrRooms(), rooms.size()) - 1).getRoomSize();
-                iCacheMaxRoomSize = new Integer(max);
+                iCacheMaxRoomSize = Integer.valueOf(max);
                 return max;
             }
         } finally {

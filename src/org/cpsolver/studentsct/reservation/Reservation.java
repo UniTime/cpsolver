@@ -389,7 +389,7 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
         if (cmp != 0) return cmp;
         cmp = - Double.compare(getContext(assignment).getReservedAvailableSpace(assignment, null), r.getContext(assignment).getReservedAvailableSpace(assignment, null));
         if (cmp != 0) return cmp;
-        return new Long(getId()).compareTo(r.getId());
+        return Long.valueOf(getId()).compareTo(r.getId());
     }
     
     /**
@@ -405,7 +405,7 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
         }
         int cmp = Double.compare(getRestrictivity(), r.getRestrictivity());
         if (cmp != 0) return cmp;
-        return new Long(getId()).compareTo(r.getId());
+        return Long.valueOf(getId()).compareTo(r.getId());
     }
     
     /**

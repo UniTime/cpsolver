@@ -56,7 +56,7 @@ public class StudentCommittedConflict extends StudentConflict {
         for (Lecture lecture: variables) {
             Double max = null;
             for (Placement placement: lecture.values(assignment)) {
-                if (max == null) { max = new Double(lecture.getCommitedConflicts(placement)); continue; }
+                if (max == null) { max = Double.valueOf(lecture.getCommitedConflicts(placement)); continue; }
                 max = Math.max(max, lecture.getCommitedConflicts(placement));
             }
             if (max != null) bounds[0] += max;

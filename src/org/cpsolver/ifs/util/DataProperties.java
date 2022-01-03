@@ -284,7 +284,7 @@ public class DataProperties extends Properties {
     public Boolean getPropertyBoolean(String key, Boolean defaultValue) {
         try {
             if (containsPropery(key))
-                return new Boolean(getProperty(key).equalsIgnoreCase("on") || getProperty(key).equalsIgnoreCase("true"));
+                return Boolean.valueOf(getProperty(key).equalsIgnoreCase("on") || getProperty(key).equalsIgnoreCase("true"));
             if (iSaveDefaults && defaultValue != null)
                 setProperty(key, (defaultValue.booleanValue() ? "true" : "false"));
             return defaultValue;

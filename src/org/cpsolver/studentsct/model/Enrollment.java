@@ -387,7 +387,7 @@ public class Enrollment extends Value<Request, Enrollment> {
                     penalty += section.getPenalty();
                 }
             }
-            iCachedPenalty = new Double(penalty / getAssignments().size());
+            iCachedPenalty = Double.valueOf(penalty / getAssignments().size());
         }
         return iCachedPenalty.doubleValue();
     }

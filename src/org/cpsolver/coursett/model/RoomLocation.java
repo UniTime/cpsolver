@@ -174,7 +174,7 @@ public class RoomLocation implements Comparable<RoomLocation> {
 
     @Override
     public int compareTo(RoomLocation o) {
-        int cmp = -(new Long(getRoomSize())).compareTo(new Long(o.getRoomSize()));
+        int cmp = -(Long.valueOf(getRoomSize())).compareTo(Long.valueOf(o.getRoomSize()));
         if (cmp != 0)
             return cmp;
         return getName().compareTo((o).getName());

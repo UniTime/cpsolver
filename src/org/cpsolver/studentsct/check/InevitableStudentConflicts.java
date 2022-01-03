@@ -189,7 +189,7 @@ public class InevitableStudentConflicts {
                             int ir = (counter == null ? 1 : ((Integer) counter[0]).intValue() + 1);
                             double irw = (counter == null ? 0.0 : ((Double) counter[1]).doubleValue())
                                     + request.getWeight();
-                            noGoods.put(key, new Object[] { new Integer(ir), new Double(irw) });
+                            noGoods.put(key, new Object[] { Integer.valueOf(ir), Double.valueOf(irw) });
                             if (ch.canAssign(request, idx)) {
                                 incompleteInevitableRequests++;
                                 incompleteInevitableRequestWeight += request.getWeight();

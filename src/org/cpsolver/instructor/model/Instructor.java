@@ -343,7 +343,7 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest.Variabl
     
     @Override
     public int hashCode() {
-        return new Long(iInstructorId).hashCode();
+        return Long.valueOf(iInstructorId).hashCode();
     }
     
     @Override

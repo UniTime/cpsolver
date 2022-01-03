@@ -622,47 +622,47 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
             }
         }
         if (includeZero || iDifferentPlacement != 0.0)
-            info.put("Different placement", new Double(weighted ? iDifferentPlacement * perts : perts));
+            info.put("Different placement", Double.valueOf(weighted ? iDifferentPlacement * perts : perts));
         if (includeZero || iAffectedStudentWeight != 0.0)
-            info.put("Affected students", new Double(weighted ? iAffectedStudentWeight * affectedStudents : affectedStudents));
+            info.put("Affected students", Double.valueOf(weighted ? iAffectedStudentWeight * affectedStudents : affectedStudents));
         if (includeZero || iAffectedInstructorWeight != 0.0)
-            info.put("Affected instructors", new Double(weighted ? iAffectedInstructorWeight * affectedInstructors : affectedInstructors));
+            info.put("Affected instructors", Double.valueOf(weighted ? iAffectedInstructorWeight * affectedInstructors : affectedInstructors));
         if (includeZero || iAffectedStudentByTimeWeight != 0.0)
-            info.put("Affected students [time]", new Double(weighted ? iAffectedStudentByTimeWeight * affectedStudentsByTime : affectedStudentsByTime));
+            info.put("Affected students [time]", Double.valueOf(weighted ? iAffectedStudentByTimeWeight * affectedStudentsByTime : affectedStudentsByTime));
         if (includeZero || iAffectedInstructorByTimeWeight != 0.0)
-            info.put("Affected instructors [time]", new Double(weighted ? iAffectedInstructorByTimeWeight * affectedInstructorsByTime : affectedInstructorsByTime));
+            info.put("Affected instructors [time]", Double.valueOf(weighted ? iAffectedInstructorByTimeWeight * affectedInstructorsByTime : affectedInstructorsByTime));
         if (includeZero || iAffectedStudentByRoomWeight != 0.0)
-            info.put("Affected students [room]", new Double(weighted ? iAffectedStudentByRoomWeight * affectedStudentsByRoom : affectedStudentsByRoom));
+            info.put("Affected students [room]", Double.valueOf(weighted ? iAffectedStudentByRoomWeight * affectedStudentsByRoom : affectedStudentsByRoom));
         if (includeZero || iAffectedInstructorByRoomWeight != 0.0)
-            info.put("Affected instructors [room]", new Double(weighted ? iAffectedInstructorByRoomWeight * affectedInstructorsByRoom : affectedInstructorsByRoom));
+            info.put("Affected instructors [room]", Double.valueOf(weighted ? iAffectedInstructorByRoomWeight * affectedInstructorsByRoom : affectedInstructorsByRoom));
         if (includeZero || iAffectedStudentByBldgWeight != 0.0)
-            info.put("Affected students [bldg]", new Double(weighted ? iAffectedStudentByBldgWeight * affectedStudentsByBldg : affectedStudentsByBldg));
+            info.put("Affected students [bldg]", Double.valueOf(weighted ? iAffectedStudentByBldgWeight * affectedStudentsByBldg : affectedStudentsByBldg));
         if (includeZero || iAffectedInstructorByBldgWeight != 0.0)
-            info.put("Affected instructors [bldg]", new Double(weighted ? iAffectedInstructorByBldgWeight * affectedInstructorsByBldg : affectedInstructorsByBldg));
+            info.put("Affected instructors [bldg]", Double.valueOf(weighted ? iAffectedInstructorByBldgWeight * affectedInstructorsByBldg : affectedInstructorsByBldg));
         if (includeZero || iDifferentRoomWeight != 0.0)
-            info.put("Different room", new Double(weighted ? iDifferentRoomWeight * differentRoom : differentRoom));
+            info.put("Different room", Double.valueOf(weighted ? iDifferentRoomWeight * differentRoom : differentRoom));
         if (includeZero || iDifferentBuildingWeight != 0.0)
-            info.put("Different building", new Double(weighted ? iDifferentBuildingWeight * differentBuilding : differentBuilding));
+            info.put("Different building", Double.valueOf(weighted ? iDifferentBuildingWeight * differentBuilding : differentBuilding));
         if (includeZero || iDifferentTimeWeight != 0.0)
-            info.put("Different time", new Double(weighted ? iDifferentTimeWeight * differentTime : differentTime));
+            info.put("Different time", Double.valueOf(weighted ? iDifferentTimeWeight * differentTime : differentTime));
         if (includeZero || iDifferentDayWeight != 0.0)
-            info.put("Different day", new Double(weighted ? iDifferentDayWeight * differentDay : differentDay));
+            info.put("Different day", Double.valueOf(weighted ? iDifferentDayWeight * differentDay : differentDay));
         if (includeZero || iDifferentHourWeight != 0.0)
-            info.put("Different hour", new Double(weighted ? iDifferentHourWeight * differentHour : differentHour));
+            info.put("Different hour", Double.valueOf(weighted ? iDifferentHourWeight * differentHour : differentHour));
         if (includeZero || iTooFarForInstructorsWeight != 0.0)
-            info.put("New placement too far for initial [instructors]", new Double(weighted ? iTooFarForInstructorsWeight * tooFarForInstructors : tooFarForInstructors));
+            info.put("New placement too far for initial [instructors]", Double.valueOf(weighted ? iTooFarForInstructorsWeight * tooFarForInstructors : tooFarForInstructors));
         if (includeZero || iTooFarForStudentsWeight != 0.0)
-            info.put("New placement too far for initial [students]", new Double(weighted ? iTooFarForStudentsWeight * tooFarForStudents : tooFarForStudents));
+            info.put("New placement too far for initial [students]", Double.valueOf(weighted ? iTooFarForStudentsWeight * tooFarForStudents : tooFarForStudents));
         if (includeZero || iDeltaStudentConflictsWeight != 0.0)
-            info.put("Delta student conflicts", new Double(weighted ? iDeltaStudentConflictsWeight * deltaStudentConflicts : deltaStudentConflicts));
+            info.put("Delta student conflicts", Double.valueOf(weighted ? iDeltaStudentConflictsWeight * deltaStudentConflicts : deltaStudentConflicts));
         if (includeZero || iNewStudentConflictsWeight != 0.0)
-            info.put("New student conflicts", new Double(weighted ? iNewStudentConflictsWeight * newStudentConflicts : newStudentConflicts));
+            info.put("New student conflicts", Double.valueOf(weighted ? iNewStudentConflictsWeight * newStudentConflicts : newStudentConflicts));
         if (includeZero || iDeltaTimePreferenceWeight != 0.0)
-            info.put("Delta time preferences", new Double(weighted ? iDeltaTimePreferenceWeight * deltaTimePreferences : deltaTimePreferences));
+            info.put("Delta time preferences", Double.valueOf(weighted ? iDeltaTimePreferenceWeight * deltaTimePreferences : deltaTimePreferences));
         if (includeZero || iDeltaRoomPreferenceWeight != 0.0)
-            info.put("Delta room preferences", new Double(weighted ? iDeltaRoomPreferenceWeight * deltaRoomPreferences : deltaRoomPreferences));
+            info.put("Delta room preferences", Double.valueOf(weighted ? iDeltaRoomPreferenceWeight * deltaRoomPreferences : deltaRoomPreferences));
         if (includeZero || iDeltaInstructorDistancePreferenceWeight != 0.0)
-            info.put("Delta instructor distance preferences", new Double(weighted ? iDeltaInstructorDistancePreferenceWeight * deltaInstructorDistancePreferences : deltaInstructorDistancePreferences));
+            info.put("Delta instructor distance preferences", Double.valueOf(weighted ? iDeltaInstructorDistancePreferenceWeight * deltaInstructorDistancePreferences : deltaInstructorDistancePreferences));
         return info;
     }
 
@@ -732,47 +732,47 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
         }
 
         if (includeZero || iDifferentPlacement != 0.0)
-            info.put("Different placement", new Double(weighted ? iDifferentPlacement * perts : perts));
+            info.put("Different placement", Double.valueOf(weighted ? iDifferentPlacement * perts : perts));
         if (includeZero || iAffectedStudentWeight != 0.0)
-            info.put("Affected students", new Double(weighted ? iAffectedStudentWeight * affectedStudents : affectedStudents));
+            info.put("Affected students", Double.valueOf(weighted ? iAffectedStudentWeight * affectedStudents : affectedStudents));
         if (includeZero || iAffectedInstructorWeight != 0.0)
-            info.put("Affected instructors", new Double(weighted ? iAffectedInstructorWeight * affectedInstructors : affectedInstructors));
+            info.put("Affected instructors", Double.valueOf(weighted ? iAffectedInstructorWeight * affectedInstructors : affectedInstructors));
         if (includeZero || iAffectedStudentByTimeWeight != 0.0)
-            info.put("Affected students [time]", new Double(weighted ? iAffectedStudentByTimeWeight * affectedStudentsByTime : affectedStudentsByTime));
+            info.put("Affected students [time]", Double.valueOf(weighted ? iAffectedStudentByTimeWeight * affectedStudentsByTime : affectedStudentsByTime));
         if (includeZero || iAffectedInstructorByTimeWeight != 0.0)
-            info.put("Affected instructors [time]", new Double(weighted ? iAffectedInstructorByTimeWeight * affectedInstructorsByTime : affectedInstructorsByTime));
+            info.put("Affected instructors [time]", Double.valueOf(weighted ? iAffectedInstructorByTimeWeight * affectedInstructorsByTime : affectedInstructorsByTime));
         if (includeZero || iAffectedStudentByRoomWeight != 0.0)
-            info.put("Affected students [room]", new Double(weighted ? iAffectedStudentByRoomWeight * affectedStudentsByRoom : affectedStudentsByRoom));
+            info.put("Affected students [room]", Double.valueOf(weighted ? iAffectedStudentByRoomWeight * affectedStudentsByRoom : affectedStudentsByRoom));
         if (includeZero || iAffectedInstructorByRoomWeight != 0.0)
-            info.put("Affected instructors [room]", new Double(weighted ? iAffectedInstructorByRoomWeight * affectedInstructorsByRoom : affectedInstructorsByRoom));
+            info.put("Affected instructors [room]", Double.valueOf(weighted ? iAffectedInstructorByRoomWeight * affectedInstructorsByRoom : affectedInstructorsByRoom));
         if (includeZero || iAffectedStudentByBldgWeight != 0.0)
-            info.put("Affected students [bldg]", new Double(weighted ? iAffectedStudentByBldgWeight * affectedStudentsByBldg : affectedStudentsByBldg));
+            info.put("Affected students [bldg]", Double.valueOf(weighted ? iAffectedStudentByBldgWeight * affectedStudentsByBldg : affectedStudentsByBldg));
         if (includeZero || iAffectedInstructorByBldgWeight != 0.0)
-            info.put("Affected instructors [bldg]", new Double(weighted ? iAffectedInstructorByBldgWeight * affectedInstructorsByBldg : affectedInstructorsByBldg));
+            info.put("Affected instructors [bldg]", Double.valueOf(weighted ? iAffectedInstructorByBldgWeight * affectedInstructorsByBldg : affectedInstructorsByBldg));
         if (includeZero || iDifferentRoomWeight != 0.0)
-            info.put("Different room", new Double(weighted ? iDifferentRoomWeight * differentRoom : differentRoom));
+            info.put("Different room", Double.valueOf(weighted ? iDifferentRoomWeight * differentRoom : differentRoom));
         if (includeZero || iDifferentBuildingWeight != 0.0)
-            info.put("Different building", new Double(weighted ? iDifferentBuildingWeight * differentBuilding : differentBuilding));
+            info.put("Different building", Double.valueOf(weighted ? iDifferentBuildingWeight * differentBuilding : differentBuilding));
         if (includeZero || iDifferentTimeWeight != 0.0)
-            info.put("Different time", new Double(weighted ? iDifferentTimeWeight * differentTime : differentTime));
+            info.put("Different time", Double.valueOf(weighted ? iDifferentTimeWeight * differentTime : differentTime));
         if (includeZero || iDifferentDayWeight != 0.0)
-            info.put("Different day", new Double(weighted ? iDifferentDayWeight * differentDay : differentDay));
+            info.put("Different day", Double.valueOf(weighted ? iDifferentDayWeight * differentDay : differentDay));
         if (includeZero || iDifferentHourWeight != 0.0)
-            info.put("Different hour", new Double(weighted ? iDifferentHourWeight * differentHour : differentHour));
+            info.put("Different hour", Double.valueOf(weighted ? iDifferentHourWeight * differentHour : differentHour));
         if (includeZero || iTooFarForInstructorsWeight != 0.0)
-            info.put("New placement too far for initial [instructors]", new Double(weighted ? iTooFarForInstructorsWeight * tooFarForInstructors : tooFarForInstructors));
+            info.put("New placement too far for initial [instructors]", Double.valueOf(weighted ? iTooFarForInstructorsWeight * tooFarForInstructors : tooFarForInstructors));
         if (includeZero || iTooFarForStudentsWeight != 0.0)
-            info.put("New placement too far for initial [students]", new Double(weighted ? iTooFarForStudentsWeight * tooFarForStudents : tooFarForStudents));
+            info.put("New placement too far for initial [students]", Double.valueOf(weighted ? iTooFarForStudentsWeight * tooFarForStudents : tooFarForStudents));
         if (includeZero || iDeltaStudentConflictsWeight != 0.0)
-            info.put("Delta student conflicts", new Double(weighted ? iDeltaStudentConflictsWeight * deltaStudentConflicts : deltaStudentConflicts));
+            info.put("Delta student conflicts", Double.valueOf(weighted ? iDeltaStudentConflictsWeight * deltaStudentConflicts : deltaStudentConflicts));
         if (includeZero || iNewStudentConflictsWeight != 0.0)
-            info.put("New student conflicts", new Double(weighted ? iNewStudentConflictsWeight * newStudentConflicts : newStudentConflicts));
+            info.put("New student conflicts", Double.valueOf(weighted ? iNewStudentConflictsWeight * newStudentConflicts : newStudentConflicts));
         if (includeZero || iDeltaTimePreferenceWeight != 0.0)
-            info.put("Delta time preferences", new Double(weighted ? iDeltaTimePreferenceWeight * deltaTimePreferences : deltaTimePreferences));
+            info.put("Delta time preferences", Double.valueOf(weighted ? iDeltaTimePreferenceWeight * deltaTimePreferences : deltaTimePreferences));
         if (includeZero || iDeltaRoomPreferenceWeight != 0.0)
-            info.put("Delta room preferences", new Double(weighted ? iDeltaRoomPreferenceWeight * deltaRoomPreferences : deltaRoomPreferences));
+            info.put("Delta room preferences", Double.valueOf(weighted ? iDeltaRoomPreferenceWeight * deltaRoomPreferences : deltaRoomPreferences));
         if (includeZero || iDeltaInstructorDistancePreferenceWeight != 0.0)
-            info.put("Delta instructor distance preferences", new Double(weighted ? iDeltaInstructorDistancePreferenceWeight * deltaInstructorDistancePreferences : deltaInstructorDistancePreferences));
+            info.put("Delta instructor distance preferences", Double.valueOf(weighted ? iDeltaInstructorDistancePreferenceWeight * deltaInstructorDistancePreferences : deltaInstructorDistancePreferences));
         return info;
     }
 }
