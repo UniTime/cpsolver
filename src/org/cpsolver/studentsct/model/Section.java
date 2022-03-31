@@ -19,6 +19,8 @@ import org.cpsolver.ifs.assignment.context.AbstractClassWithContext;
 import org.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
 import org.cpsolver.ifs.assignment.context.CanInheritContext;
 import org.cpsolver.ifs.model.Model;
+import org.cpsolver.studentsct.StudentSectioningModel;
+import org.cpsolver.studentsct.model.Student.ModalityPreference;
 import org.cpsolver.studentsct.reservation.Reservation;
 
 
@@ -770,12 +772,49 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
      * @param past true if the class is in the past and should be avoided when possible
      */
     public void setPast(boolean past) { iPast = past; }
-
+    
     /**
-     * Return enabled flag of the class.
+     * Return enabled flag of the class. Use {@link Section#isEnabled(Student)} where applicable.
      * @return true if the class is enabled for student scheduling
      */
     public boolean isEnabled() { return iEnabled; }
+    
+    /**
+     * Return enabled flag of the class. Also check student class dates.
+     * @return true if the class is enabled for student scheduling
+     */
+    public boolean isEnabled(Student student) {
+        if (!iEnabled) return false;
+        if (student != null && student.getModalityPreference() == ModalityPreference.ONLINE_REQUIRED && !isOnline()) return false;
+        if (student != null && getPlacement() != null && getPlacement().getTimeLocation() != null) {
+            if (student.getClassFirstDate() != null) {
+                if (getPlacement().getTimeLocation().getDayCode() != 0 && getPlacement().getTimeLocation().getFirstMeeting(getDayOfWeekOffset()) < student.getClassFirstDate())
+                    return false;
+                else if (getPlacement().getTimeLocation().getDayCode() == 0) {
+                    int firstMeeting = getPlacement().getTimeLocation().getWeekCode().nextSetBit(0);
+                    if (firstMeeting >= 0 && firstMeeting < student.getClassFirstDate())
+                        return false;
+                }
+            }
+            if (student.getClassLastDate() != null) {
+                if (getPlacement().getTimeLocation().getDayCode() != 0 && getPlacement().getTimeLocation().getLastMeeting(getDayOfWeekOffset()) > student.getClassLastDate())
+                    return false;
+                else if (getPlacement().getTimeLocation().getDayCode() == 0) {
+                    int lastMeeting = getPlacement().getTimeLocation().getWeekCode().length() - 1;
+                    if (lastMeeting >= 0 && lastMeeting > student.getClassLastDate())
+                        return false;
+                }
+            }    
+        }
+        return true;
+    }
+    
+    protected int getDayOfWeekOffset() {
+        Model<Request, Enrollment> model = getModel();
+        if (model != null && model instanceof StudentSectioningModel)
+            return ((StudentSectioningModel)model).getDayOfWeekOffset();
+        return 0;
+    }
     
     /**
      * Set enabled flag of the class.
@@ -788,6 +827,15 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
      * @return true if the class is online
      */
     public boolean isOnline() { return iOnline; }
+    
+    public boolean isModalityPreferred(Student student) {
+        if (student.getModalityPreference() == null) return false;
+        switch (student.getModalityPreference()) {
+            case ONLINE_PREFERRED: return isOnline();
+            case ONILNE_DISCOURAGED: return !isOnline();
+            default: return false;
+        }
+    }
     
     /**
      * Set whether the class is online.

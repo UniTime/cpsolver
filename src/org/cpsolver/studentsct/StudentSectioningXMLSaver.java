@@ -33,6 +33,8 @@ import org.cpsolver.studentsct.model.Request.RequestPriority;
 import org.cpsolver.studentsct.model.RequestGroup;
 import org.cpsolver.studentsct.model.Section;
 import org.cpsolver.studentsct.model.Student;
+import org.cpsolver.studentsct.model.Student.BackToBackPreference;
+import org.cpsolver.studentsct.model.Student.ModalityPreference;
 import org.cpsolver.studentsct.model.Student.StudentPriority;
 import org.cpsolver.studentsct.model.StudentGroup;
 import org.cpsolver.studentsct.model.Subpart;
@@ -671,6 +673,14 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
             studentEl.addAttribute("minCredit", String.valueOf(student.getMinCredit()));
         if (student.hasMaxCredit())
             studentEl.addAttribute("maxCredit", String.valueOf(student.getMaxCredit()));
+        if (student.getClassFirstDate() != null)
+            studentEl.addAttribute("classFirstDate", String.valueOf(student.getClassFirstDate()));
+        if (student.getClassLastDate() != null)
+            studentEl.addAttribute("classLastDate", String.valueOf(student.getClassLastDate()));
+        if (student.getModalityPreference() != null && student.getModalityPreference() != ModalityPreference.NO_PREFERENCE)
+            studentEl.addAttribute("modality", student.getModalityPreference().name());
+        if (student.getBackToBackPreference() != null && student.getBackToBackPreference() != BackToBackPreference.NO_PREFERENCE)
+            studentEl.addAttribute("btb", student.getBackToBackPreference().name());
         if (iSaveStudentInfo) {
             for (AreaClassificationMajor acm : student.getAreaClassificationMajors()) {
                 Element acmEl = studentEl.addElement("acm");

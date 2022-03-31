@@ -556,6 +556,19 @@ public class TimeLocation {
         return iFirstMeeting;
     }
     
+    private Integer iLastMeeting = null;
+    public int getLastMeeting(int dayOfWeekOffset) {
+        if (iLastMeeting == null) {
+            int idx = -1;
+            while ((idx = getWeekCode().nextSetBit(1 + idx)) >= 0) {
+                int dow = (idx + dayOfWeekOffset) % 7;
+                if ((getDayCode() & Constants.DAY_CODES[dow]) != 0)
+                    iLastMeeting = idx;
+            }
+        }
+        return iLastMeeting;
+    }
+    
     /** List dates when this time location meets. 
      * @return enumeration of dates of this time (indexes to the {@link TimeLocation#getWeekCode()} for matching days of the week)
      **/

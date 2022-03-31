@@ -33,6 +33,9 @@ import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.SctAssignment;
 import org.cpsolver.studentsct.model.Section;
 import org.cpsolver.studentsct.model.Student;
+import org.cpsolver.studentsct.model.Student.BackToBackPreference;
+import org.cpsolver.studentsct.model.Student.ModalityPreference;
+
 import org.cpsolver.studentsct.model.Unavailability;
 
 /**
@@ -40,7 +43,7 @@ import org.cpsolver.studentsct.model.Unavailability;
  * It replaces {@link TimeOverlapsCounter} and {@link DistanceConflict} extensions.
  * Besides of time and distance conflicts, it also counts cases when a student
  * has a lunch break conflict, travel time during the day, it can prefer
- * or discourage student class back-to-backm and cases when a student has more than
+ * or discourage student class back-to-back and cases when a student has more than
  * a given number of hours between the first and the last class on a day.
  * See {@link StudentQuality.Type} for more details.
  * 
@@ -159,7 +162,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             }
 
             @Override
-            public int penalty(Context cx, SctAssignment a1, SctAssignment a2) {
+            public int penalty(Context cx, Student s, SctAssignment a1, SctAssignment a2) {
                 if (!inConflict(cx, a1, a2)) return 0;
                 return a1.getTime().nrSharedDays(a2.getTime()) * a1.getTime().nrSharedHours(a2.getTime());
             }
@@ -192,7 +195,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             }
 
             @Override
-            public int penalty(Context cx, SctAssignment a1, SctAssignment a2) {
+            public int penalty(Context cx, Student s, SctAssignment a1, SctAssignment a2) {
                 if (!inConflict(cx, a1, a2)) return 0;
                 return a1.getTime().nrSharedDays(a2.getTime()) * a1.getTime().nrSharedHours(a2.getTime());
             }
@@ -226,7 +229,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             }
 
             @Override
-            public int penalty(Context cx, SctAssignment a1, SctAssignment a2) {
+            public int penalty(Context cx, Student s, SctAssignment a1, SctAssignment a2) {
                 if (!inConflict(cx, a1, a2)) return 0;
                 return a1.getTime().nrSharedDays(a2.getTime()) * a1.getTime().nrSharedHours(a2.getTime());
             }
@@ -291,7 +294,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             }
 
             @Override
-            public int penalty(Context cx, SctAssignment a1, SctAssignment a2) {
+            public int penalty(Context cx, Student s, SctAssignment a1, SctAssignment a2) {
                 return inConflict(cx, a1, a2) ? 1 : 0;
             }
 
@@ -354,7 +357,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             }
 
             @Override
-            public int penalty(Context cx, SctAssignment a1, SctAssignment a2) {
+            public int penalty(Context cx, Student s, SctAssignment a1, SctAssignment a2) {
                 return inConflict(cx, a1, a2) ? 1 : 0;
             }
 
@@ -397,7 +400,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             }
 
             @Override
-            public int penalty(Context cx, SctAssignment a1, SctAssignment a2) {
+            public int penalty(Context cx, Student s, SctAssignment a1, SctAssignment a2) {
                 if (!inConflict(cx, a1, a2)) return 0;
                 return a1.getTime().nrSharedDays(a2.getTime());
             }
@@ -449,7 +452,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             }
 
             @Override
-            public int penalty(Context cx, SctAssignment sa1, SctAssignment sa2) {
+            public int penalty(Context cx, Student s, SctAssignment sa1, SctAssignment sa2) {
                 Section s1 = (Section) sa1;
                 Section s2 = (Section) sa2;
                 if (s1.getPlacement() == null || s2.getPlacement() == null) return 0;
@@ -486,11 +489,14 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
          * back-to-back or less than StudentWeights.BackToBackDistance time slots apart (defaults to 30 minutes).
          * Such a conflict is weighted by StudentWeights.BackToBackFactor, which
          * defaults to -0.0001 (these conflicts are preferred by default, trying to avoid schedule gaps).
+         * NEW: Consider student's back-to-back preference. That is, students with no preference are ignored, and
+         * students that discourage back-to-backs have a negative weight on the conflict.
          */
         BackToBack(WeightType.BOTH, "StudentWeights.BackToBackFactor", -0.0001, new Quality() {
             @Override
             public boolean isApplicable(Context cx, Student student, Request r1, Request r2) {
-                return r1 instanceof CourseRequest && r2 instanceof CourseRequest && !student.isDummy();
+                return r1 instanceof CourseRequest && r2 instanceof CourseRequest && !student.isDummy() && 
+                        (student.getBackToBackPreference() == BackToBackPreference.BTB_PREFERRED || student.getBackToBackPreference() == BackToBackPreference.BTB_DISCOURAGED);
             }
 
             @Override
@@ -509,9 +515,14 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             }
 
             @Override
-            public int penalty(Context cx, SctAssignment a1, SctAssignment a2) {
+            public int penalty(Context cx, Student s, SctAssignment a1, SctAssignment a2) {
                 if (!inConflict(cx, a1, a2)) return 0;
-                return a1.getTime().nrSharedDays(a2.getTime());
+                if (s.getBackToBackPreference() == BackToBackPreference.BTB_PREFERRED)
+                    return a1.getTime().nrSharedDays(a2.getTime());
+                else if (s.getBackToBackPreference() == BackToBackPreference.BTB_DISCOURAGED)
+                    return -a1.getTime().nrSharedDays(a2.getTime());
+                else
+                    return 0;
             }
             
             @Override
@@ -547,7 +558,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             }
 
             @Override
-            public int penalty(Context cx, SctAssignment a1, SctAssignment a2) {
+            public int penalty(Context cx, Student s, SctAssignment a1, SctAssignment a2) {
                 TimeLocation t1 = a1.getTime();
                 TimeLocation t2 = a2.getTime();
                 if (t1 == null || t2 == null || !t1.shareDays(t2) || !t1.shareWeeks(t2)) return 0;
@@ -581,14 +592,14 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             }
 
             @Override
-            public int penalty(Context cx, SctAssignment a1, SctAssignment a2) {
+            public int penalty(Context cx, Student s, SctAssignment a1, SctAssignment a2) {
                 if (!inConflict(cx, a1, a2)) return 0;
                 return a1.getTime().nrSharedDays(a2.getTime()) * a1.getTime().nrSharedHours(a2.getTime());
             }
             
             @Override
             public Iterable<? extends SctAssignment> other(Context cx, Enrollment e) {
-                return (e.isCourseRequest() ? new SingleTimeIterable(0, cx.getEarlySlot()) : new Nothing());
+                return (e.isCourseRequest() && !e.getStudent().isDummy() ? new SingleTimeIterable(0, cx.getEarlySlot()) : new Nothing());
             }
             
             @Override
@@ -609,19 +620,56 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             }
 
             @Override
-            public int penalty(Context cx, SctAssignment a1, SctAssignment a2) {
+            public int penalty(Context cx, Student s, SctAssignment a1, SctAssignment a2) {
                 if (!inConflict(cx, a1, a2)) return 0;
                 return a1.getTime().nrSharedDays(a2.getTime()) * a1.getTime().nrSharedHours(a2.getTime());
             }
             
             @Override
             public Iterable<? extends SctAssignment> other(Context cx, Enrollment e) {
-                return (e.isCourseRequest() ? new SingleTimeIterable(cx.getLateSlot(), 288) : new Nothing());
+                return (e.isCourseRequest() && !e.getStudent().isDummy() ? new SingleTimeIterable(cx.getLateSlot(), 288) : new Nothing());
             }
             
             @Override
             public double getWeight(Context cx, Conflict c, Enrollment e) {
                 return Math.min(cx.getTimeOverlapMaxLimit() * c.getPenalty() / c.getE1().getNrSlots(), cx.getTimeOverlapMaxLimit());
+            }
+        }),
+        /**
+         * There is a student modality preference conflict when a student that prefers online
+         * gets a non-online class ({@link Section#isOnline()} is false) or when a student that
+         * prefers non-online gets an online class (@{link Section#isOnline()} is true).
+         * Such a conflict is weighted by StudentWeights.ModalityFactor, which defaults to 0.05.
+         */
+        Modality(WeightType.REQUEST, "StudentWeights.ModalityFactor", 0.0500, new Quality(){
+            @Override
+            public boolean isApplicable(Context cx, Student student, Request r1, Request r2) {
+                return false;
+            }
+
+            @Override
+            public boolean inConflict(Context cx, SctAssignment a1, SctAssignment a2) {
+                return a1.equals(a2);
+            }
+
+            @Override
+            public int penalty(Context cx, Student s, SctAssignment a1, SctAssignment a2) {
+                return (inConflict(cx, a1, a2) ? 1 : 0);
+            }
+            
+            @Override
+            public Iterable<? extends SctAssignment> other(Context cx, Enrollment e) {
+                if (!e.isCourseRequest() || e.getStudent().isDummy()) return new Nothing();
+                if (e.getStudent().getModalityPreference() == ModalityPreference.ONLINE_PREFERRED)
+                    return new Online(e, false); // face-to-face sections are conflicting
+                else if (e.getStudent().getModalityPreference() == ModalityPreference.ONILNE_DISCOURAGED)
+                    return new Online(e, true); // online sections are conflicting
+                return new Nothing();
+            }
+            
+            @Override
+            public double getWeight(Context cx, Conflict c, Enrollment e) {
+                return ((double) c.getPenalty()) / ((double) e.getSections().size());
             }
         }),
         /** 
@@ -643,7 +691,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             }
 
             @Override
-            public int penalty(Context cx, SctAssignment a1, SctAssignment a2) {
+            public int penalty(Context cx, Student s, SctAssignment a1, SctAssignment a2) {
                 if (!inConflict(cx, a1, a2)) return 0;
                 return a1.getTime().nrSharedDays(a2.getTime()) * a1.getTime().nrSharedHours(a2.getTime());
             }
@@ -686,7 +734,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             }
 
             @Override
-            public int penalty(Context cx, SctAssignment a1, SctAssignment a2) {
+            public int penalty(Context cx, Student s, SctAssignment a1, SctAssignment a2) {
                 if (!inConflict(cx, a1, a2)) return 0;
                 return a1.getTime().nrSharedDays(a2.getTime());
             }
@@ -728,7 +776,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             }
 
             @Override
-            public int penalty(Context cx, SctAssignment a1, SctAssignment a2) {
+            public int penalty(Context cx, Student s, SctAssignment a1, SctAssignment a2) {
                 if (!inConflict(cx, a1, a2)) return 0;
                 return a1.getTime().nrSharedDays(a2.getTime());
             }
@@ -759,7 +807,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
         
         public boolean isApplicable(Context cx, Student student, Request r1, Request r2) { return iQuality.isApplicable(cx, student, r1, r2); }
         public boolean inConflict(Context cx, SctAssignment a1, SctAssignment a2) { return iQuality.inConflict(cx, a1, a2); }
-        public int penalty(Context cx, SctAssignment a1, SctAssignment a2) { return iQuality.penalty(cx, a1, a2); }
+        public int penalty(Context cx, Student s, SctAssignment a1, SctAssignment a2) { return iQuality.penalty(cx, s, a1, a2); }
         public Iterable<? extends SctAssignment> other(Context cx, Enrollment e) { return iQuality.other(cx, e); }
         public double getWeight(Context cx, Conflict c, Enrollment e) { return iQuality.getWeight(cx, c, e); }
         public String getName() { return name().replaceAll("(?<=[^A-Z0-9])([A-Z0-9])"," $1"); }
@@ -784,7 +832,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
         /**
          * When in conflict, what is the penalisation
          */
-        public int penalty(Context cx, SctAssignment a1, SctAssignment a2);
+        public int penalty(Context cx, Student s, SctAssignment a1, SctAssignment a2);
         /**
          * Enumerate other section assignments applicable for the given enrollment (e.g., student unavailabilities)
          */
@@ -804,7 +852,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
         int cnt = 0;
         for (SctAssignment s1 : e1.getAssignments()) {
             for (SctAssignment s2 : e2.getAssignments()) {
-                cnt += type.penalty(iContext, s1, s2);
+                cnt += type.penalty(iContext, e1.getStudent(), s1, s2);
             }
         }
         return cnt;
@@ -818,8 +866,8 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
         if (!e1.getStudent().equals(e2.getStudent()) || !type.isApplicable(iContext, e1.getStudent(), e1.getRequest(), e2.getRequest())) return ret;
         for (SctAssignment s1 : e1.getAssignments()) {
             for (SctAssignment s2 : e2.getAssignments()) {
-                int penalty = type.penalty(iContext, s1, s2);
-                if (penalty > 0)
+                int penalty = type.penalty(iContext, e1.getStudent(), s1, s2);
+                if (penalty != 0)
                     ret.add(new Conflict(e1.getStudent(), type, penalty, e1, s1, e2, s2));
             }
         }
@@ -835,8 +883,8 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             if (!e1.getStudent().equals(e2.getStudent()) || !type.isApplicable(iContext, e1.getStudent(), e1.getRequest(), e2.getRequest())) continue;
             for (SctAssignment s1 : e1.getAssignments()) {
                 for (SctAssignment s2 : e2.getAssignments()) {
-                    int penalty = type.penalty(iContext, s1, s2);
-                    if (penalty > 0)
+                    int penalty = type.penalty(iContext, e1.getStudent(), s1, s2);
+                    if (penalty != 0)
                         ret.add(new Conflict(e1.getStudent(), type, penalty, e1, s1, e2, s2));
                 }
             }
@@ -854,15 +902,15 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             if (applicable) {
                 for (SctAssignment s2 : e1.getAssignments()) {
                     if (s1.getId() < s2.getId()) {
-                        int penalty = type.penalty(iContext, s1, s2);
-                        if (penalty > 0)
+                        int penalty = type.penalty(iContext, e1.getStudent(), s1, s2);
+                        if (penalty != 0)
                             ret.add(new Conflict(e1.getStudent(), type, penalty, e1, s1, e1, s2));
                     }
                 }
             }
             for (SctAssignment s2: type.other(iContext, e1)) {
-                int penalty = type.penalty(iContext, s1, s2);
-                if (penalty > 0)
+                int penalty = type.penalty(iContext, e1.getStudent(), s1, s2);
+                if (penalty != 0)
                     ret.add(new Conflict(e1.getStudent(), type, penalty, e1, s1, s2));
             }
         }
@@ -880,15 +928,15 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
                 if (applicable) {
                     for (SctAssignment s2 : e1.getAssignments()) {
                         if (s1.getId() < s2.getId()) {
-                            int penalty = type.penalty(iContext, s1, s2);
-                            if (penalty > 0)
+                            int penalty = type.penalty(iContext, e1.getStudent(), s1, s2);
+                            if (penalty != 0)
                                 ret.add(new Conflict(e1.getStudent(), type, penalty, e1, s1, e1, s2));
                         }
                     }
                 }
                 for (SctAssignment s2: type.other(iContext, e1)) {
-                    int penalty = type.penalty(iContext, s1, s2);
-                    if (penalty > 0)
+                    int penalty = type.penalty(iContext, e1.getStudent(), s1, s2);
+                    if (penalty != 0)
                         ret.add(new Conflict(e1.getStudent(), type, penalty, e1, s1, s2));
                 }
             }            
@@ -906,12 +954,12 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             if (applicable) {
                 for (SctAssignment s2 : e1.getAssignments()) {
                     if (s1.getId() < s2.getId()) {
-                        penalty += type.penalty(iContext, s1, s2);
+                        penalty += type.penalty(iContext, e1.getStudent(), s1, s2);
                     }
                 }
             }
             for (SctAssignment s2: type.other(iContext, e1)) {
-                penalty += type.penalty(iContext, s1, s2);
+                penalty += type.penalty(iContext, e1.getStudent(), s1, s2);
             }
         }
         return penalty;
@@ -1461,6 +1509,23 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             }
             return ret;
         }
+        
+        public Set<Conflict> allConflicts(Type type, Assignment<Request, Enrollment> assignment, Student student) {
+            Set<Conflict> ret = new HashSet<Conflict>();
+            for (Request r1 : student.getRequests()) {
+                Enrollment e1 = assignment.getValue(r1);
+                if (e1 == null) continue;
+                for (Request r2 : student.getRequests()) {
+                    Enrollment e2 = assignment.getValue(r2);
+                    if (e2 != null && r1.getId() < r2.getId()) {
+                        if (type.isApplicable(iContext, r1.getStudent(), r1, r2))
+                            ret.addAll(conflicts(type, e1, e2));
+                    }
+                }
+                ret.addAll(conflicts(type, e1));
+            }
+            return ret;
+        }
 
         public Set<Conflict> allConflicts(Type type, Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
             Set<Conflict> ret = new HashSet<Conflict>();
@@ -1472,6 +1537,23 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             }
             ret.addAll(conflicts(type, enrollment));
             return ret;
+        }
+        
+        public int allPenalty(Type type, Assignment<Request, Enrollment> assignment, Student student) {
+            int penalty = 0;
+            for (Request r1 : student.getRequests()) {
+                Enrollment e1 = assignment.getValue(r1);
+                if (e1 == null) continue;
+                for (Request r2 : student.getRequests()) {
+                    Enrollment e2 = assignment.getValue(r2);
+                    if (e2 != null && r1.getId() < r2.getId()) {
+                        if (type.isApplicable(iContext, r1.getStudent(), r1, r2))
+                            penalty += penalty(type, e1, e2); 
+                    }
+                }
+                penalty += penalty(type, e1);
+            }
+            return penalty;
         }
         
         public int allPenalty(Type type, Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
@@ -1615,6 +1697,53 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
                         return next;
                     } finally {
                         hasNext = nextFreeTime();
+                    }
+                }
+                @Override
+                public boolean hasNext() { return hasNext; }
+                @Override
+                public void remove() { throw new UnsupportedOperationException(); }
+            };
+        }
+    }
+    
+    /** Online (or not-online) classes of an enrollment */
+    public static class Online implements Iterable<Section> {
+        private Enrollment iEnrollment;
+        private boolean iOnline;
+        public Online(Enrollment enrollment, boolean online) {
+            iEnrollment = enrollment;
+            iOnline = online;
+        }
+        
+        protected boolean skip(Section section) {
+            return iOnline != section.isOnline();
+        }
+        
+        @Override
+        public Iterator<Section> iterator() {
+            return new Iterator<Section>() {
+                Iterator<Section> i = iEnrollment.getSections().iterator();
+                Section next = null;
+                boolean hasNext = nextSection();
+                
+                private boolean nextSection() {
+                    while (i.hasNext()) {
+                        Section r = i.next();
+                        if (!skip(r)) {
+                            next = r;
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+                
+                @Override
+                public Section next() {
+                    try {
+                        return next;
+                    } finally {
+                        hasNext = nextSection();
                     }
                 }
                 @Override

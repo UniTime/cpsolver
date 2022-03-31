@@ -5,6 +5,7 @@ import java.util.List;
 import org.cpsolver.coursett.model.Placement;
 import org.cpsolver.studentsct.model.Instructor;
 import org.cpsolver.studentsct.model.Section;
+import org.cpsolver.studentsct.model.Student;
 import org.cpsolver.studentsct.model.Subpart;
 
 /**
@@ -32,6 +33,7 @@ import org.cpsolver.studentsct.model.Subpart;
  */
 public class OnlineSection extends Section {
     private int iEnrollment = 0;
+    private boolean iAlwaysEnabled = false;
 
     public OnlineSection(long id, int limit, String name, Subpart subpart, Placement placement, List<Instructor> instructors, Section parent) {
         super(id, limit, name, subpart, placement, instructors, parent);
@@ -53,4 +55,20 @@ public class OnlineSection extends Section {
      * @return current enrollment
      */
     public int getEnrollment() { return iEnrollment; }
+    
+    public void setAlwaysEnabled(boolean alwaysEnabled) { iAlwaysEnabled = alwaysEnabled; }
+    public boolean isAlwaysEnabled() { return iAlwaysEnabled; }
+    
+    @Override
+    public boolean isEnabled() {
+        if (iAlwaysEnabled) return true;
+        return super.isEnabled();
+    }
+    
+    @Override
+    public boolean isEnabled(Student student) {
+        if (iAlwaysEnabled) return true;
+        return super.isEnabled(student);
+    }
+    
 }

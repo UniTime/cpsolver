@@ -302,6 +302,7 @@ public class Test {
                     clonedSection.setEnrollment(enrl);
                     clonedSection.setCancelled(section.isCancelled());
                     clonedSection.setEnabled(section.isEnabled());
+                    clonedSection.setPast(section.isPast());
                     clonedSection.setOnline(section.isOnline());
                     if (section.getIgnoreConflictWithSectionIds() != null)
                         for (Long id : section.getIgnoreConflictWithSectionIds())

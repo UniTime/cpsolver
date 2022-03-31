@@ -72,7 +72,7 @@ public class DisabledSections extends GlobalConstraint<Request, Enrollment> {
         boolean hasDisabledSection = false;
         // check all sections of the given enrollment
         for (Section section: enrollment.getSections())
-            if (!section.isEnabled()) {
+            if (!section.isEnabled(enrollment.getStudent())) {
                 hasDisabledSection = true;
                 break;
             }

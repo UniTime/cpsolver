@@ -32,6 +32,8 @@ import org.cpsolver.studentsct.model.Instructor;
 import org.cpsolver.studentsct.model.Offering;
 import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.Request.RequestPriority;
+import org.cpsolver.studentsct.model.Student.BackToBackPreference;
+import org.cpsolver.studentsct.model.Student.ModalityPreference;
 import org.cpsolver.studentsct.model.Student.StudentPriority;
 import org.cpsolver.studentsct.model.RequestGroup;
 import org.cpsolver.studentsct.model.Section;
@@ -983,6 +985,19 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         String maxCredit = studentEl.attributeValue("maxCredit");
         if (maxCredit != null)
             student.setMaxCredit(Float.parseFloat(maxCredit));
+        String classFirstDate = studentEl.attributeValue("classFirstDate");
+        if (classFirstDate != null)
+            student.setClassFirstDate(Integer.parseInt(classFirstDate));
+        String classLastDate = studentEl.attributeValue("classLastDate");
+        if (classLastDate != null)
+            student.setClassLastDate(Integer.parseInt(classLastDate));
+        String modality = studentEl.attributeValue("modality");
+        if (modality != null)
+            student.setModalityPreference(ModalityPreference.valueOf(modality));
+        String btb = studentEl.attributeValue("btb");
+        if (btb != null)
+            student.setBackToBackPreference(BackToBackPreference.valueOf(btb));
+        
         List<String[]> clasf = new ArrayList<String[]>();
         List<String[]> major = new ArrayList<String[]>();
         for (Iterator<?> j = studentEl.elementIterator(); j.hasNext();) {

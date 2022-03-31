@@ -53,6 +53,8 @@ import org.cpsolver.studentsct.model.Student;
 import org.cpsolver.studentsct.model.Subpart;
 import org.cpsolver.studentsct.model.Unavailability;
 import org.cpsolver.studentsct.model.Request.RequestPriority;
+import org.cpsolver.studentsct.model.Student.BackToBackPreference;
+import org.cpsolver.studentsct.model.Student.ModalityPreference;
 import org.cpsolver.studentsct.model.Student.StudentPriority;
 import org.cpsolver.studentsct.reservation.Reservation;
 import org.cpsolver.studentsct.weights.PriorityStudentWeights;
@@ -109,6 +111,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     private boolean iKeepInitials;
     protected double iProjectedStudentWeight = 0.0100;
     private int iMaxDomainSize = -1; 
+    private int iDayOfWeekOffset = 0;
 
 
     /**
@@ -139,6 +142,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         iKeepInitials = properties.getPropertyBoolean("Sectioning.KeepInitialAssignments", false);
         iStudentWeights = new PriorityStudentWeights(properties);
         iMaxDomainSize = properties.getPropertyInt("Sectioning.MaxDomainSize", iMaxDomainSize);
+        iDayOfWeekOffset = properties.getPropertyInt("DatePattern.DayOfWeekOffset", 0);
         if (properties.getPropertyBoolean("Sectioning.SectionLimit", true)) {
             SectionLimit sectionLimit = new SectionLimit(properties);
             addGlobalConstraint(sectionLimit);
@@ -481,8 +485,11 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             if (confTravel > 0)
                 info.put("Schedule Quality: Travel time", sDoubleFormat.format(((double)confTravel) / getNrRealStudents(false)) + " mins per student (" + sDecimalFormat.format(confTravel / 60.0) + " hours total)");
             int confBtB = getStudentQuality().getTotalPenalty(StudentQuality.Type.BackToBack, assignment);
-            if (confBtB > 0)
+            if (confBtB != 0)
                 info.put("Schedule Quality: Back-to-back classes", sDoubleFormat.format(((double)confBtB) / getNrRealStudents(false)) + " per student (" + confBtB + ")");
+            int confMod = getStudentQuality().getTotalPenalty(StudentQuality.Type.Modality, assignment);
+            if (confMod > 0)
+                info.put("Schedule Quality: Online class preference", sDoubleFormat.format(((double)confMod) / getNrRealStudents(false)) + " per student (" + confMod + ")");
             int confWorkDay = getStudentQuality().getTotalPenalty(StudentQuality.Type.WorkDay, assignment);
             if (confWorkDay > 0)
                 info.put("Schedule Quality: Work day", sDoubleFormat.format(5.0 * confWorkDay / getNrRealStudents(false)) + " mins over " +
@@ -1018,6 +1025,74 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             if (share > 0)
                 info.put("Time overlapping conflicts", sDoubleFormat.format(5.0 * share / iStudents.size()) + " mins per student\n(" + sDoubleFormat.format(5.0 * crShare / iStudents.size()) + " between courses; " + sDoubleFormat.format(getTimeOverlaps().getTotalNrConflicts(assignment) / 12.0) + " hours total)");
         }
+        if (getStudentQuality() != null) {
+            int confBtB = getStudentQuality().getTotalPenalty(StudentQuality.Type.BackToBack, assignment);
+            if (confBtB != 0) {
+                int prefBtb = 0, discBtb = 0;
+                int prefStd = 0, discStd = 0;
+                int prefPairs = 0, discPairs = 0;
+                for (Student s: getStudents()) {
+                    if (s.isDummy() || s.getBackToBackPreference() == BackToBackPreference.NO_PREFERENCE) continue;
+                    int[] classesPerDay = new int[] {0, 0, 0, 0, 0, 0, 0};
+                    for (Request r: s.getRequests()) {
+                        Enrollment e = r.getAssignment(assignment);
+                        if (e == null || !e.isCourseRequest()) continue;
+                        for (Section x: e.getSections()) {
+                            if (x.getTime() != null)
+                                for (int i = 0; i < Constants.DAY_CODES.length; i++)
+                                    if ((x.getTime().getDayCode() & Constants.DAY_CODES[i]) != 0)
+                                        classesPerDay[i] ++;
+                        }
+                    }
+                    int max = 0;
+                    for (int c: classesPerDay)
+                        if (c > 1) max += c - 1;
+                    int btb = getStudentQuality().getContext(assignment).allPenalty(StudentQuality.Type.BackToBack, assignment, s);
+                    if (s.getBackToBackPreference() == BackToBackPreference.BTB_PREFERRED) {
+                        prefStd ++;
+                        prefBtb += btb;
+                        prefPairs += Math.max(btb, max);
+                    } else if (s.getBackToBackPreference() == BackToBackPreference.BTB_DISCOURAGED) {
+                        discStd ++;
+                        discBtb -= btb;
+                        discPairs += Math.max(btb, max);
+                    }
+                }
+                if (prefStd > 0)
+                    info.put("Schedule Quality: Back-to-back preferred", sDoubleFormat.format((100.0 * prefBtb) / prefPairs) + "% back-to-backs on average (" + prefBtb + "/" + prefPairs + " BTBs for " + prefStd + " students)");
+                if (discStd > 0)
+                    info.put("Schedule Quality: Back-to-back discouraged", sDoubleFormat.format(100.0 - (100.0 * discBtb) / discPairs) + "% non back-to-backs on average (" + discBtb + "/" + discPairs + " BTBs for " + discStd + " students)");
+            }
+            int confMod = getStudentQuality().getTotalPenalty(StudentQuality.Type.Modality, assignment);
+            if (confMod > 0) {
+                int prefOnl = 0, discOnl = 0;
+                int prefStd = 0, discStd = 0;
+                int prefCls = 0, discCls = 0;
+                for (Student s: getStudents()) {
+                    if (s.isDummy()) continue;
+                    if (s.isDummy() || s.getModalityPreference() == ModalityPreference.NO_PREFERENCE || s.getModalityPreference() == ModalityPreference.ONLINE_REQUIRED) continue;
+                    int classes = 0;
+                    for (Request r: s.getRequests()) {
+                        Enrollment e = r.getAssignment(assignment);
+                        if (e == null || !e.isCourseRequest()) continue;
+                        classes += e.getSections().size();
+                    }
+                    if (s.getModalityPreference() == ModalityPreference.ONLINE_PREFERRED) {
+                        prefStd ++;
+                        prefOnl += getStudentQuality().getContext(assignment).allPenalty(StudentQuality.Type.Modality, assignment, s);
+                        prefCls += classes;
+                    } else if (s.getModalityPreference() == ModalityPreference.ONILNE_DISCOURAGED) {
+                        discStd ++;
+                        discOnl += getStudentQuality().getContext(assignment).allPenalty(StudentQuality.Type.Modality, assignment, s);
+                        discCls += classes;
+                    }
+                }
+                if (prefStd > 0)
+                    info.put("Schedule Quality: Online preferred", sDoubleFormat.format(100.0 - (100.0 * prefOnl) / prefCls) + "% online classes on average (" + prefOnl + "/" + prefCls + " classes for " + prefStd + " students)");
+                if (discStd > 0)
+                    info.put("Schedule Quality: Online discouraged", sDoubleFormat.format(100.0 - (100.0 * discOnl) / discCls) + "% face-to-face classes on average (" + discOnl + "/" + discCls + " classes for " + discStd + " students)");
+            }
+        }
         /*
         info.put("Overall solution value", sDecimalFormat.format(total - dc - toc) + (dc == 0.0 && toc == 0.0 ? "" :
             " (" + (dc != 0.0 ? "distance: " + sDecimalFormat.format(dc): "") + (dc != 0.0 && toc != 0.0 ? ", " : "") + 
@@ -1406,6 +1481,12 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
      */
     public void setMaxDomainSize(int maxDomainSize) { iMaxDomainSize = maxDomainSize; }
     
+    public int getDayOfWeekOffset() { return iDayOfWeekOffset; }
+    public void setDayOfWeekOffset(int dayOfWeekOffset) {
+        iDayOfWeekOffset = dayOfWeekOffset;
+        if (iProperties != null)
+            iProperties.setProperty("DatePattern.DayOfWeekOffset", Integer.toString(dayOfWeekOffset));
+    }
 
     @Override
     public StudentSectioningModelContext createAssignmentContext(Assignment<Request, Enrollment> assignment) {

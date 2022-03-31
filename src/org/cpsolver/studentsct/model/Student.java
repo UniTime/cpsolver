@@ -58,6 +58,9 @@ public class Student implements Comparable<Student> {
     private Float iMinCredit = null;
     private Float iMaxCredit = null;
     private List<Instructor> iAdvisors = new ArrayList<Instructor>();
+    private Integer iClassFirstDate = null, iClassLastDate = null;
+    private ModalityPreference iModalityPreference = ModalityPreference.NO_PREFERENCE;
+    private BackToBackPreference iBackToBackPreference = BackToBackPreference.NO_PREFERENCE;
 
     /**
      * Constructor
@@ -626,5 +629,40 @@ public class Student implements Comparable<Student> {
      */
     public boolean hasAccommodation(String code) {
         return code != null && !code.isEmpty() && iAccommodations.contains(code);
+    }
+    
+    public void setClassFirstDate(Integer classFirstDate) {
+        iClassFirstDate = classFirstDate;
+    }
+    
+    public Integer getClassFirstDate() {
+        return iClassFirstDate;
+    }
+    
+    public void setClassLastDate(Integer classLastDate) {
+        iClassLastDate = classLastDate;
+    }
+    
+    public Integer getClassLastDate() {
+        return iClassLastDate;
+    }
+    
+    public ModalityPreference getModalityPreference() { return iModalityPreference; }
+    public void setModalityPreference(ModalityPreference p) { iModalityPreference = p ;}
+    
+    public BackToBackPreference getBackToBackPreference() { return iBackToBackPreference; }
+    public void setBackToBackPreference(BackToBackPreference p) { iBackToBackPreference = p; }
+    
+    public static enum ModalityPreference {
+        NO_PREFERENCE,
+        ONLINE_PREFERRED,
+        ONILNE_DISCOURAGED,
+        ONLINE_REQUIRED,
+    }
+    
+    public static enum BackToBackPreference {
+        NO_PREFERENCE,
+        BTB_PREFERRED,
+        BTB_DISCOURAGED,
     }
 }

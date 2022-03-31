@@ -413,7 +413,7 @@ public class CourseRequest extends Request {
                     if (s.getTotalUnreservedSpace() < getWeight()) {
                         mustHaveSectionReservation = true;
                     }
-                    if (!getStudent().isAllowDisabled() && !s.isEnabled()) {
+                    if (!getStudent().isAllowDisabled() && !s.isEnabled(getStudent())) {
                         containDisabledSection = true;
                     }
                 }
@@ -520,7 +520,7 @@ public class CourseRequest extends Request {
                             continue;
                     }
                 }
-                if (!getStudent().isAllowDisabled() && !section.isEnabled()) {
+                if (!getStudent().isAllowDisabled() && !section.isEnabled(getStudent())) {
                     boolean allowDisabled = false;
                     for (Reservation r: getReservations(course)) {
                         if (!r.isAllowDisabled()) continue;
