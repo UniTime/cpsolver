@@ -348,25 +348,65 @@
 				</plugins>
 			</build>
 		</profile>
+		<profile>
+			<id>ossrh</id>
+			<properties>
+				<gpg.executable>gpg</gpg.executable>
+			</properties>
+			<distributionManagement>
+				<snapshotRepository>
+					<id>ossrh</id>
+					<name>Central Repository OSSRH</name>
+					<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+				</snapshotRepository>
+			</distributionManagement>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.sonatype.plugins</groupId>
+						<artifactId>nexus-staging-maven-plugin</artifactId>
+						<version>1.6.7</version>
+						<extensions>true</extensions>
+						<configuration>
+							<serverId>ossrh</serverId>
+							<nexusUrl>https://oss.sonatype.org/</nexusUrl>
+							<autoReleaseAfterClose>true</autoReleaseAfterClose>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<version>1.5</version>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+							</execution>
+						</executions>
+						<configuration>
+						  <gpgArguments>
+						    <arg>--pinentry-mode</arg>
+						    <arg>loopback</arg>
+						  </gpgArguments>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
 	</profiles>
 	
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 
-	<parent>
-		<groupId>org.sonatype.oss</groupId>
-		<artifactId>oss-parent</artifactId>
-		<version>7</version>
-	</parent>
-
-	<!-- 	
 	<distributionManagement>
 		<repository>
-			<id>cpsolver.org</id>
-			<name>CPSolver Release Repository</name>
-			<url>ftp://maven.cpsolver.org</url>
+			<id>github</id>
+			<name>GitHub CPSolver Apache Maven Packages</name>
+			<url>https://maven.pkg.github.com/UniTime/cpsolver</url>
 		</repository>
 	</distributionManagement>
-	 -->
 </project>
