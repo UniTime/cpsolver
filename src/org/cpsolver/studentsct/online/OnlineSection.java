@@ -34,6 +34,7 @@ import org.cpsolver.studentsct.model.Subpart;
 public class OnlineSection extends Section {
     private int iEnrollment = 0;
     private boolean iAlwaysEnabled = false;
+    private Integer iDayOfWeekOffset = null;
 
     public OnlineSection(long id, int limit, String name, Subpart subpart, Placement placement, List<Instructor> instructors, Section parent) {
         super(id, limit, name, subpart, placement, instructors, parent);
@@ -69,6 +70,15 @@ public class OnlineSection extends Section {
     public boolean isEnabled(Student student) {
         if (iAlwaysEnabled) return true;
         return super.isEnabled(student);
+    }
+    
+    @Override
+    protected int getDayOfWeekOffset() {
+        if (iDayOfWeekOffset != null) return iDayOfWeekOffset;
+        return super.getDayOfWeekOffset();
+    }
+    public void setDayOfWeekOffset(Integer dayOfWeekOffset) {
+        iDayOfWeekOffset = dayOfWeekOffset;
     }
     
 }
