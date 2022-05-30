@@ -91,6 +91,10 @@ public abstract class FlexibleConstraint extends ConstraintWithContext<Lecture, 
          * Limit number of half-days of a week. 
          */
         MAX_HALF_DAYS("_(MaxHalfDays):([0-9]+)_", MaxHalfDaysFlexibleConstraint.class, "MaxHalfDays"),
+        /**
+         * Limit number of consecutive days of a week. 
+         */
+        MAX_CONSECUTIVE_DAYS("_(MaxConsDays):([0-9]+)_", MaxConsecutiveDaysFlexibleConstraint.class, "MaxConsDays"),
         ;
         
         private String iPattern;
