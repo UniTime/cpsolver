@@ -1,6 +1,7 @@
 package org.cpsolver.coursett.constraint;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -65,7 +66,10 @@ public class MaxDaysFlexibleConstraint extends FlexibleConstraint {
         MaxDaysFlexibleConstraintContext context = (MaxDaysFlexibleConstraintContext)getContext(assignment);
         while (context.nrDays(value, conflicts) > iMaxDays) {
             Set<Lecture> candidates = context.candidates(value, conflicts);
-            if (candidates == null) return;
+            if (candidates == null) {
+                conflicts.add(value);
+                return;
+            }
             for (Lecture candidate: candidates) {
                 Placement conflict = assignment.getValue(candidate);
                 if (conflict != null)
@@ -86,21 +90,20 @@ public class MaxDaysFlexibleConstraint extends FlexibleConstraint {
     }
     
     public class MaxDaysFlexibleConstraintContext extends FlexibleConstraintContext {
+        private Map<BitSet, Set<Lecture>[]> iWeekDayAssignments = null;
         private Set<Lecture> iDayAssignments[] = null;
         
-        @SuppressWarnings("unchecked")
         public MaxDaysFlexibleConstraintContext(Assignment<Lecture, Placement> assignment) {
             super();
-            iDayAssignments = new Set[Constants.NR_DAYS];
-            for (int i = 0; i < iDayAssignments.length; i++)
-                iDayAssignments[i] = new HashSet<Lecture>();
-            
-            for (Lecture variable: variables()) {
-                Placement value = assignment.getValue(variable);
-                if (value != null) {
-                    for (int i = 0; i < iDayAssignments.length; i++)
-                        if ((value.getTimeLocation().getDayCode() & Constants.DAY_CODES[i]) != 0)
-                            iDayAssignments[i].add(value.variable());
+            for (BitSet week: getWeeks()) {
+                Set<Lecture>[] dayAssignments = getDayAssignments(week);            
+                for (Lecture variable: variables()) {
+                    Placement value = assignment.getValue(variable);
+                    if (value != null) {
+                        for (int i = 0; i < dayAssignments.length; i++)
+                            if (hasDay(week, i, value))
+                                dayAssignments[i].add(value.variable());
+                    }
                 }
             }
             
@@ -116,35 +119,71 @@ public class MaxDaysFlexibleConstraint extends FlexibleConstraint {
                 }
             }
         }
+        
+        protected boolean hasDay(BitSet week, int dayOfWeek, Placement value) {
+            if (value == null || value.getTimeLocation() == null) return false;
+            if (week != null && !value.getTimeLocation().getWeekCode().intersects(week)) return false;
+            return (value.getTimeLocation().getDayCode() & Constants.DAY_CODES[dayOfWeek]) != 0;
+        }
+        
+        @SuppressWarnings("unchecked")
+        protected Set<Lecture>[] getDayAssignments(BitSet week) {
+            if (week == null) {
+                if (iDayAssignments == null) {
+                    iDayAssignments = new Set[Constants.NR_DAYS];
+                    for (int i = 0; i < iDayAssignments.length; i++)
+                        iDayAssignments[i] = new HashSet<Lecture>();
+                }
+                return iDayAssignments;
+            } else {
+                if (iWeekDayAssignments == null)
+                    iWeekDayAssignments = new HashMap<BitSet, Set<Lecture>[]>();
+                Set<Lecture>[] dayAssignments = iWeekDayAssignments.get(week);
+                if (dayAssignments == null) {
+                    dayAssignments = new Set[Constants.NR_DAYS];
+                    for (int i = 0; i < dayAssignments.length; i++)
+                        dayAssignments[i] = new HashSet<Lecture>();
+                    iWeekDayAssignments.put(week, dayAssignments);
+                }
+                return dayAssignments;
+            }
+        }
 
         @Override
         public void assigned(Assignment<Lecture, Placement> assignment, Placement value) {
-            for (int i = 0; i < iDayAssignments.length; i++)
-                if ((value.getTimeLocation().getDayCode() & Constants.DAY_CODES[i]) != 0)
-                    iDayAssignments[i].add(value.variable());
+            for (BitSet week: getWeeks()) {
+                Set<Lecture>[] dayAssignments = getDayAssignments(week);
+                for (int i = 0; i < dayAssignments.length; i++)
+                    if (hasDay(week, i, value))
+                        dayAssignments[i].add(value.variable());
+            }
             updateCriterion(assignment);
         }
         
         @Override
         public void unassigned(Assignment<Lecture, Placement> assignment, Placement value) {
-            for (int i = 0; i < iDayAssignments.length; i++)
-                if ((value.getTimeLocation().getDayCode() & Constants.DAY_CODES[i]) != 0)
-                    iDayAssignments[i].remove(value.variable());
+            for (BitSet week: getWeeks()) {
+                Set<Lecture>[] dayAssignments = getDayAssignments(week);
+                for (int i = 0; i < dayAssignments.length; i++)
+                    if (hasDay(week, i, value))
+                        dayAssignments[i].remove(value.variable());
+            }
             updateCriterion(assignment);
         }
         
-        public int nrDays(Placement value, Set<Placement> conflicts) {
+        public int nrDays(BitSet week, Placement value, Set<Placement> conflicts) {
+            Set<Lecture>[] dayAssignments = getDayAssignments(week);
             int ret = 0;
-            for (int i = 0; i < iDayAssignments.length; i++) {
-                int cnt = iDayAssignments[i].size();
+            for (int i = 0; i < dayAssignments.length; i++) {
+                int cnt = dayAssignments[i].size();
                 if (value != null) {
-                    if ((value.getTimeLocation().getDayCode() & Constants.DAY_CODES[i]) != 0) cnt ++;
-                    if (iDayAssignments[i].contains(value.variable())) cnt --; 
+                    if (hasDay(week, i, value)) cnt ++;
+                    if (dayAssignments[i].contains(value.variable())) cnt --; 
                 }
                 if (conflicts != null) {
                     for (Placement conflict: conflicts) {
                         if (value != null && conflict.variable().equals(value.variable())) continue;
-                        if (iDayAssignments[i].contains(conflict.variable())) cnt --;
+                        if (dayAssignments[i].contains(conflict.variable())) cnt --;
                     }
                 }
                 if (cnt > 0) ret++;
@@ -152,46 +191,72 @@ public class MaxDaysFlexibleConstraint extends FlexibleConstraint {
             return ret;
         }
         
-        public Set<Lecture> candidates(Placement value, Set<Placement> conflicts) {
-            int bestCnt = 0;
-            List<Integer> bestWeeks = new ArrayList<Integer>();
-            for (int i = 0; i < iDayAssignments.length; i++) {
-                if ((value.getTimeLocation().getDayCode() & Constants.DAY_CODES[i]) != 0) continue;
-                int cnt = iDayAssignments[i].size();
-                if (iDayAssignments[i].contains(value.variable())) cnt --;
-                for (Placement conflict: conflicts) {
-                    if (conflict.variable().equals(value.variable())) continue;
-                    if (iDayAssignments[i].contains(conflict.variable())) cnt --;
-                }
-                if (cnt <= 0) continue;
-                if (bestWeeks.isEmpty() || bestCnt > cnt) {
-                    bestWeeks.clear(); bestWeeks.add(i); bestCnt = cnt;
-                } else if (bestCnt == cnt) {
-                    bestWeeks.add(i);
-                }
+        public int nrDays(Placement value, Set<Placement> conflicts) {
+            int ret = 0; 
+            for (BitSet week: getWeeks()) {
+                int days = nrDays(week, value, conflicts);
+                if (days > ret) ret = days;
             }
-            return bestWeeks.isEmpty() ? null : iDayAssignments[ToolBox.random(bestWeeks)];
+            return ret;
         }
         
-        public int nrViolations(HashMap<Lecture, Placement> assignments, Set<Placement> conflicts) {
+        public Set<Lecture> candidates(Placement value, Set<Placement> conflicts) {
+            for (BitSet week: getWeeks()) {
+                Set<Lecture>[] dayAssignments = getDayAssignments(week);
+                int bestCnt = 0;
+                int nrDays = 0;
+                List<Integer> bestWeeks = new ArrayList<Integer>();
+                for (int i = 0; i < dayAssignments.length; i++) {
+                    if (hasDay(week, i, value)) {
+                        nrDays++;
+                        continue;
+                    }
+                    int cnt = dayAssignments[i].size();
+                    if (dayAssignments[i].contains(value.variable())) cnt --;
+                    for (Placement conflict: conflicts) {
+                        if (conflict.variable().equals(value.variable())) continue;
+                        if (dayAssignments[i].contains(conflict.variable())) cnt --;
+                    }
+                    if (cnt <= 0) continue;
+                    nrDays ++;
+                    if (bestWeeks.isEmpty() || bestCnt > cnt) {
+                        bestWeeks.clear(); bestWeeks.add(i); bestCnt = cnt;
+                    } else if (bestCnt == cnt) {
+                        bestWeeks.add(i);
+                    }
+                }
+                if (!bestWeeks.isEmpty() && nrDays > iMaxDays) return dayAssignments[ToolBox.random(bestWeeks)];
+            }
+            return null;
+        }
+        
+        public int nrViolations(BitSet week, HashMap<Lecture, Placement> assignments, Set<Placement> conflicts) {
+            Set<Lecture>[] dayAssignments = getDayAssignments(week);
             int days = 0;
-            for (int i = 0; i < iDayAssignments.length; i++) {
-                int cnt = iDayAssignments[i].size();
+            for (int i = 0; i < dayAssignments.length; i++) {
+                int cnt = dayAssignments[i].size();
                 if (assignments != null) {
                     for (Map.Entry<Lecture, Placement> entry: assignments.entrySet()) {
                         Placement assignment = entry.getValue();
-                        if (assignment != null && (assignment.getTimeLocation().getDayCode() & Constants.DAY_CODES[i]) != 0) cnt ++;
+                        if (assignment != null && hasDay(week, i, assignment)) cnt ++;
                     }
                 }
                 if (conflicts != null)
                     for (Placement conflict: conflicts) {
                         if (assignments != null && assignments.containsKey(conflict.variable())) continue;
-                        if (iDayAssignments[i].contains(conflict.variable())) cnt --;
+                        if (dayAssignments[i].contains(conflict.variable())) cnt --;
                     }
                 if (cnt > 0) days ++;
             }
             return (days <= iMaxDays ? 0 : days - iMaxDays);
         }
-    
+        
+        public int nrViolations(HashMap<Lecture, Placement> assignments, Set<Placement> conflicts) {
+            int ret = 0; 
+            for (BitSet week: getWeeks()) {
+                ret += nrViolations(week, assignments, conflicts);
+            }
+            return ret;
+        }
     }
 }
