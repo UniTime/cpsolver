@@ -808,7 +808,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                 return !plc1.getTimeLocation().shareHours(plc2.getTimeLocation()) ||
                         !plc1.getTimeLocation().shareDays(plc2.getTimeLocation()) ||
                         !plc1.sameRooms(plc2);
-            }}), 
+            }}),
         /**
          * 6 Hour Work Day: Classes are to be placed in a way that there is no more than six hours between the start of the first class and the end of the class one on any day.
          */
@@ -964,6 +964,26 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             @Override
             public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
                 return gc.isDifferentDates(plc1.getTimeLocation(), plc2.getTimeLocation());
+            }}),
+        /**
+         * Same Days-Room-Start: Given classes must start at the same time of day, on the same days and in the same room.
+         * It is the combination of Same Days, Same Start and Same Room distribution preferences.
+         * When prohibited or (strongly) discouraged: Any pair of classes classes cannot be taught on the same days 
+         * during the same time in the same room.
+         */
+        SAME_DAYS_ROOM_START("SAME_DAY_ROOM_START", "Same Days-Room-Start", new PairCheck() {
+            @Override
+            public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return (plc1.getTimeLocation().getStartSlot() % Constants.SLOTS_PER_DAY) == 
+                        (plc2.getTimeLocation().getStartSlot() % Constants.SLOTS_PER_DAY) &&
+                        sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray()) &&
+                        plc1.sameRooms(plc2);
+            }
+            @Override
+            public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                return !plc1.getTimeLocation().shareHours(plc2.getTimeLocation()) ||
+                        !plc1.getTimeLocation().shareDays(plc2.getTimeLocation()) ||
+                        !plc1.sameRooms(plc2);
             }}),
         ;
         
