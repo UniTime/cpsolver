@@ -464,7 +464,7 @@ public class SpreadConstraint extends ConstraintWithContext<Lecture, Placement, 
 
         @SuppressWarnings("unchecked")
         public SpreadConstraintContext(Assignment<Lecture, Placement> assignment) {
-            iCourses = new Set[iLastDaySlot - iFirstDaySlot + 1][(iLastWorkDay - iFirstWorkDay + 1) % 7];
+            iCourses = new Set[iLastDaySlot - iFirstDaySlot + 1][(iLastWorkDay - iFirstWorkDay) % 7 + 1];
             if (iInteractive)
                 iUnassignmentsToWeaken = 0;
             for (int i = 0; i < iCourses.length; i++) {
