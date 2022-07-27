@@ -290,6 +290,7 @@
 			<arg value="clean"/>
 			<arg value="deploy"/>
 			<arg value="clean"/>
+			<arg value="-Possrh"/>
 		</exec>
 	</target>
 	
