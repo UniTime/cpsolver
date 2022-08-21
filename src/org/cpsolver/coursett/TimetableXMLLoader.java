@@ -249,6 +249,7 @@ public class TimetableXMLLoader extends TimetableLoader {
         HashMap<String, Element> roomElements = new HashMap<String, Element>();
         HashMap<String, RoomConstraint> roomConstraints = new HashMap<String, RoomConstraint>();
         HashMap<Long, List<Lecture>> sameLectures = new HashMap<Long, List<Lecture>>();
+        HashMap<RoomConstraint, String> roomPartitions = new HashMap<RoomConstraint, String>();
         for (Iterator<?> i = root.element("rooms").elementIterator("room"); i.hasNext();) {
             Element roomEl = (Element) i.next();
             iProgress.incProgress();
@@ -306,6 +307,8 @@ public class TimetableXMLLoader extends TimetableLoader {
                 constraint.setType(Long.valueOf(roomEl.attributeValue("type")));
             getModel().addConstraint(constraint);
             roomConstraints.put(roomEl.attributeValue("id"), constraint);
+            if (roomEl.attributeValue("parentId") != null)
+                roomPartitions.put(constraint, roomEl.attributeValue("parentId"));
             
             for (Iterator<?> j = roomEl.elementIterator("travel-time"); j.hasNext();) {
                 Element travelTimeEl = (Element)j.next();
@@ -313,6 +316,11 @@ public class TimetableXMLLoader extends TimetableLoader {
                         Long.valueOf(travelTimeEl.attributeValue("id")),
                         Integer.valueOf(travelTimeEl.attributeValue("minutes")));
             }
+        }
+        for (Map.Entry<RoomConstraint, String> partition: roomPartitions.entrySet()) {
+            RoomConstraint parent = roomConstraints.get(partition.getValue());
+            if (parent != null)
+                parent.addPartition(partition.getKey());
         }
 
         HashMap<String, InstructorConstraint> instructorConstraints = new HashMap<String, InstructorConstraint>();

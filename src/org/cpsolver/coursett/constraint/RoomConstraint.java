@@ -62,6 +62,9 @@ public class RoomConstraint extends ConstraintWithContext<Lecture, Placement, Ro
 
     private Long iType = null;
     private int iDayOfWeekOffset = 0;
+    
+    private RoomConstraint iParentRoom;
+    private List<RoomConstraint> iPartitions;
 
     /**
      * Constructor
@@ -136,6 +139,39 @@ public class RoomConstraint extends ConstraintWithContext<Lecture, Placement, Ro
                 }
             }
         }
+
+        // room partition checking
+        if (getParentRoom() != null && getParentRoom().getConstraint() && getParentRoom().iAvailable != null) { // check parent room's availability
+            for (Enumeration<Integer> e = time.getSlots(); e.hasMoreElements();) {
+                int slot = e.nextElement();
+                if (getParentRoom().iAvailable[slot] != null) {
+                    for (Placement p : getParentRoom().iAvailable[slot]) {
+                        if (lecture.canShareRoom(p.variable()))
+                            continue;
+                        if (time.shareWeeks(p.getTimeLocation()))
+                            return false;
+                    }
+                }
+            }
+        }
+        if (getPartitions() != null) { // check partitions for availability
+            for (RoomConstraint partition: getPartitions()) {
+                if (partition.iAvailable != null && partition.getConstraint()) {
+                    for (Enumeration<Integer> e = time.getSlots(); e.hasMoreElements();) {
+                        int slot = e.nextElement();
+                        if (partition.iAvailable[slot] != null) {
+                            for (Placement p : partition.iAvailable[slot]) {
+                                if (lecture.canShareRoom(p.variable()))
+                                    continue;
+                                if (time.shareWeeks(p.getTimeLocation()))
+                                    return false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
         if (getSharingModel() != null && !getSharingModel().isAvailable(time, scheduler))
             return false;
         return true;
@@ -148,6 +184,29 @@ public class RoomConstraint extends ConstraintWithContext<Lecture, Placement, Ro
     public RoomSharingModel getSharingModel() {
         return iRoomSharingModel;
     }
+    
+    /**
+     * Add partition of this room. This room is unavailable at a time when one of the partition 
+     * is not available and vice versa.
+     * @param room room partition
+     */
+    public void addPartition(RoomConstraint room) {
+        room.iParentRoom = this;
+        if (iPartitions == null) iPartitions = new ArrayList<RoomConstraint>();
+        iPartitions.add(room);
+    }
+    
+    /**
+     * If this room is a partition of some other room, returns the parent room (which is partitioned).
+     * @return parent room
+     */
+    public RoomConstraint getParentRoom() { return iParentRoom; }
+    
+    /**
+     * If this room is partitioned into multiple rooms, return room partitions
+     * @return room partitions
+     */
+    public List<RoomConstraint> getPartitions() { return iPartitions; }
 
     /** Room id 
      * @return room unique id
@@ -186,6 +245,60 @@ public class RoomConstraint extends ConstraintWithContext<Lecture, Placement, Ro
             return;
         if (!placement.hasRoomLocation(getResourceId()))
             return;
+
+        // room partition checking
+        if (getParentRoom() != null && getParentRoom().getConstraint()) { // check parent room's availability
+            Lecture lecture = placement.variable();
+            Placement current = assignment.getValue(lecture);
+            Set<Placement> shared = null;
+            BitSet weekCode = placement.getTimeLocation().getWeekCode();
+            RoomConstraintContext context = getParentRoom().getContext(assignment);
+            for (Enumeration<Integer> e = placement.getTimeLocation().getSlots(); e.hasMoreElements();) {
+                int slot = e.nextElement();
+                for (Placement confPlacement : context.getPlacements(slot)) {
+                    if (!confPlacement.getTimeLocation().shareWeeks(weekCode))
+                        continue;
+                    if (confPlacement.equals(current))
+                        continue;
+                    if (shared != null && shared.contains(confPlacement))
+                        continue;
+                    if (confPlacement.canShareRooms(placement) && checkRoomSize(placement, shared, confPlacement)) {
+                        if (shared == null) shared = new HashSet<Placement>();
+                        shared.add(confPlacement);
+                        continue;
+                    }
+                    conflicts.add(confPlacement);
+                }
+            }
+        }
+        if (getPartitions() != null) { // check partitions for availability
+            Lecture lecture = placement.variable();
+            Placement current = assignment.getValue(lecture);
+            Set<Placement> shared = null;
+            BitSet weekCode = placement.getTimeLocation().getWeekCode();
+            for (RoomConstraint partition: iPartitions) {
+                if (!partition.getConstraint()) continue;
+                RoomConstraintContext context = partition.getContext(assignment);
+                for (Enumeration<Integer> e = placement.getTimeLocation().getSlots(); e.hasMoreElements();) {
+                    int slot = e.nextElement();
+                    for (Placement confPlacement : context.getPlacements(slot)) {
+                        if (!confPlacement.getTimeLocation().shareWeeks(weekCode))
+                            continue;
+                        if (confPlacement.equals(current))
+                            continue;
+                        if (shared != null && shared.contains(confPlacement))
+                            continue;
+                        if (confPlacement.canShareRooms(placement) && checkRoomSize(placement, shared, confPlacement)) {
+                            if (shared == null) shared = new HashSet<Placement>();
+                            shared.add(confPlacement);
+                            continue;
+                        }
+                        conflicts.add(confPlacement);
+                    }
+                }
+            }
+        }
+        
         Lecture lecture = placement.variable();
         Placement current = assignment.getValue(lecture);
         Set<Placement> shared = null;
@@ -255,6 +368,60 @@ public class RoomConstraint extends ConstraintWithContext<Lecture, Placement, Ro
             return false;
         if (!placement.hasRoomLocation(getResourceId()))
             return false;
+        
+        // room partition checking
+        if (getParentRoom() != null && getParentRoom().getConstraint()) { // check parent room's availability
+            Lecture lecture = placement.variable();
+            Placement current = assignment.getValue(lecture);
+            Set<Placement> shared = null;
+            BitSet weekCode = placement.getTimeLocation().getWeekCode();
+            RoomConstraintContext context = getParentRoom().getContext(assignment);
+            for (Enumeration<Integer> e = placement.getTimeLocation().getSlots(); e.hasMoreElements();) {
+                int slot = e.nextElement();
+                for (Placement confPlacement : context.getPlacements(slot)) {
+                    if (!confPlacement.getTimeLocation().shareWeeks(weekCode))
+                        continue;
+                    if (confPlacement.equals(current))
+                        continue;
+                    if (shared != null && shared.contains(confPlacement))
+                        continue;
+                    if (confPlacement.canShareRooms(placement) && checkRoomSize(placement, shared, confPlacement)) {
+                        if (shared == null) shared = new HashSet<Placement>();
+                        shared.add(confPlacement);
+                        continue;
+                    }
+                    return true;
+                }
+            }
+        }
+        if (getPartitions() != null) { // check partitions for availability
+            Lecture lecture = placement.variable();
+            Placement current = assignment.getValue(lecture);
+            Set<Placement> shared = null;
+            BitSet weekCode = placement.getTimeLocation().getWeekCode();
+            for (RoomConstraint partition: iPartitions) {
+                if (!partition.getConstraint()) continue;
+                RoomConstraintContext context = partition.getContext(assignment);
+                for (Enumeration<Integer> e = placement.getTimeLocation().getSlots(); e.hasMoreElements();) {
+                    int slot = e.nextElement();
+                    for (Placement confPlacement : context.getPlacements(slot)) {
+                        if (!confPlacement.getTimeLocation().shareWeeks(weekCode))
+                            continue;
+                        if (confPlacement.equals(current))
+                            continue;
+                        if (shared != null && shared.contains(confPlacement))
+                            continue;
+                        if (confPlacement.canShareRooms(placement) && checkRoomSize(placement, shared, confPlacement)) {
+                            if (shared == null) shared = new HashSet<Placement>();
+                            shared.add(confPlacement);
+                            continue;
+                        }
+                        return true;
+                    }
+                }
+            }
+        }
+
         Lecture lecture = placement.variable();
         Placement current = assignment.getValue(lecture);
         Set<Placement> shared = null;
@@ -285,6 +452,15 @@ public class RoomConstraint extends ConstraintWithContext<Lecture, Placement, Ro
     public boolean isConsistent(Placement p1, Placement p2) {
         if (!getConstraint())
             return true;
+        if (getParentRoom() != null) { // partition checking -- one of the placement is with the parent room
+            if ((p1.hasRoomLocation(getResourceId()) && p2.hasRoomLocation(getParentRoom().getResourceId())) ||
+                (p2.hasRoomLocation(getResourceId()) && p1.hasRoomLocation(getParentRoom().getResourceId()))) {
+                if (p1.getTimeLocation().hasIntersection(p2.getTimeLocation())) {
+                    if (!p1.canShareRooms(p2) || (p1.variable()).maxRoomUse() + (p2.variable()).maxRoomUse() > getCapacity())
+                        return true;
+                }
+            }
+        }
         if (!p1.hasRoomLocation(getResourceId()))
             return false;
         if (!p2.hasRoomLocation(getResourceId()))

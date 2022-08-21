@@ -282,6 +282,8 @@ public class TimetableXMLSaver extends TimetableSaver {
             }
             if (!iConvertIds && roomConstraint.getBuildingId() != null)
                 roomEl.addAttribute("building", getId("bldg", roomConstraint.getBuildingId()));
+            if (roomConstraint.getParentRoom() != null)
+                roomEl.addAttribute("parentId", getId("room", roomConstraint.getParentRoom().getResourceId()));
             roomElements.put(getId("room", roomConstraint.getResourceId()), roomEl);
             roomEl.addAttribute("capacity", String.valueOf(roomConstraint.getCapacity()));
             if (roomConstraint.getPosX() != null && roomConstraint.getPosY() != null)
@@ -415,6 +417,8 @@ public class TimetableXMLSaver extends TimetableSaver {
                     roomEl.addAttribute("constraint", "false");
                     if (!iConvertIds && rl.getBuildingId() != null)
                         roomEl.addAttribute("building", getId("bldg", rl.getBuildingId()));
+                    if (rl.getRoomConstraint() != null && rl.getRoomConstraint().getParentRoom() != null)
+                        roomEl.addAttribute("parentId", getId("room", rl.getRoomConstraint().getParentRoom().getResourceId()));
                     if (iShowNames) {
                         roomEl.addAttribute("name", rl.getName());
                     }
