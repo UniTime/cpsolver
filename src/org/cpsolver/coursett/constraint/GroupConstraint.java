@@ -121,6 +121,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
     private boolean iIsProhibited;
     private int iDayOfWeekOffset = 0;
     private boolean iPrecedenceConsiderDatePatterns = true;
+    private boolean iPrecedenceSkipSameDatePatternCheck = true;
     private boolean iMaxNHoursADayConsiderDatePatterns = true;
     private int iForwardCheckMaxDepth = 2;
     private int iForwardCheckMaxDomainSize = 1000;
@@ -1131,6 +1132,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             DataProperties config = ((TimetableModel)model).getProperties();
             iDayOfWeekOffset = config.getPropertyInt("DatePattern.DayOfWeekOffset", 0);
             iPrecedenceConsiderDatePatterns = config.getPropertyBoolean("Precedence.ConsiderDatePatterns", true);
+            iPrecedenceSkipSameDatePatternCheck = config.getPropertyBoolean("Precedence.SkipSameDatePatternCheck", true);
             iForwardCheckMaxDepth = config.getPropertyInt("ForwardCheck.MaxDepth", iForwardCheckMaxDepth);
             iForwardCheckMaxDomainSize = config.getPropertyInt("ForwardCheck.MaxDomainSize", iForwardCheckMaxDomainSize);
             iMaxNHoursADayConsiderDatePatterns = config.getPropertyBoolean("MaxNHoursADay.ConsiderDatePatterns", iMaxNHoursADayConsiderDatePatterns);
@@ -1751,10 +1753,15 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             }
         }
         if (considerDatePatterns && iPrecedenceConsiderDatePatterns) {
-            boolean sameDatePattern = (t1.getDatePatternId() != null ? t1.getDatePatternId().equals(t2.getDatePatternId()) : t1.getWeekCode().equals(t2.getWeekCode()));
-            if (!sameDatePattern) {
-            	int m1 = t1.getFirstMeeting(iDayOfWeekOffset), m2 = t2.getFirstMeeting(iDayOfWeekOffset);
+            if (iPrecedenceSkipSameDatePatternCheck) {
+                int m1 = t1.getFirstMeeting(iDayOfWeekOffset), m2 = t2.getFirstMeeting(iDayOfWeekOffset);
                 if (m1 != m2) return m1 < m2;
+            } else {
+                boolean sameDatePattern = (t1.getDatePatternId() != null ? t1.getDatePatternId().equals(t2.getDatePatternId()) : t1.getWeekCode().equals(t2.getWeekCode()));
+                if (!sameDatePattern) {
+                    int m1 = t1.getFirstMeeting(iDayOfWeekOffset), m2 = t2.getFirstMeeting(iDayOfWeekOffset);
+                    if (m1 != m2) return m1 < m2;
+                }
             }
         }
         if (iFirstWorkDay != 0) {
