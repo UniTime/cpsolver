@@ -236,25 +236,27 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
             return 1;
         
         // 3.95 avoid past sections
-        int bestPast = 0, currentPast = 0;
+        double bestPast = 0.0, currentPast = 0.0;
         for (int idx = 0; idx < current.length; idx++) {
             if (best[idx] != null && best[idx].getAssignments() != null) {
                 for (Section section : best[idx].getSections()) {
                     if (section.isPast())
-                        bestPast++;
+                        bestPast += 1.0 / best[idx].getSections().size();
                 }
             }
             if (current[idx] != null && current[idx].getAssignments() != null) {
                 for (Section section : current[idx].getSections()) {
                     if (section.isPast())
-                        currentPast++;
+                        currentPast += 1.0 / current[idx].getSections().size();
                 }
             }
         }
-        if (currentPast < bestPast)
-            return -1;
-        if (bestPast < currentPast)
-            return 1;
+        if (Math.abs(currentPast - bestPast) > 0.0001) {
+            if (currentPast < bestPast)
+                return -1;
+            if (bestPast < currentPast)
+                return 1;
+        }
         
         // 4-5. student quality
         if (getModel().getStudentQuality() != null) {
@@ -652,25 +654,27 @@ public class EqualWeightCriterion extends OnlineSectioningCriterion {
             return false;
         
         // 3.95 avoid past sections
-        int bestPast = 0, currentPast = 0;
+        double bestPast = 0.0, currentPast = 0.0;
         for (int idx = 0; idx < current.length; idx++) {
             if (best[idx] != null && best[idx].getAssignments() != null) {
                 for (Section section : best[idx].getSections()) {
                     if (section.isPast())
-                        bestPast++;
+                        bestPast += 1.0 / best[idx].getSections().size();
                 }
             }
             if (current[idx] != null && idx < maxIdx && current[idx].getAssignments() != null) {
                 for (Section section : current[idx].getSections()) {
                     if (section.isPast())
-                        currentPast++;
+                        currentPast += 1.0 / current[idx].getSections().size();
                 }
             }
         }
-        if (currentPast < bestPast)
-            return true;
-        if (bestPast < currentPast)
-            return false;
+        if (Math.abs(currentPast - bestPast) > 0.0001) {
+            if (currentPast < bestPast)
+                return true;
+            if (bestPast < currentPast)
+                return false;
+        }
         
         // 4-5. solution quality
         if (getModel().getStudentQuality() != null) {

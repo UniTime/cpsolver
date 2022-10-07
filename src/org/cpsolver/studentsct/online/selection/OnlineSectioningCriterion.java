@@ -396,25 +396,27 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
         }
         
         // 3.95 avoid past sections
-        int bestPast = 0, currentPast = 0;
+        double bestPast = 0.0, currentPast = 0.0;
         for (int idx = 0; idx < current.length; idx++) {
             if (best[idx] != null && best[idx].getAssignments() != null) {
                 for (Section section : best[idx].getSections()) {
                     if (section.isPast())
-                        bestPast++;
+                        bestPast += 1.0 / best[idx].getSections().size();
                 }
             }
             if (current[idx] != null && current[idx].getAssignments() != null) {
                 for (Section section : current[idx].getSections()) {
                     if (section.isPast())
-                        currentPast++;
+                        currentPast += 1.0 / current[idx].getSections().size();
                 }
             }
         }
-        if (currentPast < bestPast)
-            return -1;
-        if (bestPast < currentPast)
-            return 1;
+        if (Math.abs(currentPast - bestPast) > 0.0001) {
+            if (currentPast < bestPast)
+                return -1;
+            if (bestPast < currentPast)
+                return 1;
+        }
 
         // 4-5. student quality
         if (getModel().getStudentQuality() != null) {
@@ -839,25 +841,27 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
         }
         
         // 3.95 avoid past sections
-        int bestPast = 0, currentPast = 0;
+        double bestPast = 0.0, currentPast = 0.0;
         for (int idx = 0; idx < current.length; idx++) {
             if (best[idx] != null && best[idx].getAssignments() != null) {
                 for (Section section : best[idx].getSections()) {
                     if (section.isPast())
-                        bestPast++;
+                        bestPast += 1.0 / best[idx].getSections().size();
                 }
             }
             if (current[idx] != null && idx < maxIdx && current[idx].getAssignments() != null) {
                 for (Section section : current[idx].getSections()) {
                     if (section.isPast())
-                        currentPast++;
+                        currentPast += 1.0 / current[idx].getSections().size();
                 }
             }
         }
-        if (currentPast < bestPast)
-            return true;
-        if (bestPast < currentPast)
-            return false;
+        if (Math.abs(currentPast - bestPast) > 0.0001) {
+            if (currentPast < bestPast)
+                return true;
+            if (bestPast < currentPast)
+                return false;
+        }
         
         // 4-5. student quality
         if (getModel().getStudentQuality() != null) {
@@ -1123,19 +1127,21 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
             return 1;
         
         // 3.95 avoid past sections
-        int w1 = 0, w2 = 0;
+        double w1 = 0, w2 = 0;
         for (Section section : e1.getSections()) {
             if (section.isPast())
-                w1++;
+                w1 += 1.0 / e1.getSections().size();
         }
         for (Section section : e2.getSections()) {
             if (section.isPast())
-                w2++;
+                w2 += 1.0 / e2.getSections().size();
         }
-        if (w1 < w2)
-            return -1;
-        if (w2 < w1)
-            return 1;
+        if (Math.abs(w1 - w2) > 0.0001) {
+            if (w1 < w2)
+                return -1;
+            if (w2 < w1)
+                return 1;
+        }
 
         // 4. avoid time overlaps
         if (getTimesToAvoid() == null) {
