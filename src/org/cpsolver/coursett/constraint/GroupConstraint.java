@@ -986,6 +986,61 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                         !plc1.getTimeLocation().shareDays(plc2.getTimeLocation()) ||
                         !plc1.sameRooms(plc2);
             }}),
+        /**
+         * Overnight: The constraint has two parameters: hours and distance in minutes. There is a problem when
+         * an evening class is followed by a morning class the next day and the time in between is less then the
+         * given number of hours, but only when the distance in minutes between them is greater than the
+         * 
+         */
+        DAYBREAK("DAYBREAK\\(([0-9\\.]+),(-?[0-9]+)\\)", "Daybreak", new AssignmentParameterPairCheck<Integer[]>() {
+            @Override
+            public boolean isSatisfied(Assignment<Lecture, Placement> assignment, Integer[] param, GroupConstraint gc, Placement plc1, Placement plc2) {
+                TimeLocation t1 = plc1.getTimeLocation();
+                TimeLocation t2 = plc2.getTimeLocation();
+                if (288 + t2.getStartSlot() - t1.getStartSlot() - t1.getLength() < gc.getType().getMin()) { // close to each other
+                    if (gc.isNextDay(t1, t2)) { // next day
+                        if (gc.getType().getMax() < 0) { // no distance check
+                            return false;
+                        } else {
+                            DistanceMetric m = ((TimetableModel)gc.getModel()).getDistanceMetric();
+                            if (Placement.getDistanceInMeters(m, plc1, plc2) > gc.getType().getMax()) { // distance check
+                                return false;
+                            }
+                        }
+                    }
+                } else if (288 + t1.getStartSlot() - t2.getStartSlot() - t2.getLength() < gc.getType().getMin()) { // close to each other, but the other way around
+                    if (gc.isNextDay(t2, t1)) { // next day
+                        if (gc.getType().getMax() < 0) { // no distance check
+                            return false;
+                        } else {
+                            DistanceMetric m = ((TimetableModel)gc.getModel()).getDistanceMetric();
+                            if (Placement.getDistanceInMeters(m, plc2, plc1) > gc.getType().getMax()) { // distance check
+                                return false;
+                            }
+                        }
+                    }
+                }
+                return true;
+            }
+            @Override
+            public boolean isViolated(Assignment<Lecture, Placement> assignment, Integer[] parameter, GroupConstraint gc, Placement plc1, Placement plc2) {
+                return true;
+            }
+            @Override
+            public ParametrizedConstraintType<Integer[]> create(String reference, String regexp) {
+                Matcher matcher = Pattern.compile(regexp).matcher(reference);
+                if (matcher.find()) {
+                    double hours = Double.parseDouble(matcher.group(1));
+                    int distanceSlots = (int)Math.round(12.0 * hours);
+                    int distanceInMinutes = Integer.parseInt(matcher.group(2));
+                    return new ParametrizedConstraintType<Integer[]>(ConstraintType.DAYBREAK, 
+                            new Integer[] {distanceSlots, distanceInMinutes}, reference)
+                            .setName("Daybreak of " + ( distanceSlots / 12.0) + " hours" + (distanceInMinutes >= 0 ? " when over " + distanceInMinutes + " mins": ""))
+                            .setMin(distanceSlots).setMax(distanceInMinutes);
+                }
+                return null;
+            }}),
+        
         ;
         
         String iReference, iName;
@@ -1848,6 +1903,24 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             }
         }
         return ((e1 + 1) % iNrWorkDays == f2);
+    }
+    
+    private boolean isNextDay(TimeLocation t1, TimeLocation t2) {
+        if (iPrecedenceConsiderDatePatterns) {
+            for (Enumeration<Integer> e = t1.getDates(iDayOfWeekOffset); e.hasMoreElements(); ) {
+                Integer date = e.nextElement();
+                if (t2.hasDate(date + 1, iDayOfWeekOffset)) return true;
+            }
+            return false;
+        }
+        for (int i = 0; i < Constants.DAY_CODES.length; i++) {
+            int i1 = (i + iFirstWorkDay) % 7;
+            int i2 = (1 + i1) % 7;
+            boolean a = (t1.getDayCode() & Constants.DAY_CODES[i1]) != 0;
+            boolean b = (t2.getDayCode() & Constants.DAY_CODES[i2]) != 0;
+            if (a && b) return true;
+        }
+        return false;
     }
 
     private boolean isEveryOtherDay(Placement p1, Placement p2, boolean firstGoesFirst) {
