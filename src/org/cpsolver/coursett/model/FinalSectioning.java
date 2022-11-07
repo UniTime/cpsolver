@@ -709,6 +709,8 @@ public class FinalSectioning {
             if (!addLectures(assignment, secondStudent, firstStudent, m.secondLectures(), secondConfig.getTopLectures(subpartId)))
                 return null;
         }
+        
+        if (m.firstLectures().isEmpty() || m.secondLectures().isEmpty()) return null;
 
         return m;
     }
@@ -746,6 +748,7 @@ public class FinalSectioning {
             return false;
         if (newStudent != null && !newStudent.canEnroll(lecture))
             return false;
+        if (lecture.getModel() == null) return false;
         studentLectures.add(lecture);
         if (lecture.getChildrenSubpartIds() != null) {
             for (Long subpartId: lecture.getChildrenSubpartIds()) {
