@@ -137,7 +137,7 @@ public class ExamSplitMoves implements NeighbourSelection<Exam, ExamPlacement> {
         int px = ToolBox.random(exam.getPeriodPlacements().size());
         for (int p = 0; p < exam.getPeriodPlacements().size(); p++) { // Iterate over possible periods
             ExamPeriodPlacement period = exam.getPeriodPlacements().get((p + px) % exam.getPeriodPlacements().size());
-            if (placement != null && placement.getPeriod().equals(period)) continue;
+            if (placement != null && placement.getPeriod().equals(period.getPeriod())) continue;
             // Try to create a neighbor
             ExamSplitNeighbour s = new ExamSplitNeighbour(assignment, exam, new ExamPlacement(exam, period, null));
             if (split == null || s.value(assignment) < split.value(assignment)) {
