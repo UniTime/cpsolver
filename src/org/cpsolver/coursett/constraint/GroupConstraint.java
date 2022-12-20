@@ -990,7 +990,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
          * Overnight: The constraint has two parameters: hours and distance in minutes. There is a problem when
          * an evening class is followed by a morning class the next day and the time in between is less then the
          * given number of hours, but only when the distance in minutes between them is greater than the
-         * 
+         * given number of minutes.
          */
         DAYBREAK("DAYBREAK\\(([0-9\\.]+),(-?[0-9]+)\\)", "Daybreak", new AssignmentParameterPairCheck<Integer[]>() {
             @Override
@@ -1003,7 +1003,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                             return false;
                         } else {
                             DistanceMetric m = ((TimetableModel)gc.getModel()).getDistanceMetric();
-                            if (Placement.getDistanceInMeters(m, plc1, plc2) > gc.getType().getMax()) { // distance check
+                            if (Placement.getDistanceInMinutes(m, plc1, plc2) > gc.getType().getMax()) { // distance check
                                 return false;
                             }
                         }
@@ -1014,7 +1014,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                             return false;
                         } else {
                             DistanceMetric m = ((TimetableModel)gc.getModel()).getDistanceMetric();
-                            if (Placement.getDistanceInMeters(m, plc2, plc1) > gc.getType().getMax()) { // distance check
+                            if (Placement.getDistanceInMinutes(m, plc2, plc1) > gc.getType().getMax()) { // distance check
                                 return false;
                             }
                         }
