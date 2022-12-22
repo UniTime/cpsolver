@@ -17,6 +17,7 @@ import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
 import org.cpsolver.coursett.model.RoomLocation;
 import org.cpsolver.coursett.model.TimeLocation;
+import org.cpsolver.coursett.model.TimeLocation.IntEnumeration;
 import org.cpsolver.coursett.model.TimetableModel;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
@@ -123,6 +124,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
     private boolean iPrecedenceConsiderDatePatterns = true;
     private boolean iPrecedenceSkipSameDatePatternCheck = true;
     private boolean iMaxNHoursADayConsiderDatePatterns = true;
+    private boolean iMaxNHoursADayPrecideComputation = false;
     private int iForwardCheckMaxDepth = 2;
     private int iForwardCheckMaxDomainSize = 1000;
     private int iNrWorkDays = 5;
@@ -1190,6 +1192,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             iPrecedenceSkipSameDatePatternCheck = config.getPropertyBoolean("Precedence.SkipSameDatePatternCheck", true);
             iForwardCheckMaxDepth = config.getPropertyInt("ForwardCheck.MaxDepth", iForwardCheckMaxDepth);
             iForwardCheckMaxDomainSize = config.getPropertyInt("ForwardCheck.MaxDomainSize", iForwardCheckMaxDomainSize);
+            iMaxNHoursADayPrecideComputation = config.getPropertyBoolean("MaxNHoursADay.PreciseComputation", iMaxNHoursADayPrecideComputation);
             iMaxNHoursADayConsiderDatePatterns = config.getPropertyBoolean("MaxNHoursADay.ConsiderDatePatterns", iMaxNHoursADayConsiderDatePatterns);
             iNrWorkDays = (config.getPropertyInt("General.LastWorkDay", 4) - config.getPropertyInt("General.FirstWorkDay", 0) + 1);
             if (iNrWorkDays <= 0) iNrWorkDays += 7;
@@ -1324,7 +1327,13 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             assignments.put(value1.variable(), value1);
             assignments.put(value2.variable(), value2);
             for (int dayCode: Constants.DAY_CODES) {
-                if (iMaxNHoursADayConsiderDatePatterns) {
+                if (iMaxNHoursADayPrecideComputation) {
+                    for (IntEnumeration dates = value1.getTimeLocation().getDates(iDayOfWeekOffset); dates.hasMoreElements(); ) {
+                        int date = dates.nextElement();
+                        if (!value2.getTimeLocation().hasDate(date, iDayOfWeekOffset)) continue;
+                        if (nrSlotsADay(null, date, assignments, null) > getType().getMax()) return false;
+                    }
+                } else if (iMaxNHoursADayConsiderDatePatterns) {
                     for (BitSet week: ((TimetableModel)getModel()).getWeeks()) {
                         if (!value1.getTimeLocation().shareWeeks(week) && !value2.getTimeLocation().shareWeeks(week)) continue;
                         if (nrSlotsADay(null, dayCode, week, assignments, null) > getType().getMax()) return false;
@@ -1369,7 +1378,27 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
             assignments.put(value.variable(), value);
             for (int dayCode: Constants.DAY_CODES) {
-                if (iMaxNHoursADayConsiderDatePatterns) {
+                if (iMaxNHoursADayPrecideComputation) {
+                    for (IntEnumeration dates = value.getTimeLocation().getDates(iDayOfWeekOffset); dates.hasMoreElements(); ) {
+                        int date = dates.nextElement();
+                        if (nrSlotsADay(assignment, date, assignments, conflicts) > getType().getMax()) {
+                            List<Placement> adepts = new ArrayList<Placement>();
+                            for (Lecture l: variables()) {
+                                if (l.equals(value.variable()) || l.isConstant()) continue;
+                                Placement p = assignment.getValue(l);
+                                if (p == null || conflicts.contains(p) || p.getTimeLocation() == null) continue;
+                                if (!p.getTimeLocation().hasDate(date, iDayOfWeekOffset)) continue;
+                                adepts.add(p);
+                            }
+                            do {
+                                if (adepts.isEmpty()) { conflicts.add(value); break; }
+                                Placement conflict = ToolBox.random(adepts);
+                                adepts.remove(conflict);
+                                conflicts.add(conflict);
+                            } while (nrSlotsADay(assignment, date, assignments, conflicts) > getType().getMax());
+                        }
+                    }
+                } else if (iMaxNHoursADayConsiderDatePatterns) {
                     for (BitSet week: ((TimetableModel)getModel()).getWeeks()) {
                         if (!value.getTimeLocation().shareWeeks(week)) continue;
                         if (nrSlotsADay(assignment, dayCode, week, assignments, conflicts) > getType().getMax()) {
@@ -1542,7 +1571,13 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
             assignments.put(value.variable(), value);
             for (int dayCode: Constants.DAY_CODES) {
-                if (iMaxNHoursADayConsiderDatePatterns) {
+                if (iMaxNHoursADayPrecideComputation) {
+                    for (IntEnumeration dates = value.getTimeLocation().getDates(iDayOfWeekOffset); dates.hasMoreElements(); ) {
+                        int date = dates.nextElement();
+                        if (nrSlotsADay(assignment,date, assignments, null) > getType().getMax())
+                            return true;
+                    }
+                } else if (iMaxNHoursADayConsiderDatePatterns) {
                     for (BitSet week: ((TimetableModel)getModel()).getWeeks()) {
                         if (!value.getTimeLocation().shareWeeks(week)) continue;
                         if (nrSlotsADay(assignment, dayCode, week, assignments, null) > getType().getMax())
@@ -1665,7 +1700,18 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
         if (getType().is(Flag.MAX_HRS_DAY)) { // max hours a day
             int over = 0;
             for (int dayCode: Constants.DAY_CODES) {
-                if (iMaxNHoursADayConsiderDatePatterns) {
+                if (iMaxNHoursADayPrecideComputation) {
+                    Set<Integer> allDates = new HashSet<Integer>();
+                    for (Lecture v1 : variables()) {
+                        Placement p1 = assignment.getValue(v1);
+                        if (p1 == null) continue;
+                        for (IntEnumeration dates = p1.getTimeLocation().getDates(iDayOfWeekOffset); dates.hasMoreElements(); ) {
+                            int date = dates.nextElement();
+                            if (allDates.add(date))
+                                over += Math.max(0, nrSlotsADay(assignment, date, null, null) - getType().getMax());
+                        }
+                    }
+                } else if (iMaxNHoursADayConsiderDatePatterns) {
                     for (BitSet week: ((TimetableModel)getModel()).getWeeks())
                         over += Math.max(0, nrSlotsADay(assignment, dayCode, week, null, null) - getType().getMax());
                 } else {
@@ -1710,7 +1756,13 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             int after = 0;
             int before = 0;
             for (int dayCode: Constants.DAY_CODES) {
-                if (iMaxNHoursADayConsiderDatePatterns) {
+                if (iMaxNHoursADayPrecideComputation) {
+                    for (IntEnumeration dates = placement.getTimeLocation().getDates(iDayOfWeekOffset); dates.hasMoreElements(); ) {
+                        int date = dates.nextElement();
+                        after += Math.max(0, nrSlotsADay(assignment, date, assignments, null) - getType().getMax());
+                        before += Math.max(0, nrSlotsADay(assignment, date, unassignments, null) - getType().getMax());
+                    }
+                } else if (iMaxNHoursADayConsiderDatePatterns) {
                     for (BitSet week: ((TimetableModel)getModel()).getWeeks()) {
                         after += Math.max(0, nrSlotsADay(assignment, dayCode, week, assignments, null) - getType().getMax());
                         before += Math.max(0, nrSlotsADay(assignment, dayCode, week, unassignments, null) - getType().getMax());
@@ -2228,6 +2280,24 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             if (conflicts != null && conflicts.contains(placement)) continue;
             TimeLocation t = placement.getTimeLocation();
             if (t == null || (t.getDayCode() & dayCode) == 0 || (week != null && !t.shareWeeks(week))) continue;
+            for (int i = 0; i < t.getLength(); i++)
+                slots.add(i + t.getStartSlot());
+        }
+        return slots.size();
+    }
+    
+    protected int nrSlotsADay(Assignment<Lecture, Placement> assignment, int date, HashMap<Lecture, Placement> assignments, Set<Placement> conflicts) {
+        Set<Integer> slots = new HashSet<Integer>();
+        for (Lecture lecture: variables()) {
+            Placement placement = null;
+            if (assignments != null && assignments.containsKey(lecture))
+                placement = assignments.get(lecture);
+            else if (assignment != null)
+                placement = assignment.getValue(lecture);
+            if (placement == null || placement.getTimeLocation() == null) continue;
+            if (conflicts != null && conflicts.contains(placement)) continue;
+            TimeLocation t = placement.getTimeLocation();
+            if (t == null || !t.hasDate(date, iDayOfWeekOffset)) continue;
             for (int i = 0; i < t.getLength(); i++)
                 slots.add(i + t.getStartSlot());
         }
