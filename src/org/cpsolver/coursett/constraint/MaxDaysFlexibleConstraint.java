@@ -122,6 +122,8 @@ public class MaxDaysFlexibleConstraint extends FlexibleConstraint {
         
         protected boolean hasDay(BitSet week, int dayOfWeek, Placement value) {
             if (value == null || value.getTimeLocation() == null) return false;
+            if (isPreciseDateComputation())
+                return value.getTimeLocation().hasDate(dayOfWeek, week, getDayOfWeekOffset());
             if (week != null && !value.getTimeLocation().getWeekCode().intersects(week)) return false;
             return (value.getTimeLocation().getDayCode() & Constants.DAY_CODES[dayOfWeek]) != 0;
         }

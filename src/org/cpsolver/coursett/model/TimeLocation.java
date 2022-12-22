@@ -583,11 +583,65 @@ public class TimeLocation {
      * @return true if this time location is meeting on the given date
      */
     public boolean hasDate(int date, int dayOfWeekOffset) {
+        if (date < 0) return false;
         if (getWeekCode().get(date)) {
             int dow = (date + dayOfWeekOffset) % 7;
             if ((getDayCode() & Constants.DAY_CODES[dow]) != 0) return true;
         }
         return false;
+    }
+    
+    /**
+     * Check if the time location has the given date, identified by a day of the week and a week pattern
+     * @param dayOfWeek day of the week
+     * @param week week pattern, or null when only days of the week are to be checked
+     * @param dayOfWeekOffset day of the week offset for the weeks pattern
+     * @return true if this time location is meeting on the given date
+     */
+    public boolean hasDate(int dayOfWeek, BitSet week, int dayOfWeekOffset) {
+        // check the day of the week
+        if ((getDayCode() & Constants.DAY_CODES[dayOfWeek]) == 0) return false;
+        if (week == null) {
+            // no week -> just day code check is sufficient
+            return true;
+        } else {
+            // has week -> check the week code
+            // first date in the week
+            int firstDate = week.nextSetBit(0);
+            int dow = (firstDate + dayOfWeekOffset) % 7; // 5
+            // adjustments the given day of the week
+            int adj = (7 - dow + dayOfWeek) % 7;
+            return week.get(firstDate + adj) && getWeekCode().get(firstDate + adj);
+        }
+    }
+    
+    /**
+     * Check if the time location has at least one date from a set identified by a day code and a bit set.
+     * Precise computation of individual dates are used instead of just checking whether the day codes and week codes are overlapping.
+     * @param dayCode day codes
+     * @param weekCode week code
+     * @param dayOfWeekOffset day of the week offset for the weeks pattern
+     * @return true if there is at least one overlapping date
+     */
+    public boolean overlaps(int dayCode, BitSet weekCode, int dayOfWeekOffset) {
+        // check day code
+        if ((getDayCode() & dayCode) == 0) return false;
+        if (weekCode == null) {
+            // no week -> just day code check is sufficient
+            return true;
+        } else {
+            // has week -> check the week code
+            int idx = -1;
+            while ((idx = weekCode.nextSetBit(1 + idx)) >= 0) {
+                // iterate over all dates of the date pattern
+                int dow = (idx + dayOfWeekOffset) % 7;
+                if ((dayCode & Constants.DAY_CODES[dow]) == 0) continue;
+                // check if this date is in the current time location
+                if ((getDayCode() & Constants.DAY_CODES[dow]) != 0 && getWeekCode().get(idx))
+                    return true;  
+            }
+            return false;
+        }
     }
     
     /**

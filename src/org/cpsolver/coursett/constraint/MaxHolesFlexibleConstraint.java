@@ -114,7 +114,11 @@ public class MaxHolesFlexibleConstraint extends FlexibleConstraint implements We
             if ((value.getTimeLocation().getDayCode() & dayCode) == 0) continue; // ignore other days
             // constraint is checked for every week in semester (or for the whole semester)
             for (BitSet week : getWeeks()) {
-                if (week != null && !week.intersects(value.getTimeLocation().getWeekCode())) continue; // ignore other weeks
+                if (isPreciseDateComputation()) {
+                    if (!value.getTimeLocation().overlaps(dayCode, week, getDayOfWeekOffset())) continue;
+                } else {
+                    if (week != null && !week.intersects(value.getTimeLocation().getWeekCode())) continue; // ignore other weeks
+                }
                 // check penalty
                 int penalty = countHoles(assignment, dayCode, conflicts, value, null, week);
                 while (penalty > context.getMaxHoles(dayCode, week)) {

@@ -97,7 +97,11 @@ public class MaxBreaksFlexibleConstraint extends FlexibleConstraint implements W
             if ((value.getTimeLocation().getDayCode() & dayCode) == 0) continue; // ignore other days
             // constraint is checked for every week in semester (or for the whole semester)
             for (BitSet week : getWeeks()) {
-                if (week != null && !week.intersects(value.getTimeLocation().getWeekCode())) continue; // ignore other weeks
+                if (isPreciseDateComputation()) {
+                    if (!value.getTimeLocation().overlaps(dayCode, week, getDayOfWeekOffset())) continue;
+                } else {
+                    if (week != null && !week.intersects(value.getTimeLocation().getWeekCode())) continue; // ignore other weeks
+                }
                 // each blocks contains placements which are BTB
                 List<Block> blocks = getBlocks(assignment, dayCode, conflicts, value, null, week);
                 while (blocks.size() > iMaxBlocksOnADay) {

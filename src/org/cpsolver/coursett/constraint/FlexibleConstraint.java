@@ -57,6 +57,8 @@ public abstract class FlexibleConstraint extends ConstraintWithContext<Lecture, 
     
     // Determines whether the constraint is checked for every week in the semester    
     protected List<BitSet> iWeeks = null;
+    protected Integer iDayOfWeekOffset = null;
+    protected Boolean iPreciseDateComputation = null;
     
     /**
      * Flexible constraint types
@@ -170,6 +172,22 @@ public abstract class FlexibleConstraint extends ConstraintWithContext<Lecture, 
         return iWeeks;
     }
     
+    public int getDayOfWeekOffset() {
+        if (iDayOfWeekOffset == null) {
+            TimetableModel model = (TimetableModel) getModel();
+            iDayOfWeekOffset = model.getProperties().getPropertyInt("DatePattern.DayOfWeekOffset", 0);
+        }
+        return iDayOfWeekOffset;
+    }
+    
+    public boolean isPreciseDateComputation() {
+        if (iPreciseDateComputation == null) {
+            TimetableModel model = (TimetableModel) getModel();
+            iPreciseDateComputation = model.getProperties().getPropertyBoolean("FlexibleConstraint.PreciseDateComputation", false);
+        }
+        return iPreciseDateComputation;
+    }
+    
     @Override
     public boolean isConsistent(Placement value1, Placement value2) {
         HashMap<Lecture, Placement> assignments = new HashMap<Lecture, Placement>();
@@ -234,10 +252,11 @@ public abstract class FlexibleConstraint extends ConstraintWithContext<Lecture, 
      * @param dayCode days compared to timelocation
      * @return true if TimeLocation matches the date pattern and days
      */
-    private boolean shareWeeksAndDay(TimeLocation t, BitSet week, int dayCode){
+    protected boolean shareWeeksAndDay(TimeLocation t, BitSet week, int dayCode){
+        if (isPreciseDateComputation()) return t.overlaps(dayCode, week, dayCode);
+        
         boolean matchDay = (t.getDayCode() & dayCode) != 0;
         boolean matchWeek = (week == null || t.shareWeeks(week));                
-        
         return matchDay && matchWeek;
     }
     
