@@ -177,6 +177,18 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
         if (iStudentSectioning instanceof InfoProvider<?, ?>) {
             getInfoProviders().add((InfoProvider<Lecture, Placement>)iStudentSectioning);
         }
+        String constraints = properties.getProperty("General.GlobalConstraints", "");
+        for (String constraint: constraints.split("\\;")) {
+            if (constraint == null || constraint.isEmpty()) continue;
+            try {
+                Class<GlobalConstraint<Lecture, Placement>> clazz = (Class<GlobalConstraint<Lecture, Placement>>)Class.forName(constraint);
+                GlobalConstraint<Lecture, Placement> c = clazz.newInstance();
+                addGlobalConstraint(c);
+            } catch (Exception e) {
+                sLogger.error("Unable to use " + constraint + ": " + e.getMessage());
+            }
+        }
+        
     }
 
     public DistanceMetric getDistanceMetric() {
