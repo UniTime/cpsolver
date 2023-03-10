@@ -129,6 +129,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
     private int iForwardCheckMaxDomainSize = 1000;
     private int iNrWorkDays = 5;
     private int iFirstWorkDay = 0;
+    private String iOnlineRoom = null;
     
     /**
      * Group constraints that can be checked on pairs of classes (e.g., same room means any two classes are in the same room),
@@ -1042,7 +1043,26 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                 }
                 return null;
             }}),
-        
+            /**
+             * Online/Offline Room: Given classes, if scheduled on the same day, must be all in the online room or
+             * none of them can be in the online room. This means there is a conflict when two classes
+             * are placed on the same day, but one is in online room and the other is not.
+             */
+            ONLINE_ROOM("ONLINE_ROOM", "Online/Offline Room", new PairCheck() {
+                @Override
+                public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                    TimeLocation t1 = plc1.getTimeLocation();
+                    TimeLocation t2 = plc2.getTimeLocation();
+                    if (t1.shareDays(t2) && t1.shareWeeks(t2)) {
+                        return gc.isOnline(plc1) == gc.isOnline(plc2);
+                    } else {
+                        // different days > do not care
+                        return true;
+                    }
+                }
+                @Override
+                public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) { return true; }
+            }),        
         ;
         
         String iReference, iName;
@@ -1198,6 +1218,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             if (iNrWorkDays <= 0) iNrWorkDays += 7;
             if (iNrWorkDays > 7) iNrWorkDays -= 7;
             iFirstWorkDay = config.getPropertyInt("General.FirstWorkDay", 0);
+            iOnlineRoom = config.getProperty("General.OnlineRoom", "(?i)ONLINE|");
         }
     }
 
@@ -2432,6 +2453,19 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             Integer date = e.nextElement();
             if (!t2.hasDate(date, iDayOfWeekOffset)) return false;
         }
+        return true;
+    }
+    
+    protected boolean isOnline(Placement p) {
+        // no room -- StudentConflict.OnlineRoom must allow for a blank string
+        if (p.getNrRooms() == 0)
+            return "".matches(iOnlineRoom);
+        // one room -- room name must match StudentConflict.OnlineRoom
+        if (p.getNrRooms() == 1)
+            return (p.getRoomLocation().getName() != null && p.getRoomLocation().getName().matches(iOnlineRoom));
+        // multiple rooms -- all rooms must match StudentConflict.OnlineRoom
+        for (RoomLocation r: p.getRoomLocations())
+            if (r.getName() == null || !r.getName().matches(iOnlineRoom)) return false;
         return true;
     }
 }

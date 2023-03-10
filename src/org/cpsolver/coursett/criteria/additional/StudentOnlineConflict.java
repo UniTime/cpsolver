@@ -1,24 +1,20 @@
 package org.cpsolver.coursett.criteria.additional;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
-import org.cpsolver.coursett.constraint.JenrlConstraint;
 import org.cpsolver.coursett.criteria.StudentConflict;
 import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
 import org.cpsolver.coursett.model.RoomLocation;
-import org.cpsolver.coursett.model.TimetableModel;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.util.DataProperties;
 
 /**
  * An experimental criterion that tries to minimize cases where a student has an online and in-person
  * class on the same day. Online classes are identified by a regular expression matching the room name
- * and set in the StudentConflict.OnlineRoom parameter (defaults to (?i)ONLINE|). Classes without a 
- * room are considered online when the StudentConflict.OnlineRoom parameter matches a blank string.
+ * and set in the General.OnlineRoom parameter (defaults to (?i)ONLINE|). Classes without a 
+ * room are considered online when the General.OnlineRoom parameter matches a blank string.
  * If a class has multiple rooms, all rooms must be online for the class to be considered online. 
  * The criterion is weighted by the Comparator.StudentOnlineConflictWeight parameter, defaults
  * to one half of the Comparator.StudentConflictWeight.
@@ -49,7 +45,8 @@ public class StudentOnlineConflict extends StudentConflict {
     @Override
     public void configure(DataProperties properties) {   
         super.configure(properties);
-        iOnlineRoom = properties.getProperty("StudentConflict.OnlineRoom", "(?i)ONLINE|");
+        iOnlineRoom = properties.getProperty("StudentConflict.OnlineRoom",
+                properties.getProperty("General.OnlineRoom", "(?i)ONLINE|"));
     }
     
     public boolean isOnline(Placement p) {
