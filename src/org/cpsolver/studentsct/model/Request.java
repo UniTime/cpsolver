@@ -282,6 +282,7 @@ public abstract class Request extends VariableWithContext<Request, Enrollment, R
      * and to assign requests of a higher priority first (before requests of a lower priority).
      */
     public static enum RequestPriority {
+        LC("l", 1.0),
         Critical("c", 1.0),
         Vital("v", 0.8),
         Important("i", 0.5),

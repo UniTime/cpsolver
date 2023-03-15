@@ -1433,6 +1433,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             if (sp.ordinal() < StudentPriority.Normal.ordinal()) {
                 if (iTotalPriorityCRWeight[sp.ordinal()] > 0.0)
                     priority += sp.code() + "PCR:" + sDecimalFormat.format(100.0 * getContext(assignment).iAssignedPriorityCRWeight[sp.ordinal()] / iTotalPriorityCRWeight[sp.ordinal()]) + "%, ";
+                if (iTotalPriorityCriticalCRWeight[RequestPriority.LC.ordinal()][sp.ordinal()] > 0.0)
+                    priority += sp.code() + "PCL:" + sDecimalFormat.format(100.0 * getContext(assignment).iAssignedPriorityCriticalCRWeight[RequestPriority.LC.ordinal()][sp.ordinal()] / iTotalPriorityCriticalCRWeight[RequestPriority.LC.ordinal()][sp.ordinal()]) + "%, ";
                 if (iTotalPriorityCriticalCRWeight[RequestPriority.Critical.ordinal()][sp.ordinal()] > 0.0)
                     priority += sp.code() + "PCC:" + sDecimalFormat.format(100.0 * getContext(assignment).iAssignedPriorityCriticalCRWeight[RequestPriority.Critical.ordinal()][sp.ordinal()] / iTotalPriorityCriticalCRWeight[RequestPriority.Critical.ordinal()][sp.ordinal()]) + "%, ";
                 if (iTotalPriorityCriticalCRWeight[RequestPriority.Important.ordinal()][sp.ordinal()] > 0.0)
@@ -1447,6 +1449,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 + (getNrLastLikeStudents(false) > 0 ? "DS:" + getNrCompleteLastLikeStudents(assignment, false) + "/" + getNrLastLikeStudents(false) + ", " : "")
                 + (iTotalCRWeight > 0.0 ? "CR:" + sDecimalFormat.format(100.0 * getContext(assignment).getAssignedCourseRequestWeight() / iTotalCRWeight) + "%, " : "")
                 + (iTotalSelCRWeight > 0.0 ? "S:" + sDoubleFormat.format(100.0 * (0.3 * getContext(assignment).iAssignedSelectedConfigWeight + 0.7 * getContext(assignment).iAssignedSelectedSectionWeight) / iTotalSelCRWeight) + "%, ": "")
+                + (iTotalCriticalCRWeight[RequestPriority.LC.ordinal()] > 0.0 ? "LC:" + sDecimalFormat.format(100.0 * getContext(assignment).getAssignedCriticalCourseRequestWeight(RequestPriority.LC) / iTotalCriticalCRWeight[RequestPriority.LC.ordinal()]) + "%, " : "")
                 + (iTotalCriticalCRWeight[RequestPriority.Critical.ordinal()] > 0.0 ? "CC:" + sDecimalFormat.format(100.0 * getContext(assignment).getAssignedCriticalCourseRequestWeight(RequestPriority.Critical) / iTotalCriticalCRWeight[RequestPriority.Critical.ordinal()]) + "%, " : "")
                 + (iTotalCriticalCRWeight[RequestPriority.Important.ordinal()] > 0.0 ? "IC:" + sDecimalFormat.format(100.0 * getContext(assignment).getAssignedCriticalCourseRequestWeight(RequestPriority.Important) / iTotalCriticalCRWeight[RequestPriority.Important.ordinal()]) + "%, " : "")
                 + (iTotalCriticalCRWeight[RequestPriority.Vital.ordinal()] > 0.0 ? "VC:" + sDecimalFormat.format(100.0 * getContext(assignment).getAssignedCriticalCourseRequestWeight(RequestPriority.Vital) / iTotalCriticalCRWeight[RequestPriority.Vital.ordinal()]) + "%, " : "")
