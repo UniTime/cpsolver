@@ -220,6 +220,7 @@ public class ExamInstructorConflicts {
                                 roomsThisExam += room.getName();
                             }
                             boolean first = true;
+                            ExamPeriod placementPeriod = placement.getPeriod();
                             for (ExamOwner owner : exam.getOwners(instructor)) {
                                 if (sections.length() > 0) {
                                     sections += "\n";
@@ -230,9 +231,9 @@ public class ExamInstructorConflicts {
                                 }
                                 sections += owner.getName();
                                 if (first) {
-                                    periods += (placement.getPeriod().getIndex() + 1);
-                                    periodDays += placement.getPeriod().getDayStr();
-                                    periodTimes += placement.getPeriod().getTimeStr();
+                                    periods += (placementPeriod.getIndex() + 1);
+                                    periodDays += placementPeriod.getDayStr();
+                                    periodTimes += placementPeriod.getTimeStr();
                                     rooms += roomsThisExam;
                                 }
                                 first = false;
@@ -246,9 +247,9 @@ public class ExamInstructorConflicts {
                                     periodTimes += "\n";
                                 }
                                 sections += exam.getName();
-                                periods += (placement.getPeriod().getIndex() + 1);
-                                periodDays += placement.getPeriod().getDayStr();
-                                periodTimes += placement.getPeriod().getTimeStr();
+                                periods += (placementPeriod.getIndex() + 1);
+                                periodDays += placementPeriod.getDayStr();
+                                periodTimes += placementPeriod.getTimeStr();
                                 rooms += roomsThisExam;
                             }
                         }
