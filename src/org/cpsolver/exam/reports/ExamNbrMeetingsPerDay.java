@@ -54,6 +54,13 @@ public class ExamNbrMeetingsPerDay {
         iModel = model;
     }
 
+    /**
+     * generate report
+     * 
+     * @param assignment
+     *                       current assignment
+     * @return resultant report
+     */
     public CSVFile report(Assignment<Exam, ExamPlacement> assignment) {
         ExamModelReportGenerator reportGenerator = new ExamModelReportGenerator(iModel);
         return reportGenerator.generateReport(assignment);
