@@ -97,21 +97,7 @@ public class IdConvertor {
      * Save id conversion file.
      * @param file id file to save
      */
-    public void save(File file) {
-        file.getParentFile().mkdirs();
-        Document document = DocumentHelper.createDocument();
-        Element root = document.addElement("id-convertor");
-        synchronized (iConversion) {
-            for (Map.Entry<String, HashMap<String, String>> entry : iConversion.entrySet()) {
-                String type = entry.getKey();
-                HashMap<String, String> conversion = entry.getValue();
-                Element convEl = root.addElement(type);
-                for (Map.Entry<String, String> idConv : conversion.entrySet()) {
-                    convEl.addElement("conv").addAttribute("old", idConv.getKey()).addAttribute("new",
-                            idConv.getValue());
-                }
-            }
-        }
+    private void writeToFile(File file, Document document) {
         FileOutputStream fos = null;
         try {
             fos = new FileOutputStream(file);
@@ -129,7 +115,27 @@ public class IdConvertor {
             }
         }
     }
-    
+
+    public void save(File file) {
+        file.getParentFile().mkdirs();
+        Document document = DocumentHelper.createDocument();
+        Element root = document.addElement("id-convertor");
+        synchronized (iConversion) {
+            for (Map.Entry<String, HashMap<String, String>> entry : iConversion.entrySet()) {
+                String type = entry.getKey();
+                HashMap<String, String> conversion = entry.getValue();
+                Element convEl = root.addElement(type);
+                for (Map.Entry<String, String> idConv : conversion.entrySet()) {
+                    convEl.addElement("conv").addAttribute("old", idConv.getKey()).addAttribute("new",
+                            idConv.getValue());
+                }
+            }
+        }
+        writeToFile(file, document);
+    }
+
+
+
     /**
      * Save id conversion file. Name of the file needs to be provided by system
      * property IdConvertor.File

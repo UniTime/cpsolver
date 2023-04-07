@@ -244,7 +244,7 @@ public class InevitableStudentConflicts {
         }
         if (!requests2remove.isEmpty()) {
             for (Request request : requests2remove) {
-                removeRequest(request);
+                StudentSectioningModel.removeRequest(request);
             }
         }
         sLog.info("Students that can never obtain a complete schedule: " + studentWithoutCompleteSchedule);
@@ -268,16 +268,16 @@ public class InevitableStudentConflicts {
     }
 
     /** Remove given request from the model */
-    private void removeRequest(Request request) {
-        request.getStudent().getRequests().remove(request);
-        for (Request r : request.getStudent().getRequests()) {
-            if (r.getPriority() > request.getPriority())
-                r.setPriority(r.getPriority() - 1);
-        }
-        iModel.removeVariable(request);
-        if (request.getStudent().getRequests().isEmpty())
-            iModel.getStudents().remove(request.getStudent());
-    }
+//    private void removeRequest(Request request) {
+//        request.getStudent().getRequests().remove(request);
+//        for (Request r : request.getStudent().getRequests()) {
+//            if (r.getPriority() > request.getPriority())
+//                r.setPriority(r.getPriority() - 1);
+//        }
+//        iModel.removeVariable(request);
+//        if (request.getStudent().getRequests().isEmpty())
+//            iModel.getStudents().remove(request.getStudent());
+//    }
 
     /**
      * Convert given enrollment to a string (comma separated list of subpart

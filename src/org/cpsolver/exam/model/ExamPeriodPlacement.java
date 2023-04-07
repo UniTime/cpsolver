@@ -9,21 +9,22 @@ package org.cpsolver.exam.model;
  * @version ExamTT 1.3 (Examination Timetabling)<br>
  *          Copyright (C) 2008 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
- *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>
- * <br>
+ *          <a href=
+ *          "http://muller.unitime.org">http://muller.unitime.org</a><br>
+ *          <br>
  *          This library is free software; you can redistribute it and/or modify
  *          it under the terms of the GNU Lesser General Public License as
  *          published by the Free Software Foundation; either version 3 of the
  *          License, or (at your option) any later version. <br>
- * <br>
+ *          <br>
  *          This library is distributed in the hope that it will be useful, but
  *          WITHOUT ANY WARRANTY; without even the implied warranty of
  *          MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  *          Lesser General Public License for more details. <br>
- * <br>
+ *          <br>
  *          You should have received a copy of the GNU Lesser General Public
- *          License along with this library; if not see
- *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
+ *          License along with this library; if not see <a href=
+ *          'http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class ExamPeriodPlacement implements Comparable<ExamPeriodPlacement> {
     private ExamPeriod iPeriod;
@@ -33,31 +34,37 @@ public class ExamPeriodPlacement implements Comparable<ExamPeriodPlacement> {
      * Constructor
      * 
      * @param period
-     *            examination period that is available for an exam and that is
-     *            of enough length
+     *                    examination period that is available for an exam and that
+     *                    is of enough length
      * @param penalty
-     *            period penalty for given exam
+     *                    period penalty for given exam
      */
     public ExamPeriodPlacement(ExamPeriod period, int penalty) {
         iPeriod = period;
         iPenalty = penalty;
     }
 
-    /** Examination period 
+    /**
+     * Examination period
+     * 
      * @return period
      **/
     public ExamPeriod getPeriod() {
         return iPeriod;
     }
 
-    /** Examination period id 
+    /**
+     * Examination period id
+     * 
      * @return period unique id
      **/
     public Long getId() {
         return getPeriod().getId();
     }
 
-    /** Examination period index 
+    /**
+     * Examination period index
+     * 
      * @return period index
      **/
     public int getIndex() {
@@ -74,9 +81,10 @@ public class ExamPeriodPlacement implements Comparable<ExamPeriodPlacement> {
     public int getPenalty() {
         return 2 * iPenalty + iPeriod.getPenalty();
     }
-    
+
     /**
      * Period penalty for given exam
+     * 
      * @return period penalty
      */
     public int getExamPenalty() {
@@ -114,4 +122,12 @@ public class ExamPeriodPlacement implements Comparable<ExamPeriodPlacement> {
     public int compareTo(ExamPeriodPlacement o) {
         return getPeriod().compareTo(o.getPeriod());
     }
+
+    // public Object getRoom() {
+    // return null;
+    // }
+
+    // public Object getRoom() {
+    // return null;
+    // }
 }
