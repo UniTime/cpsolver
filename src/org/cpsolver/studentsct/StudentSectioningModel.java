@@ -112,8 +112,18 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     protected double iProjectedStudentWeight = 0.0100;
     private int iMaxDomainSize = -1; 
     private int iDayOfWeekOffset = 0;
+    private static StudentSectioningModel iModel;
 
-
+    public static void removeRequest(Request request) {
+        request.getStudent().getRequests().remove(request);
+        for (Request r : request.getStudent().getRequests()) {
+            if (r.getPriority() > request.getPriority())
+                r.setPriority(r.getPriority() - 1);
+        }
+        iModel.removeVariable(request);
+        if (request.getStudent().getRequests().isEmpty())
+            iModel.getStudents().remove(request.getStudent());
+    }
     /**
      * Constructor
      * 
