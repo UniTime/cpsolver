@@ -1062,7 +1062,28 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                 }
                 @Override
                 public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) { return true; }
-            }),        
+            }),
+            /**
+             * Same Days-Time-Weeks: Given classes must be taught at the same time of day, on the same days and on the same weeks
+             * (i.e., must have the same date pattern).
+             * It is the combination of Same Days, Same Time, and Same Weeks distribution preferences.
+             * When prohibited or (strongly) discouraged: Any pair of classes classes cannot be taught on the same days
+             * during the same time and during overlapping date patterns. In other words, the given classes cannot overlap.
+             */
+            SAME_DATE_TIME_WEEKS("SAME_DTW", "Same Days-Time-Weeks", new PairCheck() {
+                @Override
+                public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                    return sameHours(plc1.getTimeLocation().getStartSlot(), plc1.getTimeLocation().getLength(),
+                            plc2.getTimeLocation().getStartSlot(), plc2.getTimeLocation().getLength()) &&
+                            sameDays(plc1.getTimeLocation().getDaysArray(), plc2.getTimeLocation().getDaysArray()) &&
+                            plc1.getTimeLocation().getWeekCode().equals(plc2.getTimeLocation().getWeekCode());
+                }
+                @Override
+                public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                    return !plc1.getTimeLocation().shareHours(plc2.getTimeLocation()) ||
+                            !plc1.getTimeLocation().shareDays(plc2.getTimeLocation()) ||
+                            !plc1.getTimeLocation().shareWeeks(plc2.getTimeLocation());
+                }}),
         ;
         
         String iReference, iName;
