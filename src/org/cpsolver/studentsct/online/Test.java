@@ -243,6 +243,8 @@ public class Test {
         Course clonedCourse = new Course(course.getId(), course.getSubjectArea(), course.getCourseNumber(),
                 clonedOffering, courseLimit, course.getProjected());
         clonedCourse.setNote(course.getNote());
+        clonedCourse.setType(course.getType());
+        clonedCourse.setTitle(course.getTitle());
         Hashtable<Config, Config> configs = new Hashtable<Config, Config>();
         Hashtable<Subpart, Subpart> subparts = new Hashtable<Subpart, Subpart>();
         Hashtable<Section, Section> sections = new Hashtable<Section, Section>();

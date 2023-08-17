@@ -398,6 +398,9 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         String credits = courseEl.attributeValue("credits");
         if (credits != null)
             course.setCreditValue(Float.valueOf(credits));
+        course.setNote(courseEl.attributeValue("note"));
+        course.setType(courseEl.attributeValue("type"));
+        course.setTitle(courseEl.attributeValue("title"));
         return course;
     }
     

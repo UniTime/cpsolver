@@ -347,6 +347,13 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
             courseEl.addAttribute("credit", course.getCredit());
         if (course.hasCreditValue())
             courseEl.addAttribute("credits", course.getCreditValue().toString());
+        if (iShowNames && course.getType() != null)
+            courseEl.addAttribute("type", course.getType());
+        if (iShowNames && course.getTitle() != null)
+            courseEl.addAttribute("title", course.getTitle());
+        if (iShowNames && course.getNote() != null)
+            courseEl.addAttribute("note", course.getNote());
+        
     }
     
     /**

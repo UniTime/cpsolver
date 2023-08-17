@@ -53,6 +53,8 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
     private Set<RequestGroup> iRequestGroups = new HashSet<RequestGroup>();
     private String iCredit = null;
     private Float iCreditValue = null;
+    private String iTitle = null;
+    private String iType = null;
 
     /**
      * Constructor
@@ -483,5 +485,33 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
             if (factor < bound) bound = factor;
         }
         return bound;
+    }
+    
+    /**
+     * Course title
+     */
+    public String getTitle() {
+        return iTitle;
+    }
+
+    /**
+     * Course title
+     */
+    public void setTitle(String title) {
+        iTitle = title;
+    }
+    
+    /**
+     * Course type
+     */
+    public String getType() {
+        return iType;
+    }
+
+    /**
+     * Course type
+     */
+    public void setType(String type) {
+        iType = type;
     }
 }
