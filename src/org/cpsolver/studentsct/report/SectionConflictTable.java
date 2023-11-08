@@ -79,6 +79,8 @@ public class SectionConflictTable implements StudentSectioningReport {
     private StudentSectioningModel iModel = null;
     private Type iType;
     private boolean iOverlapsAllEnrollments = true;
+    private boolean iHigherPriorityConflictsOnly = false;
+    private Set<String> iPriorities;
     
     /**
      * Report type
@@ -177,6 +179,7 @@ public class SectionConflictTable implements StudentSectioningReport {
         for (Request request : new ArrayList<Request>(getModel().unassignedVariables(assignment))) {
             if (request.getStudent().isDummy() && !includeLastLikeStudents) continue;
             if (!request.getStudent().isDummy() && !includeRealStudents) continue;
+            if (iPriorities != null && !iPriorities.isEmpty() && (request.getRequestPriority() == null || !iPriorities.contains(request.getRequestPriority().name()))) continue;
             if (request instanceof CourseRequest) {
                 CourseRequest courseRequest = (CourseRequest) request;
                 if (courseRequest.getStudent().isComplete(assignment)) continue;
@@ -208,6 +211,11 @@ public class SectionConflictTable implements StudentSectioningReport {
                     enrollments: for (Enrollment enrollment: notAvailableValues) {
                         for (Request other : request.getStudent().getRequests()) {
                             if (other.equals(request) || assignment.getValue(other) == null || other instanceof FreeTimeRequest) continue;
+                            if (iHigherPriorityConflictsOnly) {
+                                if (iPriorities != null && !iPriorities.isEmpty() && (other.getRequestPriority() == null || other.getRequestPriority().ordinal() > request.getRequestPriority().ordinal())) continue;
+                            } else {
+                                if (iPriorities != null && !iPriorities.isEmpty() && (other.getRequestPriority() == null || !iPriorities.contains(other.getRequestPriority().name()))) continue;
+                            }
                             if (assignment.getValue(other).isOverlapping(enrollment)) continue enrollments;
                         }
                         // not overlapping
@@ -300,6 +308,11 @@ public class SectionConflictTable implements StudentSectioningReport {
                         for (Request other : request.getStudent().getRequests()) {
                             Enrollment otherEnrollment = assignment.getValue(other);
                             if (other.equals(request) || otherEnrollment == null || other instanceof FreeTimeRequest) continue;
+                            if (iHigherPriorityConflictsOnly) {
+                                if (iPriorities != null && !iPriorities.isEmpty() && (other.getRequestPriority() == null || other.getRequestPriority().ordinal() > request.getRequestPriority().ordinal())) continue;
+                            } else {
+                                if (iPriorities != null && !iPriorities.isEmpty() && (other.getRequestPriority() == null || !iPriorities.contains(other.getRequestPriority().name()))) continue;
+                            }
                             if (enrollment.isOverlapping(otherEnrollment))
                                 for (Section a: enrollment.getSections())
                                     for (Section b: otherEnrollment.getSections())
@@ -488,6 +501,11 @@ public class SectionConflictTable implements StudentSectioningReport {
     public CSVFile create(Assignment<Request, Enrollment> assignment, DataProperties properties) {
         iType = Type.valueOf(properties.getProperty("type", iType.name()));
         iOverlapsAllEnrollments = properties.getPropertyBoolean("overlapsIncludeAll", true);
+        iPriorities = new HashSet<String>();
+        for (String type: properties.getProperty("priority", "").split("\\,"))
+                if (!type.isEmpty())
+                    iPriorities.add(type);
+        iHigherPriorityConflictsOnly = !iPriorities.isEmpty();
         return createTable(assignment, properties.getPropertyBoolean("lastlike", false), properties.getPropertyBoolean("real", true), properties.getPropertyBoolean("useAmPm", true));
     }
 }
