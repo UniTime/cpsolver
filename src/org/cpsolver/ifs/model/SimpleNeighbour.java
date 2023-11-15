@@ -89,7 +89,11 @@ public class SimpleNeighbour<V extends Variable<V, T>, T extends Value<V, T>> im
     @Override
     public double value(Assignment<V, T> assignment) {
         T old = assignment.getValue(iVariable);
-        return (iValue == null ? 0 : iValue.toDouble(assignment)) - (iVariable == null || old == null ? 0 : old.toDouble(assignment));
+        double val = (iValue == null ? 0 : iValue.toDouble(assignment)) - (iVariable == null || old == null ? 0 : old.toDouble(assignment));
+        if (iConflicts != null)
+            for (T conflict: iConflicts)
+                val -= conflict.toDouble(assignment);
+        return val;
     }
 
     @Override
