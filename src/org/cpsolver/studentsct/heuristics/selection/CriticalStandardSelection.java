@@ -9,6 +9,7 @@ import java.util.Queue;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.heuristics.ValueSelection;
 import org.cpsolver.ifs.heuristics.VariableSelection;
+import org.cpsolver.ifs.model.SimpleNeighbour;
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
@@ -80,6 +81,14 @@ public class CriticalStandardSelection extends StandardSelection {
         }
         // Override to allow unassignment of critical course requests
         return true;
+    }
+    
+    /**
+     * Only accept neighbors that are not worsening the solution
+     */
+    @Override
+    public boolean accept(SimpleNeighbour<Request, Enrollment> n, Solution<Request, Enrollment> solution) {
+        return n.value(solution.getAssignment()) <= 0.0;
     }
     
     /**

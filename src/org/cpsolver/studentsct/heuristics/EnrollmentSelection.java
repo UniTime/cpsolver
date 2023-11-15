@@ -113,8 +113,8 @@ public class EnrollmentSelection implements ValueSelection<Request, Enrollment> 
      * @param value given value
      * @return true if it is allowed
      **/
-    public boolean isAllowed(Assignment<Request, Enrollment> assignment, Enrollment value) {
-        return isAllowed(assignment, value, null);
+    public boolean isAllowed(Assignment<Request, Enrollment> assignment, Enrollment value, AssignmentCheck<Request, Enrollment> test) {
+        return isAllowed(assignment, value, null, test);
     }
 
     /** true, if it is allowed to assign given value 
@@ -123,25 +123,46 @@ public class EnrollmentSelection implements ValueSelection<Request, Enrollment> 
      * @param conflicts conflicting assignments
      * @return true if it is allowed
      **/
-    public boolean isAllowed(Assignment<Request, Enrollment> assignment, Enrollment value, Set<Enrollment> conflicts) {
+    public boolean isAllowed(Assignment<Request, Enrollment> assignment, Enrollment value, Set<Enrollment> conflicts, AssignmentCheck<Request, Enrollment> test) {
         if (value == null)
             return true;
         StudentSectioningModel model = (StudentSectioningModel) value.variable().getModel();
-        if (model.getNrLastLikeRequests(false) == 0 || model.getNrRealRequests(false) == 0)
+        if (model.getNrLastLikeRequests(false) == 0 || model.getNrRealRequests(false) == 0) {
+            // all students are dummy or all are real
+            if (test != null) {
+                // there is an assignment check >> check if all conflicts can be unassigned
+                if (conflicts == null)
+                    conflicts = value.variable().getModel().conflictValues(assignment, value);
+                for (Enrollment conflict : conflicts)
+                    if (!test.canUnassign(value, conflict, assignment)) return false;
+            }
             return true;
+        }
         Request request = value.variable();
         if (request.getStudent().isDummy()) {
+            // dummy student cannot unassign real student
             if (conflicts == null)
                 conflicts = value.variable().getModel().conflictValues(assignment, value);
             for (Enrollment conflict : conflicts) {
                 if (!conflict.getRequest().getStudent().isDummy())
                     return false;
+                if (test != null && !test.canUnassign(value, conflict, assignment))
+                    return false;
             }
         } else {
+            // real student
             if (conflicts == null)
                 conflicts = value.variable().getModel().conflictValues(assignment, value);
-            if (conflicts.size() > (assignment.getValue(request) == null ? 1 : 0))
-                return false;
+            if (test == null) {
+                // no assignment check >> legacy behavior
+                if (conflicts.size() > (assignment.getValue(request) == null ? 1 : 0))
+                    return false;
+            } else {
+                // there is an assignment check >> check if all conflicts can be unassigned
+                for (Enrollment conflict : conflicts)
+                    if (!test.canUnassign(value, conflict, assignment))
+                        return false;
+            }
         }
         return true;
     }
@@ -149,6 +170,10 @@ public class EnrollmentSelection implements ValueSelection<Request, Enrollment> 
     /** Value selection */
     @Override
     public Enrollment selectValue(Solution<Request, Enrollment> solution, Request selectedVariable) {
+        return selectValue(solution, selectedVariable, null);
+    }
+
+    public Enrollment selectValue(Solution<Request, Enrollment> solution, Request selectedVariable, AssignmentCheck<Request, Enrollment> test) {
         Assignment<Request, Enrollment> assignment = solution.getAssignment();
         if (iMPP) {
             if (selectedVariable.getInitialAssignment() != null) {
@@ -157,11 +182,11 @@ public class EnrollmentSelection implements ValueSelection<Request, Enrollment> 
                         iMPPLimit = solution.getModel().perturbVariables(assignment).size() - 1;
                 }
                 if (iMPPLimit >= 0 && solution.getModel().perturbVariables(assignment).size() > iMPPLimit) {
-                    if (isAllowed(assignment, selectedVariable.getInitialAssignment()))
+                    if (isAllowed(assignment, selectedVariable.getInitialAssignment(), test))
                         return selectedVariable.getInitialAssignment();
                 }
                 if (selectedVariable.getInitialAssignment() != null && ToolBox.random() <= iInitialSelectionProb) {
-                    if (isAllowed(assignment, selectedVariable.getInitialAssignment()))
+                    if (isAllowed(assignment, selectedVariable.getInitialAssignment(), test))
                         return selectedVariable.getInitialAssignment();
                 }
             }
@@ -170,7 +195,7 @@ public class EnrollmentSelection implements ValueSelection<Request, Enrollment> 
         List<Enrollment> values = selectedVariable.values(assignment);
         if (ToolBox.random() <= iRandomWalkProb) {
             Enrollment value = ToolBox.random(values);
-            if (isAllowed(assignment, value))
+            if (isAllowed(assignment, value, test))
                 return value;
         }
         if (iProp != null && assignment.getValue(selectedVariable) == null && ToolBox.random() <= iGoodSelectionProb) {
@@ -180,7 +205,7 @@ public class EnrollmentSelection implements ValueSelection<Request, Enrollment> 
         }
         if (values.size() == 1) {
             Enrollment value = values.get(0);
-            if (isAllowed(assignment, value))
+            if (isAllowed(assignment, value, test))
                 return value;
             else
                 return null;
@@ -199,7 +224,7 @@ public class EnrollmentSelection implements ValueSelection<Request, Enrollment> 
             if (conf.contains(value))
                 continue;
 
-            if (!isAllowed(assignment, value, conf))
+            if (!isAllowed(assignment, value, conf, test))
                 continue;
 
             double weightedConflicts = (iStat == null || iWeightWeightedCoflicts == 0.0 ? 0.0 : iStat.countRemovals(solution.getIteration(), conf, value));
@@ -227,11 +252,15 @@ public class EnrollmentSelection implements ValueSelection<Request, Enrollment> 
                 if (iMPPLimit >= 0 && (solution.getModel().perturbVariables(assignment).size() + deltaInitialAssignments) > iMPPLimit)
                     continue;
             }
+            
+            double val = value.toDouble(assignment);
+            for (Enrollment c: conf)
+                val -= c.toDouble(assignment);
 
             double weightedSum = (iWeightDeltaInitialAssignment * deltaInitialAssignments)
                     + (iWeightPotentialConflicts * potentialConflicts) + (iWeightWeightedCoflicts * weightedConflicts)
                     + (iWeightCoflicts * conf.size())
-                    + (iWeightValue * value.toDouble(assignment));
+                    + (iWeightValue * val);
 
             if (bestValues == null || bestWeightedSum > weightedSum) {
                 bestWeightedSum = weightedSum;

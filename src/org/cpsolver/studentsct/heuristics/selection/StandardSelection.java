@@ -14,6 +14,8 @@ import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.Progress;
 import org.cpsolver.studentsct.filter.StudentFilter;
+import org.cpsolver.studentsct.heuristics.AssignmentCheck;
+import org.cpsolver.studentsct.heuristics.EnrollmentSelection;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
 
@@ -62,7 +64,7 @@ import org.cpsolver.studentsct.model.Request;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class StandardSelection implements NeighbourSelection<Request, Enrollment> {
+public class StandardSelection implements NeighbourSelection<Request, Enrollment>, AssignmentCheck<Request, Enrollment> {
     private long iIteration = 0;
     protected ValueSelection<Request, Enrollment> iValueSelection = null;
     protected VariableSelection<Request, Enrollment> iVariableSelection = null;
@@ -71,6 +73,7 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
     protected long iConflictTimeOut = -7200;
     protected long iTimeOut = -3600;
     protected boolean iCanConflict = true;
+    protected boolean iCanWorsen = true;
     protected boolean iCanHigherPriorityConflict = true;
 
     /**
@@ -96,6 +99,7 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
         if (iConflictTimeOut < 0)
             iConflictTimeOut = Math.max(0, properties.getPropertyLong("Termination.TimeOut", -1l) + iConflictTimeOut);
         iCanConflict = properties.getPropertyBoolean("Neighbour.StandardCanConflict", true);
+        iCanWorsen = properties.getPropertyBoolean("Neighbour.StandardCanWorsen", false);
         iCanHigherPriorityConflict = properties.getPropertyBoolean("Neighbour.StandardCanHigherPriorityConflict", true);
     }
 
@@ -129,6 +133,7 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
      * @param conflict given enrollment
      * @return if running MPP, do not unassign initial enrollments
      */
+    @Override
     public boolean canUnassign(Enrollment enrollment, Enrollment conflict, Assignment<Request, Enrollment> assignment) {
         if (!iCanConflict) return false;
         if (!iCanHigherPriorityConflict && conflict.getRequest().getPriority() < enrollment.getRequest().getPriority()) return false;
@@ -142,6 +147,15 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
             if (conflict.getStudent().getPriority().isHigher(enrollment.getStudent())) return false;
         }
         return true;
+    }
+    
+    /**
+     * Check whether the given neighbors can be returned
+     * @return by default, any neighbors is accepted
+     */
+    public boolean accept(SimpleNeighbour<Request, Enrollment> n, Solution<Request, Enrollment> solution) {
+        if (iCanWorsen) return true;
+        return n.value(solution.getAssignment()) <= 0.0;
     }
 
     /**
@@ -159,13 +173,17 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
             try {
                 Request request = iVariableSelection.selectVariable(solution);
                 if (request == null) continue;
-                Enrollment enrollment = iValueSelection.selectValue(solution, request);
+                Enrollment enrollment =
+                        (iValueSelection instanceof EnrollmentSelection)
+                                ? ((EnrollmentSelection)iValueSelection).selectValue(solution, request, this)
+                                : iValueSelection.selectValue(solution, request);
                 if (enrollment == null) continue;
                 Set<Enrollment> conflicts = enrollment.variable().getModel().conflictValues(solution.getAssignment(), enrollment);
                 if (conflicts.contains(enrollment)) continue;
                 for (Enrollment conflict: conflicts)
                     if (!canUnassign(enrollment, conflict, solution.getAssignment())) continue attempts;
-                return new SimpleNeighbour<Request, Enrollment>(request, enrollment, conflicts);
+                SimpleNeighbour<Request, Enrollment> n = new SimpleNeighbour<Request, Enrollment>(request, enrollment, conflicts);
+                if (accept(n, solution)) return n;
             } catch (ConcurrentModificationException e) {}
         }
         return null;
