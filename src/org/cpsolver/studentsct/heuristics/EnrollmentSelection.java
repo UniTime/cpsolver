@@ -84,7 +84,7 @@ public class EnrollmentSelection implements ValueSelection<Request, Enrollment> 
             iWeightDeltaInitialAssignment = properties.getPropertyDouble("Value.WeightDeltaInitialAssignments", 0.0);
         }
         iGoodSelectionProb = properties.getPropertyDouble("Value.GoodSelectionProb", 0.00);
-        iWeightWeightedCoflicts = properties.getPropertyDouble("Value.WeightWeightedConflicts", 1.0);
+        iWeightWeightedCoflicts = properties.getPropertyDouble("Value.WeightWeightedConflicts", 0.0);
         iWeightPotentialConflicts = properties.getPropertyDouble("Value.WeightPotentialConflicts", 0.0);
 
         iRandomWalkProb = properties.getPropertyDouble("Value.RandomWalkProb", 0.0);

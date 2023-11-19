@@ -18,6 +18,7 @@ import org.cpsolver.studentsct.heuristics.AssignmentCheck;
 import org.cpsolver.studentsct.heuristics.EnrollmentSelection;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
+import org.cpsolver.studentsct.model.Request.RequestPriority;
 
 
 /**
@@ -71,9 +72,11 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
     protected long iNrIterations = -1;
     protected boolean iPreferPriorityStudents = true;
     protected long iConflictTimeOut = -7200;
+    protected long iWorsenTimeOut = -7200;
     protected long iTimeOut = -3600;
     protected boolean iCanConflict = true;
     protected boolean iCanWorsen = true;
+    protected boolean iCanWorsenCritical = false;
     protected boolean iCanHigherPriorityConflict = true;
 
     /**
@@ -92,15 +95,19 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
         iVariableSelection = variableSelection;
         iValueSelection = valueSelection;
         iPreferPriorityStudents = properties.getPropertyBoolean("Sectioning.PriorityStudentsFirstSelection.AllIn", true);
-        iTimeOut = properties.getPropertyLong("Neighbour.StandardTimeOut", -3600);
+        iTimeOut = properties.getPropertyLong("Neighbour.StandardTimeOut", 0);
         if (iTimeOut < 0)
             iTimeOut = Math.max(0, properties.getPropertyLong("Termination.TimeOut", -1l) + iTimeOut);
-        iConflictTimeOut = properties.getPropertyLong("Neighbour.StandardConflictTimeOut", -7200);
+        iConflictTimeOut = properties.getPropertyLong("Neighbour.StandardConflictTimeOut", - properties.getPropertyLong("Termination.TimeOut", 0) / 10);
         if (iConflictTimeOut < 0)
             iConflictTimeOut = Math.max(0, properties.getPropertyLong("Termination.TimeOut", -1l) + iConflictTimeOut);
+        iWorsenTimeOut = properties.getPropertyLong("Neighbour.StandardWorsenTimeOut", - 3 * properties.getPropertyLong("Termination.TimeOut", 0) / 10);
+        if (iWorsenTimeOut < 0)
+            iWorsenTimeOut = Math.max(0, properties.getPropertyLong("Termination.TimeOut", -1l) + iWorsenTimeOut);
         iCanConflict = properties.getPropertyBoolean("Neighbour.StandardCanConflict", true);
-        iCanWorsen = properties.getPropertyBoolean("Neighbour.StandardCanWorsen", false);
+        iCanWorsen = properties.getPropertyBoolean("Neighbour.StandardCanWorsen", true);
         iCanHigherPriorityConflict = properties.getPropertyBoolean("Neighbour.StandardCanHigherPriorityConflict", true);
+        iCanWorsenCritical = properties.getPropertyBoolean("Neighbour.CriticalStandardCanWorsen", false);
     }
 
     /** Initialization */
@@ -124,8 +131,14 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
         iCanConflict = solver.getProperties().getPropertyBoolean("Neighbour.StandardCanConflict", true);
         if (iCanConflict && iConflictTimeOut > 0 && solver.currentSolution().getTime() > iConflictTimeOut)
             iCanConflict = false;
+        if (iCanWorsen && iWorsenTimeOut > 0 && solver.currentSolution().getTime() > iWorsenTimeOut)
+            iCanWorsen = false;
+        if (!iCanConflict)
+            name = "No-Conf " + name;
+        else if (!iCanWorsen)
+            name = "Improving " + name;
         if (iNrIterations > 0)
-            Progress.getInstance(solver.currentSolution().getModel()).setPhase((iCanConflict ? name : "No-conf " + name), iNrIterations);
+            Progress.getInstance(solver.currentSolution().getModel()).setPhase(name, iNrIterations);
     }
     
     /**
@@ -154,6 +167,8 @@ public class StandardSelection implements NeighbourSelection<Request, Enrollment
      * @return by default, any neighbors is accepted
      */
     public boolean accept(SimpleNeighbour<Request, Enrollment> n, Solution<Request, Enrollment> solution) {
+        if (!iCanWorsenCritical && RequestPriority.Important.isCritical(n.getVariable()))
+            return n.value(solution.getAssignment()) <= 0.0;
         if (iCanWorsen) return true;
         return n.value(solution.getAssignment()) <= 0.0;
     }
