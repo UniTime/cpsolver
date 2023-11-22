@@ -9,6 +9,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
 import org.apache.logging.log4j.Logger;
 import org.cpsolver.coursett.Constants;
@@ -1204,6 +1207,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
         protected double iTimeOverlapMaxLimit = 0.5000;
         private int iLunchStart, iLunchEnd, iLunchLength, iMaxTravelGap, iWorkDayLimit, iBackToBackDistance, iEarlySlot, iLateSlot, iAccBackToBackDistance;
         private String iFreeTimeAccommodation = "FT", iBackToBackAccommodation = "BTB", iBreakBetweenClassesAccommodation = "BBC";
+        private ReentrantReadWriteLock iLock = new ReentrantReadWriteLock();
         
         public Context(DistanceMetric dm, DataProperties config) {
             iDistanceMetric = (dm == null ? new DistanceMetric(config) : dm);
@@ -1249,21 +1253,42 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
         public List<Type> getTypes() { return iTypes; }
             
         private Map<Long, Map<Long, Integer>> iDistanceCache = new HashMap<Long, Map<Long,Integer>>();
-        protected synchronized int getDistanceInMinutes(RoomLocation r1, RoomLocation r2) {
+        protected Integer getDistanceInMinutesFromCache(RoomLocation r1, RoomLocation r2) {
+            ReadLock lock = iLock.readLock();
+            lock.lock();
+            try {
+                Map<Long, Integer> other2distance = iDistanceCache.get(r1.getId());
+                return other2distance == null ? null : other2distance.get(r2.getId());
+            } finally {
+                lock.unlock();
+            }
+        }
+        
+        protected void setDistanceInMinutesFromCache(RoomLocation r1, RoomLocation r2, Integer distance) {
+            WriteLock lock = iLock.writeLock();
+            lock.lock();
+            try {
+                Map<Long, Integer> other2distance = iDistanceCache.get(r1.getId());
+                if (other2distance == null) {
+                    other2distance = new HashMap<Long, Integer>();
+                    iDistanceCache.put(r1.getId(), other2distance);
+                }
+                other2distance.put(r2.getId(), distance);
+            } finally {
+                lock.unlock();
+            }
+        }
+        
+        protected int getDistanceInMinutes(RoomLocation r1, RoomLocation r2) {
             if (r1.getId().compareTo(r2.getId()) > 0) return getDistanceInMinutes(r2, r1);
             if (r1.getId().equals(r2.getId()) || r1.getIgnoreTooFar() || r2.getIgnoreTooFar())
                 return 0;
             if (r1.getPosX() == null || r1.getPosY() == null || r2.getPosX() == null || r2.getPosY() == null)
                 return iDistanceMetric.getMaxTravelDistanceInMinutes();
-            Map<Long, Integer> other2distance = iDistanceCache.get(r1.getId());
-            if (other2distance == null) {
-                other2distance = new HashMap<Long, Integer>();
-                iDistanceCache.put(r1.getId(), other2distance);
-            }
-            Integer distance = other2distance.get(r2.getId());
+            Integer distance = getDistanceInMinutesFromCache(r1, r2);
             if (distance == null) {
                 distance = iDistanceMetric.getDistanceInMinutes(r1.getId(), r1.getPosX(), r1.getPosY(), r2.getId(), r2.getPosX(), r2.getPosY());
-                other2distance.put(r2.getId(), distance);    
+                setDistanceInMinutesFromCache(r1, r2, distance);
             }
             return distance;
         }
