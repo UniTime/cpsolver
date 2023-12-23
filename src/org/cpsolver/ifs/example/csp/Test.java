@@ -473,7 +473,7 @@ public class Test {
                                                             .unassignedVariables(best.getAssignment()).size())
                                                     / best.getModel().variables().size()) + "%)");
                         log.print("    solution:     ");
-                        for (CSPVariable v : ((CSPModel) best.getModel()).variables()) {
+                        for (CSPVariable v : best.getModel().variables()) {
                             if (v.getBestAssignment() == null)
                                 continue;
                             log.print(v.getName() + "=" + v.getBestAssignment().getName());
