@@ -77,6 +77,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     private int iNrRooms;
     private int iOrd;
     private double iWeight = 1.0;
+    private boolean iSplitAttendance = false;
 
     private Set<Student> iStudents = new HashSet<Student>();
     private DepartmentSpreadConstraint iDeptSpreadConstraint = null;
@@ -448,7 +449,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                 if (getMaxRoomCombinations() > 0 && ToolBox.binomial(iRoomLocations.size(), iNrRooms) > getMaxRoomCombinations()) {
                     if (getInitialAssignment() != null && getInitialAssignment().getNrRooms() == getNrRooms()) {
                         boolean av = true;
-                        for (RoomLocation room: iRoomLocations) {
+                        for (RoomLocation room: getInitialAssignment().getRoomLocations()) {
                             if (room.getRoomConstraint() != null && !room.getRoomConstraint().isAvailable(this, timeLocation, getScheduler())) { av = false; break; }
                             if (room.getPreference() > 500) { av = false; break; }
                             if (!allowBreakHard && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(room.getPreference()))) { av = false; break; }
@@ -456,7 +457,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                         Placement p = new Placement(this, timeLocation, new ArrayList<RoomLocation>(getInitialAssignment().getRoomLocations()));
                         for (InstructorConstraint ic : getInstructorConstraints())
                             if (!ic.isAvailable(this, p) && ic.isHard()) { av = false; break; }
-                        if (av && (!sSaveMemory || isValid(p))) {
+                        if (av && !isTooSmall(p) && (!sSaveMemory || isValid(p))) {
                             p.setVariable(this);
                             if (p.equals(getInitialAssignment())) setInitialAssignment(p);
                             if (getBestAssignment() != null && getBestAssignment().equals(p)) setBestAssignment(p, getBestAssignmentIteration());
@@ -479,13 +480,16 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                         }
                     }
                     if (available.size() + other.size() < iNrRooms) continue;
-                    for (Enumeration<Collection<RoomLocation>> e = ToolBox.sample(available, other, iNrRooms, getMaxRoomCombinations()); e.hasMoreElements(); ) {
-                        Placement p = new Placement(this, timeLocation, new ArrayList<RoomLocation>(e.nextElement()));
+                    for (Enumeration<Collection<RoomLocation>> e = ToolBox.sample(available, other, iNrRooms, isSplitAttendance() ? -1 : getMaxRoomCombinations()); e.hasMoreElements(); ) {
+                        Collection<RoomLocation> rm = e.nextElement();
+                        if (isTooSmall(rm)) continue;
+                        Placement p = new Placement(this, timeLocation, new ArrayList<RoomLocation>(rm));
                         if (getInitialAssignment() != null && p.sameRooms(getInitialAssignment())) continue;
                         p.setVariable(this);
                         if (sSaveMemory && !isValid(p)) continue;
                         if (getBestAssignment() != null && getBestAssignment().equals(p)) setBestAssignment(p, getBestAssignmentIteration());
                         values.add(p);
+                        if (values.size() >= getMaxRoomCombinations()) break;
                     }
                 } else {
                     List<RoomLocation> rooms = new ArrayList<RoomLocation>(iRoomLocations.size());
@@ -499,7 +503,9 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                     }
                     if (rooms.size() < iNrRooms) continue;
                     for (Enumeration<Collection<RoomLocation>> e = ToolBox.permutations(rooms, iNrRooms); e.hasMoreElements(); ) {
-                        Placement p = new Placement(this, timeLocation, new ArrayList<RoomLocation>(e.nextElement()));
+                        Collection<RoomLocation> rm = e.nextElement();
+                        if (isTooSmall(rm)) continue;
+                        Placement p = new Placement(this, timeLocation, new ArrayList<RoomLocation>(rm));
                         p.setVariable(this);
                         if (sSaveMemory && !isValid(p)) continue;
                         if (getInitialAssignment() != null && p.equals(getInitialAssignment())) setInitialAssignment(p);
@@ -1264,6 +1270,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         TimetableModel model = (TimetableModel) getModel();
         if (model == null)
             return true;
+        if (getNrRooms() > 1 && isSplitAttendance() && placement.getRoomSize() < minRoomUse()) return false;
         if (model.hasConstantVariables()) {
             for (Placement confPlacement : model.conflictValuesSkipWeakeningConstraints(model.getEmptyAssignment(), placement)) {
                 Lecture lecture = confPlacement.variable();
@@ -1321,6 +1328,8 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                 }
             }
         }
+        if (getNrRooms() > 1 && isSplitAttendance() && placement.getRoomSize() < minRoomUse())
+            return "selected rooms are too small (" + placement.getRoomSize() + " < " + minRoomUse() + ")";
         return null;
     }
     
@@ -1609,5 +1618,29 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
            }
        }
        return iMinWeeks;
+   }
+   
+   /**
+    * When using multiple rooms, split attendance means that the class is split among the given rooms.
+    * @return true means class is split among rooms, false means each room must be big enough for the class
+    */
+   public boolean isSplitAttendance() { return iSplitAttendance; }
+
+   /**
+    * When using multiple rooms, split attendance means that the class is split among the given rooms.
+    * @param splitAttendance true means class is split among rooms, false means each room must be big enough for the class
+    */
+   public void setSplitAttendance(boolean splitAttendance) { iSplitAttendance = splitAttendance; }
+   
+   private boolean isTooSmall(Collection<RoomLocation> rooms) {
+       if (getNrRooms() <= 1 && !isSplitAttendance()) return false;
+       int size = 0;
+       for (RoomLocation room: rooms)
+           size += room.getRoomSize();
+       return size < minRoomSize();
+   }
+   
+   private boolean isTooSmall(Placement p) {
+       return getNrRooms() > 1 && isSplitAttendance() && p.getRoomSize() < minRoomUse();
    }
 }

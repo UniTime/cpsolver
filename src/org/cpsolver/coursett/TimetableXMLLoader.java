@@ -585,6 +585,8 @@ public class TimetableXMLLoader extends TimetableLoader {
             
             if (lecture.getNrRooms() > 1)
                 lecture.setMaxRoomCombinations(Integer.parseInt(classEl.attributeValue("maxRoomCombinations", "-1")));
+            
+            lecture.setSplitAttendance("true".equals(classEl.attributeValue("splitAttandance")));
 
             if (config != null)
                 lecture.setConfiguration(config);

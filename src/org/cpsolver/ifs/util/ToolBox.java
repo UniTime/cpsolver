@@ -716,7 +716,7 @@ public class ToolBox {
 
                 @Override
                 public boolean hasMoreElements() {
-                    return el < count && el < limit;
+                    return (count < 0 || el < count) && el < limit;
                 }
                 
                 @Override
@@ -792,7 +792,7 @@ public class ToolBox {
      */
     public static <E> Enumeration<Collection<E>> sample(final List<E> preferred, final List<E> additional, final int m, final int count) {
         return new Enumeration<Collection<E>>() {
-            long limit = Math.min(count, binomial(preferred.size() + additional.size(), m));
+            long limit = (count < 0 ? binomial(preferred.size() + additional.size(), m) : Math.min(count, binomial(preferred.size() + additional.size(), m)));
             int k = Math.min(m, preferred.size());
             int el = 0;
             Enumeration<Collection<E>> e = sample(preferred, k, additional, m - k, count);

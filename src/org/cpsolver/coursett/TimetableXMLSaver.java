@@ -378,6 +378,8 @@ public class TimetableXMLSaver extends TimetableSaver {
             }
             if (lecture.getNrRooms() != 1)
                 classEl.addAttribute("nrRooms", String.valueOf(lecture.getNrRooms()));
+            if (lecture.getNrRooms() > 1)
+                classEl.addAttribute("splitAttandance", lecture.isSplitAttendance() ? "true" : "false");
             if (lecture.getNrRooms() > 1 && lecture.getMaxRoomCombinations() > 0)
                 classEl.addAttribute("maxRoomCombinations", String.valueOf(lecture.getMaxRoomCombinations()));
             if (iShowNames)
