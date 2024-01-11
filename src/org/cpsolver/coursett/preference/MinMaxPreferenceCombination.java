@@ -32,6 +32,14 @@ package org.cpsolver.coursett.preference;
 public class MinMaxPreferenceCombination extends PreferenceCombination {
     int iPreferenceMin = 0;
     int iPreferenceMax = 0;
+    
+    public MinMaxPreferenceCombination() {}
+    
+    public MinMaxPreferenceCombination(MinMaxPreferenceCombination c) {
+        super(c);
+        iPreferenceMin = c.iPreferenceMin;
+        iPreferenceMax = c.iPreferenceMax;
+    }
 
     @Override
     public void addPreferenceInt(int intPref) {
@@ -45,4 +53,7 @@ public class MinMaxPreferenceCombination extends PreferenceCombination {
         return (iPreferenceMax > -iPreferenceMin ? iPreferenceMax : -iPreferenceMin > iPreferenceMax ? iPreferenceMin
                 : iPreferenceMax);
     }
+    
+    @Override
+    public PreferenceCombination clonePreferenceCombination() { return new MinMaxPreferenceCombination(this); }
 }

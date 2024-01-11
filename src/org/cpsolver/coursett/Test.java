@@ -514,7 +514,7 @@ public class Test implements SolutionListener<Lecture, Placement> {
             nrValues += lect.values(solution.getAssignment()).size();
             nrReqRooms += lect.getNrRooms();
             for (RoomLocation room: lect.roomLocations())
-                if (room.getPreference() < Constants.sPreferenceLevelProhibited / 2)
+                if (room.getMinPreference() < Constants.sPreferenceLevelProhibited / 2)
                     nrRooms++;
             for (TimeLocation time: lect.timeLocations())
                 if (time.getPreference() < Constants.sPreferenceLevelProhibited / 2)

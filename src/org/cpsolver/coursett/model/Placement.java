@@ -77,7 +77,37 @@ public class Placement extends Value<Lecture, Placement> {
         if (roomLocations.size() != 1) {
             iRoomLocations = new ArrayList<RoomLocation>(roomLocations);
         }
+        if (iRoomLocations != null && iRoomLocations.size() > 1) {
+            boolean hasPreferenceByIndex = false;
+            for (RoomLocation r: iRoomLocations)
+                if (r.hasPreferenceByIndex()) { hasPreferenceByIndex = true; break; }
+            if (hasPreferenceByIndex)
+                fixRoomOrder(0, roomLocations, new RoomLocation[iRoomLocations.size()], PreferenceCombination.getDefault(), null);
+        }
         iHashCode = getName().hashCode();
+    }
+    
+    private Integer fixRoomOrder(int idx, List<RoomLocation> rooms, RoomLocation[] current, PreferenceCombination preference, Integer bestSoFar) {
+        if (idx == current.length) {
+            if (bestSoFar == null || preference.getPreferenceInt() < bestSoFar) {
+                iRoomLocations.clear();
+                for (RoomLocation r: current)
+                    iRoomLocations.add(r);
+                return preference.getPreferenceInt();
+            }
+        } else {
+            r: for (RoomLocation r: rooms) {
+                for (int i = 0; i < idx; i++)
+                    if (r.equals(current[i])) continue r;
+                PreferenceCombination pc = preference.clonePreferenceCombination();
+                pc.addPreferenceInt(r.getPreference(idx));
+                if (!pc.isProhibited()) {
+                    current[idx] = r;
+                    bestSoFar = fixRoomOrder(idx + 1, rooms, current, pc, bestSoFar);
+                }
+            }
+        }
+        return bestSoFar;
     }
 
     /** Time location 
@@ -147,8 +177,9 @@ public class Placement extends Value<Lecture, Placement> {
     public List<Integer> getRoomPrefs() {
         if (isMultiRoom()) {
             List<Integer> ret = new ArrayList<Integer>(iRoomLocations.size());
+            int roomIndex = 0;
             for (RoomLocation r : iRoomLocations) {
-                ret.add(r.getPreference());
+                ret.add(r.getPreference(roomIndex++));
             }
             return ret;
         } else {
@@ -172,6 +203,19 @@ public class Placement extends Value<Lecture, Placement> {
         } else if (iRoomLocation != null && iRoomLocation.getId().equals(roomId))
             return iRoomLocation;
         return null;
+    }
+    
+    public int getRoomLocationIndex(Long roomId) {
+        if (isMultiRoom()) {
+            int idx = 0;
+            for (RoomLocation r : iRoomLocations) {
+                if (r.getId().equals(roomId))
+                    return idx;
+                idx ++;
+            }
+        } else if (iRoomLocation != null && iRoomLocation.getId().equals(roomId))
+            return 0;
+        return -1;
     }
 
     public boolean hasRoomLocation(Long roomId) {
@@ -305,8 +349,9 @@ public class Placement extends Value<Lecture, Placement> {
     public int sumRoomPreference() {
         if (isMultiRoom()) {
             int ret = 0;
+            int roomIndex = 0;
             for (RoomLocation r : getRoomLocations()) {
-                ret += r.getPreference();
+                ret += r.getPreference(roomIndex ++);
             }
             return ret;
         } else {
@@ -317,8 +362,9 @@ public class Placement extends Value<Lecture, Placement> {
     public int getRoomPreference() {
         if (isMultiRoom()) {
             PreferenceCombination p = PreferenceCombination.getDefault();
+            int roomIndex = 0;
             for (RoomLocation r : getRoomLocations()) {
-                p.addPreferenceInt(r.getPreference());
+                p.addPreferenceInt(r.getPreference(roomIndex++));
             }
             return p.getPreferenceInt();
         } else {
@@ -349,8 +395,7 @@ public class Placement extends Value<Lecture, Placement> {
     public boolean isHard(Assignment<Lecture, Placement> assignment) {
         if (Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(getTimeLocation().getPreference())))
             return true;
-        if (getRoomLocation() != null && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(getRoomLocation().getPreference())))
-            return true;
+        if (isRoomProhibited()) return true;
         Lecture lecture = variable();
         for (GroupConstraint gc : lecture.hardGroupSoftConstraints()) {
             if (gc.isSatisfied(assignment))
@@ -358,6 +403,20 @@ public class Placement extends Value<Lecture, Placement> {
             if (Constants.sPreferenceProhibited.equals(gc.getPrologPreference()))
                 return true;
             if (Constants.sPreferenceRequired.equals(gc.getPrologPreference()))
+                return true;
+        }
+        return false;
+    }
+    
+    public boolean isRoomProhibited() {
+        if (isMultiRoom()) {
+            int roomIndex = 0;
+            for (RoomLocation r : getRoomLocations()) {
+                if (Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(r.getPreference(roomIndex++))))
+                    return true;
+            }
+        } else {
+            if (getRoomLocation() != null && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(getRoomLocation().getPreference())))
                 return true;
         }
         return false;

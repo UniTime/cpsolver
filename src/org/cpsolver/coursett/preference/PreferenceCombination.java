@@ -34,6 +34,13 @@ import org.cpsolver.coursett.Constants;
 public abstract class PreferenceCombination {
     boolean iIsRequired = false;
     boolean iIsProhibited = false;
+    
+    public PreferenceCombination() {}
+    
+    public PreferenceCombination(PreferenceCombination c) {
+        iIsProhibited = c.iIsProhibited;
+        iIsRequired = c.iIsRequired;
+    }
 
     /** Add preference a preference 
      * @param prologPref prolog preference (R for required, P for prohibited, -2 strongly preferred, ... 2 strongly discouraged)
@@ -60,6 +67,8 @@ public abstract class PreferenceCombination {
     public boolean isProhibited() {
         return iIsProhibited;
     }
+    
+    public abstract PreferenceCombination clonePreferenceCombination();
 
     public abstract int getPreferenceInt();
 

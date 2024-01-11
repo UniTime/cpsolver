@@ -29,6 +29,13 @@ package org.cpsolver.coursett.preference;
  */
 public class SumPreferenceCombination extends PreferenceCombination {
     int iPreference = 0;
+    
+    public SumPreferenceCombination() {}
+    
+    public SumPreferenceCombination(SumPreferenceCombination c) {
+        super(c);
+        iPreference = c.iPreference;
+    }
 
     @Override
     public void addPreferenceInt(int intPref) {
@@ -40,4 +47,7 @@ public class SumPreferenceCombination extends PreferenceCombination {
     public int getPreferenceInt() {
         return iPreference;
     }
+    
+    @Override
+    public SumPreferenceCombination clonePreferenceCombination() { return new SumPreferenceCombination(this); }
 }

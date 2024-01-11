@@ -127,7 +127,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
      * @param room2limitRatio room ratio
      */
     public Lecture(Long id, Long solverGroupId, Long schedulingSubpartId, String name,
-            java.util.List<TimeLocation> timeLocations, java.util.List<RoomLocation> roomLocations, int nrRooms,
+            Collection<TimeLocation> timeLocations, Collection<RoomLocation> roomLocations, int nrRooms,
             Placement initialPlacement, int minClassLimit, int maxClassLimit, double room2limitRatio) {
         super(initialPlacement);
         iClassId = id;
@@ -451,10 +451,11 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                         boolean av = true;
                         for (RoomLocation room: getInitialAssignment().getRoomLocations()) {
                             if (room.getRoomConstraint() != null && !room.getRoomConstraint().isAvailable(this, timeLocation, getScheduler())) { av = false; break; }
-                            if (room.getPreference() > 500) { av = false; break; }
-                            if (!allowBreakHard && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(room.getPreference()))) { av = false; break; }
+                            if (room.getMinPreference() > 500) { av = false; break; }
+                            if (!allowBreakHard && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(room.getMinPreference()))) { av = false; break; }
                         }
                         Placement p = new Placement(this, timeLocation, new ArrayList<RoomLocation>(getInitialAssignment().getRoomLocations()));
+                        if (!allowBreakHard && p.isRoomProhibited()) av = false;
                         for (InstructorConstraint ic : getInstructorConstraints())
                             if (!ic.isAvailable(this, p) && ic.isHard()) { av = false; break; }
                         if (av && !isTooSmall(p) && (!sSaveMemory || isValid(p))) {
@@ -468,12 +469,12 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                     List<RoomLocation> other = new ArrayList<RoomLocation>(iRoomLocations.size());
                     rooms: for (RoomLocation room: iRoomLocations) {
                         if (room.getRoomConstraint() != null && !room.getRoomConstraint().isAvailable(this, timeLocation, getScheduler())) continue;
-                        if (room.getPreference() > 500) continue;
-                        if (!allowBreakHard && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(room.getPreference()))) continue;
+                        if (room.getMinPreference() > 500) continue;
+                        if (!allowBreakHard && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(room.getMinPreference()))) continue;
                         for (InstructorConstraint ic : getInstructorConstraints())
                             if (!ic.isAvailable(this, new Placement(this, timeLocation, room)) && ic.isHard()) continue rooms;
                         if (assignment != null && room.getRoomConstraint() != null && !room.getRoomConstraint().getContext(assignment).inConflict(this, timeLocation) &&
-                            !Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(room.getPreference()))) {
+                            !Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(room.getMinPreference()))) {
                             available.add(room);
                         } else {
                             other.add(room);
@@ -484,6 +485,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                         Collection<RoomLocation> rm = e.nextElement();
                         if (isTooSmall(rm)) continue;
                         Placement p = new Placement(this, timeLocation, new ArrayList<RoomLocation>(rm));
+                        if (!allowBreakHard && p.isRoomProhibited()) continue;
                         if (getInitialAssignment() != null && p.sameRooms(getInitialAssignment())) continue;
                         p.setVariable(this);
                         if (sSaveMemory && !isValid(p)) continue;
@@ -494,8 +496,8 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                 } else {
                     List<RoomLocation> rooms = new ArrayList<RoomLocation>(iRoomLocations.size());
                     rooms: for (RoomLocation room: iRoomLocations) {
-                        if (!allowBreakHard && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(room.getPreference()))) continue;
-                        if (room.getPreference() > 500) continue;
+                        if (!allowBreakHard && Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(room.getMinPreference()))) continue;
+                        if (room.getMinPreference() > 500) continue;
                         if (room.getRoomConstraint() != null && !room.getRoomConstraint().isAvailable(this, timeLocation, getScheduler())) continue;
                         for (InstructorConstraint ic : getInstructorConstraints())
                             if (!ic.isAvailable(this, new Placement(this, timeLocation, room)) && ic.isHard()) continue rooms;
@@ -506,6 +508,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                         Collection<RoomLocation> rm = e.nextElement();
                         if (isTooSmall(rm)) continue;
                         Placement p = new Placement(this, timeLocation, new ArrayList<RoomLocation>(rm));
+                        if (!allowBreakHard && p.isRoomProhibited()) continue;
                         p.setVariable(this);
                         if (sSaveMemory && !isValid(p)) continue;
                         if (getInitialAssignment() != null && p.equals(getInitialAssignment())) setInitialAssignment(p);
@@ -570,7 +573,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     public int getBestRoomPreference() {
         int ret = Integer.MAX_VALUE;
         for (RoomLocation room : iRoomLocations) {
-            ret = Math.min(ret, room.getPreference());
+            ret = Math.min(ret, room.getMinPreference());
         }
         return ret;
     }
@@ -1002,7 +1005,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     public int nrRoomLocations() {
         int ret = 0;
         for (RoomLocation room : iRoomLocations) {
-            if (!Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(room.getPreference())))
+            if (!Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(room.getMinPreference())))
                 ret++;
         }
         return ret;
@@ -1015,7 +1018,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                 nrTimes ++;
         int nrRooms = 0;
         for (RoomLocation room : iRoomLocations)
-            if (!Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(room.getPreference())))
+            if (!Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(room.getMinPreference())))
                 nrRooms ++;
         long estNrValues = nrTimes;
         if (getNrRooms() > 1 && getMaxRoomCombinations() > 0)
@@ -1028,7 +1031,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     public int nrValues(TimeLocation time) {
         int ret = 0;
         for (RoomLocation room : iRoomLocations) {
-            if (!Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(room.getPreference()))
+            if (!Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(room.getMinPreference()))
                     && (room.getRoomConstraint() == null || room.getRoomConstraint().isAvailable(this, time, getScheduler())))
                 ret++;
         }
@@ -1178,7 +1181,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
             if (getNrRooms() <= 1) {
                 int min = Integer.MAX_VALUE;
                 for (RoomLocation r : roomLocations()) {
-                    if (r.getPreference() <= Constants.sPreferenceLevelProhibited / 2)
+                    if (r.getMinPreference() <= Constants.sPreferenceLevelProhibited / 2)
                         min = Math.min(min, r.getRoomSize());
                 }
                 iCacheMinRoomSize = Integer.valueOf(min);
@@ -1186,7 +1189,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
             } else {
                 List<RoomLocation> rooms = new ArrayList<RoomLocation>();
                 for (RoomLocation r: roomLocations())
-                    if (r.getPreference() <= Constants.sPreferenceLevelProhibited / 2)
+                    if (r.getMinPreference() <= Constants.sPreferenceLevelProhibited / 2)
                         rooms.add(r);
                 Collections.sort(rooms, new Comparator<RoomLocation>() {
                     @Override
@@ -1218,7 +1221,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
             if (getNrRooms() <= 1) {
                 int max = Integer.MIN_VALUE;
                 for (RoomLocation r : roomLocations()) {
-                    if (r.getPreference() <= Constants.sPreferenceLevelProhibited / 2) 
+                    if (r.getMinPreference() <= Constants.sPreferenceLevelProhibited / 2) 
                         max = Math.max(max, r.getRoomSize());
                 }
                 iCacheMaxRoomSize = Integer.valueOf(max);
@@ -1226,7 +1229,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
             } else {
                 List<RoomLocation> rooms = new ArrayList<RoomLocation>();
                 for (RoomLocation r: roomLocations())
-                    if (r.getPreference() <= Constants.sPreferenceLevelProhibited / 2) rooms.add(r);
+                    if (r.getMinPreference() <= Constants.sPreferenceLevelProhibited / 2) rooms.add(r);
                 Collections.sort(rooms, new Comparator<RoomLocation>() {
                     @Override
                     public int compare(RoomLocation r1, RoomLocation r2) {
@@ -1270,7 +1273,10 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         TimetableModel model = (TimetableModel) getModel();
         if (model == null)
             return true;
-        if (getNrRooms() > 1 && isSplitAttendance() && placement.getRoomSize() < minRoomUse()) return false;
+        if (!model.isAllowBreakHard() && !model.getProperties().getPropertyBoolean("General.InteractiveMode", false)) {
+            if (getNrRooms() > 1 && isSplitAttendance() && placement.getRoomSize() < minRoomUse()) return false;
+            if (placement.isRoomProhibited()) return false;
+        }
         if (model.hasConstantVariables()) {
             for (Placement confPlacement : model.conflictValuesSkipWeakeningConstraints(model.getEmptyAssignment(), placement)) {
                 Lecture lecture = confPlacement.variable();
@@ -1330,6 +1336,14 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
         }
         if (getNrRooms() > 1 && isSplitAttendance() && placement.getRoomSize() < minRoomUse())
             return "selected rooms are too small (" + placement.getRoomSize() + " < " + minRoomUse() + ")";
+        if (placement.isMultiRoom() && placement.isRoomProhibited()) {
+            int roomIndex = 0;
+            for (RoomLocation r : placement.getRoomLocations()) {
+                if (Constants.sPreferenceProhibited.equals(Constants.preferenceLevel2preference(r.getPreference(roomIndex))))
+                    return "invalid room combination (" + r.getName() + " is prohibited as " + (roomIndex + 1) + ". room)";
+                roomIndex++;
+            }
+        }
         return null;
     }
     
@@ -1452,7 +1466,12 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
             } else {
                 Integer minRoomPref = null, maxRoomPref = null;
                 for (RoomLocation r : roomLocations()) {
-                    int pref = r.getPreference();
+                    int pref = r.getMinPreference();
+                    if (pref >= Constants.sPreferenceLevelRequired / 2 && pref <= Constants.sPreferenceLevelProhibited / 2) {
+                        minRoomPref = (minRoomPref == null ? pref : Math.min(minRoomPref, pref));
+                        maxRoomPref = (maxRoomPref == null ? pref : Math.max(maxRoomPref, pref));
+                    }
+                    pref = r.getMaxPreference();
                     if (pref >= Constants.sPreferenceLevelRequired / 2 && pref <= Constants.sPreferenceLevelProhibited / 2) {
                         minRoomPref = (minRoomPref == null ? pref : Math.min(minRoomPref, pref));
                         maxRoomPref = (maxRoomPref == null ? pref : Math.max(maxRoomPref, pref));
@@ -1632,6 +1651,9 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     */
    public void setSplitAttendance(boolean splitAttendance) { iSplitAttendance = splitAttendance; }
    
+   /**
+    * Check if the assigned rooms are too small for a class with multiple rooms and split attendace.
+    */
    private boolean isTooSmall(Collection<RoomLocation> rooms) {
        if (getNrRooms() <= 1 && !isSplitAttendance()) return false;
        int size = 0;
@@ -1640,6 +1662,9 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
        return size < minRoomSize();
    }
    
+   /**
+    * Check if the assigned rooms are too small for a class with multiple rooms and split attendace.
+    */
    private boolean isTooSmall(Placement p) {
        return getNrRooms() > 1 && isSplitAttendance() && p.getRoomSize() < minRoomUse();
    }

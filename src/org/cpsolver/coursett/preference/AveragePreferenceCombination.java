@@ -30,6 +30,14 @@ package org.cpsolver.coursett.preference;
 public class AveragePreferenceCombination extends PreferenceCombination {
     int iPreference = 0;
     int iCnt = 0;
+    
+    public AveragePreferenceCombination() {}
+    
+    public AveragePreferenceCombination(AveragePreferenceCombination c) {
+        super(c);
+        iPreference = c.iPreference;
+        iCnt = c.iCnt;
+    }
 
     @Override
     public void addPreferenceInt(int intPref) {
@@ -42,4 +50,7 @@ public class AveragePreferenceCombination extends PreferenceCombination {
     public int getPreferenceInt() {
         return Math.round(((float) iPreference) / ((float) iCnt));
     }
+
+    @Override
+    public PreferenceCombination clonePreferenceCombination() { return new AveragePreferenceCombination(this); }
 }

@@ -413,6 +413,11 @@ public class TimetableXMLSaver extends TimetableSaver {
                 if (iSaveBest && bestPlacement != null && !bestPlacement.equals(placement)
                         && bestPlacement.hasRoomLocation(rl.getId()))
                     roomLocationEl.addAttribute("best", "true");
+                if (rl.hasPreferenceByIndex()) {
+                    for (Map.Entry<Integer, Integer> e: rl.getPreferenceByIndex().entrySet()) {
+                        roomLocationEl.addElement("preference").addAttribute("index", e.getKey().toString()).addAttribute("pref", e.getValue().toString());
+                    }
+                }
                 if (!roomElements.containsKey(getId("room", rl.getId()))) {
                     // room location without room constraint
                     Element roomEl = roomsEl.addElement("room").addAttribute("id", getId("room", rl.getId()));

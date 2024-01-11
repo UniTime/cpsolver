@@ -493,6 +493,10 @@ public class TimetableXMLLoader extends TimetableLoader {
                     assignedRoomLocations.add(rl);
                 if ("true".equals(roomLocationEl.attributeValue("best")))
                     bestRoomLocations.add(rl);
+                for (Iterator<?> i3 = roomLocationEl.elementIterator("preference"); i3.hasNext(); ) {
+                    Element prefEl = (Element) i3.next();
+                    rl.setPreference(Integer.valueOf(prefEl.attributeValue("index", "0")), Integer.valueOf(prefEl.attributeValue("pref", "0")));
+                }
                 roomLocations.add(rl);
             }
             List<TimeLocation> timeLocations = new ArrayList<TimeLocation>();

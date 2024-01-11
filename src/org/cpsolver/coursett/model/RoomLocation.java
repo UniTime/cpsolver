@@ -1,5 +1,8 @@
 package org.cpsolver.coursett.model;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.cpsolver.coursett.constraint.RoomConstraint;
 import org.cpsolver.ifs.util.DistanceMetric;
 
@@ -36,6 +39,7 @@ public class RoomLocation implements Comparable<RoomLocation> {
     private Double iPosX = null, iPosY = null;
     private RoomConstraint iRoomConstraint = null;
     private boolean iIgnoreTooFar = false;
+    private Map<Integer, Integer> iPreferenceByIndex = null;
 
     /**
      * Constructor
@@ -182,6 +186,51 @@ public class RoomLocation implements Comparable<RoomLocation> {
 
     @Override
     public int hashCode() {
-        return getName().hashCode();
+        return getId().hashCode();
+    }
+
+    /**
+     * Support for multiple rooms with different preferences: override default room preference for the given index
+     */
+    public int getPreference(int roomIndex) {
+        if (iPreferenceByIndex == null) return iPreference;
+        Integer pref = iPreferenceByIndex.get(roomIndex);
+        return (pref == null ? iPreference : pref);
+    }
+    /**
+     * Support for multiple rooms with different preferences: override default room preference for the given index
+     */
+    public void setPreference(int roomIndex, int preference) {
+        if (iPreferenceByIndex == null) iPreferenceByIndex = new HashMap<Integer, Integer>();
+        iPreferenceByIndex.put(roomIndex, preference);
+    }
+    /**
+     * Support for multiple rooms with different preferences: has preference overrides for particular rooms
+     */
+    public boolean hasPreferenceByIndex() { return iPreferenceByIndex != null && !iPreferenceByIndex.isEmpty(); }
+    /**
+     * Support for multiple rooms with different preferences: return preference overrides
+     */
+    public Map<Integer, Integer> getPreferenceByIndex() { return iPreferenceByIndex; }
+    
+    /**
+     * Support for multiple rooms with different preferences: return min preference
+     */
+    public int getMinPreference() {
+        int ret = getPreference();
+        if (iPreferenceByIndex != null)
+            for (Integer pref: iPreferenceByIndex.values())
+                if (pref < ret) ret = pref;
+        return ret;
+    }
+    /**
+     * Support for multiple rooms with different preferences: return max preference
+     */
+    public int getMaxPreference() {
+        int ret = getPreference();
+        if (iPreferenceByIndex != null)
+            for (Integer pref: iPreferenceByIndex.values())
+                if (pref > ret) ret = pref;
+        return ret;
     }
 }
