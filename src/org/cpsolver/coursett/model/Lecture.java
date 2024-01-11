@@ -458,7 +458,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                         if (!allowBreakHard && p.isRoomProhibited()) av = false;
                         for (InstructorConstraint ic : getInstructorConstraints())
                             if (!ic.isAvailable(this, p) && ic.isHard()) { av = false; break; }
-                        if (av && !isTooSmall(p) && (!sSaveMemory || isValid(p))) {
+                        if (av && !isTooSmall(p) && !checkParents(p) && (!sSaveMemory || isValid(p))) {
                             p.setVariable(this);
                             if (p.equals(getInitialAssignment())) setInitialAssignment(p);
                             if (getBestAssignment() != null && getBestAssignment().equals(p)) setBestAssignment(p, getBestAssignmentIteration());
@@ -485,6 +485,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                         Collection<RoomLocation> rm = e.nextElement();
                         if (isTooSmall(rm)) continue;
                         Placement p = new Placement(this, timeLocation, new ArrayList<RoomLocation>(rm));
+                        if (!checkParents(p)) continue;
                         if (!allowBreakHard && p.isRoomProhibited()) continue;
                         if (getInitialAssignment() != null && p.sameRooms(getInitialAssignment())) continue;
                         p.setVariable(this);
@@ -508,6 +509,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                         Collection<RoomLocation> rm = e.nextElement();
                         if (isTooSmall(rm)) continue;
                         Placement p = new Placement(this, timeLocation, new ArrayList<RoomLocation>(rm));
+                        if (!checkParents(p)) continue;
                         if (!allowBreakHard && p.isRoomProhibited()) continue;
                         p.setVariable(this);
                         if (sSaveMemory && !isValid(p)) continue;
@@ -1277,6 +1279,7 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
             if (getNrRooms() > 1 && isSplitAttendance() && placement.getRoomSize() < minRoomUse()) return false;
             if (placement.isRoomProhibited()) return false;
         }
+        if (!checkParents(placement)) return false;
         if (model.hasConstantVariables()) {
             for (Placement confPlacement : model.conflictValuesSkipWeakeningConstraints(model.getEmptyAssignment(), placement)) {
                 Lecture lecture = confPlacement.variable();
@@ -1343,6 +1346,13 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                     return "invalid room combination (" + r.getName() + " is prohibited as " + (roomIndex + 1) + ". room)";
                 roomIndex++;
             }
+        }
+        if (placement.isMultiRoom()) {
+            for (RoomLocation r1: placement.getRoomLocations())
+                for (RoomLocation r2: placement.getRoomLocations())
+                    if (r2.getRoomConstraint() != null && r2.getRoomConstraint().getParentRoom() != null && r2.getRoomConstraint().getParentRoom().equals(r1.getRoomConstraint()))
+                        return "invalid room combination (" + r2.getName() + " is a partition of " + r1.getName() + ")";   
+                        
         }
         return null;
     }
@@ -1667,5 +1677,18 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
     */
    private boolean isTooSmall(Placement p) {
        return getNrRooms() > 1 && isSplitAttendance() && p.getRoomSize() < minRoomUse();
+   }
+   
+   /**
+    * Check that the room and its parent are not used at the same time
+    */
+   private boolean checkParents(Placement p) {
+       if (p.isMultiRoom()) {
+           for (RoomLocation r1: p.getRoomLocations())
+               for (RoomLocation r2: p.getRoomLocations())
+                   if (r2.getRoomConstraint() != null && r2.getRoomConstraint().getParentRoom() != null && r2.getRoomConstraint().getParentRoom().equals(r1.getRoomConstraint()))
+                       return false;
+       }
+       return true;
    }
 }
