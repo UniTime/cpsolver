@@ -717,6 +717,10 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                     acmEl.addAttribute("programName", acm.getProgramName());
                 if (acm.getWeight() != 1.0)
                     acmEl.addAttribute("weight", String.valueOf(acm.getWeight()));
+                if (acm.getCampus() != null)
+                    acmEl.addAttribute("campus", acm.getCampus());
+                if (acm.getCampusName() != null && iShowNames)
+                    acmEl.addAttribute("campusName", acm.getCampusName());
             }
             for (AreaClassificationMajor acm : student.getAreaClassificationMinors()) {
                 Element acmEl = studentEl.addElement("acm");
@@ -746,6 +750,10 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
                     acmEl.addAttribute("programName", acm.getProgramName());
                 if (acm.getWeight() != 1.0)
                     acmEl.addAttribute("weight", String.valueOf(acm.getWeight()));
+                if (acm.getCampus() != null)
+                    acmEl.addAttribute("campus", acm.getCampus());
+                if (acm.getCampusName() != null && iShowNames)
+                    acmEl.addAttribute("campusName", acm.getCampusName());
             }
             for (StudentGroup g : student.getGroups()) {
                 Element grEl = studentEl.addElement("group");

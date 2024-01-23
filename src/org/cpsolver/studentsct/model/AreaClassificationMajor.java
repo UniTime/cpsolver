@@ -32,6 +32,7 @@ public class AreaClassificationMajor {
     private Double iWeight;
     private String iDegree, iDegreeName;
     private String iProgram, iProgramName;
+    private String iCampus, iCampusName;
 
     /**
      * Constructor
@@ -219,6 +220,49 @@ public class AreaClassificationMajor {
         iProgramName = programName;
         iWeight = weight;
     }
+    
+    /**
+     * Constructor
+     * 
+     * @param areaCode academic area abbreviation
+     * @param areaName academic area name
+     * @param classificationCode academic classificationCode
+     * @param classificationName academic classificationName
+     * @param majorCode major code
+     * @param majorName major name
+     * @param concentrationCode concentration (optional)
+     * @param concentrationName concentration (optional)
+     * @param degreeCode degree (optional)
+     * @param degreeName degree (optional)
+     * @param programCode program (optional)
+     * @param programName program (optional)
+     * @param weight weight (optional)
+     */
+    public AreaClassificationMajor(
+            String areaCode, String areaName,
+            String classificationCode, String classificationName,
+            String majorCode, String majorName,
+            String concentrationCode, String concentrationName,
+            String degreeCode, String degreeName,
+            String programCode, String programName,
+            String campus, String campusName,
+            Double weight) {
+        iArea = areaCode;
+        iAreaName = areaName;
+        iClassification = classificationCode;
+        iClassificationName = classificationName;
+        iMajor = majorCode;
+        iMajorName = majorName;
+        iConcentration = concentrationCode;
+        iConcentrationName = concentrationName;
+        iDegree = degreeCode;
+        iDegreeName = degreeName;
+        iProgram = programCode;
+        iProgramName = programName;
+        iCampus = campus;
+        iCampusName = campusName;
+        iWeight = weight;
+    }
 
     /** Academic area 
      * @return academic area abbreviation
@@ -302,6 +346,20 @@ public class AreaClassificationMajor {
      **/
     public String getProgramName() {
         return iProgramName;
+    }
+    
+    /** Campus (optional)
+     * @return campus name
+     **/
+    public String getCampus() {
+        return iCampus;
+    }
+    
+    /** Campus (optional)
+     * @return campus name
+     **/
+    public String getCampusName() {
+        return iCampusName;
     }
     
     /** Weight (optional, defaults to 1.0)

@@ -1028,6 +1028,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                             requestEl.attributeValue("concentration"), requestEl.attributeValue("concentrationName"),
                             requestEl.attributeValue("degree"), requestEl.attributeValue("degreeName"),
                             requestEl.attributeValue("program"), requestEl.attributeValue("programName"),
+                            requestEl.attributeValue("campus"), requestEl.attributeValue("campusName"),
                             requestEl.attributeValue("weight") == null ? null : Double.valueOf(requestEl.attributeValue("weight"))));
                 else
                     student.getAreaClassificationMajors().add(new AreaClassificationMajor(
@@ -1037,6 +1038,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                             requestEl.attributeValue("concentration"), requestEl.attributeValue("concentrationName"),
                             requestEl.attributeValue("degree"), requestEl.attributeValue("degreeName"),
                             requestEl.attributeValue("program"), requestEl.attributeValue("programName"),
+                            requestEl.attributeValue("campus"), requestEl.attributeValue("campusName"),
                             requestEl.attributeValue("weight") == null ? null : Double.valueOf(requestEl.attributeValue("weight"))));
             } else if ("group".equals(requestEl.getName())) {
                 student.getGroups().add(new StudentGroup(requestEl.attributeValue("type"), requestEl.attributeValue("reference"), requestEl.attributeValue("name")));
