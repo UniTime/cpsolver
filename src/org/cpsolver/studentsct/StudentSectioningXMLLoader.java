@@ -54,6 +54,7 @@ import org.cpsolver.studentsct.reservation.LearningCommunityReservation;
 import org.cpsolver.studentsct.reservation.Reservation;
 import org.cpsolver.studentsct.reservation.ReservationOverride;
 import org.cpsolver.studentsct.reservation.Restriction;
+import org.cpsolver.studentsct.reservation.UniversalOverride;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
@@ -637,6 +638,13 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             }
         } else if ("dummy".equals(reservationEl.attributeValue("type"))) {
             r = new DummyReservation(offering);
+        } else if ("universal".equals(reservationEl.attributeValue("type"))) {
+            r = new UniversalOverride(
+                    Long.valueOf(reservationEl.attributeValue("id")),
+                    "true".equals(reservationEl.attributeValue("override", "false")),
+                    Double.parseDouble(reservationEl.attributeValue("limit", "-1")),
+                    offering,
+                    reservationEl.attributeValue("filter"));
         } else if ("override".equals(reservationEl.attributeValue("type"))) {
             Set<Long> studentIds = new HashSet<Long>();
             for (Iterator<?> k = reservationEl.elementIterator("student"); k.hasNext(); ) {

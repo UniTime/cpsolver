@@ -52,6 +52,7 @@ import org.cpsolver.studentsct.reservation.LearningCommunityReservation;
 import org.cpsolver.studentsct.reservation.Reservation;
 import org.cpsolver.studentsct.reservation.ReservationOverride;
 import org.cpsolver.studentsct.reservation.Restriction;
+import org.cpsolver.studentsct.reservation.UniversalOverride;
 import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
 import org.dom4j.Element;
@@ -563,6 +564,14 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
             reservationEl.addAttribute("course", getId("course",cr.getCourse().getId()));
         } else if (reservation instanceof DummyReservation) {
             reservationEl.addAttribute("type", "dummy");
+        } else if (reservation instanceof UniversalOverride) {
+            reservationEl.addAttribute("type", "universal");
+            UniversalOverride ur = (UniversalOverride)reservation;
+            if (ur.getFilter() != null)
+                reservationEl.addAttribute("filter", ur.getFilter());
+            reservationEl.addAttribute("override", ur.isOverride() ? "true" : "false");
+            if (ur.getReservationLimit() >= 0.0)
+                reservationEl.addAttribute("limit", String.valueOf(ur.getReservationLimit()));
         }
         reservationEl.addAttribute("priority", String.valueOf(reservation.getPriority()));
         reservationEl.addAttribute("mustBeUsed", reservation.mustBeUsed() ? "true" : "false");
