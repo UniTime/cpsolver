@@ -11,7 +11,6 @@ import org.cpsolver.studentsct.constraint.LinkedSections;
 import org.cpsolver.studentsct.model.Request.RequestPriority;
 
 
-
 /**
  * Representation of a student. Each student contains id, and a list of
  * requests. <br>
@@ -297,6 +296,16 @@ public class Student implements Comparable<Student> {
      */
     public List<AreaClassificationMajor> getAreaClassificationMajors() {
         return iMajors;
+    }
+    
+    public AreaClassificationMajor getPrimaryMajor() {
+        if (iMajors == null) return null;
+        AreaClassificationMajor major = null;
+        for (AreaClassificationMajor m: iMajors) {
+                if (major == null || m.compareTo(major) < 0)
+                        major = m;
+        }
+        return major;
     }
     
     /**

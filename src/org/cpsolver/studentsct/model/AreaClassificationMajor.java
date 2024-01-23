@@ -26,7 +26,7 @@ import org.cpsolver.ifs.util.ToolBox;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class AreaClassificationMajor {
+public class AreaClassificationMajor implements Comparable<AreaClassificationMajor>{
     private String iArea, iClassification, iMajor, iConcentration;
     private String iAreaName, iClassificationName, iMajorName, iConcentrationName;
     private Double iWeight;
@@ -382,5 +382,29 @@ public class AreaClassificationMajor {
     @Override
     public String toString() {
         return getArea() + "/" + getMajor() + (getConcentration() == null || getConcentration().isEmpty()? "" : "-" + getConcentration()) + " " + getClassification();
+    }
+    
+    private String getDegreeNotNull() { return (iDegree == null ? "" : iDegree); }
+    private String getProgramNotNull() { return (iProgram == null ? "" : iProgram); }
+    private String getCampusNotNull() { return (iCampus == null ? "" : iCampus); }
+    private String getConcentrationNotNull() { return (iConcentration == null ? "" : iConcentration); }
+    
+    @Override
+    public int compareTo(AreaClassificationMajor acm) {
+            if (getWeight() != acm.getWeight())
+                    return getWeight() > acm.getWeight() ? -1 : 1;
+            if (!getArea().equals(acm.getArea()))
+                    return getArea().compareTo(acm.getArea());
+            if (!getClassification().equals(acm.getClassification()))
+                    return getClassification().compareTo(acm.getClassification());
+            if (!getDegreeNotNull().equals(acm.getDegreeNotNull()))
+                    return getDegreeNotNull().compareTo(acm.getDegreeNotNull());
+            if (!getProgramNotNull().equals(acm.getProgramNotNull()))
+                    return getProgramNotNull().compareTo(acm.getProgramNotNull());
+            if (!getMajor().equals(acm.getMajor()))
+                    return getMajor().compareTo(acm.getMajor());
+            if (!getCampusNotNull().equals(acm.getCampusNotNull()))
+                    return getCampusNotNull().compareTo(acm.getCampusNotNull());
+            return getConcentrationNotNull().compareTo(acm.getConcentrationNotNull());
     }
 }
