@@ -398,7 +398,7 @@ public class TimetableXMLSaver extends TimetableSaver {
                     instrEl.addAttribute("solution", "true");
                 if (iSaveInitial && initialPlacement != null)
                     instrEl.addAttribute("initial", "true");
-                if (iSaveBest && bestPlacement != null && !bestPlacement.equals(placement))
+                if (iSaveBest && bestPlacement != null)
                     instrEl.addAttribute("best", "true");
             }
             for (RoomLocation rl : lecture.roomLocations()) {
@@ -410,8 +410,7 @@ public class TimetableXMLSaver extends TimetableSaver {
                     roomLocationEl.addAttribute("solution", "true");
                 if (iSaveInitial && initialPlacement != null && initialPlacement.hasRoomLocation(rl.getId()))
                     roomLocationEl.addAttribute("initial", "true");
-                if (iSaveBest && bestPlacement != null && !bestPlacement.equals(placement)
-                        && bestPlacement.hasRoomLocation(rl.getId()))
+                if (iSaveBest && bestPlacement != null && bestPlacement.hasRoomLocation(rl.getId()))
                     roomLocationEl.addAttribute("best", "true");
                 if (rl.hasPreferenceByIndex()) {
                     for (Map.Entry<Integer, Integer> e: rl.getPreferenceByIndex().entrySet()) {
@@ -477,8 +476,7 @@ public class TimetableXMLSaver extends TimetableSaver {
                     timeLocationEl.addAttribute("solution", "true");
                 if (iSaveInitial && initialPlacement != null && initialPlacement.getTimeLocation().equals(tl))
                     timeLocationEl.addAttribute("initial", "true");
-                if (iSaveBest && bestPlacement != null && !bestPlacement.equals(placement)
-                        && bestPlacement.getTimeLocation().equals(tl))
+                if (iSaveBest && bestPlacement != null && bestPlacement.getTimeLocation().equals(tl))
                     timeLocationEl.addAttribute("best", "true");
             }
         }
