@@ -225,6 +225,8 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
             iInfoProviders.add((InfoProvider<V, T>) constraint);
         for (ModelListener<V, T> listener : iModelListeners)
             listener.constraintAdded(constraint);
+        if (constraint instanceof ModelListener<?, ?>)
+            iModelListeners.add((ModelListener<V, T>) constraint);
     }
 
     /** Removes a global constraint from the model
@@ -235,7 +237,9 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
         constraint.setModel(null);
         iGlobalConstraints.remove(constraint);
         if (constraint instanceof InfoProvider<?, ?>)
-            iInfoProviders.remove(constraint);
+            iInfoProviders.remove((InfoProvider<?, ?>) constraint);
+        if (constraint instanceof ModelListener<?, ?>)
+            iModelListeners.remove((ModelListener<V, T>) constraint);
         for (ModelListener<V, T> listener : iModelListeners)
             listener.constraintRemoved(constraint);
         if (constraint instanceof HasAssignmentContext)
