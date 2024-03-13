@@ -991,6 +991,8 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
             iInfoProviders.add((InfoProvider<V, T>) listener);
         for (Constraint<V, T> constraint : iConstraints)
             listener.constraintAdded(constraint);
+        for (Constraint<V, T> constraint : iGlobalConstraints)
+            listener.constraintAdded(constraint);
         for (V variable : iVariables)
             listener.variableAdded(variable);
     }
@@ -1004,6 +1006,8 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
         for (V variable : iVariables)
             listener.variableRemoved(variable);
         for (Constraint<V, T> constraint : iConstraints)
+            listener.constraintRemoved(constraint);
+        for (Constraint<V, T> constraint : iGlobalConstraints)
             listener.constraintRemoved(constraint);
         iModelListeners.remove(listener);
     }
