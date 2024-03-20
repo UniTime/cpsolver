@@ -28,7 +28,11 @@ import org.cpsolver.ifs.util.DistanceMetric;
  * Some classes may be excluded by using ExtendedStudentConflicts.IgnoreClasses parameter which may
  * contain a regular expression matching class name(s).
  * <br>
- * 
+ * Pairs of classes of the same offering are checked, too. In this case, the course structure must
+ * allow the two classes to be attended together (e.g., they are from the same configuration), and at
+ * least one student in the offering is allowed to take both classes. This feature can be disabled by
+ * setting ExtendedStudentConflicts.CheckSameCourse to false.
+ * <br>
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2013 - 2024 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -53,6 +57,7 @@ public class ExtendedStudentConflicts extends GlobalConstraint<Lecture, Placemen
     private Map<Long, Map<Long, List<Student>>> iCommonStudents = null;
     private Set<Long> iIgnoreClassIds = null;
     private Map<Long, Map<Long, Boolean>> iClassCache = new HashMap<Long, Map<Long, Boolean>>();
+    private boolean iCheckSameCourse = true;
     
     @Override
     public void setModel(Model<Lecture, Placement> model) {
@@ -60,6 +65,7 @@ public class ExtendedStudentConflicts extends GlobalConstraint<Lecture, Placemen
         if (model != null && model instanceof TimetableModel) {
             DataProperties config = ((TimetableModel)model).getProperties();
             iIgnoreClasses = config.getProperty("ExtendedStudentConflicts.IgnoreClasses");
+            iCheckSameCourse = config.getPropertyBoolean("ExtendedStudentConflicts.CheckSameCourse", true);
         }
     }
     
@@ -84,7 +90,7 @@ public class ExtendedStudentConflicts extends GlobalConstraint<Lecture, Placemen
                 iCommonStudents.put(lecture.getConfiguration().getOfferingId(), commonStudents);
                 for (Lecture other: getModel().variables()) {
                     if (other.isCommitted() || other.getConfiguration() == null) continue;
-                    if (other.getConfiguration().getOfferingId().equals(lecture.getConfiguration().getOfferingId())) continue;
+                    // if (other.getConfiguration().getOfferingId().equals(lecture.getConfiguration().getOfferingId())) continue;
                     if (commonStudents.containsKey(other.getConfiguration().getOfferingId())) continue;
                     List<Student> students = new ArrayList<Student>();
                     for (Student student: ((TimetableModel)getModel()).getAllStudents()) {
@@ -139,14 +145,45 @@ public class ExtendedStudentConflicts extends GlobalConstraint<Lecture, Placemen
         }
     }
     
+    private boolean checkSameCourseCanTakeTogether(Lecture l1, Lecture l2) {
+        // check if the feature is disabled
+        if (!iCheckSameCourse) return false;
+        // same subpart -> cannot take together
+        if (l1.getSchedulingSubpartId().equals(l2.getSchedulingSubpartId())) return false;
+        // different config -> cannot take together
+        if (!l1.getConfiguration().equals(l2.getConfiguration())) return false;
+        // subpart id > class id (classes that are given by class l1 and its parents)
+        Map<Long, Long> mustTake = new HashMap<Long, Long>();
+        for (Lecture l = l1; l != null; l = l.getParent()) {
+            mustTake.put(l.getSchedulingSubpartId(), l.getClassId());
+        }
+        // also include top-level subparts of the same configuration that have only one class 
+        for (Map.Entry<Long, Set<Lecture>> e: l1.getConfiguration().getTopLectures().entrySet()) {
+            if (e.getValue().size() == 1) {
+                Lecture l = e.getValue().iterator().next();
+                mustTake.put(l.getSchedulingSubpartId(), l.getClassId());
+            }
+        }
+        // check l2 and its parents, if any of them does not follow mustTake -> cannot take together
+        for (Lecture l = l2; l != null; l = l.getParent()) {
+            Long id = mustTake.get(l.getSchedulingSubpartId());
+            if (id != null && !l.getClassId().equals(id)) return false;
+        }
+        // no issue found -> can take together
+        return true;
+    }
+    
     protected boolean checkStudentForStudentConflicts(Lecture l1, Lecture l2) {
         // are student conflicts between the two classes to be ignored ?
         if (l1.isToIgnoreStudentConflictsWith(l2)) return false;
         // check the cache
         Boolean cache = getCachedPair(l1, l2);
         if (cache != null) return cache.booleanValue();
-        // ignore classes of the same offering
-        if (l1.getConfiguration().getOfferingId().equals(l2.getConfiguration().getOfferingId())) return false;
+        // classes of the same offering that cannot be taken together
+        if (l1.getConfiguration().getOfferingId().equals(l2.getConfiguration().getOfferingId()) && !checkSameCourseCanTakeTogether(l1, l2)) {
+            setCachedPair(l1, l2, false);
+            return false;
+        }
         // ignore matching class pairs
         if (isIgnoreClass(l1) && isIgnoreClass(l2)) {
             setCachedPair(l1, l2, false);
@@ -165,6 +202,7 @@ public class ExtendedStudentConflicts extends GlobalConstraint<Lecture, Placemen
                 setCachedPair(l1, l2, true);
                 return true;
             }
+        // no common students that can attend both classes
         setCachedPair(l1, l2, false);
         return false;
     }
