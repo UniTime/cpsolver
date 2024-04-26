@@ -280,6 +280,8 @@ public class MathTest extends Test {
                         }
                 }
             }
+            r.close();
+
             r = new BufferedReader(new FileReader(new File(dir, "hours_per_course.csv")));
             while ((line = r.readLine()) != null) {
                 if (line.trim().isEmpty())
@@ -308,6 +310,7 @@ public class MathTest extends Test {
                     clazz.getRequest().setLoad(getProperties().getPropertyFloat("TA.DefaultLoad", 10f));
                 }
             }
+            r.close();
 
             r = new BufferedReader(new FileReader(new File(dir, "students.csv")));
             Set<String> studentIds = new HashSet<String>();

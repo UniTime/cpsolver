@@ -150,7 +150,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
         variable.setModel(null);
         iVariables.remove(variable);
         if (variable instanceof InfoProvider<?, ?>)
-            iInfoProviders.remove(variable);
+            iInfoProviders.remove((InfoProvider<?, ?>)variable);
         for (ModelListener<V, T> listener : iModelListeners)
             listener.variableRemoved(variable);
         invalidateVariablesWithInitialValueCache();
@@ -193,7 +193,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
         constraint.setModel(null);
         iConstraints.remove(constraint);
         if (constraint instanceof InfoProvider<?, ?>)
-            iInfoProviders.remove(constraint);
+            iInfoProviders.remove((InfoProvider<?, ?>)constraint);
         for (ModelListener<V, T> listener : iModelListeners)
             listener.constraintRemoved(constraint);
         if (constraint instanceof HasAssignmentContext)
@@ -1006,7 +1006,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      **/
     public void removeModelListener(ModelListener<V, T> listener) {
         if (listener instanceof InfoProvider<?, ?>)
-            iInfoProviders.remove(listener);
+            iInfoProviders.remove((InfoProvider<?, ?>)listener);
         for (V variable : iVariables)
             listener.variableRemoved(variable);
         for (Constraint<V, T> constraint : iConstraints)

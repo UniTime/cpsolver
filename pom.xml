@@ -86,7 +86,7 @@
 		<sourceDirectory>src</sourceDirectory>
 		<resources>
 			<resource>
-				<directory />
+				<directory>.</directory>
 				<includes>
 					<include>LICENSE</include>
 				</includes>
