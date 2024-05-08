@@ -301,6 +301,8 @@ public class Placement extends Value<Lecture, Placement> {
                 }
                 return false;
             } else {
+                if (placement.getRoomLocation().getRoomConstraint() == null || !placement.getRoomLocation().getRoomConstraint().getConstraint())
+                    return false;
                 return getRoomLocations().contains(placement.getRoomLocation());
             }
         } else {
