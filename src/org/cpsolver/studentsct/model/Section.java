@@ -517,7 +517,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
                 // ignore expired reservations
                 if (r.isExpired()) continue;
                 // there is an unlimited reservation -> no unreserved space
-                if (r.getLimit() < 0) return 0.0;
+                if (r.getLimit(getSubpart().getConfig()) < 0) return 0.0;
             }
             return Double.MAX_VALUE;
         }
@@ -528,9 +528,9 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
             // ignore expired reservations
             if (r.isExpired()) continue;
             // unlimited reservation -> all the space is reserved
-            if (r.getLimit() < 0.0) return 0.0;
+            if (r.getLimit(getSubpart().getConfig()) < 0.0) return 0.0;
             // compute space that can be potentially taken by this reservation
-            double reserved = r.getContext(assignment).getReservedAvailableSpace(assignment, excludeRequest);
+            double reserved = r.getContext(assignment).getReservedAvailableSpace(assignment, getSubpart().getConfig(), excludeRequest);
             // deduct the space from available space
             available -= Math.max(0.0, reserved);
         }
@@ -557,7 +557,7 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
                 // ignore expired reservations
                 if (r.isExpired()) continue;
                 // there is an unlimited reservation -> no unreserved space
-                if (r.getLimit() < 0) return 0.0;
+                if (r.getLimit(getSubpart().getConfig()) < 0) return 0.0;
             }
             return Double.MAX_VALUE;
         }
@@ -569,16 +569,16 @@ public class Section extends AbstractClassWithContext<Request, Enrollment, Secti
             // ignore expired reservations
             if (r.isExpired()) continue;
             // unlimited reservation -> no unreserved space
-            if (r.getLimit() < 0) return 0.0;
+            if (r.getLimit(getSubpart().getConfig()) < 0) return 0.0;
             for (Section s: r.getSections(getSubpart())) {
                 if (s.equals(this)) continue;
                 if (s.getLimit() < 0) continue reservations;
                 if (sections.add(s))
                     available += s.getLimit();
             }
-            reserved += r.getLimit();
+            reserved += r.getLimit(getSubpart().getConfig());
             if (r.getSections(getSubpart()).size() == 1)
-                exclusive += r.getLimit();
+                exclusive += r.getLimit(getSubpart().getConfig());
         }
         
         return Math.min(available - reserved, getLimit() - exclusive);

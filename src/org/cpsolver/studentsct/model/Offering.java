@@ -249,7 +249,7 @@ public class Offering {
                     // skip reservations that have restrictions that are not inclusive (these are only checked on the restricted sections/configs)
                     if (!r.areRestrictionsInclusive() && (!r.getConfigs().isEmpty() || !r.getSections().isEmpty())) continue;
                     // there is an unlimited reservation -> no unreserved space
-                    if (r.getLimit() < 0) return 0.0;
+                    if (r.getLimit(config) < 0) return 0.0;
                 }
                 return Double.MAX_VALUE;
             }
@@ -290,7 +290,7 @@ public class Offering {
                     // skip reservations that have restrictions that are not inclusive (these are only checked on the restricted sections/configs)
                     if (!r.areRestrictionsInclusive() && (!r.getConfigs().isEmpty() || !r.getSections().isEmpty())) continue;
                     // there is an unlimited reservation -> no unreserved space
-                    if (r.getLimit() < 0) return 0.0;
+                    if (r.getLimit(config) < 0) return 0.0;
                 }
                 return Double.MAX_VALUE;
             }

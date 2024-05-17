@@ -310,7 +310,7 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
                 return false;
             
             // check remaning space
-            if (reservation.getReservedAvailableSpace(assignment, enrollment.getRequest()) < enrollment.getRequest().getWeight())
+            if (reservation.getReservedAvailableSpace(assignment, config, enrollment.getRequest()) < enrollment.getRequest().getWeight())
                 return true;
             
             // check reservation can assign over the limit

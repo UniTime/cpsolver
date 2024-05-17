@@ -312,7 +312,7 @@ public class RequestGroup extends AbstractClassWithContext<Request, Enrollment, 
             Set<Section> sections = (reservation == null ? null : reservation.getSections(section.getSubpart()));
             if (reservation != null && sections != null && sections.contains(section) && !reservation.isExpired()) {
                 double sectionAvailable = (section.getLimit() < 0 ? Double.MAX_VALUE : section.getLimit() - section.getEnrollmentWeight(assignment, enrollment.getRequest()));
-                double reservationAvailable = reservation.getReservedAvailableSpace(assignment, enrollment.getRequest());
+                double reservationAvailable = reservation.getReservedAvailableSpace(assignment, enrollment.getConfig(), enrollment.getRequest());
                 return Math.min(sectionAvailable, reservationAvailable) + (reservation.mustBeUsed() ? 0.0 : section.getUnreservedSpace(assignment, enrollment.getRequest()));
             } else {
                 return section.getUnreservedSpace(assignment, enrollment.getRequest());

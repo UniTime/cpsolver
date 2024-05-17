@@ -139,12 +139,12 @@ public class Enrollment extends Value<Request, Enrollment> {
             Reservation best = null;
             for (Reservation reservation: ((CourseRequest)iRequest).getReservations(iCourse)) {
                 if (reservation.isIncluded(this)) {
-                    if (onlyAvailable && reservation.getContext(assignment).getReservedAvailableSpace(assignment, iRequest) < iRequest.getWeight() && !reservation.canBatchAssignOverLimit())
+                    if (onlyAvailable && reservation.getContext(assignment).getReservedAvailableSpace(assignment, iConfig, iRequest) < iRequest.getWeight() && !reservation.canBatchAssignOverLimit())
                         continue;
                     if (best == null || best.getPriority() > reservation.getPriority()) {
                         best = reservation;
                     } else if (best.getPriority() == reservation.getPriority() &&
-                        best.getContext(assignment).getReservedAvailableSpace(assignment, iRequest) < reservation.getContext(assignment).getReservedAvailableSpace(assignment, iRequest)) {
+                        best.getContext(assignment).getReservedAvailableSpace(assignment, iConfig, iRequest) < reservation.getContext(assignment).getReservedAvailableSpace(assignment, iConfig, iRequest)) {
                         best = reservation;
                     }
                 }
