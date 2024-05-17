@@ -504,6 +504,8 @@ public class Enrollment extends Value<Request, Enrollment> {
         if (o == null || !(o instanceof Enrollment))
             return false;
         Enrollment e = (Enrollment) o;
+        if (!ToolBox.equals(getCourse(), e.getCourse()))
+            return false;
         if (!ToolBox.equals(getConfig(), e.getConfig()))
             return false;
         if (!ToolBox.equals(getRequest(), e.getRequest()))
