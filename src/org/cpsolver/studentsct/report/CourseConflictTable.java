@@ -25,7 +25,6 @@ import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.Section;
-import org.cpsolver.studentsct.model.Student;
 
 
 /**
@@ -72,11 +71,9 @@ import org.cpsolver.studentsct.model.Student;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 
-public class CourseConflictTable implements StudentSectioningReport {
+public class CourseConflictTable extends AbstractStudentSectioningReport {
     private static org.apache.logging.log4j.Logger sLog = org.apache.logging.log4j.LogManager.getLogger(CourseConflictTable.class);
     private static DecimalFormat sDF = new DecimalFormat("0.000");
-
-    private StudentSectioningModel iModel = null;
 
     /**
      * Constructor
@@ -85,14 +82,7 @@ public class CourseConflictTable implements StudentSectioningReport {
      *            student sectioning model
      */
     public CourseConflictTable(StudentSectioningModel model) {
-        iModel = model;
-    }
-
-    /** Return student sectioning model 
-     * @return problem model
-     **/
-    public StudentSectioningModel getModel() {
-        return iModel;
+        super(model);
     }
 
     /**
@@ -152,27 +142,18 @@ public class CourseConflictTable implements StudentSectioningReport {
      * Create report
      * 
      * @param assignment current assignment
-     * @param includeLastLikeStudents
-     *            true, if last-like students should be included (i.e.,
-     *            {@link Student#isDummy()} is true)
-     * @param includeRealStudents
-     *            true, if real students should be included (i.e.,
-     *            {@link Student#isDummy()} is false)
-     * @param useAmPm use 12-hour format
      * @return report as comma separated text file
      */
     @SuppressWarnings("unchecked")
-    public CSVFile createTable(Assignment<Request, Enrollment> assignment, boolean includeLastLikeStudents, boolean includeRealStudents, boolean useAmPm) {
+    @Override
+    public CSVFile createTable(Assignment<Request, Enrollment> assignment, DataProperties properties) {
         CSVFile csv = new CSVFile();
         csv.setHeader(new CSVFile.CSVField[] { new CSVFile.CSVField("UnasgnCrs"), new CSVFile.CSVField("ConflCrs"),
                 new CSVFile.CSVField("NrStud"), new CSVFile.CSVField("StudWeight"), new CSVFile.CSVField("NoAlt"),
                 new CSVFile.CSVField("Reason") });
         HashMap<Course, HashMap<Course, Object[]>> unassignedCourseTable = new HashMap<Course, HashMap<Course, Object[]>>();
         for (Request request : new ArrayList<Request>(getModel().unassignedVariables(assignment))) {
-            if (request.getStudent().isDummy() && !includeLastLikeStudents)
-                continue;
-            if (!request.getStudent().isDummy() && !includeRealStudents)
-                continue;
+            if (!matches(request)) continue;
             if (request instanceof CourseRequest) {
                 CourseRequest courseRequest = (CourseRequest) request;
                 if (courseRequest.getStudent().isComplete(assignment))
@@ -262,7 +243,7 @@ public class CourseConflictTable implements StudentSectioningReport {
                                     : ((Boolean) weight[2]).booleanValue());
                             HashSet<String> expl = (weight == null ? new HashSet<String>()
                                     : (HashSet<String>) weight[3]);
-                            expl.addAll(explanations(assignment, enrollment, conflict, useAmPm));
+                            expl.addAll(explanations(assignment, enrollment, conflict, isUseAmPm()));
                             conflictCourseTable.put(conflictCourse, new Object[] { Double.valueOf(nrStud),
                                     Double.valueOf(nrStudW), Boolean.valueOf(noAlt), expl });
                         }
@@ -304,10 +285,5 @@ public class CourseConflictTable implements StudentSectioningReport {
                 }
             });
         return csv;
-    }
-    
-    @Override
-    public CSVFile create(Assignment<Request, Enrollment> assignment, DataProperties properties) {
-        return createTable(assignment, properties.getPropertyBoolean("lastlike", false), properties.getPropertyBoolean("real", true), properties.getPropertyBoolean("useAmPm", true));
     }
 }

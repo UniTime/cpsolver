@@ -373,6 +373,17 @@ public class Enrollment extends Value<Request, Enrollment> {
         }
         return true;
     }
+    
+    public boolean isRequired() {
+        if (!isCourseRequest())
+            return false;
+        CourseRequest courseRequest = (CourseRequest) getRequest();
+        for (Section section : getSections()) {
+            if (!courseRequest.isRequired(section))
+                return false;
+        }
+        return true;
+    }
 
     /**
      * Enrollment penalty -- sum of section penalties (see

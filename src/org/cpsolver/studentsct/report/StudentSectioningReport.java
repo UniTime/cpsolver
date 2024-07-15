@@ -3,8 +3,10 @@ package org.cpsolver.studentsct.report;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.util.CSVFile;
 import org.cpsolver.ifs.util.DataProperties;
+import org.cpsolver.studentsct.model.Course;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
+import org.cpsolver.studentsct.model.Student;
 
 /**
  * Simple interface for student sectioning reports.
@@ -38,4 +40,22 @@ import org.cpsolver.studentsct.model.Request;
  */
 public interface StudentSectioningReport {
     public CSVFile create(Assignment<Request, Enrollment> assignment, DataProperties properties);
+    
+    /**
+     * Report filtering interface
+     */
+    public interface Filter {
+        /** Returns true if the given request matches the filter.
+         * {@link #matches(Request, Enrollment)} is called with the current assignment.
+         * */
+        public boolean matches(Request r);
+        /** Returns true if the given request with the given assignment matches the filter. */
+        public boolean matches(Request r, Enrollment e);
+        /** Returns true if the given student matches the filter.
+         * This means that a student has a request that matches the filter. */
+        public boolean matches(Student s);
+        /** Returns true if the given course matches the filter.
+         * This means that a student has a request for the course that matches the filter. */
+        public boolean matches(Course c);
+    }
 }

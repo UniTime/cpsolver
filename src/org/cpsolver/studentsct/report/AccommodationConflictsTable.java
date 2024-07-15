@@ -64,8 +64,7 @@ import org.cpsolver.studentsct.model.StudentGroup;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class AccommodationConflictsTable implements StudentSectioningReport {
-    private StudentSectioningModel iModel = null;
+public class AccommodationConflictsTable extends AbstractStudentSectioningReport {
     private StudentQuality iSQ = null;
     private Type[] iTypes = new Type[] {
             Type.ShortDistance, Type.AccBackToBack, Type.AccBreaksBetweenClasses, Type.AccFreeTimeOverlap
@@ -78,15 +77,8 @@ public class AccommodationConflictsTable implements StudentSectioningReport {
      *            student sectioning model
      */
     public AccommodationConflictsTable(StudentSectioningModel model) {
-        iModel = model;
-        iSQ = iModel.getStudentQuality();
-    }
-
-    /** Return student sectioning model 
-     * @return problem model
-     **/
-    public StudentSectioningModel getModel() {
-        return iModel;
+        super(model);
+        iSQ = model.getStudentQuality();
     }
     
     protected String rooms(SctAssignment section) {
@@ -123,18 +115,11 @@ public class AccommodationConflictsTable implements StudentSectioningReport {
 
     /**
      * Create report
-     * 
      * @param assignment current assignment
-     * @param includeLastLikeStudents
-     *            true, if last-like students should be included (i.e.,
-     *            {@link Student#isDummy()} is true)
-     * @param includeRealStudents
-     *            true, if real students should be included (i.e.,
-     *            {@link Student#isDummy()} is false)
-     * @param useAmPm use 12-hour format
      * @return report as comma separated text file
      */
-    public CSVFile createTable(final Assignment<Request, Enrollment> assignment, boolean includeLastLikeStudents, boolean includeRealStudents, boolean useAmPm) {
+    @Override
+    public CSVFile createTable(Assignment<Request, Enrollment> assignment, DataProperties properties) {
         if (iSQ == null) throw new IllegalArgumentException("Student Schedule Quality is not enabled.");
 
         CSVFile csv = new CSVFile();
@@ -179,8 +164,7 @@ public class AccommodationConflictsTable implements StudentSectioningReport {
         });
         
         for (Conflict conflict : confs) {
-            if (conflict.getStudent().isDummy() && !includeLastLikeStudents) continue;
-            if (!conflict.getStudent().isDummy() && !includeRealStudents) continue;
+            if (!matches(conflict.getR1(), conflict.getE1())) continue;
             if (conflict.getType() == Type.AccBackToBack) {
                 boolean trueConflict = false;
                 for (int i = 0; i < Constants.DAY_CODES.length; i++) {
@@ -234,11 +218,11 @@ public class AccommodationConflictsTable implements StudentSectioningReport {
             }
             line.add(new CSVFile.CSVField(conflict.getE1().getCourse().getName()));
             line.add(new CSVFile.CSVField(conflict.getS1() instanceof Section ? ((Section)conflict.getS1()).getName(conflict.getE1().getCourse().getId()) : ""));
-            line.add(new CSVFile.CSVField(conflict.getS1().getTime() == null ? "" : conflict.getS1().getTime().getLongName(useAmPm)));
+            line.add(new CSVFile.CSVField(conflict.getS1().getTime() == null ? "" : conflict.getS1().getTime().getLongName(isUseAmPm())));
             line.add(new CSVFile.CSVField(rooms(conflict.getS1())));
             line.add(new CSVFile.CSVField(conflict.getE2().isCourseRequest() ? conflict.getE2().getCourse().getName() : "Free Time"));
             line.add(new CSVFile.CSVField(conflict.getS2() instanceof Section ? ((Section)conflict.getS2()).getName(conflict.getE2().getCourse().getId()) : ""));
-            line.add(new CSVFile.CSVField(conflict.getS2().getTime() == null ? "" : conflict.getS2().getTime().getLongName(useAmPm)));
+            line.add(new CSVFile.CSVField(conflict.getS2().getTime() == null ? "" : conflict.getS2().getTime().getLongName(isUseAmPm())));
             line.add(new CSVFile.CSVField(rooms(conflict.getS2())));
             switch (conflict.getType()) {
                 case AccFreeTimeOverlap:
@@ -269,10 +253,5 @@ public class AccommodationConflictsTable implements StudentSectioningReport {
         }
         
         return csv;
-    }
-
-    @Override
-    public CSVFile create(Assignment<Request, Enrollment> assignment, DataProperties properties) {
-        return createTable(assignment, properties.getPropertyBoolean("lastlike", false), properties.getPropertyBoolean("real", true), properties.getPropertyBoolean("useAmPm", true));
     }
 }

@@ -22,7 +22,6 @@ import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.FreeTimeRequest;
 import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.Section;
-import org.cpsolver.studentsct.model.Student;
 
 
 /**
@@ -72,11 +71,10 @@ import org.cpsolver.studentsct.model.Student;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class SectionConflictTable implements StudentSectioningReport {
+public class SectionConflictTable extends AbstractStudentSectioningReport {
     private static DecimalFormat sDF1 = new DecimalFormat("0.####");
     private static DecimalFormat sDF2 = new DecimalFormat("0.0000");
 
-    private StudentSectioningModel iModel = null;
     private Type iType;
     private boolean iOverlapsAllEnrollments = true;
     private boolean iHigherPriorityConflictsOnly = false;
@@ -119,7 +117,7 @@ public class SectionConflictTable implements StudentSectioningReport {
      * @param type report type
      */
     public SectionConflictTable(StudentSectioningModel model, Type type) {
-        iModel = model;
+        super(model);
         iType = type;
     }
     
@@ -127,13 +125,6 @@ public class SectionConflictTable implements StudentSectioningReport {
         this(model, Type.OVERLAPS_AND_UNAVAILABILITIES);
     }
 
-    /** Return student sectioning model 
-     * @return problem model
-     **/
-    public StudentSectioningModel getModel() {
-        return iModel;
-    }
-    
     private boolean canIgnore(Assignment<Request, Enrollment> assignment, Enrollment enrollment, Section section, List<Enrollment> other) {
         e: for (Enrollment e: other) {
             Section a = null;
@@ -161,24 +152,25 @@ public class SectionConflictTable implements StudentSectioningReport {
      * Create report
      * 
      * @param assignment current assignment
-     * @param includeLastLikeStudents
-     *            true, if last-like students should be included (i.e.,
-     *            {@link Student#isDummy()} is true)
-     * @param includeRealStudents
-     *            true, if real students should be included (i.e.,
-     *            {@link Student#isDummy()} is false)
-     * @param useAmPm use 12-hour format
      * @return report as comma separated text file
      */
-    public CSVFile createTable(Assignment<Request, Enrollment> assignment, boolean includeLastLikeStudents, boolean includeRealStudents, boolean useAmPm) {
+    @Override
+    public CSVFile createTable(Assignment<Request, Enrollment> assignment, DataProperties properties) {
+        iType = Type.valueOf(properties.getProperty("type", iType.name()));
+        iOverlapsAllEnrollments = properties.getPropertyBoolean("overlapsIncludeAll", true);
+        iPriorities = new HashSet<String>();
+        for (String type: properties.getProperty("priority", "").split("\\,"))
+                if (!type.isEmpty())
+                    iPriorities.add(type);
+        iHigherPriorityConflictsOnly = !iPriorities.isEmpty();
+        
         HashMap<Course, Map<Section, Double[]>> unavailabilities = new HashMap<Course, Map<Section,Double[]>>();
         HashMap<Course, Set<Long>> totals = new HashMap<Course, Set<Long>>();
         HashMap<CourseSection, Map<CourseSection, Double>> conflictingPairs = new HashMap<CourseSection, Map<CourseSection,Double>>();
         HashMap<CourseSection, Double> sectionOverlaps = new HashMap<CourseSection, Double>();        
         
         for (Request request : new ArrayList<Request>(getModel().unassignedVariables(assignment))) {
-            if (request.getStudent().isDummy() && !includeLastLikeStudents) continue;
-            if (!request.getStudent().isDummy() && !includeRealStudents) continue;
+            if (!matches(request)) continue;
             if (iPriorities != null && !iPriorities.isEmpty() && (request.getRequestPriority() == null || !iPriorities.contains(request.getRequestPriority().name()))) continue;
             if (request instanceof CourseRequest) {
                 CourseRequest courseRequest = (CourseRequest) request;
@@ -436,7 +428,7 @@ public class SectionConflictTable implements StudentSectioningReport {
                     }
                     
                     line.add(new CSVFile.CSVField(section.getSubpart().getName() + " " + section.getName(course.getId())));
-                    line.add(new CSVFile.CSVField(section.getTime() == null ? "" : section.getTime().getDayHeader() + " " + section.getTime().getStartTimeHeader(useAmPm) + " - " + section.getTime().getEndTimeHeader(useAmPm)));
+                    line.add(new CSVFile.CSVField(section.getTime() == null ? "" : section.getTime().getDayHeader() + " " + section.getTime().getStartTimeHeader(isUseAmPm()) + " - " + section.getTime().getEndTimeHeader(isUseAmPm())));
                     
                     if (iType.hasUnavailabilities()) {
                         line.add(new CSVFile.CSVField(sectionUnavailable != null ? sDF2.format(sectionUnavailable[0]) : ""));
@@ -466,7 +458,7 @@ public class SectionConflictTable implements StudentSectioningReport {
                         }
                         
                         line.add(new CSVFile.CSVField(firstClass ? section.getSubpart().getName() + " " + section.getName(course.getId()): ""));
-                        line.add(new CSVFile.CSVField(firstClass ? section.getTime() == null ? "" : section.getTime().getDayHeader() + " " + section.getTime().getStartTimeHeader(useAmPm) + " - " + section.getTime().getEndTimeHeader(useAmPm): ""));
+                        line.add(new CSVFile.CSVField(firstClass ? section.getTime() == null ? "" : section.getTime().getDayHeader() + " " + section.getTime().getStartTimeHeader(isUseAmPm()) + " - " + section.getTime().getEndTimeHeader(isUseAmPm()): ""));
                         
                         if (iType.hasUnavailabilities()) {
                             line.add(new CSVFile.CSVField(firstClass && sectionUnavailable != null ? sDF2.format(sectionUnavailable[0]): ""));
@@ -480,7 +472,7 @@ public class SectionConflictTable implements StudentSectioningReport {
                         }
                         
                         line.add(new CSVFile.CSVField(other.getCourse().getName() + " " + other.getSection().getSubpart().getName() + " " + other.getSection().getName(other.getCourse().getId())));
-                        line.add(new CSVFile.CSVField(other.getSection().getTime().getDayHeader() + " " + other.getSection().getTime().getStartTimeHeader(useAmPm) + " - " + other.getSection().getTime().getEndTimeHeader(useAmPm)));
+                        line.add(new CSVFile.CSVField(other.getSection().getTime().getDayHeader() + " " + other.getSection().getTime().getStartTimeHeader(isUseAmPm()) + " - " + other.getSection().getTime().getEndTimeHeader(isUseAmPm())));
                         line.add(new CSVFile.CSVField(sDF2.format(pair.get(other))));
                         line.add(new CSVFile.CSVField(sDF2.format(pair.get(other) / total.size())));
                         
@@ -495,17 +487,5 @@ public class SectionConflictTable implements StudentSectioningReport {
             csv.addLine();
         }
         return csv;
-    }
-
-    @Override
-    public CSVFile create(Assignment<Request, Enrollment> assignment, DataProperties properties) {
-        iType = Type.valueOf(properties.getProperty("type", iType.name()));
-        iOverlapsAllEnrollments = properties.getPropertyBoolean("overlapsIncludeAll", true);
-        iPriorities = new HashSet<String>();
-        for (String type: properties.getProperty("priority", "").split("\\,"))
-                if (!type.isEmpty())
-                    iPriorities.add(type);
-        iHigherPriorityConflictsOnly = !iPriorities.isEmpty();
-        return createTable(assignment, properties.getPropertyBoolean("lastlike", false), properties.getPropertyBoolean("real", true), properties.getPropertyBoolean("useAmPm", true));
     }
 }

@@ -42,8 +42,7 @@ import org.cpsolver.studentsct.reservation.Reservation;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class TableauReport implements StudentSectioningReport {
-    private StudentSectioningModel iModel = null;
+public class TableauReport extends AbstractStudentSectioningReport {
 
     /**
      * Constructor
@@ -52,18 +51,11 @@ public class TableauReport implements StudentSectioningReport {
      *            student sectioning model
      */
     public TableauReport(StudentSectioningModel model) {
-        iModel = model;
+        super(model);
     }
 
-    /** Return student sectioning model 
-     * @return problem model
-     **/
-    public StudentSectioningModel getModel() {
-        return iModel;
-    }
-    
     @Override
-    public CSVFile create(Assignment<Request, Enrollment> assignment, DataProperties properties) {
+    public CSVFile createTable(Assignment<Request, Enrollment> assignment, DataProperties properties) {
         CSVFile csv = new CSVFile();
         boolean simple = properties.getPropertyBoolean("simple", false);
         if (simple) {
@@ -106,6 +98,7 @@ public class TableauReport implements StudentSectioningReport {
                 if (r instanceof CourseRequest) {
                     CourseRequest cr = (CourseRequest)r;
                     Enrollment e = cr.getAssignment(assignment);
+                    if (!matches(r, e)) continue;
                     int primary = (cr.isAlternative() ? 0 : 1);
                     int priority = 0;
                     if (cr.isAlternative())
