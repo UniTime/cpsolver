@@ -193,7 +193,7 @@ public class UniversalOverride extends Reservation {
                 } else if ("primary-campus".equals(attr)) {
                     AreaClassificationMajor acm = student().getPrimaryMajor();
                     if (acm != null && like(acm.getCampus(), term)) return true;
-                } else {
+                } else if (attr != null) {
                     for (StudentGroup aac: student().getGroups())
                         if (eq(aac.getType(), attr.replace('_', ' ')) && like(aac.getReference(), term)) return true;
                 }

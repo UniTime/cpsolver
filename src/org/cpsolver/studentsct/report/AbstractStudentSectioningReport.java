@@ -967,11 +967,11 @@ public abstract class AbstractStudentSectioningReport implements StudentSectioni
                 }
             }
             
-            if ((attr == null && term.length() > 2) || "title".equals(attr)) {
-                return course() != null && course().getTitle().toLowerCase().contains(term.toLowerCase());
-            }
             if (attr == null || "name".equals(attr) || "course".equals(attr)) {
                 return course() != null && (course().getSubjectArea().equalsIgnoreCase(term) || course().getCourseNumber().equalsIgnoreCase(term) || (course().getSubjectArea() + " " + course().getCourseNumber()).equalsIgnoreCase(term));
+            }
+            if ("title".equals(attr)) {
+                return course() != null && course().getTitle().toLowerCase().contains(term.toLowerCase());
             }
             if ("subject".equals(attr)) {
                 return course() != null && course().getSubjectArea().equalsIgnoreCase(term);
@@ -1119,6 +1119,9 @@ public abstract class AbstractStudentSectioningReport implements StudentSectioni
         public boolean match(String attr, String term) {
             if (attr == null || "name".equals(attr) || "course".equals(attr)) {
                 return course() != null && (course().getSubjectArea().equalsIgnoreCase(term) || course().getCourseNumber().equalsIgnoreCase(term) || (course().getSubjectArea() + " " + course().getCourseNumber()).equalsIgnoreCase(term));
+            }
+            if ("title".equals(attr)) {
+                return course() != null && course().getTitle().toLowerCase().contains(term.toLowerCase());
             }
             if ("subject".equals(attr)) {
                 return course() != null && course().getSubjectArea().equalsIgnoreCase(term);
