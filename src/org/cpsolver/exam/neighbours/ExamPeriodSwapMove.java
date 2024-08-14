@@ -126,41 +126,12 @@ public class ExamPeriodSwapMove implements NeighbourSelection<Exam,ExamPlacement
                 }
                 ExamPlacement placement = (placements.containsKey(other) ? placements.get(other) : assignment.getValue(other));
                 if (placement == null) continue;
-                switch (dc.getType()) {
-                    case ExamDistributionConstraint.sDistSamePeriod:
-                        if (period.getIndex() != placement.getPeriod().getIndex())
-                            return false;
-                        break;
-                    case ExamDistributionConstraint.sDistDifferentPeriod:
-                        if (period.getIndex() == placement.getPeriod().getIndex())
-                            return false;
-                        break;
-                    case ExamDistributionConstraint.sDistPrecedence:
-                        if (before) {
-                            if (period.getIndex() <= placement.getPeriod().getIndex())
-                                return false;
-                        } else {
-                            if (period.getIndex() >= placement.getPeriod().getIndex())
-                                return false;
-                        }
-                        break;
-                    case ExamDistributionConstraint.sDistPrecedenceRev:
-                        if (before) {
-                            if (period.getIndex() >= placement.getPeriod().getIndex())
-                                return false;
-                        } else {
-                            if (period.getIndex() <= placement.getPeriod().getIndex())
-                                return false;
-                        }
-                        break;
-                    case ExamDistributionConstraint.sDistSameDay:
-                        if (period.getPeriod().getDay() != placement.getPeriod().getDay())
-                            return false;
-                        break;
-                    case ExamDistributionConstraint.sDistDifferentDay:
-                        if (period.getPeriod().getDay() == placement.getPeriod().getDay())
-                            return false;
-                        break;
+                if (before) {
+                    if (!dc.getDistributionType().isSatisfied(placement.getPeriod(), period.getPeriod()))
+                        return false;
+                } else {
+                    if (!dc.getDistributionType().isSatisfied(period.getPeriod(), placement.getPeriod()))
+                        return false;
                 }
             }
         }
@@ -175,16 +146,8 @@ public class ExamPeriodSwapMove implements NeighbourSelection<Exam,ExamPlacement
                 if (other.equals(exam)) continue;
                 ExamPlacement placement = (placements.containsKey(other) ? placements.get(other) : assignment.getValue(other));
                 if (placement == null || conflictsToIgnore.contains(placement)) continue;
-                switch (dc.getType()) {
-                    case ExamDistributionConstraint.sDistSameRoom:
-                        if (!placement.getRoomPlacements().contains(room))
-                            return false;
-                        break;
-                    case ExamDistributionConstraint.sDistDifferentRoom:
-                        if (placement.getRoomPlacements().contains(room))
-                            return false;
-                        break;
-                }
+                if (!dc.getDistributionType().isSatisfied(placement, room))
+                    return false;
             }
         }
         return true;
@@ -198,16 +161,8 @@ public class ExamPeriodSwapMove implements NeighbourSelection<Exam,ExamPlacement
                 if (other.equals(this)) continue;
                 ExamPlacement placement = (placements.containsKey(other) ? placements.get(other) : assignment.getValue(other));
                 if (placement == null || conflictsToIgnore.contains(placement)) continue;
-                switch (dc.getType()) {
-                    case ExamDistributionConstraint.sDistSameRoom:
-                        if (!placement.getRoomPlacements().contains(room))
-                            penalty += dc.getWeight();
-                        break;
-                    case ExamDistributionConstraint.sDistDifferentRoom:
-                        if (placement.getRoomPlacements().contains(room))
-                            penalty += dc.getWeight();
-                        break;
-                }
+                if (!dc.getDistributionType().isSatisfied(placement, room))
+                    penalty += dc.getWeight();
             }
         }
         return penalty;

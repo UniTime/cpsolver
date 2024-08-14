@@ -40,6 +40,11 @@ import org.cpsolver.ifs.assignment.Assignment;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class DistributionViolation extends ExamCriterion {
+    
+    public DistributionViolation() {
+        super();
+        setValueUpdateType(ValueUpdateType.NoUpdate);
+    }
 
     @Override
     public String getWeightName() {
@@ -54,12 +59,12 @@ public class DistributionViolation extends ExamCriterion {
     @Override
     public double getValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value, Set<ExamPlacement> conflicts) {
         int penalty = 0;
+        ExamPlacement original = assignment.getValue(value.variable());
         for (ExamDistributionConstraint dc : value.variable().getDistributionConstraints()) {
             if (dc.isHard() || getWeight() != dc.getWeight())
                 continue;
-            boolean sat = dc.isSatisfied(assignment, value);
-            if (sat != dc.isSatisfied(assignment))
-                penalty += (sat ? -1.0 : 1.0);
+            penalty += dc.countViolations(assignment, value);
+            if (original != null) penalty -= dc.countViolations(assignment, original);
         }
         return penalty;
     }
@@ -69,7 +74,7 @@ public class DistributionViolation extends ExamCriterion {
         double[] bounds = new double[] { 0.0, 0.0 };
         for (ExamDistributionConstraint dc : ((ExamModel)getModel()).getDistributionConstraints()) {
             if (!dc.isHard() && getWeight() == dc.getWeight())
-                bounds[1] ++;
+                bounds[1] += dc.variables().size() * (dc.variables().size() - 1) / 2;
         }
         return bounds;
     }
@@ -80,12 +85,12 @@ public class DistributionViolation extends ExamCriterion {
     @Override
     public double getRoomValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value) {
         int penalty = 0;
+        ExamPlacement original = assignment.getValue(value.variable());
         for (ExamDistributionConstraint dc : value.variable().getDistributionConstraints()) {
             if (dc.isHard() || getWeight() != dc.getWeight() || !dc.isRoomRelated())
                 continue;
-            boolean sat = dc.isSatisfied(assignment, value);
-            if (sat != dc.isSatisfied(assignment))
-                penalty += (sat ? -1.0 : 1.0);
+            penalty += dc.countViolations(assignment, value);
+            if (original != null) penalty -= dc.countViolations(assignment, original);
         }
         return penalty;
     }
@@ -96,12 +101,12 @@ public class DistributionViolation extends ExamCriterion {
     @Override
     public double getPeriodValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value) {
         int penalty = 0;
+        ExamPlacement original = assignment.getValue(value.variable());
         for (ExamDistributionConstraint dc : value.variable().getDistributionConstraints()) {
             if (dc.isHard() || getWeight() != dc.getWeight() || !dc.isPeriodRelated())
                 continue;
-            boolean sat = dc.isSatisfied(assignment, value);
-            if (sat != dc.isSatisfied(assignment))
-                penalty += (sat ? -1.0 : 1.0);
+            penalty += dc.countViolations(assignment, value);
+            if (original != null) penalty -= dc.countViolations(assignment, original);
         }
         return penalty;
     }
@@ -115,8 +120,7 @@ public class DistributionViolation extends ExamCriterion {
                 if (added.add(dc)) {
                     if (dc.isHard() || getWeight() != dc.getWeight())
                         continue;
-                    if (!dc.isSatisfied(assignment))
-                        penalty += 1;
+                    penalty += dc.countViolations(assignment);
                 }
             }
         }
