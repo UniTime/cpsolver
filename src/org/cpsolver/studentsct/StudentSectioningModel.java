@@ -456,8 +456,12 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         if (getStudentQuality() != null) {
             int confs = getStudentQuality().getTotalPenalty(StudentQuality.Type.Distance, assignment);
             int shortConfs = getStudentQuality().getTotalPenalty(StudentQuality.Type.ShortDistance, assignment);
+            int unavConfs = getStudentQuality().getTotalPenalty(StudentQuality.Type.UnavailabilityDistance, assignment);
             if (confs > 0 || shortConfs > 0) {
                 info.put("Student distance conflicts", confs + (shortConfs == 0 ? "" : " (" + getDistanceMetric().getShortDistanceAccommodationReference() + ": " + shortConfs + ")"));
+            }
+            if (unavConfs > 0) {
+                info.put("Unavailabilities: Distance conflicts", String.valueOf(unavConfs));
             }
         } else if (getDistanceConflict() != null) {
             int confs = getDistanceConflict().getTotalNrConflicts(assignment);
@@ -473,7 +477,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             if (shareCR + shareFT + shareUN > 0)
                 info.put("Time overlapping conflicts", sDoubleFormat.format((5.0 * (shareCR + shareFT + shareUN)) / iStudents.size()) + " mins per student\n" + 
                         "(" + sDoubleFormat.format(5.0 * shareCR / iStudents.size()) + " between courses, " + sDoubleFormat.format(5.0 * shareFT / iStudents.size()) + " free time" +
-                        (shareUN == 0 ? "" : ", " + sDoubleFormat.format(5.0 * shareUN / iStudents.size()) + " teaching assignments") + "; " + sDoubleFormat.format((shareCR + shareFT + shareUN) / 12.0) + " hours total)");
+                        (shareUN == 0 ? "" : ", " + sDoubleFormat.format(5.0 * shareUN / iStudents.size()) + " teaching assignments & unavailabilities") + "; " + sDoubleFormat.format((shareCR + shareFT + shareUN) / 12.0) + " hours total)");
         } else if (getTimeOverlaps() != null && getTimeOverlaps().getTotalNrConflicts(assignment) != 0) {
             info.put("Time overlapping conflicts", sDoubleFormat.format(5.0 * getTimeOverlaps().getTotalNrConflicts(assignment) / iStudents.size()) + " mins per student (" + sDoubleFormat.format(getTimeOverlaps().getTotalNrConflicts(assignment) / 12.0) + " hours total)");
         }
@@ -1334,6 +1338,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             int shareCR = getStudentQuality().getContext(assignment).countTotalPenalty(StudentQuality.Type.CourseTimeOverlap, assignment);
             int shareFT = getStudentQuality().getContext(assignment).countTotalPenalty(StudentQuality.Type.FreeTimeOverlap, assignment);
             int shareUN = getStudentQuality().getContext(assignment).countTotalPenalty(StudentQuality.Type.Unavailability, assignment);
+            int shareUND = getStudentQuality().getContext(assignment).countTotalPenalty(StudentQuality.Type.UnavailabilityDistance, assignment);
             if (shareCR > 0) {
                 Set<Student> students = new HashSet<Student>();
                 for (StudentQuality.Conflict c: getStudentQuality().getContext(assignment).computeAllConflicts(StudentQuality.Type.CourseTimeOverlap, assignment)) {
@@ -1353,7 +1358,14 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 for (StudentQuality.Conflict c: getStudentQuality().getContext(assignment).computeAllConflicts(StudentQuality.Type.Unavailability, assignment)) {
                     students.add(c.getStudent());
                 }
-                info.put("Time overlaps: teaching assignments", students.size() + " students (avg " + sDoubleFormat.format(5.0 * shareUN / students.size()) + " mins)");
+                info.put("Unavailabilities: Time conflicts", students.size() + " students (avg " + sDoubleFormat.format(5.0 * shareUN / students.size()) + " mins)");
+            }
+            if (shareUND > 0) {
+                Set<Student> students = new HashSet<Student>();
+                for (StudentQuality.Conflict c: getStudentQuality().getContext(assignment).computeAllConflicts(StudentQuality.Type.UnavailabilityDistance, assignment)) {
+                    students.add(c.getStudent());
+                }
+                info.put("Unavailabilities: Distance conflicts", students.size() + " students (avg " + sDoubleFormat.format(shareUND / students.size()) + " travels)");
             }
         } else if (getTimeOverlaps() != null && getTimeOverlaps().getTotalNrConflicts(assignment) != 0) {
             Set<TimeOverlapsCounter.Conflict> conf = getTimeOverlaps().getContext(assignment).computeAllConflicts(assignment);

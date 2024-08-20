@@ -794,6 +794,56 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
                 return c.getPenalty();
             }
         }),
+        /** 
+         * Student unavailability distance conflict. Distance conflict between a class that the student is taking and a class that the student
+         * is teaching or attending in a different session.
+         * This criterion is weighted by StudentWeights.UnavailabilityDistanceConflict, defaulting to 0.1.
+         */
+        UnavailabilityDistance(WeightType.REQUEST, "StudentWeights.UnavailabilityDistanceConflict", 0.100, new Quality(){
+            @Override
+            public boolean isApplicable(Context cx, Student student, Request r1, Request r2) {
+                return false;
+            }
+            
+            @Override
+            public boolean inConflict(Context cx, SctAssignment sa1, SctAssignment sa2) {
+                Section s1 = (Section) sa1;
+                Unavailability s2 = (Unavailability) sa2;
+                if (s1.getPlacement() == null || s2.getTime() == null || s2.getNrRooms() == 0)
+                    return false;
+                TimeLocation t1 = s1.getTime();
+                TimeLocation t2 = s2.getTime();
+                if (!t1.shareDays(t2) || !t1.shareWeeks(t2))
+                    return false;
+                int a1 = t1.getStartSlot(), a2 = t2.getStartSlot();
+                if (a1 + t1.getNrSlotsPerMeeting() <= a2) {
+                    int dist = cx.getDistanceInMinutes(s1.getPlacement(), s2);
+                    if (dist > t1.getBreakTime() + Constants.SLOT_LENGTH_MIN * (a2 - a1 - t1.getLength()))
+                        return true;
+                } else if (a2 + t2.getNrSlotsPerMeeting() <= a1) {
+                    int dist = cx.getDistanceInMinutes(s1.getPlacement(), s2);
+                    if (dist > t2.getBreakTime() + Constants.SLOT_LENGTH_MIN * (a1 - a2 - t2.getLength()))
+                        return true;
+                }
+                return false;
+            }
+
+            @Override
+            public int penalty(Context cx, Student s, SctAssignment a1, SctAssignment a2) {
+                if (!inConflict(cx, a1, a2)) return 0;
+                return a1.getTime().nrSharedDays(a2.getTime());
+            }
+
+            @Override
+            public Iterable<? extends SctAssignment> other(Context cx, Enrollment e) {
+                return (e.isCourseRequest() ? new Unavailabilities(e.getStudent()) : new Nothing());
+            }
+            
+            @Override
+            public double getWeight(Context cx, Conflict c, Enrollment e) {
+                return c.getPenalty();
+            }
+        }),
         ;
         
         private WeightType iType;
@@ -1325,7 +1375,27 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
                     return 0;
                 return getDistanceInMinutes(p1.getRoomLocation(), p2.getRoomLocation());
             }
-        }        
+        }
+
+        public int getDistanceInMinutes(Placement p1, Unavailability p2) {
+            if (p1.isMultiRoom()) {
+                int dist = 0;
+                for (RoomLocation r1 : p1.getRoomLocations()) {
+                    for (RoomLocation r2 : p2.getRooms()) {
+                        dist = Math.max(dist, getDistanceInMinutes(r1, r2));
+                    }
+                }
+                return dist;
+            } else {
+                if (p1.getRoomLocation() == null)
+                    return 0;
+                int dist = 0;
+                for (RoomLocation r2 : p2.getRooms()) {
+                    dist = Math.max(dist, getDistanceInMinutes(p1.getRoomLocation(), r2));
+                }
+                return dist;
+            }
+        }      
     }
     
     /**
