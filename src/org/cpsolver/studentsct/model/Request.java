@@ -287,6 +287,7 @@ public abstract class Request extends VariableWithContext<Request, Enrollment, R
         Vital("v", 0.8),
         Important("i", 0.5),
         Normal("", null), // this is the default priority
+        VisitingF2F("f", 0.2), // low priority for face-to-face courses of visiting students
         ;
         
         String iAbbv;

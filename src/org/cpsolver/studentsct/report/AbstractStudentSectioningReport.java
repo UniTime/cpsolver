@@ -194,6 +194,12 @@ public abstract class AbstractStudentSectioningReport implements StudentSectioni
                     return request().getRequestPriority() == RequestPriority.Vital && isAssigned();
                 } else if (eq("Not Assigned Vital", term)) {
                     return request().getRequestPriority() == RequestPriority.Vital && !isAssigned();
+                } else if (eq("Visiting F2F", term)) {
+                    return request().getRequestPriority() == RequestPriority.VisitingF2F;
+                } else if (eq("Assigned Visiting F2F", term)) {
+                    return request().getRequestPriority() == RequestPriority.VisitingF2F && isAssigned();
+                } else if (eq("Not Assigned Visiting F2F", term)) {
+                    return request().getRequestPriority() == RequestPriority.VisitingF2F && !isAssigned();
                 } else if (eq("LC", term)) {
                     return request().getRequestPriority() == RequestPriority.LC;
                 } else if (eq("Assigned LC", term)) {

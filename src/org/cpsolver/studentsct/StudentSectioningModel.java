@@ -1453,6 +1453,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                     priority += sp.code() + "PCI:" + sDecimalFormat.format(100.0 * getContext(assignment).iAssignedPriorityCriticalCRWeight[RequestPriority.Important.ordinal()][sp.ordinal()] / iTotalPriorityCriticalCRWeight[RequestPriority.Important.ordinal()][sp.ordinal()]) + "%, ";
                 if (iTotalPriorityCriticalCRWeight[RequestPriority.Vital.ordinal()][sp.ordinal()] > 0.0)
                     priority += sp.code() + "PCV:" + sDecimalFormat.format(100.0 * getContext(assignment).iAssignedPriorityCriticalCRWeight[RequestPriority.Vital.ordinal()][sp.ordinal()] / iTotalPriorityCriticalCRWeight[RequestPriority.Vital.ordinal()][sp.ordinal()]) + "%, ";
+                if (iTotalPriorityCriticalCRWeight[RequestPriority.VisitingF2F.ordinal()][sp.ordinal()] > 0.0)
+                    priority += sp.code() + "PCVF:" + sDecimalFormat.format(100.0 * getContext(assignment).iAssignedPriorityCriticalCRWeight[RequestPriority.VisitingF2F.ordinal()][sp.ordinal()] / iTotalPriorityCriticalCRWeight[RequestPriority.VisitingF2F.ordinal()][sp.ordinal()]) + "%, ";
             }
         }
         return   (getNrRealStudents(false) > 0 ? "RRq:" + getNrAssignedRealRequests(assignment, false) + "/" + getNrRealRequests(false) + ", " : "")
@@ -1465,6 +1467,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 + (iTotalCriticalCRWeight[RequestPriority.Critical.ordinal()] > 0.0 ? "CC:" + sDecimalFormat.format(100.0 * getContext(assignment).getAssignedCriticalCourseRequestWeight(RequestPriority.Critical) / iTotalCriticalCRWeight[RequestPriority.Critical.ordinal()]) + "%, " : "")
                 + (iTotalCriticalCRWeight[RequestPriority.Important.ordinal()] > 0.0 ? "IC:" + sDecimalFormat.format(100.0 * getContext(assignment).getAssignedCriticalCourseRequestWeight(RequestPriority.Important) / iTotalCriticalCRWeight[RequestPriority.Important.ordinal()]) + "%, " : "")
                 + (iTotalCriticalCRWeight[RequestPriority.Vital.ordinal()] > 0.0 ? "VC:" + sDecimalFormat.format(100.0 * getContext(assignment).getAssignedCriticalCourseRequestWeight(RequestPriority.Vital) / iTotalCriticalCRWeight[RequestPriority.Vital.ordinal()]) + "%, " : "")
+                + (iTotalCriticalCRWeight[RequestPriority.VisitingF2F.ordinal()] > 0.0 ? "VFC:" + sDecimalFormat.format(100.0 * getContext(assignment).getAssignedCriticalCourseRequestWeight(RequestPriority.VisitingF2F) / iTotalCriticalCRWeight[RequestPriority.VisitingF2F.ordinal()]) + "%, " : "")
                 + priority
                 + "V:" + sDecimalFormat.format(-getTotalValue(assignment))
                 + (getDistanceConflict() == null ? "" : ", DC:" + getDistanceConflict().getTotalNrConflicts(assignment))
