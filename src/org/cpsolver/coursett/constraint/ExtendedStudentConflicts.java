@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
@@ -58,6 +59,7 @@ public class ExtendedStudentConflicts extends GlobalConstraint<Lecture, Placemen
     private Set<Long> iIgnoreClassIds = null;
     private Map<Long, Map<Long, Boolean>> iClassCache = new HashMap<Long, Map<Long, Boolean>>();
     private boolean iCheckSameCourse = true;
+    private final ReentrantReadWriteLock iClassCacheLock = new ReentrantReadWriteLock();
     
     @Override
     public void setModel(Model<Lecture, Placement> model) {
@@ -70,9 +72,14 @@ public class ExtendedStudentConflicts extends GlobalConstraint<Lecture, Placemen
     }
     
     protected void clearCache() {
-        iCommonStudents = null;
-        iIgnoreClassIds = null;
-        iClassCache.clear();
+        iClassCacheLock.writeLock().lock();
+        try {
+            iClassCache.clear();
+            iCommonStudents = null;
+            iIgnoreClassIds = null;
+        } finally {
+            iClassCacheLock.writeLock().unlock();
+        }
     }
     
     private DistanceMetric getDistanceMetric() {
@@ -118,12 +125,17 @@ public class ExtendedStudentConflicts extends GlobalConstraint<Lecture, Placemen
     }
     
     private Boolean getCachedPair(Lecture l1, Lecture l2) {
-        if (l1.getClassId() < l2.getClassId()) {
-            Map<Long, Boolean> cache = iClassCache.get(l1.getClassId());
-            return (cache == null ? null : cache.get(l2.getClassId()));
-        } else {
-            Map<Long, Boolean> cache = iClassCache.get(l2.getClassId());
-            return (cache == null ? null : cache.get(l1.getClassId()));
+        iClassCacheLock.readLock().lock();
+        try {
+            if (l1.getClassId() < l2.getClassId()) {
+                Map<Long, Boolean> cache = iClassCache.get(l1.getClassId());
+                return (cache == null ? null : cache.get(l2.getClassId()));
+            } else {
+                Map<Long, Boolean> cache = iClassCache.get(l2.getClassId());
+                return (cache == null ? null : cache.get(l1.getClassId()));
+            }
+        } finally {
+            iClassCacheLock.readLock().unlock();
         }
     }
     
@@ -179,32 +191,37 @@ public class ExtendedStudentConflicts extends GlobalConstraint<Lecture, Placemen
         // check the cache
         Boolean cache = getCachedPair(l1, l2);
         if (cache != null) return cache.booleanValue();
-        // classes of the same offering that cannot be taken together
-        if (l1.getConfiguration().getOfferingId().equals(l2.getConfiguration().getOfferingId()) && !checkSameCourseCanTakeTogether(l1, l2)) {
-            setCachedPair(l1, l2, false);
-            return false;
-        }
-        // ignore matching class pairs
-        if (isIgnoreClass(l1) && isIgnoreClass(l2)) {
-            setCachedPair(l1, l2, false);
-            return false;
-        }
-        // check offerings
-        List<Student> commonStudents = getCommonStudents(l1.getConfiguration().getOfferingId(), l2.getConfiguration().getOfferingId());
-        // less then two students in common > do not check for conflicts
-        if (commonStudents == null || commonStudents.size() <= 1) {
-            setCachedPair(l1, l2, false);
-            return false;
-        }
-        // check if there is a student that can attend l1 and l2 together
-        for (Student student: commonStudents)
-            if (student.canEnroll(l1) && student.canEnroll(l2)) {
-                setCachedPair(l1, l2, true);
-                return true;
+        iClassCacheLock.writeLock().lock();
+        try {
+            // classes of the same offering that cannot be taken together
+            if (l1.getConfiguration().getOfferingId().equals(l2.getConfiguration().getOfferingId()) && !checkSameCourseCanTakeTogether(l1, l2)) {
+                setCachedPair(l1, l2, false);
+                return false;
             }
-        // no common students that can attend both classes
-        setCachedPair(l1, l2, false);
-        return false;
+            // ignore matching class pairs
+            if (isIgnoreClass(l1) && isIgnoreClass(l2)) {
+                setCachedPair(l1, l2, false);
+                return false;
+            }
+            // check offerings
+            List<Student> commonStudents = getCommonStudents(l1.getConfiguration().getOfferingId(), l2.getConfiguration().getOfferingId());
+            // less then two students in common > do not check for conflicts
+            if (commonStudents == null || commonStudents.size() <= 1) {
+                setCachedPair(l1, l2, false);
+                return false;
+            }
+            // check if there is a student that can attend l1 and l2 together
+            for (Student student: commonStudents)
+                if (student.canEnroll(l1) && student.canEnroll(l2)) {
+                    setCachedPair(l1, l2, true);
+                    return true;
+                }
+            // no common students that can attend both classes
+            setCachedPair(l1, l2, false);
+            return false;
+        } finally {
+            iClassCacheLock.writeLock().unlock();
+        }
     }
     
     @Override
