@@ -126,6 +126,26 @@ public class DistanceMetric {
     public DistanceMetric() {
     }
     
+    public DistanceMetric(DistanceMetric m) {
+        iModel = m.iModel;
+        iSpeed = m.iSpeed;
+        iInstructorNoPreferenceLimit = m.iInstructorNoPreferenceLimit;
+        iInstructorDiscouragedLimit = m.iInstructorDiscouragedLimit;
+        iInstructorProhibitedLimit = m.iInstructorProhibitedLimit;
+        iInstructorLongTravelInMinutes = m.iInstructorLongTravelInMinutes;
+        iNullDistance = m.iNullDistance;
+        iMaxTravelTime = m.iMaxTravelTime;
+        iComputeDistanceConflictsBetweenNonBTBClasses = m.iComputeDistanceConflictsBetweenNonBTBClasses;
+        iShortDistanceAccommodationReference = m.iShortDistanceAccommodationReference;
+        m.iLock.readLock().lock();
+        try {
+            for (Map.Entry<Long, Map<Long, Integer>> e: m.iTravelTimes.entrySet())
+                iTravelTimes.put(e.getKey(), new HashMap<Long, Integer>(e.getValue()));
+        } finally {
+            m.iLock.readLock().unlock();
+        }
+    }
+    
     /** With provided ellipsoid 
      * @param model ellipsoid model
      **/
@@ -352,6 +372,13 @@ public class DistanceMetric {
      **/
     public int getMaxTravelDistanceInMinutes() {
         return iMaxTravelTime;
+    }
+    
+    /** Set maximal travel distance between rooms when no coordinates are given
+     * @param maxTravelTime max travel time in minutes
+     */
+    public void setMaxTravelDistanceInMinutes(int maxTravelTime) {
+        iMaxTravelTime = maxTravelTime;
     }
 
     /** Add travel time between two locations 
