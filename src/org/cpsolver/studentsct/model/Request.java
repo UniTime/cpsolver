@@ -268,7 +268,7 @@ public abstract class Request extends VariableWithContext<Request, Enrollment, R
      */
     @Deprecated
     public boolean isCritical() {
-        return getRequestPriority() != null && getRequestPriority().ordinal() < RequestPriority.Normal.ordinal();
+        return getRequestPriority() != null && getRequestPriority().isCritical();
     }
     
     /**
@@ -287,7 +287,7 @@ public abstract class Request extends VariableWithContext<Request, Enrollment, R
         Vital("v", 0.8),
         Important("i", 0.5),
         Normal("", null), // this is the default priority
-        VisitingF2F("f", 0.2), // low priority for face-to-face courses of visiting students
+        VisitingF2F("f", null), // low priority for face-to-face courses of visiting students
         ;
         
         String iAbbv;
@@ -306,6 +306,13 @@ public abstract class Request extends VariableWithContext<Request, Enrollment, R
         }
         public boolean isSame(Request r) {
             return ordinal() == r.getRequestPriority().ordinal();
+        }
+        public boolean isCritical() {
+            return ordinal() < Normal.ordinal();
+        }
+        public int compareCriticalsTo(RequestPriority rp) {
+            if (!isCritical() && !rp.isCritical()) return 0; // do not compare non-critical levels
+            return compareTo(rp);
         }
     }
 }

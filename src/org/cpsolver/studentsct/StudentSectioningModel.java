@@ -307,6 +307,18 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             iTotalSelCRWeight += request.getWeight();
     }
     
+    public void setCourseRequestPriority(CourseRequest request, RequestPriority priority) {
+        if (request.getRequestPriority() != RequestPriority.Normal && !request.getStudent().isDummy() && !request.isAlternative())
+            iTotalCriticalCRWeight[request.getRequestPriority().ordinal()] -= request.getWeight();
+        if (request.getRequestPriority() != RequestPriority.Normal && !request.isAlternative())
+            iTotalPriorityCriticalCRWeight[request.getRequestPriority().ordinal()][request.getStudent().getPriority().ordinal()] -= request.getWeight();
+        request.setRequestPriority(priority);
+        if (request.getRequestPriority() != RequestPriority.Normal && !request.getStudent().isDummy() && !request.isAlternative())
+            iTotalCriticalCRWeight[request.getRequestPriority().ordinal()] += request.getWeight();
+        if (request.getRequestPriority() != RequestPriority.Normal && !request.isAlternative())
+            iTotalPriorityCriticalCRWeight[request.getRequestPriority().ordinal()][request.getStudent().getPriority().ordinal()] += request.getWeight();
+    }
+    
     /** 
      * Recompute cached request weights
      * @param assignment current assignment
