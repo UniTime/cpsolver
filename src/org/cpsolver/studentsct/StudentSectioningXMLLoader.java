@@ -1025,8 +1025,12 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             } else if ("unavailability".equals(requestEl.getName())) {
                 Offering offering = offeringTable.get(Long.parseLong(requestEl.attributeValue("offering")));
                 Section section = (offering == null ? null : offering.getSection(Long.parseLong(requestEl.attributeValue("section"))));
-                if (section != null)
-                    new Unavailability(student, section, "true".equals(requestEl.attributeValue("allowOverlap")));
+                if (section != null) {
+                    Unavailability ua = new Unavailability(student, section, "true".equals(requestEl.attributeValue("allowOverlap")));
+                    ua.setTeachingAssignment("true".equals(requestEl.attributeValue("ta", "false")));
+                    if (requestEl.attributeValue("course") != null)
+                        ua.setCourseId(Long.valueOf(requestEl.attributeValue("course")));
+                }
             } else if ("acm".equals(requestEl.getName())) {
                 if (requestEl.attributeValue("minor") != null)
                     student.getAreaClassificationMinors().add(new AreaClassificationMajor(

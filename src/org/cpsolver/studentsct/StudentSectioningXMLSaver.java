@@ -791,6 +791,9 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
             Element unavEl = studentEl.addElement("unavailability");
             unavEl.addAttribute("offering", getId("offering", unavailability.getSection().getSubpart().getConfig().getOffering().getId()));
             unavEl.addAttribute("section", getId("section", unavailability.getSection().getId()));
+            unavEl.addAttribute("ta", unavailability.isTeachingAssignment() ? "true" : "false");
+            if (unavailability.getCourseId() != null)
+                unavEl.addAttribute("course", getId("course", unavailability.getCourseId()));
             if (unavailability.isAllowOverlap()) unavEl.addAttribute("allowOverlap", "true");
         }
     }
