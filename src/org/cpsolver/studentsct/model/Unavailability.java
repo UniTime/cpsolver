@@ -107,8 +107,8 @@ public class Unavailability implements SctAssignment {
     public String getSectionName() {
         if (getSection().getSubpart() == null) return getSection().getName();
         if (getCourseId() != null)
-            return getSection().getName(getCourseId());
-        return getSection().getName();
+            return getSection().getSubpart().getName() + " " + getSection().getName(getCourseId());
+        return getSection().getSubpart().getName() + " " +getSection().getName();
     }
     
     @Override
