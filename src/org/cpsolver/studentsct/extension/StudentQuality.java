@@ -1285,6 +1285,7 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             if (iUnavailabilityMaxTravelTime != null && iUnavailabilityMaxTravelTime != iDistanceMetric.getMaxTravelDistanceInMinutes()) {
                 iUnavailabilityDistanceMetric = new DistanceMetric(iDistanceMetric);
                 iUnavailabilityDistanceMetric.setMaxTravelDistanceInMinutes(iUnavailabilityMaxTravelTime);
+                iUnavailabilityDistanceMetric.setComputeDistanceConflictsBetweenNonBTBClasses(true);
             }
         }
         

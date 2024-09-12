@@ -480,6 +480,10 @@ public class DistanceMetric {
         return iComputeDistanceConflictsBetweenNonBTBClasses;
     }
     
+    public void setComputeDistanceConflictsBetweenNonBTBClasses(boolean computeDistanceConflictsBetweenNonBTBClasses) {
+        iComputeDistanceConflictsBetweenNonBTBClasses = computeDistanceConflictsBetweenNonBTBClasses;
+    }
+    
     /**
      * Reference of the accommodation of students that need short distances
      */
