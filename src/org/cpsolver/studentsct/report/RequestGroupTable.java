@@ -88,9 +88,11 @@ public class RequestGroupTable extends AbstractStudentSectioningReport {
             }
         });
         
-        for (Offering offering: getModel().getOfferings())
+        for (Offering offering: getModel().getOfferings()) {
+            if (offering.isDummy()) continue;
             for (Course course: offering.getCourses())
                 groups.addAll(course.getRequestGroups());
+        }
         
         for (RequestGroup group: groups) {
             int nbrMatches = 0;

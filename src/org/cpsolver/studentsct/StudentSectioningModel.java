@@ -1122,6 +1122,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         int disb10Limit = getProperties().getPropertyInt("Info.ListDisbalancedSections", 0);
         Set<String> disb10SectionList = (disb10Limit == 0 ? null : new TreeSet<String>()); 
         for (Offering offering: getOfferings()) {
+            if (offering.isDummy()) continue;
             for (Config config: offering.getConfigs()) {
                 double enrl = config.getEnrollmentTotalWeight(assignment, null);
                 for (Subpart subpart: config.getSubparts()) {
@@ -1260,6 +1261,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         int nbrOfferings = 0, nbrFullOfferings = 0, nbrOfferings98 = 0, nbrOfferings95 = 0, nbrOfferings90 = 0;
         int enrlOfferings = 0, enrlOfferingsFull = 0, enrlOfferings98 = 0, enrlOfferings95 = 0, enrlOfferings90 = 0;
         for (Offering offering: getOfferings()) {
+            if (offering.isDummy()) continue;
             int offeringLimit = 0, offeringEnrollment = 0;
             for (Config config: offering.getConfigs()) {
                 int configLimit = config.getLimit();

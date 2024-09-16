@@ -74,6 +74,7 @@ public class ShuffleStudentsSelection implements NeighbourSelection<Request, Enr
         // Check all request groups that have a spread < 1.0 
         RouletteWheelSelection<RequestGroup> groups = new RouletteWheelSelection<RequestGroup>();
         for (Offering offering: model.getOfferings()) {
+            if (offering.isDummy()) continue;
             for (Course course: offering.getCourses()) {
                 for (RequestGroup group: course.getRequestGroups()) {
                     double spread = group.getAverageSpread(solver.currentSolution().getAssignment()); 

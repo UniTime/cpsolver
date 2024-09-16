@@ -74,6 +74,7 @@ public class SectionLimitCheck {
         sLog.info("Checking section limits...");
         boolean ret = true;
         for (Offering offering : getModel().getOfferings()) {
+            if (offering.isDummy()) continue;
             for (Config config : offering.getConfigs()) {
                 for (Subpart subpart : config.getSubparts()) {
                     for (Section section : subpart.getSections()) {

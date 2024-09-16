@@ -88,6 +88,7 @@ public class UnbalancedSectionsTable extends AbstractStudentSectioningReport {
         
         Offering last = null;
         for (Offering offering: offerings) {
+            if (offering.isDummy()) continue;
             for (Config config: offering.getConfigs()) {
                 double configEnrl = 0;
                 for (Enrollment e: config.getEnrollments(assignment)) {

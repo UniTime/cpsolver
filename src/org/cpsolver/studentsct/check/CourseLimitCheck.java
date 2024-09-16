@@ -134,6 +134,7 @@ public class CourseLimitCheck {
         sLog.info("Checking for course limits...");
         boolean ret = true;
         for (Offering offering : getModel().getOfferings()) {
+            if (offering.isDummy()) continue;
             boolean hasUnlimitedSection = false;
             if (iFixUnlimited)
                 for (Config config : offering.getConfigs()) {
