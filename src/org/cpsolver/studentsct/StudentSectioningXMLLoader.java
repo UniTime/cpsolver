@@ -355,6 +355,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             Offering offering = new Offering(
                     Long.parseLong(offeringEl.attributeValue("id")),
                     offeringEl.attributeValue("name", "O" + offeringEl.attributeValue("id")));
+            offering.setDummy("true".equals(offeringEl.attributeValue("dummy", "false")));
             offeringTable.put(Long.valueOf(offering.getId()), offering);
             getModel().addOffering(offering);
             

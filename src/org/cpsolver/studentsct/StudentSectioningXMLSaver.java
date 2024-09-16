@@ -319,6 +319,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         offeringEl.addAttribute("id", getId("offering", offering.getId()));
         if (iShowNames)
             offeringEl.addAttribute("name", offering.getName());
+        if (offering.isDummy())
+            offeringEl.addAttribute("dummy", "true");
         for (Course course : offering.getCourses()) {
             Element courseEl = offeringEl.addElement("course");
             saveCourse(courseEl, course);

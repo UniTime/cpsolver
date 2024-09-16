@@ -47,6 +47,7 @@ public class Offering {
     private List<Course> iCourses = new ArrayList<Course>();
     private List<Reservation> iReservations = new ArrayList<Reservation>();
     private List<Restriction> iRestrictions = new ArrayList<Restriction>();
+    private boolean iDummy = false;
 
     /**
      * Constructor
@@ -346,4 +347,17 @@ public class Offering {
     
     public Model<Request, Enrollment> getModel() { return iModel; }
     public void setModel(Model<Request, Enrollment> model) { iModel = model; }
+    
+    /**
+     * Dummy courses that should show on the solver dashboard
+     * (e.g., because they are loaded due to an other session unavailability)
+     * @return true if the course is "dummy"
+     */
+    public boolean isDummy() { return iDummy; }
+    
+    /**
+     * Dummy courses that should show on the solver dashboard
+     * (e.g., because they are loaded due to an other session unavailability)
+    */
+    public void setDummy(boolean dummy) { iDummy = dummy; }
 }
