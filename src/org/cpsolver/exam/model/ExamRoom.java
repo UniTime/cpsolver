@@ -1,6 +1,7 @@
 package org.cpsolver.exam.model;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -45,6 +46,9 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
     private int iSize, iAltSize;
     private Double iCoordX, iCoordY;
     private boolean iHard = true;
+    
+    private ExamRoom iParentRoom;
+    private List<ExamRoom> iPartitions;
 
     /**
      * Constructor
@@ -225,6 +229,80 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
     public ExamRoomSharing getRoomSharing() {
         return ((ExamModel)getModel()).getRoomSharing();
     }
+    
+    /**
+     * Compute conflicts if the given exam is assigned in this room and the given period
+     */
+    public void computeConflicts(Assignment<Exam, ExamPlacement> assignment, Exam exam, ExamPeriod period, Set<ExamPlacement> conflicts) {
+        boolean single = exam.getSize() <= (exam.hasAltSeating() ? getAltSize() : getSize());
+        if (getRoomSharing() == null || !single) {
+            for (ExamPlacement conflict: getContext(assignment).getPlacements(period.getIndex()))
+                if (!conflict.variable().equals(exam))
+                    conflicts.add(conflict);
+            if (getParentRoom() != null) {
+                for (ExamPlacement conflict: getParentRoom().getContext(assignment).getPlacements(period.getIndex()))
+                    if (!conflict.variable().equals(exam))
+                        conflicts.add(conflict);
+            }
+            if (getPartitions() != null) {
+                for (ExamRoom partition: getPartitions()) {
+                    for (ExamPlacement conflict: partition.getContext(assignment).getPlacements(period.getIndex()))
+                        if (!conflict.variable().equals(exam))
+                            conflicts.add(conflict);
+                }
+            }
+        } else {
+            if (getParentRoom() != null) {
+                List<ExamPlacement> placements = new ArrayList<ExamPlacement>(getParentRoom().getContext(assignment).getPlacements(period.getIndex()));
+                placements.addAll(getContext(assignment).getPlacements(period.getIndex()));
+                getRoomSharing().computeConflicts(exam, placements, getParentRoom(), conflicts);
+            }
+            if (getPartitions() != null) {
+                List<ExamPlacement> placements = new ArrayList<ExamPlacement>(getContext(assignment).getPlacements(period.getIndex()));
+                for (ExamRoom partition: getPartitions())
+                    placements.addAll(partition.getContext(assignment).getPlacements(period.getIndex()));
+                getRoomSharing().computeConflicts(exam, placements, this, conflicts);
+            } else {
+                getRoomSharing().computeConflicts(exam, getContext(assignment).getPlacements(period.getIndex()), this, conflicts);
+            }
+        }
+    }
+
+    /**
+     * Check for conflicts if the given exam is assigned in this room and the given period
+     */
+    public boolean inConflict(Assignment<Exam, ExamPlacement> assignment, Exam exam, ExamPeriod period) {
+        boolean single = exam.getSize() <= (exam.hasAltSeating() ? getAltSize() : getSize());
+        if (getRoomSharing() == null || !single) {
+            for (ExamPlacement conflict: getContext(assignment).getPlacements(period.getIndex()))
+                if (!conflict.variable().equals(exam)) return true;
+            if (getParentRoom() != null) {
+                for (ExamPlacement conflict: getParentRoom().getContext(assignment).getPlacements(period.getIndex()))
+                    if (!conflict.variable().equals(exam)) return true;
+            }
+            if (getPartitions() != null) {
+                for (ExamRoom partition: getPartitions()) {
+                    for (ExamPlacement conflict: partition.getContext(assignment).getPlacements(period.getIndex()))
+                        if (!conflict.variable().equals(exam)) return true;
+                }
+            }
+            return false;
+        } else {
+            if (getParentRoom() != null) {
+                List<ExamPlacement> placements = new ArrayList<ExamPlacement>(getParentRoom().getContext(assignment).getPlacements(period.getIndex()));
+                placements.addAll(getContext(assignment).getPlacements(period.getIndex()));
+                if (getRoomSharing().inConflict(exam, placements, getParentRoom())) return true;
+            }
+            if (getPartitions() != null) {
+                List<ExamPlacement> placements = new ArrayList<ExamPlacement>(getContext(assignment).getPlacements(period.getIndex()));
+                for (ExamRoom partition: getPartitions())
+                    placements.addAll(partition.getContext(assignment).getPlacements(period.getIndex()));
+                return getRoomSharing().inConflict(exam, placements, this);
+            } else {
+                return getRoomSharing().inConflict(exam, getContext(assignment).getPlacements(period.getIndex()), this);
+            }
+        }
+    }
 
     /**
      * Compute conflicts between the given assignment of an exam and all the
@@ -235,13 +313,11 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
         if (!isHard()) return;
         if (!p.contains(this)) return;
         
-        if (getRoomSharing() == null) {
-            for (ExamPlacement conflict: getContext(assignment).getPlacements(p.getPeriod().getIndex()))
-                if (!conflict.variable().equals(p.variable()))
-                    conflicts.add(conflict);
-        } else {
-            getRoomSharing().computeConflicts(p, getContext(assignment).getPlacements(p.getPeriod().getIndex()), this, conflicts);
+        if (getParentRoom() != null && p.contains(getParentRoom())) {
+            conflicts.add(p); return;
         }
+        
+        computeConflicts(assignment, p.variable(), p.getPeriod(), conflicts);
     }
 
     /**
@@ -252,14 +328,9 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
     public boolean inConflict(Assignment<Exam, ExamPlacement> assignment, ExamPlacement p) {
         if (!isHard()) return false;
         if (!p.contains(this)) return false;
+        if (getParentRoom() != null && p.contains(getParentRoom())) return false;
         
-        if (getRoomSharing() == null) {
-            for (ExamPlacement conflict: getContext(assignment).getPlacements(p.getPeriod().getIndex()))
-                if (!conflict.variable().equals(p.variable())) return true;
-            return false;
-        } else {
-            return getRoomSharing().inConflict(p, getContext(assignment).getPlacements(p.getPeriod().getIndex()), this);
-        }
+        return inConflict(assignment, p.variable(), p.getPeriod());
     }
 
     /**
@@ -276,7 +347,7 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
     @Override
     public void assigned(Assignment<Exam, ExamPlacement> assignment, long iteration, ExamPlacement p) {
         if (p.contains(this)) {
-            if (!getContext(assignment).getPlacements(p.getPeriod().getIndex()).isEmpty()) {
+            if (!getContext(assignment).getPlacements(p.getPeriod().getIndex()).isEmpty() || getParentRoom() != null || getPartitions() != null) {
                 HashSet<ExamPlacement> confs = new HashSet<ExamPlacement>();
                 computeConflicts(assignment, p, confs);
                 for (ExamPlacement conf: confs)
@@ -341,6 +412,30 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
     public String toString() {
         return getName();
     }
+    
+    /**
+     * Add partition of this room. This room is unavailable at a time when one of the partition 
+     * is not available and vice versa.
+     * @param room room partition
+     */
+    public void addPartition(ExamRoom room) {
+        room.iParentRoom = this;
+        if (iPartitions == null) iPartitions = new ArrayList<ExamRoom>();
+        iPartitions.add(room);
+    }
+    
+    /**
+     * If this room is a partition of some other room, returns the parent room (which is partitioned).
+     * @return parent room
+     */
+    public ExamRoom getParentRoom() { return iParentRoom; }
+    
+    /**
+     * If this room is partitioned into multiple rooms, return room partitions
+     * @return room partitions
+     */
+    public List<ExamRoom> getPartitions() { return iPartitions; }
+
 
     /**
      * Compare two rooms (by unique id)
@@ -384,5 +479,23 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
         }
         
         public List<ExamPlacement> getPlacements(int period) { return iTable[period]; }
+    }
+    
+    
+    /**
+     * Check that the room and its parent are not used at the same time
+     */
+    public static boolean checkParents(Collection<ExamRoomPlacement> roomsSoFar, ExamRoomPlacement room) {
+        if (room.getRoom().getParentRoom() != null) {
+            // check if already lists the parent
+            for (ExamRoomPlacement r: roomsSoFar)
+                if (r.getRoom().equals(room.getRoom().getParentRoom())) return false;
+        }
+        if (room.getRoom().getPartitions() != null) {
+            // check if has any of the partitions
+            for (ExamRoomPlacement r: roomsSoFar)
+                if (room.getRoom().getPartitions().contains(r.getRoom())) return false;
+        }
+        return true;
     }
 }

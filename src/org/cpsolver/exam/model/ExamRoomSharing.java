@@ -104,6 +104,8 @@ public abstract class ExamRoomSharing  {
         List<ExamPlacement> adepts = new ArrayList<ExamPlacement>();
         for (ExamPlacement x: other) {
             if (x.variable().equals(exam)) continue;
+            // already a conflict -> do not count
+            if (conflicts.contains(x)) continue;
             // already split into multiple rooms
             if (x.getRoomPlacements().size() != 1) {
                 conflicts.add(x); continue;

@@ -1,9 +1,7 @@
 package org.cpsolver.exam.neighbours;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -15,8 +13,8 @@ import org.cpsolver.exam.model.ExamDistributionConstraint;
 import org.cpsolver.exam.model.ExamModel;
 import org.cpsolver.exam.model.ExamPeriodPlacement;
 import org.cpsolver.exam.model.ExamPlacement;
+import org.cpsolver.exam.model.ExamRoom;
 import org.cpsolver.exam.model.ExamRoomPlacement;
-import org.cpsolver.exam.model.ExamRoomSharing;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.heuristics.NeighbourSelection;
 import org.cpsolver.ifs.model.LazySwap;
@@ -93,7 +91,7 @@ public class ExamPeriodSwapMove implements NeighbourSelection<Exam,ExamPlacement
             if (x1.equals(x2) || v2 == null) continue;
             ExamPeriodPlacement p1 = x1.getPeriodPlacement(v2.getPeriod());
             ExamPeriodPlacement p2 = x2.getPeriodPlacement(v1.getPeriod());
-            if (p1 == null || p2 == null) continue;
+            if (p1 == null || p2 == null || p1.equals(p2)) continue;
             if (iCheckStudentConflicts && (x1.countStudentConflicts(assignment, p1) > 0 || x2.countStudentConflicts(assignment, p2) > 0)) continue;
             if (iCheckDistributionConstraints) {
                 Map<Exam, ExamPlacement> placements = new HashMap<Exam, ExamPlacement>();
@@ -174,7 +172,6 @@ public class ExamPeriodSwapMove implements NeighbourSelection<Exam,ExamPlacement
         double sw = exam.getModel().getCriterion(RoomSizePenalty.class).getWeight();
         double pw = exam.getModel().getCriterion(RoomPenalty.class).getWeight();
         double cw = exam.getModel().getCriterion(DistributionPenalty.class).getWeight();
-        ExamRoomSharing sharing = ((ExamModel)exam.getModel()).getRoomSharing();
         loop: for (int nrRooms = 1; nrRooms <= exam.getMaxRooms(); nrRooms++) {
             HashSet<ExamRoomPlacement> rooms = new HashSet<ExamRoomPlacement>();
             int size = 0;
@@ -186,25 +183,12 @@ public class ExamPeriodSwapMove implements NeighbourSelection<Exam,ExamPlacement
                 for (ExamRoomPlacement room : exam.getRoomPlacements()) {
                     if (!room.isAvailable(period.getPeriod())) continue;
                     if (rooms.contains(room)) continue;
+                    if (!ExamRoom.checkParents(rooms, room)) continue;
                     
-                    List<ExamPlacement> overlaps = new ArrayList<ExamPlacement>();
-                    for (ExamPlacement overlap: room.getRoom().getPlacements(assignment, period.getPeriod()))
-                        if (!conflictsToIgnore.contains(overlap)) overlaps.add(overlap);
-                    for (ExamPlacement other: placements.values())
-                        if (other.getPeriod().equals(period.getPeriod()))
-                            for (ExamRoomPlacement r: other.getRoomPlacements())
-                                if (r.getRoom().equals(room.getRoom())) {
-                                    overlaps.add(other);
-                                    continue;
-                                }
-                    
-                    if (nrRooms == 1 && sharing != null) {
-                        if (sharing.inConflict(exam, overlaps, room.getRoom()))
-                            continue;
-                    } else {
-                        if (!overlaps.isEmpty())
-                            continue;
-                    }
+                    Set<ExamPlacement> conflicts = new HashSet<ExamPlacement>(conflictsToIgnore);
+                    room.getRoom().computeConflicts(assignment, exam, period.getPeriod(), conflicts);
+                    if (conflicts.size() > conflictsToIgnore.size()) continue;
+
                     if (iCheckDistributionConstraints && !checkDistributionConstraints(assignment, exam, room, conflictsToIgnore, placements)) continue;
                     int s = room.getSize(exam.hasAltSeating());
                     if (s < minSize) break;

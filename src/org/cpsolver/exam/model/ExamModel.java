@@ -593,6 +593,8 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
                 r.addAttribute("hard", "false");
             if (room.getCoordX() != null && room.getCoordY() != null)
                 r.addAttribute("coordinates", room.getCoordX() + "," + room.getCoordY());
+            if (room.getParentRoom() != null)
+                r.addAttribute("parentId", getId(idconv, "room", String.valueOf(room.getParentRoom().getId())));
             for (ExamPeriod period : getPeriods()) {
                 if (!room.isAvailable(period))
                     r.addElement("period").addAttribute("id",
@@ -884,6 +886,7 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
         }
         HashMap<Long, ExamRoom> rooms = new HashMap<Long, ExamRoom>();
         HashMap<String, ArrayList<ExamRoom>> roomGroups = new HashMap<String, ArrayList<ExamRoom>>();
+        HashMap<ExamRoom, Long> roomPartitions = new HashMap<ExamRoom, Long>();
         for (Iterator<?> i = root.element("rooms").elementIterator("room"); i.hasNext();) {
             Element e = (Element) i.next();
             String coords = e.attributeValue("coordinates");
@@ -925,12 +928,19 @@ public class ExamModel extends ModelWithContext<Exam, ExamPlacement, ExamContext
                     roomsThisGrop.add(room);
                 }
             }
+            if (e.attributeValue("parentId") != null)
+                roomPartitions.put(room, Long.valueOf(e.attributeValue("parentId")));
             for (Iterator<?> j = e.elementIterator("travel-time"); j.hasNext();) {
                 Element travelTimeEl = (Element)j.next();
                 getDistanceMetric().addTravelTime(room.getId(),
                         Long.valueOf(travelTimeEl.attributeValue("id")),
                         Integer.valueOf(travelTimeEl.attributeValue("minutes")));
             }
+        }
+        for (Map.Entry<ExamRoom, Long> partition: roomPartitions.entrySet()) {
+            ExamRoom parent = rooms.get(partition.getValue());
+            if (parent != null)
+                parent.addPartition(partition.getKey());
         }
         ArrayList<ExamPlacement> assignments = new ArrayList<ExamPlacement>();
         HashMap<Long, Exam> exams = new HashMap<Long, Exam>();

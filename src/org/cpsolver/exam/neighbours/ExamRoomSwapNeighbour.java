@@ -1,19 +1,16 @@
 package org.cpsolver.exam.neighbours;
 
 import java.text.DecimalFormat;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.cpsolver.exam.model.Exam;
-import org.cpsolver.exam.model.ExamModel;
 import org.cpsolver.exam.model.ExamPlacement;
 import org.cpsolver.exam.model.ExamRoomPlacement;
-import org.cpsolver.exam.model.ExamRoomSharing;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.model.Neighbour;
 
@@ -49,6 +46,8 @@ public class ExamRoomSwapNeighbour implements Neighbour<Exam, ExamPlacement> {
     public ExamRoomSwapNeighbour(Assignment<Exam, ExamPlacement> assignment, ExamPlacement placement, ExamRoomPlacement current, ExamRoomPlacement swap) {
         if (placement.getRoomPlacements().contains(swap))
             return; // not an actual swap
+        if (!checkParents(placement.getRoomPlacements(), current, swap))
+            return; // room partition violation
         Exam exam = placement.variable();
         if (!swap.isAvailable(placement.getPeriod()))
             return; // room not available
@@ -62,17 +61,10 @@ public class ExamRoomSwapNeighbour implements Neighbour<Exam, ExamPlacement> {
         if (size < exam.getSize())
             return; // new room is too small
         ExamPlacement conflict = null;
-        ExamRoomSharing rs = ((ExamModel)exam.getModel()).getRoomSharing();
-        if (rs != null && placement.getRoomPlacements().size() == 1) {
-            Set<ExamPlacement> x = new HashSet<ExamPlacement>();
-            rs.computeConflicts(exam, swap.getRoom().getPlacements(assignment, placement.getPeriod()), swap.getRoom(), x);
-            if (x.size() > 1) return;
-            else if (x.size() == 1) conflict = x.iterator().next();
-        } else {
-            List<ExamPlacement> conf = swap.getRoom().getPlacements(assignment, placement.getPeriod());
-            if (conf.size() > 1) return;
-            else if (conf.size() == 1) conflict = conf.get(0);
-        }
+        Set<ExamPlacement> conf = new HashSet<ExamPlacement>();
+        swap.getRoom().computeConflicts(assignment, exam, placement.getPeriod(), conf);
+        if (conf.size() > 1) return;
+        else if (conf.size() == 1) conflict = conf.iterator().next();
         if (conflict == null) {
             Set<ExamRoomPlacement> newRooms = new HashSet<ExamRoomPlacement>(placement.getRoomPlacements());
             newRooms.remove(current);
@@ -95,9 +87,13 @@ public class ExamRoomSwapNeighbour implements Neighbour<Exam, ExamPlacement> {
             if (xNew == null)
                 return; // conflicting exam cannot be assigned in the current
                         // room
+            if (!conflict.contains(current.getRoom()))
+                return; // conflict due to the room partitioning
             if (!x.checkDistributionConstraints(assignment, xNew))
                 return; // conflicting exam has a distribution constraint
                         // violated
+            if (!checkParents(placement.getRoomPlacements(), swap, xNew))
+                return; // room partition violation
             int xSize = 0;
             for (ExamRoomPlacement r : conflict.getRoomPlacements()) {
                 xSize += r.getSize(x.hasAltSeating());
@@ -106,12 +102,10 @@ public class ExamRoomSwapNeighbour implements Neighbour<Exam, ExamPlacement> {
             xSize += current.getSize(x.hasAltSeating());
             if (xSize < x.getSize())
                 return; // current room is too small for the conflicting exam
-            if (rs != null) {
-                List<ExamPlacement> other = new ArrayList<ExamPlacement>(current.getRoom().getPlacements(assignment, conflict.getPeriod()));
-                other.remove(placement);
-                if (!other.isEmpty() && conflict.getRoomPlacements().size() > 1) return;
-                if (rs.inConflict(x, other, current.getRoom())) return;
-            }
+            Set<ExamPlacement> otherConf = new HashSet<ExamPlacement>(); otherConf.add(placement);
+            current.getRoom().computeConflicts(assignment, x, placement.getPeriod(), otherConf);
+            if (otherConf.size() > 1)
+                return; // other placements are conflicting than the current one 
             Set<ExamRoomPlacement> newRooms = new HashSet<ExamRoomPlacement>(placement.getRoomPlacements());
             newRooms.remove(current);
             newRooms.add(swap);
@@ -193,5 +187,19 @@ public class ExamRoomSwapNeighbour implements Neighbour<Exam, ExamPlacement> {
         if (iX2 != null)
             ret.put(iX2.variable(), iX2);
         return ret;
+    }
+    
+    private static boolean checkParents(Collection<ExamRoomPlacement> rooms, ExamRoomPlacement current, ExamRoomPlacement swap) {
+        if (swap.getRoom().getParentRoom() != null) {
+            // check if already lists the parent
+            for (ExamRoomPlacement r: rooms)
+                if (!r.equals(current) && r.getRoom().equals(swap.getRoom().getParentRoom())) return false;
+        }
+        if (swap.getRoom().getPartitions() != null) {
+            // check if has any of the partitions
+            for (ExamRoomPlacement r: rooms)
+                if (!r.equals(current) && swap.getRoom().getPartitions().contains(r.getRoom())) return false;
+        }
+        return true;
     }
 }
