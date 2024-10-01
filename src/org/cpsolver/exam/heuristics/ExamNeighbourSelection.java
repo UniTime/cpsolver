@@ -3,6 +3,7 @@ package org.cpsolver.exam.heuristics;
 import org.apache.logging.log4j.Logger;
 import org.cpsolver.exam.model.Exam;
 import org.cpsolver.exam.model.ExamPlacement;
+import org.cpsolver.exam.neighbours.ExamPeriodSwapMove;
 import org.cpsolver.exam.neighbours.ExamRandomMove;
 import org.cpsolver.exam.neighbours.ExamRoomMove;
 import org.cpsolver.exam.neighbours.ExamTimeMove;
@@ -96,12 +97,12 @@ public class ExamNeighbourSelection extends NeighbourSelectionWithContext<Exam, 
             sLog.error("Unable to initialize standard selection, reason: " + e.getMessage(), e);
             iStd = null;
         }
-        properties.setProperty("SimulatedAnnealing.Neighbours", ExamRandomMove.class.getName() + ";" + ExamRoomMove.class.getName() + ";" + ExamTimeMove.class.getName());
+        properties.setProperty("SimulatedAnnealing.Neighbours", ExamRandomMove.class.getName() + ";" + ExamRoomMove.class.getName() + ";" + ExamTimeMove.class.getName() + ";" + ExamPeriodSwapMove.class.getName());
         iSA = new SimulatedAnnealing<Exam, ExamPlacement>(properties);
-        properties.setProperty("HillClimber.Neighbours", ExamRandomMove.class.getName() + ";" + ExamRoomMove.class.getName() + ";" + ExamTimeMove.class.getName());
+        properties.setProperty("HillClimber.Neighbours", ExamRandomMove.class.getName() + ";" + ExamRoomMove.class.getName() + ";" + ExamTimeMove.class.getName() + ";" + ExamPeriodSwapMove.class.getName());
         iHC = new HillClimber<Exam, ExamPlacement>(properties);
         iFin = new HillClimber<Exam, ExamPlacement>(properties); iFin.setPhase("Finalization");
-        properties.setProperty("GreatDeluge.Neighbours", ExamRandomMove.class.getName() + ";" + ExamRoomMove.class.getName() + ";" + ExamTimeMove.class.getName());
+        properties.setProperty("GreatDeluge.Neighbours", ExamRandomMove.class.getName() + ";" + ExamRoomMove.class.getName() + ";" + ExamTimeMove.class.getName() + ";" + ExamPeriodSwapMove.class.getName());
         iGD = new GreatDeluge<Exam, ExamPlacement>(properties);
         iUseGD = properties.getPropertyBoolean("Exam.GreatDeluge", iUseGD);
     }
