@@ -239,29 +239,31 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
             for (ExamPlacement conflict: getContext(assignment).getPlacements(period.getIndex()))
                 if (!conflict.variable().equals(exam))
                     conflicts.add(conflict);
-            if (getParentRoom() != null) {
+            if (getParentRoom() != null && getParentRoom().isHard()) {
                 for (ExamPlacement conflict: getParentRoom().getContext(assignment).getPlacements(period.getIndex()))
                     if (!conflict.variable().equals(exam))
                         conflicts.add(conflict);
             }
             if (getPartitions() != null) {
                 for (ExamRoom partition: getPartitions()) {
-                    for (ExamPlacement conflict: partition.getContext(assignment).getPlacements(period.getIndex()))
-                        if (!conflict.variable().equals(exam))
-                            conflicts.add(conflict);
+                    if (partition.isHard())
+                        for (ExamPlacement conflict: partition.getContext(assignment).getPlacements(period.getIndex()))
+                            if (!conflict.variable().equals(exam))
+                                conflicts.add(conflict);
                 }
             }
         } else {
-            if (getParentRoom() != null) {
+            if (getParentRoom() != null && getParentRoom().isHard()) {
                 for (ExamPlacement conflict: getParentRoom().getContext(assignment).getPlacements(period.getIndex()))
                     if (!conflict.variable().equals(exam))
                         conflicts.add(conflict);
             }
             if (getPartitions() != null) {
                 for (ExamRoom partition: getPartitions()) {
-                    for (ExamPlacement conflict: partition.getContext(assignment).getPlacements(period.getIndex()))
-                        if (!conflict.variable().equals(exam))
-                            conflicts.add(conflict);
+                    if (partition.isHard())
+                        for (ExamPlacement conflict: partition.getContext(assignment).getPlacements(period.getIndex()))
+                            if (!conflict.variable().equals(exam))
+                                conflicts.add(conflict);
                 }
             }
             getRoomSharing().computeConflicts(exam, getContext(assignment).getPlacements(period.getIndex()), this, conflicts);
@@ -276,26 +278,28 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
         if (getRoomSharing() == null || !single) {
             for (ExamPlacement conflict: getContext(assignment).getPlacements(period.getIndex()))
                 if (!conflict.variable().equals(exam)) return true;
-            if (getParentRoom() != null) {
+            if (getParentRoom() != null && getParentRoom().isHard()) {
                 for (ExamPlacement conflict: getParentRoom().getContext(assignment).getPlacements(period.getIndex()))
                     if (!conflict.variable().equals(exam)) return true;
             }
             if (getPartitions() != null) {
                 for (ExamRoom partition: getPartitions()) {
-                    for (ExamPlacement conflict: partition.getContext(assignment).getPlacements(period.getIndex()))
-                        if (!conflict.variable().equals(exam)) return true;
+                    if (partition.isHard())
+                        for (ExamPlacement conflict: partition.getContext(assignment).getPlacements(period.getIndex()))
+                            if (!conflict.variable().equals(exam)) return true;
                 }
             }
             return false;
         } else {
-            if (getParentRoom() != null) {
+            if (getParentRoom() != null && getParentRoom().isHard()) {
                 for (ExamPlacement conflict: getParentRoom().getContext(assignment).getPlacements(period.getIndex()))
                     if (!conflict.variable().equals(exam)) return true;
             }
             if (getPartitions() != null) {
                 for (ExamRoom partition: getPartitions()) {
-                    for (ExamPlacement conflict: partition.getContext(assignment).getPlacements(period.getIndex()))
-                        if (!conflict.variable().equals(exam)) return true;
+                    if (partition.isHard())
+                        for (ExamPlacement conflict: partition.getContext(assignment).getPlacements(period.getIndex()))
+                            if (!conflict.variable().equals(exam)) return true;
                 }
             }
             return getRoomSharing().inConflict(exam, getContext(assignment).getPlacements(period.getIndex()), this);
