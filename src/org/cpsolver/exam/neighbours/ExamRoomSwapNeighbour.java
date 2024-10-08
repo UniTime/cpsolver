@@ -89,6 +89,8 @@ public class ExamRoomSwapNeighbour implements Neighbour<Exam, ExamPlacement> {
                         // room
             if (!conflict.contains(current.getRoom()))
                 return; // conflict due to the room partitioning
+            if (swap.getRoom().equals(current.getRoom().getParentRoom()) || current.getRoom().equals(swap.getRoom().getParentRoom()))
+                return; // conflict due to the room partitioning
             if (!x.checkDistributionConstraints(assignment, xNew))
                 return; // conflicting exam has a distribution constraint
                         // violated

@@ -253,18 +253,18 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
             }
         } else {
             if (getParentRoom() != null) {
-                List<ExamPlacement> placements = new ArrayList<ExamPlacement>(getParentRoom().getContext(assignment).getPlacements(period.getIndex()));
-                placements.addAll(getContext(assignment).getPlacements(period.getIndex()));
-                getRoomSharing().computeConflicts(exam, placements, getParentRoom(), conflicts);
+                for (ExamPlacement conflict: getParentRoom().getContext(assignment).getPlacements(period.getIndex()))
+                    if (!conflict.variable().equals(exam))
+                        conflicts.add(conflict);
             }
             if (getPartitions() != null) {
-                List<ExamPlacement> placements = new ArrayList<ExamPlacement>(getContext(assignment).getPlacements(period.getIndex()));
-                for (ExamRoom partition: getPartitions())
-                    placements.addAll(partition.getContext(assignment).getPlacements(period.getIndex()));
-                getRoomSharing().computeConflicts(exam, placements, this, conflicts);
-            } else {
-                getRoomSharing().computeConflicts(exam, getContext(assignment).getPlacements(period.getIndex()), this, conflicts);
+                for (ExamRoom partition: getPartitions()) {
+                    for (ExamPlacement conflict: partition.getContext(assignment).getPlacements(period.getIndex()))
+                        if (!conflict.variable().equals(exam))
+                            conflicts.add(conflict);
+                }
             }
+            getRoomSharing().computeConflicts(exam, getContext(assignment).getPlacements(period.getIndex()), this, conflicts);
         }
     }
 
@@ -289,18 +289,16 @@ public class ExamRoom extends ConstraintWithContext<Exam, ExamPlacement, ExamRoo
             return false;
         } else {
             if (getParentRoom() != null) {
-                List<ExamPlacement> placements = new ArrayList<ExamPlacement>(getParentRoom().getContext(assignment).getPlacements(period.getIndex()));
-                placements.addAll(getContext(assignment).getPlacements(period.getIndex()));
-                if (getRoomSharing().inConflict(exam, placements, getParentRoom())) return true;
+                for (ExamPlacement conflict: getParentRoom().getContext(assignment).getPlacements(period.getIndex()))
+                    if (!conflict.variable().equals(exam)) return true;
             }
             if (getPartitions() != null) {
-                List<ExamPlacement> placements = new ArrayList<ExamPlacement>(getContext(assignment).getPlacements(period.getIndex()));
-                for (ExamRoom partition: getPartitions())
-                    placements.addAll(partition.getContext(assignment).getPlacements(period.getIndex()));
-                return getRoomSharing().inConflict(exam, placements, this);
-            } else {
-                return getRoomSharing().inConflict(exam, getContext(assignment).getPlacements(period.getIndex()), this);
+                for (ExamRoom partition: getPartitions()) {
+                    for (ExamPlacement conflict: partition.getContext(assignment).getPlacements(period.getIndex()))
+                        if (!conflict.variable().equals(exam)) return true;
+                }
             }
+            return getRoomSharing().inConflict(exam, getContext(assignment).getPlacements(period.getIndex()), this);
         }
     }
 
