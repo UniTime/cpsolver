@@ -76,7 +76,11 @@ public class SuggestionMove<V extends Variable<V, T>, T extends Value<V, T>> ext
         Lock lock = solution.getLock().writeLock();
         lock.lock();
         try {
-            V variable = ToolBox.random(solution.getModel().variables());
+            V variable = null;
+            if (solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0)
+                variable = ToolBox.random(solution.getModel().unassignedVariables(solution.getAssignment()));
+            else
+                variable = ToolBox.random(solution.getModel().variables());
             return backtrack(
                     solution, solution.getModel().getTotalValue(solution.getAssignment()),
                     solution.getModel().nrUnassignedVariables(solution.getAssignment()),
@@ -104,7 +108,8 @@ public class SuggestionMove<V extends Variable<V, T>, T extends Value<V, T>> ext
             if (model.nrUnassignedVariables(assignment) > un) return null;
             double value = model.getTotalValue(assignment) - total;
             if (!iHC || value <= 0)
-                return new SwapNeighbour(new ArrayList<T>(resolvedVariables.values()), value);
+                return new SwapNeighbour(new ArrayList<T>(resolvedVariables.values()),
+                        un > model.nrUnassignedVariables(assignment) ? -1 : value);
             else
                 return null;
         }

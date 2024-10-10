@@ -117,7 +117,7 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
                     if (old != null) assignment.assign(solution.getIteration(), old);
                     
                     if (v != null)
-                        return new SwapNeighbour(assignments.values(), v);
+                        return new SwapNeighbour(assignments.values(), old == null ? -1 : v);
                     
                     if (attempts >= iMaxAttempts) break;
                 }
