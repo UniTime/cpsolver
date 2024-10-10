@@ -4,6 +4,7 @@ import org.apache.logging.log4j.Logger;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.context.AssignmentContext;
 import org.cpsolver.ifs.assignment.context.NeighbourSelectionWithContext;
+import org.cpsolver.ifs.heuristics.MaxIdleNeighbourSelection;
 import org.cpsolver.ifs.heuristics.NeighbourSelection;
 import org.cpsolver.ifs.heuristics.StandardNeighbourSelection;
 import org.cpsolver.ifs.model.Neighbour;
@@ -53,12 +54,13 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
     private Logger iLog = org.apache.logging.log4j.LogManager.getLogger(SimpleSearch.class);
     private NeighbourSelection<V, T> iCon = null;
     private boolean iConstructionUntilComplete = false; 
-    private StandardNeighbourSelection<V, T> iStd = null;
+    private NeighbourSelection<V, T> iStd = null;
     private SimulatedAnnealing<V, T> iSA = null;
     private HillClimber<V, T> iHC = null;
     private GreatDeluge<V, T> iGD = null;
     private boolean iUseGD = true;
     private Progress iProgress = null;
+    private int iMaxIdleIterations = 1000;
 
     /**
      * Constructor
@@ -85,6 +87,12 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
             iHC = new HillClimber<V, T>(properties);
         iGD = new GreatDeluge<V, T>(properties);
         iUseGD = properties.getPropertyBoolean("Search.GreatDeluge", iUseGD);
+        iMaxIdleIterations = properties.getPropertyInt("Search.MaxIdleIterations", iMaxIdleIterations);
+        if (iMaxIdleIterations >= 0) {
+            iStd = new MaxIdleNeighbourSelection<V, T>(properties, iStd, iMaxIdleIterations);
+            if (iCon != null && !iConstructionUntilComplete)
+                iCon = new MaxIdleNeighbourSelection<V, T>(properties, iCon, iMaxIdleIterations);
+        }
     }
 
     /**
@@ -131,19 +139,24 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
                 iProgress.info("[" + Thread.currentThread().getName() + "] IFS...");
             case 1:
                 if (iStd != null && solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0) {
-                    return iStd.selectNeighbour(solution);
+                    n = iStd.selectNeighbour(solution);
+                    if (n != null) return n;
                 }
                 context.setPhase(2);
             case 2:
-                if (solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0)
-                    return (iCon == null ? iStd : iCon).selectNeighbour(solution);
+                if (solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0) {
+                    n = (iCon == null ? iStd : iCon).selectNeighbour(solution);
+                    if (n != null) return n;
+                }
                 n = iHC.selectNeighbour(solution);
                 if (n != null)
                     return n;
                 context.setPhase(3);
             case 3:
-                if (solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0)
-                    return (iCon == null ? iStd : iCon).selectNeighbour(solution);
+                if (solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0) {
+                    n = (iCon == null ? iStd : iCon).selectNeighbour(solution);
+                    if (n != null) return n;
+                }
                 if (iUseGD)
                     return iGD.selectNeighbour(solution);
                 else
