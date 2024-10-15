@@ -51,8 +51,8 @@ import org.cpsolver.ifs.util.ToolBox;
 public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelection<Lecture, Placement> {
     private double iSuggestionProbability = 0.1;
     private double iSuggestionProbabilityAllAssigned = 0.5;
-    private int iSuggestionTimeout = 500;
-    private int iSuggestionDepth = 4;
+    protected int iSuggestionTimeout = 500;
+    protected int iSuggestionDepth = 4;
 
     public NeighbourSelectionWithSuggestions(DataProperties properties) throws Exception {
         super(properties);
