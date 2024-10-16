@@ -1,13 +1,17 @@
 package org.cpsolver.coursett.neighbourhoods;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.cpsolver.coursett.heuristics.NeighbourSelectionWithSuggestions;
 import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
 import org.cpsolver.ifs.assignment.Assignment;
+import org.cpsolver.ifs.model.Constraint;
 import org.cpsolver.ifs.model.Neighbour;
+import org.cpsolver.ifs.model.SimpleNeighbour;
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.ToolBox;
@@ -54,6 +58,19 @@ public class Suggestion extends NeighbourSelectionWithSuggestions {
             Neighbour<Lecture, Placement> neigbour = selectNeighbourWithSuggestions(solution, lecture, depth);
             if (neigbour != null)
                 return new SuggestionNeighbour(neigbour);
+            Placement placement = ToolBox.random(lecture.values(solution.getAssignment()));
+            if (placement != null) {
+                Set<Placement> conflicts = new HashSet<Placement>();
+                if (iStat != null)
+                    for (Map.Entry<Constraint<Lecture, Placement>, Set<Placement>> entry: solution.getModel().conflictConstraints(solution.getAssignment(), placement).entrySet()) {
+                        iStat.constraintAfterAssigned(solution.getAssignment(), solution.getIteration(), entry.getKey(), placement, entry.getValue());
+                        conflicts.addAll(entry.getValue());
+                    }
+                else
+                    conflicts = solution.getModel().conflictValues(solution.getAssignment(), placement);
+                if (!conflicts.contains(placement))
+                    return new SimpleNeighbour<Lecture, Placement>(lecture, placement, conflicts);
+            }
         }
         return null;
     }

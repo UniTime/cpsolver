@@ -80,8 +80,8 @@ public class StandardNeighbourSelection<V extends Variable<V, T>, T extends Valu
 
     private ValueSelection<V, T> iValueSelection = null;
     private VariableSelection<V, T> iVariableSelection = null;
-    private Solver<V, T> iSolver = null;
-    private ConflictStatistics<V, T> iStat = null;
+    protected Solver<V, T> iSolver = null;
+    protected ConflictStatistics<V, T> iStat = null;
 
     /** Sets value selection criterion 
      * @param valueSelection value selection criterion
