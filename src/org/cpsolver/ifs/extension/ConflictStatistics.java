@@ -333,16 +333,21 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
         }
     }
     
-    private int countAssignments(V variable) {
+    /**
+     * Count the number of past assignments of a variable
+     * @param variable
+     * @return total number of past assignments
+     */
+    public long countAssignments(V variable) {
         iLock.readLock().lock();
         try {
             List<AssignedValue<T>> assignments = iUnassignedVariables.get(variable);
             if (assignments == null || assignments.isEmpty()) return 0;
-            int ret = 0;
+            double ret = 0;
             for (AssignedValue<T> assignment: assignments) {
                 ret += assignment.getCounter(0);
             }
-            return ret;
+            return Math.round(ret);
         } finally {
             iLock.readLock().unlock();
         }

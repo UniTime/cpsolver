@@ -6,6 +6,8 @@ import java.util.Map;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.context.AssignmentContext;
 import org.cpsolver.ifs.assignment.context.NeighbourSelectionWithContext;
+import org.cpsolver.ifs.extension.ConflictStatistics;
+import org.cpsolver.ifs.extension.Extension;
 import org.cpsolver.ifs.model.Neighbour;
 import org.cpsolver.ifs.model.Value;
 import org.cpsolver.ifs.model.Variable;
@@ -49,6 +51,7 @@ public class MaxIdleNeighbourSelection<V extends Variable<V, T>, T extends Value
     protected NeighbourSelection<V, T> iParent = null;
     protected int iMaxIdle = 1000;
     protected int iBestAssigned = 0;
+    protected ConflictStatistics<V, T> iStat = null;
 
     public MaxIdleNeighbourSelection(DataProperties properties, NeighbourSelection<V, T> parent, int maxIdle) {
         iParent = parent;
@@ -60,6 +63,9 @@ public class MaxIdleNeighbourSelection<V extends Variable<V, T>, T extends Value
         super.init(solver);
         iParent.init(solver);
         solver.currentSolution().addSolutionListener(this);
+        for (Extension<V, T> ext: solver.getExtensions())
+            if (ext instanceof ConflictStatistics)
+                iStat = (ConflictStatistics<V, T>)ext;
     }
 
 
@@ -77,12 +83,22 @@ public class MaxIdleNeighbourSelection<V extends Variable<V, T>, T extends Value
 
     @Override
     public void bestCleared(Solution<V, T> solution) {
+        iBestAssigned = 0;
+        getContext(solution.getAssignment()).clear();
     }
 
     @Override
     public void bestSaved(Solution<V, T> solution) {
-        if (solution.getAssignment().nrAssignedVariables() > iBestAssigned)
-            getContext(solution.getAssignment()).reset();
+        if (solution.getAssignment().nrAssignedVariables() > iBestAssigned) {
+            long max = 0;
+            if (iStat != null) {
+                for (V v: solution.getAssignment().unassignedVariables(solution.getModel())) {
+                    long count = iStat.countAssignments(v);
+                    if (count > max) max = count;
+                }
+            }
+            getContext(solution.getAssignment()).reset((int)max);
+        }
         iBestAssigned = solution.getAssignment().nrAssignedVariables();
     }
 
@@ -92,9 +108,21 @@ public class MaxIdleNeighbourSelection<V extends Variable<V, T>, T extends Value
 
     @Override
     public Neighbour<V, T> selectNeighbour(Solution<V, T> solution) {
+        if (iMaxIdle < 0) return iParent.selectNeighbour(solution);
+        if (iMaxIdle == 0) return null;
         MaxIdleContext context = getContext(solution.getAssignment());
-        if (context.inc() >= iMaxIdle)
-            return null;
+        if (context.inc() >= iMaxIdle) {
+            if (iStat != null) {
+                Collection<V> unassigned = solution.getAssignment().unassignedVariables(solution.getModel());
+                for (V v: unassigned) {
+                    if (iStat.countAssignments(v) < context.getLimit())
+                        return iParent.selectNeighbour(solution);
+                }
+                return null;
+            } else {
+                return null;
+            }
+        }
         return iParent.selectNeighbour(solution);
     }
 
@@ -105,12 +133,25 @@ public class MaxIdleNeighbourSelection<V extends Variable<V, T>, T extends Value
 
     public class MaxIdleContext implements AssignmentContext {
         private int iCounter = 0;
+        private int iLimit = 0;
         
         public MaxIdleContext(Assignment<V, T> assignment) {
         }
         
+        public int getLimit() {
+            if (iLimit <= 0) iLimit = iMaxIdle;
+            return iLimit;
+        }
+        
         public int inc() { return iCounter++; }
-        public void reset() { iCounter = 0; }
+        public void reset(int max) {
+            iCounter = 0;
+            iLimit = max + iMaxIdle;
+        }
+        public void clear() {
+            iCounter = 0;
+            iLimit = iMaxIdle;
+        }
         
     }
 }
