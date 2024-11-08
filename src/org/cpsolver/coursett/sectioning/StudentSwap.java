@@ -181,7 +181,7 @@ public class StudentSwap implements StudentMove {
     
     @Override
     public double value(Assignment<Lecture, Placement> assignment) {
-        return value(null, assignment);
+        return value(iModel == null ? null : iModel.getStudentConflictCriteria(), assignment);
     }
     
     private double groupValue(Student student, Student other, Lecture lecture) {
