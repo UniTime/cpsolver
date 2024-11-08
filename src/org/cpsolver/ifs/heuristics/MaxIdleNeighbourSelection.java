@@ -3,6 +3,8 @@ package org.cpsolver.ifs.heuristics;
 import java.util.Collection;
 import java.util.Map;
 
+import org.apache.logging.log4j.Logger;
+import org.cpsolver.ifs.algorithms.SimpleSearch;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.context.AssignmentContext;
 import org.cpsolver.ifs.assignment.context.NeighbourSelectionWithContext;
@@ -48,14 +50,33 @@ import org.cpsolver.ifs.util.DataProperties;
  * @param <T> Value
  **/
 public class MaxIdleNeighbourSelection<V extends Variable<V, T>, T extends Value<V, T>> extends NeighbourSelectionWithContext<V, T, MaxIdleNeighbourSelection<V, T>.MaxIdleContext> implements SolutionListener<V, T> {
+    private Logger iLog = org.apache.logging.log4j.LogManager.getLogger(SimpleSearch.class);
     protected NeighbourSelection<V, T> iParent = null;
     protected int iMaxIdle = 1000;
     protected int iBestAssigned = 0;
     protected ConflictStatistics<V, T> iStat = null;
+    protected long iTimeOut = -1;
+    
 
     public MaxIdleNeighbourSelection(DataProperties properties, NeighbourSelection<V, T> parent, int maxIdle) {
         iParent = parent;
         iMaxIdle = maxIdle;
+        iTimeOut = -1;
+        try {
+            String idle = properties.getProperty("Search.MinConstructionTime", "10%");
+            if (idle != null && !idle.isEmpty()) {
+                if (idle.endsWith("%")) {
+                    iTimeOut = Math.round(0.01 * Double.parseDouble(idle.substring(0, idle.length() - 1).trim()) *
+                            properties.getPropertyLong("Termination.TimeOut", 0l));
+                } else {
+                    iTimeOut = Long.parseLong(idle);
+                }
+            }
+            if (iTimeOut > 0)
+                iLog.debug("Minimal construction time is " + iTimeOut + " seconds.");
+        } catch (Exception e) {
+            iLog.warn("Failed to set the minimal construction time: " + e.getMessage());
+        }
     }
     
     @Override
@@ -108,6 +129,7 @@ public class MaxIdleNeighbourSelection<V extends Variable<V, T>, T extends Value
 
     @Override
     public Neighbour<V, T> selectNeighbour(Solution<V, T> solution) {
+        if (iTimeOut >= 0 && solution.getTime() < iTimeOut) return iParent.selectNeighbour(solution);
         if (iMaxIdle < 0) return iParent.selectNeighbour(solution);
         if (iMaxIdle == 0) return null;
         MaxIdleContext context = getContext(solution.getAssignment());
