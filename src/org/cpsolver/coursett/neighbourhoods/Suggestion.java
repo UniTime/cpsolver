@@ -44,9 +44,11 @@ import org.cpsolver.ifs.util.ToolBox;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class Suggestion extends NeighbourSelectionWithSuggestions {
+    private boolean iAllowUnassignments = false;
 
     public Suggestion(DataProperties properties) throws Exception {
         super(properties);
+        iAllowUnassignments = properties.getPropertyBoolean("Suggestion.AllowUnassignments", iAllowUnassignments);
     }
     
     @Override
@@ -68,7 +70,7 @@ public class Suggestion extends NeighbourSelectionWithSuggestions {
                     }
                 else
                     conflicts = solution.getModel().conflictValues(solution.getAssignment(), placement);
-                if (!conflicts.contains(placement))
+                if (!conflicts.contains(placement) && (iAllowUnassignments || conflicts.size() <= 1))
                     return new SimpleNeighbour<Lecture, Placement>(lecture, placement, conflicts);
             }
         }
