@@ -83,7 +83,7 @@ public class SimulatedAnnealing<V extends Variable<V, T>, T extends Value<V, T>>
     private DecimalFormat iDF10 = new DecimalFormat("0.0000000000");
     private double iInitialTemperature = -1;
     private double iMaximalTemperature = 1.5;
-    private double iMinimalTemperature = 0.01;
+    private double iMinimalTemperature = 0.001;
     private double iCoolingRate = 0.95;
     private double iReheatRate = -1;
     private long iTemperatureLength = 25000;
