@@ -168,8 +168,10 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
                     if (n != null) return n;
                 }
                 context.setPhase(2);
+                if (solution.getModel().getBestUnassignedVariables() >= 0 && solution.getModel().getBestUnassignedVariables() < solution.getAssignment().nrUnassignedVariables(solution.getModel()))
+                    solution.restoreBest();
             case 2:
-                if (solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0) {
+                if (iMaxIdleIterations < 0 && solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0) {
                     n = (iCon == null ? iStd : iCon).selectNeighbour(solution);
                     if (n != null) return n;
                 }
@@ -178,7 +180,7 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
                     return n;
                 context.setPhase(3);
             case 3:
-                if (solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0) {
+                if (iMaxIdleIterations < 0 && solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0) {
                     n = (iCon == null ? iStd : iCon).selectNeighbour(solution);
                     if (n != null) return n;
                 }
