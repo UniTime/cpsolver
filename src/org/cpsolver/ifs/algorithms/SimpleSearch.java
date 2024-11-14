@@ -13,6 +13,7 @@ import org.cpsolver.ifs.model.Variable;
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
+import org.cpsolver.ifs.util.JProf;
 import org.cpsolver.ifs.util.Progress;
 
 
@@ -61,6 +62,9 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
     private boolean iUseGD = true;
     private Progress iProgress = null;
     private int iMaxIdleIterations = 1000;
+    
+    private int iTimeOut;
+    private double iStartTime;
 
     /**
      * Constructor
@@ -93,6 +97,7 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
             if (iCon != null && !iConstructionUntilComplete)
                 iCon = new MaxIdleNeighbourSelection<V, T>(properties, iCon, iMaxIdleIterations);
         }
+        iTimeOut = properties.getPropertyInt("Termination.TimeOut", 1800);
     }
 
     /**
@@ -110,6 +115,25 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
         iHC.init(solver);
         iGD.init(solver);
         iProgress = Progress.getInstance(solver.currentSolution().getModel());
+        solver.setUpdateProgress(false);
+        iStartTime = JProf.currentTimeSec();
+    }
+    
+    protected void updateProgress(int phase, Solution<V, T> solution) {
+        if (!iHC.isMaster(solution)) return;
+        if (phase < 2) {
+            if (!"Searching for initial solution ...".equals(iProgress.getPhase()))
+                iProgress.setPhase("Searching for initial solution ...", solution.getModel().variables().size());
+            if (solution.getModel().getBestUnassignedVariables() >= 0)
+                iProgress.setProgress(solution.getModel().variables().size() - solution.getModel().getBestUnassignedVariables());
+            else
+                iProgress.setProgress(solution.getAssignment().nrAssignedVariables());
+        } else {
+            if (!"Improving found solution ...".equals(iProgress.getPhase()))
+                iProgress.setPhase("Improving found solution ...", 1000l);
+            double time = JProf.currentTimeSec() - iStartTime;
+            iProgress.setProgress(Math.min(1000l, Math.round(1000 * time / iTimeOut)));
+        }
     }
 
     /**
@@ -124,6 +148,7 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
     @Override
     public Neighbour<V, T> selectNeighbour(Solution<V, T> solution) {
         SimpleSearchContext context = getContext(solution.getAssignment());
+        updateProgress(context.getPhase(), solution);
         Neighbour<V, T> n = null;
         switch (context.getPhase()) {
             case -1:
