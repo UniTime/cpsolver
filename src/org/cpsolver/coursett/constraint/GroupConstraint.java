@@ -2087,17 +2087,18 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
         return (start1 >= start2 && start1 + len1 <= start2 + len2);
     }
     
-    private static boolean canFill(int totalGap, int gapMin, int gapMax, List<Integer> lengths) {
+    private static boolean canFill(int totalGap, int gapMin, int gapMax, List<Set<Integer>> lengths) {
         if (gapMin <= totalGap && totalGap <= gapMax)
             return true;
         if (totalGap < 2 * gapMin)
             return false;
         for (int i = 0; i < lengths.size(); i++) {
-            int length = lengths.get(i);
+            Set<Integer> length = lengths.get(i);
             lengths.remove(i);
             for (int gap = gapMin; gap <= gapMax; gap++)
-                if (canFill(totalGap - gap - length, gapMin, gapMax, lengths))
-                    return true;
+                for (Integer l: length)
+                    if (canFill(totalGap - gap - l, gapMin, gapMax, lengths))
+                        return true;
             lengths.add(i, length);
         }
         return false;
@@ -2163,7 +2164,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
         int gapMin = getType().getMin();
         int gapMax = getType().getMax();
 
-        List<Integer> lengths = new ArrayList<Integer>();
+        List<Set<Integer>> lengths = new ArrayList<Set<Integer>>();
 
         Placement[] res = new Placement[Constants.SLOTS_PER_DAY];
         for (int i = 0; i < Constants.SLOTS_PER_DAY; i++)
@@ -2178,11 +2179,19 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             else if (assignment != null)
                 placement = assignment.getValue(lecture);
             if (placement == null) {
-            	if (!lecture.timeLocations().isEmpty())
-            		lengths.add(lecture.timeLocations().get(0).getLength());
+            	if (!lecture.timeLocations().isEmpty()) {
+            	    Set<Integer> l = new HashSet<Integer>();
+            	    for (TimeLocation time: lecture.timeLocations())
+            	        l.add(time.getLength());
+            	    lengths.add(l);
+            	}
             } else if (conflicts != null && conflicts.contains(placement)) {
-            	if (!lecture.timeLocations().isEmpty())
-            		lengths.add(lecture.timeLocations().get(0).getLength());
+            	if (!lecture.timeLocations().isEmpty()) {
+            	    Set<Integer> l = new HashSet<Integer>();
+            	    for (TimeLocation time: lecture.timeLocations())
+            	        l.add(time.getLength());
+            	    lengths.add(l);
+            	}
             } else {
                 int pos = placement.getTimeLocation().getStartSlot();
                 int length = placement.getTimeLocation().getLength();
