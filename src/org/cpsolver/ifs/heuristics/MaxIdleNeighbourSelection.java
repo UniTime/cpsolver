@@ -1,6 +1,7 @@
 package org.cpsolver.ifs.heuristics;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
@@ -105,20 +106,13 @@ public class MaxIdleNeighbourSelection<V extends Variable<V, T>, T extends Value
     @Override
     public void bestCleared(Solution<V, T> solution) {
         iBestAssigned = 0;
-        getContext(solution.getAssignment()).clear();
+        getContext(solution.getAssignment()).reset(solution);
     }
 
     @Override
     public void bestSaved(Solution<V, T> solution) {
         if (solution.getAssignment().nrAssignedVariables() > iBestAssigned) {
-            long max = 0;
-            if (iStat != null) {
-                for (V v: solution.getAssignment().unassignedVariables(solution.getModel())) {
-                    long count = iStat.countAssignments(v);
-                    if (count > max) max = count;
-                }
-            }
-            getContext(solution.getAssignment()).reset((int)max);
+            getContext(solution.getAssignment()).reset(solution);
         }
         iBestAssigned = solution.getAssignment().nrAssignedVariables();
     }
@@ -137,7 +131,7 @@ public class MaxIdleNeighbourSelection<V extends Variable<V, T>, T extends Value
             if (iStat != null) {
                 Collection<V> unassigned = solution.getAssignment().unassignedVariables(solution.getModel());
                 for (V v: unassigned) {
-                    if (iStat.countAssignments(v) < context.getLimit())
+                    if (iStat.countAssignments(v) < context.getLimit(v))
                         return iParent.selectNeighbour(solution);
                 }
                 return null;
@@ -155,25 +149,24 @@ public class MaxIdleNeighbourSelection<V extends Variable<V, T>, T extends Value
 
     public class MaxIdleContext implements AssignmentContext {
         private int iCounter = 0;
-        private int iLimit = 0;
+        private Map<V, Long> iLimits = new HashMap<V, Long>();
         
         public MaxIdleContext(Assignment<V, T> assignment) {
         }
         
-        public int getLimit() {
-            if (iLimit <= 0) iLimit = iMaxIdle;
-            return iLimit;
-        }
-        
         public int inc() { return iCounter++; }
-        public void reset(int max) {
-            iCounter = 0;
-            iLimit = max + iMaxIdle;
-        }
-        public void clear() {
-            iCounter = 0;
-            iLimit = iMaxIdle;
+        
+        public long getLimit(V v) {
+            return iLimits.get(v);
         }
         
+        public void reset(Solution<V, T> solution) {
+            iCounter = 0;
+            iLimits.clear();
+            if (iStat != null)
+                for (V v: solution.getModel().variables()) {
+                    iLimits.put(v, iStat.countAssignments(v) + iMaxIdle / 10);
+                }
+        }
     }
 }
