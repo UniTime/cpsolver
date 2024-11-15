@@ -79,6 +79,9 @@ public class SimpleNeighbour<V extends Variable<V, T>, T extends Value<V, T>> im
     public void assign(Assignment<V, T> assignment, long iteration) {
         if (iVariable == null)
             return;
+        if (iConflicts != null)
+            for (T conflict: iConflicts)
+                assignment.unassign(iteration, conflict.variable());
         if (iValue != null)
             assignment.assign(iteration, iValue);
         else
