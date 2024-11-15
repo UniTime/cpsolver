@@ -62,6 +62,7 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
     private boolean iUseGD = true;
     private Progress iProgress = null;
     private int iMaxIdleIterations = 1000;
+    private boolean iAllowUnassignments = false;
     
     private int iTimeOut;
     private double iStartTime;
@@ -98,6 +99,7 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
                 iCon = new MaxIdleNeighbourSelection<V, T>(properties, iCon, iMaxIdleIterations);
         }
         iTimeOut = properties.getPropertyInt("Termination.TimeOut", 1800);
+        iAllowUnassignments = properties.getPropertyBoolean("Suggestion.AllowUnassignments", iAllowUnassignments);
     }
 
     /**
@@ -175,6 +177,8 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
                     n = (iCon == null ? iStd : iCon).selectNeighbour(solution);
                     if (n != null) return n;
                 }
+                if (iMaxIdleIterations >= 0 && !iAllowUnassignments && solution.getModel().getBestUnassignedVariables() >= 0 && solution.getModel().getBestUnassignedVariables() < solution.getAssignment().nrUnassignedVariables(solution.getModel()))
+                    solution.restoreBest();
                 n = iHC.selectNeighbour(solution);
                 if (n != null)
                     return n;
@@ -184,6 +188,8 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
                     n = (iCon == null ? iStd : iCon).selectNeighbour(solution);
                     if (n != null) return n;
                 }
+                if (iMaxIdleIterations >= 0 && !iAllowUnassignments && solution.getModel().getBestUnassignedVariables() >= 0 && solution.getModel().getBestUnassignedVariables() < solution.getAssignment().nrUnassignedVariables(solution.getModel()))
+                    solution.restoreBest();
                 if (iUseGD)
                     return iGD.selectNeighbour(solution);
                 else
