@@ -130,6 +130,7 @@ public class TimetableXMLSaver extends TimetableSaver {
     private boolean iSaveInitial = false;
     private boolean iSaveCurrent = false;
     private boolean iExportStudentSectioning = false;
+    private boolean iSaveConfig = false;
 
     private IdConvertor iIdConvertor = null;
 
@@ -155,6 +156,7 @@ public class TimetableXMLSaver extends TimetableSaver {
             iSaveInitial = getModel().getProperties().getPropertyBoolean("Xml.SaveInitial", true);
             iSaveCurrent = getModel().getProperties().getPropertyBoolean("Xml.SaveCurrent", true);
         }
+        iSaveConfig = getModel().getProperties().getPropertyBoolean("Xml.SaveConfig", false);
     }
 
     private String getId(String type, String id) {
@@ -696,5 +698,12 @@ public class TimetableXMLSaver extends TimetableSaver {
         }
         if (departmentsEl.elements().isEmpty())
             root.remove(departmentsEl);
+        
+        if (iSaveConfig) {
+            Element configuration = root.addElement("configuration");
+            for (Map.Entry<Object, Object> e: getModel().getProperties().entrySet()) {
+                    configuration.addElement("property").addAttribute("name", e.getKey().toString()).setText(e.getValue().toString());
+            }
+        }
     }
 }
