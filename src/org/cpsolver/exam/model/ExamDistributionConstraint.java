@@ -45,7 +45,7 @@ import org.cpsolver.ifs.assignment.context.ConstraintWithContext;
  */
 public class ExamDistributionConstraint extends ConstraintWithContext<Exam, ExamPlacement, ExamDistributionConstraint.Context> {
     @Deprecated
-    public static int sDistSameRoom = DistributionType.SameRoom.ordinal() - 1;
+    public static int sDistSameRoom = DistributionType.SameRoom.ordinal();
     private DistributionType iType = null;
     private boolean iHard = true;
     private int iWeight = 0;
