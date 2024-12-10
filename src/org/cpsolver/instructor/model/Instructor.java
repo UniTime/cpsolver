@@ -27,6 +27,7 @@ import org.cpsolver.instructor.criteria.UnusedInstructorLoad;
  * Instructor. An instructor has an id, a name, a teaching preference, a maximal teaching load, a back-to-back preference.
  * It can also have a set of attributes and course and time preferences. Availability is modeled with prohibited time preferences.
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

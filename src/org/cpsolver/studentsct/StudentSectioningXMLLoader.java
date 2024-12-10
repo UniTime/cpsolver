@@ -66,7 +66,7 @@ import org.dom4j.io.SAXReader;
  * <br>
  * <br>
  * Parameters:
- * <table border='1' summary='Related Solver Parameters'>
+ * <table border='1'><caption>Related Solver Parameters</caption>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -118,6 +118,7 @@ import org.dom4j.io.SAXReader;
  * new StudentSectioningXMLLoader(model).load();<br>
  * </code></pre>
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -274,7 +275,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
     /**
      * Load data from the given XML root
      * @param root document root
-     * @throws DocumentException
+     * @throws DocumentException when XML cannot be read or parsed
      */
     protected void load(Element root) throws DocumentException {
         sLogger.debug("Root element: " + root.getName());

@@ -109,7 +109,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * the search with this modified input problem. <br>
  * <br>
  * Parameters: <br>
- * <table border='1' summary='Related Solver Parameters'>
+ * <table border='1'><caption>Related Solver Parameters</caption>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -136,6 +136,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * @see ValueSelection
  * @see VariableSelection
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -335,7 +336,7 @@ public class ConflictStatistics<V extends Variable<V, T>, T extends Value<V, T>>
     
     /**
      * Count the number of past assignments of a variable
-     * @param variable
+     * @param variable given variable
      * @return total number of past assignments
      */
     public long countAssignments(V variable) {

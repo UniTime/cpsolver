@@ -15,6 +15,7 @@ import org.cpsolver.instructor.model.TeachingRequest;
  * Different Lecture. If an instructor is teaching two or more assignments of the same course, this criterion counts cases when these
  * assignments do not share a common part (e.g., have a different lecture, counting {@link Instructor#differentLectures(Assignment, TeachingAssignment)}).
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

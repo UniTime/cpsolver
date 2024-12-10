@@ -11,6 +11,7 @@ import org.cpsolver.ifs.assignment.context.ConstraintWithContext;
  * Resource constraint (rectangular area where the rectangles are to be placed).
  * It prohibits overlapping of the placed rectangles.
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

@@ -16,6 +16,7 @@ import org.cpsolver.studentsct.reservation.Reservation;
  * is conflicting when there is a reservation for the student that must be used,
  * but the given enrollment does not use it. 
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

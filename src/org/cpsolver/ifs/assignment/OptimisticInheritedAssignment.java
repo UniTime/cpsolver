@@ -19,6 +19,7 @@ import org.cpsolver.ifs.solution.Solution;
  * 
  * @see InheritedAssignment
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

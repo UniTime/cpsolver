@@ -18,6 +18,7 @@ import org.cpsolver.instructor.model.TeachingRequest;
  * have teaching requests than the ones of the link. In prohibited / discouraged variant, each request must / should get
  * a different instructor. 
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

@@ -34,6 +34,7 @@ import org.cpsolver.ifs.util.DistanceMetric;
  * least one student in the offering is allowed to take both classes. This feature can be disabled by
  * setting ExtendedStudentConflicts.CheckSameCourse to false.
  * <br>
+ * @author Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2013 - 2024 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

@@ -27,10 +27,11 @@ import org.cpsolver.ifs.criteria.Criterion;
 import org.cpsolver.ifs.util.JProf;
 
 /**
- * A model representing student enrollments of a course. Branch & bound algorithm
+ * A model representing student enrollments of a course. Branch &amp; bound algorithm
  * is used to propose best possible enrollment of all students into the given course.
  *  
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2017 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

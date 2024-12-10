@@ -27,10 +27,10 @@ import org.cpsolver.studentsct.weights.StudentWeights;
 * Multi-criteria selection criterion. This provides a lexicographical order of solutions using the
 * following criteria:
 * <ul>
-* <li>best priority & alternativity ignoring free time requests (a better solution has a higher priority course assigned or does not use alternative request if possible)
+* <li>best priority &amp; alternativity ignoring free time requests (a better solution has a higher priority course assigned or does not use alternative request if possible)
 * <li>avoid or minimize course time overlaps
 * <li>minimise use of over-expected classes (this prevents students of getting into classes that we know will be needed later in the process)
-* <li>best priority & alternativity including free time requests (this is to prevent students of gaming the system by adding free time requests)
+* <li>best priority &amp; alternativity including free time requests (this is to prevent students of gaming the system by adding free time requests)
 * <li>maximise selection (preferred sections)
 * <li>avoid or minimise time overlaps (for classes that are allowed to overlap and for free time requests)
 * <li>avoid or minimise distance conflicts

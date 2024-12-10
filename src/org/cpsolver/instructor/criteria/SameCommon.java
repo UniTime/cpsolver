@@ -13,6 +13,7 @@ import org.cpsolver.instructor.model.TeachingRequest;
  * Same Common Preferences. This criterion counts how well are the same common preferences that are set on a {@link TeachingRequest} met
  * (counting {@link TeachingRequest#getSameCommonPenalty(TeachingRequest)}).
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

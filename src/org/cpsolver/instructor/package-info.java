@@ -4,6 +4,7 @@
  * Instructor scheduling is a process of assigning instructors (typically teaching assistants) to classes
  * after the course timetabling and student scheduling is done.
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

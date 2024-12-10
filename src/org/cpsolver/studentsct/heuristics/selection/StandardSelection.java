@@ -30,7 +30,7 @@ import org.cpsolver.studentsct.model.Request.RequestPriority;
  * <br>
  * <br>
  * Parameters: <br>
- * <table border='1' summary='Related Solver Parameters'>
+ * <table border='1'><caption>Related Solver Parameters</caption>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -46,6 +46,7 @@ import org.cpsolver.studentsct.model.Request.RequestPriority;
  * <br>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

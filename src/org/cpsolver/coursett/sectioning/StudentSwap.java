@@ -20,6 +20,7 @@ import org.cpsolver.ifs.assignment.Assignment;
  * Student swap move. Two students of the same offering are swapped between each other
  * or a student is given some other (alternative) enrollment into the given offering. 
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2017 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

@@ -32,6 +32,7 @@ import org.cpsolver.ifs.termination.TerminationCondition;
  * classes of the same course during or after the search (see
  * {@link FinalSectioning}).
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

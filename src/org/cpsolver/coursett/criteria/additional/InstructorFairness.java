@@ -20,10 +20,11 @@ import org.cpsolver.ifs.util.DataProperties;
  *  Criterion iteratively evaluate instructors fairness, based on absolute 
  *  deviation of the individual satisfaction of instructors time (or time and 
  *  room) requirements.
- * @author Rostislav Burget <BurgetRostislav@gmail.com> <br>
+ * @author Rostislav Burget<br>
  *         implemented criterion: Instructor Fairness <br>
  * @version CourseTT 1.3 (University Course Timetabling)<br>
- *          Copyright (C) 2015 Rostislav Burget <BurgetRostislav@gmail.com><br>
+ *          Copyright (C) 2015 Rostislav Burget<br>
+ *          <a href="mailto:BurgetRostislav@gmail.com">BurgetRostislav@gmail.com</a><br>
  *          <br>
  *          This library is free software; you can redistribute it and/or modify
  *          it under the terms of the GNU Lesser General Public License as
@@ -170,7 +171,7 @@ public class InstructorFairness extends TimetablingCriterion {
         /**
          * This method set fairness values to all instructors
          * 
-         * @param assignment
+         * @param assignment current assignment
          * @return false if complete solution wasn't found
          */
         public boolean countInstructorFair(Assignment<Lecture, Placement> assignment) {
@@ -212,7 +213,7 @@ public class InstructorFairness extends TimetablingCriterion {
          * Method actualize values of instructors whose lecture was just
          * assigned
          * 
-         * @param assignment 
+         * @param assignment current assignment 
          * @param value placement of lecture
          */
 
@@ -234,7 +235,7 @@ public class InstructorFairness extends TimetablingCriterion {
          * Method actualize values of instructors whose lecture will be
          * unassigned
          * 
-         * @param assignment
+         * @param assignment current assignment
          * @param value placement of lecture
          */
 
@@ -294,7 +295,7 @@ public class InstructorFairness extends TimetablingCriterion {
         /**
          * Return if complete solution (all variables assigned) was found 
          * in this context
-         * @param assignment
+         * @param assignment current assignment
          * @return true if in this context were all variables assigned 
          * false otherwise
          */
@@ -360,8 +361,8 @@ public class InstructorFairness extends TimetablingCriterion {
         /**
          * Method estimates value of placement for instructors in entry list
          * 
-         * @param instructorsList
-         * @param placementValue
+         * @param instructorsList instructor list
+         * @param placementValue given placement
          * @return estimated value of placement for instructors in entry list
          */
 
@@ -397,7 +398,7 @@ public class InstructorFairness extends TimetablingCriterion {
 
         /**
          * Fairness value based on pdev (pdev sec. part) of instructors
-         * @param instructors
+         * @param instructors instructor list
          * @return Objective value of instructors 
          */
         public double getObjectiveValue(Collection<InstructorConstraint> instructors) {
@@ -440,8 +441,8 @@ public class InstructorFairness extends TimetablingCriterion {
         /**
          * Metod count and return time (and room) preferences in placement
          *
-         * @param assignment 
-         * @param placement 
+         * @param assignment current assignment 
+         * @param placement given placement
          * @return time (and room) preferences in placement
          */
 
@@ -455,7 +456,7 @@ public class InstructorFairness extends TimetablingCriterion {
         /**
          * Method for whole evaluation of fairness criteria
          * 
-         * @param assignment
+         * @param assignment current assignment
          * @return String[] with informations about solution [0-Avarage
          *         instructor penalty, 1-Sum of squared penalities, 2-Pmax,
          *         3-Pdev, 4-Perror, 5-Pss, 6-Jain, 7-worst instructor fairness

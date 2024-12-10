@@ -17,6 +17,7 @@ import org.cpsolver.studentsct.reservation.Reservation;
  * should be scheduled in the same set of sections.<br>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2015 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -169,7 +170,7 @@ public class RequestGroup extends AbstractClassWithContext<Request, Enrollment, 
      * @param bestRatio how much of the weight should be used on estimation of the enrollment potential
      *        (considering that students of this group that are not yet enrolled can take the same enrollment)
      * @param fillRatio how much of the weight should be used in estimation how well are the sections of this enrollments going to be filled
-     *        (bestRatio + fillRatio <= 1.0)
+     *        (bestRatio + fillRatio &lt;= 1.0)
      * @return 1.0 if all enrollments have the same sections as the given one, 0.0 if there is no match at all 
      */
     public double getEnrollmentSpread(Assignment<Request, Enrollment> assignment, Enrollment enrollment, double bestRatio, double fillRatio) {
@@ -326,7 +327,7 @@ public class RequestGroup extends AbstractClassWithContext<Request, Enrollment, 
          * @param bestRatio how much of the weight should be used on estimation of the enrollment potential
          *      (considering that students of this group that are not yet enrolled can take the same enrollment) 
          * @param fillRatio how much of the weight should be used in estimation how well are the sections of this enrollments going to be filled 
-         *      (bestRatio + fillRatio <= 1.0)
+         *      (bestRatio + fillRatio &lt;= 1.0)
          * @return 1.0 if all enrollments have the same sections as the given one, 0.0 if there is no match at all 
          */
         public double getEnrollmentSpread(Assignment<Request, Enrollment> assignment, Enrollment enrollment, double bestRatio, double fillRatio) {

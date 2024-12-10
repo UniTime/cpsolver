@@ -24,6 +24,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * ({@link Solver#hasSingleSolution()} is true) as student class assignments are not included in the
  * solution. 
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.4 (University Course Timetabling)<br>
  *          Copyright (C) 2024 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

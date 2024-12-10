@@ -16,6 +16,7 @@ import org.cpsolver.studentsct.model.Student;
  * <br>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2020 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

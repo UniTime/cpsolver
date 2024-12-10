@@ -14,6 +14,7 @@ import org.cpsolver.instructor.model.TeachingRequest;
  * Same Days. This criterion counts how well are the same days preferences that are set on an {@link Instructor} met
  * (counting {@link Instructor#countSameDays(Assignment, TeachingAssignment, double, double)}).
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

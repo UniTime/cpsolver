@@ -28,6 +28,7 @@ import org.cpsolver.studentsct.model.Subpart;
  * B) are linked, a student requesting both courses must attend A1 if and only if he
  * also attends B1. 
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

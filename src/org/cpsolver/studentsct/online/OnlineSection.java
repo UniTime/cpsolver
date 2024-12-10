@@ -12,6 +12,7 @@ import org.cpsolver.studentsct.model.Subpart;
  * An online section. A simple extension of the {@link Section} class that allows to set the current section enrollment.
  * This class is particularly useful when a model containing only the given student is constructed (to provide him/her with a schedule or suggestions).
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

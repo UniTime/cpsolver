@@ -9,6 +9,7 @@ import org.cpsolver.studentsct.model.Section;
 /**
  * Class is over-expected when {@link Section#getPenalty()} is not negative.
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

@@ -24,6 +24,7 @@ import org.cpsolver.studentsct.online.expectations.PercentageOverExpected;
  * The over-expected criterion can be passed as a constructor parameter, or given using the OverExpectedCriterion.Class parameter.
  * It defaults to {@link AvoidUnbalancedWhenNoExpectations}.
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

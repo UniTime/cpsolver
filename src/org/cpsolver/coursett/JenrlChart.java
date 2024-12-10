@@ -14,6 +14,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * Create joint enrollment chart of the given input problem as CSV file (3
  * dimensions: 1st variable, 2nd variable, number of students in common)
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

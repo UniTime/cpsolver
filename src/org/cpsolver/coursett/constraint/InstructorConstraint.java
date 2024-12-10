@@ -43,6 +43,7 @@ import org.cpsolver.ifs.util.DistanceMetric;
  * constraint never prohibits two back-to-back classes (but it still tries to
  * minimize the above back-to-back preferences).
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

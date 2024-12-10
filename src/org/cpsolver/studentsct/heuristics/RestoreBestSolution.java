@@ -15,6 +15,7 @@ import org.cpsolver.studentsct.model.Request;
  * solution again). The checking is done in the seletion's initialization phase,
  * no neighbors are actually computed.
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

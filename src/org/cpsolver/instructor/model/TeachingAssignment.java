@@ -8,6 +8,7 @@ import org.cpsolver.ifs.model.Value;
  * Teaching assignment. An assignment of an instructor to a teaching request (a set of sections of a course).
  * A teaching assignment also contains the value of attribute, instructor, course, and time preferences. 
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

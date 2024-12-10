@@ -9,6 +9,7 @@ import java.util.List;
  * A representation of a boolean query. Besides of AND, OR, and NOT, the query
  * may also contain terms (such as major:M1) that are evaluated by the {@link TermMatcher}. 
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2024 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

@@ -23,6 +23,7 @@ import org.cpsolver.studentsct.reservation.Reservation;
  * This reports lists information needed for additional reporting.<br>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2015 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

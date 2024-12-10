@@ -39,7 +39,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * hard or soft. <br>
  * <br>
  * Following constraints are now supported:
- * <table border='1' summary='Related Solver Parameters'>
+ * <table border='1'><caption>Related Solver Parameters</caption>
  * <tr>
  * <th>Constraint</th>
  * <th>Comment</th>
@@ -95,6 +95,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * </tr>
  * </table>
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -884,7 +885,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                 return null;
             }}),
         /**
-         * Meet Together & Same Weeks: Given classes are meeting together (same as if the given classes require constraints Can Share Room,
+         * Meet Together &amp; Same Weeks: Given classes are meeting together (same as if the given classes require constraints Can Share Room,
          * Same Room, Same Time, Same Days and Same Weeks all together).
          */
         MEET_WITH_WEEKS("MEET_WITH_WEEKS", "Meet Together & Same Weeks", new PairCheck() {

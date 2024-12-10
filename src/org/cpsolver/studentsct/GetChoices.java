@@ -14,6 +14,7 @@ import java.util.List;
  * folder and create a CSV (comma separated values text file) combining all
  * choices (one column for each choice file) of the found choices files.
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

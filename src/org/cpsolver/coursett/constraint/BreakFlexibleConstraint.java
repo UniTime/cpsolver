@@ -23,6 +23,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * It has three parameters: a start and an end time of a window in which the break is required / preferred, and a minimal length of a break that is needed.<br>
  * Reference _Break:132:162:30_ translates to a break of at least 30 minutes between 11 am (slot 132) and 1:30 pm (slot 162).<br>
  * 
+ * @author  Matej Lukac
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2013 Matej Lukac<br>
  * <br>

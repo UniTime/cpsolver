@@ -15,6 +15,7 @@ import org.cpsolver.instructor.model.TeachingRequest;
  * this criterion can penalize the remaining (unused) load of the instructor. That is the difference
  * between instructor maximal load and the assigned load of the instructor.
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

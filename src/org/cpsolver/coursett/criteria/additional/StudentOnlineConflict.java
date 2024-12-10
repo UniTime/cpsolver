@@ -20,6 +20,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * to one half of the Comparator.StudentConflictWeight.
  * <br>
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2013 - 2023 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

@@ -15,6 +15,7 @@ import org.cpsolver.instructor.model.TeachingRequest;
  * instructor assigned. If discouraged/prohibited, every pair of teaching requests should/must have a different
  * instructor.
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

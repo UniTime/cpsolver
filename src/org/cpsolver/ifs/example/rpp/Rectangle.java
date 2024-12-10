@@ -11,6 +11,7 @@ import org.cpsolver.ifs.model.Variable;
  * minimal and maximal position of the rectangle. It also contains an
  * information about prohibited X and Y coordinate (for MPP).
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

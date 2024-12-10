@@ -15,6 +15,7 @@ import org.cpsolver.studentsct.online.expectations.OverExpectedCriterion;
  * A global constraint limiting the over-expected penalization for a student.
  * Only to be used during online scheduling (with the {@link OnlineSectioningModel}).
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

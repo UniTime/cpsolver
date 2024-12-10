@@ -12,6 +12,7 @@ import org.cpsolver.ifs.model.Variable;
 /**
  * Activity (variable). It encodes a name, length
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

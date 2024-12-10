@@ -30,6 +30,7 @@ import org.dom4j.io.SAXReader;
  * the given folder and create a CSV (comma separated values text file) with
  * solution infos of the found solutions.
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

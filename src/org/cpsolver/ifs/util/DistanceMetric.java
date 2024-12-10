@@ -17,6 +17,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * Instructor.NoPreferenceLimit (distance &lt;= limit &rarr; no preference), Instructor.DiscouragedLimit (distance &lt;= limit &rarr; discouraged),
  * Instructor.ProhibitedLimit (distance &lt;= limit &rarr; strongly discouraged), the back-to-back placement is prohibited when the distance is over the last limit.
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

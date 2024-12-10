@@ -13,6 +13,7 @@ import org.cpsolver.studentsct.model.Section;
  * there is a time conflict with some other enrollment of the student (despite the
  * reservation allowing for the conflict). 
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

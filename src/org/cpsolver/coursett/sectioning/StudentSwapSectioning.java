@@ -32,6 +32,7 @@ import org.cpsolver.ifs.util.JProf;
  * Student sectioning implementation based on local search. A student swap is
  * generated in each iteration using Hill Climbing and Great Deluge algorithms.
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2017 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

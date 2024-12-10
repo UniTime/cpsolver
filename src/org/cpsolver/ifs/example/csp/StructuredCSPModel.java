@@ -20,7 +20,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * are generated according to whether variables are from the same kernel or not. <br>
  * <br>
  * Model parameters: <br>
- * <table border='1' summary='Related Solver Parameters'>
+ * <table border='1'><caption>Related Solver Parameters</caption>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -74,6 +74,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * </table>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

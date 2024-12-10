@@ -29,6 +29,7 @@ import org.cpsolver.ifs.util.DataProperties;
 
  * @see NeighbourSelection
  * 
+ * @author  Tomas Muller
  * @version IFS 1.4 (Iterative Forward Search)<br>
  *          Copyright (C) 2024 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

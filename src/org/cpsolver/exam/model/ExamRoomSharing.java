@@ -16,6 +16,7 @@ import org.dom4j.Element;
  * Abstract room sharing model. Defines when and under what conditions two or more exams can share a room.<br>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version ExamTT 1.3 (Examination Timetabling)<br>
  *          Copyright (C) 2008 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

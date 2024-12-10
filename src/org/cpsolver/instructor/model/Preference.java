@@ -5,6 +5,7 @@ import org.cpsolver.coursett.Constants;
 /**
  * A preference. This class encapsulates a time, course, instructor, or attribute preference.
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

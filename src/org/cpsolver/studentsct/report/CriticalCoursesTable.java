@@ -15,6 +15,7 @@ import org.cpsolver.studentsct.model.Student;
  * This reports lists critical courses and their assignments.<br>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2015 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

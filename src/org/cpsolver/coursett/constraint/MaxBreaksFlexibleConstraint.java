@@ -24,6 +24,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * It has two parameters: a maximal number of breaks and a minimal length of a break between two classes not to be considered in the same block.<br>
  * Reference _MaxBreaks:1:30_ translates to a maximum number of one break (two blocks) on a day of classes not more than 30 minutes a part.<br>
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2013 - 2014 Tomas Muller<br>
  * <br>

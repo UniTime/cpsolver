@@ -41,6 +41,7 @@ import org.dom4j.io.XMLWriter;
  * Instructor scheduling is a process of assigning instructors (typically teaching assistants) to classes
  * after the course timetabling and student scheduling is done.
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -91,7 +92,7 @@ public class Test extends InstructorSchedulingModel {
      * Generate a few reports
      * @param outputDir output directory
      * @param assignment current assignments
-     * @throws IOException
+     * @throws IOException when there is an IO error
      */
     protected void generateReports(File outputDir, Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) throws IOException {
         PrintWriter out = new PrintWriter(new File(outputDir, "solution-assignments.csv"));

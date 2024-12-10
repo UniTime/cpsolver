@@ -6,6 +6,7 @@
  * Each teaching request has a course (see {@link org.cpsolver.instructor.model.Course}) and one or more sections (see {link {@link org.cpsolver.instructor.model.Section}}).
  * Each assignment assigns one instructor (see {@link org.cpsolver.instructor.model.Instructor}) to a single teaching request.
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

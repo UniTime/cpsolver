@@ -36,6 +36,7 @@ import org.cpsolver.studentsct.model.Subpart;
  * of a request group that are spread over multiple sections into a single section
  * or into a fewer number of sections.
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
