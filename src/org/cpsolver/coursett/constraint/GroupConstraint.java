@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 
 import org.cpsolver.coursett.Constants;
 import org.cpsolver.coursett.criteria.DistributionPreferences;
+import org.cpsolver.coursett.criteria.StudentConflict;
 import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
 import org.cpsolver.coursett.model.RoomLocation;
@@ -225,7 +226,10 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
         /** Maximum hours a day (number of slots a day check) */
         MAX_HRS_DAY,
         /** Children cannot overlap */
-        CH_NOTOVERLAP;
+        CH_NOTOVERLAP,
+        /** Ignore student conflicts */
+        IGNORE_STUDENTS,
+        ;
         /** Bit number (to combine flags) */
         int flag() { return 1 << ordinal(); }
     }
@@ -1085,6 +1089,36 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                             !plc1.getTimeLocation().shareDays(plc2.getTimeLocation()) ||
                             !plc1.getTimeLocation().shareWeeks(plc2.getTimeLocation());
                 }}),
+            /**
+             * Same Students w/o Distance: Same as the Same Students distribution, except there is
+             * no distance conflict checking and no work-day limit. Also, the distribution gets ignored
+             * when there is Ignore Student Conflicts distribution between the two classes.
+             */
+            SAME_STUD_NODST("SAME_STUD_NODST", "Same Students w/o Distance", new PairCheck() {
+                @Override
+                public boolean isSatisfied(GroupConstraint gc, Placement p1, Placement p2) {
+                    return p1 == null || p2 == null || StudentConflict.ignore(p1.variable(), p2.variable()) || !StudentConflict.overlaps(p1, p2);
+                }
+                @Override
+                public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                    return true;
+                }}),
+            /**
+             * Different Time with Ignore Student Conflicts: Combination of two constraints, Different Time and
+             * Ignore Student Conflicts. Given classes cannot overlap in time, replacing any student conflicts between
+             * these classes.
+             * When prohibited or (strongly) discouraged: every pair of classes in the constraint must overlap in time.
+             * Still, student conflicts are ignored.
+             */
+            DIFF_TIME_IGN_STUDS("DIFF_TIME_IGN_STUDS", "Different Time + Ignore Student Conflicts", new PairCheck() {
+                @Override
+                public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                    return !plc1.getTimeLocation().hasIntersection(plc2.getTimeLocation());
+                }
+                @Override
+                public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                    return plc1.getTimeLocation().hasIntersection(plc2.getTimeLocation());
+                }}, Flag.IGNORE_STUDENTS),
         ;
         
         String iReference, iName;

@@ -1574,6 +1574,10 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
                for (Lecture x: constraint.variables()) {
                    if (!x.equals(this)) cache.add(x.getClassId());
                }
+           if (constraint instanceof GroupConstraint && ((GroupConstraint)constraint).getType().is(GroupConstraint.Flag.IGNORE_STUDENTS))
+               for (Lecture x: constraint.variables()) {
+                   if (!x.equals(this)) cache.add(x.getClassId());
+               }
        }
        iIgnoreStudentConflictsWith.set(cache);
        return cache.contains(other.getClassId());
