@@ -14,8 +14,12 @@ import org.cpsolver.ifs.assignment.context.AbstractClassWithContext;
 import org.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
 import org.cpsolver.ifs.assignment.context.CanInheritContext;
 import org.cpsolver.ifs.criteria.Criterion;
+import org.cpsolver.instructor.constraints.GroupConstraint;
+import org.cpsolver.instructor.constraints.GroupConstraint.ConstraintTypeInterface;
+import org.cpsolver.instructor.constraints.GroupConstraint.Distribution;
 import org.cpsolver.instructor.criteria.BackToBack;
 import org.cpsolver.instructor.criteria.DifferentLecture;
+import org.cpsolver.instructor.criteria.Distributions;
 import org.cpsolver.instructor.criteria.SameCommon;
 import org.cpsolver.instructor.criteria.SameCourse;
 import org.cpsolver.instructor.criteria.SameDays;
@@ -58,6 +62,7 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest.Variabl
     private int iPreference;
     private float iMaxLoad;
     private int iBackToBackPreference, iSameDaysPreference, iSameRoomPreference;
+    private List<Distribution> iDistributions = new ArrayList<Distribution>();
     
     /**
      * Constructor
@@ -506,6 +511,7 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest.Variabl
         private double iDifferentLectures;
         private double iUnusedLoad;
         private double iSameCoursePenalty, iSameCommonPenalty;
+        private double iDistributions;
         
         /**
          * Constructor
@@ -621,6 +627,14 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest.Variabl
                 sameCommon.inc(assignment, -iSameCommonPenalty);
                 iSameCommonPenalty = countSameCommonPenalty();
                 sameCommon.inc(assignment, iSameCommonPenalty);
+            }
+            
+            // upadte distributions
+            Criterion<TeachingRequest.Variable, TeachingAssignment> distributions = getModel().getCriterion(Distributions.class);
+            if (distributions != null) {
+                distributions.inc(assignment, -iDistributions);
+                iDistributions = countDistributions(assignment);
+                distributions.inc(assignment, iDistributions);
             }
         }
         
@@ -851,5 +865,33 @@ public class Instructor extends AbstractClassWithContext<TeachingRequest.Variabl
             }
             return penalty / (iAssignments.size() - 1);
         }
+        
+        /**
+         * Compute distributions penalty between all classes assigned to this instructor
+         */
+        public double countDistributions(Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) {
+            if (iAssignments.size() <= 1) return 0.0;
+            double penalty = 0.0;
+            for (Distribution d: getDistributions()) {
+                if (!d.isHard())
+                    penalty += d.getType().getValue(d, assignment, getInstructor(), null) * Math.abs(d.getPenalty());
+            }
+            return penalty;
+        }
     }
+    
+    /** Check if the instructor has any distributions */
+    public boolean hasDistributions() { return !iDistributions.isEmpty(); }
+    /** Add a distribution preference, returns null if there is no match. */
+    public Distribution addDistribution(String reference, String preference, String name) {
+        ConstraintTypeInterface type = GroupConstraint.getConstraintType(reference, name);
+        if (type != null) {
+            Distribution d = new Distribution(type, preference);
+            iDistributions.add(d);
+            return d;
+        }
+        return null;
+    }
+    /** Return all distribution preferences for an instructor*/
+    public List<Distribution> getDistributions() { return iDistributions; }
 }

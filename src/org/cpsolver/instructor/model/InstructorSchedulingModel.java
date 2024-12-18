@@ -22,6 +22,8 @@ import org.cpsolver.ifs.model.Constraint;
 import org.cpsolver.ifs.model.Model;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.ToolBox;
+import org.cpsolver.instructor.constraints.GroupConstraint;
+import org.cpsolver.instructor.constraints.GroupConstraint.Distribution;
 import org.cpsolver.instructor.constraints.InstructorConstraint;
 import org.cpsolver.instructor.constraints.SameInstructorConstraint;
 import org.cpsolver.instructor.constraints.SameLinkConstraint;
@@ -32,6 +34,7 @@ import org.cpsolver.instructor.criteria.CoursePreferences;
 import org.cpsolver.instructor.criteria.InstructorPreferences;
 import org.cpsolver.instructor.criteria.SameInstructor;
 import org.cpsolver.instructor.criteria.DifferentLecture;
+import org.cpsolver.instructor.criteria.Distributions;
 import org.cpsolver.instructor.criteria.OriginalInstructor;
 import org.cpsolver.instructor.criteria.SameCommon;
 import org.cpsolver.instructor.criteria.SameCourse;
@@ -100,7 +103,9 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
         addCriterion(new SameCommon());
         addCriterion(new SameDays());
         addCriterion(new SameRoom());
+        addCriterion(new Distributions());
         addGlobalConstraint(new InstructorConstraint());
+        addGlobalConstraint(new GroupConstraint());
     }
     
     /**
@@ -383,6 +388,12 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
                     attributeEl.addAttribute("parent", String.valueOf(attribute.getParentAttribute().getAttributeId()));
             }
             instructorEl.addAttribute("maxLoad", sDoubleFormat.format(instructor.getMaxLoad()));
+            for (Distribution d: instructor.getDistributions()) {
+                Element dEl = instructorEl.addElement("distribution");
+                dEl.addAttribute("type", d.getType().reference());
+                dEl.addAttribute("preference", d.getPreference());
+                dEl.addAttribute("name", d.getType().getName());
+            }
             for (Preference<TimeLocation> tp: instructor.getTimePreferences()) {
                 
                 Element timeEl = instructorEl.addElement("time");
@@ -551,6 +562,10 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
                         parents.put(attribute.getAttributeId(), Long.parseLong(f.attributeValue("parent")));
                 }
                 instructor.addAttribute(attribute);
+            }
+            for (Iterator<?> j = instructorEl.elementIterator("distribution"); j.hasNext();) {
+                Element dEl = (Element) j.next();
+                instructor.addDistribution(dEl.attributeValue("type"), dEl.attributeValue("preference", "0"), dEl.attributeValue("name"));
             }
             for (Iterator<?> j = instructorEl.elementIterator("time"); j.hasNext();) {
                 Element f = (Element) j.next();
@@ -809,5 +824,77 @@ public class InstructorSchedulingModel extends Model<TeachingRequest.Variable, T
         if (Constants.sPreferenceProhibited.equals(pref))
             return Constants.sPreferenceLevelProhibited;
         return Integer.valueOf(pref);
+    }
+    
+    private List<BitSet> iWeeks = null;
+    /**
+     * The method creates date patterns (bitsets) which represent the weeks of a
+     * semester.
+     *      
+     * @return a list of BitSets which represents the weeks of a semester.
+     */
+    public List<BitSet> getWeeks() {
+        if (iWeeks == null) {
+            String defaultDatePattern = getProperties().getProperty("DatePattern.CustomDatePattern", null);
+            if (defaultDatePattern == null){                
+                defaultDatePattern = getProperties().getProperty("DatePattern.Default");
+            }
+            BitSet fullTerm = null;
+            if (defaultDatePattern == null) {
+                // Take the date pattern that is being used most often
+                Map<Long, Integer> counter = new HashMap<Long, Integer>();
+                int max = 0; String name = null; Long id = null;
+                for (TeachingRequest.Variable tr: variables()) {
+                    for (Section section: tr.getSections()) {
+                        TimeLocation time = section.getTime();
+                        if (time.getWeekCode() != null && time.getDatePatternId() != null) {
+                            int count = 1;
+                            if (counter.containsKey(time.getDatePatternId()))
+                                count += counter.get(time.getDatePatternId());
+                            counter.put(time.getDatePatternId(), count);
+                            if (count > max) {
+                                max = count; fullTerm = time.getWeekCode(); name = time.getDatePatternName(); id = time.getDatePatternId();
+                            }
+                        }
+                    }
+                }
+                sLog.info("Using date pattern " + name + " (id " + id + ") as the default.");
+            } else {
+                // Create default date pattern
+                fullTerm = new BitSet(defaultDatePattern.length());
+                for (int i = 0; i < defaultDatePattern.length(); i++) {
+                    if (defaultDatePattern.charAt(i) == 49) {
+                        fullTerm.set(i);
+                    }
+                }
+            }
+            
+            if (fullTerm == null) return null;
+            
+            iWeeks = new ArrayList<BitSet>();
+            if (getProperties().getPropertyBoolean("DatePattern.ShiftWeeks", false)) {
+                // Cut date pattern into weeks (each week takes 7 consecutive bits, starting on the next positive bit)
+                for (int i = fullTerm.nextSetBit(0); i < fullTerm.length(); ) {
+                    if (!fullTerm.get(i)) {
+                        i++; continue;
+                    }
+                    BitSet w = new BitSet(i + 7);
+                    for (int j = 0; j < 7; j++)
+                        if (fullTerm.get(i + j)) w.set(i + j);
+                    iWeeks.add(w);
+                    i += 7;
+                }                
+            } else {
+                // Cut date pattern into weeks (each week takes 7 consecutive bits starting on the first bit of the default date pattern, no pauses between weeks)
+                for (int i = fullTerm.nextSetBit(0); i < fullTerm.length(); ) {
+                    BitSet w = new BitSet(i + 7);
+                    for (int j = 0; j < 7; j++)
+                        if (fullTerm.get(i + j)) w.set(i + j);
+                    iWeeks.add(w);
+                    i += 7;
+                }
+            }
+        }
+        return iWeeks;
     }
 }
