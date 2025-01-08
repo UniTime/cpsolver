@@ -391,6 +391,8 @@ public class TimetableXMLSaver extends TimetableSaver {
                 classEl.addAttribute("department", getId("dept", lecture.getDeptSpreadConstraint().getDepartmentId()));
                 depts.put(lecture.getDeptSpreadConstraint().getDepartmentId(), lecture.getDeptSpreadConstraint()
                         .getName());
+            } else if (lecture.getDepartment() != null) {
+                classEl.addAttribute("department", getId("dept", lecture.getDepartment()));
             }
             if (lecture.getScheduler() != null)
                 classEl.addAttribute("scheduler", getId("dept", lecture.getScheduler()));

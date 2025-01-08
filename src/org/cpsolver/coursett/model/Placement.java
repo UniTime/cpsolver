@@ -593,6 +593,8 @@ public class Placement extends Value<Lecture, Placement> {
             if (!ic.isAvailable(lecture, this) && ic.isHard()) {
                 if (!ic.isAvailable(lecture, getTimeLocation())) {
                     for (Placement c: ic.getUnavailabilities()) {
+                        if (c.variable().getId() < 0 && lecture.getDepartment() != null && c.variable().getDepartment() != null
+                                && !c.variable().getDepartment().equals(lecture.getDepartment())) continue;
                         if (c.getTimeLocation().hasIntersection(getTimeLocation()) && !lecture.canShareRoom(c.variable()))
                             return "instructor " + ic.getName() + " not available at " + getTimeLocation().getLongName(useAmPm) + " due to " + c.variable().getName();
                     }

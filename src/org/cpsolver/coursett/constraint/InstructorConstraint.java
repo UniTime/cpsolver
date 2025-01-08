@@ -98,6 +98,8 @@ public class InstructorConstraint extends ConstraintWithContext<Lecture, Placeme
     public boolean isAvailable(Lecture lecture, TimeLocation time) {
         if (iUnavailabilities == null) return true;
         for (Placement c: iUnavailabilities) {
+            if (c.variable().getId() < 0 && lecture.getDepartment() != null && c.variable().getDepartment() != null
+                    && !c.variable().getDepartment().equals(lecture.getDepartment())) continue;
             if (c.getTimeLocation().hasIntersection(time) && !lecture.canShareRoom(c.variable())) return false;
         }
         return true;
@@ -111,6 +113,8 @@ public class InstructorConstraint extends ConstraintWithContext<Lecture, Placeme
         if (iUnavailabilities == null) return true;
         TimeLocation t1 = placement.getTimeLocation();
         for (Placement c: iUnavailabilities) {
+            if (c.variable().getId() < 0 && lecture.getDepartment() != null && c.variable().getDepartment() != null
+                    && !c.variable().getDepartment().equals(lecture.getDepartment())) continue;
             if (c.getTimeLocation().hasIntersection(placement.getTimeLocation()) && (!lecture.canShareRoom(c.variable()) || !placement.sameRooms(c)))
                 return false;
             if (!iIgnoreDistances) {
