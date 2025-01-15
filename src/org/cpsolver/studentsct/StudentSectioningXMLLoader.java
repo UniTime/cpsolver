@@ -893,38 +893,38 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         for (Enrollment enrollment : bestEnrollments) {
             if (enrollment.getReservation() == null || enrollment.getReservation().isExpired()) continue;
             if (!enrollment.getStudent().isAvailable(enrollment)) {
-                sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
+                sLogger.warn("[" + enrollment.getStudent().getExternalId() + "] Enrollment " + enrollment + " is conflicting: student not available.");
                 continue;
             }
             Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
             if (conflicts.isEmpty())
                 getAssignment().assign(0, enrollment);
             else
-                sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
+                sLogger.warn("[" + enrollment.getStudent().getExternalId() + "] Enrollment " + enrollment + " conflicts with " + conflicts);
         }
         for (Enrollment enrollment : bestEnrollments) {
             if (enrollment.getReservation() != null) continue;
             if (!enrollment.getStudent().isAvailable(enrollment)) {
-                sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
+                sLogger.warn("[" + enrollment.getStudent().getExternalId() + "] Enrollment " + enrollment + " is conflicting: student not available.");
                 continue;
             }
             Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
             if (conflicts.isEmpty())
                 getAssignment().assign(0, enrollment);
             else
-                sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
+                sLogger.warn("[" + enrollment.getStudent().getExternalId() + "] Enrollment " + enrollment + " conflicts with " + conflicts);
         }
         for (Enrollment enrollment : bestEnrollments) {
             if (enrollment.getReservation() == null || !enrollment.getReservation().isExpired()) continue;
             if (!enrollment.getStudent().isAvailable(enrollment)) {
-                sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
+                sLogger.warn("[" + enrollment.getStudent().getExternalId() + "] Enrollment " + enrollment + " is conflicting: student not available.");
                 continue;
             }
             Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
             if (conflicts.isEmpty())
                 getAssignment().assign(0, enrollment);
             else
-                sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
+                sLogger.warn("[" + enrollment.getStudent().getExternalId() + "] Enrollment " + enrollment + " conflicts with " + conflicts);
         }
         getModel().saveBest(getAssignment());
     }
@@ -940,38 +940,38 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         for (Enrollment enrollment : currentEnrollments) {
             if (enrollment.getReservation() == null || enrollment.getReservation().isExpired()) continue;
             if (!enrollment.getStudent().isAvailable(enrollment)) {
-                sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
+                sLogger.warn("[" + enrollment.getStudent().getExternalId() + "] Enrollment " + enrollment + " is conflicting: student not available.");
                 continue;
             }
             Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
             if (conflicts.isEmpty())
                 getAssignment().assign(0, enrollment);
             else
-                sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
+                sLogger.warn("[" + enrollment.getStudent().getExternalId() + "] Enrollment " + enrollment + " conflicts with " + conflicts);
         }
         for (Enrollment enrollment : currentEnrollments) {
             if (enrollment.getReservation() != null) continue;
             if (!enrollment.getStudent().isAvailable(enrollment)) {
-                sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
+                sLogger.warn("[" + enrollment.getStudent().getExternalId() + "] Enrollment " + enrollment + " is conflicting: student not available.");
                 continue;
             }
             Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
             if (conflicts.isEmpty())
                 getAssignment().assign(0, enrollment);
             else
-                sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
+                sLogger.warn("[" + enrollment.getStudent().getExternalId() + "] Enrollment " + enrollment + " conflicts with " + conflicts);
         }
         for (Enrollment enrollment : currentEnrollments) {
             if (enrollment.getReservation() == null || !enrollment.getReservation().isExpired()) continue;
             if (!enrollment.getStudent().isAvailable(enrollment)) {
-                sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
+                sLogger.warn("[" + enrollment.getStudent().getExternalId() + "] Enrollment " + enrollment + " is conflicting: student not available.");
                 continue;
             }
             Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
             if (conflicts.isEmpty())
                 getAssignment().assign(0, enrollment);
             else
-                sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
+                sLogger.warn("[" + enrollment.getStudent().getExternalId() + "] Enrollment " + enrollment + " conflicts with " + conflicts);
         }
     }
     

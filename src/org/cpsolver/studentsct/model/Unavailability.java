@@ -202,4 +202,10 @@ public class Unavailability implements SctAssignment {
     public int hashCode() {
         return (int) (getId() ^ (getId() >>> 32));
     }
+
+    @Override
+    public String toString() {
+        if (getSection().getSubpart() == null) return getSection().getName();
+        return getCourseName() + " " + getSectionName();
+    }
 }

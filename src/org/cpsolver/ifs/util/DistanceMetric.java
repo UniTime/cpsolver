@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.cpsolver.studentsct.constraint.HardDistanceConflicts;
+
 /**
  * Common class for computing distances and back-to-back instructor / student conflicts.
  * 
@@ -120,6 +122,14 @@ public class DistanceMetric {
     private boolean iComputeDistanceConflictsBetweenNonBTBClasses = false;
     /** Reference of the accommodation of students that need short distances */
     private String iShortDistanceAccommodationReference = "SD";
+    /** Allowed distance in minutes (for {@link HardDistanceConflicts}) */
+    private int iAllowedDistanceInMinutes = 30;
+    /** Hard distance limit in minutes (for {@link HardDistanceConflicts}) */
+    private int iDistanceHardLimitInMinutes = 60;
+    /** Long distance limit in minutes (for display) */
+    private int iDistanceLongLimitInMinutes = 60;
+    /** Hard distance conflicts enabled (for {@link HardDistanceConflicts}) */
+    private boolean iHardDistanceConflicts = false;
     
     private final ReentrantReadWriteLock iLock = new ReentrantReadWriteLock();
     
@@ -196,6 +206,10 @@ public class DistanceMetric {
         iShortDistanceAccommodationReference = properties.getProperty(
                 "Distances.ShortDistanceAccommodationReference", iShortDistanceAccommodationReference);
         iInstructorLongTravelInMinutes = properties.getPropertyDouble("Instructor.InstructorLongTravelInMinutes", 30.0);
+        iAllowedDistanceInMinutes = properties.getPropertyInt("HardDistanceConflict.AllowedDistanceInMinutes", iAllowedDistanceInMinutes);
+        iDistanceHardLimitInMinutes = properties.getPropertyInt("HardDistanceConflict.DistanceHardLimitInMinutes", iDistanceHardLimitInMinutes);
+        iDistanceLongLimitInMinutes = properties.getPropertyInt("HardDistanceConflict.DistanceLongLimitInMinutes", iDistanceLongLimitInMinutes);
+        iHardDistanceConflicts = properties.getPropertyBoolean("Sectioning.HardDistanceConflict", iHardDistanceConflicts);
     }
 
     /** Degrees to radians 
@@ -491,6 +505,24 @@ public class DistanceMetric {
     public String getShortDistanceAccommodationReference() {
         return iShortDistanceAccommodationReference;
     }
+    
+    /** Allowed distance in minutes (for {@link HardDistanceConflicts}) */
+    public int getAllowedDistanceInMinutes() {
+        return iAllowedDistanceInMinutes;
+    }
+    /** Hard distance limit in minutes (for {@link HardDistanceConflicts}) */
+    public int getDistanceHardLimitInMinutes() {
+        return iDistanceHardLimitInMinutes;
+    }
+    /** Long distance limit in minutes (for display) */
+    public int getDistanceLongLimitInMinutes() {
+        return iDistanceLongLimitInMinutes;
+    }
+    /** Hard distance conflicts enabled (for {@link HardDistanceConflicts}) */
+    public boolean isHardDistanceConflictsEnabled() {
+        return iHardDistanceConflicts;
+    }
+
     
     /** Few tests 
      * @param args program arguments
