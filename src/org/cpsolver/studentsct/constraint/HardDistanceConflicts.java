@@ -24,10 +24,11 @@ import org.cpsolver.studentsct.model.Unavailability;
  * HardDistanceConflict.AllowedDistanceInMinutes minutes (defaults to 30).
  * The constraint checks both pairs of sections that the student is to be enrolled in 
  * and distance conflicts with unavailabilities.
+ * Hard distance conflicts are allowed between sections that allow for time conflicts.
  * 
  * @author  Tomas Muller
- * @version StudentSct 1.3 (Student Sectioning)<br>
- *          Copyright (C) 2007 - 2015 Tomas Muller<br>
+ * @version StudentSct 1.4 (Student Sectioning)<br>
+ *          Copyright (C) 2007 - 2025 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
  *          <a href="http://muller.unitime.org">http://muller.unitime.org</a><br>
  * <br>
@@ -61,6 +62,9 @@ public class HardDistanceConflicts extends GlobalConstraint<Request, Enrollment>
         if (studentQuality == null) return;
         StudentQuality.Context cx = studentQuality.getStudentQualityContext();
         
+        // no distance conflicts when overlaps are allowed by a reservation
+        if (enrollment.getReservation() != null && enrollment.getReservation().isAllowOverlap()) return;
+        
         // enrollment's student
         Student student = enrollment.getStudent();
         // no unavailabilities > no distance conflicts
@@ -76,7 +80,7 @@ public class HardDistanceConflicts extends GlobalConstraint<Request, Enrollment>
         if (cx.getUnavailabilityDistanceMetric().isHardDistanceConflictsEnabled()) {
             for (Section s1: enrollment.getSections()) {
                 // no time or no room > no conflict
-                if (!s1.hasTime() || s1.getNrRooms() == 0) continue;
+                if (!s1.hasTime() || s1.getNrRooms() == 0 || s1.isAllowOverlap()) continue;
                 for (Unavailability s2: student.getUnavailabilities()) {
                     // no time or no room > no conflict
                     if (s2.getTime() == null || s2.getNrRooms() == 0) continue;
@@ -108,11 +112,11 @@ public class HardDistanceConflicts extends GlobalConstraint<Request, Enrollment>
         if (cx.getDistanceMetric().isHardDistanceConflictsEnabled()) {
             for (Section s1: enrollment.getSections()) {
                 // no time or no room > no conflict
-                if (!s1.hasTime() || s1.getNrRooms() == 0) continue;
+                if (!s1.hasTime() || s1.getNrRooms() == 0 || s1.isAllowOverlap()) continue;
                 for (Section s2: enrollment.getSections()) {
                     if (s1.getId() < s2.getId()) {
                         // no time or no room > no conflict
-                        if (!s1.hasTime() || s1.getNrRooms() == 0) continue;
+                        if (!s2.hasTime() || s2.getNrRooms() == 0 || s2.isAllowOverlap() || s1.isToIgnoreStudentConflictsWith(s2.getId())) continue;
                         TimeLocation t1 = s1.getTime();
                         TimeLocation t2 = s2.getTime();
                         // no shared day > no conflict
@@ -160,12 +164,13 @@ public class HardDistanceConflicts extends GlobalConstraint<Request, Enrollment>
                 if (other.equals(enrollment.variable())) continue;
                 Enrollment e2 = other.getAssignment(assignment);
                 if (e2 == null || conflicts.contains(e2)) continue;
+                if (e2.getReservation() != null && e2.getReservation().isAllowOverlap()) continue;
                 for (Section s1: enrollment.getSections()) {
                     // no time or no room > no conflict
-                    if (!s1.hasTime() || s1.getNrRooms() == 0) continue;
+                    if (!s1.hasTime() || s1.getNrRooms() == 0 || s1.isAllowOverlap()) continue;
                     for (Section s2: e2.getSections()) {
                         // no time or no room > no conflict
-                        if (!s2.hasTime() || s2.getNrRooms() == 0) continue;
+                        if (!s2.hasTime() || s2.getNrRooms() == 0 || s2.isAllowOverlap() || s1.isToIgnoreStudentConflictsWith(s2.getId())) continue;
                         TimeLocation t1 = s1.getTime();
                         TimeLocation t2 = s2.getTime();
                         // no shared day > no conflict
@@ -225,6 +230,9 @@ public class HardDistanceConflicts extends GlobalConstraint<Request, Enrollment>
         if (studentQuality == null) return false;
         StudentQuality.Context cx = studentQuality.getStudentQualityContext();
         
+        // no distance conflicts when overlaps are allowed by a reservation
+        if (enrollment.getReservation() != null && enrollment.getReservation().isAllowOverlap()) return false;
+        
         // enrollment's student
         Student student = enrollment.getStudent();
         // no unavailabilities > no distance conflicts
@@ -240,10 +248,10 @@ public class HardDistanceConflicts extends GlobalConstraint<Request, Enrollment>
         if (cx.getUnavailabilityDistanceMetric().isHardDistanceConflictsEnabled()) {
             for (Section s1: enrollment.getSections()) {
                 // no time or no room > no conflict
-                if (!s1.hasTime() || s1.getNrRooms() == 0) continue;
+                if (!s1.hasTime() || s1.getNrRooms() == 0 || s1.isAllowOverlap()) continue;
                 for (Unavailability s2: student.getUnavailabilities()) {
                     // no time or no room > no conflict
-                    if (s2.getTime() == null || s2.getNrRooms() == 0) continue;
+                    if (s2.getTime() == null || s2.getNrRooms() == 0 || s2.isAllowOverlap()) continue;
                     TimeLocation t1 = s1.getTime();
                     TimeLocation t2 = s2.getTime();
                     // no shared day > no conflict
@@ -268,11 +276,11 @@ public class HardDistanceConflicts extends GlobalConstraint<Request, Enrollment>
         if (cx.getDistanceMetric().isHardDistanceConflictsEnabled()) {
             for (Section s1: enrollment.getSections()) {
                 // no time or no room > no conflict
-                if (!s1.hasTime() || s1.getNrRooms() == 0) continue;
+                if (!s1.hasTime() || s1.getNrRooms() == 0 || s1.isAllowOverlap()) continue;
                 for (Section s2: enrollment.getSections()) {
                     if (s1.getId() < s2.getId()) {
                         // no time or no room > no conflict
-                        if (!s1.hasTime() || s1.getNrRooms() == 0) continue;
+                        if (!s2.hasTime() || s2.getNrRooms() == 0 || s2.isAllowOverlap() || s1.isToIgnoreStudentConflictsWith(s2.getId())) continue;
                         TimeLocation t1 = s1.getTime();
                         TimeLocation t2 = s2.getTime();
                         // no shared day > no conflict
@@ -312,12 +320,13 @@ public class HardDistanceConflicts extends GlobalConstraint<Request, Enrollment>
                 if (other.equals(enrollment.variable())) continue;
                 Enrollment e2 = other.getAssignment(assignment);
                 if (e2 == null) continue;
+                if (e2.getReservation() != null && e2.getReservation().isAllowOverlap()) continue;
                 for (Section s1: enrollment.getSections()) {
                     // no time or no room > no conflict
-                    if (!s1.hasTime() || s1.getNrRooms() == 0) continue;
+                    if (!s1.hasTime() || s1.getNrRooms() == 0 || s1.isAllowOverlap()) continue;
                     for (Section s2: e2.getSections()) {
                         // no time or no room > no conflict
-                        if (!s2.hasTime() || s2.getNrRooms() == 0) continue;
+                        if (!s2.hasTime() || s2.getNrRooms() == 0 || s2.isAllowOverlap() || s1.isToIgnoreStudentConflictsWith(s2.getId())) continue;
                         TimeLocation t1 = s1.getTime();
                         TimeLocation t2 = s2.getTime();
                         // no shared day > no conflict
@@ -355,7 +364,8 @@ public class HardDistanceConflicts extends GlobalConstraint<Request, Enrollment>
     }
     
     public static boolean inConflict(StudentQuality sq, Section s1, Unavailability s2) {
-        if (s1.getPlacement() == null || s2.getTime() == null || s2.getNrRooms() == 0) return false;
+        if (s1.getPlacement() == null || s2.getTime() == null || s2.getNrRooms() == 0
+                || s1.isAllowOverlap() || s2.isAllowOverlap()) return false;
         if (sq == null) return false;
         StudentQuality.Context cx = sq.getStudentQualityContext();
         if (!cx.getUnavailabilityDistanceMetric().isHardDistanceConflictsEnabled()) return false;
@@ -379,7 +389,8 @@ public class HardDistanceConflicts extends GlobalConstraint<Request, Enrollment>
     }
     
     public static boolean inConflict(StudentQuality sq, Section s1, Section s2) {
-        if (s1.getPlacement() == null || s2.getTime() == null || s2.getNrRooms() == 0) return false;
+        if (s1.getPlacement() == null || s2.getPlacement() == null
+                || s1.isAllowOverlap() || s2.isAllowOverlap() || s1.isToIgnoreStudentConflictsWith(s2.getId())) return false;
         if (sq == null) return false;
         StudentQuality.Context cx = sq.getStudentQualityContext();
         if (!cx.getDistanceMetric().isHardDistanceConflictsEnabled()) return false;
@@ -405,6 +416,7 @@ public class HardDistanceConflicts extends GlobalConstraint<Request, Enrollment>
     public static boolean inConflict(StudentQuality sq, SctAssignment s1, Enrollment e) {
         if (sq == null) return false;
         if (!sq.getStudentQualityContext().getDistanceMetric().isHardDistanceConflictsEnabled()) return false;
+        if (e.getReservation() != null && e.getReservation().isAllowOverlap()) return false;
         if (s1 instanceof Section)
             for (SctAssignment s2: e.getAssignments())
                 if (s2 instanceof Section && inConflict(sq, (Section)s1, (Section)s2)) return true;
