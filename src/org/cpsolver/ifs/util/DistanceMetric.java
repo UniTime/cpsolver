@@ -148,6 +148,10 @@ public class DistanceMetric {
         iMaxTravelTime = m.iMaxTravelTime;
         iComputeDistanceConflictsBetweenNonBTBClasses = m.iComputeDistanceConflictsBetweenNonBTBClasses;
         iShortDistanceAccommodationReference = m.iShortDistanceAccommodationReference;
+        iAllowedDistanceInMinutes = m.iAllowedDistanceInMinutes;
+        iDistanceHardLimitInMinutes = m.iDistanceHardLimitInMinutes;
+        iDistanceLongLimitInMinutes = m.iDistanceLongLimitInMinutes;
+        iHardDistanceConflicts = m.iHardDistanceConflicts;
         m.iLock.readLock().lock();
         try {
             for (Map.Entry<Long, Map<Long, Integer>> e: m.iTravelTimes.entrySet())
