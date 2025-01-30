@@ -364,9 +364,9 @@ public class HardDistanceConflicts extends GlobalConstraint<Request, Enrollment>
     }
     
     public static boolean inConflict(StudentQuality sq, Section s1, Unavailability s2) {
+        if (sq == null || s1 == null || s2 == null) return false;
         if (s1.getPlacement() == null || s2.getTime() == null || s2.getNrRooms() == 0
                 || s1.isAllowOverlap() || s2.isAllowOverlap()) return false;
-        if (sq == null) return false;
         StudentQuality.Context cx = sq.getStudentQualityContext();
         if (!cx.getUnavailabilityDistanceMetric().isHardDistanceConflictsEnabled()) return false;
         TimeLocation t1 = s1.getTime();
@@ -389,9 +389,9 @@ public class HardDistanceConflicts extends GlobalConstraint<Request, Enrollment>
     }
     
     public static boolean inConflict(StudentQuality sq, Section s1, Section s2) {
+        if (sq == null || s1 == null || s2 == null) return false;
         if (s1.getPlacement() == null || s2.getPlacement() == null
                 || s1.isAllowOverlap() || s2.isAllowOverlap() || s1.isToIgnoreStudentConflictsWith(s2.getId())) return false;
-        if (sq == null) return false;
         StudentQuality.Context cx = sq.getStudentQualityContext();
         if (!cx.getDistanceMetric().isHardDistanceConflictsEnabled()) return false;
         TimeLocation t1 = s1.getTime();
@@ -414,10 +414,10 @@ public class HardDistanceConflicts extends GlobalConstraint<Request, Enrollment>
     }
     
     public static boolean inConflict(StudentQuality sq, SctAssignment s1, Enrollment e) {
-        if (sq == null) return false;
+        if (sq == null || s1 == null || e == null) return false;
         if (!sq.getStudentQualityContext().getDistanceMetric().isHardDistanceConflictsEnabled()) return false;
         if (e.getReservation() != null && e.getReservation().isAllowOverlap()) return false;
-        if (s1 instanceof Section)
+        if (s1 instanceof Section && e.getCourse() != null)
             for (SctAssignment s2: e.getAssignments())
                 if (s2 instanceof Section && inConflict(sq, (Section)s1, (Section)s2)) return true;
         return false;
