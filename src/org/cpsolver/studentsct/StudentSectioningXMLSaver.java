@@ -66,7 +66,7 @@ import org.dom4j.io.XMLWriter;
  * <br>
  * <br>
  * Parameters:
- * <table border='1' summary='Related Solver Parameters'>
+ * <table border='1'><caption>Related Solver Parameters</caption>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -122,6 +122,7 @@ import org.dom4j.io.XMLWriter;
  * new StudentSectioningXMLSaver(solver).save(new File("solution.xml")); 
  * </code></pre>
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -319,6 +320,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
         offeringEl.addAttribute("id", getId("offering", offering.getId()));
         if (iShowNames)
             offeringEl.addAttribute("name", offering.getName());
+        if (offering.isDummy())
+            offeringEl.addAttribute("dummy", "true");
         for (Course course : offering.getCourses()) {
             Element courseEl = offeringEl.addElement("course");
             saveCourse(courseEl, course);
@@ -791,6 +794,9 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
             Element unavEl = studentEl.addElement("unavailability");
             unavEl.addAttribute("offering", getId("offering", unavailability.getSection().getSubpart().getConfig().getOffering().getId()));
             unavEl.addAttribute("section", getId("section", unavailability.getSection().getId()));
+            unavEl.addAttribute("ta", unavailability.isTeachingAssignment() ? "true" : "false");
+            if (unavailability.getCourseId() != null)
+                unavEl.addAttribute("course", getId("course", unavailability.getCourseId()));
             if (unavailability.isAllowOverlap()) unavEl.addAttribute("allowOverlap", "true");
         }
     }

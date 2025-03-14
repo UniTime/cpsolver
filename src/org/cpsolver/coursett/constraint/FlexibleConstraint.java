@@ -26,6 +26,7 @@ import org.cpsolver.ifs.criteria.Criterion;
  * functions as Group constraint. Unlike group constraint, Flexible constraint
  * is able to parse some of its parameters from its reference field<br>
  * 
+ * @author  Matej Lukac
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2013 Matej Lukac<br>
  * <br>

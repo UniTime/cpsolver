@@ -14,6 +14,7 @@ import org.cpsolver.studentsct.model.Section;
  * Required sections constraint. This global constraint ensures that no enrollment
  * containing a prohibited section (using {@link CourseRequest#isRequired(Section)}) is used.
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

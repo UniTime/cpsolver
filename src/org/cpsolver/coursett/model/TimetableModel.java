@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -59,6 +60,7 @@ import org.cpsolver.ifs.util.DistanceMetric;
 /**
  * Timetable model.
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -105,6 +107,9 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
     
     private StudentSectioning iStudentSectioning = null;
     private List<StudentGroup> iStudentGroups = new ArrayList<StudentGroup>();
+    
+    private boolean iUseCriteria = true;
+    private List<StudentConflict> iStudentConflictCriteria = null;
 
     @SuppressWarnings("unchecked")
     public TimetableModel(DataProperties properties) {
@@ -188,7 +193,7 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
                 sLogger.error("Unable to use " + constraint + ": " + e.getMessage());
             }
         }
-        
+        iUseCriteria = properties.getPropertyBoolean("SctSectioning.UseCriteria", true);
     }
 
     public DistanceMetric getDistanceMetric() {
@@ -663,6 +668,24 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
                 }
             }
             // remove empty joint enrollments
+            for (Iterator<JenrlConstraint> i = iJenrlConstraints.iterator(); i.hasNext(); ) {
+                JenrlConstraint jenrl = i.next();
+                if (jenrl.getNrStudents() == 0) {
+                    jenrl.getContext(assignment).unassigned(assignment, null);
+                    Object[] vars = jenrl.variables().toArray();
+                    for (int k = 0; k < vars.length; k++)
+                        jenrl.removeVariable((Lecture) vars[k]);
+                    i.remove();
+                }
+            }
+            for (Iterator<Constraint<Lecture, Placement>> i = constraints().iterator(); i.hasNext(); ) {
+                Constraint<Lecture, Placement> c = i.next();
+                if (c instanceof JenrlConstraint && ((JenrlConstraint)c).getNrStudents() == 0) {
+                    removeReference((JenrlConstraint)c);
+                    i.remove();
+                }
+            }
+            /*
             for (JenrlConstraint jenrl: new ArrayList<JenrlConstraint>(getJenrlConstraints())) {
                 if (jenrl.getNrStudents() == 0) {
                     jenrl.getContext(assignment).unassigned(assignment, null);
@@ -672,9 +695,39 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
                     removeConstraint(jenrl);
                 }
             }
+            */
         }
         super.restoreBest(assignment);
     }
     
     public boolean isAllowBreakHard() { return iAllowBreakHard; }
+    
+    public boolean isOnFlySectioningEnabled() { return iOnFlySectioning; }
+    public void setOnFlySectioningEnabled(boolean onFlySectioning) { iOnFlySectioning = onFlySectioning; }
+    
+    @Override
+    public void addCriterion(Criterion<Lecture, Placement> criterion) {
+        super.addCriterion(criterion);
+        iStudentConflictCriteria = null;
+    }
+    
+    @Override
+    public void removeCriterion(Criterion<Lecture, Placement> criterion) {
+        super.removeCriterion(criterion);
+        iStudentConflictCriteria = null;
+    }
+    
+    /**
+     * List of student conflict criteria
+     */
+    public List<StudentConflict> getStudentConflictCriteria() {
+        if (!iUseCriteria) return null;
+        if (iStudentConflictCriteria == null) {
+            iStudentConflictCriteria = new ArrayList<StudentConflict>();
+            for (Criterion<Lecture, Placement> criterion: getCriteria())
+                if (criterion instanceof StudentConflict)
+                    iStudentConflictCriteria.add((StudentConflict)criterion);
+        }
+        return iStudentConflictCriteria;
+    }
 }

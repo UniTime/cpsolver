@@ -5,6 +5,7 @@
  * instructor availability, maximal load, time conflicts, and whether the given assignments are of the same
  * course (if desired).
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

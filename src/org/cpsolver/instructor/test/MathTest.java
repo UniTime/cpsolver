@@ -38,6 +38,7 @@ import org.cpsolver.instructor.model.TeachingRequest;
 /**
  * Math teaching assistant assignment problem. Different file format for the input data.
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -280,6 +281,8 @@ public class MathTest extends Test {
                         }
                 }
             }
+            r.close();
+
             r = new BufferedReader(new FileReader(new File(dir, "hours_per_course.csv")));
             while ((line = r.readLine()) != null) {
                 if (line.trim().isEmpty())
@@ -308,6 +311,7 @@ public class MathTest extends Test {
                     clazz.getRequest().setLoad(getProperties().getPropertyFloat("TA.DefaultLoad", 10f));
                 }
             }
+            r.close();
 
             r = new BufferedReader(new FileReader(new File(dir, "students.csv")));
             Set<String> studentIds = new HashSet<String>();

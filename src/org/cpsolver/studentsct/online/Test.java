@@ -68,9 +68,9 @@ import org.cpsolver.studentsct.reservation.Reservation;
  * -DStudentWeights.PriorityWeighting=equal).
  * 
  * <br><br>
- * Usage:<ul>
+ * Usage:<code>
  *      java -Xmx1g -cp studentsct-1.3.jar [parameters] org.cpsolver.studentsct.online.Test data/pu-sect-fal07.xml<br>
- * </ul>
+ * </code>
  * Parameters:<ul>
  *      <li>-Dsort=shuffle|choice|reverse ... for taking students in random order, more choices first, or more choices last (defaults to shuffle)
  *      <li>-DnrConcurrent=N ... for the number of threads (concurrent computations of student schedules, defaults to 10)
@@ -86,6 +86,7 @@ import org.cpsolver.studentsct.reservation.Reservation;
  *      <li>-DNeighbour.BranchAndBoundTimeout=M ... time limit for each student in milliseconds (CPU time, defaults to 1000)
  * </ul>
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

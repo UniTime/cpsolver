@@ -1,6 +1,5 @@
 package org.cpsolver.coursett.sectioning;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -22,7 +21,6 @@ import org.cpsolver.coursett.model.StudentGroup;
 import org.cpsolver.coursett.model.TimetableModel;
 import org.cpsolver.coursett.sectioning.SctSectioning.GroupBasedInitialSectioning;
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.criteria.Criterion;
 import org.cpsolver.ifs.model.InfoProvider;
 import org.cpsolver.ifs.model.Neighbour;
 import org.cpsolver.ifs.solution.Solution;
@@ -34,6 +32,7 @@ import org.cpsolver.ifs.util.JProf;
  * Student sectioning implementation based on local search. A student swap is
  * generated in each iteration using Hill Climbing and Great Deluge algorithms.
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2017 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -54,28 +53,19 @@ import org.cpsolver.ifs.util.JProf;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class StudentSwapSectioning extends DefaultStudentSectioning implements InfoProvider<Lecture, Placement> {
-    List<StudentConflict> iStudentConflictCriteria = null;
     private static double sEps = 0.0001;
     private double iGroupWeight = 0.1;
-    private boolean iUseCriteria = true;
     private int iMaxIdleResection = 1000;
 
     public StudentSwapSectioning(TimetableModel model) {
         super(model);
-        iUseCriteria = model.getProperties().getPropertyBoolean("StudentSwaps.UseCriteria", true);
         iGroupWeight = model.getProperties().getPropertyDouble("StudentSwaps.GroupWeight", 10.0);
         iMaxIdleResection = model.getProperties().getPropertyInt("StudentSwaps.MaxIdleResection", 1000);
     }
     
     protected List<StudentConflict> getStudentConflictCriteria() {
-        if (!iUseCriteria) return null;
-        if (iStudentConflictCriteria == null && iModel != null) {
-            iStudentConflictCriteria = new ArrayList<StudentConflict>();
-            for (Criterion<Lecture, Placement> criterion: iModel.getCriteria())
-                if (criterion instanceof StudentConflict)
-                    iStudentConflictCriteria.add((StudentConflict)criterion);
-        }
-        return iStudentConflictCriteria;
+        if (iModel != null) return iModel.getStudentConflictCriteria();
+        return null;
     }
     
     @Override

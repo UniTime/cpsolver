@@ -13,6 +13,7 @@ import org.cpsolver.studentsct.model.Student;
  * during their enrollments. That is the student does not have any overlapping unavailabilities
  * that do not allow for overlap. Function {@link Student#isAvailable(Enrollment)} is used.
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

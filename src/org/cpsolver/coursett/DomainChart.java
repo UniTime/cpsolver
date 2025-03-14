@@ -16,6 +16,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * Create domain chart of the given input problem as CSV file (3 dimensions:
  * #rooms, #times, #variables with the given number of rooms/times)
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

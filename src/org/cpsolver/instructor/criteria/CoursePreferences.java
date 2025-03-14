@@ -12,6 +12,7 @@ import org.cpsolver.instructor.model.TeachingRequest;
  * Course Preferences. This criterion counts how well are the course preferences that are set on an {@link Instructor} met
  * (counting {@link TeachingAssignment#getCoursePreference()}).
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

@@ -34,6 +34,7 @@ import org.dom4j.io.XMLWriter;
  * 'http://www.unitime.org/interface/studentSectioningRequest.xml'>example</a>
  * file.
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

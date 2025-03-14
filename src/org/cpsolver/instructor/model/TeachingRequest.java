@@ -16,6 +16,7 @@ import org.cpsolver.ifs.assignment.Assignment;
  * Each teaching request has a teaching load. The maximal teaching load of an instructor
  * cannot be breached.
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

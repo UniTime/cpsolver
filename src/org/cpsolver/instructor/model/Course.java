@@ -5,6 +5,7 @@ package org.cpsolver.instructor.model;
  * the same course. It is also possible to mark the course as same common, which require all assignments that are 
  * given to a single instructor to share the same common part of the course (e.g., the lecture).
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

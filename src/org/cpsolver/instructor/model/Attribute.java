@@ -4,6 +4,7 @@ package org.cpsolver.instructor.model;
  * Attributes of an instructor. Each instructor can have a number of attributes and there are attribute preferences on teaching requests.
  * Each attribute has an id, a name and a {@link Type}.
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -102,7 +103,7 @@ public class Attribute {
          * @param typeId attribute type id
          * @param typeName attribute type name
          * @param conjunctive is attribute type conjunctive (if two attributes are required a student must have both). 
-         * @param required
+         * @param required is the attribute type required
          */
         public Type(long typeId, String typeName, boolean conjunctive, boolean required) {
             iTypeId = typeId;

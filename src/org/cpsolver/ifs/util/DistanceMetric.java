@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.cpsolver.studentsct.constraint.HardDistanceConflicts;
+
 /**
  * Common class for computing distances and back-to-back instructor / student conflicts.
  * 
@@ -17,6 +19,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * Instructor.NoPreferenceLimit (distance &lt;= limit &rarr; no preference), Instructor.DiscouragedLimit (distance &lt;= limit &rarr; discouraged),
  * Instructor.ProhibitedLimit (distance &lt;= limit &rarr; strongly discouraged), the back-to-back placement is prohibited when the distance is over the last limit.
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -119,11 +122,43 @@ public class DistanceMetric {
     private boolean iComputeDistanceConflictsBetweenNonBTBClasses = false;
     /** Reference of the accommodation of students that need short distances */
     private String iShortDistanceAccommodationReference = "SD";
+    /** Allowed distance in minutes (for {@link HardDistanceConflicts}) */
+    private int iAllowedDistanceInMinutes = 30;
+    /** Hard distance limit in minutes (for {@link HardDistanceConflicts}) */
+    private int iDistanceHardLimitInMinutes = 60;
+    /** Long distance limit in minutes (for display) */
+    private int iDistanceLongLimitInMinutes = 60;
+    /** Hard distance conflicts enabled (for {@link HardDistanceConflicts}) */
+    private boolean iHardDistanceConflicts = false;
     
     private final ReentrantReadWriteLock iLock = new ReentrantReadWriteLock();
     
     /** Default properties */
     public DistanceMetric() {
+    }
+    
+    public DistanceMetric(DistanceMetric m) {
+        iModel = m.iModel;
+        iSpeed = m.iSpeed;
+        iInstructorNoPreferenceLimit = m.iInstructorNoPreferenceLimit;
+        iInstructorDiscouragedLimit = m.iInstructorDiscouragedLimit;
+        iInstructorProhibitedLimit = m.iInstructorProhibitedLimit;
+        iInstructorLongTravelInMinutes = m.iInstructorLongTravelInMinutes;
+        iNullDistance = m.iNullDistance;
+        iMaxTravelTime = m.iMaxTravelTime;
+        iComputeDistanceConflictsBetweenNonBTBClasses = m.iComputeDistanceConflictsBetweenNonBTBClasses;
+        iShortDistanceAccommodationReference = m.iShortDistanceAccommodationReference;
+        iAllowedDistanceInMinutes = m.iAllowedDistanceInMinutes;
+        iDistanceHardLimitInMinutes = m.iDistanceHardLimitInMinutes;
+        iDistanceLongLimitInMinutes = m.iDistanceLongLimitInMinutes;
+        iHardDistanceConflicts = m.iHardDistanceConflicts;
+        m.iLock.readLock().lock();
+        try {
+            for (Map.Entry<Long, Map<Long, Integer>> e: m.iTravelTimes.entrySet())
+                iTravelTimes.put(e.getKey(), new HashMap<Long, Integer>(e.getValue()));
+        } finally {
+            m.iLock.readLock().unlock();
+        }
     }
     
     /** With provided ellipsoid 
@@ -175,6 +210,10 @@ public class DistanceMetric {
         iShortDistanceAccommodationReference = properties.getProperty(
                 "Distances.ShortDistanceAccommodationReference", iShortDistanceAccommodationReference);
         iInstructorLongTravelInMinutes = properties.getPropertyDouble("Instructor.InstructorLongTravelInMinutes", 30.0);
+        iAllowedDistanceInMinutes = properties.getPropertyInt("HardDistanceConflict.AllowedDistanceInMinutes", iAllowedDistanceInMinutes);
+        iDistanceHardLimitInMinutes = properties.getPropertyInt("HardDistanceConflict.DistanceHardLimitInMinutes", iDistanceHardLimitInMinutes);
+        iDistanceLongLimitInMinutes = properties.getPropertyInt("HardDistanceConflict.DistanceLongLimitInMinutes", iDistanceLongLimitInMinutes);
+        iHardDistanceConflicts = properties.getPropertyBoolean("Sectioning.HardDistanceConflict", iHardDistanceConflicts);
     }
 
     /** Degrees to radians 
@@ -353,6 +392,13 @@ public class DistanceMetric {
     public int getMaxTravelDistanceInMinutes() {
         return iMaxTravelTime;
     }
+    
+    /** Set maximal travel distance between rooms when no coordinates are given
+     * @param maxTravelTime max travel time in minutes
+     */
+    public void setMaxTravelDistanceInMinutes(int maxTravelTime) {
+        iMaxTravelTime = maxTravelTime;
+    }
 
     /** Add travel time between two locations 
      * @param roomId1 first room's id
@@ -453,12 +499,34 @@ public class DistanceMetric {
         return iComputeDistanceConflictsBetweenNonBTBClasses;
     }
     
+    public void setComputeDistanceConflictsBetweenNonBTBClasses(boolean computeDistanceConflictsBetweenNonBTBClasses) {
+        iComputeDistanceConflictsBetweenNonBTBClasses = computeDistanceConflictsBetweenNonBTBClasses;
+    }
+    
     /**
      * Reference of the accommodation of students that need short distances
      */
     public String getShortDistanceAccommodationReference() {
         return iShortDistanceAccommodationReference;
     }
+    
+    /** Allowed distance in minutes (for {@link HardDistanceConflicts}) */
+    public int getAllowedDistanceInMinutes() {
+        return iAllowedDistanceInMinutes;
+    }
+    /** Hard distance limit in minutes (for {@link HardDistanceConflicts}) */
+    public int getDistanceHardLimitInMinutes() {
+        return iDistanceHardLimitInMinutes;
+    }
+    /** Long distance limit in minutes (for display) */
+    public int getDistanceLongLimitInMinutes() {
+        return iDistanceLongLimitInMinutes;
+    }
+    /** Hard distance conflicts enabled (for {@link HardDistanceConflicts}) */
+    public boolean isHardDistanceConflictsEnabled() {
+        return iHardDistanceConflicts;
+    }
+
     
     /** Few tests 
      * @param args program arguments

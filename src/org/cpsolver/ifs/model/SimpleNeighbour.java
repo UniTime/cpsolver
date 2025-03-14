@@ -13,6 +13,7 @@ import org.cpsolver.ifs.assignment.Assignment;
  * 
  * @see org.cpsolver.ifs.heuristics.NeighbourSelection
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -79,6 +80,9 @@ public class SimpleNeighbour<V extends Variable<V, T>, T extends Value<V, T>> im
     public void assign(Assignment<V, T> assignment, long iteration) {
         if (iVariable == null)
             return;
+        if (iConflicts != null)
+            for (T conflict: iConflicts)
+                assignment.unassign(iteration, conflict.variable());
         if (iValue != null)
             assignment.assign(iteration, iValue);
         else
@@ -89,6 +93,8 @@ public class SimpleNeighbour<V extends Variable<V, T>, T extends Value<V, T>> im
     @Override
     public double value(Assignment<V, T> assignment) {
         T old = assignment.getValue(iVariable);
+        // assigning an unassigned variable is always an improving move
+        if (iValue != null && old == null && (iConflicts == null || iConflicts.isEmpty())) return -1;
         double val = (iValue == null ? 0 : iValue.toDouble(assignment)) - (iVariable == null || old == null ? 0 : old.toDouble(assignment));
         if (iConflicts != null)
             for (T conflict: iConflicts)

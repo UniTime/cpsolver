@@ -52,7 +52,7 @@ import org.dom4j.io.XMLWriter;
  * This class saves the resultant solution in the XML format. <br>
  * <br>
  * Parameters:
- * <table border='1' summary='Related Solver Parameters'>
+ * <table border='1'><caption>Related Solver Parameters</caption>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -95,6 +95,7 @@ import org.dom4j.io.XMLWriter;
  * </tr>
  * </table>
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -130,6 +131,7 @@ public class TimetableXMLSaver extends TimetableSaver {
     private boolean iSaveInitial = false;
     private boolean iSaveCurrent = false;
     private boolean iExportStudentSectioning = false;
+    private boolean iSaveConfig = false;
 
     private IdConvertor iIdConvertor = null;
 
@@ -155,6 +157,7 @@ public class TimetableXMLSaver extends TimetableSaver {
             iSaveInitial = getModel().getProperties().getPropertyBoolean("Xml.SaveInitial", true);
             iSaveCurrent = getModel().getProperties().getPropertyBoolean("Xml.SaveCurrent", true);
         }
+        iSaveConfig = getModel().getProperties().getPropertyBoolean("Xml.SaveConfig", false);
     }
 
     private String getId(String type, String id) {
@@ -388,6 +391,8 @@ public class TimetableXMLSaver extends TimetableSaver {
                 classEl.addAttribute("department", getId("dept", lecture.getDeptSpreadConstraint().getDepartmentId()));
                 depts.put(lecture.getDeptSpreadConstraint().getDepartmentId(), lecture.getDeptSpreadConstraint()
                         .getName());
+            } else if (lecture.getDepartment() != null) {
+                classEl.addAttribute("department", getId("dept", lecture.getDepartment()));
             }
             if (lecture.getScheduler() != null)
                 classEl.addAttribute("scheduler", getId("dept", lecture.getScheduler()));
@@ -398,7 +403,7 @@ public class TimetableXMLSaver extends TimetableSaver {
                     instrEl.addAttribute("solution", "true");
                 if (iSaveInitial && initialPlacement != null)
                     instrEl.addAttribute("initial", "true");
-                if (iSaveBest && bestPlacement != null && !bestPlacement.equals(placement))
+                if (iSaveBest && bestPlacement != null)
                     instrEl.addAttribute("best", "true");
             }
             for (RoomLocation rl : lecture.roomLocations()) {
@@ -410,8 +415,7 @@ public class TimetableXMLSaver extends TimetableSaver {
                     roomLocationEl.addAttribute("solution", "true");
                 if (iSaveInitial && initialPlacement != null && initialPlacement.hasRoomLocation(rl.getId()))
                     roomLocationEl.addAttribute("initial", "true");
-                if (iSaveBest && bestPlacement != null && !bestPlacement.equals(placement)
-                        && bestPlacement.hasRoomLocation(rl.getId()))
+                if (iSaveBest && bestPlacement != null && bestPlacement.hasRoomLocation(rl.getId()))
                     roomLocationEl.addAttribute("best", "true");
                 if (rl.hasPreferenceByIndex()) {
                     for (Map.Entry<Integer, Integer> e: rl.getPreferenceByIndex().entrySet()) {
@@ -477,8 +481,7 @@ public class TimetableXMLSaver extends TimetableSaver {
                     timeLocationEl.addAttribute("solution", "true");
                 if (iSaveInitial && initialPlacement != null && initialPlacement.getTimeLocation().equals(tl))
                     timeLocationEl.addAttribute("initial", "true");
-                if (iSaveBest && bestPlacement != null && !bestPlacement.equals(placement)
-                        && bestPlacement.getTimeLocation().equals(tl))
+                if (iSaveBest && bestPlacement != null && bestPlacement.getTimeLocation().equals(tl))
                     timeLocationEl.addAttribute("best", "true");
             }
         }
@@ -698,5 +701,12 @@ public class TimetableXMLSaver extends TimetableSaver {
         }
         if (departmentsEl.elements().isEmpty())
             root.remove(departmentsEl);
+        
+        if (iSaveConfig) {
+            Element configuration = root.addElement("configuration");
+            for (Map.Entry<Object, Object> e: getModel().getProperties().entrySet()) {
+                    configuration.addElement("property").addAttribute("name", e.getKey().toString()).setText(e.getValue().toString());
+            }
+        }
     }
 }

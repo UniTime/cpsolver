@@ -32,6 +32,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * <br>
  * This class implements most of the {@link Criterion} except of the {@link Criterion#getValue(Assignment, Value, Set)}.
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -513,9 +514,9 @@ public abstract class AbstractCriterion<V extends Variable<V, T>, T extends Valu
         if (Math.abs(getWeightedValue(assignment)) < 0.005) return "";
         double[] bounds = getBounds(assignment);
         if (bounds[0] <= val && val <= bounds[1] && bounds[0] < bounds[1] && getName().endsWith(" Preferences"))
-            return getAbbreviation() + ":" + getPerc(val, bounds[0], bounds[1]) + "%";
+            return getAbbreviation() + ":" + sDoubleFormat.format(getValue(assignment)) + " (" + getPerc(val, bounds[0], bounds[1]) + "%)";
         else if (bounds[1] <= val && val <= bounds[0] && bounds[1] < bounds[0] && getName().endsWith(" Preferences"))
-            return getAbbreviation() + ":" + getPercRev(val, bounds[1], bounds[0]) + "%";
+            return getAbbreviation() + ":" + sDoubleFormat.format(getValue(assignment)) + " (" + getPercRev(val, bounds[1], bounds[0]) + ")%";
         else if (bounds[0] != val || val != bounds[1])
             return getAbbreviation() + ":" + sDoubleFormat.format(getValue(assignment));
         else

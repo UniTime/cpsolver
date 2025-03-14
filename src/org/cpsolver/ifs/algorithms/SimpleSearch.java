@@ -4,6 +4,7 @@ import org.apache.logging.log4j.Logger;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.context.AssignmentContext;
 import org.cpsolver.ifs.assignment.context.NeighbourSelectionWithContext;
+import org.cpsolver.ifs.heuristics.MaxIdleNeighbourSelection;
 import org.cpsolver.ifs.heuristics.NeighbourSelection;
 import org.cpsolver.ifs.heuristics.StandardNeighbourSelection;
 import org.cpsolver.ifs.model.Neighbour;
@@ -12,6 +13,7 @@ import org.cpsolver.ifs.model.Variable;
 import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
+import org.cpsolver.ifs.util.JProf;
 import org.cpsolver.ifs.util.Progress;
 
 
@@ -28,6 +30,7 @@ import org.cpsolver.ifs.util.Progress;
  * <br>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -53,12 +56,17 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
     private Logger iLog = org.apache.logging.log4j.LogManager.getLogger(SimpleSearch.class);
     private NeighbourSelection<V, T> iCon = null;
     private boolean iConstructionUntilComplete = false; 
-    private StandardNeighbourSelection<V, T> iStd = null;
+    private NeighbourSelection<V, T> iStd = null;
     private SimulatedAnnealing<V, T> iSA = null;
     private HillClimber<V, T> iHC = null;
     private GreatDeluge<V, T> iGD = null;
     private boolean iUseGD = true;
     private Progress iProgress = null;
+    private int iMaxIdleIterations = 1000;
+    private boolean iAllowUnassignments = false;
+    
+    private int iTimeOut;
+    private double iStartTime;
 
     /**
      * Constructor
@@ -85,6 +93,14 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
             iHC = new HillClimber<V, T>(properties);
         iGD = new GreatDeluge<V, T>(properties);
         iUseGD = properties.getPropertyBoolean("Search.GreatDeluge", iUseGD);
+        iMaxIdleIterations = properties.getPropertyInt("Search.MaxIdleIterations", iMaxIdleIterations);
+        if (iMaxIdleIterations >= 0) {
+            iStd = new MaxIdleNeighbourSelection<V, T>(properties, iStd, iMaxIdleIterations);
+            if (iCon != null && !iConstructionUntilComplete)
+                iCon = new MaxIdleNeighbourSelection<V, T>(properties, iCon, iMaxIdleIterations);
+        }
+        iTimeOut = properties.getPropertyInt("Termination.TimeOut", 1800);
+        iAllowUnassignments = properties.getPropertyBoolean("Suggestion.AllowUnassignments", iAllowUnassignments);
     }
 
     /**
@@ -102,6 +118,25 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
         iHC.init(solver);
         iGD.init(solver);
         iProgress = Progress.getInstance(solver.currentSolution().getModel());
+        solver.setUpdateProgress(false);
+        iStartTime = JProf.currentTimeSec();
+    }
+    
+    protected void updateProgress(int phase, Solution<V, T> solution) {
+        if (!iHC.isMaster(solution)) return;
+        if (phase < 2) {
+            if (!"Searching for initial solution ...".equals(iProgress.getPhase()))
+                iProgress.setPhase("Searching for initial solution ...", solution.getModel().variables().size());
+            if (solution.getModel().getBestUnassignedVariables() >= 0)
+                iProgress.setProgress(solution.getModel().variables().size() - solution.getModel().getBestUnassignedVariables());
+            else
+                iProgress.setProgress(solution.getAssignment().nrAssignedVariables());
+        } else {
+            if (!"Improving found solution ...".equals(iProgress.getPhase()))
+                iProgress.setPhase("Improving found solution ...", 1000l);
+            double time = JProf.currentTimeSec() - iStartTime;
+            iProgress.setProgress(Math.min(1000l, Math.round(1000 * time / iTimeOut)));
+        }
     }
 
     /**
@@ -116,6 +151,7 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
     @Override
     public Neighbour<V, T> selectNeighbour(Solution<V, T> solution) {
         SimpleSearchContext context = getContext(solution.getAssignment());
+        updateProgress(context.getPhase(), solution);
         Neighbour<V, T> n = null;
         switch (context.getPhase()) {
             case -1:
@@ -131,19 +167,30 @@ public class SimpleSearch<V extends Variable<V, T>, T extends Value<V, T>> exten
                 iProgress.info("[" + Thread.currentThread().getName() + "] IFS...");
             case 1:
                 if (iStd != null && solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0) {
-                    return iStd.selectNeighbour(solution);
+                    n = iStd.selectNeighbour(solution);
+                    if (n != null) return n;
                 }
                 context.setPhase(2);
+                if (solution.getModel().getBestUnassignedVariables() >= 0 && solution.getModel().getBestUnassignedVariables() < solution.getAssignment().nrUnassignedVariables(solution.getModel()))
+                    solution.restoreBest();
             case 2:
-                if (solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0)
-                    return (iCon == null ? iStd : iCon).selectNeighbour(solution);
+                if (iMaxIdleIterations < 0 && solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0) {
+                    n = (iCon == null ? iStd : iCon).selectNeighbour(solution);
+                    if (n != null) return n;
+                }
+                if (iMaxIdleIterations >= 0 && !iAllowUnassignments && solution.getModel().getBestUnassignedVariables() >= 0 && solution.getModel().getBestUnassignedVariables() < solution.getAssignment().nrUnassignedVariables(solution.getModel()))
+                    solution.restoreBest();
                 n = iHC.selectNeighbour(solution);
                 if (n != null)
                     return n;
                 context.setPhase(3);
             case 3:
-                if (solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0)
-                    return (iCon == null ? iStd : iCon).selectNeighbour(solution);
+                if (iMaxIdleIterations < 0 && solution.getModel().nrUnassignedVariables(solution.getAssignment()) > 0) {
+                    n = (iCon == null ? iStd : iCon).selectNeighbour(solution);
+                    if (n != null) return n;
+                }
+                if (iMaxIdleIterations >= 0 && !iAllowUnassignments && solution.getModel().getBestUnassignedVariables() >= 0 && solution.getModel().getBestUnassignedVariables() < solution.getAssignment().nrUnassignedVariables(solution.getModel()))
+                    solution.restoreBest();
                 if (iUseGD)
                     return iGD.selectNeighbour(solution);
                 else

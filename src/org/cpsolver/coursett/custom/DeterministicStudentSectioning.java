@@ -32,6 +32,7 @@ import org.cpsolver.ifs.util.Progress;
  * <code>StudentSectioning.Class=org.cpsolver.coursett.custom.DeterministicStudentSectioning</code>
  * </pre>
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

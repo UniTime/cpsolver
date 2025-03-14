@@ -86,6 +86,7 @@ import org.dom4j.io.XMLWriter;
  * <pre><code>java -Xmx1024m -jar examtt-1.1.jar exam.properties input.xml output.xml</code></pre>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version ExamTT 1.3 (Examination Timetabling)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

@@ -16,6 +16,7 @@ import java.util.TreeSet;
  * folder and create a CSV (comma separated values text file) combining all
  * minimal perturbation information of the found solutions.
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

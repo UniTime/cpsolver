@@ -29,6 +29,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * a morning class (despite of its end), a class starting at noon or later is considered an afternoon class.<br>
  * Reference _MaxHalfDays:4_ translates to a maximum number of 4 half-days a week<br>
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2017 Tomas Muller<br>
  * <br>

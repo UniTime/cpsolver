@@ -20,6 +20,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * instructors. 
  * 
  * <br>
+ * @author  Matej Lukac
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2012 Matej Lukac<br>
  * <br>

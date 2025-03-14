@@ -23,7 +23,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * perturbations, the solution of better quality is selected. <br>
  * <br>
  * Parameters:
- * <table border='1' summary='Related Solver Parameters'>
+ * <table border='1'><caption>Related Solver Parameters</caption>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -85,6 +85,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * </table>
  * 
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

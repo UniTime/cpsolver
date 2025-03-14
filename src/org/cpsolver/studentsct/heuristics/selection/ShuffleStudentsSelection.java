@@ -36,6 +36,7 @@ import org.cpsolver.studentsct.model.Subpart;
  * of a request group that are spread over multiple sections into a single section
  * or into a fewer number of sections.
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -74,6 +75,7 @@ public class ShuffleStudentsSelection implements NeighbourSelection<Request, Enr
         // Check all request groups that have a spread < 1.0 
         RouletteWheelSelection<RequestGroup> groups = new RouletteWheelSelection<RequestGroup>();
         for (Offering offering: model.getOfferings()) {
+            if (offering.isDummy()) continue;
             for (Course course: offering.getCourses()) {
                 for (RequestGroup group: course.getRequestGroups()) {
                     double spread = group.getAverageSpread(solver.currentSolution().getAssignment()); 

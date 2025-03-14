@@ -14,6 +14,7 @@ import org.cpsolver.studentsct.model.Request;
  * is violating a restriction. That is, for each student that has at least one restriction
  * on the requested course, the given enrollment must match at least one of the restrictions.
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

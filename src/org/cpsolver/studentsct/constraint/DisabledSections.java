@@ -17,6 +17,7 @@ import org.cpsolver.studentsct.reservation.Reservation;
  * there is a reservation allowing for the use of disabled sections
  * (using {@link Reservation#isAllowDisabled()}).
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

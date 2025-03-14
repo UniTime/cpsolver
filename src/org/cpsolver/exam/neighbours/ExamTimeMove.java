@@ -1,6 +1,5 @@
 package org.cpsolver.exam.neighbours;
 
-import java.util.Iterator;
 import java.util.Set;
 
 import org.cpsolver.exam.model.Exam;
@@ -8,7 +7,6 @@ import org.cpsolver.exam.model.ExamModel;
 import org.cpsolver.exam.model.ExamPeriodPlacement;
 import org.cpsolver.exam.model.ExamPlacement;
 import org.cpsolver.exam.model.ExamRoomPlacement;
-import org.cpsolver.exam.model.ExamRoomSharing;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.heuristics.NeighbourSelection;
 import org.cpsolver.ifs.model.Neighbour;
@@ -25,6 +23,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * using {@link Exam#findBestAvailableRooms(Assignment, ExamPeriodPlacement)}. <br>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version ExamTT 1.3 (Examination Timetabling)<br>
  *          Copyright (C) 2008 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -72,28 +71,20 @@ public class ExamTimeMove implements NeighbourSelection<Exam,ExamPlacement> {
     public Neighbour<Exam,ExamPlacement> selectNeighbour(Solution<Exam,ExamPlacement> solution) {
         ExamModel model = (ExamModel)solution.getModel();
         Assignment<Exam, ExamPlacement> assignment = solution.getAssignment();
-        ExamRoomSharing sharing = model.getRoomSharing();
         Exam exam = ToolBox.random(model.variables());
         ExamPlacement placement = assignment.getValue(exam);
         int px = ToolBox.random(exam.getPeriodPlacements().size());
         for (int p=0;p<exam.getPeriodPlacements().size();p++) {
             ExamPeriodPlacement period = exam.getPeriodPlacements().get((p+px)%exam.getPeriodPlacements().size());
-            if (placement!=null && placement.getPeriod().equals(period)) continue;
+            if (placement!=null && placement.getPeriod().equals(period.getPeriod())) continue;
             if (iCheckStudentConflicts && exam.countStudentConflicts(assignment, period)>0) continue;
             if (iCheckDistributionConstraints && !exam.checkDistributionConstraints(assignment, period)) continue;
             if (placement!=null) {
                 boolean ok = true;
-                if (sharing != null && placement.getRoomPlacements().size() == 1) {
-                    ExamRoomPlacement room = placement.getRoomPlacements().iterator().next();
-                    ok = room.isAvailable(period.getPeriod()) && !sharing.inConflict(exam, room.getRoom().getPlacements(assignment, period.getPeriod()), room.getRoom());
-                } else {
-                    for (Iterator<ExamRoomPlacement> i=placement.getRoomPlacements().iterator();i.hasNext();) {
-                        ExamRoomPlacement room = i.next();
-                        if (!room.isAvailable(period.getPeriod()) || !room.getRoom().getPlacements(assignment, period.getPeriod()).isEmpty()) {
-                            ok = false; break;
-                        }
+                for (ExamRoomPlacement room: placement.getRoomPlacements())
+                    if (!room.isAvailable(period.getPeriod()) || room.getRoom().inConflict(assignment, exam, period.getPeriod())) {
+                        ok = false; break;
                     }
-                }
                 if (ok)
                     return new ExamSimpleNeighbour(assignment, new ExamPlacement(exam, period, placement.getRoomPlacements()));
             }

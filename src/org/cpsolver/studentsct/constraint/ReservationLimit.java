@@ -24,7 +24,7 @@ import org.cpsolver.studentsct.reservation.Reservation;
  * <br>
  * <br>
  * Parameters:
- * <table border='1' summary='Related Solver Parameters'>
+ * <table border='1'><caption>Related Solver Parameters</caption>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -40,6 +40,7 @@ import org.cpsolver.studentsct.reservation.Reservation;
  * <br>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -310,7 +311,7 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
                 return false;
             
             // check remaning space
-            if (reservation.getReservedAvailableSpace(assignment, enrollment.getRequest()) < enrollment.getRequest().getWeight())
+            if (reservation.getReservedAvailableSpace(assignment, config, enrollment.getRequest()) < enrollment.getRequest().getWeight())
                 return true;
             
             // check reservation can assign over the limit

@@ -11,6 +11,7 @@ import org.cpsolver.ifs.model.Neighbour;
 /**
  * A simple interface representing a student enrollment change.
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2017 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

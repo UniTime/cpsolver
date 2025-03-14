@@ -10,7 +10,7 @@ import org.cpsolver.exam.model.ExamDistributionConstraint;
 import org.cpsolver.exam.model.ExamModel;
 import org.cpsolver.exam.model.ExamPlacement;
 import org.cpsolver.ifs.assignment.Assignment;
-import org.cpsolver.ifs.solver.Solver;
+import org.cpsolver.ifs.model.Model;
 import org.cpsolver.ifs.util.DataProperties;
 
 
@@ -25,6 +25,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * 
  * <br>
  * 
+ * @author  Tomas Muller
  * @version ExamTT 1.3 (Examination Timetabling)<br>
  *          Copyright (C) 2008 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -51,18 +52,14 @@ public class DistributionPenalty extends ExamCriterion {
         setValueUpdateType(ValueUpdateType.NoUpdate); 
     }
     
-    
     @Override
-    public boolean init(Solver<Exam, ExamPlacement> solver) {
-        if (super.init(solver)) {
-            iSoftDistributions = solver.getProperties().getPropertyInteger("Exam.SoftDistributions", null);
-            if (iSoftDistributions != null) {
-                DistributionViolation dv = new DistributionViolation();
-                getModel().addCriterion(dv);
-                return dv.init(solver);
-            }
+    public void setModel(Model<Exam, ExamPlacement> model) {
+        super.setModel(model);
+        iSoftDistributions = ((ExamModel)model).getProperties().getPropertyInteger("Exam.SoftDistributions", null);
+        if (iSoftDistributions != null && model.getCriterion(DistributionViolation.class) == null) { 
+            DistributionViolation dv = new DistributionViolation();
+            model.addCriterion(dv);
         }
-        return true;
     }
     
     @Override
@@ -83,12 +80,12 @@ public class DistributionPenalty extends ExamCriterion {
     @Override
     public double getValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value, Set<ExamPlacement> conflicts) {
         int penalty = 0;
+        ExamPlacement original = assignment.getValue(value.variable());
         for (ExamDistributionConstraint dc : value.variable().getDistributionConstraints()) {
             if (dc.isHard() || (iSoftDistributions != null && iSoftDistributions == dc.getWeight()))
                 continue;
-            boolean sat = dc.isSatisfied(assignment, value);
-            if (sat != dc.isSatisfied(assignment))
-                penalty += (sat ? -dc.getWeight() : dc.getWeight());
+            penalty += dc.countViolations(assignment, value) * dc.getWeight();
+            if (original != null) penalty -= dc.countViolations(assignment, original) * dc.getWeight();
         }
         return penalty;
     }
@@ -103,12 +100,12 @@ public class DistributionPenalty extends ExamCriterion {
     @Override
     public double getRoomValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value) {
         int penalty = 0;
+        ExamPlacement original = assignment.getValue(value.variable());
         for (ExamDistributionConstraint dc : value.variable().getDistributionConstraints()) {
             if (dc.isHard() || (iSoftDistributions != null && iSoftDistributions == dc.getWeight()) || !dc.isRoomRelated())
                 continue;
-            boolean sat = dc.isSatisfied(assignment, value);
-            if (sat != dc.isSatisfied(assignment))
-                penalty += (sat ? -dc.getWeight() : dc.getWeight());
+            penalty += dc.countViolations(assignment, value) * dc.getWeight();
+            if (original != null) penalty -= dc.countViolations(assignment, original) * dc.getWeight();
         }
         return penalty;
     }
@@ -122,8 +119,7 @@ public class DistributionPenalty extends ExamCriterion {
                 if (added.add(dc)) {
                     if (dc.isHard() || (iSoftDistributions != null && iSoftDistributions == dc.getWeight()))
                         continue;
-                    if (!dc.isSatisfied(assignment))
-                        penalty += dc.getWeight();
+                    penalty += dc.countViolations(assignment) * dc.getWeight();
                 }
             }
         }
@@ -133,12 +129,9 @@ public class DistributionPenalty extends ExamCriterion {
     @Override
     public boolean isPeriodCriterion() { return true; }
     
-    @Override
-    public void inc(Assignment<Exam, ExamPlacement> assignment, double value) {
-        if (iSoftDistributions != null && iSoftDistributions == value) {
-            getModel().getCriterion(DistributionViolation.class).inc(assignment, 1.0);
-        } else if (iSoftDistributions != null && iSoftDistributions == -value) {
-            getModel().getCriterion(DistributionViolation.class).inc(assignment, -1.0);
+    public void inc(Assignment<Exam, ExamPlacement> assignment, double value, ExamDistributionConstraint dc) {
+        if (iSoftDistributions != null && iSoftDistributions == dc.getWeight()) {
+            getModel().getCriterion(DistributionViolation.class).inc(assignment, value / dc.getWeight());
         } else {
             super.inc(assignment, value);
         }
@@ -151,12 +144,12 @@ public class DistributionPenalty extends ExamCriterion {
     @Override
     public double getPeriodValue(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value) {
         int penalty = 0;
+        ExamPlacement original = assignment.getValue(value.variable());
         for (ExamDistributionConstraint dc : value.variable().getDistributionConstraints()) {
             if (dc.isHard() || (iSoftDistributions != null && iSoftDistributions == dc.getWeight()) || !dc.isPeriodRelated())
                 continue;
-            boolean sat = dc.isSatisfied(assignment, value);
-            if (sat != dc.isSatisfied(assignment))
-                penalty += (sat ? -dc.getWeight() : dc.getWeight());
+            penalty += dc.countViolations(assignment, value) * dc.getWeight();
+            if (original != null) penalty -= dc.countViolations(assignment, original) * dc.getWeight();
         }
         return penalty;
     }
@@ -167,7 +160,7 @@ public class DistributionPenalty extends ExamCriterion {
         for (ExamDistributionConstraint dc : ((ExamModel)getModel()).getDistributionConstraints()) {
             if (dc.isHard() || (iSoftDistributions != null && iSoftDistributions == dc.getWeight()))
                 continue;
-            bounds[1] += dc.getWeight();
+            bounds[1] += dc.getWeight() * dc.variables().size() * (dc.variables().size() - 1) / 2;
         }
         return bounds;
     }

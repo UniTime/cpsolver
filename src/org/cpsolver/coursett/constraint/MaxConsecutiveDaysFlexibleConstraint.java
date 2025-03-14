@@ -20,9 +20,10 @@ import org.cpsolver.ifs.util.ToolBox;
  * 
  * The MaxConsecutiveDays constraint limits the number of consecutive days of week during which the given set of classes are taught.<br>
  * It has one parameter: a maximal number of consecutive days during which the given set of classes can be placed.<br>
- * Reference _MaxConsDays:2_ translates to a maximum number of 2 consecutive days a week (so for instance, Monday & Tuesday,
- * Tuesday & Wednesday, Wednesday & Thursday, ...)<br>
+ * Reference _MaxConsDays:2_ translates to a maximum number of 2 consecutive days a week (so for instance, Monday &amp; Tuesday,
+ * Tuesday &amp; Wednesday, Wednesday &amp; Thursday, ...)<br>
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2022 Tomas Muller<br>
  * <br>

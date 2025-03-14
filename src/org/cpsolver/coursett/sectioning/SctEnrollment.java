@@ -11,6 +11,7 @@ import org.cpsolver.coursett.model.Lecture;
  * consists of a list of classes and a conflict weight. That is a weighted sum
  * of the student conflicts (with other courses of the student) it creates.
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2017 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

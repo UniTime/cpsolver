@@ -23,6 +23,7 @@ import org.cpsolver.ifs.model.Model;
  * binary constraints are posted between them. For each constraint, n2 = p1*d^2
  * randomly and uniformly selected pairs of values are picked as incompatible.
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

@@ -26,6 +26,7 @@ import org.cpsolver.studentsct.reservation.Reservation;
  * <br>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -200,7 +201,7 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
                 // ignore expired reservations
                 if (r.isExpired()) continue;
                 // there is an unlimited reservation -> no unreserved space
-                if (r.getLimit() < 0) return 0.0;
+                if (r.getLimit(this) < 0) return 0.0;
             }
             return Double.MAX_VALUE;
         }
@@ -211,9 +212,9 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
             // ignore expired reservations
             if (r.isExpired()) continue;
             // unlimited reservation -> all the space is reserved
-            if (r.getLimit() < 0.0) return 0.0;
+            if (r.getLimit(this) < 0.0) return 0.0;
             // compute space that can be potentially taken by this reservation
-            double reserved = r.getContext(assignment).getReservedAvailableSpace(assignment, excludeRequest);
+            double reserved = r.getContext(assignment).getReservedAvailableSpace(assignment, this, excludeRequest);
             // deduct the space from available space
             available -= Math.max(0.0, reserved);
         }
@@ -240,7 +241,7 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
                 // ignore expired reservations
                 if (r.isExpired()) continue;
                 // there is an unlimited reservation -> no unreserved space
-                if (r.getLimit() < 0) return 0.0;
+                if (r.getLimit(this) < 0) return 0.0;
             }
             return Double.MAX_VALUE;
         }
@@ -252,16 +253,16 @@ public class Config extends AbstractClassWithContext<Request, Enrollment, Config
             // ignore expired reservations
             if (r.isExpired()) continue;
             // unlimited reservation -> no unreserved space
-            if (r.getLimit() < 0) return 0.0;
+            if (r.getLimit(this) < 0) return 0.0;
             for (Config s: r.getConfigs()) {
                 if (s.equals(this)) continue;
                 if (s.getLimit() < 0) continue reservations;
                 if (configs.add(s))
                     available += s.getLimit();
             }
-            reserved += r.getLimit();
+            reserved += r.getLimit(this);
             if (r.getConfigs().size() == 1)
-                exclusive += r.getLimit();
+                exclusive += r.getLimit(this);
         }
         
         return Math.min(available - reserved, getLimit() - exclusive);

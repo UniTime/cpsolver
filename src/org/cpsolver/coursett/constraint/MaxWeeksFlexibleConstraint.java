@@ -27,6 +27,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * (64 for Monday, 32 for Tuesday, 16 for Wednesday, 8 for Thursday, 4 for Friday, 2 for Saturday, and 1 for Sunday).
  * If the second parameter is zero, all days of week are considered.<br>
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2013 - 2014 Tomas Muller<br>
  * <br>

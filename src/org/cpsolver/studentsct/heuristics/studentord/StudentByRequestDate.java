@@ -11,6 +11,7 @@ import org.cpsolver.studentsct.model.Student;
  * is the same (or not set), fall back to the number of choices
  * (student with fewer choices first).
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2019 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

@@ -26,7 +26,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * Value selection criterion is based on weighted sum of various criteria. It
  * also allows random walk technique and tabu search. <br>
  * Parameters: <br>
- * <table border='1' summary='Related Solver Parameters'>
+ * <table border='1'><caption>Related Solver Parameters</caption>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -71,7 +71,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * Following weights are used in the weighted sum (computed for all values). The
  * value with the lowest weighted sum is selected. If there are more than one of
  * such values, one of them is selected randomly. <br>
- * <table border='1' summary='Related Solver Parameters'>
+ * <table border='1'><caption>Related Solver Parameters</caption>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -113,6 +113,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * @see VariableSelection
  * @see Solver
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

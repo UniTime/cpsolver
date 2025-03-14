@@ -24,6 +24,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * It has one parameter: a maximal number of week days during which the given set of classes can be placed.<br>
  * Reference _MaxDays:2_ translates to a maximum number of 2 days a week<br>
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2015 Tomas Muller<br>
  * <br>

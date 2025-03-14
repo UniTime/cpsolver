@@ -24,6 +24,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * all classes and all conflicting students of each class and generate a random swap for
  * each such student.
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2017 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

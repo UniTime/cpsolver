@@ -25,6 +25,7 @@ import org.cpsolver.ifs.util.Progress;
  * backtracking search. This way it is ensured that the fund solution is at
  * least locally optimal.
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

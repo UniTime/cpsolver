@@ -58,6 +58,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * @see org.cpsolver.ifs.solution.Solution
  * @see org.cpsolver.ifs.solver.Solver
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -150,7 +151,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
         variable.setModel(null);
         iVariables.remove(variable);
         if (variable instanceof InfoProvider<?, ?>)
-            iInfoProviders.remove(variable);
+            iInfoProviders.remove((InfoProvider<?, ?>)variable);
         for (ModelListener<V, T> listener : iModelListeners)
             listener.variableRemoved(variable);
         invalidateVariablesWithInitialValueCache();
@@ -193,7 +194,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
         constraint.setModel(null);
         iConstraints.remove(constraint);
         if (constraint instanceof InfoProvider<?, ?>)
-            iInfoProviders.remove(constraint);
+            iInfoProviders.remove((InfoProvider<?, ?>)constraint);
         for (ModelListener<V, T> listener : iModelListeners)
             listener.constraintRemoved(constraint);
         if (constraint instanceof HasAssignmentContext)
@@ -225,6 +226,8 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
             iInfoProviders.add((InfoProvider<V, T>) constraint);
         for (ModelListener<V, T> listener : iModelListeners)
             listener.constraintAdded(constraint);
+        if (constraint instanceof ModelListener<?, ?>)
+            iModelListeners.add((ModelListener<V, T>) constraint);
     }
 
     /** Removes a global constraint from the model
@@ -235,7 +238,9 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
         constraint.setModel(null);
         iGlobalConstraints.remove(constraint);
         if (constraint instanceof InfoProvider<?, ?>)
-            iInfoProviders.remove(constraint);
+            iInfoProviders.remove((InfoProvider<?, ?>) constraint);
+        if (constraint instanceof ModelListener<?, ?>)
+            iModelListeners.remove((ModelListener<V, T>) constraint);
         for (ModelListener<V, T> listener : iModelListeners)
             listener.constraintRemoved(constraint);
         if (constraint instanceof HasAssignmentContext)
@@ -357,6 +362,19 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      * @return list of perturbation variables in the sub-problem
      */
     public List<V> perturbVariables(Assignment<V, T> assignment, Collection<V> variables) {
+        return perturbVariables(assignment, variables, true);
+    }
+
+    /**
+     * The list of perturbation variables in the model, i.e., the variables
+     * which has an initial value but which are not assigned with this value.
+     * Only variables from the given set are considered.
+     * @param assignment current assignment
+     * @param variables sub-problem
+     * @param includeNotAssigned when true, include not assigned variables with a hard conflict (that cannot be assigned)
+     * @return list of perturbation variables in the sub-problem
+     */
+    public List<V> perturbVariables(Assignment<V, T> assignment, Collection<V> variables, boolean includeNotAssigned) {
         List<V> perturbances = new ArrayList<V>();
         for (V variable : variables) {
             if (variable.getInitialAssignment() == null)
@@ -365,7 +383,7 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
             if (value != null) {
                 if (!variable.getInitialAssignment().equals(value))
                     perturbances.add(variable);
-            } else {
+            } else if (includeNotAssigned) {
                 boolean hasPerturbance = false;
                 for (Constraint<V, T> constraint : variable.hardConstraints()) {
                     if (constraint.inConflict(assignment, variable.getInitialAssignment())) {
@@ -611,9 +629,10 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
     public Map<String, String> getInfo(Assignment<V, T> assignment) {
         Map<String, String> ret = new HashMap<String, String>();
         ret.put("Assigned variables", getPercRev(assignment.nrAssignedVariables(), 0, variables().size()) + "% (" + assignment.nrAssignedVariables() + "/" + variables().size() + ")");
-        int nrVarsWithInitialValue = variablesWithInitialValue().size();
+        Collection<V> varsWithInitialValue = variablesWithInitialValue();
+        int nrVarsWithInitialValue = varsWithInitialValue.size();
         if (nrVarsWithInitialValue > 0) {
-            Collection<V> pv = perturbVariables(assignment);
+            Collection<V> pv = perturbVariables(assignment, varsWithInitialValue, false);
             ret.put("Perturbation variables", getPercRev(pv.size(), 0, nrVarsWithInitialValue) + "% (" + pv.size() + " + " + (variables().size() - nrVarsWithInitialValue) + ")");
         }
         ret.put("Overall solution value", sDoubleFormat.format(getTotalValue(assignment)));
@@ -991,6 +1010,8 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
             iInfoProviders.add((InfoProvider<V, T>) listener);
         for (Constraint<V, T> constraint : iConstraints)
             listener.constraintAdded(constraint);
+        for (Constraint<V, T> constraint : iGlobalConstraints)
+            listener.constraintAdded(constraint);
         for (V variable : iVariables)
             listener.variableAdded(variable);
     }
@@ -1000,10 +1021,12 @@ public class Model<V extends Variable<V, T>, T extends Value<V, T>> {
      **/
     public void removeModelListener(ModelListener<V, T> listener) {
         if (listener instanceof InfoProvider<?, ?>)
-            iInfoProviders.remove(listener);
+            iInfoProviders.remove((InfoProvider<?, ?>)listener);
         for (V variable : iVariables)
             listener.variableRemoved(variable);
         for (Constraint<V, T> constraint : iConstraints)
+            listener.constraintRemoved(constraint);
+        for (Constraint<V, T> constraint : iGlobalConstraints)
             listener.constraintRemoved(constraint);
         iModelListeners.remove(listener);
     }

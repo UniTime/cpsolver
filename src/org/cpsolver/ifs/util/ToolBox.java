@@ -36,6 +36,7 @@ import org.apache.logging.log4j.core.config.builder.impl.BuiltConfiguration;
 /**
  * Several auxiliary static methods.
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -463,9 +464,9 @@ public class ToolBox {
                     System.out.println("  Loading included file '" + aFile + "' ... ");
                     if ((new File(aFile)).exists())
                         is = new FileInputStream(aFile);
-                    if ((new File(propertyFile.getParent() + File.separator + aFile)).exists())
+                    else if ((new File(propertyFile.getParent() + File.separator + aFile)).exists())
                         is = new FileInputStream(propertyFile.getParent() + File.separator + aFile);
-                    if (is == null)
+                    else
                         System.err.println("Unable to find include file '" + aFile + "'.");
                     ret.load(is);
                     is.close();
@@ -522,7 +523,7 @@ public class ToolBox {
      * @param obj array of elements
      * @return list of elements
      */
-    public static <E> List<E> toList(E... obj) {
+    public static <E> List<E> toList(@SuppressWarnings("unchecked") E... obj) {
         List<E> ret = new ArrayList<E>(obj == null ? 0 : obj.length);
         if (obj != null)
             for (E e: obj)

@@ -14,6 +14,7 @@ import org.cpsolver.instructor.model.TeachingRequest;
  * Original Instructor. This criterion penalizes teaching assignments that are not given
  * to the initial instructor (i.e., {@link TeachingRequest} is not assigned to {@link Variable#getInitialAssignment()}).
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

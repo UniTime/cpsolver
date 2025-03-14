@@ -24,6 +24,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * It has one parameter: a maximal amount of free time (holes) that an instructor have on a day in minutes.<br>
  * Reference _MaxHoles:120_ translates to a maximum number of two hours on a day (between the first and the last class on a day).<br>
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2013 - 2017 Tomas Muller<br>
  * <br>

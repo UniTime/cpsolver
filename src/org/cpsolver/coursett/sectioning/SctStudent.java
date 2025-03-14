@@ -21,6 +21,7 @@ import org.cpsolver.coursett.model.Student;
  * A class wrapping a student, including an ordered set of possible enrollment into a given
  * course.
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2017 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

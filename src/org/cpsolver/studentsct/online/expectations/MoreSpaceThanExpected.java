@@ -11,6 +11,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * enrolled students (including the student in question) + expectations is greater or equal
  * the section limit.
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

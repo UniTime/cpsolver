@@ -52,6 +52,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * See {@link ExamPlacement} for more details. <br>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version ExamTT 1.3 (Examination Timetabling)<br>
  *          Copyright (C) 2008 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -332,7 +333,7 @@ public class Exam extends Variable<Exam, ExamPlacement> {
             if (sizeBound < getSize())
                 break;
             ExamRoomPlacement room = iRoomPlacements.get(roomIdx);
-            if (room.isAvailable(period)) {
+            if (room.isAvailable(period) && ExamRoom.checkParents(roomsSoFar, room)) {
                 roomsSoFar.add(room);
                 genRoomSets(period, maxRoomSets, roomSets, roomIdx + 1, maxRooms - 1, roomsSoFar,
                         sizeSoFar + room.getSize(hasAltSeating()), penaltySoFar + room.getPenalty(period));
@@ -553,42 +554,12 @@ public class Exam extends Variable<Exam, ExamPlacement> {
                 ExamPlacement placement = assignment.getValue(exam);
                 if (placement == null)
                     continue;
-                switch (dc.getType()) {
-                    case ExamDistributionConstraint.sDistSamePeriod:
-                        if (period.getIndex() != placement.getPeriod().getIndex())
-                            return false;
-                        break;
-                    case ExamDistributionConstraint.sDistDifferentPeriod:
-                        if (period.getIndex() == placement.getPeriod().getIndex())
-                            return false;
-                        break;
-                    case ExamDistributionConstraint.sDistPrecedence:
-                        if (before) {
-                            if (period.getIndex() <= placement.getPeriod().getIndex())
-                                return false;
-                        } else {
-                            if (period.getIndex() >= placement.getPeriod().getIndex())
-                                return false;
-                        }
-                        break;
-                    case ExamDistributionConstraint.sDistPrecedenceRev:
-                        if (before) {
-                            if (period.getIndex() >= placement.getPeriod().getIndex())
-                                return false;
-                        } else {
-                            if (period.getIndex() <= placement.getPeriod().getIndex())
-                                return false;
-                        }
-                        break;
-                    
-                    case ExamDistributionConstraint.sDistSameDay:
-                        if (period.getPeriod().getDay() != placement.getPeriod().getDay())
-                            return false;
-                        break;
-                    case ExamDistributionConstraint.sDistDifferentDay:
-                        if (period.getPeriod().getDay() == placement.getPeriod().getDay())
-                            return false;
-                        break;
+                if (before) {
+                    if (!dc.getDistributionType().isSatisfied(placement.getPeriod(), period.getPeriod()))
+                        return false;
+                } else {
+                    if (!dc.getDistributionType().isSatisfied(period.getPeriod(), placement.getPeriod()))
+                        return false;
                 }
             }
         }
@@ -614,16 +585,8 @@ public class Exam extends Variable<Exam, ExamPlacement> {
                 ExamPlacement placement = assignment.getValue(exam);
                 if (placement == null)
                     continue;
-                switch (dc.getType()) {
-                    case ExamDistributionConstraint.sDistSameRoom:
-                        if (!placement.getRoomPlacements().contains(room))
-                            return false;
-                        break;
-                    case ExamDistributionConstraint.sDistDifferentRoom:
-                        if (placement.getRoomPlacements().contains(room))
-                            return false;
-                        break;
-                }
+                if (!dc.getDistributionType().isSatisfied(placement, room))
+                    return false;
             }
         }
         return true;
@@ -648,16 +611,8 @@ public class Exam extends Variable<Exam, ExamPlacement> {
                 ExamPlacement placement = assignment.getValue(exam);
                 if (placement == null)
                     continue;
-                switch (dc.getType()) {
-                    case ExamDistributionConstraint.sDistSameRoom:
-                        if (!placement.getRoomPlacements().contains(room))
-                            penalty += dc.getWeight();
-                        break;
-                    case ExamDistributionConstraint.sDistDifferentRoom:
-                        if (placement.getRoomPlacements().contains(room))
-                            penalty += dc.getWeight();
-                        break;
-                }
+                if (!dc.getDistributionType().isSatisfied(placement, room))
+                    penalty += dc.getWeight();
             }
         }
         return penalty;
@@ -702,7 +657,6 @@ public class Exam extends Variable<Exam, ExamPlacement> {
         double sw = getModel().getCriterion(RoomSizePenalty.class).getWeight();
         double pw = getModel().getCriterion(RoomPenalty.class).getWeight();
         double cw = getModel().getCriterion(DistributionPenalty.class).getWeight();
-        ExamRoomSharing sharing = ((ExamModel) getModel()).getRoomSharing();
         loop: for (int nrRooms = 1; nrRooms <= getMaxRooms(); nrRooms++) {
             HashSet<ExamRoomPlacement> rooms = new HashSet<ExamRoomPlacement>();
             int size = 0;
@@ -714,13 +668,8 @@ public class Exam extends Variable<Exam, ExamPlacement> {
                 for (ExamRoomPlacement room : getRoomPlacements()) {
                     if (!room.isAvailable(period.getPeriod()))
                         continue;
-                    if (nrRooms == 1 && sharing != null) {
-                        if (sharing.inConflict(this, room.getRoom().getPlacements(assignment, period.getPeriod()), room.getRoom()))
-                            continue;
-                    } else {
-                        if (!room.getRoom().getPlacements(assignment, period.getPeriod()).isEmpty())
-                            continue;
-                    }
+                    if (!ExamRoom.checkParents(rooms, room)) continue;
+                    if (room.getRoom().inConflict(assignment, this, period.getPeriod())) continue;
                     if (rooms.contains(room))
                         continue;
                     if (!checkDistributionConstraints(assignment, room))
@@ -791,7 +740,6 @@ public class Exam extends Variable<Exam, ExamPlacement> {
             return new HashSet<ExamRoomPlacement>();
         HashSet<ExamRoomPlacement> rooms = new HashSet<ExamRoomPlacement>();
         int size = 0;
-        ExamRoomSharing sharing = ((ExamModel) getModel()).getRoomSharing();
         loop: while (rooms.size() < getMaxRooms()) {
             int rx = ToolBox.random(getRoomPlacements().size());
             int minSize = (getSize() - size + (getMaxRooms() - rooms.size() - 1)) / (getMaxRooms() - rooms.size());
@@ -802,15 +750,8 @@ public class Exam extends Variable<Exam, ExamPlacement> {
                     continue;
                 if (!room.isAvailable(period.getPeriod()))
                     continue;
-                if (checkConflicts) {
-                    if (rooms.isEmpty() && sharing != null && !room.getRoom().getPlacements(assignment, period.getPeriod()).isEmpty()) {
-                        if (sharing.inConflict(this, room.getRoom().getPlacements(assignment, period.getPeriod()), room.getRoom()))
-                            continue;
-                    } else {
-                        if (!room.getRoom().getPlacements(assignment, period.getPeriod()).isEmpty())
-                            continue;
-                    }
-                }
+                if (!ExamRoom.checkParents(rooms, room)) continue;
+                if (checkConflicts && room.getRoom().inConflict(assignment, this, period.getPeriod())) continue;
                 if (rooms.contains(room))
                     continue;
                 if (checkConflicts && !checkDistributionConstraints(assignment, room))

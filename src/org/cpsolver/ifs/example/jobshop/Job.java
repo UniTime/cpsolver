@@ -13,6 +13,7 @@ import org.cpsolver.ifs.model.Constraint;
  * satisfied, if all operations of the job do not overlap in time and are
  * processed in the given order.
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

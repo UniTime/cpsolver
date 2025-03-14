@@ -15,6 +15,7 @@ import org.cpsolver.studentsct.model.Student;
  * This reports lists critical courses and their assignments.<br>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2015 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -34,9 +35,7 @@ import org.cpsolver.studentsct.model.Student;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class CriticalCoursesTable implements StudentSectioningReport {
-    private StudentSectioningModel iModel = null;
-
+public class CriticalCoursesTable extends AbstractStudentSectioningReport {
     /**
      * Constructor
      * 
@@ -44,18 +43,11 @@ public class CriticalCoursesTable implements StudentSectioningReport {
      *            student sectioning model
      */
     public CriticalCoursesTable(StudentSectioningModel model) {
-        iModel = model;
+        super(model);
     }
 
-    /** Return student sectioning model 
-     * @return problem model
-     **/
-    public StudentSectioningModel getModel() {
-        return iModel;
-    }
-    
     @Override
-    public CSVFile create(Assignment<Request, Enrollment> assignment, DataProperties properties) {
+    public CSVFile createTable(Assignment<Request, Enrollment> assignment, DataProperties properties) {
         RequestPriority rp = RequestPriority.valueOf(properties.getProperty("priority", RequestPriority.Critical.name()));
         CSVFile csv = new CSVFile();
         csv.setHeader(new CSVFile.CSVField[] {
@@ -77,6 +69,7 @@ public class CriticalCoursesTable implements StudentSectioningReport {
                     priority ++;
                     if (rp != cr.getRequestPriority() || cr.isAlternative()) continue;
                     Enrollment e = cr.getAssignment(assignment);
+                    if (!matches(cr, e)) continue;
                     Course course = cr.getCourses().get(0);
                     Course alt1 = (cr.getCourses().size() < 2 ? null : cr.getCourses().get(1));
                     Course alt2 = (cr.getCourses().size() < 3 ? null : cr.getCourses().get(2));

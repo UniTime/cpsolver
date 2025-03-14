@@ -7,6 +7,7 @@ import org.cpsolver.coursett.model.TimeLocation;
 /**
  * Enrolled class to be used as an instructor unavailability.
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

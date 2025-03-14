@@ -59,7 +59,7 @@ import org.cpsolver.ifs.util.DistanceMetric;
  * perturbation penalty and other (initial) soft constraints. <br>
  * <br>
  * Parameters:
- * <table border='1' summary='Related Solver Parameters'>
+ * <table border='1'><caption>Related Solver Parameters</caption>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -207,6 +207,7 @@ import org.cpsolver.ifs.util.DistanceMetric;
  * </tr>
  * </table>
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -418,7 +419,7 @@ public class UniversalPerturbationsCounter extends DefaultPerturbationsCounter<L
         double deltaTimePreferences = 0;
         int deltaRoomPreferences = 0;
         int deltaInstructorDistancePreferences = 0;
-        for (Lecture lecture : (variables == null ? model.perturbVariables(assignment) : model.perturbVariables(assignment, variables))) {
+        for (Lecture lecture : (variables == null ? model.perturbVariables(assignment, model.variablesWithInitialValue(), false) : model.perturbVariables(assignment, variables, false))) {
             if (assignment.getValue(lecture) == null || lecture.getInitialAssignment() == null || assignment.getValue(lecture).equals(lecture.getInitialAssignment()))
                 continue;
             perts++;

@@ -32,6 +32,7 @@ import org.cpsolver.studentsct.online.OnlineSectioningModel;
  * similar to the {@link SuggestionSelection}, however, the {link {@link OnlineSelection}
  * is used to compare two solutions and for branching.
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -141,7 +142,7 @@ public class MultiCriteriaBranchAndBoundSelection implements OnlineSectioningSel
     }
 
     /**
-     * Execute branch & bound, return the best found schedule for the selected
+     * Execute branch &amp; bound, return the best found schedule for the selected
      * student.
      */
     public BranchBoundNeighbour select() {
@@ -172,7 +173,7 @@ public class MultiCriteriaBranchAndBoundSelection implements OnlineSectioningSel
         return iTimeoutReached;
     }
 
-    /** Time (in milliseconds) the branch & bound did run */
+    /** Time (in milliseconds) the branch &amp; bound did run */
     public long getTime() {
         return iT1 - iT0;
     }
@@ -296,7 +297,7 @@ public class MultiCriteriaBranchAndBoundSelection implements OnlineSectioningSel
         return values;
     }
 
-    /** branch & bound search */
+    /** branch &amp; bound search */
     public void backTrack(int idx) {
         if (iTimeout > 0 && (JProf.currentTimeMillis() - iT0) > iTimeout) {
             iTimeoutReached = true;

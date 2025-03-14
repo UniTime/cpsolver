@@ -16,6 +16,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * {@link Variable#compareTo(Variable)}) unassigned variable is selected. One is
  * selected randomly if there are more than one of such variables.
  * 
+ * @author  Tomas Muller
  * @version ExamTT 1.3 (Examination Timetabling)<br>
  *          Copyright (C) 2008 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

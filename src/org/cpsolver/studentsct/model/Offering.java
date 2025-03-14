@@ -20,6 +20,7 @@ import org.cpsolver.studentsct.reservation.Restriction;
  * <br>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -47,6 +48,7 @@ public class Offering {
     private List<Course> iCourses = new ArrayList<Course>();
     private List<Reservation> iReservations = new ArrayList<Reservation>();
     private List<Restriction> iRestrictions = new ArrayList<Restriction>();
+    private boolean iDummy = false;
 
     /**
      * Constructor
@@ -249,7 +251,7 @@ public class Offering {
                     // skip reservations that have restrictions that are not inclusive (these are only checked on the restricted sections/configs)
                     if (!r.areRestrictionsInclusive() && (!r.getConfigs().isEmpty() || !r.getSections().isEmpty())) continue;
                     // there is an unlimited reservation -> no unreserved space
-                    if (r.getLimit() < 0) return 0.0;
+                    if (r.getLimit(config) < 0) return 0.0;
                 }
                 return Double.MAX_VALUE;
             }
@@ -290,7 +292,7 @@ public class Offering {
                     // skip reservations that have restrictions that are not inclusive (these are only checked on the restricted sections/configs)
                     if (!r.areRestrictionsInclusive() && (!r.getConfigs().isEmpty() || !r.getSections().isEmpty())) continue;
                     // there is an unlimited reservation -> no unreserved space
-                    if (r.getLimit() < 0) return 0.0;
+                    if (r.getLimit(config) < 0) return 0.0;
                 }
                 return Double.MAX_VALUE;
             }
@@ -346,4 +348,17 @@ public class Offering {
     
     public Model<Request, Enrollment> getModel() { return iModel; }
     public void setModel(Model<Request, Enrollment> model) { iModel = model; }
+    
+    /**
+     * Dummy courses that should show on the solver dashboard
+     * (e.g., because they are loaded due to an other session unavailability)
+     * @return true if the course is "dummy"
+     */
+    public boolean isDummy() { return iDummy; }
+    
+    /**
+     * Dummy courses that should show on the solver dashboard
+     * (e.g., because they are loaded due to an other session unavailability)
+    */
+    public void setDummy(boolean dummy) { iDummy = dummy; }
 }

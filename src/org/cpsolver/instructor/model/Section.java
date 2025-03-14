@@ -12,6 +12,7 @@ import org.cpsolver.instructor.criteria.DifferentLecture;
  * marked as common. This is, for instance, to be able to ensure that all assignments of a course that are
  * given to a single instructor share the same lecture.  
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -302,7 +303,7 @@ public class Section {
     /**
      * Format the time statement
      * @param useAmPm use 12-hours or 24-hours format
-     * @return <Days of week> <Start time> - <End time>
+     * @return &lt;Days of week&gt; &lt;Start time&gt; - &lt;End time&gt;
      */
     public String getTimeName(boolean useAmPm) {
         if (getTime() == null || getTime().getDayCode() == 0) return "-";

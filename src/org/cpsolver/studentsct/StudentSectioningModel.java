@@ -30,6 +30,7 @@ import org.cpsolver.studentsct.constraint.ConfigLimit;
 import org.cpsolver.studentsct.constraint.CourseLimit;
 import org.cpsolver.studentsct.constraint.DisabledSections;
 import org.cpsolver.studentsct.constraint.FixInitialAssignments;
+import org.cpsolver.studentsct.constraint.HardDistanceConflicts;
 import org.cpsolver.studentsct.constraint.LinkedSections;
 import org.cpsolver.studentsct.constraint.RequiredReservation;
 import org.cpsolver.studentsct.constraint.RequiredRestrictions;
@@ -66,6 +67,7 @@ import org.cpsolver.studentsct.weights.StudentWeights;
  * <br>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -202,6 +204,10 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             RequiredRestrictions requiredRestrictions = new RequiredRestrictions();
             addGlobalConstraint(requiredRestrictions);
         }
+        if (properties.getPropertyBoolean("Sectioning.HardDistanceConflict", false)) {
+            HardDistanceConflicts hardDistanceConflicts = new HardDistanceConflicts();
+            addGlobalConstraint(hardDistanceConflicts);
+        }
         if (iMPP && iKeepInitials) {
             addGlobalConstraint(new FixInitialAssignments());
         }
@@ -305,6 +311,18 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             iTotalMPPCRWeight += request.getWeight();
         if (request.hasSelection())
             iTotalSelCRWeight += request.getWeight();
+    }
+    
+    public void setCourseRequestPriority(CourseRequest request, RequestPriority priority) {
+        if (request.getRequestPriority() != RequestPriority.Normal && !request.getStudent().isDummy() && !request.isAlternative())
+            iTotalCriticalCRWeight[request.getRequestPriority().ordinal()] -= request.getWeight();
+        if (request.getRequestPriority() != RequestPriority.Normal && !request.isAlternative())
+            iTotalPriorityCriticalCRWeight[request.getRequestPriority().ordinal()][request.getStudent().getPriority().ordinal()] -= request.getWeight();
+        request.setRequestPriority(priority);
+        if (request.getRequestPriority() != RequestPriority.Normal && !request.getStudent().isDummy() && !request.isAlternative())
+            iTotalCriticalCRWeight[request.getRequestPriority().ordinal()] += request.getWeight();
+        if (request.getRequestPriority() != RequestPriority.Normal && !request.isAlternative())
+            iTotalPriorityCriticalCRWeight[request.getRequestPriority().ordinal()][request.getStudent().getPriority().ordinal()] += request.getWeight();
     }
     
     /** 
@@ -456,8 +474,12 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         if (getStudentQuality() != null) {
             int confs = getStudentQuality().getTotalPenalty(StudentQuality.Type.Distance, assignment);
             int shortConfs = getStudentQuality().getTotalPenalty(StudentQuality.Type.ShortDistance, assignment);
+            int unavConfs = getStudentQuality().getTotalPenalty(StudentQuality.Type.UnavailabilityDistance, assignment);
             if (confs > 0 || shortConfs > 0) {
                 info.put("Student distance conflicts", confs + (shortConfs == 0 ? "" : " (" + getDistanceMetric().getShortDistanceAccommodationReference() + ": " + shortConfs + ")"));
+            }
+            if (unavConfs > 0) {
+                info.put("Unavailabilities: Distance conflicts", String.valueOf(unavConfs));
             }
         } else if (getDistanceConflict() != null) {
             int confs = getDistanceConflict().getTotalNrConflicts(assignment);
@@ -473,7 +495,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             if (shareCR + shareFT + shareUN > 0)
                 info.put("Time overlapping conflicts", sDoubleFormat.format((5.0 * (shareCR + shareFT + shareUN)) / iStudents.size()) + " mins per student\n" + 
                         "(" + sDoubleFormat.format(5.0 * shareCR / iStudents.size()) + " between courses, " + sDoubleFormat.format(5.0 * shareFT / iStudents.size()) + " free time" +
-                        (shareUN == 0 ? "" : ", " + sDoubleFormat.format(5.0 * shareUN / iStudents.size()) + " teaching assignments") + "; " + sDoubleFormat.format((shareCR + shareFT + shareUN) / 12.0) + " hours total)");
+                        (shareUN == 0 ? "" : ", " + sDoubleFormat.format(5.0 * shareUN / iStudents.size()) + " teaching assignments & unavailabilities") + "; " + sDoubleFormat.format((shareCR + shareFT + shareUN) / 12.0) + " hours total)");
         } else if (getTimeOverlaps() != null && getTimeOverlaps().getTotalNrConflicts(assignment) != 0) {
             info.put("Time overlapping conflicts", sDoubleFormat.format(5.0 * getTimeOverlaps().getTotalNrConflicts(assignment) / iStudents.size()) + " mins per student (" + sDoubleFormat.format(getTimeOverlaps().getTotalNrConflicts(assignment) / 12.0) + " hours total)");
         }
@@ -1106,6 +1128,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         int disb10Limit = getProperties().getPropertyInt("Info.ListDisbalancedSections", 0);
         Set<String> disb10SectionList = (disb10Limit == 0 ? null : new TreeSet<String>()); 
         for (Offering offering: getOfferings()) {
+            if (offering.isDummy()) continue;
             for (Config config: offering.getConfigs()) {
                 double enrl = config.getEnrollmentTotalWeight(assignment, null);
                 for (Subpart subpart: config.getSubparts()) {
@@ -1244,6 +1267,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         int nbrOfferings = 0, nbrFullOfferings = 0, nbrOfferings98 = 0, nbrOfferings95 = 0, nbrOfferings90 = 0;
         int enrlOfferings = 0, enrlOfferingsFull = 0, enrlOfferings98 = 0, enrlOfferings95 = 0, enrlOfferings90 = 0;
         for (Offering offering: getOfferings()) {
+            if (offering.isDummy()) continue;
             int offeringLimit = 0, offeringEnrollment = 0;
             for (Config config: offering.getConfigs()) {
                 int configLimit = config.getLimit();
@@ -1334,6 +1358,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
             int shareCR = getStudentQuality().getContext(assignment).countTotalPenalty(StudentQuality.Type.CourseTimeOverlap, assignment);
             int shareFT = getStudentQuality().getContext(assignment).countTotalPenalty(StudentQuality.Type.FreeTimeOverlap, assignment);
             int shareUN = getStudentQuality().getContext(assignment).countTotalPenalty(StudentQuality.Type.Unavailability, assignment);
+            int shareUND = getStudentQuality().getContext(assignment).countTotalPenalty(StudentQuality.Type.UnavailabilityDistance, assignment);
             if (shareCR > 0) {
                 Set<Student> students = new HashSet<Student>();
                 for (StudentQuality.Conflict c: getStudentQuality().getContext(assignment).computeAllConflicts(StudentQuality.Type.CourseTimeOverlap, assignment)) {
@@ -1353,7 +1378,14 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 for (StudentQuality.Conflict c: getStudentQuality().getContext(assignment).computeAllConflicts(StudentQuality.Type.Unavailability, assignment)) {
                     students.add(c.getStudent());
                 }
-                info.put("Time overlaps: teaching assignments", students.size() + " students (avg " + sDoubleFormat.format(5.0 * shareUN / students.size()) + " mins)");
+                info.put("Unavailabilities: Time conflicts", students.size() + " students (avg " + sDoubleFormat.format(5.0 * shareUN / students.size()) + " mins)");
+            }
+            if (shareUND > 0) {
+                Set<Student> students = new HashSet<Student>();
+                for (StudentQuality.Conflict c: getStudentQuality().getContext(assignment).computeAllConflicts(StudentQuality.Type.UnavailabilityDistance, assignment)) {
+                    students.add(c.getStudent());
+                }
+                info.put("Unavailabilities: Distance conflicts", students.size() + " students (avg " + sDoubleFormat.format(shareUND / students.size()) + " travels)");
             }
         } else if (getTimeOverlaps() != null && getTimeOverlaps().getTotalNrConflicts(assignment) != 0) {
             Set<TimeOverlapsCounter.Conflict> conf = getTimeOverlaps().getContext(assignment).computeAllConflicts(assignment);
@@ -1441,6 +1473,8 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                     priority += sp.code() + "PCI:" + sDecimalFormat.format(100.0 * getContext(assignment).iAssignedPriorityCriticalCRWeight[RequestPriority.Important.ordinal()][sp.ordinal()] / iTotalPriorityCriticalCRWeight[RequestPriority.Important.ordinal()][sp.ordinal()]) + "%, ";
                 if (iTotalPriorityCriticalCRWeight[RequestPriority.Vital.ordinal()][sp.ordinal()] > 0.0)
                     priority += sp.code() + "PCV:" + sDecimalFormat.format(100.0 * getContext(assignment).iAssignedPriorityCriticalCRWeight[RequestPriority.Vital.ordinal()][sp.ordinal()] / iTotalPriorityCriticalCRWeight[RequestPriority.Vital.ordinal()][sp.ordinal()]) + "%, ";
+                if (iTotalPriorityCriticalCRWeight[RequestPriority.VisitingF2F.ordinal()][sp.ordinal()] > 0.0)
+                    priority += sp.code() + "PCVF:" + sDecimalFormat.format(100.0 * getContext(assignment).iAssignedPriorityCriticalCRWeight[RequestPriority.VisitingF2F.ordinal()][sp.ordinal()] / iTotalPriorityCriticalCRWeight[RequestPriority.VisitingF2F.ordinal()][sp.ordinal()]) + "%, ";
             }
         }
         return   (getNrRealStudents(false) > 0 ? "RRq:" + getNrAssignedRealRequests(assignment, false) + "/" + getNrRealRequests(false) + ", " : "")
@@ -1453,6 +1487,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
                 + (iTotalCriticalCRWeight[RequestPriority.Critical.ordinal()] > 0.0 ? "CC:" + sDecimalFormat.format(100.0 * getContext(assignment).getAssignedCriticalCourseRequestWeight(RequestPriority.Critical) / iTotalCriticalCRWeight[RequestPriority.Critical.ordinal()]) + "%, " : "")
                 + (iTotalCriticalCRWeight[RequestPriority.Important.ordinal()] > 0.0 ? "IC:" + sDecimalFormat.format(100.0 * getContext(assignment).getAssignedCriticalCourseRequestWeight(RequestPriority.Important) / iTotalCriticalCRWeight[RequestPriority.Important.ordinal()]) + "%, " : "")
                 + (iTotalCriticalCRWeight[RequestPriority.Vital.ordinal()] > 0.0 ? "VC:" + sDecimalFormat.format(100.0 * getContext(assignment).getAssignedCriticalCourseRequestWeight(RequestPriority.Vital) / iTotalCriticalCRWeight[RequestPriority.Vital.ordinal()]) + "%, " : "")
+                + (iTotalCriticalCRWeight[RequestPriority.VisitingF2F.ordinal()] > 0.0 ? "VFC:" + sDecimalFormat.format(100.0 * getContext(assignment).getAssignedCriticalCourseRequestWeight(RequestPriority.VisitingF2F) / iTotalCriticalCRWeight[RequestPriority.VisitingF2F.ordinal()]) + "%, " : "")
                 + priority
                 + "V:" + sDecimalFormat.format(-getTotalValue(assignment))
                 + (getDistanceConflict() == null ? "" : ", DC:" + getDistanceConflict().getTotalNrConflicts(assignment))

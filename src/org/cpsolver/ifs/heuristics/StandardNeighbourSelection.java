@@ -32,7 +32,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * criteria and therefore only one value was assigned in each iteration. <br>
  * <br>
  * Parameters: <br>
- * <table border='1' summary='Related Solver Parameters'>
+ * <table border='1'><caption>Related Solver Parameters</caption>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -54,6 +54,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * 
  * @see Solver
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -80,8 +81,8 @@ public class StandardNeighbourSelection<V extends Variable<V, T>, T extends Valu
 
     private ValueSelection<V, T> iValueSelection = null;
     private VariableSelection<V, T> iVariableSelection = null;
-    private Solver<V, T> iSolver = null;
-    private ConflictStatistics<V, T> iStat = null;
+    protected Solver<V, T> iSolver = null;
+    protected ConflictStatistics<V, T> iStat = null;
 
     /** Sets value selection criterion 
      * @param valueSelection value selection criterion

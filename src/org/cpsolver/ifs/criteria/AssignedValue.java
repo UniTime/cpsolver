@@ -15,6 +15,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * This criterion only counts a sum of values (see {@link Value#toDouble(Assignment)}) of the assigned variables.
  * It is an alternative to the default {@link Model#getTotalValue(Assignment)}.
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

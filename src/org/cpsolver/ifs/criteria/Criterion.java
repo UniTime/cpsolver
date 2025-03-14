@@ -19,6 +19,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * and modeled as a weighted sum of these. This makes the implementation of a particular problem
  * more versatile as it allows for an easier modification of the optimization objective.
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

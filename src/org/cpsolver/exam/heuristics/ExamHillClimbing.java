@@ -42,6 +42,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * property HillClimber.MaxIdle). <br>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version ExamTT 1.3 (Examination Timetabling)<br>
  *          Copyright (C) 2008 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

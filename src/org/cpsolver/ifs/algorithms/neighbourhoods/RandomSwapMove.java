@@ -30,6 +30,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * conflicts by assigning conflicting variables to other values as well.
  * <br>
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -117,7 +118,7 @@ public class RandomSwapMove<V extends Variable<V, T>, T extends Value<V, T>> imp
                     if (old != null) assignment.assign(solution.getIteration(), old);
                     
                     if (v != null)
-                        return new SwapNeighbour(assignments.values(), v);
+                        return new SwapNeighbour(assignments.values(), old == null ? -1 : v);
                     
                     if (attempts >= iMaxAttempts) break;
                 }

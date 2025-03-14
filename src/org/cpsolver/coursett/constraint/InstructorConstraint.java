@@ -43,6 +43,7 @@ import org.cpsolver.ifs.util.DistanceMetric;
  * constraint never prohibits two back-to-back classes (but it still tries to
  * minimize the above back-to-back preferences).
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -97,6 +98,8 @@ public class InstructorConstraint extends ConstraintWithContext<Lecture, Placeme
     public boolean isAvailable(Lecture lecture, TimeLocation time) {
         if (iUnavailabilities == null) return true;
         for (Placement c: iUnavailabilities) {
+            if (c.variable().getId() < 0 && lecture.getDepartment() != null && c.variable().getDepartment() != null
+                    && !c.variable().getDepartment().equals(lecture.getDepartment())) continue;
             if (c.getTimeLocation().hasIntersection(time) && !lecture.canShareRoom(c.variable())) return false;
         }
         return true;
@@ -110,6 +113,8 @@ public class InstructorConstraint extends ConstraintWithContext<Lecture, Placeme
         if (iUnavailabilities == null) return true;
         TimeLocation t1 = placement.getTimeLocation();
         for (Placement c: iUnavailabilities) {
+            if (c.variable().getId() < 0 && lecture.getDepartment() != null && c.variable().getDepartment() != null
+                    && !c.variable().getDepartment().equals(lecture.getDepartment())) continue;
             if (c.getTimeLocation().hasIntersection(placement.getTimeLocation()) && (!lecture.canShareRoom(c.variable()) || !placement.sameRooms(c)))
                 return false;
             if (!iIgnoreDistances) {

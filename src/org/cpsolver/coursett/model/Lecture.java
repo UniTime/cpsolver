@@ -40,6 +40,7 @@ import org.cpsolver.ifs.util.ToolBox;
 /**
  * Lecture (variable).
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -1570,6 +1571,10 @@ public class Lecture extends VariableWithContext<Lecture, Placement, Lecture.Lec
        cache = new HashSet<Long>();
        for (Constraint<Lecture, Placement> constraint: constraints()) {
            if (constraint instanceof IgnoreStudentConflictsConstraint)
+               for (Lecture x: constraint.variables()) {
+                   if (!x.equals(this)) cache.add(x.getClassId());
+               }
+           if (constraint instanceof GroupConstraint && ((GroupConstraint)constraint).getType().is(GroupConstraint.Flag.IGNORE_STUDENTS))
                for (Lecture x: constraint.variables()) {
                    if (!x.equals(this)) cache.add(x.getClassId());
                }

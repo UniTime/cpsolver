@@ -13,7 +13,6 @@ import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Offering;
 import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.Section;
-import org.cpsolver.studentsct.model.Student;
 import org.cpsolver.studentsct.model.Subpart;
 
 
@@ -31,6 +30,7 @@ import org.cpsolver.studentsct.model.Subpart;
  * <br>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -50,11 +50,9 @@ import org.cpsolver.studentsct.model.Subpart;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class UnbalancedSectionsTable implements StudentSectioningReport {
+public class UnbalancedSectionsTable extends AbstractStudentSectioningReport {
     private static DecimalFormat sDF1 = new DecimalFormat("0.####");
     private static DecimalFormat sDF2 = new DecimalFormat("0.0000");
-
-    private StudentSectioningModel iModel = null;
 
     /**
      * Constructor
@@ -63,30 +61,17 @@ public class UnbalancedSectionsTable implements StudentSectioningReport {
      *            student sectioning model
      */
     public UnbalancedSectionsTable(StudentSectioningModel model) {
-        iModel = model;
-    }
-
-    /** Return student sectioning model 
-     * @return problem model
-     **/
-    public StudentSectioningModel getModel() {
-        return iModel;
+        super(model);
     }
 
     /**
      * Create report
      * 
      * @param assignment current assignment
-     * @param includeLastLikeStudents
-     *            true, if last-like students should be included (i.e.,
-     *            {@link Student#isDummy()} is true)
-     * @param includeRealStudents
-     *            true, if real students should be included (i.e.,
-     *            {@link Student#isDummy()} is false)
-     * @param useAmPm use 12-hour format
      * @return report as comma separated text file
      */
-    public CSVFile createTable(Assignment<Request, Enrollment> assignment, boolean includeLastLikeStudents, boolean includeRealStudents, boolean useAmPm) {
+    @Override
+    public CSVFile createTable(Assignment<Request, Enrollment> assignment, DataProperties properties) {
         CSVFile csv = new CSVFile();
         csv.setHeader(new CSVFile.CSVField[] { new CSVFile.CSVField("Course"), new CSVFile.CSVField("Class"),
                 new CSVFile.CSVField("Meeting Time"), new CSVFile.CSVField("Enrollment"),
@@ -104,11 +89,11 @@ public class UnbalancedSectionsTable implements StudentSectioningReport {
         
         Offering last = null;
         for (Offering offering: offerings) {
+            if (offering.isDummy()) continue;
             for (Config config: offering.getConfigs()) {
                 double configEnrl = 0;
                 for (Enrollment e: config.getEnrollments(assignment)) {
-                    if (e.getStudent().isDummy() && !includeLastLikeStudents) continue;
-                    if (!e.getStudent().isDummy() && !includeRealStudents) continue;
+                    if (!matches(e.getRequest(), e)) continue;
                     configEnrl += e.getRequest().getWeight();
                 }
                 for (Subpart subpart: config.getSubparts()) {
@@ -119,8 +104,7 @@ public class UnbalancedSectionsTable implements StudentSectioningReport {
                         for (Section section: subpart.getSections()) {
                             double enrl = 0.0;
                             for (Enrollment e: section.getEnrollments(assignment)) {
-                                if (e.getStudent().isDummy() && !includeLastLikeStudents) continue;
-                                if (!e.getStudent().isDummy() && !includeRealStudents) continue;
+                                if (!matches(e.getRequest(), e)) continue;
                                 enrl += e.getRequest().getWeight();
                             }
                             double desired = ratio * section.getLimit();
@@ -129,7 +113,7 @@ public class UnbalancedSectionsTable implements StudentSectioningReport {
                                 csv.addLine(new CSVFile.CSVField[] {
                                         new CSVFile.CSVField(offering.equals(last) ? "" : offering.getName()),
                                         new CSVFile.CSVField(section.getSubpart().getName() + " " + section.getName()),
-                                        new CSVFile.CSVField(section.getTime() == null ? "" : section.getTime().getDayHeader() + " " + section.getTime().getStartTimeHeader(useAmPm) + " - " + section.getTime().getEndTimeHeader(useAmPm)),
+                                        new CSVFile.CSVField(section.getTime() == null ? "" : section.getTime().getDayHeader() + " " + section.getTime().getStartTimeHeader(isUseAmPm()) + " - " + section.getTime().getEndTimeHeader(isUseAmPm())),
                                         new CSVFile.CSVField(sDF1.format(enrl)),
                                         new CSVFile.CSVField(sDF2.format(desired)),
                                         new CSVFile.CSVField(sDF1.format(section.getLimit())),
@@ -143,8 +127,7 @@ public class UnbalancedSectionsTable implements StudentSectioningReport {
                         for (Section section: subpart.getSections()) {
                             double enrl = 0.0;
                             for (Enrollment e: section.getEnrollments(assignment)) {
-                                if (e.getStudent().isDummy() && !includeLastLikeStudents) continue;
-                                if (!e.getStudent().isDummy() && !includeRealStudents) continue;
+                                if (!matches(e.getRequest(), e)) continue;
                                 enrl += e.getRequest().getWeight();
                             }
                             double desired = configEnrl / subpart.getSections().size();
@@ -153,7 +136,7 @@ public class UnbalancedSectionsTable implements StudentSectioningReport {
                                 csv.addLine(new CSVFile.CSVField[] {
                                         new CSVFile.CSVField(offering.equals(last) ? "" : offering.getName()),
                                         new CSVFile.CSVField(section.getSubpart().getName() + " " + section.getName()),
-                                        new CSVFile.CSVField(section.getTime() == null ? "" : section.getTime().getDayHeader() + " " + section.getTime().getStartTimeHeader(useAmPm) + " - " + section.getTime().getEndTimeHeader(useAmPm)),
+                                        new CSVFile.CSVField(section.getTime() == null ? "" : section.getTime().getDayHeader() + " " + section.getTime().getStartTimeHeader(isUseAmPm()) + " - " + section.getTime().getEndTimeHeader(isUseAmPm())),
                                         new CSVFile.CSVField(sDF1.format(enrl)),
                                         new CSVFile.CSVField(sDF2.format(desired)),
                                         new CSVFile.CSVField(""),
@@ -168,10 +151,4 @@ public class UnbalancedSectionsTable implements StudentSectioningReport {
         }
         return csv;
     }
-    
-    @Override
-    public CSVFile create(Assignment<Request, Enrollment> assignment, DataProperties properties) {
-        return createTable(assignment, properties.getPropertyBoolean("lastlike", false), properties.getPropertyBoolean("real", true), properties.getPropertyBoolean("useAmPm", true));
-    }
-
 }

@@ -106,7 +106,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * solution.restoreBest(); //restore best solution ever found
  * </code></pre>
  * Solver's parameters: <br>
- * <table border='1' summary='Related Solver Parameters'>
+ * <table border='1'><caption>Related Solver Parameters</caption>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -180,6 +180,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * @see ValueSelection
  * @see Extension
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

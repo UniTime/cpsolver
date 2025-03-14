@@ -66,7 +66,7 @@ import org.dom4j.io.SAXReader;
  * <br>
  * <br>
  * Parameters:
- * <table border='1' summary='Related Solver Parameters'>
+ * <table border='1'><caption>Related Solver Parameters</caption>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -118,6 +118,7 @@ import org.dom4j.io.SAXReader;
  * new StudentSectioningXMLLoader(model).load();<br>
  * </code></pre>
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -274,7 +275,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
     /**
      * Load data from the given XML root
      * @param root document root
-     * @throws DocumentException
+     * @throws DocumentException when XML cannot be read or parsed
      */
     protected void load(Element root) throws DocumentException {
         sLogger.debug("Root element: " + root.getName());
@@ -355,6 +356,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             Offering offering = new Offering(
                     Long.parseLong(offeringEl.attributeValue("id")),
                     offeringEl.attributeValue("name", "O" + offeringEl.attributeValue("id")));
+            offering.setDummy("true".equals(offeringEl.attributeValue("dummy", "false")));
             offeringTable.put(Long.valueOf(offering.getId()), offering);
             getModel().addOffering(offering);
             
@@ -891,38 +893,38 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         for (Enrollment enrollment : bestEnrollments) {
             if (enrollment.getReservation() == null || enrollment.getReservation().isExpired()) continue;
             if (!enrollment.getStudent().isAvailable(enrollment)) {
-                sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
+                sLogger.warn("[" + enrollment.getStudent().getExternalId() + "] Enrollment " + enrollment + " is conflicting: student not available.");
                 continue;
             }
             Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
             if (conflicts.isEmpty())
                 getAssignment().assign(0, enrollment);
             else
-                sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
+                sLogger.warn("[" + enrollment.getStudent().getExternalId() + "] Enrollment " + enrollment + " conflicts with " + conflicts);
         }
         for (Enrollment enrollment : bestEnrollments) {
             if (enrollment.getReservation() != null) continue;
             if (!enrollment.getStudent().isAvailable(enrollment)) {
-                sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
+                sLogger.warn("[" + enrollment.getStudent().getExternalId() + "] Enrollment " + enrollment + " is conflicting: student not available.");
                 continue;
             }
             Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
             if (conflicts.isEmpty())
                 getAssignment().assign(0, enrollment);
             else
-                sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
+                sLogger.warn("[" + enrollment.getStudent().getExternalId() + "] Enrollment " + enrollment + " conflicts with " + conflicts);
         }
         for (Enrollment enrollment : bestEnrollments) {
             if (enrollment.getReservation() == null || !enrollment.getReservation().isExpired()) continue;
             if (!enrollment.getStudent().isAvailable(enrollment)) {
-                sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
+                sLogger.warn("[" + enrollment.getStudent().getExternalId() + "] Enrollment " + enrollment + " is conflicting: student not available.");
                 continue;
             }
             Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
             if (conflicts.isEmpty())
                 getAssignment().assign(0, enrollment);
             else
-                sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
+                sLogger.warn("[" + enrollment.getStudent().getExternalId() + "] Enrollment " + enrollment + " conflicts with " + conflicts);
         }
         getModel().saveBest(getAssignment());
     }
@@ -938,38 +940,38 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         for (Enrollment enrollment : currentEnrollments) {
             if (enrollment.getReservation() == null || enrollment.getReservation().isExpired()) continue;
             if (!enrollment.getStudent().isAvailable(enrollment)) {
-                sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
+                sLogger.warn("[" + enrollment.getStudent().getExternalId() + "] Enrollment " + enrollment + " is conflicting: student not available.");
                 continue;
             }
             Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
             if (conflicts.isEmpty())
                 getAssignment().assign(0, enrollment);
             else
-                sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
+                sLogger.warn("[" + enrollment.getStudent().getExternalId() + "] Enrollment " + enrollment + " conflicts with " + conflicts);
         }
         for (Enrollment enrollment : currentEnrollments) {
             if (enrollment.getReservation() != null) continue;
             if (!enrollment.getStudent().isAvailable(enrollment)) {
-                sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
+                sLogger.warn("[" + enrollment.getStudent().getExternalId() + "] Enrollment " + enrollment + " is conflicting: student not available.");
                 continue;
             }
             Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
             if (conflicts.isEmpty())
                 getAssignment().assign(0, enrollment);
             else
-                sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
+                sLogger.warn("[" + enrollment.getStudent().getExternalId() + "] Enrollment " + enrollment + " conflicts with " + conflicts);
         }
         for (Enrollment enrollment : currentEnrollments) {
             if (enrollment.getReservation() == null || !enrollment.getReservation().isExpired()) continue;
             if (!enrollment.getStudent().isAvailable(enrollment)) {
-                sLogger.warn("Enrollment " + enrollment + " is conflicting: student not available.");
+                sLogger.warn("[" + enrollment.getStudent().getExternalId() + "] Enrollment " + enrollment + " is conflicting: student not available.");
                 continue;
             }
             Map<Constraint<Request, Enrollment>, Set<Enrollment>> conflicts = getModel().conflictConstraints(getAssignment(), enrollment);
             if (conflicts.isEmpty())
                 getAssignment().assign(0, enrollment);
             else
-                sLogger.warn("Enrollment " + enrollment + " conflicts with " + conflicts);
+                sLogger.warn("[" + enrollment.getStudent().getExternalId() + "] Enrollment " + enrollment + " conflicts with " + conflicts);
         }
     }
     
@@ -1025,8 +1027,12 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             } else if ("unavailability".equals(requestEl.getName())) {
                 Offering offering = offeringTable.get(Long.parseLong(requestEl.attributeValue("offering")));
                 Section section = (offering == null ? null : offering.getSection(Long.parseLong(requestEl.attributeValue("section"))));
-                if (section != null)
-                    new Unavailability(student, section, "true".equals(requestEl.attributeValue("allowOverlap")));
+                if (section != null) {
+                    Unavailability ua = new Unavailability(student, section, "true".equals(requestEl.attributeValue("allowOverlap")));
+                    ua.setTeachingAssignment("true".equals(requestEl.attributeValue("ta", "false")));
+                    if (requestEl.attributeValue("course") != null)
+                        ua.setCourseId(Long.valueOf(requestEl.attributeValue("course")));
+                }
             } else if ("acm".equals(requestEl.getName())) {
                 if (requestEl.attributeValue("minor") != null)
                     student.getAreaClassificationMinors().add(new AreaClassificationMajor(

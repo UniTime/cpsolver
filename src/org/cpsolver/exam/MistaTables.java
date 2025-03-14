@@ -34,6 +34,7 @@ import org.dom4j.io.SAXReader;
  * <pre><code>java -cp cpsolver-all-1.2.jar org.cpsolver.exam.MistaTables problem1.xml problem2.xml ...</code></pre>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version ExamTT 1.3 (Examination Timetabling)<br>
  *          Copyright (C) 2008 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

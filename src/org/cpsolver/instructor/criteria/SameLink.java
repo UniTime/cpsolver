@@ -14,6 +14,7 @@ import org.cpsolver.instructor.model.TeachingRequest;
 /**
  * Same Link. This criterion counts how well are the soft Same Link Constraints (see {@link SameLinkConstraint}) met.
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

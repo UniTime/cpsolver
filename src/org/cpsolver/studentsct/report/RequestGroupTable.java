@@ -10,6 +10,7 @@ import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.studentsct.StudentSectioningModel;
 import org.cpsolver.studentsct.model.Config;
 import org.cpsolver.studentsct.model.Course;
+import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Offering;
 import org.cpsolver.studentsct.model.Request;
@@ -28,6 +29,7 @@ import org.cpsolver.studentsct.model.Subpart;
  * <br>
  * 
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2015 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -47,9 +49,8 @@ import org.cpsolver.studentsct.model.Subpart;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class RequestGroupTable implements StudentSectioningReport {
+public class RequestGroupTable extends AbstractStudentSectioningReport {
     private static DecimalFormat sDF = new DecimalFormat("0.000");
-    private StudentSectioningModel iModel;
     
     /**
      * Constructor
@@ -57,12 +58,11 @@ public class RequestGroupTable implements StudentSectioningReport {
      * @param model student sectioning model
      */
     public RequestGroupTable(StudentSectioningModel model) {
-        iModel = model;
+        super(model);
     }
 
     @Override
-    public CSVFile create(Assignment<Request, Enrollment> assignment, DataProperties properties) {
-        boolean useAmPm = properties.getPropertyBoolean("useAmPm", true);
+    public CSVFile createTable(Assignment<Request, Enrollment> assignment, DataProperties properties) {
         CSVFile csv = new CSVFile();
         csv.setHeader(new CSVFile.CSVField[] {
                 new CSVFile.CSVField("Group"),
@@ -89,11 +89,18 @@ public class RequestGroupTable implements StudentSectioningReport {
             }
         });
         
-        for (Offering offering: iModel.getOfferings())
+        for (Offering offering: getModel().getOfferings()) {
+            if (offering.isDummy()) continue;
             for (Course course: offering.getCourses())
                 groups.addAll(course.getRequestGroups());
+        }
         
         for (RequestGroup group: groups) {
+            int nbrMatches = 0;
+            for (CourseRequest cr: group.getRequests()) {
+                if (matches(cr)) nbrMatches ++;
+            }
+            if (nbrMatches == 0) continue;
             double groupEnrollment = group.getEnrollmentWeight(assignment, null);
             double groupSpread = group.getAverageSpread(assignment);
             for (Config config: group.getCourse().getOffering().getConfigs())
@@ -107,7 +114,7 @@ public class RequestGroupTable implements StudentSectioningReport {
                                     new CSVFile.CSVField(sDF.format(100.0 * groupSpread)),
                                     new CSVFile.CSVField(Math.round(groupEnrollment)),
                                     new CSVFile.CSVField(section.getSubpart().getName() + " " + section.getName(group.getCourse().getId())),
-                                    new CSVFile.CSVField(section.getTime() == null ? "" : section.getTime().getDayHeader() + " " + section.getTime().getStartTimeHeader(useAmPm) + " - " + section.getTime().getEndTimeHeader(useAmPm)),
+                                    new CSVFile.CSVField(section.getTime() == null ? "" : section.getTime().getDayHeader() + " " + section.getTime().getStartTimeHeader(isUseAmPm()) + " - " + section.getTime().getEndTimeHeader(isUseAmPm())),
                                     new CSVFile.CSVField(sDF.format(100.0 * group.getSectionSpread(assignment, section))),
                                     new CSVFile.CSVField(Math.round(group.getSectionWeight(assignment, section, null))),
                                     new CSVFile.CSVField(section.getLimit())

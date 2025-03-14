@@ -1,5 +1,6 @@
 package org.cpsolver.exam.criteria;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 
@@ -18,6 +19,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * 
  * <br>
  * 
+ * @author  Tomas Muller
  * @version ExamTT 1.3 (Examination Timetabling)<br>
  *          Copyright (C) 2008 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -90,28 +92,44 @@ public class RoomSplitPenalty extends ExamCriterion {
     
     protected class RoomSplitContext extends ValueContext {
         private int iRoomSplits[] = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        
+        protected void ensureCapacity(int minCapacity) {
+            if (minCapacity > iRoomSplits.length){
+                int oldCapacity = iRoomSplits.length;
+                int newCapacity = oldCapacity + (oldCapacity / 2);
+                if (newCapacity < minCapacity)
+                    newCapacity = minCapacity + (minCapacity / 2);
+                iRoomSplits = Arrays.copyOf(iRoomSplits, newCapacity);
+            }
+        }
 
         public RoomSplitContext(Assignment<Exam, ExamPlacement> assignment) {
             super(assignment);
             for (Exam exam: getModel().variables()) {
                 ExamPlacement placement = assignment.getValue(exam);
-                if (placement != null && placement.getRoomPlacements() != null && placement.getRoomPlacements().size() > 1)
+                if (placement != null && placement.getRoomPlacements() != null && placement.getRoomPlacements().size() > 1) {
+                    ensureCapacity(placement.getRoomPlacements().size());
                     iRoomSplits[placement.getRoomPlacements().size() - 2] ++;
+                }
             }
         }
 
         @Override
         public void assigned(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value) {
             super.assigned(assignment, value);
-            if (value.getRoomPlacements() != null && value.getRoomPlacements().size() > 1)
+            if (value.getRoomPlacements() != null && value.getRoomPlacements().size() > 1) {
+                ensureCapacity(value.getRoomPlacements().size());
                 iRoomSplits[value.getRoomPlacements().size() - 2] ++;
+            }
         }
 
         @Override
         public void unassigned(Assignment<Exam, ExamPlacement> assignment, ExamPlacement value) {
             super.unassigned(assignment, value);
-            if (value.getRoomPlacements() != null && value.getRoomPlacements().size() > 1)
+            if (value.getRoomPlacements() != null && value.getRoomPlacements().size() > 1) {
+                ensureCapacity(value.getRoomPlacements().size());
                 iRoomSplits[value.getRoomPlacements().size() - 2] --;
+            }
         }
         
         public int[] getRoomSplits() {

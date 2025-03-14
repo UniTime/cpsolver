@@ -28,6 +28,7 @@ import org.cpsolver.studentsct.model.Subpart;
  * B) are linked, a student requesting both courses must attend A1 if and only if he
  * also attends B1. 
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -220,7 +221,15 @@ public class LinkedSections {
                 }
                 boolean otherFull = otherMatch && !otherPartial;
                 // not full match -> conflict
-                if (!otherFull && !conflicts.onConflict(otherEnrollment)) return;
+                if (!otherFull) {
+                    // unless there is some other matching distribution for the same offering pair
+                    boolean hasOtherMatch = false;
+                    for (LinkedSections other: enrollment.getStudent().getLinkedSections()) {
+                        if (other.hasFullMatch(enrollment) && other.hasFullMatch(otherEnrollment))
+                            { hasOtherMatch = true; break; }
+                    }
+                    if (!hasOtherMatch && !conflicts.onConflict(otherEnrollment)) return;
+                }
             }
         } else { // no or only partial match -> there should be no match in other offerings too
             for (int i = 0; i < enrollment.getStudent().getRequests().size(); i++) {
@@ -243,7 +252,15 @@ public class LinkedSections {
                 }
                 boolean otherFull = otherMatch && !otherPartial;
                 // full match -> conflict
-                if (otherFull && !conflicts.onConflict(otherEnrollment)) return;
+                if (otherFull) {
+                    // unless there is some other matching distribution for the same offering pair
+                    boolean hasOtherMatch = false;
+                    for (LinkedSections other: enrollment.getStudent().getLinkedSections()) {
+                        if (other.hasFullMatch(enrollment) && other.hasFullMatch(otherEnrollment))
+                            { hasOtherMatch = true; break; }
+                    }
+                    if (!hasOtherMatch && !conflicts.onConflict(otherEnrollment)) return;
+                }
             }
         }
     }

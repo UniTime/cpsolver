@@ -1,6 +1,5 @@
 package org.cpsolver.exam.model;
 
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -25,6 +24,7 @@ import org.cpsolver.ifs.assignment.context.ConstraintWithContext;
  * <br>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version ExamTT 1.3 (Examination Timetabling)<br>
  *          Copyright (C) 2008 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -45,28 +45,141 @@ import org.cpsolver.ifs.assignment.context.ConstraintWithContext;
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
 public class ExamDistributionConstraint extends ConstraintWithContext<Exam, ExamPlacement, ExamDistributionConstraint.Context> {
-    /** Same room constraint type */
-    public static final int sDistSameRoom = 0;
-    /** Different room constraint type */
-    public static final int sDistDifferentRoom = 1;
-    /** Same period constraint type */
-    public static final int sDistSamePeriod = 2;
-    /** Different period constraint type */
-    public static final int sDistDifferentPeriod = 3;
-    /** Precedence constraint type */
-    public static final int sDistPrecedence = 4;
-    /** Precedence constraint type (reverse order) */
-    public static final int sDistPrecedenceRev = 5;
-    /** Same day constraint type */
-    public static final int sDistSameDay = 6;
-    /** Different day constraint type */
-    public static final int sDistDifferentDay = 7;
-    /** Distribution type name */
-    public static final String[] sDistType = new String[] { "same-room", "different-room", "same-period",
-            "different-period", "precedence", "precedence-rev", "same-day", "different-day"};
-    private int iType = -1;
+    @Deprecated
+    public static int sDistSameRoom = DistributionType.SameRoom.ordinal();
+    private DistributionType iType = null;
     private boolean iHard = true;
     private int iWeight = 0;
+    
+    public static enum DistributionType {
+        /** Same room constraint type */
+        SameRoom("same-room", "EX_SAME_ROOM", false, new RoomCheck() {
+            @Override
+            public boolean isSatisfied(ExamPlacement first, ExamPlacement second) {
+                return first.getRoomPlacements().containsAll(second.getRoomPlacements()) || second.getRoomPlacements().containsAll(first.getRoomPlacements());
+            }
+            @Override
+            public boolean isSatisfied(ExamPlacement first, ExamRoomPlacement second) {
+                return first.getRoomPlacements().contains(second);
+            }}),
+        /** Different room constraint type */
+        DifferentRoom("different-room", "EX_SAME_ROOM", true, new RoomCheck() {
+            @Override
+            public boolean isSatisfied(ExamPlacement first, ExamPlacement second) {
+                for (Iterator<ExamRoomPlacement> i = first.getRoomPlacements().iterator(); i.hasNext();)
+                    if (second.getRoomPlacements().contains(i.next()))
+                        return false;
+                return true;
+            }
+            @Override
+            public boolean isSatisfied(ExamPlacement first, ExamRoomPlacement second) {
+                return !first.getRoomPlacements().contains(second);
+            }}),
+        /** Same period constraint type */
+        SamePeriod("same-period", "EX_SAME_PER", false, new PeriodCheck() {
+            @Override
+            public boolean isSatisfied(ExamPlacement first, ExamPlacement second) {
+                return first.getPeriod().getIndex() == second.getPeriod().getIndex();
+            }
+            @Override
+            public boolean isSatisfied(ExamPeriod first, ExamPeriod second) {
+                return first.getIndex() == second.getIndex();
+            }}),
+        /** Different period constraint type */
+        DifferentPeriod("different-period", "EX_SAME_PER", true, new PeriodCheck() {
+            @Override
+            public boolean isSatisfied(ExamPlacement first, ExamPlacement second) {
+                return first.getPeriod().getIndex() != second.getPeriod().getIndex();
+            }
+            @Override
+            public boolean isSatisfied(ExamPeriod first, ExamPeriod second) {
+                return first.getIndex() != second.getIndex();
+            }}),
+        /** Precedence constraint type */
+        Precedence("precedence", "EX_PRECEDENCE", false, new PeriodCheck() {
+            @Override
+            public boolean isSatisfied(ExamPlacement first, ExamPlacement second) {
+                return first.getPeriod().getIndex() < second.getPeriod().getIndex();
+            }
+            @Override
+            public boolean isSatisfied(ExamPeriod first, ExamPeriod second) {
+                return first.getIndex() < second.getIndex();
+            }}),
+        /** Precedence constraint type (reverse order) */
+        PrecedenceRev("precedence-rev", "EX_PRECEDENCE", true, new PeriodCheck() {
+            @Override
+            public boolean isSatisfied(ExamPlacement first, ExamPlacement second) {
+                return first.getPeriod().getIndex() > second.getPeriod().getIndex();
+            }
+            @Override
+            public boolean isSatisfied(ExamPeriod first, ExamPeriod second) {
+                return first.getIndex() > second.getIndex();
+            }}),
+        /** Same day constraint type */
+        SameDay("same-day", "EX_SAME_DAY", false, new PeriodCheck() {
+            @Override
+            public boolean isSatisfied(ExamPlacement first, ExamPlacement second) {
+                return first.getPeriod().getDay() == second.getPeriod().getDay();
+            }
+            @Override
+            public boolean isSatisfied(ExamPeriod first, ExamPeriod second) {
+                return first.getDay() == second.getDay();
+            }}),
+        /** Different day constraint type */
+        DifferentDay("different-day", "EX_SAME_DAY", true, new PeriodCheck() {
+            @Override
+            public boolean isSatisfied(ExamPlacement first, ExamPlacement second) {
+                return first.getPeriod().getDay() != second.getPeriod().getDay();
+            }
+            @Override
+            public boolean isSatisfied(ExamPeriod first, ExamPeriod second) {
+                return first.getDay() != second.getDay();
+            }}),
+        ;
+        private String iReference;
+        private String iUniTimeReference;
+        private boolean iUniTimeNegative;
+        private PairCheck iCheck;
+        private DistributionType(String reference, String utReference, boolean utNegative, PairCheck check) {
+            iReference = reference;
+            iUniTimeReference = utReference;
+            iUniTimeNegative = utNegative;
+            iCheck = check;
+        }
+        
+        public String getReference() { return iReference; }
+        public boolean isSatisfied(ExamPlacement first, ExamPlacement second) {
+            return iCheck.isSatisfied(first, second);
+        }
+        public boolean isRoomRelated() { return iCheck instanceof RoomCheck; }
+        public boolean isPeriodRelated() { return iCheck instanceof PeriodCheck; }
+        public boolean isSatisfied(ExamPeriod first, ExamPeriod second) {
+            if (iCheck instanceof PeriodCheck)
+                return ((PeriodCheck)iCheck).isSatisfied(first, second);
+            else
+                return true;
+        }
+        public boolean isSatisfied(ExamPlacement first, ExamRoomPlacement second) {
+            if (iCheck instanceof RoomCheck)
+                return ((RoomCheck)iCheck).isSatisfied(first, second);
+            else
+                return true;
+        }
+        public String getUniTimeReference() { return iUniTimeReference; }
+        public boolean isUniTimeNegative() { return iUniTimeNegative; }
+    }
+    
+    public static interface PairCheck {
+        public boolean isSatisfied(ExamPlacement first, ExamPlacement second);
+    }
+    
+    public static interface PeriodCheck extends PairCheck {
+        public boolean isSatisfied(ExamPeriod first, ExamPeriod second);
+    }
+    
+    public static interface RoomCheck extends PairCheck {
+        public boolean isSatisfied(ExamPlacement first, ExamRoomPlacement second);
+    }
 
     /**
      * Constructor
@@ -80,9 +193,30 @@ public class ExamDistributionConstraint extends ConstraintWithContext<Exam, Exam
      * @param weight
      *            if not hard, penalty for violation
      */
-    public ExamDistributionConstraint(long id, int type, boolean hard, int weight) {
+    public ExamDistributionConstraint(long id, DistributionType type, boolean hard, int weight) {
         iId = id;
         iType = type;
+        iHard = hard;
+        iWeight = weight;
+    }
+    
+    /**
+     * Constructor
+     * 
+     * @param id
+     *            constraint unique id
+     * @param type
+     *            constraint type
+     * @param hard
+     *            true if the constraint is hard (cannot be violated)
+     * @param weight
+     *            if not hard, penalty for violation
+     * @deprecated use {@link ExamDistributionConstraint#ExamDistributionConstraint(long, DistributionType, boolean, int)}
+     */
+    @Deprecated
+    public ExamDistributionConstraint(long id, int type, boolean hard, int weight) {
+        iId = id;
+        iType = DistributionType.values()[type];
         iHard = hard;
         iWeight = weight;
     }
@@ -101,15 +235,13 @@ public class ExamDistributionConstraint extends ConstraintWithContext<Exam, Exam
     public ExamDistributionConstraint(long id, String type, String pref) {
         iId = id;
         boolean neg = "P".equals(pref) || "2".equals(pref) || "1".equals(pref);
-        if ("EX_SAME_PER".equals(type)) {
-            iType = (neg ? sDistDifferentPeriod : sDistSamePeriod);
-        } else if ("EX_SAME_ROOM".equals(type)) {
-            iType = (neg ? sDistDifferentRoom : sDistSameRoom);
-        } else if ("EX_PRECEDENCE".equals(type)) {
-            iType = (neg ? sDistPrecedenceRev : sDistPrecedence);
-        } else if ("EX_SAME_DAY".equals(type)) {
-            iType = (neg ? sDistDifferentDay : sDistSameDay);
-        } else
+        for (DistributionType t: DistributionType.values()) {
+            if (t.getUniTimeReference().equals(type) && t.isUniTimeNegative() == neg) {
+                iType = t;
+                break;
+            }
+        }
+        if (iType == null)
             throw new RuntimeException("Unkown type " + type);
         if ("P".equals(pref) || "R".equals(pref))
             iHard = true;
@@ -131,10 +263,12 @@ public class ExamDistributionConstraint extends ConstraintWithContext<Exam, Exam
      */
     public ExamDistributionConstraint(long id, String type, boolean hard, int weight) {
         iId = id;
-        for (int i = 0; i < sDistType.length; i++)
-            if (sDistType[i].equals(type))
-                iType = i;
-        if (iType < 0)
+        for (DistributionType t: DistributionType.values()) {
+            if (t.getReference().equals(type)) {
+                iType = t; break;
+            }
+        }
+        if (iType == null)
             throw new RuntimeException("Unknown type '" + type + "'.");
         iHard = hard;
         iWeight = weight;
@@ -161,15 +295,19 @@ public class ExamDistributionConstraint extends ConstraintWithContext<Exam, Exam
      * @return constraint type
      */
     public int getType() {
+        return iType.ordinal() - 1;
+    }
+    
+    public DistributionType getDistributionType() {
         return iType;
     }
 
     /**
      * Constraint type name
-     * @return constraint type name (one of {@link ExamDistributionConstraint#sDistType})
+     * @return constraint type name (one of {@link DistributionType#getReference()})
      */
     public String getTypeString() {
-        return sDistType[iType];
+        return iType.getReference();
     }
 
     /**
@@ -197,7 +335,7 @@ public class ExamDistributionConstraint extends ConstraintWithContext<Exam, Exam
             ExamPlacement placement = assignment.getValue(exam);
             if (placement == null)
                 continue;
-            if (!check(before ? placement : givenPlacement, before ? givenPlacement : placement))
+            if (!iType.isSatisfied(before ? placement : givenPlacement, before ? givenPlacement : placement))
                 conflicts.add(placement);
         }
     }
@@ -219,7 +357,7 @@ public class ExamDistributionConstraint extends ConstraintWithContext<Exam, Exam
             ExamPlacement placement = assignment.getValue(exam);
             if (placement == null)
                 continue;
-            if (!check(before ? placement : givenPlacement, before ? givenPlacement : placement))
+            if (!iType.isSatisfied(before ? placement : givenPlacement, before ? givenPlacement : placement))
                 return true;
         }
         return false;
@@ -233,7 +371,7 @@ public class ExamDistributionConstraint extends ConstraintWithContext<Exam, Exam
     @Override
     public boolean isConsistent(ExamPlacement first, ExamPlacement second) {
         boolean before = (variables().indexOf(first.variable()) < variables().indexOf(second.variable()));
-        return check(before ? first : second, before ? second : first);
+        return iType.isSatisfied(before ? first : second, before ? second : first);
     }
 
     /**
@@ -244,33 +382,11 @@ public class ExamDistributionConstraint extends ConstraintWithContext<Exam, Exam
      * @param second
      *            assignment of the second exam
      * @return true, if the constraint is satisfied
+     * @deprecated use {@link DistributionType#isSatisfied(ExamPlacement, ExamPlacement)}
      */
+    @Deprecated
     public boolean check(ExamPlacement first, ExamPlacement second) {
-        switch (getType()) {
-            case sDistPrecedence:
-                return first.getPeriod().getIndex() < second.getPeriod().getIndex();
-            case sDistPrecedenceRev:
-                return first.getPeriod().getIndex() > second.getPeriod().getIndex();
-            case sDistSamePeriod:
-                return first.getPeriod().getIndex() == second.getPeriod().getIndex();
-            case sDistDifferentPeriod:
-                return first.getPeriod().getIndex() != second.getPeriod().getIndex();
-            case sDistSameRoom:
-                return first.getRoomPlacements().containsAll(second.getRoomPlacements())
-                        || second.getRoomPlacements().containsAll(first.getRoomPlacements());
-            case sDistDifferentRoom:
-                for (Iterator<ExamRoomPlacement> i = first.getRoomPlacements().iterator(); i.hasNext();)
-                    if (second.getRoomPlacements().contains(i.next()))
-                        return false;
-                return true;
-            case sDistSameDay:
-                return first.getPeriod().getDay() == second.getPeriod().getDay();
-            case sDistDifferentDay:
-                return first.getPeriod().getDay() != second.getPeriod().getDay();
-  
-            default:
-                return false;
-        }
+        return iType.isSatisfied(first, second);
     }
 
     /**
@@ -304,120 +420,73 @@ public class ExamDistributionConstraint extends ConstraintWithContext<Exam, Exam
      * @return true if the constraint is satisfied
      */
     public boolean isSatisfied(Assignment<Exam, ExamPlacement> assignment, ExamPlacement p) {
-        if (isHard())
-            return true;
-        switch (getType()) {
-            case sDistPrecedence:
-                ExamPeriod last = null;
-                for (Exam exam : variables()) {
-                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : assignment.getValue(exam));
-                    if (placement == null)
-                        continue;
-                    if (last == null || last.getIndex() < placement.getPeriod().getIndex())
-                        last = placement.getPeriod();
-                    else
-                        return false;
-                }
-                return true;
-            case sDistPrecedenceRev:
-                last = null;
-                for (Exam exam : variables()) {
-                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : assignment.getValue(exam));
-                    if (placement == null)
-                        continue;
-                    if (last == null || last.getIndex() > placement.getPeriod().getIndex())
-                        last = placement.getPeriod();
-                    else
-                        return false;
-                }
-                return true;
-            case sDistSamePeriod:
-                ExamPeriod period = null;
-                for (Exam exam : variables()) {
-                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : assignment.getValue(exam));
-                    if (placement == null)
-                        continue;
-                    if (period == null)
-                        period = placement.getPeriod();
-                    else if (period.getIndex() != placement.getPeriod().getIndex())
-                        return false;
-                }
-                return true;
-            case sDistDifferentPeriod:
-                HashSet<ExamPeriod> periods = new HashSet<ExamPeriod>();
-                for (Exam exam : variables()) {
-                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : assignment.getValue(exam));
-                    if (placement == null)
-                        continue;
-                    if (!periods.add(placement.getPeriod()))
-                        return false;
-                }
-                return true;
-            case sDistSameRoom:
-                Set<ExamRoomPlacement> rooms = null;
-                for (Exam exam : variables()) {
-                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : assignment.getValue(exam));
-                    if (placement == null)
-                        continue;
-                    if (rooms == null)
-                        rooms = placement.getRoomPlacements();
-                    else if (!rooms.containsAll(placement.getRoomPlacements())
-                            || !placement.getRoomPlacements().containsAll(rooms))
-                        return false;
-                }
-                return true;
-            case sDistDifferentRoom:
-                HashSet<ExamRoomPlacement> allRooms = new HashSet<ExamRoomPlacement>();
-                for (Exam exam : variables()) {
-                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : assignment.getValue(exam));
-                    if (placement == null)
-                        continue;
-                    for (ExamRoomPlacement room : placement.getRoomPlacements()) {
-                        if (!allRooms.add(room))
-                            return false;
-                    }
-                }
-                return true;
-            case sDistSameDay:
-                ExamPeriod period1 = null;
-                for (Exam exam : variables()) {
-                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : assignment.getValue(exam));
-                    if (placement == null)
-                        continue;
-                    if (period1 == null)
-                        period1 = placement.getPeriod();
-                    else if (period1.getDay() != placement.getPeriod().getDay())
-                        return false;
-                }
-                return true;
-            case sDistDifferentDay:
-                HashSet<Integer> days = new HashSet<Integer>();
-                for (Exam exam : variables()) {
-                    ExamPlacement placement = (p != null && exam.equals(p.variable()) ? p : assignment.getValue(exam));
-                    if (placement == null)
-                        continue;
-                    if (!days.add(placement.getPeriod().getDay()))
-                        return false;
-                }
-                return true;
-
-            default:
-                return false;
+        return countViolations(assignment, p) == 0;
+    }
+    
+    /**
+     * Return number of violated pairs for a soft constraint and the given placement
+     * 
+     * @param assignment current assignment
+     * @param p
+     *            exam assignment to be made
+     * @return number of examination pairs violated
+     */
+    public int countViolations(Assignment<Exam, ExamPlacement> assignment, ExamPlacement p) {
+        if (isHard()) return 0;
+        if (p == null) return countViolations(assignment);
+        if (countAssignedVariables(assignment) + (assignment.getValue(p.variable()) == null ? 1 : 0) < 2) return 0; // not enough variables
+        
+        int nrViolatedPairs = 0;
+        boolean before = true;
+        for (Exam other: variables()) {
+            if (other.equals(p.variable())) {
+                before = false;
+                continue;
+            }
+            ExamPlacement otherPlacement = assignment.getValue(other);
+            if (otherPlacement == null) continue;
+            if (before) {
+                if (!iType.isSatisfied(otherPlacement, p)) nrViolatedPairs ++;
+            } else {
+                if (!iType.isSatisfied(p, otherPlacement)) nrViolatedPairs ++;
+            }
         }
+        return nrViolatedPairs;
+    }
+    
+    /**
+     * Return number of all violated pairs for a soft constraint
+     * 
+     * @param assignment current assignment
+     * @return number of examination pairs violated
+     */
+    public int countViolations(Assignment<Exam, ExamPlacement> assignment) {
+        if (isHard()) return 0;
+        int violations = 0;
+        for (int i = 0; i < variables().size() - 1; i++) {
+            ExamPlacement first = assignment.getValue(variables().get(i));
+            if (first == null) continue;
+            for (int j = i + 1; j < variables().size(); j++) {
+                ExamPlacement second = assignment.getValue(variables().get(j));
+                if (second == null) continue;
+                if (!iType.isSatisfied(first, second)) violations ++;
+            }
+        }
+        return violations;
     }
 
     /** True if the constraint is related to rooms 
      * @return true if the constraint is related to room placement
      **/
     public boolean isRoomRelated() {
-        return iType == sDistSameRoom || iType == sDistDifferentRoom;
+        return iType.isRoomRelated();
     }
 
     /** True if the constraint is related to periods 
      * @return true if the constraint is related to period placement
      **/
     public boolean isPeriodRelated() {
-        return !isRoomRelated();
+        return iType.isPeriodRelated();
     }
     
     @Override
@@ -426,28 +495,30 @@ public class ExamDistributionConstraint extends ConstraintWithContext<Exam, Exam
     }
     
     public class Context implements AssignmentConstraintContext<Exam, ExamPlacement> {
-        private boolean iIsSatisfied;
+        private int iViolations = 0;
         
         public Context(Assignment<Exam, ExamPlacement> assignment) {
-            iIsSatisfied = isSatisfied(assignment);
-            if (!iIsSatisfied)
-                ((DistributionPenalty)getModel().getCriterion(DistributionPenalty.class)).inc(assignment, getWeight());
+            updateCriterion(assignment);
         }
 
         @Override
         public void assigned(Assignment<Exam, ExamPlacement> assignment, ExamPlacement placement) {
-            if (!isHard() && iIsSatisfied != isSatisfied(assignment)) {
-                iIsSatisfied = !iIsSatisfied;
-                ((DistributionPenalty)getModel().getCriterion(DistributionPenalty.class)).inc(assignment, iIsSatisfied ? -getWeight() : getWeight());
-            }
+            updateCriterion(assignment);
         }
         
         @Override
         public void unassigned(Assignment<Exam, ExamPlacement> assignment, ExamPlacement placement) {
-            if (!isHard() && iIsSatisfied != isSatisfied(assignment)) {
-                iIsSatisfied = !iIsSatisfied;
-                ((DistributionPenalty)getModel().getCriterion(DistributionPenalty.class)).inc(assignment, iIsSatisfied ? -getWeight() : getWeight());
+            updateCriterion(assignment);
+        }
+        
+        protected void updateCriterion(Assignment<Exam, ExamPlacement> assignment) {
+            if (!isHard()) {
+                ((DistributionPenalty)getModel().getCriterion(DistributionPenalty.class)).inc(assignment, -iViolations * getWeight(), ExamDistributionConstraint.this);
+                iViolations = countViolations(assignment);
+                ((DistributionPenalty)getModel().getCriterion(DistributionPenalty.class)).inc(assignment, +iViolations * getWeight(), ExamDistributionConstraint.this);
             }
         }
+        
+        public int getViolations() { return iViolations; }
     }
 }

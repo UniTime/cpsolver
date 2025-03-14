@@ -15,6 +15,7 @@ import org.cpsolver.instructor.model.TeachingRequest;
  * Time overlaps. This criterion counts slots during which an instructor has to teach (or attend) two things that are overlapping in time
  * (using {@link Instructor#share(TeachingRequest)}). The time overlaps must be allowed in this case (see {@link Section#isAllowOverlap()}).
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

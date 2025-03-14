@@ -16,6 +16,7 @@ import org.cpsolver.ifs.assignment.Assignment;
  * be minimized.<br>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2016 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -39,6 +40,8 @@ public class Unavailability implements SctAssignment {
     private Section iSection;
     private Student iStudent;
     private boolean iAllowOverlap;
+    private boolean iTeachingAssignment = true;
+    private Long iCourseId;
     
     /**
      * Constructor
@@ -63,6 +66,51 @@ public class Unavailability implements SctAssignment {
      * Section
      */
     public Section getSection() { return iSection; }
+    
+    /**
+     * Optional course id (within the course of {@link Unavailability#getSection()}
+     */
+    public Long getCourseId() { return iCourseId; }
+    
+    /**
+     * Optional course id (within the course of {@link Unavailability#getSection()}
+     */
+    public void setCourseId(Long courseId) { iCourseId = courseId; }
+    
+    /**
+     * Is this a teaching assignment
+     */
+    public boolean isTeachingAssignment() { return iTeachingAssignment; }
+    
+    /**
+     * Is this a teaching assignment, defaults to true
+     */
+    public void setTeachingAssignment(boolean ta) { iTeachingAssignment = ta; }
+    
+    /**
+     * Course name taken from the {@link Unavailability#getSection()} and optional {@link Unavailability#getCourseId()}.
+     * Name of the controlling course is used when no course id is set.
+     */
+    public String getCourseName() {
+        if (getSection().getSubpart() == null) return "";
+        Offering offering = getSection().getSubpart().getConfig().getOffering();
+        if (getCourseId() != null)
+            for (Course course: offering.getCourses())
+                if (course.getId() == getCourseId())
+                    return course.getName();
+        return offering.getName();
+    }
+    
+    /**
+     * Section name using {@link Section#getName(long)} when the optional course id is provided, 
+     * using {@link Section#getName()} otherwise. 
+     */
+    public String getSectionName() {
+        if (getSection().getSubpart() == null) return getSection().getName();
+        if (getCourseId() != null)
+            return getSection().getSubpart().getName() + " " + getSection().getName(getCourseId());
+        return getSection().getSubpart().getName() + " " +getSection().getName();
+    }
     
     @Override
     public long getId() {
@@ -153,5 +201,11 @@ public class Unavailability implements SctAssignment {
     @Override
     public int hashCode() {
         return (int) (getId() ^ (getId() >>> 32));
+    }
+
+    @Override
+    public String toString() {
+        if (getSection().getSubpart() == null) return getSection().getName();
+        return getCourseName() + " " + getSectionName();
     }
 }

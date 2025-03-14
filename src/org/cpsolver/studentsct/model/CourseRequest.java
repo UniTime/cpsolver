@@ -29,6 +29,7 @@ import org.cpsolver.studentsct.reservation.Restriction;
  * requests one of the given courses, preferably the first one. <br>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -347,7 +348,7 @@ public class CourseRequest extends Request {
                     if (!r.canBatchAssignOverLimit()) continue;
                     if (r.neverIncluded()) continue;
                     if (!r.getConfigs().isEmpty() && !r.getConfigs().contains(config)) continue;
-                    if (r.getReservedAvailableSpace(assignment, this) < getWeight()) continue;
+                    if (r.getReservedAvailableSpace(assignment, config, this) < getWeight()) continue;
                     canOverLimit = true; break;
                 }
             }
@@ -360,13 +361,15 @@ public class CourseRequest extends Request {
                     boolean hasReservation = false, hasConfigReservation = false, reservationMustBeUsed = false;
                     for (Reservation r: getReservations(course)) {
                         if (r.mustBeUsed()) reservationMustBeUsed = true;
-                        if (availableOnly && r.getReservedAvailableSpace(assignment, this) < getWeight()) continue;
+                        if (availableOnly && r.getReservedAvailableSpace(assignment, config, this) < getWeight()) continue;
                         if (r.neverIncluded()) {
                         } else if (r.getConfigs().isEmpty()) {
                             hasReservation = true;
                         } else if (r.getConfigs().contains(config)) {
                             hasReservation = true;
                             hasConfigReservation = true;
+                        } else if (!r.areRestrictionsInclusive()) {
+                            hasReservation = true;
                         }
                     }
                     if (!hasConfigReservation && config.getTotalUnreservedSpace() < getWeight())
@@ -421,7 +424,7 @@ public class CourseRequest extends Request {
                 if (availableOnly) {
                     for (Reservation r: getReservations(course)) {
                         if (!r.canBatchAssignOverLimit() || !r.isIncluded(e)) continue;
-                        if (r.getReservedAvailableSpace(assignment, this) < getWeight()) continue;
+                        if (r.getReservedAvailableSpace(assignment, config, this) < getWeight()) continue;
                         if (containDisabledSection && !r.isAllowDisabled()) continue;
                         enrollments.add(new Enrollment(this, priority, null, config, new HashSet<SctAssignment>(sections), r));
                         canOverLimit = true;
@@ -432,7 +435,7 @@ public class CourseRequest extends Request {
                     reservations: for (Reservation r: (availableOnly ? getSortedReservations(assignment, course) : getReservations(course))) {
                         if (r.mustBeUsed()) reservationMustBeUsed = true;
                         if (!r.isIncluded(e)) continue;
-                        if (availableOnly && r.getReservedAvailableSpace(assignment, this) < getWeight()) continue;
+                        if (availableOnly && r.getReservedAvailableSpace(assignment, config, this) < getWeight()) continue;
                         if (mustHaveConfigReservation && r.getConfigs().isEmpty()) continue;
                         if (mustHaveSectionReservation)
                             for (Section s: sections)
@@ -482,7 +485,7 @@ public class CourseRequest extends Request {
                     for (Reservation r: getReservations(course)) {
                         if (!r.isAllowOverlap()) continue;
                         if (r.getSections(subpart) != null && !r.getSections(subpart).contains(section)) continue;
-                        if (r.getReservedAvailableSpace(assignment, this) < getWeight()) continue;
+                        if (r.getReservedAvailableSpace(assignment, config, this) < getWeight()) continue;
                         canOverlap = true; break;
                     }
                     if (!canOverlap) continue;
@@ -492,7 +495,7 @@ public class CourseRequest extends Request {
                     for (Reservation r: getReservations(course)) {
                         if (!r.canBatchAssignOverLimit()) continue;
                         if (r.getSections(subpart) != null && !r.getSections(subpart).contains(section)) continue;
-                        if (r.getReservedAvailableSpace(assignment, this) < getWeight()) continue;
+                        if (r.getReservedAvailableSpace(assignment, config, this) < getWeight()) continue;
                         canOverLimit = true; break;
                     }
                 }
@@ -504,7 +507,7 @@ public class CourseRequest extends Request {
                         boolean hasReservation = false, hasSectionReservation = false, reservationMustBeUsed = false;
                         for (Reservation r: getReservations(course)) {
                             if (r.mustBeUsed()) reservationMustBeUsed = true;
-                            if (availableOnly && r.getReservedAvailableSpace(assignment, this) < getWeight()) continue;
+                            if (availableOnly && r.getReservedAvailableSpace(assignment, config, this) < getWeight()) continue;
                             if (r.getSections(subpart) == null) {
                                 hasReservation = true;
                             } else if (r.getSections(subpart).contains(section)) {

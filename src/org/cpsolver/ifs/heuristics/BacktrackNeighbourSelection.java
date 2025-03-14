@@ -31,7 +31,7 @@ import org.cpsolver.ifs.util.JProf;
  * is returned. <br>
  * <br>
  * Parameters: <br>
- * <table border='1' summary='Related Solver Parameters'>
+ * <table border='1'><caption>Related Solver Parameters</caption>
  * <tr>
  * <th>Parameter</th>
  * <th>Type</th>
@@ -49,6 +49,7 @@ import org.cpsolver.ifs.util.JProf;
  * </tr>
  * </table>
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -327,7 +328,8 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
          * @param resolvedVariables
          *            variables that has been changed
          */
-        public BackTrackNeighbour(BacktrackNeighbourSelectionContext context, V... resolvedVariables) {
+        public BackTrackNeighbour(BacktrackNeighbourSelectionContext context,
+                @SuppressWarnings("unchecked") V... resolvedVariables) {
             iTotalValue = context.getModel().getTotalValue(context.getAssignment());
             iDifferentAssignments = new ArrayList<T>();
             for (V variable : resolvedVariables) {
@@ -530,7 +532,7 @@ public class BacktrackNeighbourSelection<V extends Variable<V, T>, T extends Val
             }
         }
         
-        public void saveBest(V... variables2resolve) {
+        public void saveBest(@SuppressWarnings("unchecked") V... variables2resolve) {
             if (sLog.isDebugEnabled())
                 sLog.debug("    -- all assigned");
             if (iSolution.getAssignment().nrAssignedVariables() > iNrAssigned || (iSolution.getAssignment().nrAssignedVariables() == iNrAssigned && iValue > iSolution.getModel().getTotalValue(iSolution.getAssignment()))) {

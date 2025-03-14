@@ -53,6 +53,7 @@ import org.cpsolver.studentsct.model.Unavailability;
  * <br>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -794,6 +795,56 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
                 return c.getPenalty();
             }
         }),
+        /** 
+         * Student unavailability distance conflict. Distance conflict between a class that the student is taking and a class that the student
+         * is teaching or attending in a different session.
+         * This criterion is weighted by StudentWeights.UnavailabilityDistanceConflict, defaulting to 0.1.
+         */
+        UnavailabilityDistance(WeightType.REQUEST, "StudentWeights.UnavailabilityDistanceConflict", 0.100, new Quality(){
+            @Override
+            public boolean isApplicable(Context cx, Student student, Request r1, Request r2) {
+                return false;
+            }
+            
+            @Override
+            public boolean inConflict(Context cx, SctAssignment sa1, SctAssignment sa2) {
+                Section s1 = (Section) sa1;
+                Unavailability s2 = (Unavailability) sa2;
+                if (s1.getPlacement() == null || s2.getTime() == null || s2.getNrRooms() == 0)
+                    return false;
+                TimeLocation t1 = s1.getTime();
+                TimeLocation t2 = s2.getTime();
+                if (!t1.shareDays(t2) || !t1.shareWeeks(t2))
+                    return false;
+                int a1 = t1.getStartSlot(), a2 = t2.getStartSlot();
+                if (a1 + t1.getNrSlotsPerMeeting() <= a2) {
+                    int dist = cx.getUnavailabilityDistanceInMinutes(s1.getPlacement(), s2);
+                    if (dist > t1.getBreakTime() + Constants.SLOT_LENGTH_MIN * (a2 - a1 - t1.getLength()))
+                        return true;
+                } else if (a2 + t2.getNrSlotsPerMeeting() <= a1) {
+                    int dist = cx.getUnavailabilityDistanceInMinutes(s1.getPlacement(), s2);
+                    if (dist > t2.getBreakTime() + Constants.SLOT_LENGTH_MIN * (a1 - a2 - t2.getLength()))
+                        return true;
+                }
+                return false;
+            }
+
+            @Override
+            public int penalty(Context cx, Student s, SctAssignment a1, SctAssignment a2) {
+                if (!inConflict(cx, a1, a2)) return 0;
+                return a1.getTime().nrSharedDays(a2.getTime());
+            }
+
+            @Override
+            public Iterable<? extends SctAssignment> other(Context cx, Enrollment e) {
+                return (e.isCourseRequest() ? new Unavailabilities(e.getStudent()) : new Nothing());
+            }
+            
+            @Override
+            public double getWeight(Context cx, Conflict c, Enrollment e) {
+                return c.getPenalty();
+            }
+        }),
         ;
         
         private WeightType iType;
@@ -1208,6 +1259,8 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
         private int iLunchStart, iLunchEnd, iLunchLength, iMaxTravelGap, iWorkDayLimit, iBackToBackDistance, iEarlySlot, iLateSlot, iAccBackToBackDistance;
         private String iFreeTimeAccommodation = "FT", iBackToBackAccommodation = "BTB", iBreakBetweenClassesAccommodation = "BBC";
         private ReentrantReadWriteLock iLock = new ReentrantReadWriteLock();
+        private Integer iUnavailabilityMaxTravelTime = null; 
+        private DistanceMetric iUnavailabilityDistanceMetric = null;
         
         public Context(DistanceMetric dm, DataProperties config) {
             iDistanceMetric = (dm == null ? new DistanceMetric(config) : dm);
@@ -1229,10 +1282,20 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
             for (Type t: Type.values())
                 if (config.getPropertyDouble(t.getWeightName(), t.getWeightDefault()) != 0.0)
                     iTypes.add(t);
+            iUnavailabilityMaxTravelTime = config.getPropertyInteger("Distances.UnavailabilityMaxTravelTimeInMinutes", null);
+            if (iUnavailabilityMaxTravelTime != null && iUnavailabilityMaxTravelTime != iDistanceMetric.getMaxTravelDistanceInMinutes()) {
+                iUnavailabilityDistanceMetric = new DistanceMetric(iDistanceMetric);
+                iUnavailabilityDistanceMetric.setMaxTravelDistanceInMinutes(iUnavailabilityMaxTravelTime);
+                iUnavailabilityDistanceMetric.setComputeDistanceConflictsBetweenNonBTBClasses(true);
+            }
         }
         
         public DistanceMetric getDistanceMetric() {
             return iDistanceMetric;
+        }
+        
+        public DistanceMetric getUnavailabilityDistanceMetric() {
+            return (iUnavailabilityDistanceMetric == null ? iDistanceMetric : iUnavailabilityDistanceMetric);
         }
         
         public boolean isDebug() { return iDebug; }
@@ -1325,7 +1388,69 @@ public class StudentQuality extends ExtensionWithContext<Request, Enrollment, St
                     return 0;
                 return getDistanceInMinutes(p1.getRoomLocation(), p2.getRoomLocation());
             }
-        }        
+        }
+        
+        private Map<Long, Map<Long, Integer>> iUnavailabilityDistanceCache = new HashMap<Long, Map<Long,Integer>>();
+        protected Integer getUnavailabilityDistanceInMinutesFromCache(RoomLocation r1, RoomLocation r2) {
+            ReadLock lock = iLock.readLock();
+            lock.lock();
+            try {
+                Map<Long, Integer> other2distance = iUnavailabilityDistanceCache.get(r1.getId());
+                return other2distance == null ? null : other2distance.get(r2.getId());
+            } finally {
+                lock.unlock();
+            }
+        }
+        
+        protected void setUnavailabilityDistanceInMinutesFromCache(RoomLocation r1, RoomLocation r2, Integer distance) {
+            WriteLock lock = iLock.writeLock();
+            lock.lock();
+            try {
+                Map<Long, Integer> other2distance = iUnavailabilityDistanceCache.get(r1.getId());
+                if (other2distance == null) {
+                    other2distance = new HashMap<Long, Integer>();
+                    iUnavailabilityDistanceCache.put(r1.getId(), other2distance);
+                }
+                other2distance.put(r2.getId(), distance);
+            } finally {
+                lock.unlock();
+            }
+        }
+        
+        protected int getUnavailabilityDistanceInMinutes(RoomLocation r1, RoomLocation r2) {
+            if (iUnavailabilityDistanceMetric == null) return getDistanceInMinutes(r1, r2);
+            if (r1.getId().compareTo(r2.getId()) > 0) return getUnavailabilityDistanceInMinutes(r2, r1);
+            if (r1.getId().equals(r2.getId()) || r1.getIgnoreTooFar() || r2.getIgnoreTooFar())
+                return 0;
+            if (r1.getPosX() == null || r1.getPosY() == null || r2.getPosX() == null || r2.getPosY() == null)
+                return iUnavailabilityDistanceMetric.getMaxTravelDistanceInMinutes();
+            Integer distance = getUnavailabilityDistanceInMinutesFromCache(r1, r2);
+            if (distance == null) {
+                distance = iUnavailabilityDistanceMetric.getDistanceInMinutes(r1.getId(), r1.getPosX(), r1.getPosY(), r2.getId(), r2.getPosX(), r2.getPosY());
+                setUnavailabilityDistanceInMinutesFromCache(r1, r2, distance);
+            }
+            return distance;
+        }
+
+        public int getUnavailabilityDistanceInMinutes(Placement p1, Unavailability p2) {
+            if (p1.isMultiRoom()) {
+                int dist = 0;
+                for (RoomLocation r1 : p1.getRoomLocations()) {
+                    for (RoomLocation r2 : p2.getRooms()) {
+                        dist = Math.max(dist, getUnavailabilityDistanceInMinutes(r1, r2));
+                    }
+                }
+                return dist;
+            } else {
+                if (p1.getRoomLocation() == null)
+                    return 0;
+                int dist = 0;
+                for (RoomLocation r2 : p2.getRooms()) {
+                    dist = Math.max(dist, getUnavailabilityDistanceInMinutes(p1.getRoomLocation(), r2));
+                }
+                return dist;
+            }
+        }      
     }
     
     /**

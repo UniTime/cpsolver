@@ -9,6 +9,7 @@ import org.cpsolver.studentsct.model.Student;
  * An interface to pass the list problematic students computed by a neighbour
  * selection to the next neighbour selection.
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

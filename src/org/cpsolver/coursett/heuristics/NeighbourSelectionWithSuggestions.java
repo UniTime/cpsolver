@@ -51,8 +51,8 @@ import org.cpsolver.ifs.util.ToolBox;
 public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelection<Lecture, Placement> {
     private double iSuggestionProbability = 0.1;
     private double iSuggestionProbabilityAllAssigned = 0.5;
-    private int iSuggestionTimeout = 500;
-    private int iSuggestionDepth = 4;
+    protected int iSuggestionTimeout = 500;
+    protected int iSuggestionDepth = 4;
 
     public NeighbourSelectionWithSuggestions(DataProperties properties) throws Exception {
         super(properties);
@@ -141,7 +141,10 @@ public class NeighbourSelectionWithSuggestions extends StandardNeighbourSelectio
             if (context.isTimeoutReached()) break;
             if (resolvedLectures.containsKey(lecture))
                 continue;
-            placements: for (Placement placement : lecture.values(assignment)) {
+            List<Placement> placements = lecture.values(assignment);
+            int rnd = ToolBox.random(placements.size());
+            placements: for (int idx = 0; idx < placements.size(); idx++) {
+                Placement placement = placements.get((idx + rnd) % placements.size());
                 if (context.isTimeoutReached()) break;
                 Placement cur = assignment.getValue(lecture);
                 if (placement.equals(cur))

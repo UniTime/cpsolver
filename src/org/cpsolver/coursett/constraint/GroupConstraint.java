@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 
 import org.cpsolver.coursett.Constants;
 import org.cpsolver.coursett.criteria.DistributionPreferences;
+import org.cpsolver.coursett.criteria.StudentConflict;
 import org.cpsolver.coursett.model.Lecture;
 import org.cpsolver.coursett.model.Placement;
 import org.cpsolver.coursett.model.RoomLocation;
@@ -39,7 +40,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * hard or soft. <br>
  * <br>
  * Following constraints are now supported:
- * <table border='1' summary='Related Solver Parameters'>
+ * <table border='1'><caption>Related Solver Parameters</caption>
  * <tr>
  * <th>Constraint</th>
  * <th>Comment</th>
@@ -95,6 +96,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * </tr>
  * </table>
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -224,7 +226,10 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
         /** Maximum hours a day (number of slots a day check) */
         MAX_HRS_DAY,
         /** Children cannot overlap */
-        CH_NOTOVERLAP;
+        CH_NOTOVERLAP,
+        /** Ignore student conflicts */
+        IGNORE_STUDENTS,
+        ;
         /** Bit number (to combine flags) */
         int flag() { return 1 << ordinal(); }
     }
@@ -884,7 +889,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                 return null;
             }}),
         /**
-         * Meet Together & Same Weeks: Given classes are meeting together (same as if the given classes require constraints Can Share Room,
+         * Meet Together &amp; Same Weeks: Given classes are meeting together (same as if the given classes require constraints Can Share Room,
          * Same Room, Same Time, Same Days and Same Weeks all together).
          */
         MEET_WITH_WEEKS("MEET_WITH_WEEKS", "Meet Together & Same Weeks", new PairCheck() {
@@ -1064,10 +1069,10 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                 public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) { return true; }
             }),
             /**
-             * Same Days-Time-Weeks: Given classes must be taught at the same time of day, on the same days and on the same weeks
-             * (i.e., must have the same date pattern).
+             * Same Days-Time-Weeks: The given classes must be taught at the same time of day, on the same days, and on the same weeks
+             * (i.e., they must follow the same date pattern).
              * It is the combination of Same Days, Same Time, and Same Weeks distribution preferences.
-             * When prohibited or (strongly) discouraged: Any pair of classes classes cannot be taught on the same days
+             * When prohibited or (strongly) discouraged: Any pair of classes cannot be taught on the same days
              * during the same time and during overlapping date patterns. In other words, the given classes cannot overlap.
              */
             SAME_DATE_TIME_WEEKS("SAME_DTW", "Same Days-Time-Weeks", new PairCheck() {
@@ -1083,6 +1088,54 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                     return !plc1.getTimeLocation().shareHours(plc2.getTimeLocation()) ||
                             !plc1.getTimeLocation().shareDays(plc2.getTimeLocation()) ||
                             !plc1.getTimeLocation().shareWeeks(plc2.getTimeLocation());
+                }}),
+            /**
+             * Same Students w/o Distance: This distribution is the same as the Same Students distribution,
+             * except there is no distance conflict checking and no work-day limit.
+             * Also, the distribution gets ignored when there is the Ignore Student Conflicts distribution between the two classes.
+             * This constraint can be used as the Same Student Constraint in the solver configuration, e.g., in the interactive mode,
+             * replacing the Different Time constraint which does not ignore cases when there is the Ignore Student Conflicts between
+             * two classes in a parent-child relation
+             */
+            SAME_STUD_NODST("SAME_STUD_NODST", "Same Students No Distance", new PairCheck() {
+                @Override
+                public boolean isSatisfied(GroupConstraint gc, Placement p1, Placement p2) {
+                    return p1 == null || p2 == null || StudentConflict.ignore(p1.variable(), p2.variable()) || !StudentConflict.overlaps(p1, p2);
+                }
+                @Override
+                public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                    return true;
+                }}),
+            /**
+             * Different Time with Ignore Student Conflicts: Combination of two constraints, Different Time and
+             * Ignore Student Conflicts. Given classes cannot overlap in time, replacing any student conflicts between
+             * these classes.
+             * When prohibited or (strongly) discouraged: every pair of classes in the constraint must overlap in time.
+             * Still, student conflicts are ignored.
+             */
+            DIFF_TIME_IGN_STUDS("DIFF_TIME_IGN_STUDS", "Different Time + Ignore Student Conflicts", new PairCheck() {
+                @Override
+                public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                    return !plc1.getTimeLocation().hasIntersection(plc2.getTimeLocation());
+                }
+                @Override
+                public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                    return plc1.getTimeLocation().hasIntersection(plc2.getTimeLocation());
+                }}, Flag.IGNORE_STUDENTS),
+            /**
+             * Given classes must be taught on dates that are back-to-back and in the given order.<br>
+             * When prohibited or (strongly) discouraged: given classes must be taught on dates in the given order with at least one day between any two following classes.<br>
+             * The primary use for this constraint are for classes that meet only once. 
+             * The constraint will fail if one of the meetings falls on a holiday and the other does not.
+             */
+            FOLLOWING_DATES("FOLLOWING_DATES", "Following Dates", new PairCheck() {
+                @Override
+                public boolean isSatisfied(GroupConstraint gc, Placement plc1, Placement plc2) {
+                    return gc.isFollowingDates(plc1, plc2, true);
+                }
+                @Override
+                public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
+                    return gc.isFollowingDates(plc1, plc2, false);
                 }}),
         ;
         
@@ -2087,17 +2140,18 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
         return (start1 >= start2 && start1 + len1 <= start2 + len2);
     }
     
-    private static boolean canFill(int totalGap, int gapMin, int gapMax, List<Integer> lengths) {
+    private static boolean canFill(int totalGap, int gapMin, int gapMax, List<Set<Integer>> lengths) {
         if (gapMin <= totalGap && totalGap <= gapMax)
             return true;
         if (totalGap < 2 * gapMin)
             return false;
         for (int i = 0; i < lengths.size(); i++) {
-            int length = lengths.get(i);
+            Set<Integer> length = lengths.get(i);
             lengths.remove(i);
             for (int gap = gapMin; gap <= gapMax; gap++)
-                if (canFill(totalGap - gap - length, gapMin, gapMax, lengths))
-                    return true;
+                for (Integer l: length)
+                    if (canFill(totalGap - gap - l, gapMin, gapMax, lengths))
+                        return true;
             lengths.add(i, length);
         }
         return false;
@@ -2163,7 +2217,7 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
         int gapMin = getType().getMin();
         int gapMax = getType().getMax();
 
-        List<Integer> lengths = new ArrayList<Integer>();
+        List<Set<Integer>> lengths = new ArrayList<Set<Integer>>();
 
         Placement[] res = new Placement[Constants.SLOTS_PER_DAY];
         for (int i = 0; i < Constants.SLOTS_PER_DAY; i++)
@@ -2178,11 +2232,19 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             else if (assignment != null)
                 placement = assignment.getValue(lecture);
             if (placement == null) {
-            	if (!lecture.timeLocations().isEmpty())
-            		lengths.add(lecture.timeLocations().get(0).getLength());
+            	if (!lecture.timeLocations().isEmpty()) {
+            	    Set<Integer> l = new HashSet<Integer>();
+            	    for (TimeLocation time: lecture.timeLocations())
+            	        l.add(time.getLength());
+            	    lengths.add(l);
+            	}
             } else if (conflicts != null && conflicts.contains(placement)) {
-            	if (!lecture.timeLocations().isEmpty())
-            		lengths.add(lecture.timeLocations().get(0).getLength());
+            	if (!lecture.timeLocations().isEmpty()) {
+            	    Set<Integer> l = new HashSet<Integer>();
+            	    for (TimeLocation time: lecture.timeLocations())
+            	        l.add(time.getLength());
+            	    lengths.add(l);
+            	}
             } else {
                 int pos = placement.getTimeLocation().getStartSlot();
                 int length = placement.getTimeLocation().getLength();
@@ -2475,6 +2537,48 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
             if (!t2.hasDate(date, iDayOfWeekOffset)) return false;
         }
         return true;
+    }
+    
+    private int nextDate(BitSet weekCode, int dayCode, int nextDate) {
+        while (true) {
+            nextDate = weekCode.nextSetBit(1 + nextDate);
+            if (nextDate < 0) return -1;
+            int dow = (nextDate + iDayOfWeekOffset) % 7;
+            if ((dayCode & Constants.DAY_CODES[dow]) != 0) return nextDate;
+        }
+    }
+    
+    private boolean isFollowingDates(Placement p1, Placement p2, boolean btb) {
+        int ord1 = variables().indexOf(p1.variable());
+        int ord2 = variables().indexOf(p2.variable());
+        TimeLocation t1, t2;
+        boolean following = false;
+        if (ord1 < ord2) {
+            t1 = p1.getTimeLocation();
+            t2 = p2.getTimeLocation();
+            if (ord1 + 1 == ord2) following = true;
+        } else {
+            t2 = p1.getTimeLocation();
+            t1 = p2.getTimeLocation();
+            if (ord2 + 1 == ord1) following = true;
+        }
+        int d1 = nextDate(t1.getWeekCode(), t1.getDayCode(), -1);
+        int d2 = nextDate(t2.getWeekCode(), t2.getDayCode(), -1);
+        while (d1 >= 0) {
+            int d1next = nextDate(t1.getWeekCode(), t1.getDayCode(), d1);
+            int d2next = nextDate(t2.getWeekCode(), t2.getDayCode(), d2);
+            if (d1 >= d2) return false; // next date of p2 is before or on d1 (or there is no next date)
+            // d1 < d2 (d1 before d2)
+            if (d1next >= 0 && d2 >= d1next) return false; // p1 has a next date, but p2 date is not before that date
+            // d1next < 0 || d2 < d1next (no next d1, or d2 before next d2
+            if (!btb && d1 + 1 == d2) return false; // p2 is on a following day of p1
+            // btb || d1 + 1 < d2 (back-to-back or at least one day gap in between)
+            if (btb && following && d1 + 1 != d2) return false; // d2 is not on the next date from d1
+            // !following || d1 + 1 == d2 (not following or on the next day)
+            d1 = d1next; d2 = d2next;
+        }
+        // d1 < 0 (no next d1), check that there is also no d2
+        return (d2 < 0); // both patterns have ended
     }
     
     protected boolean isOnline(Placement p) {

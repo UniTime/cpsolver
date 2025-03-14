@@ -23,6 +23,7 @@ import org.cpsolver.studentsct.model.Subpart;
  * <br>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -74,6 +75,7 @@ public class SectionLimitCheck {
         sLog.info("Checking section limits...");
         boolean ret = true;
         for (Offering offering : getModel().getOfferings()) {
+            if (offering.isDummy()) continue;
             for (Config config : offering.getConfigs()) {
                 for (Subpart subpart : config.getSubparts()) {
                     for (Section section : subpart.getSections()) {

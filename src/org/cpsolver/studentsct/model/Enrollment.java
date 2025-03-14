@@ -23,6 +23,7 @@ import org.cpsolver.studentsct.reservation.Reservation;
  * parent section as well. Also, the selected sections cannot overlap in time. <br>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -139,12 +140,12 @@ public class Enrollment extends Value<Request, Enrollment> {
             Reservation best = null;
             for (Reservation reservation: ((CourseRequest)iRequest).getReservations(iCourse)) {
                 if (reservation.isIncluded(this)) {
-                    if (onlyAvailable && reservation.getContext(assignment).getReservedAvailableSpace(assignment, iRequest) < iRequest.getWeight() && !reservation.canBatchAssignOverLimit())
+                    if (onlyAvailable && reservation.getContext(assignment).getReservedAvailableSpace(assignment, iConfig, iRequest) < iRequest.getWeight() && !reservation.canBatchAssignOverLimit())
                         continue;
                     if (best == null || best.getPriority() > reservation.getPriority()) {
                         best = reservation;
                     } else if (best.getPriority() == reservation.getPriority() &&
-                        best.getContext(assignment).getReservedAvailableSpace(assignment, iRequest) < reservation.getContext(assignment).getReservedAvailableSpace(assignment, iRequest)) {
+                        best.getContext(assignment).getReservedAvailableSpace(assignment, iConfig, iRequest) < reservation.getContext(assignment).getReservedAvailableSpace(assignment, iConfig, iRequest)) {
                         best = reservation;
                     }
                 }
@@ -373,6 +374,17 @@ public class Enrollment extends Value<Request, Enrollment> {
         }
         return true;
     }
+    
+    public boolean isRequired() {
+        if (!isCourseRequest())
+            return false;
+        CourseRequest courseRequest = (CourseRequest) getRequest();
+        for (Section section : getSections()) {
+            if (!courseRequest.isRequired(section))
+                return false;
+        }
+        return true;
+    }
 
     /**
      * Enrollment penalty -- sum of section penalties (see
@@ -504,6 +516,8 @@ public class Enrollment extends Value<Request, Enrollment> {
         if (o == null || !(o instanceof Enrollment))
             return false;
         Enrollment e = (Enrollment) o;
+        if (!ToolBox.equals(getCourse(), e.getCourse()))
+            return false;
         if (!ToolBox.equals(getConfig(), e.getConfig()))
             return false;
         if (!ToolBox.equals(getRequest(), e.getRequest()))

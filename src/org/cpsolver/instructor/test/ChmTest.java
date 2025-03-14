@@ -23,6 +23,7 @@ import org.cpsolver.instructor.model.TeachingRequest;
 /**
  * General chemistry teaching assistants test. No soft constraints at the moment.
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Instructor Sectioning)<br>
  *          Copyright (C) 2016 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

@@ -22,6 +22,7 @@ import org.cpsolver.ifs.util.DataProperties;
  * StudentConflict.NoonSlot parameter (defaults to 144).
  * <br>
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2013 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

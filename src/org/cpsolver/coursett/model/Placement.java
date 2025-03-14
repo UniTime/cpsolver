@@ -21,6 +21,7 @@ import org.cpsolver.ifs.util.ToolBox;
  * <br>
  * It combines room and time location
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -301,6 +302,8 @@ public class Placement extends Value<Lecture, Placement> {
                 }
                 return false;
             } else {
+                if (placement.getRoomLocation().getRoomConstraint() == null || !placement.getRoomLocation().getRoomConstraint().getConstraint())
+                    return false;
                 return getRoomLocations().contains(placement.getRoomLocation());
             }
         } else {
@@ -590,6 +593,8 @@ public class Placement extends Value<Lecture, Placement> {
             if (!ic.isAvailable(lecture, this) && ic.isHard()) {
                 if (!ic.isAvailable(lecture, getTimeLocation())) {
                     for (Placement c: ic.getUnavailabilities()) {
+                        if (c.variable().getId() < 0 && lecture.getDepartment() != null && c.variable().getDepartment() != null
+                                && !c.variable().getDepartment().equals(lecture.getDepartment())) continue;
                         if (c.getTimeLocation().hasIntersection(getTimeLocation()) && !lecture.canShareRoom(c.variable()))
                             return "instructor " + ic.getName() + " not available at " + getTimeLocation().getLongName(useAmPm) + " due to " + c.variable().getName();
                     }

@@ -34,6 +34,7 @@ import org.cpsolver.studentsct.model.Subpart;
  * <br>
  * <br>
  * 
+ * @author  Tomas Muller
  * @version StudentSct 1.3 (Student Sectioning)<br>
  *          Copyright (C) 2007 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
@@ -274,7 +275,7 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
         if (!isIncluded(enrollment)) return false;
 
         // Check the limit
-        return getLimit() < 0 || getContext(assignment).getUsedSpace() + enrollment.getRequest().getWeight() <= getLimit();
+        return getLimit(enrollment.getConfig()) < 0 || getContext(assignment).getUsedSpace() + enrollment.getRequest().getWeight() <= getLimit(enrollment.getConfig());
     }
     
     /**
@@ -332,7 +333,7 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
     public double getRestrictivity() {
         if (iCachedRestrictivity == null) {
             boolean inclusive = areRestrictionsInclusive();
-            if (getConfigs().isEmpty()) return 1.0;
+            if (getConfigs().isEmpty() && getSections().isEmpty()) return 1.0;
             int nrChoices = 0, nrMatchingChoices = 0;
             for (Config config: getOffering().getConfigs()) {
                 int x[] = nrChoices(config, 0, new HashSet<Section>(), getConfigs().contains(config), inclusive);
@@ -425,6 +426,7 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
 
     /** Limit cap cache */
     private Double iLimitCap = null;
+    private Map<Long, Double> iConfigLimitCap = null;
 
     /**
      * Compute limit cap (maximum number of students that can get into the offering using this reservation)
@@ -449,7 +451,7 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
      * Compute limit cap (maximum number of students that can get into the offering using this reservation)
      */
     private double getLimitCapNoCache() {
-        if (getConfigs().isEmpty()) return -1; // no config -> can be unlimited
+        if (getConfigs().isEmpty() && getSections().isEmpty()) return -1; // no config -> can be unlimited
         
         if (canAssignOverLimit()) return -1; // can assign over limit -> no cap
         
@@ -495,10 +497,76 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
     }
     
     /**
+     * Compute limit cap (maximum number of students that can get into the offering using this reservation) for a particular configuration
+     * @return reservation limit cap
+     */
+    public double getLimitCap(Config config) {
+        Double cap = (iConfigLimitCap == null ? null : iConfigLimitCap.get(config.getId()));
+        if (cap == null) {
+            cap = getLimitCapNoCache(config);
+            if (iConfigLimitCap == null) iConfigLimitCap = new HashMap<Long, Double>();
+            iConfigLimitCap.put(config.getId(), cap);
+        }
+        return cap;
+    }
+    
+    private double getLimitCapNoCache(Config config) {
+        if (getConfigs().isEmpty() && getSections().isEmpty()) return -1; // no config -> can be unlimited
+        
+        if (canAssignOverLimit()) return -1; // can assign over limit -> no cap
+
+        if (areRestrictionsInclusive()) {
+            // no restrictions for this configuration -> no limit
+            if (!getConfigs().contains(config)) return 0;
+            
+            // config cap
+            double configCap = config.getLimit();
+        
+            for (Map.Entry<Subpart, Set<Section>> entry: getSections().entrySet()) {
+                if (!config.equals(entry.getKey().getConfig())) continue;
+                Set<Section> sections = entry.getValue();
+                
+                // subpart cap
+                double subpartCap = 0;
+                for (Section section: sections)
+                    subpartCap = add(subpartCap, section.getLimit());
+        
+                // minimize
+                configCap = min(configCap, subpartCap);
+            }
+            
+            // add config cap
+            return configCap;
+        } else {
+            double cap = 0;
+            
+            // config cap
+            if (getConfigs().contains(config))
+                cap = add(cap, config.getLimit());
+            
+            // for each subpart
+            for (Map.Entry<Subpart, Set<Section>> entry: getSections().entrySet()) {
+                if (!config.equals(entry.getKey().getConfig())) continue;
+                Set<Section> sections = entry.getValue();
+
+                // subpart cap
+                double subpartCap = 0;
+                for (Section section: sections)
+                    subpartCap = add(subpartCap, section.getLimit());
+                cap = add(cap, subpartCap);
+            }
+            
+            return cap;
+        }
+        
+    }
+    
+    /**
      * Clear limit cap cache
      */
     private void clearLimitCapCache() {
         iLimitCap = null;
+        if (iConfigLimitCap != null) iConfigLimitCap.clear();
     }
     
     /**
@@ -507,6 +575,15 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
      */
     public double getLimit() {
         return min(getLimitCap(), getReservationLimit());
+    }
+    
+    /**
+     * Reservation limit capped the limit cap (see {@link Reservation#getLimitCap(Config)}) for a particular configuration
+     * @param config configuration for which the limit is computed (restrictions on other configurations are ignored)
+     * @return reservation limit, -1 if unlimited
+     */
+    public double getLimit(Config config) {
+        return min(getLimitCap(config), getReservationLimit());
     }
     
     /**
@@ -597,6 +674,16 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
         return getContext(assignment).getReservedAvailableSpace(assignment, excludeRequest);
     }
     
+    /**
+     * Available reserved space for a particular config
+     * @param assignment current assignment
+     * @param excludeRequest excluding given request (if not null)
+     * @return available reserved space
+     **/
+    public double getReservedAvailableSpace(Assignment<Request, Enrollment> assignment, Config config, Request excludeRequest) {
+        return getContext(assignment).getReservedAvailableSpace(assignment, config, excludeRequest);
+    }
+    
     /** Enrollments assigned using this reservation 
      * @param assignment current assignment
      * @return assigned enrollments of this reservation
@@ -623,6 +710,7 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
         
         /** Used part of the limit */
         private double iUsed = 0;
+        private Map<Long, Double> iUsedByConfig = new HashMap<Long, Double>();
         private boolean iReadOnly = false;
 
         public ReservationContext(Assignment<Request, Enrollment> assignment) {
@@ -636,6 +724,7 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
         
         public ReservationContext(ReservationContext parent) {
             iUsed = parent.iUsed;
+            iUsedByConfig = new HashMap<Long, Double>(parent.iUsedByConfig);
             iEnrollments = parent.iEnrollments;
             iReadOnly = true;
         }
@@ -647,8 +736,11 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
                 iEnrollments = new HashSet<Enrollment>(iEnrollments);
                 iReadOnly = false;
             }
-            if (iEnrollments.add(enrollment))
+            if (iEnrollments.add(enrollment)) {
                 iUsed += enrollment.getRequest().getWeight();
+                Double used = iUsedByConfig.get(enrollment.getConfig().getId());
+                iUsedByConfig.put(enrollment.getConfig().getId(), enrollment.getRequest().getWeight() + (used == null ? 0.0 : used.doubleValue()));
+            }
         }
 
         /** Notify reservation about an assignment */
@@ -658,8 +750,11 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
                 iEnrollments = new HashSet<Enrollment>(iEnrollments);
                 iReadOnly = false;
             }
-            if (iEnrollments.remove(enrollment))
+            if (iEnrollments.remove(enrollment)) {
                 iUsed -= enrollment.getRequest().getWeight();
+                Double used = iUsedByConfig.get(enrollment.getConfig().getId());
+                iUsedByConfig.put(enrollment.getConfig().getId(), (used == null ? 0.0 : used.doubleValue()) - enrollment.getRequest().getWeight());
+            }
         }
         
         /** Enrollments assigned using this reservation 
@@ -676,6 +771,14 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
             return iUsed;
         }
         
+        /** Used space in a particular config
+         * @return spaced used of this reservation
+         **/
+        public double getUsedSpace(Config config) {
+            Double used = iUsedByConfig.get(config.getId());
+            return (used == null ? 0.0 : used.doubleValue());
+        }
+        
         /**
          * Available reserved space
          * @param assignment current assignment
@@ -688,6 +791,25 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
             
             double reserved = getLimit() - getContext(assignment).getUsedSpace();
             if (excludeRequest != null && assignment.getValue(excludeRequest) != null && iEnrollments.contains(assignment.getValue(excludeRequest)))
+                reserved += excludeRequest.getWeight();
+            
+            return reserved;
+        }
+        
+        /**
+         * Available reserved space for a particular config
+         * @param assignment current assignment
+         * @param excludeRequest excluding given request (if not null)
+         * @return available reserved space
+         **/
+        public double getReservedAvailableSpace(Assignment<Request, Enrollment> assignment, Config config, Request excludeRequest) {
+            if (config == null) return getReservedAvailableSpace(assignment, excludeRequest);
+            
+            // Unlimited
+            if (getLimit(config) < 0) return Double.MAX_VALUE;
+            
+            double reserved = getLimit(config) - getContext(assignment).getUsedSpace(config);
+            if (excludeRequest != null && assignment.getValue(excludeRequest) != null && assignment.getValue(excludeRequest).getConfig().equals(config) && iEnrollments.contains(assignment.getValue(excludeRequest)))
                 reserved += excludeRequest.getWeight();
             
             return reserved;

@@ -17,6 +17,7 @@ import org.cpsolver.ifs.assignment.Assignment;
  * Configuration. Each course can have multiple configurations. A student needs
  * to be enrolled into classes of one of the configurations.
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

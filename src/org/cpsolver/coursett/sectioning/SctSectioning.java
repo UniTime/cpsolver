@@ -28,11 +28,12 @@ import org.cpsolver.ifs.util.Progress;
 
 /**
  * 
- * Student sectioning implementation based on branch & bound. This sectioning takes
- * each offering one by one and it is using a branch & bound algorithm to find
+ * Student sectioning implementation based on branch &amp; bound. This sectioning takes
+ * each offering one by one and it is using a branch &amp; bound algorithm to find
  * the best possible enrollment of all students into the given course. The sectioning
  * considers both student conflict weights and student groups.
  * 
+ * @author  Tomas Muller
  * @version CourseTT 1.3 (University Course Timetabling)<br>
  *          Copyright (C) 2017 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>

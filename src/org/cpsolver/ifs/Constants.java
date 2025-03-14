@@ -9,6 +9,7 @@ import java.util.Properties;
  * <br>
  * Build number and release date are to be set by apache ant.
  * 
+ * @author  Tomas Muller
  * @version IFS 1.3 (Iterative Forward Search)<br>
  *          Copyright (C) 2006 - 2014 Tomas Muller<br>
  *          <a href="mailto:muller@unitime.org">muller@unitime.org</a><br>
