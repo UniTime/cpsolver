@@ -70,6 +70,7 @@ import org.cpsolver.studentsct.report.DistanceConflictTable;
 import org.cpsolver.studentsct.report.RequestGroupTable;
 import org.cpsolver.studentsct.report.RequestPriorityTable;
 import org.cpsolver.studentsct.report.SectionConflictTable;
+import org.cpsolver.studentsct.report.SolutionStatsReport;
 import org.cpsolver.studentsct.report.TableauReport;
 import org.cpsolver.studentsct.report.TimeOverlapConflictTable;
 import org.cpsolver.studentsct.report.UnbalancedSectionsTable;
@@ -579,6 +580,9 @@ public class Test {
                     
                     TableauReport tr = new TableauReport((StudentSectioningModel) solution.getModel());
                     tr.create(solution.getAssignment(), model.getProperties()).save(new File(outDir, "tableau.csv"));
+                    
+                    SolutionStatsReport st = new SolutionStatsReport((StudentSectioningModel) solution.getModel());
+                    st.create(solution.getAssignment(), model.getProperties()).save(new File(outDir, "stats.csv"));
                 } catch (IOException e) {
                     sLog.error(e.getMessage(), e);
                 }
