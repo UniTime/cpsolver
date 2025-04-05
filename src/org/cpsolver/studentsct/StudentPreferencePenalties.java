@@ -10,6 +10,7 @@ import org.cpsolver.coursett.model.TimeLocation;
 import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.assignment.EmptyAssignment;
 import org.cpsolver.ifs.heuristics.RouletteWheelSelection;
+import org.cpsolver.ifs.util.ToolBox;
 import org.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
 import org.cpsolver.studentsct.model.Config;
 import org.cpsolver.studentsct.model.Course;
@@ -82,6 +83,7 @@ public class StudentPreferencePenalties {
     public static int sDistTypePreference = 1;
     public static int sDistTypePreferenceQuadratic = 2;
     public static int sDistTypePreferenceReverse = 3;
+    public static int sDistTypePlain = 4;
 
     public static int[][] sStudentRequestDistribution = new int[][] {
     // morning, 7:30a, 8:30a, 9:30a, 10:30a, 11:30a, 12:30p, 1:30p, 2:30p,
@@ -105,6 +107,19 @@ public class StudentPreferencePenalties {
      * @param disributionType distribution type
      */
     public StudentPreferencePenalties(int disributionType) {
+        if (disributionType == sDistTypePlain) {
+            int idx = 0;
+            for (int d = 0; d < sStudentRequestDistribution.length; d++)
+                for (int t = 0; t < sStudentRequestDistribution[d].length; t++) {
+                    int w = sStudentRequestDistribution[d][t];
+                    double p = (10 - w) / 9.0;
+                    iWeight.put(d + "." + t, p);
+                    idx ++;
+                    if (sDebug)
+                        sLog.debug("  -- " + (idx + 1) + ". preference is " + toString(d, t) + " (P:" + sDF.format(p) + ")");
+                }
+            return;
+        }
         RouletteWheelSelection<int[]> roulette = new RouletteWheelSelection<int[]>();
         for (int d = 0; d < sStudentRequestDistribution.length; d++)
             for (int t = 0; t < sStudentRequestDistribution[d].length; t++) {
@@ -432,6 +447,12 @@ public class StudentPreferencePenalties {
             }
             courseRequest.clearCache();
         }
+    }
+    
+    public static void main(String[] args) {
+        sDebug = true;
+        ToolBox.configureLogging();
+        new StudentPreferencePenalties(sDistTypePlain);
     }
 
 }
