@@ -348,6 +348,7 @@ public class CourseRequest extends Request {
                     if (!r.canBatchAssignOverLimit()) continue;
                     if (r.neverIncluded()) continue;
                     if (!r.getConfigs().isEmpty() && !r.getConfigs().contains(config)) continue;
+                    if (r.getReservedAvailableSpace(assignment, this) < getWeight()) continue;
                     if (r.getReservedAvailableSpace(assignment, config, this) < getWeight()) continue;
                     canOverLimit = true; break;
                 }
@@ -361,6 +362,7 @@ public class CourseRequest extends Request {
                     boolean hasReservation = false, hasConfigReservation = false, reservationMustBeUsed = false;
                     for (Reservation r: getReservations(course)) {
                         if (r.mustBeUsed()) reservationMustBeUsed = true;
+                        if (availableOnly && r.getReservedAvailableSpace(assignment, this) < getWeight()) continue;
                         if (availableOnly && r.getReservedAvailableSpace(assignment, config, this) < getWeight()) continue;
                         if (r.neverIncluded()) {
                         } else if (r.getConfigs().isEmpty()) {
