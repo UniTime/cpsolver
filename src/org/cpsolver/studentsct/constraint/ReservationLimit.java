@@ -306,21 +306,19 @@ public class ReservationLimit extends GlobalConstraint<Request, Enrollment> {
         
         // check reservation
         if (reservation != null) {
-            // unlimited reservation
-            if (reservation.getLimit() < 0)
-                return false;
-            
-            // check remaning space
-            if (reservation.getReservedAvailableSpace(assignment, config, enrollment.getRequest()) < enrollment.getRequest().getWeight())
+            // reservation is not unlimited and there is not enough space in it
+            if (reservation.getLimit() >= 0 &&
+                    reservation.getReservedAvailableSpace(assignment, enrollment.getRequest()) < enrollment.getRequest().getWeight())
                 return true;
             
             // check reservation can assign over the limit
             if (reservation.canBatchAssignOverLimit())
                 return false;
-            
+
             // if not configuration reservation, check configuration unreserved space too
-            return (!hasConfigReservation(enrollment) &&
-                    getUnreservedSpace(assignment, config, enrollment.getRequest(), true) < 0.0);
+            return (!hasConfigReservation(enrollment) && (
+                    config.getTotalUnreservedSpace() < enrollment.getRequest().getWeight() ||
+                    getUnreservedSpace(assignment, config, enrollment.getRequest(), true) < 0.0));
         } else {
             // check unreserved space;
             return config.getOffering().getTotalUnreservedSpace() < enrollment.getRequest().getWeight() || 
