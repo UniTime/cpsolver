@@ -1,5 +1,6 @@
 package org.cpsolver.coursett.model;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -65,6 +66,7 @@ public class DefaultStudentSectioning implements StudentSectioning, InfoProvider
     protected TimetableModel iModel = null;
     private Progress iProgress = null;
     protected FinalSectioning iFinalSectioning = null;
+    protected boolean iMustFollowReservations = false;
     protected static java.text.DecimalFormat sDF2 = new java.text.DecimalFormat("0.00", new java.text.DecimalFormatSymbols(Locale.US));
 
     /**
@@ -74,6 +76,7 @@ public class DefaultStudentSectioning implements StudentSectioning, InfoProvider
     public DefaultStudentSectioning(TimetableModel model) {
         iModel = model;
         iFinalSectioning = new FinalSectioning(model);
+        iMustFollowReservations = model.getProperties().getPropertyBoolean("StudentSectioning.MustFollowReservations", false);
     }
     
     public Progress getProgress() {
@@ -95,12 +98,28 @@ public class DefaultStudentSectioning implements StudentSectioning, InfoProvider
         if (configurations == null || configurations.isEmpty())
             return;
         if (configurations.size() == 1) {
-            Configuration cfg = configurations.iterator().next();
-            for (Student st : students) {
-                st.addConfiguration(cfg);
-            }
-            for (Long subpartId: cfg.getTopSubpartIds()) {
-                initialSectioningLectures(assignment, offeringId, courseName, students, cfg.getTopLectures(subpartId));
+            if (isMustFollowReservations()) {
+                Collection<Student> availableStudents = new ArrayList<Student>(students.size());
+                Configuration cfg = configurations.iterator().next();
+                for (Student st : students) {
+                    if (st.canEnroll(cfg)) {
+                        availableStudents.add(st);
+                        st.addConfiguration(cfg);
+                    } else {
+                        getProgress().debug("Unable to enroll student " + st.getId() + " in " + courseName);
+                    }
+                    for (Long subpartId: cfg.getTopSubpartIds()) {
+                        initialSectioningLectures(assignment, offeringId, courseName, availableStudents, cfg.getTopLectures(subpartId));
+                    }
+                }
+            } else {
+                Configuration cfg = configurations.iterator().next();
+                for (Student st : students) {
+                    st.addConfiguration(cfg);
+                }
+                for (Long subpartId: cfg.getTopSubpartIds()) {
+                    initialSectioningLectures(assignment, offeringId, courseName, students, cfg.getTopLectures(subpartId));
+                }
             }
         } else {
             getProgress().trace("sectioning " + students.size() + " students of course " + courseName + " into " + configurations.size() + " configurations");
@@ -113,6 +132,18 @@ public class DefaultStudentSectioning implements StudentSectioning, InfoProvider
                 }
                 for (Long subpartId: group.getConfiguration().getTopSubpartIds()) {
                     initialSectioningLectures(assignment, offeringId, courseName, group.getStudents(), group.getConfiguration().getTopLectures(subpartId));
+                }
+            }
+            if (isMustFollowReservations()) {
+                for (Student st : students) {
+                    boolean hasConfig = false;
+                    for (Configuration cfg: configurations)
+                        if (st.getConfigurations().contains(cfg)) {
+                            hasConfig = true;
+                            break;
+                        }
+                    if (!hasConfig)
+                        getProgress().debug("Unable to enroll student " + st.getId() + " in " + courseName);
                 }
             }
         }
@@ -147,18 +178,21 @@ public class DefaultStudentSectioning implements StudentSectioning, InfoProvider
 
         getProgress().trace("sectioning " + students.size() + " students of course " + courseName + " into " + lectures.size() + " sections");
         if (lectures.size() == 1) {
+            Collection<Student> availableStudents = (isMustFollowReservations() ? new ArrayList<Student>(students.size()) : students);
             Lecture lect = lectures.iterator().next();
             for (Student st : students) {
                 if (!st.canEnroll(lect)) {
-                    getProgress().info("Unable to enroll student " + st.getId() + " in class " + getClassLabel(lect));
+                    getProgress().debug("Unable to enroll student " + st.getId() + " in class " + getClassLabel(lect));
+                    if (isMustFollowReservations()) continue;
                 }
                 lect.addStudent(assignment, st);
                 st.addLecture(lect);
+                if (isMustFollowReservations()) availableStudents.add(st);
             }
             if (lect.hasAnyChildren()) {
                 for (Long subpartId: lect.getChildrenSubpartIds()) {
                     List<Lecture> children = lect.getChildren(subpartId);
-                    initialSectioningLectures(assignment, offeringId, lect.getName(), students, children);
+                    initialSectioningLectures(assignment, offeringId, lect.getName(), availableStudents, children);
                 }
             }
         } else {
@@ -174,7 +208,13 @@ public class DefaultStudentSectioning implements StudentSectioning, InfoProvider
                 List<Student> studentsThisSection = group.getStudents();
                 for (Student st : studentsThisSection) {
                     if (!st.canEnroll(lect)) {
-                        getProgress().info("Unable to enroll student " + st.getId() + " in class " + getClassLabel(lect));
+                        if (isMustFollowReservations()) {
+                            // should not really happen
+                            getProgress().info("Unable to enroll student " + st.getId() + " in class " + getClassLabel(lect));
+                            continue;
+                        } else {
+                            getProgress().debug("Unable to enroll student " + st.getId() + " in class " + getClassLabel(lect));
+                        }
                     }
                     lect.addStudent(assignment, st);
                     st.addLecture(lect);
@@ -184,6 +224,18 @@ public class DefaultStudentSectioning implements StudentSectioning, InfoProvider
                         List<Lecture> children = lect.getChildren(subpartId);
                         initialSectioningLectures(assignment, offeringId, lect.getName(), studentsThisSection, children);
                     }
+                }
+            }
+            if (isMustFollowReservations()) {
+                for (Student st : students) {
+                    boolean hasLecture = false;
+                    for (Lecture lect: lectures)
+                        if (st.getLectures().contains(lect)) {
+                            hasLecture = true;
+                            break;
+                        }
+                    if (!hasLecture)
+                        getProgress().debug("Unable to enroll student " + st.getId() + " in " + courseName);
                 }
             }
         }
@@ -198,6 +250,7 @@ public class DefaultStudentSectioning implements StudentSectioning, InfoProvider
      */
     protected Group[] studentsToConfigurations(Long offeringId, Collection<Student> students, Collection<Configuration> configurations) {
         InitialSectioning sect = new InitialSectioning(getProgress(), offeringId, configurations, students);
+        sect.setMustFollowReservations(isMustFollowReservations());
         return sect.getGroups();
     }
     
@@ -210,6 +263,7 @@ public class DefaultStudentSectioning implements StudentSectioning, InfoProvider
      */
     protected Group[] studentsToLectures(Long offeringId, Collection<Student> students, Collection<Lecture> lectures) {
         InitialSectioning sect = new InitialSectioning(getProgress(), offeringId, lectures, students);
+        sect.setMustFollowReservations(isMustFollowReservations());
         return sect.getGroups();
     }
     
@@ -252,4 +306,15 @@ public class DefaultStudentSectioning implements StudentSectioning, InfoProvider
         if (!iModel.getStudentGroups().isEmpty())
             info.put("Student groups", sDF2.format(StudentSwapSectioning.gp(iModel, variables)) + "%");
     }
+    
+    /**
+     * Must reservations be followed? When true, a student cannot be placed in a section where {@link Student#canEnroll(Lecture)} is false.
+     * Defaults to false.
+     */
+    public boolean isMustFollowReservations() { return iMustFollowReservations; }
+    /**
+     * Must reservations be followed? When true, a student cannot be placed in a section where {@link Student#canEnroll(Lecture)} is false.
+     * Defaults to false.
+     */
+    public void setMustFollowReservations(boolean mustFollow) { iMustFollowReservations = mustFollow; }
 }

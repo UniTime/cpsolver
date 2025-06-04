@@ -61,6 +61,7 @@ public class DeterministicStudentSectioning extends DefaultStudentSectioning {
     @Override
     protected Group[] studentsToConfigurations(Long offeringId, Collection<Student> students, Collection<Configuration> configurations) {
         DeterministicInitialSectioning sect = new DeterministicInitialSectioning(getProgress(), offeringId, configurations, students);
+        sect.setMustFollowReservations(isMustFollowReservations());
         return sect.getGroups();
     }
     
@@ -74,6 +75,7 @@ public class DeterministicStudentSectioning extends DefaultStudentSectioning {
         });
         sortedLectures.addAll(lectures);
         DeterministicInitialSectioning sect = new DeterministicInitialSectioning(getProgress(), offeringId, sortedLectures, students);
+        sect.setMustFollowReservations(isMustFollowReservations());
         return sect.getGroups();
     }
     
@@ -180,9 +182,13 @@ public class DeterministicStudentSectioning extends DefaultStudentSectioning {
                     continue;
                 }
 
-                // put the student into the first group
-                getProgress().debug("Unable to find a valid section for student " + student.getId() + ", enrolling to " + (iGroups[0].getLecture() != null ? iGroups[0].getLecture().getName() : iGroups[0].getConfiguration().getConfigId().toString()));
-                iGroups[0].addStudent(student);
+                if (isMustFollowReservations()) {
+                    getProgress().debug("Unable to find a valid section for student " + student.getId() + ".");
+                } else {
+                    // put the student into the first group
+                    getProgress().debug("Unable to find a valid section for student " + student.getId() + ", enrolling to " + (iGroups[0].getLecture() != null ? iGroups[0].getLecture().getName() : iGroups[0].getConfiguration().getConfigId().toString()));
+                    iGroups[0].addStudent(student);
+                }
             }
 
             // try to move students away from groups with an excess of more than a student

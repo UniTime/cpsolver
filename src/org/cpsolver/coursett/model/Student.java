@@ -128,6 +128,21 @@ public class Student implements Comparable<Student> {
         }
         return true;
     }
+    
+    public boolean canEnroll(Configuration config) {
+        for (Long subpartId: config.getTopSubpartIds()) {
+            boolean canEnrollThisSubpart = false;
+            for (Lecture lecture : config.getTopLectures(subpartId)) {
+                if (canEnroll(lecture)) {
+                    canEnrollThisSubpart = true;
+                    break;
+                }
+            }
+            if (!canEnrollThisSubpart)
+                return false;
+        }
+        return true;
+    }
 
     private boolean canEnroll(Set<Lecture> canNotEnrollLectures, Lecture lecture, boolean checkParents) {
         if (canNotEnrollLectures == null)

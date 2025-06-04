@@ -63,6 +63,7 @@ public class InitialSectioning {
     protected Long iOfferingId = null;
     protected Progress iProgress = null;
     protected static double sNominalWeight = 0.00001;
+    protected boolean iMustFollowReservations = false;
 
     public InitialSectioning(Progress progress, Long offeringId, Collection<?> lectureOrConfigurations, Collection<Student> students) {
         iOfferingId = offeringId;
@@ -93,6 +94,17 @@ public class InitialSectioning {
             progress.trace("    " + (idx + 1) + ". group can accomodate <" + iGroups[idx].getMinSize() + ","
                     + iGroups[idx].getMaxSize() + "> students");
     }
+    
+    /**
+     * Must reservations be followed? When true, a student cannot be placed in a section where {@link Student#canEnroll(Lecture)} is false.
+     * Defaults to false.
+     */
+    public boolean isMustFollowReservations() { return iMustFollowReservations; }
+    /**
+     * Must reservations be followed? When true, a student cannot be placed in a section where {@link Student#canEnroll(Lecture)} is false.
+     * Defaults to false.
+     */
+    public void setMustFollowReservations(boolean mustFollow) { iMustFollowReservations = mustFollow; }
     
     protected Progress getProgress() {
         return iProgress;
@@ -259,20 +271,26 @@ public class InitialSectioning {
             // disobey max size & can enroll
             for (int idx = 0; idx < iGroups.length; idx++) {
                 Group g = iGroups[idx];
+                if (isMustFollowReservations() && !g.canEnroll(student))
+                    continue;
                 double d = g.getDistance(student);
                 if (group == null || d < dist) {
                     group = g;
                     dist = d;
                 }
             }
+            
+            if (group == null) {
+                iProgress.debug("Unable to find a valid section for student " + student.getId());
+            } else {
+                iProgress.debug("Unable to find a valid section for student "
+                        + student.getId()
+                        + ", enrolling to "
+                        + (group.getLecture() != null ? group.getLecture().getName() : group.getConfiguration()
+                                .getConfigId().toString()));
 
-            iProgress.debug("Unable to find a valid section for student "
-                    + student.getId()
-                    + ", enrolling to "
-                    + (group.getLecture() != null ? group.getLecture().getName() : group.getConfiguration()
-                            .getConfigId().toString()));
-
-            group.addStudent(student);
+                group.addStudent(student);
+            }
         }
 
         for (int idx = 0; idx < iGroups.length; idx++) {
@@ -456,18 +474,7 @@ public class InitialSectioning {
             if (getLecture() != null) {
                 return student.canEnroll(getLecture());
             } else {
-                for (Long subpartId: getConfiguration().getTopSubpartIds()) {
-                    boolean canEnrollThisSubpart = false;
-                    for (Lecture lecture : getConfiguration().getTopLectures(subpartId)) {
-                        if (student.canEnroll(lecture)) {
-                            canEnrollThisSubpart = true;
-                            break;
-                        }
-                    }
-                    if (!canEnrollThisSubpart)
-                        return false;
-                }
-                return true;
+                return student.canEnroll(getConfiguration());
             }
         }
 
