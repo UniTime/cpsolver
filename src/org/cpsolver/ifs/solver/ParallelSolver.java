@@ -402,14 +402,26 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
                                     undo.put(e.getKey(), iSolution.getAssignment().unassign(iSolution.getIteration(), e.getKey()));
                                 }
                             }
-                            boolean fail = false;
+                            List<T> conf = null;
                             for (T val: assignments.values()) {
                                 if (val == null) continue;
                                 if (iModel.inConflict(iSolution.getAssignment(), val)) {
-                                    fail = true; break;
+                                    if (conf == null) conf = new ArrayList<T>();
+                                    conf.add(val);
+                                } else {
+                                    iSolution.getAssignment().assign(iSolution.getIteration(), val);
                                 }
-                                iSolution.getAssignment().assign(iSolution.getIteration(), val);
                             }
+                            boolean fail = false;
+                            if (conf != null)
+                                for (T val: conf) {
+                                    if (val == null) continue;
+                                    if (iModel.inConflict(iSolution.getAssignment(), val)) {
+                                        fail = true;
+                                        break;
+                                    }
+                                    iSolution.getAssignment().assign(iSolution.getIteration(), val);
+                                }
                             if (!fail) {
                                 if (lazy != null) {
                                     double after = iSolution.getModel().getTotalValue(iSolution.getAssignment());
@@ -541,14 +553,26 @@ public class ParallelSolver<V extends Variable<V, T>, T extends Value<V, T>> ext
                         Map<V, T> undo = new HashMap<V, T>();
                         for (V var: assignments.keySet())
                             undo.put(var, iSolution.getAssignment().unassign(iSolution.getIteration(), var));
-                        boolean fail = false;
+                        List<T> conf = null;
                         for (T val: assignments.values()) {
                             if (val == null) continue;
                             if (iSolution.getModel().inConflict(iSolution.getAssignment(), val)) {
-                                fail = true; break;
+                                if (conf == null) conf = new ArrayList<T>();
+                                conf.add(val);
+                            } else {
+                                iSolution.getAssignment().assign(iSolution.getIteration(), val);
                             }
-                            iSolution.getAssignment().assign(iSolution.getIteration(), val);
                         }
+                        boolean fail = false;
+                        if (conf != null)
+                            for (T val: conf) {
+                                if (val == null) continue;
+                                if (iSolution.getModel().inConflict(iSolution.getAssignment(), val)) {
+                                    fail = true;
+                                    break;
+                                }
+                                iSolution.getAssignment().assign(iSolution.getIteration(), val);
+                            }
                         if (!fail) {
                             if (lazy != null) {
                                 double after = iSolution.getModel().getTotalValue(iSolution.getAssignment());
