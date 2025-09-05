@@ -103,4 +103,14 @@ public abstract class GlobalConstraint<V extends Variable<V, T>, T extends Value
     @Override
     public void unassigned(Assignment<V, T> assignment, long iteration, T value) {
     }
+    
+    @Override
+    public String toString() {
+        return getClass().getSimpleName();
+    }
+    
+    @Override
+    public String getName() {
+        return getClass().getSimpleName().replaceAll("(?<=[^A-Z])([A-Z])"," $1");
+    }
 }
