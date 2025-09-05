@@ -114,4 +114,19 @@ public class OptimisticInheritedAssignment<V extends Variable<V, T>, T extends V
     public long getVersion() {
         return iVersion;
     }
+    
+    @Override
+    public String toString() {
+        String ret = "OptAssignment{";
+        for (Map.Entry<V, T> e: iAssignments.entrySet()) {
+            T v = iParent.getValue(e.getKey());
+            if (!e.getValue().equals(v))
+                ret += "\n  " + e.getKey() + " := " + e.getValue() +
+                    "\n    -- original " + (v == null ? "not-assigned" : v);
+        }
+        for (V v: iDirty)
+            ret += "\n  " + v + " := not-assigned" +
+                    "\n    -- original " + iParent.getValue(v);
+        return ret + "}";
+    }
 }
