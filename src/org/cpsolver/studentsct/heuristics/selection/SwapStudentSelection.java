@@ -106,11 +106,13 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
     public static boolean sDebug = false;
     protected StudentOrder iOrder = new StudentChoiceRealFirstOrder();
     private boolean iPreferPriorityStudents = true;
+    protected Map<Student, Integer> iFailedCounter = new HashMap<Student, Integer>();
     
     protected long iNbrIterations = 0;
     protected long iTotalTime = 0;
     protected long iNbrTimeoutReached = 0;
     protected long iNbrNoSolution = 0;
+    protected long iNbrStudents = 0;
 
     /**
      * Constructor
@@ -138,12 +140,14 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
         List<Student> students = iOrder.order(((StudentSectioningModel) solver.currentSolution().getModel()).getStudents());
         iStudents = new LinkedList<Student>(students);
         iProblemStudents.clear();
+        iFailedCounter.clear();
         Progress.getInstance(solver.currentSolution().getModel()).setPhase("Student swap...", students.size());
         
         iNbrIterations = 0;
         iNbrTimeoutReached = 0;
         iNbrNoSolution = 0;
         iTotalTime = 0;
+        iNbrStudents = iStudents.size();
     }
     
     protected synchronized Student nextStudent() {
@@ -152,6 +156,9 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
     
     public synchronized void addStudent(Student student) {
         if (iStudents != null && student != null && !student.isDummy()) {
+            Integer failed = iFailedCounter.getOrDefault(student, 0);
+            iFailedCounter.put(student, 1 + failed);
+            if (failed >= 10) return;
             if (student.getPriority().ordinal() < StudentPriority.Normal.ordinal()) {
                 for (ListIterator<Student> i = iStudents.listIterator(); i.hasNext();) {
                     Student s = i.next();
@@ -176,7 +183,7 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
         Student student = null;
         while ((student = nextStudent()) != null) {
             Progress p = Progress.getInstance(solution.getModel()); 
-            p.incProgress();
+            p.setProgress(iNbrStudents - iStudents.size());
             if (p.getProgress() > 2.0 * p.getProgressMax()) return null;
             if (student.isComplete(solution.getAssignment()) || student.nrAssignedRequests(solution.getAssignment()) == 0)
                 continue;

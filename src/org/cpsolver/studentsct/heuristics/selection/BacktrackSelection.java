@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.ConcurrentModificationException;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -72,6 +73,8 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
     protected long iNbrNoSolution = 0;
     protected StudentFilter iFilter = null;
     protected RequestComparator iRequestComparator = null;
+    protected Map<Request, Integer> iFailedCounter = new HashMap<Request, Integer>();
+    protected long iNbrRequests = 0;
 
     public BacktrackSelection(DataProperties properties) {
         iIncludeAssignedRequests = properties.getPropertyBoolean("Neighbour.IncludeAssignedRequests", iIncludeAssignedRequests);
@@ -83,6 +86,7 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
         Collections.shuffle(variables);
         Collections.sort(variables, iRequestComparator);
         iRequests = new LinkedList<Request>(variables);
+        iFailedCounter.clear();
         if (iRBtNSel == null) {
             try {
                 iRBtNSel = new RandomizedBacktrackNeighbourSelection(solver.getProperties());
@@ -103,6 +107,7 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
         iNbrNoSolution = 0;
         iTotalTime = 0;
         iMaxIterations = Math.max(10,  2 * iRequests.size());
+        iNbrRequests = iRequests.size();
     }
     
     protected synchronized Request nextRequest() {
@@ -115,6 +120,9 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
     
     public synchronized void addRequest(Request request) {
         if (iRequests != null && request != null && !request.getStudent().isDummy()) {
+            Integer failed = iFailedCounter.getOrDefault(request, 0);
+            iFailedCounter.put(request, 1 + failed);
+            if (failed >= 5) return;
             if (request.getStudent().getPriority().ordinal() < StudentPriority.Normal.ordinal() || request.getRequestPriority().ordinal() < RequestPriority.Normal.ordinal()) {
                 for (ListIterator<Request> i = iRequests.listIterator(); i.hasNext();) {
                     Request r = i.next();
@@ -134,7 +142,7 @@ public class BacktrackSelection implements NeighbourSelection<Request, Enrollmen
         Request request = null;
         if (iNbrIterations > iMaxIterations) return null;
         while ((request = nextRequest()) != null) {
-            Progress.getInstance(solution.getModel()).incProgress();
+            Progress.getInstance(solution.getModel()).setProgress(iNbrRequests - iRequests.size());
             Enrollment e = request.getAssignment(solution.getAssignment());
             if (e != null && request instanceof FreeTimeRequest) continue;
             if (e != null && e.getPriority() == 0 && ((CourseRequest)request).getSelectedChoices().isEmpty()) continue;
