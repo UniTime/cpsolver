@@ -11,8 +11,6 @@ import org.cpsolver.ifs.assignment.context.AbstractClassWithContext;
 import org.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
 import org.cpsolver.ifs.assignment.context.CanInheritContext;
 import org.cpsolver.ifs.model.Model;
-import org.cpsolver.studentsct.StudentSectioningModel;
-import org.cpsolver.studentsct.constraint.DependentCourses;
 
 
 /**
@@ -555,7 +553,5 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
             parent.iChildren = new HashSet<Course>();
             parent.iChildren.add(this);
         }
-        if (((StudentSectioningModel)getModel()).getDependentCoursesConstraint() == null)
-            getModel().addGlobalConstraint(new DependentCourses());
     }
 }

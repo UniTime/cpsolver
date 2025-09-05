@@ -19,6 +19,7 @@ import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.model.Constraint;
 import org.cpsolver.ifs.util.DistanceMetric;
 import org.cpsolver.ifs.util.Progress;
+import org.cpsolver.studentsct.constraint.DependentCourses;
 import org.cpsolver.studentsct.constraint.FixedAssignments;
 import org.cpsolver.studentsct.filter.StudentFilter;
 import org.cpsolver.studentsct.model.AreaClassificationMajor;
@@ -383,6 +384,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
             }
         }
         
+        boolean hasParent = false;
         for (Iterator<?> i = offeringsEl.elementIterator("offering"); i.hasNext();) {
             Element offeringEl = (Element) i.next();
             for (Iterator<?> j = offeringEl.elementIterator("course"); j.hasNext();) {
@@ -391,9 +393,12 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                     Course parent = courseTable.get(Long.valueOf(courseEl.attributeValue("parent")));
                     Course course = courseTable.get(Long.valueOf(courseEl.attributeValue("id")));
                     course.setParent(parent);
+                    hasParent = true;
                 }
             }
         }
+        if (hasParent && getModel().getProperties().getPropertyBoolean("Sectioning.DependentCourses", true)) 
+            getModel().addGlobalConstraint(new DependentCourses());
     }
     
     /**
