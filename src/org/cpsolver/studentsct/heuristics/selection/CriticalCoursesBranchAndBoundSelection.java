@@ -134,7 +134,7 @@ public class CriticalCoursesBranchAndBoundSelection extends BranchBoundSelection
                 }
                 return;
             }
-            if (idx < iAssignment.length && !iPriority.isCritical(iStudent.getRequests().get(idx)) && (!iMPP || iStudent.getRequests().get(idx).getInitialAssignment() == null)) {
+            if (idx < iAssignment.length && !iPriority.isCritical(iStudent.getRequests().get(idx)) && (!iMPP || iStudent.getRequests().get(idx).getInitialAssignment() == null) && canLeaveUnassigned(iStudent.getRequests().get(idx))) {
                 // not done yet && not critical && not initial >> leave unassigned
                 backTrack(idx + 1);
             } else {

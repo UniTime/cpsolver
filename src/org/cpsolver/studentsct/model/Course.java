@@ -11,6 +11,8 @@ import org.cpsolver.ifs.assignment.context.AbstractClassWithContext;
 import org.cpsolver.ifs.assignment.context.AssignmentConstraintContext;
 import org.cpsolver.ifs.assignment.context.CanInheritContext;
 import org.cpsolver.ifs.model.Model;
+import org.cpsolver.studentsct.StudentSectioningModel;
+import org.cpsolver.studentsct.constraint.DependentCourses;
 
 
 /**
@@ -56,6 +58,8 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
     private Float iCreditValue = null;
     private String iTitle = null;
     private String iType = null;
+    private Course iParent = null;
+    private Set<Course> iChildren = null;
 
     /**
      * Constructor
@@ -514,5 +518,44 @@ public class Course extends AbstractClassWithContext<Request, Enrollment, Course
      */
     public void setType(String type) {
         iType = type;
+    }
+    
+    /**
+     * Parent course is set if the course depends on the parent.
+     * If the student is requesting both this course and its parent, they cannot get this course without also getting the parent course. 
+     * @return parent offering
+     */
+    public Course getParent() { return iParent; }
+    
+    /**
+     * Parent course is set if the course depends on the parent.
+     * If the student is requesting both this course and its parent, they cannot get this course without also getting the parent course. 
+     * @return true if parent is set (this course depends on some other course)
+     */
+    public boolean hasParent() { return iParent != null; }
+    
+    /**
+     * Return true if this course is a parent of at least one other course.
+     */
+    public boolean hasChildren() { return iChildren != null && !iChildren.isEmpty(); }
+    
+    /**
+     * Courses that this course is a parent of.
+     */
+    public Set<Course> getChildren() { return iChildren; }
+    
+    /**
+     * Parent course is set if the course depends on the parent.
+     * If the student is requesting both this course and its parent, they cannot get this course without also getting the parent course. 
+     * parameter parent parent course, null if this offering has no parent
+     */
+    public void setParent(Course parent) {
+        iParent = parent;
+        if (parent.iChildren == null) {
+            parent.iChildren = new HashSet<Course>();
+            parent.iChildren.add(this);
+        }
+        if (((StudentSectioningModel)getModel()).getDependentCoursesConstraint() == null)
+            getModel().addGlobalConstraint(new DependentCourses());
     }
 }

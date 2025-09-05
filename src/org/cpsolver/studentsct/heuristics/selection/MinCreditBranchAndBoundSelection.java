@@ -136,7 +136,7 @@ public class MinCreditBranchAndBoundSelection extends BranchBoundSelection {
                 }
                 return;
             }
-            if (idx < iAssignment.length && getCredit(idx) >= iStudent.getMinCredit() && !iPriority.isCritical(iStudent.getRequests().get(idx)) && (!iMPP || iStudent.getRequests().get(idx).getInitialAssignment() == null)) {
+            if (idx < iAssignment.length && getCredit(idx) >= iStudent.getMinCredit() && !iPriority.isCritical(iStudent.getRequests().get(idx)) && (!iMPP || iStudent.getRequests().get(idx).getInitialAssignment() == null)&& canLeaveUnassigned(iStudent.getRequests().get(idx)) && canLeaveUnassigned(iStudent.getRequests().get(idx))) {
                 // not done yet, over min credit but not critical >> leave unassigned
                 backTrack(idx + 1);
             } else {

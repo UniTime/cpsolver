@@ -20,6 +20,7 @@ import org.cpsolver.ifs.assignment.context.CanInheritContext;
 import org.cpsolver.ifs.assignment.context.ModelWithContext;
 import org.cpsolver.ifs.model.Constraint;
 import org.cpsolver.ifs.model.ConstraintListener;
+import org.cpsolver.ifs.model.GlobalConstraint;
 import org.cpsolver.ifs.model.InfoProvider;
 import org.cpsolver.ifs.model.Model;
 import org.cpsolver.ifs.solution.Solution;
@@ -28,6 +29,7 @@ import org.cpsolver.ifs.util.DistanceMetric;
 import org.cpsolver.studentsct.constraint.CancelledSections;
 import org.cpsolver.studentsct.constraint.ConfigLimit;
 import org.cpsolver.studentsct.constraint.CourseLimit;
+import org.cpsolver.studentsct.constraint.DependentCourses;
 import org.cpsolver.studentsct.constraint.DisabledSections;
 import org.cpsolver.studentsct.constraint.FixInitialAssignments;
 import org.cpsolver.studentsct.constraint.HardDistanceConflicts;
@@ -114,7 +116,7 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     protected double iProjectedStudentWeight = 0.0100;
     private int iMaxDomainSize = -1; 
     private int iDayOfWeekOffset = 0;
-
+    private DependentCourses iDependentCourses = null;
 
     /**
      * Constructor
@@ -2008,5 +2010,22 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
     public StudentSectioningModelContext inheritAssignmentContext(Assignment<Request, Enrollment> assignment, StudentSectioningModelContext parentContext) {
         return new StudentSectioningModelContext(parentContext);
     }
-
+    
+    @Override
+    public void addGlobalConstraint(GlobalConstraint<Request, Enrollment> constraint) {
+        super.addGlobalConstraint(constraint);
+        if (constraint instanceof DependentCourses)
+            iDependentCourses = (DependentCourses)constraint;
+    }
+    
+    @Override
+    public void removeGlobalConstraint(GlobalConstraint<Request, Enrollment> constraint) {
+        super.removeGlobalConstraint(constraint);
+        if (constraint instanceof DependentCourses)
+            iDependentCourses = null;
+    }
+    
+    public DependentCourses getDependentCoursesConstraint() {
+        return iDependentCourses;
+    }
 }

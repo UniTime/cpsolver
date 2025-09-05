@@ -27,6 +27,7 @@ import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.JProf;
 import org.cpsolver.ifs.util.Progress;
 import org.cpsolver.studentsct.StudentSectioningModel;
+import org.cpsolver.studentsct.constraint.DependentCourses;
 import org.cpsolver.studentsct.constraint.LinkedSections;
 import org.cpsolver.studentsct.extension.DistanceConflict;
 import org.cpsolver.studentsct.extension.StudentQuality;
@@ -586,7 +587,14 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
          **/
         public boolean inConflict(final int idx, final Enrollment enrollment) {
             for (GlobalConstraint<Request, Enrollment> constraint : enrollment.variable().getModel().globalConstraints())
-                if (constraint.inConflict(iCurrentAssignment, enrollment))
+                if (constraint instanceof DependentCourses) {
+                    if (((DependentCourses)constraint).isPartialScheduleInConflict(iStudent, new LinkedSections.EnrollmentAssignment() {
+                        @Override
+                        public Enrollment getEnrollment(Request request, int index) {
+                            return (index == idx ? enrollment : iAssignment[index]);
+                        }
+                    }, idx)) return true;
+                } else if (constraint.inConflict(iCurrentAssignment, enrollment))
                     return true;
             for (LinkedSections linkedSections: iStudent.getLinkedSections()) {
                 if (linkedSections.inConflict(enrollment, new LinkedSections.EnrollmentAssignment() {
@@ -681,6 +689,13 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         protected boolean canLeaveUnassigned(Request request) {
             if (request instanceof CourseRequest && ((CourseRequest)request).getFixedValue() != null) return false;
             if (request.isMPP() && iModel.getKeepInitialAssignments()) return false;
+            if (iModel.getDependentCoursesConstraint() != null &&
+                !iModel.getDependentCoursesConstraint().canLeaveUnassigned(iStudent, new LinkedSections.EnrollmentAssignment() {
+                    @Override
+                    public Enrollment getEnrollment(Request r, int index) {
+                        return iAssignment[index];
+                    }
+                }, request)) return false;
             return true;
         }
         

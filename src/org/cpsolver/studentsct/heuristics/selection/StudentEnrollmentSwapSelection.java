@@ -219,12 +219,22 @@ public class StudentEnrollmentSwapSelection implements NeighbourSelection<Reques
             for (Iterator<Enrollment> e = values(context, variable); canContinueEvaluation(context) && e.hasNext();) {
                 Enrollment value = e.next();
                 if (value.equals(current)) continue;
+                boolean hasChildren = (value.getCourse() != null && value.getCourse().hasChildren());
                 if (current != null && currentValue <= value.toDouble(context.getAssignment())) continue;
                 if (context.isTimeoutReached() || context.isMaxItersReached()) break;
                 context.incIteration();
                 if (context.getModel().inConflict(context.getAssignment(), value)) {
-                    for (Enrollment other: new ArrayList<Enrollment>(value.getCourse().getContext(context.getAssignment()).getEnrollments())) {
+                    other: for (Enrollment other: new ArrayList<Enrollment>(value.getCourse().getContext(context.getAssignment()).getEnrollments())) {
                         if (other.getStudent().equals(value.getStudent()) || !other.getSections().equals(value.getSections())) continue;
+                        if (hasChildren) {
+                            for (Request r: other.getStudent().getRequests()) {
+                                if (r.equals(other.getRequest())) continue;
+                                Enrollment f = context.getAssignment().getValue(r);
+                                if (f != null && f.getCourse() != null && value.getCourse().equals(f.getCourse().getParent())) {
+                                    continue other;
+                                }
+                            }
+                        }
                         context.getAssignment().unassign(0, other.variable());
                         if (!context.getModel().inConflict(context.getAssignment(), value)) {
                             if (current != null)

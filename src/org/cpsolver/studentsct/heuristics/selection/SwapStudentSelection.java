@@ -28,6 +28,7 @@ import org.cpsolver.ifs.util.Progress;
 import org.cpsolver.studentsct.StudentSectioningModel;
 import org.cpsolver.studentsct.heuristics.studentord.StudentChoiceRealFirstOrder;
 import org.cpsolver.studentsct.heuristics.studentord.StudentOrder;
+import org.cpsolver.studentsct.model.Course;
 import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
@@ -296,6 +297,16 @@ public class SwapStudentSelection implements NeighbourSelection<Request, Enrollm
                 } else
                     values = request.values(iAssignment);
                 values: for (Enrollment enrollment : values) {
+                    // do not try to assign an enrollment that requires a parent course that is not assigned
+                    if (enrollment.getCourse() != null && enrollment.getCourse().getParent() != null) {
+                        Course parent = enrollment.getCourse().getParent();
+                        for (Request r: iStudent.getRequests()) {
+                            if (r.hasCourse(parent)) {
+                                Enrollment e = iAssignment.getValue(r);
+                                if (e == null || !parent.equals(e.getCourse())) continue values;
+                            }
+                        }
+                    }
                     if (iTimeout > 0 && (JProf.currentTimeMillis() - iT0) > iTimeout) {
                         if (!iTimeoutReached) {
                             if (sDebug)

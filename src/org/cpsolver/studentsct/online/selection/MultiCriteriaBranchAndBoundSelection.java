@@ -14,6 +14,7 @@ import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.ifs.model.GlobalConstraint;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.JProf;
+import org.cpsolver.studentsct.constraint.DependentCourses;
 import org.cpsolver.studentsct.constraint.LinkedSections;
 import org.cpsolver.studentsct.heuristics.selection.OnlineSelection;
 import org.cpsolver.studentsct.heuristics.selection.BranchBoundSelection.BranchBoundNeighbour;
@@ -188,9 +189,17 @@ public class MultiCriteriaBranchAndBoundSelection implements OnlineSectioningSel
 
     /** True if the enrollment is conflicting */
     public boolean inConflict(final int idx, final Enrollment enrollment) {
-        for (GlobalConstraint<Request, Enrollment> constraint : enrollment.variable().getModel().globalConstraints())
-            if (constraint.inConflict(iAssignment, enrollment))
+        for (GlobalConstraint<Request, Enrollment> constraint : enrollment.variable().getModel().globalConstraints()) {
+            if (constraint instanceof DependentCourses) {
+                if (((DependentCourses)constraint).isPartialScheduleInConflict(iStudent, new LinkedSections.EnrollmentAssignment() {
+                    @Override
+                    public Enrollment getEnrollment(Request request, int index) {
+                        return (index == idx ? enrollment : iCurrentAssignment[index]);
+                    }
+                }, idx)) return true;
+            } else if (constraint.inConflict(iAssignment, enrollment))
                 return true;
+        }
         for (LinkedSections linkedSections : iStudent.getLinkedSections()) {
             if (linkedSections.inConflict(enrollment, new LinkedSections.EnrollmentAssignment() {
                 @Override
@@ -280,6 +289,13 @@ public class MultiCriteriaBranchAndBoundSelection implements OnlineSectioningSel
                 return false;
         } else if (iRequiredFreeTimes.contains(request))
             return false;
+        if (iModel.getDependentCoursesConstraint() != null &&
+            !iModel.getDependentCoursesConstraint().canLeaveUnassigned(iStudent, new LinkedSections.EnrollmentAssignment() {
+                @Override
+                public Enrollment getEnrollment(Request r, int index) {
+                    return iCurrentAssignment[index];
+                }
+            }, request)) return false;
         return true;
     }
 

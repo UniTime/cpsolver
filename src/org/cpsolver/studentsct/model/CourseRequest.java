@@ -340,6 +340,15 @@ public class CourseRequest extends Request {
             boolean random, int limit) {
         if (limit > 0 && enrollments.size() >= limit)
             return;
+        if (availableOnly && course.hasParent()) {
+            Course parent = course.getParent();
+            for (Request r: getStudent().getRequests()) {
+                if (r.hasCourse(parent)) {
+                    Enrollment e = assignment.getValue(r);
+                    if (e == null || !parent.equals(e.getCourse())) return;
+                }
+            }
+        }
         if (idx == 0) { // run only once for each configuration
             if (isNotAllowed(course, config)) return;
             boolean canOverLimit = false;
@@ -802,6 +811,8 @@ public class CourseRequest extends Request {
                 ret += ", " + idx + ". alt " + course.getName();
             idx++;
         }
+        if (getStudent().getExternalId() != null)
+            ret = "[" + getStudent().getExternalId() + "] " + ret;
         return ret;
     }
 
@@ -1163,6 +1174,15 @@ public class CourseRequest extends Request {
         for (RequestGroup g: getRequestGroups())
             if (g.getCourse().equals(enrollment.getCourse()))
                 g.unassigned(assignment, enrollment);
+        if (enrollment != null && enrollment.getCourse() != null && enrollment.getCourse().hasChildren()) {
+            for (Request r: enrollment.getStudent().getRequests()) {
+                if (r.equals(enrollment.getRequest())) continue;
+                Enrollment e = assignment.getValue(r);
+                if (e != null && e.getCourse() != null && enrollment.getCourse().equals(e.getCourse().getParent())) {
+                    assignment.unassign(iteration, r);
+                }
+            }
+        }
     }
 
     @Override
@@ -1192,4 +1212,16 @@ public class CourseRequest extends Request {
     public boolean isFixed() { return iFixed != null; }
     public Enrollment getFixedValue() { return iFixed; }
     public void setFixedValue(Enrollment constant) { iFixed = constant; }
+    
+    @Override
+    public boolean hasCourse(Course course) {
+        return iCourses.contains(course);
+    }
+    
+    @Override
+    public boolean hasChildren() {
+        for (Course course: iCourses)
+            if (course.hasChildren()) return true;
+        return false;
+    }
 }

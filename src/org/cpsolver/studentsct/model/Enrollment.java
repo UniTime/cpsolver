@@ -508,6 +508,8 @@ public class Enrollment extends Value<Request, Enrollment> {
         }
         if (getReservation() != null) ret = "(r) " + ret;
         if (getRequest().isMPP()) ret += " [i" + sDF.format(100.0 * percentInitial()) + "/t" + sDF.format(100.0 * percentSameTime()) + "]";
+        if (variable().getStudent().getExternalId() != null)
+            ret = "[" + variable().getStudent().getExternalId() + "] " + ret;
         return ret;
     }
 

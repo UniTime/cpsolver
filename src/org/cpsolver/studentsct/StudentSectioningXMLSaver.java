@@ -339,6 +339,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
      */
     protected void saveCourse(Element courseEl, Course course) {
         courseEl.addAttribute("id", getId("course", course.getId()));
+        if (course.getParent() != null)
+            courseEl.addAttribute("parent", getId("offering", course.getParent().getId()));
         if (iShowNames)
             courseEl.addAttribute("subjectArea", course.getSubjectArea());
         if (iShowNames)

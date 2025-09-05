@@ -118,7 +118,7 @@ public abstract class Request extends VariableWithContext<Request, Enrollment, R
     @Override
     public int compareTo(Request r) {
         if (getStudent().getId() == r.getStudent().getId())
-            return (isAlternative() != r.isAlternative() ? isAlternative() ? 1 : -1 : getPriority() < r.getPriority() ? -1 : 1);
+            return (isAlternative() != r.isAlternative() ? isAlternative() ? 1 : -1 : getPriority() < r.getPriority() ? -1 : getPriority() > r.getPriority() ? 1 : 0);
         else
             return getStudent().compareTo(r.getStudent());
     }
@@ -270,6 +270,20 @@ public abstract class Request extends VariableWithContext<Request, Enrollment, R
     @Deprecated
     public boolean isCritical() {
         return getRequestPriority() != null && getRequestPriority().isCritical();
+    }
+    
+    /**
+     * Check if this request is {@link CourseRequest} and contains the given course.
+     */
+    public boolean hasCourse(Course course) {
+        return false;
+    }
+    
+    /**
+     * Check if this request is {@link CourseRequest} and a parent of some other course 
+     */
+    public boolean hasChildren() {
+        return false;
     }
     
     /**

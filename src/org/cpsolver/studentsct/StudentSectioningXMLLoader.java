@@ -382,6 +382,18 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                 loadRestriction(restrictionEl, offering, configTable, sectionTable);
             }
         }
+        
+        for (Iterator<?> i = offeringsEl.elementIterator("offering"); i.hasNext();) {
+            Element offeringEl = (Element) i.next();
+            for (Iterator<?> j = offeringEl.elementIterator("course"); j.hasNext();) {
+                Element courseEl = (Element) j.next();
+                if (courseEl.attributeValue("parent") != null) {
+                    Course parent = courseTable.get(Long.valueOf(courseEl.attributeValue("parent")));
+                    Course course = courseTable.get(Long.valueOf(courseEl.attributeValue("id")));
+                    course.setParent(parent);
+                }
+            }
+        }
     }
     
     /**
