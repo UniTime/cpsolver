@@ -82,7 +82,7 @@ public class OnlineSectioningCriterion implements SelectionCriterion {
             iTimesToAvoid = new ArrayList<TimeToAvoid>();
             for (Request r : iStudent.getRequests()) {
                 if (r instanceof CourseRequest) {
-                    List<Enrollment> enrollments = ((CourseRequest) r).getAvaiableEnrollmentsSkipSameTime(assignment);
+                    List<Enrollment> enrollments = ((CourseRequest) r).getAvaiableEnrollmentsSkipSameTime(assignment, false);
                     if (enrollments.size() <= 5) {
                         int penalty = (7 - enrollments.size()) * (r.isAlternative() ? 1 : 7 - enrollments.size());
                         for (Enrollment enrollment : enrollments)

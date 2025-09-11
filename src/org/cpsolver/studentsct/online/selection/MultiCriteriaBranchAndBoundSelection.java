@@ -303,7 +303,7 @@ public class MultiCriteriaBranchAndBoundSelection implements OnlineSectioningSel
     protected List<Enrollment> values(final CourseRequest request) {
         if (iRequiredUnassinged != null && iRequiredUnassinged.contains(request))
             return new ArrayList<Enrollment>();
-        List<Enrollment> values = request.getAvaiableEnrollments(iAssignment);
+        List<Enrollment> values = request.getAvaiableEnrollments(iAssignment, false);
         Collections.sort(values, new Comparator<Enrollment>() {
             @Override
             public int compare(Enrollment o1, Enrollment o2) {

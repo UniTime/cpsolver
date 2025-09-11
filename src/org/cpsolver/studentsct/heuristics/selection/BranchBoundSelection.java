@@ -120,6 +120,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
     protected long iTotalTime = 0;
     protected long iNbrTimeoutReached = 0;
     protected long iNbrNoSolution = 0;
+    protected long iNbrStudents = 0;
 
     /**
      * Constructor
@@ -157,6 +158,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
         iNbrTimeoutReached = 0;
         iNbrNoSolution = 0;
         iTotalTime = 0;
+        iNbrStudents = iStudents.size();
     }
     
     public void setModel(StudentSectioningModel model) {
@@ -183,7 +185,8 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
     }
     
     public synchronized void addStudent(Student student) {
-        if (iStudents != null && !student.isDummy()) iStudents.addFirst(student);
+        if (iStudents != null && !student.isDummy())
+            iStudents.addFirst(student);
     }
 
     /**
@@ -194,7 +197,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
     public Neighbour<Request, Enrollment> selectNeighbour(Solution<Request, Enrollment> solution) {
         Student student = null;
         while ((student = nextStudent()) != null) {
-            Progress.getInstance(solution.getModel()).incProgress();
+            Progress.getInstance(solution.getModel()).setProgress(iNbrStudents - iStudents.size());
             for (int i = 0; i < 5; i++) {
                 try {
                     Neighbour<Request, Enrollment> neighbour = getSelection(solution.getAssignment(), student).select();
@@ -704,7 +707,7 @@ public class BranchBoundSelection implements NeighbourSelection<Request, Enrollm
          * @return list of enrollments to consider
          **/
         protected List<Enrollment> values(final CourseRequest request) {
-            List<Enrollment> values = request.getAvaiableEnrollments(iCurrentAssignment);
+            List<Enrollment> values = request.getAvaiableEnrollments(iCurrentAssignment, false);
             Collections.sort(values, new Comparator<Enrollment>() {
                 
                 private HashMap<Enrollment, Double> iValues = new HashMap<Enrollment, Double>();
