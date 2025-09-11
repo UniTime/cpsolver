@@ -350,7 +350,7 @@ public class SuggestionsBranchAndBound {
             return values;
         if (request instanceof CourseRequest) {
             CourseRequest cr = (CourseRequest) request;
-            values = (cr.equals(iSelectedRequest) ? cr.getAvaiableEnrollments(iAssignment) : cr.getAvaiableEnrollmentsSkipSameTime(iAssignment));
+            values = (cr.equals(iSelectedRequest) ? cr.getAvaiableEnrollments(iAssignment, false) : cr.getAvaiableEnrollmentsSkipSameTime(iAssignment, false));
             if (cr.equals(iSelectedRequest)) {
                 Collections.sort(values, new Comparator<Enrollment>() {
                     @Override

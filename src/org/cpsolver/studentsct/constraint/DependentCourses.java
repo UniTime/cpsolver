@@ -47,7 +47,7 @@ public class DependentCourses extends GlobalConstraint<Request, Enrollment> {
         if (value != null && value.getCourse() != null) {
             // check if assigned course has a parent
             Course parent = value.getCourse().getParent();
-            if (parent != null) {
+            if (parent != null && !value.getAssignments().isEmpty()) {
                 // has parent -> check if student has the parent course assigned
                 for (Request request: value.getStudent().getRequests()) {
                     if (request.hasCourse(parent)) { // this request has the parent course
