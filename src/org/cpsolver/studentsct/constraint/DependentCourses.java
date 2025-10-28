@@ -217,7 +217,7 @@ public class DependentCourses extends GlobalConstraint<Request, Enrollment> {
      * @return true if the parent request can be left unassigned (it is not a parent course for an assigned dependent course)
      */
     public boolean canLeaveUnassigned(Student student, EnrollmentAssignment assignment, Request parentRequest) {
-        if (!parentRequest.hasChildren()) return false;
+        if (!parentRequest.hasChildren()) return true;
         // request has children > check if assigned
         for (int i = 0; i < student.getRequests().size(); i++) {
             Request request = student.getRequests().get(i);
