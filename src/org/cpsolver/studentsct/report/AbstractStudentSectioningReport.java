@@ -134,7 +134,7 @@ public abstract class AbstractStudentSectioningReport implements StudentSectioni
         private Assignment<Request, Enrollment> iAssignment;
 
         public RequestMatcher(Request request, Enrollment enrollment, Assignment<Request, Enrollment> assignment, String user) {
-            super(request.getStudent());
+            super(request.getStudent(), enrollment == null ? null : enrollment.getCourse());
             iRequest = request;
             iEnrollment = enrollment;
             iAssignment = assignment;

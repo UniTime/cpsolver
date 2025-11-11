@@ -78,7 +78,7 @@ public class RequiredReservation extends GlobalConstraint<Request, Enrollment> {
         
         // if a reservation is required for the student, fail
         for (Reservation r: config.getOffering().getReservations())
-            if (r.mustBeUsed() && r.isApplicable(enrollment.getStudent()))
+            if (r.mustBeUsed() && r.isApplicable(enrollment.getStudent(), enrollment.getCourse()))
                 return true;
         
         return false;

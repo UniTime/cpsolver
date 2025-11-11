@@ -1,5 +1,6 @@
 package org.cpsolver.studentsct.reservation;
 
+import org.cpsolver.studentsct.model.Course;
 import org.cpsolver.studentsct.model.Offering;
 import org.cpsolver.studentsct.model.Student;
 
@@ -69,7 +70,7 @@ public class DummyReservation extends Reservation {
      * Dummy reservation is not applicable to any students
      */
     @Override
-    public boolean isApplicable(Student student) {
+    public boolean isApplicable(Student student, Course course) {
         return false;
     }
 

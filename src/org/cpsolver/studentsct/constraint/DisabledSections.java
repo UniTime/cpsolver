@@ -93,7 +93,7 @@ public class DisabledSections extends GlobalConstraint<Request, Enrollment> {
         
         // if a there is some other reservation that allows for disabled sections >> also fine
         for (Reservation r: config.getOffering().getReservations())
-            if (r.isAllowDisabled() && r.isApplicable(enrollment.getStudent()) && r.isIncluded(enrollment))
+            if (r.isAllowDisabled() && r.isApplicable(enrollment.getStudent(), enrollment.getCourse()) && r.isIncluded(enrollment))
                 return false;
         
         return true;

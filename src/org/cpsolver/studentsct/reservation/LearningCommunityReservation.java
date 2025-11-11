@@ -3,8 +3,6 @@ package org.cpsolver.studentsct.reservation;
 import java.util.Collection;
 
 import org.cpsolver.studentsct.model.Course;
-import org.cpsolver.studentsct.model.CourseRequest;
-import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.Student;
 
 /**
@@ -104,15 +102,8 @@ public class LearningCommunityReservation extends GroupReservation {
      * Check the student group and the course
      */
     @Override
-    public boolean isApplicable(Student student) {
-        if (!super.isApplicable(student)) return false;
-        for (Request r: student.getRequests()) {
-            if (r instanceof CourseRequest) {
-                for (Course course: ((CourseRequest) r).getCourses()) {
-                    if (course.equals(getCourse())) return true;
-                }
-            }
-        }
-        return false;
+    public boolean isApplicable(Student student, Course course) {
+        if (!super.isApplicable(student, course)) return false;
+        return course != null && course.equals(getCourse());
     }
 }

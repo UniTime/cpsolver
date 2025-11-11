@@ -1023,7 +1023,7 @@ public class CourseRequest extends Request {
             reservations = new ArrayList<Reservation>();
             boolean mustBeUsed = false;
             for (Reservation r: course.getOffering().getReservations()) {
-                if (!r.isApplicable(getStudent())) continue;
+                if (!r.isApplicable(getStudent(), course)) continue;
                 if (!mustBeUsed && r.mustBeUsed()) { reservations.clear(); mustBeUsed = true; }
                 if (mustBeUsed && !r.mustBeUsed()) continue;
                 reservations.add(r);
@@ -1075,7 +1075,7 @@ public class CourseRequest extends Request {
         if (restrictions == null) {
             restrictions = new ArrayList<Restriction>();
             for (Restriction r: course.getOffering().getRestrictions()) {
-                if (r.isApplicable(getStudent()))
+                if (r.isApplicable(getStudent(), course))
                     restrictions.add(r);
             }
             iRestrictions.put(course, restrictions);

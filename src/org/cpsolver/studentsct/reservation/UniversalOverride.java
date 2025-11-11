@@ -2,6 +2,7 @@ package org.cpsolver.studentsct.reservation;
 
 import org.cpsolver.ifs.util.Query;
 import org.cpsolver.studentsct.model.AreaClassificationMajor;
+import org.cpsolver.studentsct.model.Course;
 import org.cpsolver.studentsct.model.Instructor;
 import org.cpsolver.studentsct.model.Offering;
 import org.cpsolver.studentsct.model.Student;
@@ -107,8 +108,8 @@ public class UniversalOverride extends Reservation {
      * Check the area, classifications and majors
      */
     @Override
-    public boolean isApplicable(Student student) {
-        return iFilter != null && !iFilter.isEmpty() && getStudentQuery().match(new StudentMatcher(student));
+    public boolean isApplicable(Student student, Course course) {
+        return iFilter != null && !iFilter.isEmpty() && getStudentQuery().match(new StudentMatcher(student, course));
     }
     
     public Query getStudentQuery() {
@@ -123,9 +124,15 @@ public class UniversalOverride extends Reservation {
      */
     public static class StudentMatcher implements Query.TermMatcher {
         private Student iStudent;
+        private Course iCourse;
+        
+        public StudentMatcher(Student student, Course course) {
+                iStudent = student;
+                iCourse = course;
+        }
         
         public StudentMatcher(Student student) {
-                iStudent = student;
+            this(student, null);
         }
 
         public Student student() { return iStudent; }
@@ -194,6 +201,8 @@ public class UniversalOverride extends Reservation {
                 } else if ("primary-campus".equals(attr)) {
                     AreaClassificationMajor acm = student().getPrimaryMajor();
                     if (acm != null && like(acm.getCampus(), term)) return true;
+                } else if ("course".equals(attr)) {
+                    return iCourse!= null && like(iCourse.getName(), term);
                 } else if (attr != null) {
                     for (StudentGroup aac: student().getGroups())
                         if (eq(aac.getType(), attr.replace('_', ' ')) && like(aac.getReference(), term)) return true;

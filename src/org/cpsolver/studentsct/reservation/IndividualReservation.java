@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.cpsolver.studentsct.model.Course;
 import org.cpsolver.studentsct.model.Offering;
 import org.cpsolver.studentsct.model.Student;
 
@@ -111,7 +112,7 @@ public class IndividualReservation extends Reservation {
      * Reservation is applicable for all students in the reservation
      */
     @Override
-    public boolean isApplicable(Student student) {
+    public boolean isApplicable(Student student, Course course) {
         return iStudentIds.contains(student.getId());
     }
     

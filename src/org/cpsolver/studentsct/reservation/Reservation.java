@@ -144,9 +144,24 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
     /**
      * Returns true if the student is applicable for the reservation
      * @param student a student 
+     * @param course a course
      * @return true if student can use the reservation to get into the course / configuration / section
      */
-    public abstract boolean isApplicable(Student student);
+    public abstract boolean isApplicable(Student student, Course course);
+    
+    @Deprecated
+    public boolean isApplicable(Student student) {
+        if (isApplicable(student, null)) return true;
+        for (Request r: student.getRequests()) {
+            if (r instanceof CourseRequest) {
+                for (Course course: ((CourseRequest) r).getCourses()) {
+                    if (course.getOffering().equals(getOffering()) && isApplicable(student, course))
+                        return true;
+                }
+            }
+        }
+        return false;
+    }
 
     /**
      * Instructional offering on which the reservation is set.
@@ -269,7 +284,7 @@ public abstract class Reservation extends AbstractClassWithContext<Request, Enro
      */
     public boolean canEnroll(Assignment<Request, Enrollment> assignment, Enrollment enrollment) {
         // Check if student can use this reservation
-        if (!isApplicable(enrollment.getStudent())) return false;
+        if (!isApplicable(enrollment.getStudent(), enrollment.getCourse())) return false;
         
         // Check if the enrollment meets the reservation
         if (!isIncluded(enrollment)) return false;

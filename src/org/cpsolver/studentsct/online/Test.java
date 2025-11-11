@@ -336,7 +336,7 @@ public class Test {
                     if (reservationLimit <= 0 && !reservation.mustBeUsed())
                         continue;
                 }
-                boolean applicable = originalStudent != null && reservation.isApplicable(originalStudent);
+                boolean applicable = originalStudent != null && reservation.isApplicable(originalStudent, course);
                 if (reservation instanceof CourseReservation)
                     applicable = (course.getId() == ((CourseReservation) reservation).getCourse().getId());
                 if (reservation instanceof org.cpsolver.studentsct.reservation.DummyReservation) {

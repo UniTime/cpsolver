@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.cpsolver.studentsct.model.Course;
 import org.cpsolver.studentsct.model.Offering;
 import org.cpsolver.studentsct.model.Student;
 
@@ -64,7 +65,7 @@ public class IndividualRestriction extends Restriction {
      * Restriction is applicable for all students in the restriction
      */
     @Override
-    public boolean isApplicable(Student student) {
+    public boolean isApplicable(Student student, Course course) {
         return iStudentIds.contains(student.getId());
     }
     

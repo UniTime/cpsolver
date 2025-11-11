@@ -1,8 +1,6 @@
 package org.cpsolver.studentsct.reservation;
 
 import org.cpsolver.studentsct.model.Course;
-import org.cpsolver.studentsct.model.CourseRequest;
-import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.Student;
 
 /**
@@ -55,14 +53,7 @@ public class CourseRestriction extends Restriction {
      * Check the area, classifications and majors
      */
     @Override
-    public boolean isApplicable(Student student) {
-        for (Request r: student.getRequests()) {
-            if (r instanceof CourseRequest) {
-                for (Course course: ((CourseRequest) r).getCourses()) {
-                    if (course.equals(getCourse())) return true;
-                }
-            }
-        }
-        return false;
+    public boolean isApplicable(Student student, Course course) {
+        return course != null && course.equals(getCourse());
     }
 }

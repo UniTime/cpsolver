@@ -6,8 +6,11 @@ import java.util.Map;
 import java.util.Set;
 
 import org.cpsolver.studentsct.model.Config;
+import org.cpsolver.studentsct.model.Course;
+import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Offering;
+import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.Section;
 import org.cpsolver.studentsct.model.Student;
 import org.cpsolver.studentsct.model.Subpart;
@@ -76,9 +79,24 @@ public abstract class Restriction {
     /**
      * Returns true if the student is applicable for the restriction
      * @param student a student 
+     * @param course a course
      * @return true if student can use the restriction to get into the course / configuration / section
      */
-    public abstract boolean isApplicable(Student student);
+    public abstract boolean isApplicable(Student student, Course course);
+    
+    @Deprecated
+    public boolean isApplicable(Student student) {
+        if (isApplicable(student, null)) return true;
+        for (Request r: student.getRequests()) {
+            if (r instanceof CourseRequest) {
+                for (Course course: ((CourseRequest) r).getCourses()) {
+                    if (course.getOffering().equals(getOffering()) && isApplicable(student, course))
+                        return true;
+                }
+            }
+        }
+        return false;
+    }
 
     /**
      * Instructional offering on which the restriction is set.
