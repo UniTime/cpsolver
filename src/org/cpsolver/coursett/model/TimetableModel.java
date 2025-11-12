@@ -96,6 +96,7 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
     private List<FlexibleConstraint> iFlexibleConstraints = new ArrayList<FlexibleConstraint>();
     private DataProperties iProperties = null;
     private int iYear = -1;
+    private BitSet iFullTerm = null, iHoliday = null;
     private List<BitSet> iWeeks = null;
     private boolean iOnFlySectioning = false;
     private int iStudentWorkDayLimit = -1;
@@ -514,19 +515,20 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
         return conflictValues;
     }
     
+    
     /**
-     * The method creates date patterns (bitsets) which represent the weeks of a
-     * semester.
+     * The method returns the default date pattern.
+     * It is typically set using the DatePattern.Default parameter.
+     * If not set, return the most commonly used date pattern.
      *      
-     * @return a list of BitSets which represents the weeks of a semester.
-     */
-    public List<BitSet> getWeeks() {
-        if (iWeeks == null) {
+     * @return default date pattern
+     */    
+    public BitSet getDefaultDatePattern() {
+        if (iFullTerm == null) {
             String defaultDatePattern = getProperties().getProperty("DatePattern.CustomDatePattern", null);
             if (defaultDatePattern == null){                
                 defaultDatePattern = getProperties().getProperty("DatePattern.Default");
             }
-            BitSet fullTerm = null;
             if (defaultDatePattern == null) {
                 // Take the date pattern that is being used most often
                 Map<Long, Integer> counter = new HashMap<Long, Integer>();
@@ -540,7 +542,7 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
                                 count += counter.get(time.getDatePatternId());
                             counter.put(time.getDatePatternId(), count);
                             if (count > max) {
-                                max = count; fullTerm = time.getWeekCode(); name = time.getDatePatternName(); id = time.getDatePatternId();
+                                max = count; iFullTerm = time.getWeekCode(); name = time.getDatePatternName(); id = time.getDatePatternId();
                             }
                         }
                     }
@@ -548,14 +550,48 @@ public class TimetableModel extends ConstantModel<Lecture, Placement> {
                 sLogger.info("Using date pattern " + name + " (id " + id + ") as the default.");
             } else {
                 // Create default date pattern
-                fullTerm = new BitSet(defaultDatePattern.length());
+                iFullTerm = new BitSet(defaultDatePattern.length());
                 for (int i = 0; i < defaultDatePattern.length(); i++) {
                     if (defaultDatePattern.charAt(i) == 49) {
-                        fullTerm.set(i);
+                        iFullTerm.set(i);
                     }
                 }
             }
-            
+        }
+        return iFullTerm;
+    }
+    
+    /**
+     * The method returns the holiday date pattern.
+     * It is typically set using the DatePattern.Holiday parameter.
+     *      
+     * @return holiday date pattern (1 holiday, 0 ordinary day)
+     */    
+    public BitSet getHolidayDatePattern() {
+        if (iHoliday == null) {
+            String holidayDatePattern = getProperties().getProperty("DatePattern.Holidays", null);
+            if (holidayDatePattern != null) {
+                // Create default date pattern
+                iHoliday = new BitSet(holidayDatePattern.length());
+                for (int i = 0; i < holidayDatePattern.length(); i++) {
+                    if (holidayDatePattern.charAt(i) == '1' || holidayDatePattern.charAt(i) == '2') {
+                        iHoliday.set(i);
+                    }
+                }
+            }
+        }
+        return iHoliday;
+    }
+    
+    /**
+     * The method creates date patterns (bitsets) which represent the weeks of a
+     * semester.
+     *      
+     * @return a list of BitSets which represents the weeks of a semester.
+     */
+    public List<BitSet> getWeeks() {
+        if (iWeeks == null) {
+            BitSet fullTerm = getDefaultDatePattern();
             if (fullTerm == null) return null;
             
             iWeeks = new ArrayList<BitSet>();

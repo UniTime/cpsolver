@@ -660,6 +660,36 @@ public class TimeLocation {
         return count;
     }
     
+    /**
+     * Compute the date of the first meeting of this time location
+     * @param dayOfWeekOffset day of the week offset for the weeks pattern
+     * @return date of the first meeting, -1 if there are no meetings
+     */
+    public int getFirstDate(int dayOfWeekOffset) {
+        int nextDate = -1;
+        while (true) {
+            nextDate = getWeekCode().nextSetBit(1 + nextDate);
+            if (nextDate < 0) return -1;
+            int dow = (nextDate + dayOfWeekOffset) % 7;
+            if ((getDayCode() & Constants.DAY_CODES[dow]) != 0) return nextDate;
+        }
+    }
+    
+    /**
+     * Compute the date of the last meeting of this time location
+     * @param dayOfWeekOffset day of the week offset for the weeks pattern
+     * @return date of the last meeting, -1 if there are no meetings
+     */
+    public int getLastDate(int dayOfWeekOffset) {
+        int lastDate = getWeekCode().length();
+        while (true) {
+            lastDate = getWeekCode().previousSetBit(lastDate - 1);
+            if (lastDate < 0) return -1;
+            int dow = (lastDate + dayOfWeekOffset) % 7;
+            if ((getDayCode() & Constants.DAY_CODES[dow]) != 0) return lastDate;
+        }
+    }
+    
     private class DateEnum implements IntEnumeration {
         int dayOfWeekOffset = 0;
         int nextDate = -1;

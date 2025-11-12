@@ -1137,6 +1137,73 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                 public boolean isViolated(GroupConstraint gc, Placement plc1, Placement plc2) {
                     return gc.isFollowingDates(plc1, plc2, false);
                 }}),
+            /**
+             * Given classes must be taught within the number of consecutive days.<br>
+             * This means that between any first meeting and any last meeting of all classes in the constraint there
+             * cannot be more N - 2 days in between (counting all days, where N is the number of days in the Max Day Range).
+             */
+            MAX_DAYS_RANGE("MAX_DAYS_RANGE\\(([0-9\\.]+)\\)", "Max Days Range", new AssignmentParameterPairCheck<Integer>() {
+                @Override
+                public boolean isSatisfied(Assignment<Lecture, Placement> assignment, Integer parameter, GroupConstraint gc, Placement plc1, Placement plc2) {
+                    TimeLocation t1 = plc1.getTimeLocation(), t2 = plc2.getTimeLocation();
+                    if (t1 == null || t2 == null) return true;
+                    int firstDate = Math.min(t1.getFirstDate(gc.iDayOfWeekOffset), t2.getFirstDate(gc.iDayOfWeekOffset));
+                    int lastDate = Math.max(t1.getLastDate(gc.iDayOfWeekOffset), t2.getLastDate(gc.iDayOfWeekOffset));
+                    int nrDays = lastDate - firstDate + 1;
+                    return nrDays <= parameter;
+                }
+                @Override
+                public boolean isViolated(Assignment<Lecture, Placement> assignment, Integer parameter, GroupConstraint gc, Placement plc1, Placement plc2) {
+                    return true;
+                }
+                @Override
+                public ParametrizedConstraintType<Integer> create(String reference, String regexp) {
+                    Matcher matcher = Pattern.compile(regexp).matcher(reference);
+                    if (matcher.find()) {
+                        int days = Integer.parseInt(matcher.group(1));
+                        return new ParametrizedConstraintType<Integer>(ConstraintType.MAX_DAYS_RANGE, days, reference)
+                                .setName("Max " + matcher.group(1) + " Days Range").setMin(days).setMax(days);
+                    }
+                    return null;
+                }}),
+            /**
+             * Given classes must be taught within the number of consecutive work days.<br>
+             * This means that between any first meeting and any last meeting of all classes in the constraint there
+             * cannot be more N - 2 work days in between (counting all work days, where N is the number of work days in the Max Workday Range).
+             * Days during weekends (typically Saturday and Sunday) and during holidays are not counted.
+             */
+            MAX_WORKDAYS_RANGE("MAX_WORKDAYS\\(([0-9\\.]+)\\)", "Max Workdays Range", new AssignmentParameterPairCheck<Integer>() {
+                @Override
+                public boolean isSatisfied(Assignment<Lecture, Placement> assignment, Integer parameter, GroupConstraint gc, Placement plc1, Placement plc2) {
+                    TimeLocation t1 = plc1.getTimeLocation(), t2 = plc2.getTimeLocation();
+                    if (t1 == null || t2 == null) return true;
+                    int firstDate = Math.min(t1.getFirstDate(gc.iDayOfWeekOffset), t2.getFirstDate(gc.iDayOfWeekOffset));
+                    int lastDate = Math.max(t1.getLastDate(gc.iDayOfWeekOffset), t2.getLastDate(gc.iDayOfWeekOffset));
+                    int nrDays = lastDate - firstDate + 1;
+                    if (nrDays <= parameter) return true;
+                    BitSet holiday = ((TimetableModel)gc.getModel()).getHolidayDatePattern();
+                    int workDays = 0;
+                    for (int date = firstDate; date <= lastDate; date++) {
+                        if (date < 0 || (holiday != null && holiday.get(date))) continue;
+                        int dow = (date + gc.iDayOfWeekOffset + gc.iFirstWorkDay) % 7;
+                        if (dow < 5) workDays ++;
+                    }
+                    return workDays <= parameter;
+                }
+                @Override
+                public boolean isViolated(Assignment<Lecture, Placement> assignment, Integer parameter, GroupConstraint gc, Placement plc1, Placement plc2) {
+                    return true;
+                }
+                @Override
+                public ParametrizedConstraintType<Integer> create(String reference, String regexp) {
+                    Matcher matcher = Pattern.compile(regexp).matcher(reference);
+                    if (matcher.find()) {
+                        int days = Integer.parseInt(matcher.group(1));
+                        return new ParametrizedConstraintType<Integer>(ConstraintType.MAX_WORKDAYS_RANGE, days, reference)
+                                .setName("Max " + matcher.group(1) + " Workdays Range").setMin(days).setMax(days);
+                    }
+                    return null;
+                }}),
         ;
         
         String iReference, iName;
