@@ -96,7 +96,7 @@
         		<include name="log4j2.xml"/>
         	</fileset>
         	<manifest>
-        		<attribute name="Class-Path" value="log4j-api-2.20.0.jar log4j-core-2.20.0.jar dom4j-2.1.4.jar" />
+        		<attribute name="Class-Path" value="log4j-api-2.25.3.jar log4j-core-2.25.3.jar dom4j-2.1.5.jar" />
         		<attribute name="Ifs-Version" value="1.4_bld${build.number}"/>
         	</manifest>
         </jar>
@@ -112,7 +112,7 @@
         		<include name="log4j2.xml"/>
         	</fileset>
         	<manifest>
-        		<attribute name="Class-Path" value="log4j-api-2.20.0.jar log4j-core-2.20.0.jar dom4j-2.1.4.jar ifs-1.4.jar" />
+        		<attribute name="Class-Path" value="log4j-api-2.25.3.jar log4j-core-2.25.3.jar dom4j-2.1.5.jar ifs-1.4.jar" />
         		<attribute name="CourseTT-Version" value="1.4_bld${build.number}"/>
         		<attribute name="Main-Class" value="org.cpsolver.coursett.Test"/>
         	</manifest>
@@ -129,7 +129,7 @@
         		<include name="log4j2.xml"/>
         	</fileset>
         	<manifest>
-        		<attribute name="Class-Path" value="log4j-api-2.20.0.jar log4j-core-2.20.0.jar dom4j-2.1.4.jar ifs-1.4.jar coursett-1.4.jar" />
+        		<attribute name="Class-Path" value="log4j-api-2.25.3.jar log4j-core-2.25.3.jar dom4j-2.1.5.jar ifs-1.4.jar coursett-1.4.jar" />
         		<attribute name="StudentSct-Version" value="1.4_bld${build.number}"/>
         		<attribute name="Main-Class" value="org.cpsolver.studentsct.Test"/>
         	</manifest>
@@ -146,7 +146,7 @@
         		<include name="log4j2.xml"/>
         	</fileset>
         	<manifest>
-        		<attribute name="Class-Path" value="log4j-api-2.20.0.jar log4j-core-2.20.0.jar dom4j-2.1.4.jar ifs-1.4.jar" />
+        		<attribute name="Class-Path" value="log4j-api-2.25.3.jar log4j-core-2.25.3.jar dom4j-2.1.5.jar ifs-1.4.jar" />
         		<attribute name="ExamTT-Version" value="1.4_bld${build.number}"/>
         		<attribute name="Main-Class" value="org.cpsolver.exam.Test"/>
         	</manifest>
@@ -163,7 +163,7 @@
         		<include name="log4j2.xml"/>
         	</fileset>
         	<manifest>
-        		<attribute name="Class-Path" value="log4j-api-2.20.0.jar log4j-core-2.20.0.jar dom4j-2.1.4.jar" /> 
+        		<attribute name="Class-Path" value="log4j-api-2.25.3.jar log4j-core-2.25.3.jar dom4j-2.1.5.jar" /> 
         		<attribute name="Ifs-Version" value="1.4_bld${build.number}"/>
         		<attribute name="CourseTT-Version" value="1.4_bld${build.number}"/>
         		<attribute name="StudentSct-Version" value="1.4_bld${build.number}"/>
@@ -195,7 +195,7 @@
     		CourseTT 1.4 (University Course Timetabling)<br>
     		StudentSct 1.4 (Student Sectioning)<br>
     		ExamTT 1.4 (Examination Timetabling)<br>
-    		Copyright (C) 2006 - 2024 Tomas Muller<br>
+    		Copyright (C) 2006 - 2026 Tomas Muller<br>
     		<a href='mailto:muller@unitime.org'>muller@unitime.org</a><br>
     		<a href='http://muller.unitime.org'>http://muller.unitime.org</a><br>
     		<br>
