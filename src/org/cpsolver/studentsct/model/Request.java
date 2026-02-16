@@ -47,6 +47,7 @@ public abstract class Request extends VariableWithContext<Request, Enrollment, R
     private boolean iAlternative = false;
     private Student iStudent = null;
     private double iWeight = 1.0;
+    protected RequestPriority iRequestPriority = RequestPriority.Normal;
     /** True means that method {@link Request#values()} will cache its results. */
     public static boolean sCacheValues = false;
 
@@ -289,8 +290,17 @@ public abstract class Request extends VariableWithContext<Request, Enrollment, R
     /**
      * Importance of the request. Higher priority requests are assigned before lower priority requests.
      */
-    public abstract RequestPriority getRequestPriority();
-    
+    public void setRequestPriority(RequestPriority priority) {
+        iRequestPriority = priority;
+    }
+
+    /**
+     * Importance of the request. Higher priority requests are assigned before lower priority requests.
+     */
+    public RequestPriority getRequestPriority() {
+        return iRequestPriority;
+    }
+        
     /**
      * Importance of the request for the student to progress towards his/her degree.
      * The request priority is used to re-order course priorities (if desired),

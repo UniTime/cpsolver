@@ -60,7 +60,6 @@ public class CourseRequest extends Request {
     private Double iCachedMinPenalty = null, iCachedMaxPenalty = null;
     public static boolean sSameTimePrecise = false;
     private Set<RequestGroup> iRequestGroups = new HashSet<RequestGroup>();
-    private RequestPriority iPriority = RequestPriority.Normal;
     private Enrollment iFixed = null;
 
     /**
@@ -92,7 +91,7 @@ public class CourseRequest extends Request {
         for (Course course: iCourses)
             course.getRequests().add(this);
         iWaitlist = waitlist;
-        iPriority = (critical ? RequestPriority.Critical : RequestPriority.Normal);
+        setRequestPriority(critical ? RequestPriority.Critical : RequestPriority.Normal);
         iTimeStamp = timeStamp;
     }
     
@@ -125,7 +124,7 @@ public class CourseRequest extends Request {
         for (Course course: iCourses)
             course.getRequests().add(this);
         iWaitlist = waitlist;
-        iPriority = importance;
+        setRequestPriority(importance);
         iTimeStamp = timeStamp;
     }
     
@@ -861,7 +860,7 @@ public class CourseRequest extends Request {
      */
     @Deprecated
     public void setCritical(boolean critical) {
-        iPriority = (critical ? RequestPriority.Critical : RequestPriority.Normal);
+        setRequestPriority(critical ? RequestPriority.Critical : RequestPriority.Normal);
     }
     
     /**
@@ -1221,16 +1220,7 @@ public class CourseRequest extends Request {
         }
         return (credit == null ? 0 : credit.floatValue());
     }
-
-    @Override
-    public RequestPriority getRequestPriority() {
-        return iPriority;
-    }
     
-    public void setRequestPriority(RequestPriority priority) {
-        iPriority = priority;
-    }
-
     public boolean isFixed() { return iFixed != null; }
     public Enrollment getFixedValue() { return iFixed; }
     public void setFixedValue(Enrollment constant) { iFixed = constant; }

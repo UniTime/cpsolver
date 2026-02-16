@@ -11,7 +11,6 @@ import org.cpsolver.ifs.assignment.Assignment;
 import org.cpsolver.studentsct.StudentSectioningModel;
 
 
-
 /**
  * Representation of a request of a student for free time. This class directly
  * implements {@link SctAssignment} API, with the appropriate free time. <br>
@@ -245,10 +244,5 @@ public class FreeTimeRequest extends Request implements SctAssignment {
     @Override
     public float getMinCredit() {
         return 0;
-    }
-
-    @Override
-    public RequestPriority getRequestPriority() {
-        return RequestPriority.Normal;
     }
 }

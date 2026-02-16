@@ -1121,6 +1121,9 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
                         .attributeValue("alternative")), student, time);
         if (requestEl.attributeValue("weight") != null)
             request.setWeight(Double.parseDouble(requestEl.attributeValue("weight")));
+        request.setRequestPriority(RequestPriority.valueOf(requestEl.attributeValue("importance",
+                "true".equals(requestEl.attributeValue("critical", "false")) ? RequestPriority.Critical.name() : RequestPriority.Normal.name())
+                ));
         return request;
     }
     
@@ -1224,10 +1227,8 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         for (Student student: getModel().getStudents()) {
             int assigned = 0, critical = 0;
             for (Request r: student.getRequests()) {
-                if (r instanceof CourseRequest) {
-                    if (r.getInitialAssignment() != null) assigned ++;
-                    if (r.getRequestPriority() != RequestPriority.Normal) critical ++;
-                }
+                if (r instanceof CourseRequest && r.getInitialAssignment() != null) assigned ++;
+                if (r.getRequestPriority() != RequestPriority.Normal) critical ++;
             }
             if ((getModel().getKeepInitialAssignments() && assigned > 0) || critical > 0) {
                 Collections.sort(student.getRequests(), new Comparator<Request>() {

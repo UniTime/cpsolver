@@ -824,6 +824,8 @@ public class StudentSectioningXMLSaver extends StudentSectioningSaver {
     protected void saveFreeTimeRequest(Element requestEl, FreeTimeRequest request) {
         requestEl.addAttribute("id", getId("request", request.getId()));
         requestEl.addAttribute("priority", String.valueOf(request.getPriority()));
+        if (request.getRequestPriority() != RequestPriority.Normal)
+            requestEl.addAttribute("importance", request.getRequestPriority().name());
         if (request.isAlternative())
             requestEl.addAttribute("alternative", "true");
         if (request.getWeight() != 1.0)
