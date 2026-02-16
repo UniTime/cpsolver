@@ -32,6 +32,7 @@ import org.cpsolver.studentsct.constraint.CourseLimit;
 import org.cpsolver.studentsct.constraint.DependentCourses;
 import org.cpsolver.studentsct.constraint.DisabledSections;
 import org.cpsolver.studentsct.constraint.FixInitialAssignments;
+import org.cpsolver.studentsct.constraint.FreeTimeConflicts;
 import org.cpsolver.studentsct.constraint.HardDistanceConflicts;
 import org.cpsolver.studentsct.constraint.LinkedSections;
 import org.cpsolver.studentsct.constraint.RequiredReservation;
@@ -209,6 +210,10 @@ public class StudentSectioningModel extends ModelWithContext<Request, Enrollment
         if (properties.getPropertyBoolean("Sectioning.HardDistanceConflict", false)) {
             HardDistanceConflicts hardDistanceConflicts = new HardDistanceConflicts();
             addGlobalConstraint(hardDistanceConflicts);
+        }
+        if (properties.getPropertyBoolean("Sectioning.FreeTimeConflict", false)) {
+            FreeTimeConflicts freeTimeConflicts = new FreeTimeConflicts();
+            addGlobalConstraint(freeTimeConflicts);
         }
         if (iMPP && iKeepInitials) {
             addGlobalConstraint(new FixInitialAssignments());
