@@ -1204,6 +1204,61 @@ public class GroupConstraint extends ConstraintWithContext<Lecture, Placement, G
                     }
                     return null;
                 }}),
+            /**
+             * Custom Back-To-Back &amp; Same Room: Given classes must have the given number of time slots in between the end of one and the beginning of another
+             * and must be placed in the same room.
+             * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
+             * When prohibited or (strongly) discouraged: classes can not have the given number of time slots in between. They may not overlap in time
+             * but must be taught on the same days, and they must be taught on the same days and in the same room.
+             */
+            XBTB("BTB\\(([0-9]+),([0-9]+)\\)", "Back-To-Back & Same Room", new AssignmentParameterPairCheck<int[]>() {
+                @Override
+                public boolean isSatisfied(Assignment<Lecture, Placement> assignment, int[] parameter, GroupConstraint gc, Placement plc1, Placement plc2) {
+                    return BTB.check().isSatisfied(gc, plc1, plc2);
+                }
+                @Override
+                public boolean isViolated(Assignment<Lecture, Placement> assignment, int[] parameter, GroupConstraint gc, Placement plc1, Placement plc2) {
+                    return BTB.check().isViolated(gc, plc1, plc2);
+                }
+                @Override
+                public ParametrizedConstraintType<int[]> create(String reference, String regexp) {
+                    Matcher matcher = Pattern.compile(regexp).matcher(reference);
+                    if (matcher.find()) {
+                        int minSlots = Integer.parseInt(matcher.group(1));
+                        int maxSlots = Integer.parseInt(matcher.group(2));
+                        return new ParametrizedConstraintType<int[]>(ConstraintType.XBTB, new int[] {minSlots, maxSlots}, reference)
+                                .setName("Back-To-Back " + (5 * minSlots) + (minSlots == maxSlots ? "" : "-" + (5 * maxSlots)) + " Mins & Same Room")
+                                .setMin(minSlots).setMax(maxSlots);
+                    }
+                    return null;
+                }}, Flag.BACK_TO_BACK),
+            /**
+             * Custom Back-To-Back: Given classes must have the given number of time slots in between the end of one and the beginning of another.
+             * As with the <i>back-to-back time</i> constraint, given classes must be taught on the same days.<BR>
+             * When prohibited or (strongly) discouraged: classes can not have the given number of time slots in between. They may not overlap in time
+             * but must be taught on the same days.
+             */
+            XBTB_TIME("BTB_TIME\\(([0-9]+),([0-9]+)\\)", "Back-To-Back", new AssignmentParameterPairCheck<int[]>() {
+                @Override
+                public boolean isSatisfied(Assignment<Lecture, Placement> assignment, int[] parameter, GroupConstraint gc, Placement plc1, Placement plc2) {
+                    return BTB_TIME.check().isSatisfied(gc, plc1, plc2);
+                }
+                @Override
+                public boolean isViolated(Assignment<Lecture, Placement> assignment, int[] parameter, GroupConstraint gc, Placement plc1, Placement plc2) {
+                    return BTB_TIME.check().isViolated(gc, plc1, plc2);
+                }
+                @Override
+                public ParametrizedConstraintType<int[]> create(String reference, String regexp) {
+                    Matcher matcher = Pattern.compile(regexp).matcher(reference);
+                    if (matcher.find()) {
+                        int minSlots = Integer.parseInt(matcher.group(1));
+                        int maxSlots = Integer.parseInt(matcher.group(2));
+                        return new ParametrizedConstraintType<int[]>(ConstraintType.XBTB_TIME, new int[] {minSlots, maxSlots}, reference)
+                                .setName("Back-To-Back " + (5 * minSlots) + (minSlots == maxSlots ? "" : "-" + (5 * maxSlots)) + " Mins")
+                                .setMin(minSlots).setMax(maxSlots);
+                    }
+                    return null;
+                }}, Flag.BACK_TO_BACK),
         ;
         
         String iReference, iName;
