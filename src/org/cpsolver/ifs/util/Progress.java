@@ -651,15 +651,15 @@ public class Progress {
                             + iMessage + "</span>" + getHtmlTraceLog();
                 case MSGLEVEL_WARN:
                     return (includeDate ? sDF.format(iDate) : "")
-                            + " <span style='color:orange;font-weight:bold;'>WARNING:</span> " + iMessage
+                            + " <span style='color:#b85c00;font-weight:bold;'>WARNING:</span> " + iMessage
                             + getHtmlTraceLog();
                 case MSGLEVEL_ERROR:
                     return (includeDate ? sDF.format(iDate) : "")
-                            + " <span style='color:red;font-weight:bold;'>ERROR:</span> " + iMessage
+                            + " <span style='color:#ec0000;font-weight:bold;'>ERROR:</span> " + iMessage
                             + getHtmlTraceLog();
                 case MSGLEVEL_FATAL:
                     return (includeDate ? sDF.format(iDate) : "")
-                            + " <span style='color:red;font-weight:bold;'>&gt;&gt;&gt;FATAL: " + iMessage
+                            + " <span style='color:#ec0000;font-weight:bold;'>&gt;&gt;&gt;FATAL: " + iMessage
                             + " &lt;&lt;&lt;</span>" + getHtmlTraceLog();
             }
             return null;
