@@ -71,7 +71,7 @@ public class MistaTables {
                 sLog.info("Loading " + file);
                 ExamModel model = new ExamModel(config);
                 Assignment<Exam, ExamPlacement> assignment = new DefaultSingleAssignment<Exam, ExamPlacement>();
-                model.load(new SAXReader().read(file), assignment);
+                model.load(SAXReader.createDefault().read(file), assignment);
                 
                 String name = file.getName();
                 if (name.contains("."))

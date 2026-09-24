@@ -715,7 +715,7 @@ public class Test {
      */
     public static void loadLastLikeCourseDemandsXml(StudentSectioningModel model, File xml) {
         try {
-            Document document = (new SAXReader()).read(xml);
+            Document document = SAXReader.createDefault().read(xml);
             Element root = document.getRootElement();
             HashMap<Course, List<Request>> requests = new HashMap<Course, List<Request>>();
             long reqId = 0;

@@ -80,7 +80,7 @@ public class Test extends InstructorSchedulingModel {
      */
     protected boolean load(File inputFile, Assignment<TeachingRequest.Variable, TeachingAssignment> assignment) {
         try {
-            Document document = (new SAXReader()).read(inputFile);
+            Document document = SAXReader.createDefault().read(inputFile);
             return load(document, assignment);
         } catch (Exception e) {
             sLog.error("Failed to load model from " + inputFile + ": " + e.getMessage(), e);

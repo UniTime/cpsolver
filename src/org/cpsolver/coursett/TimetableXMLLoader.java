@@ -152,7 +152,7 @@ public class TimetableXMLLoader extends TimetableLoader {
         sLogger.debug("Reading XML data from " + iInputFile);
         iProgress.setPhase("Reading " + iInputFile.getName() + " ...");
 
-        Document document = (new SAXReader()).read(iInputFile);
+        Document document = SAXReader.createDefault().read(iInputFile);
         Element root = document.getRootElement();
 
         sLogger.debug("Root element: " + root.getName());

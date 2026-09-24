@@ -148,7 +148,7 @@ public class IdConvertor {
     public void load(File file) {
         if (!file.exists()) return;
         try {
-            Document document = (new SAXReader()).read(file);
+            Document document = SAXReader.createDefault().read(file);
             Element root = document.getRootElement();
             synchronized (iConversion) {
                 iConversion.clear();

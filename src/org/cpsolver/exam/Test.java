@@ -354,7 +354,7 @@ public class Test {
 
             ExamModel model = new ExamModel(cfg);
 
-            Document document = (new SAXReader()).read(new File(cfg.getProperty("General.Input")));
+            Document document = SAXReader.createDefault().read(new File(cfg.getProperty("General.Input")));
             int nrSolvers = cfg.getPropertyInt("Parallel.NrSolvers", 1);
             Assignment<Exam, ExamPlacement> assignment = (nrSolvers <= 1 ? new DefaultSingleAssignment<Exam, ExamPlacement>() : new DefaultParallelAssignment<Exam, ExamPlacement>());
             model.load(document, assignment);

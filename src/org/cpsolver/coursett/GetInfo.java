@@ -194,7 +194,7 @@ public class GetInfo {
         if (infoFile.exists()) {
             System.out.println("Reading " + infoFile + " ...");
             try {
-                Document document = (new SAXReader()).read(infoFile);
+                Document document = SAXReader.createDefault().read(infoFile);
                 HashMap<String, String> info = getInfo(document.getRootElement());
                 if (info != null && !info.isEmpty()) {
                     infos.add(new Info(prefix, info));

@@ -626,7 +626,7 @@ public class TimetableModel extends Model<Activity, Location> {
     }
 
     public static TimetableModel loadFromXML(File inFile, Assignment<Activity, Location> assignment) throws IOException, DocumentException {
-        Document document = (new SAXReader()).read(inFile);
+        Document document = SAXReader.createDefault().read(inFile);
         Element root = document.getRootElement();
         if (!"Timetable".equals(root.getName())) {
             sLogger.error("Given XML file is not interactive timetabling problem.");

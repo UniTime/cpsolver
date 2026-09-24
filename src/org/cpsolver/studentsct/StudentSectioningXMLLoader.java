@@ -227,7 +227,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
     public void load() throws Exception {
         sLogger.debug("Reading XML data from " + iInputFile);
 
-        Document document = (new SAXReader()).read(iInputFile);
+        Document document = SAXReader.createDefault().read(iInputFile);
         Element root = document.getRootElement();
 
         load(root);
@@ -291,7 +291,7 @@ public class StudentSectioningXMLLoader extends StudentSectioningLoader {
         Map<Long, Placement> timetable = null;
         if (iTimetableFile != null) {
             sLogger.info("Reading timetable from " + iTimetableFile + " ...");
-            Document timetableDocument = (new SAXReader()).read(iTimetableFile);
+            Document timetableDocument = SAXReader.createDefault().read(iTimetableFile);
             Element timetableRoot = timetableDocument.getRootElement();
             if (!"timetable".equals(timetableRoot.getName())) {
                 sLogger.error("Given XML file is not course timetabling problem.");

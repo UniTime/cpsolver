@@ -160,7 +160,7 @@ public class GetInfo {
         if (infoFile.exists()) {
             System.out.println("Reading " + infoFile + " ...");
             try {
-                Document document = (new SAXReader()).read(infoFile);
+                Document document = SAXReader.createDefault().read(infoFile);
                 HashMap<String, String> info = getInfo(document.getRootElement());
                 if (info != null && !info.isEmpty()) {
                     infos.add(new Info(prefix, info));
@@ -188,7 +188,7 @@ public class GetInfo {
             return;
         try {
             System.out.println("Reading " + solutionFile + " ...");
-            Document document = (new SAXReader()).read(solutionFile);
+            Document document = SAXReader.createDefault().read(solutionFile);
             for (Iterator<?> i = document.nodeIterator(); i.hasNext();) {
                 Node node = (Node) i.next();
                 if (node instanceof Comment) {
