@@ -17,6 +17,7 @@ import org.cpsolver.studentsct.heuristics.selection.BacktrackSelection;
 import org.cpsolver.studentsct.heuristics.selection.BranchBoundSelection;
 import org.cpsolver.studentsct.heuristics.selection.CriticalBacktrackSelection;
 import org.cpsolver.studentsct.heuristics.selection.CriticalCoursesBranchAndBoundSelection;
+import org.cpsolver.studentsct.heuristics.selection.CriticalMinCreditBranchAndBoundSelection;
 import org.cpsolver.studentsct.heuristics.selection.CriticalStandardSelection;
 import org.cpsolver.studentsct.heuristics.selection.MinCreditBranchAndBoundSelection;
 import org.cpsolver.studentsct.heuristics.selection.PriorityConstructionSelection;
@@ -145,6 +146,9 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
                         
                         for (RequestPriority rp: RequestPriority.values()) {
                             for (int cr = 0; cr < iCriticalRounds; cr++ ) {
+                                if (iUseMinCreditSelection)
+                                    registerSelection(new CriticalMinCreditBranchAndBoundSelection(solver.getProperties(), rp).withFilter(filter));
+                                
                                 registerSelection(new CriticalCoursesBranchAndBoundSelection(solver.getProperties(), rp).withFilter(filter));
                                 
                                 registerSelection(new CriticalBacktrackSelection(solver.getProperties(), rp).withFilter(filter));
@@ -166,6 +170,9 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
 
                         StudentFilter filter = new PriortyStudentFilter(sp, includeHigherPriority);
                         
+                        if (iUseMinCreditSelection)
+                            registerSelection(new MinCreditBranchAndBoundSelection(solver.getProperties()).withFilter(filter));
+                        
                         registerSelection(new BranchBoundSelection(solver.getProperties()).withFilter(filter));
                         
                         registerSelection(new BacktrackSelection(solver.getProperties()).withFilter(filter));
@@ -182,6 +189,9 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
             for (RequestPriority rp: RequestPriority.values()) {
                 if (rp == RequestPriority.Normal) break;
                 for (int cr = 0; cr < iCriticalRounds; cr++ ) {
+                    if (iUseMinCreditSelection)
+                        registerSelection(new CriticalMinCreditBranchAndBoundSelection(solver.getProperties(), rp));
+                    
                     registerSelection(new CriticalCoursesBranchAndBoundSelection(solver.getProperties(), rp));
                     
                     registerSelection(new CriticalBacktrackSelection(solver.getProperties(), rp));
@@ -203,6 +213,9 @@ public class StudentSctNeighbourSelection extends RoundRobinNeighbourSelection<R
                     boolean includeHigherPriority = (iPriorityLastRoundAllStudents && sp.ordinal() > 0 && (pr + 1 == iPriorityRounds));
 
                     StudentFilter filter = new PriortyStudentFilter(sp, includeHigherPriority);
+                    
+                    if (iUseMinCreditSelection)
+                        registerSelection(new MinCreditBranchAndBoundSelection(solver.getProperties()).withFilter(filter));
 
                     registerSelection(new BranchBoundSelection(solver.getProperties()).withFilter(filter));
                     

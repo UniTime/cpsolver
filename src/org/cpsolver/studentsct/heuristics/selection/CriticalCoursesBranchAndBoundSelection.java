@@ -122,9 +122,17 @@ public class CriticalCoursesBranchAndBoundSelection extends BranchBoundSelection
             return false;
         }
         
+        public boolean canLeaveUnassigned(int idx) {
+            for (int i = idx; i < iStudent.getRequests().size(); i++) {
+                Request r = iStudent.getRequests().get(i);
+                if (!canLeaveUnassigned(r)) return false;
+            }
+            return true;
+        }
+        
         @Override
         public void backTrack(int idx) {
-            if (!isCritical(idx)) {
+            if (!isCritical(idx) && canLeaveUnassigned(idx)) {
                 if (iMinimizePenalty) {
                     if (getBestAssignment() == null || (getNrAssigned() > getBestNrAssigned() || (getNrAssigned() == getBestNrAssigned() && getPenalty() < getBestValue())))
                         saveBest();

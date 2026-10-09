@@ -6,6 +6,8 @@ import org.cpsolver.ifs.solution.Solution;
 import org.cpsolver.ifs.solver.Solver;
 import org.cpsolver.ifs.util.DataProperties;
 import org.cpsolver.ifs.util.Progress;
+import org.cpsolver.studentsct.heuristics.studentord.StudentChoiceOrder;
+import org.cpsolver.studentsct.model.CourseRequest;
 import org.cpsolver.studentsct.model.Enrollment;
 import org.cpsolver.studentsct.model.Request;
 import org.cpsolver.studentsct.model.Request.RequestPriority;
@@ -13,7 +15,8 @@ import org.cpsolver.studentsct.model.Student;
 
 /**
  * This selection is very much like {@link BranchBoundSelection}, but only enough
- * courses to a student is assigned to reach the min credit (see {@link Student#getMinCredit()}).
+ * courses to a student is assigned to reach the min credit (see {@link Student#getMinCredit()})
+ * while only using critical course requests (see {@link CourseRequest#isCritical()}.
  * Students that do not have the min credit set or have it set to zero are skipped.
  * 
  * <br>
@@ -26,7 +29,7 @@ import org.cpsolver.studentsct.model.Student;
  * <th>Comment</th>
  * </tr>
  * <tr>
- * <td>Neighbour.MinCreditBranchAndBoundTimeout</td>
+ * <td>Neighbour.CriticalMinCreditBranchAndBoundTimeout</td>
  * <td>{@link Integer}</td>
  * <td>Timeout for each neighbour selection (in milliseconds).</td>
  * </tr>
@@ -63,24 +66,28 @@ import org.cpsolver.studentsct.model.Student;
  *          License along with this library; if not see
  *          <a href='http://www.gnu.org/licenses/'>http://www.gnu.org/licenses/</a>.
  */
-public class MinCreditBranchAndBoundSelection extends BranchBoundSelection {
+public class CriticalMinCreditBranchAndBoundSelection extends BranchBoundSelection {
     protected boolean iMPP = false;
     private RequestPriority iPriority;
     
-    public MinCreditBranchAndBoundSelection(DataProperties properties, RequestPriority priority) {
+    public CriticalMinCreditBranchAndBoundSelection(DataProperties properties, RequestPriority priority) {
         super(properties);
         iMPP = properties.getPropertyBoolean("General.MPP", false);
-        iTimeout = properties.getPropertyInt("Neighbour.MinCreditBranchAndBoundTimeout", 10000);
+        iTimeout = properties.getPropertyInt("Neighbour.CriticalMinCreditBranchAndBoundTimeout", 10000);
         iPriority = priority;
+        if (iOrder instanceof StudentChoiceOrder) {
+            ((StudentChoiceOrder)iOrder).setCriticalOnly(true);
+            ((StudentChoiceOrder)iOrder).setRequestPriority(iPriority);
+        }
     }
     
-    public MinCreditBranchAndBoundSelection(DataProperties properties) {
+    public CriticalMinCreditBranchAndBoundSelection(DataProperties properties) {
         this(properties, RequestPriority.Important);
     }
     
     @Override
     public void init(Solver<Request, Enrollment> solver) {
-        init(solver, "Min Credit B&B" + (iFilter == null ? "" : " (" + iFilter.getName().toLowerCase() + " students)" ) + "...");
+        init(solver, iPriority.name() + " Min Credit B&B" + (iFilter == null ? "" : " (" + iFilter.getName().toLowerCase() + " students)") + "...");
     }
     
     @Override
@@ -88,8 +95,9 @@ public class MinCreditBranchAndBoundSelection extends BranchBoundSelection {
         Student student = null;
         while ((student = nextStudent()) != null) {
             Progress.getInstance(solution.getModel()).incProgress();
-            if (student.getMinCredit() > 0f && student.getAssignedCredit(solution.getAssignment()) < student.getMinCredit()) {
-                // only consider students with less than min credit assigned
+            if (student.getMinCredit() > 0f && student.getAssignedCredit(solution.getAssignment()) < student.getMinCredit()
+                    && student.hasUnassignedCritical(solution.getAssignment(), iPriority)) {
+                // only consider students with less than min credit assigned that have some unassigned critical course requests
                 Neighbour<Request, Enrollment> neighbour = getSelection(solution.getAssignment(), student).select();
                 if (neighbour != null) return neighbour;
             }
@@ -99,12 +107,12 @@ public class MinCreditBranchAndBoundSelection extends BranchBoundSelection {
     
     @Override
     public Selection getSelection(Assignment<Request, Enrollment> assignment, Student student) {
-        return new MinCreditSelection(student, assignment);
+        return new MinCreditCriticalSelection(student, assignment);
     }
     
-    public class MinCreditSelection extends Selection {
+    public class MinCreditCriticalSelection extends Selection {
         
-        public MinCreditSelection(Student student, Assignment<Request, Enrollment> assignment) {
+        public MinCreditCriticalSelection(Student student, Assignment<Request, Enrollment> assignment) {
             super(student, assignment);
         }
         
@@ -134,7 +142,7 @@ public class MinCreditBranchAndBoundSelection extends BranchBoundSelection {
         
         @Override
         public void backTrack(int idx) {
-            if (getCredit(idx) >= iStudent.getMinCredit() && !isCritical(idx) && canLeaveUnassigned(idx)) {
+            if ((getCredit(idx) >= iStudent.getMinCredit() || !isCritical(idx)) && canLeaveUnassigned(idx)) {
                 if (iMinimizePenalty) {
                     if (getBestAssignment() == null || (getNrAssigned() > getBestNrAssigned() || (getNrAssigned() == getBestNrAssigned() && getPenalty() < getBestValue())))
                         saveBest();
@@ -144,8 +152,11 @@ public class MinCreditBranchAndBoundSelection extends BranchBoundSelection {
                 }
                 return;
             }
-            if (idx < iAssignment.length && getCredit(idx) >= iStudent.getMinCredit() && !iPriority.isCritical(iStudent.getRequests().get(idx)) && (!iMPP || iStudent.getRequests().get(idx).getInitialAssignment() == null) && canLeaveUnassigned(iStudent.getRequests().get(idx))) {
-                // not done yet, over min credit but not critical >> leave unassigned
+            if (idx < iAssignment.length &&
+                    (getCredit(idx) >= iStudent.getMinCredit() || !iPriority.isCritical(iStudent.getRequests().get(idx))) &&
+                    (!iMPP || iStudent.getRequests().get(idx).getInitialAssignment() == null) &&
+                    canLeaveUnassigned(iStudent.getRequests().get(idx))) {
+                // not done yet && (over min credit || not critical) && not initial && can leave unassigned >> leave unassigned
                 backTrack(idx + 1);
             } else {
                 super.backTrack(idx);
